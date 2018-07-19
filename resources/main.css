@@ -97,8 +97,6 @@ body.light .hover-message > .message {
 
 .ui {
     position: absolute;
-    /* Keep horizontal overflow visible for tooltips. */
-    overflow: visible hidden;
     top: 0px;
     left: 0px;
     min-width: 450px;
