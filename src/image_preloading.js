@@ -69,11 +69,12 @@ class _img_preloader extends _preloader
     cancel()
     {
         // Setting the src of an img causes any ongoing fetch to be cancelled in both Firefox
-        // and Chrome.
+        // and Chrome.  Set it to a transparent PNG (if we set it to "#", Chrome will try to
+        // load the page URL as an image).
         if(this.img == null)
             return;
 
-        this.img.src = "#";
+        this.img.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==";
         this.img = null;
         this.callback = null;
     }
