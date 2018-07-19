@@ -1,5 +1,5 @@
 This user script improves viewing illustrations on Pixiv.  This can be used
-with TamperMonkey in Firefox and Chrome.  GreaseMonkey is unsupported.
+with TamperMonkey and GreaseMonkey in Firefox and Chrome.
 
 The most recent version [can be installed here](https://s3.amazonaws.com/ppixiv/ppixiv.user.js).
 
@@ -54,9 +54,6 @@ These pages are supported:
 - New following posts
 - Searching
 - Rankings
-
-GreaseMonkey is unsupported due to them breaking APIs too often and general
-sandboxing brokenness.  Use TamperMonkey instead.
 
 Portions under MIT/BSD license as listed in source.  All other code is in the
 public domain.

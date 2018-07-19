@@ -75,46 +75,47 @@ ZipImagePlayer.prototype = {
     },
     _load: function() {
         var _this = this;
+
         // Use helpers.fetch_resource, so we share fetches with preloading.
-        var xhr = helpers.fetch_resource(this.op.source);
+        var xhr = helpers.fetch_resource(this.op.source, {
+            onload: function(ev) {
+                if (_this._dead) {
+                    return;
+                }
+                _this._debugLog("Load: status=" + ev.status);
+                if (ev.status != 200) {
+                    _this._error("Unexpected HTTP status " + ev.status);
+                }
+                var length = ev.response.byteLength;
+                _this._len = length;
+                _this._pHead = length;
+                _this._buf = ev.response;
+                _this._bytes = new Uint8Array(_this._buf);
+                this._findCentralDirectory();
 
-        xhr.addEventListener("load", function(ev) {
-            if (_this._dead) {
-                return;
-            }
-            _this._debugLog("Load: status=" + xhr.status);
-            if (xhr.status != 200) {
-                _this._error("Unexpected HTTP status " + xhr.status);
-            }
-            var length = xhr.response.byteLength;
-            _this._len = length;
-            _this._pHead = length;
-            _this._buf = xhr.response;
-            _this._bytes = new Uint8Array(_this._buf);
-            this._findCentralDirectory();
+                if(this.op.progress)
+                {
+                    try {
+                        setTimeout(function() {
+                            this.op.progress(null);
+                        }.bind(this), 0);
+                    } catch(e) {
+                        console.error(e);
+                    }
+                }
+            }.bind(this),
 
-            if(this.op.progress)
-            {
+            onerror: this._mkerr("Fetch failed"),
+            onprogress: function(e) {
+                if(!this.op.progress)
+                    return;
                 try {
-                    setTimeout(function() {
-                        this.op.progress(null);
-                    }.bind(this), 0);
+                    this.op.progress(e.loaded / e.total);
                 } catch(e) {
                     console.error(e);
                 }
-            }
-        }.bind(this));
-
-        xhr.addEventListener("error", this._mkerr("Fetch failed"), false);
-        xhr.addEventListener("progress", function(e) {
-            if(!this.op.progress)
-                return;
-            try {
-                this.op.progress(e.loaded / e.total);
-            } catch(e) {
-                console.error(e);
-            }
-        }.bind(this));
+            }.bind(this),
+        });
     },
     _startLoad: function() {
         var _this = this;
@@ -254,7 +255,7 @@ ZipImagePlayer.prototype = {
     },
     _loadImage: function(frame, url, isBlob) {
         var _this = this;
-        var image = new real_Image();
+        var image = document.createElement("img");
         var meta = this.op.metadata.frames[frame];
         image.addEventListener('load', function() {
             _this._debugLog("Loaded " + meta.file + " to frame " + frame);

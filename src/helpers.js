@@ -54,58 +54,115 @@ var helpers = {
     // the second out of cache.  This causes duplicate requests when prefetching video ZIPs.
     // This works around that problem by returning the existing XHR if one is already in progress.
     _fetches: {},
-    fetch_resource: function(url, callback)
+    fetch_resource: function(url, options)
     {
         if(this._fetches[url])
         {
-            var xhr = this._fetches[url];
+            var request = this._fetches[url];
 
             // Remember that another fetch was made for this resource.
-            xhr.fetch_count++;
+            request.fetch_count++;
 
-            return xhr;
+            if(options != null)
+                request.callers.push(options);
+
+            return request;
         }
-        var xhr = new RealXMLHttpRequest();
 
-        xhr.open("GET", url);
-        xhr.responseType = "arraybuffer";
-        xhr.send();
+        var request = helpers.send_pixiv_request({
+            "method": "GET",
+            "url": url,
+            "responseType": "arraybuffer",
 
-        // Once the request finishes, future requests can be done normally and should be served
-        // out of cache.
-        xhr.addEventListener("load", function(e) {
-            delete this._fetches[url];
-        }.bind(this));
+            "headers": {
+                "Accept": "application/json",
+            },
+            onload: function(e) {
+                // Once the request finishes, future requests can be done normally and should be served
+                // out of cache.
+                delete helpers._fetches[url];
+
+                // Call onloads.
+                for(var options of request.callers.slice())
+                {
+                    try {
+                        if(options.onload)
+                            options.onload(e);
+                    } catch(exc) {
+                        console.error(exc);
+                    }
+                }
+            },
+
+            onerror: function(e) {
+                console.error("Fetch failed");
+                for(var options of request.callers.slice())
+                {
+                    try {
+                        if(options.onerror)
+                            options.onerror(e);
+                    } catch(exc) {
+                        console.error(exc);
+                    }
+                }
+            },
+
+            onprogress: function(e) {
+                for(var options of request.callers.slice())
+                {
+                    try {
+                        if(options.onprogress)
+                            options.onprogress(e);
+                    } catch(exc) {
+                        console.error(exc);
+                    }
+                }
+            },
+        });        
+
+        if(request == null)
+        {
+            request = {};
+            request.abort = function() { }
+        }
 
         // Remember the number of times fetch_resource has been called on this URL.
-        xhr.fetch_count = 1;
+        request.fetch_count = 1;
+        request.callers = [];
+        request.callers.push(options);
 
-        this._fetches[url] = xhr;
+        this._fetches[url] = request;
 
-        // Override xhr.abort to reference count fetching, so we only cancel the load if
+        // Override request.abort to reference count fetching, so we only cancel the load if
         // every caller cancels.
         //
         // Note that this means you'll still receive events if the fetch isn't actually
         // cancelled, so you should unregister event listeners if that's important.
-        var original_abort = xhr.abort;
-        xhr.abort = function()
+        var original_abort = request.abort;
+        request.abort = function()
         {
-            if(xhr.fetch_count == 0)
+            // Remove this caller's callbacks, if any.
+            if(options != null)
+            {
+                var idx = request.callers.indexOf(options);
+                if(idx != -1)
+                        request.callers.splice(idx, 1);
+            }
+            
+            if(request.fetch_count == 0)
             {
                 console.error("Fetch was aborted more times than it was started:", url);
                 return;
             }
 
-            xhr.fetch_count--;
-            if(xhr.fetch_count > 0)
+            request.fetch_count--;
+            if(request.fetch_count > 0)
                 return;
 
-            console.log("abort");
-            original_abort.call(xhr);
-            console.log("done");
+            original_abort.call(request);
         };
 
-        return xhr;
+        return request;
     },
 
     // For some reason, only the mode=manga page actually has URLs to each page.  Avoid
@@ -184,21 +241,17 @@ var helpers = {
         return helpers.get_request(url, {}, callback);
     },
 
-    // We can't completely stop scripts in Chrome because Chrome is bad.  Stop some XHR requests.
-    // For some dumb reason, Pixiv sends error reports by creating an image, instead of using a
-    // normal API.  Override window.Image to stop it from sending error messages for this script.
+    // Stop the underlying page from sending XHR requests, since we're not going to display any
+    // of it and it's just unneeded traffic.  For some dumb reason, Pixiv sends error reports by
+    // creating an image, instead of using a normal API.  Override window.Image too to stop it
+    // from sending error messages for this script.
     //
     // Firefox is now also bad and seems to have removed beforescriptexecute.  The Web is not
     // much of a dependable platform.
     block_network_requests: function()
     {
-        RealXMLHttpRequest = window.XMLHttpRequest;
-        real_fetch = window.fetch;
-        real_Image = window.Image;
-
         window.Image = function() { };
 
-        // Block fetch and XHR too.
         dummy_fetch = function() { };
         dummy_fetch.prototype.ok = true;
         dummy_fetch.prototype.sent = function() { return this; }
@@ -292,34 +345,67 @@ var helpers = {
         return str.join("&");
     },
 
+    // Send a request withi GM_xmlhttpRequest.
+    //
+    // The referer, cookie and CSRF token will be filled in automatically.
+    //
+    // The returned object will have an abort method that might abort the request.
+    // (TamperMonkey provides abort, but GreaseMonkey doesn't.)
+    //
+    // Note that options will be modified.
+    send_pixiv_request: function(options)
+    {
+        if(options.headers == null)
+            options.headers = {};
+
+        options.headers["Cookie"] = document.cookie;
+        options.headers["x-csrf-token"] = global_data.csrf_token;
+
+        // Use the page URL with the hash removed.
+        var url = new URL(document.location);
+        url.hash = "";
+        options.headers["Referer"] = url.toString();
+
+        var request = GM_xmlhttpRequest(options);
+        if(request == null)
+        {
+            request = {
+                abort: function() { },
+            };
+        }
+
+        return request;
+    },
+
     // Why does Pixiv have 3 APIs?
     rpc_post_request: function(url, data, callback)
     {
-        var xhr = new RealXMLHttpRequest();
+        return helpers.send_pixiv_request({
+            "method": "POST",
+            "url": url,
 
-        xhr.addEventListener("load", function(e) {
-            var result = JSON.parse(xhr.responseText);
-            if(result.error)
-                console.error("Error in XHR request:", result.message)
+            "data": helpers.encode_query(data),
+            "responseType": "json",
 
-            if(callback)
-                callback(result);
-        }, false);
+            "headers": {
+                "Accept": "application/json",
+                "Content-Type": "application/x-www-form-urlencoded; charset=utf-8",
+            },
+            onload: function(result) {
+                var data = result.response;
+                if(data.error)
+                    console.error("Error in XHR request:", data.message)
 
-        xhr.addEventListener("error", function(e) {
-            console.error("Fetch failed");
-            if(callback)
-                callback({"error": true, "message": "XHR error"});
-        }, false);
+                if(callback)
+                    callback(data);
+            },
 
-        xhr.open("POST", url);
-        xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded; charset=utf-8");
-        xhr.setRequestHeader("Accept", "application/json");
-        xhr.setRequestHeader("x-csrf-token", global_data.csrf_token);
-
-        var form_data = helpers.encode_query(data);
-        xhr.send(form_data);
-        return xhr;
+            onerror: function(e) {
+                console.error("Fetch failed");
+                if(callback)
+                    callback({"error": true, "message": "XHR error"});
+            },
+        });        
     },
 
     rpc_get_request: function(url, data, callback)
@@ -331,58 +417,61 @@ var helpers = {
         if(query != "")
             url += "?" + query;
         
-        var xhr = new RealXMLHttpRequest();
+        return helpers.send_pixiv_request({
+            "method": "GET",
+            "url": url,
+            "responseType": "json",
 
-        xhr.addEventListener("load", function(e) {
-            var result = JSON.parse(xhr.responseText);
-            if(result.error)
-                console.error("Error in XHR request:", result.message)
+            "headers": {
+                "Accept": "application/json",
+            },
 
-            if(callback)
-                callback(result);
-        }, false);
+            onload: function(result) {
+                var data = result.response;
+                if(data.error)
+                    console.error("Error in XHR request:", data.message)
 
-        xhr.addEventListener("error", function(e) {
-            console.error("Fetch failed");
-            if(callback)
-                callback({"error": true, "message": "XHR error"});
-        }, false);
+                if(callback)
+                    callback(data);
+            },
 
-        xhr.open("GET", url);
-        xhr.setRequestHeader("Accept", "application/json");
-        xhr.setRequestHeader("x-csrf-token", global_data.csrf_token);
-
-        xhr.send();
-        return xhr;
+            onerror: function(result) {
+                console.error("Fetch failed");
+                if(callback)
+                    callback({"error": true, "message": "XHR error"});
+            },
+        });
     },
 
     post_request: function(url, data, callback)
     {
-        var xhr = new RealXMLHttpRequest();
+        return helpers.send_pixiv_request({
+            "method": "POST",
+            "url": url,
+            "responseType": "json",
 
-        xhr.addEventListener("load", function(e) {
-            var result = JSON.parse(xhr.responseText);
-            if(result.error)
-                console.error("Error in XHR request:", result.message)
+            "data" :JSON.stringify(data),
 
-            if(callback)
-                callback(result);
-        }, false);
+            "headers": {
+                "Accept": "application/json",
+                "Content-Type": "application/json; charset=utf-8",
+            },
+            onload: function(result) {
+                var data = result.response;
+                console.log(data);
+                if(data.error)
+                    console.error("Error in XHR request:", data.message)
 
-        xhr.addEventListener("error", function(e) {
-            console.error("Fetch failed");
-            if(callback)
-                callback({"error": true, "message": "XHR error"});
-        }, false);
+                if(callback)
+                    callback(data);
+            },
 
-        xhr.open("POST", url);
-        xhr.setRequestHeader("Content-Type", "application/json; charset=utf-8");
-        xhr.setRequestHeader("Accept", "application/json");
-        xhr.setRequestHeader("x-csrf-token", global_data.csrf_token);
-
-        var json = JSON.stringify(data);
-        xhr.send(json);
-        return xhr;
+            onerror: function(e) {
+                console.error("Fetch failed");
+                if(callback)
+                    callback({"error": true, "message": "XHR error"});
+            },
+        });        
     },
 
     get_request: function(url, data, callback)
@@ -394,29 +483,29 @@ var helpers = {
         if(query != "")
             url += "?" + query;
 
-        var xhr = new RealXMLHttpRequest();
+        return helpers.send_pixiv_request({
+            "method": "GET",
+            "url": url,
+            "responseType": "json",
 
-        xhr.addEventListener("load", function(e) {
-            var result = JSON.parse(xhr.responseText);
-            if(result.error)
-                console.error("Error in XHR request:", result.message)
+            "headers": {
+                "Accept": "application/json",
+            },
+            onload: function(result) {
+                var data = result.response;
+                if(data.error)
+                    console.error("Error in XHR request:", data.message)
 
-            if(callback)
-                callback(result);
-        }, false);
+                if(callback)
+                    callback(data);
+            },
 
-        xhr.addEventListener("error", function(e) {
-            console.error("Fetch failed");
-            if(callback)
-                callback({"error": true, "message": "XHR error"});
-        }, false);
-
-        xhr.open("GET", url);
-        xhr.setRequestHeader("Accept", "application/json");
-        xhr.setRequestHeader("x-csrf-token", global_data.csrf_token);
-
-        xhr.send();
-        return xhr;
+            onerror: function(e) {
+                console.error("Fetch failed");
+                if(callback)
+                    callback({"error": true, "message": "XHR error"});
+            },
+        });        
     },
 
     // Download all URLs in the list.  Call callback with an array containing one ArrayData for each URL.  If

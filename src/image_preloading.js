@@ -93,9 +93,9 @@ class _xhr_preloader extends _preloader
     {
         this.callback = callback;
 
-        this.xhr = helpers.fetch_resource(this.url);
-        this.xhr.addEventListener("load", this._run_callback);
-        this.xhr.addEventListener("error", this._run_callback);
+        this.xhr = helpers.fetch_resource(this.url, {
+            onload: this._run_callback,
+        });
     }
 
     cancel()
