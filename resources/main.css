@@ -1,0 +1,917 @@
+* { box-sizing: border-box; }
+body {
+    font-family: "Helvetica Neue", arial, sans-serif;
+}
+a {
+    text-decoration: none;
+    /*color: #fff;*/
+    color: inherit;
+}
+.light a {
+    color: inherit;
+}
+.image-container {
+    width: 100%;
+    height: 100%;
+    user-select: none;
+    -moz-user-select: none;
+    cursor: pointer;
+}
+[hidden] {
+    display: none !important;
+}
+
+textarea:focus, input:focus, a:focus {
+    outline: none;
+}
+
+.hide-cursor { cursor: none !important; }
+.hide-cursor * { cursor: inherit !important; }
+
+.main-container {
+    position: fixed;
+    z-index: 100000;
+    top: 0px;
+    left: 0px;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+.progress-bar {
+    position: absolute;
+    pointer-events: none;
+    background-color: #00F;
+    bottom: 0px;
+    left: 0px;
+    width: 100%;
+    height: 2px;
+}
+@keyframes flash-progress-bar { to { opacity: 0; } }
+.refresh-icon {
+}
+.progress-bar.hide {
+    animation: flash-progress-bar 500ms linear 1 forwards;
+}
+
+.loading-progress-bar .progress-bar {
+    z-index: 100;
+}
+.title-font {
+    font-weight: 700;
+    font-size: 20px;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen, Ubuntu, Cantarell,
+        Droid Sans, Helvetica Neue, Hiragino Kaku Gothic ProN, Meiryo, sans-serif;
+}
+
+.hover-message {
+    width: 100%;
+    position: absolute;
+    bottom: 0px;
+    display: flex;
+    justify-content: center;    
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity .25s;
+}
+
+.hover-message.show {
+    opacity: 1;
+}
+
+.hover-message > .message {
+    background-color: #000;
+    color: #fff;
+    font-size: 1.4em;
+    padding: 6px 15px;
+    margin: 4px;
+    max-width: 600px;
+    text-align: center;
+    border-radius: 5px;
+    box-shadow: 0 0 10px 5px #aaa;
+}
+
+body.light .hover-message > .message {
+    background-color: #eee;
+    color: #222;
+}
+
+.ui {
+    position: absolute;
+    /* Keep horizontal overflow visible for tooltips. */
+    overflow: visible hidden;
+    top: 0px;
+    left: 0px;
+    min-width: 450px;
+    max-height: 500px;
+    width: 30%;
+    height: auto;
+    margin: .5em;
+    pointer-events: none;
+}
+
+.ui.disabled {
+    display: none;
+}
+
+/*
+ * This is the box that triggers the UI to be displayed.  We use this rather than
+ * ui-box for this so we can give it a fixed size.  That way, the UI box won't suddenly
+ * appear when changing to another image because a longer description caused the box
+ * to become bigger.
+ *
+ * This is a little tricky.  Hovering over either hover-box or the UI makes it visible.
+ * When the UI is hidden, it's set to pointer-events: none, so it can't be hovered,
+ * but once you hover over hover-box and cause the UI to be visible, pointer events
+ * are reenabled so hovering over anywhere in the UI keeps it visible.  The UI is
+ * over hover-box in the Z order, so we don't need to disable pointer events on hover-box
+ * to prevent it from blocking the UI.
+ *
+ * We also disable pointer-events on the UI until it's visible, so it doesn't receive
+ * clicks until it's visible.
+ */
+.hover-box {
+    width: 400px;
+    height: 200px;
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: auto; /* reenable pointer events that are disabled on .ui */
+}
+.ui-box {
+    background-color: #222;
+    border: solid 2px #000;
+    padding: 1em;
+    color: #EEE;
+    border-radius: 8px;
+    transition: transform .25s, opacity .25s;
+    opacity: 0;
+    transform: translate(-50px, 0);
+    pointer-events: none;
+}
+body.light .ui-box {
+    background-color: #eee;
+    color: #222;
+    border-color: #ccc;
+}
+
+/* Debugging: */
+body.force-ui .ui > .ui-box {
+    opacity: 1;
+    transform: translate(0, 0);
+    pointer-events: inherit;
+}
+
+/* Show the UI on hover when hide-ui isn\'t set. */
+body:not(.hide-ui) .ui-box:hover,
+body:not(.hide-ui) .hover-box:hover + .ui-box {
+    opacity: 1;
+    transform: translate(0, 0);
+    pointer-events: auto;
+}
+
+
+.button-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    height: 32px;
+    margin-top: .5em;
+}
+
+.disable-ui-button svg.pixiv-icon {
+    /* The .pixiv-icon class on this element sets the background. */
+    display: inline-block;
+    width: 26px;
+    height: auto;
+    margin: 0 4px;
+    cursor: pointer;
+}
+.disable-ui-button:hover svg.pixiv-icon {
+    fill: #0096FA;
+}
+
+.show-thumbnails-button {
+    cursor: pointer;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+.refresh-icon {
+    animation: spin 1000ms linear infinite;
+    animation-play-state: paused;
+}
+
+/* The icon SVG is placed in this. */
+.refresh-icon:after {
+    display: block;
+    width: 20px;
+    height: 20px;
+}
+.refresh-icon.spin {
+    animation-play-state: running;
+}
+
+.settings-menu-box svg {
+    margin: 0 .5em;
+}
+
+/* Toggle boxes for the settings menu: */
+.thumbnail-container.big-thumbnails .toggle-big-thumbnails > .off { display: none; }
+.thumbnail-container:not(.big-thumbnails) .toggle-big-thumbnails > .on { display: none; }
+
+body.light .toggle-light-mode > .off { display: none; }
+body:not(.light) .toggle-light-mode > .on { display: none; }
+
+body:not(.disable-thumbnail-zooming) .toggle-thumbnail-zooming > .off { display: none; }
+body.disable-thumbnail-zooming .toggle-thumbnail-zooming > .on { display: none; }
+
+body:not(.disable-thumbnail-panning) .toggle-thumbnail-panning > .off { display: none; }
+body.disable-thumbnail-panning .toggle-thumbnail-panning > .on { display: none; }
+
+.download-button {
+    cursor: pointer;
+}
+.download-button > svg {
+    margin: 0 5px;
+    width: 20px;
+    height: 20px;
+}
+.bookmark-line > * {
+    vertical-align: middle;
+    display: inline-block;
+}
+.popup.avatar-popup:hover:after {
+    left: auto;
+    bottom: auto;
+    top: 60px;
+    right: -10px;
+}
+.follow-container .avatar {
+    border-radius: 5px;
+    object-fit: cover;
+}
+.follow-container:not(.big) .avatar {
+    width: 50px;
+    height: 50px;
+}
+.follow-container.big .avatar {
+    width: 170px;
+    height: 170px;
+}
+.follow-container.followed .follow-popup .not-following { display: none; }
+.follow-container:not(.followed) .follow-popup .following { display: none; }
+.follow-container.followed .avatar {
+    box-shadow: 0 0 15px 10px #0aa;
+}
+
+.title-block {
+    display: inline-block;
+    padding: 0 10px;
+    background-color: #444;
+    margin-right: 1em;
+    border-radius: 8px 0;
+}
+.light .title-block {
+    background-color: #888;
+    color: #fff;
+}
+.title-block.popup:hover:after {
+    top: 40px;
+    bottom: auto;
+}
+.author {
+    vertical-align: top;
+}
+/* When .dot is set, show images with nearest neighbor filtering. */
+body.dot img.filtering,
+body.dot canvas.filtering {
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+    image-rendering: pixelated;
+}
+/* When not bookmarked, highlight on hover and show the private icon on control-hover. */
+/* When bookmarked, show the bookmark state. */
+.bookmark-button { cursor: pointer; }
+.bookmark-button .bookmark-popup { cursor: initial; } /* stop cursor: pointer above from propagating all the way down */
+body:not(.bookmarked) .bookmark-button:hover svg.heart,
+body.bookmarked .bookmark-button.bookmarked-public svg.heart { fill: #f00; }
+.bookmark-button.bookmarked-private svg.heart { fill: #800; stroke: #fff; }
+body.bookmarked .bookmark-button input { display: none; }
+.bookmark-button > span.popup {
+    margin: 0 3px;
+}
+.like-button {
+    cursor: pointer;
+}
+.like-button > svg.like-icon {
+    margin: 0 4px;
+}
+.similar-illusts-button:hover > svg.similar-illusts-icon {
+    fill: #FF0 !important; /* override grey-icon hover color */
+}
+.similar-illusts-button > svg.similar-illusts-icon {
+    margin-top: -4px;
+}
+
+.like-button.liked > .like-icon,
+.like-button:not(.liked) > .like-icon:hover {
+    fill: #0F0 !important; /* override grey-icon hover color */
+}
+.description {
+    border: solid 1px #000;
+    padding: .35em;
+    background-color: #555;
+    max-height: 10em;
+    overflow-y: auto;
+}
+.light .description {
+    background-color: #ccc;
+    border: none;
+}
+/* Override obnoxious colors in descriptions.  Why would you allow this? */
+.description * {
+    color: #eee !important;
+}
+body.light .description * {
+    color: #222 !important;
+}
+
+.popup {
+    position: relative;
+}
+.popup:hover:after {
+    pointer-events: none;
+    background: #111;
+    border-radius: .5em;
+    left: 0em;
+    top: -2.0em;
+    color: #fff;
+    content: attr(data-popup);
+    display: block;
+    padding: .3em 1em;
+    position: absolute;
+    text-shadow: 0 1px 0 #000;
+    white-space: nowrap;
+    z-index: 98;
+}
+
+.follow-popup {
+    margin-top: 10px;
+    right: 0px;
+}
+.follow-popup .folder {
+    display: block;
+}
+body:not(.premium) .premium-only { display: none; }
+.popup-menu-box {
+    position: absolute;
+    visibility: hidden;
+    min-width: 10em;
+    background-color: #000;
+    border: 1px solid #444;
+    padding: .25em .5em;
+    z-index: 1;
+}
+body.light .popup-menu-box {
+    background-color: #fff;
+    border-color: #ddd;
+}
+.bookmark-popup {
+    top: 30px;
+    left: 0px;
+}
+.popup-visible .popup-menu-box {
+    visibility: inherit;
+}
+
+/* This is an invisible block underneath the hover zone to keep the hover UI visible. */
+.hover-area {
+    position: absolute;
+    top: -50%;
+    left: -33%;
+    width: 150%;
+    height: 200%;
+    z-index: -1;
+}
+/* This one is under the bookmark popup.  Extend over the bottom, so the list doesn\'t disappear
+ * when deleting a recent bookmark at the bottom of the list, but don\'t extend over the top, so
+ * we don\'t block the mouse hovering over other things.
+ *
+ * Note that the positioning of this is important: we want to fully close the gap between the
+ * popup and the bottom that opened it, but we don't want to overlap the button and block it. */
+.bookmark-popup > .hover-area,
+.navigation-menu-box .hover-area,
+.settings-menu-box .hover-area
+{
+    top: -2px;
+    height: 125%;
+}
+
+.bookmark-popup input,
+.follow-popup input{
+    margin: .25em;
+    padding: .25em;
+}
+.popup-menu-box .button {
+    padding: .25em;
+    cursor: pointer;
+}
+
+body.bookmarked .bookmark-popup .not-bookmarked { display: none; }
+body:not(.bookmarked) .bookmark-popup .bookmarked { display: none; }
+.popup-menu-box .button:hover {
+    background-color: #444;
+    width: 100%;
+}
+body.light .popup-menu-box .button:hover {
+    background-color: #ccc;
+}
+
+.bookmark-tag-selector {
+    width: 100%;
+    max-height: 200px;
+    overflow-y: auto;
+}
+.bookmark-tag-entry {
+    cursor: pointer;
+    padding: 2px 8px;
+    display: flex;
+}
+.bookmark-tag-entry > .tag-name {
+    flex: 1;
+}
+.bookmark-tag-entry.enabled { background-color: #008; }
+.bookmark-tag-entry:hover { background-color: #444; }
+.bookmark-tag-entry:hover.enabled { background-color: #44a; }
+body.light .bookmark-tag-entry.enabled { background-color: #00c; color: #fff; }
+body.light .bookmark-tag-entry:hover { background-color: #ccc; }
+body.light .bookmark-tag-entry:hover.enabled { background-color: #44a; }
+
+.thumbnail-container {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    /* Always show the vertical scrollbar, so we don't relayout as images load. */
+    overflow-y: scroll;
+    background-color: #000;
+    color: #fff;
+}
+
+.thumbnail-container .thumbnail-ui {
+    /* This places the thumbnail UI at the top, so the thumbnails sit below it when
+     * scrolled all the way up, and scroll underneath it. */
+    position: sticky;
+    top: 0;
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding-top: 1em;
+    margin-bottom: .5em;
+    z-index: 1;
+}
+
+.thumbnail-container .thumbnail-ui-box {
+    width: 50%;
+    /* Make sure this doesn't get too narrow, or it'll overlap too much of the thumbnail area. */
+    min-width: 800px;
+    background-color: #444;
+
+    box-shadow: 0 0 15px 10px #000;
+    border-radius: 4px;
+
+    padding: 10px;
+}
+
+body.light .thumbnail-container .thumbnail-ui-box {
+    background-color: #ddd;
+    color: #444;
+    box-shadow: 0 0 15px 10px #fff;
+}
+
+
+.thumbnail-container .thumbnail-ui-box .displaying {
+    padding-bottom: 4px;
+}
+
+/* .thumbnails is the actual thumbnail list. */
+.thumbnail-container .thumbnails {
+    user-select: none;
+    -moz-user-select: none;
+    padding: 0;
+    text-align: center;
+}
+
+.thumbnail-container ul {
+    margin: 0;
+    max-width: 1200px;
+    margin: 0 auto; /* center */
+}
+
+.thumbnail-container li.thumbnail-box {
+    display: inline-block;
+    padding: 1em;
+}
+
+.thumbnail-container li.thumbnail-box a.thumbnail-link {
+    display: block;
+
+    /* Note that the actual images we get are up to 240x240.  Making this smaller can look
+     * cramped, and also can significantly increase the number of pages we'll load at once
+     * by causing lots of thumbnails to be on screen at once. */
+    width: 200px;
+    height: 200px;
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+    text-decoration: none;
+    color: #fff;
+}
+
+.thumbnail-container.big-thumbnails li.thumbnail-box a.thumbnail-link {
+    width: 300px;
+    height: 300px;
+}
+
+.page-count-box {
+    pointer-events: none;
+    position: absolute;
+    right: 2px;
+    bottom: 2px;
+    padding: 4px 8px;
+    background-color: rgba(0,0,0,.6);
+    border-radius: 6px;
+}
+
+.page-count-box .page-icon {
+    width: 16px;
+    height: 16px;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.page-count-box {
+    transition: opacity .5s;
+}
+.thumbnail-inner:hover .page-count-box {
+    opacity: 0.5;
+}
+
+.page-count-box .page-count {
+    vertical-align: middle;
+    margin-left: -4px;
+}
+
+.thumbnail-container li.thumbnail-box .ugoira-icon {
+    pointer-events: none;
+    width: 32px;
+    height: 32px;
+    right: 0px;
+    bottom: 0px;
+    color: #fff;
+    position: absolute;
+    transition: opacity .5s;
+}
+
+.thumbnail-inner:hover .ugoira-icon {
+    opacity: 0.5;
+}
+
+.thumbnail-container li.thumbnail-box[data-pending] a {
+    opacity: 0.5;
+    background-color: #444;
+}
+
+/* Hide the img while it's pending so we don't show a broken image icon. */
+.thumbnail-container li.thumbnail-box[data-pending] a img.thumb {
+    display: none;
+}
+
+.thumbnail-container .thumb {
+    object-fit: cover;
+
+    /* Show the top-center of the thunbnail.  This generally makes more sense
+     * than cropping the center. */
+    object-position: 50% 0%;    
+    width: 100%;
+    height: 100%;
+
+    transition: transform .5s;
+
+    /* Zooming in on hover and zooming out both look interesting.  I'm not sure
+     * which is better. */
+    transform: scale(1.25, 1.25);
+}
+
+body.disable-thumbnail-zooming .thumbnail-box .thumb {
+    transform: scale(1, 1);
+}
+
+body:not(.disable-thumbnail-zooming) .thumbnail-box .thumb:hover {
+    transform: scale(1, 1);
+}
+
+.thumbnail-box.vertical-panning .thumb,
+.thumbnail-box.horizontal-panning .thumb
+{
+    animation-duration: 4s;
+    animation-timing-function: ease-in-out;
+    animation-iteration-count: infinite;
+}
+
+.thumbnail-box .thumb:not(:hover) {
+    animation-play-state: paused;
+}
+
+body:not(.disable-thumbnail-panning) .thumbnail-box.horizontal-panning .thumb {
+    animation-name: pan-thumbnail-horizontally;
+    object-position: left top;
+
+    /* The full animation is 4 seconds, and we want to start 20% in, at the halfway
+     * point of the first left-right pan, where the pan is exactly in the center where
+     * we are before any animation.  This is different from vertical panning, since it
+     * pans from the top, which is already where we start (top center). */
+    animation-delay: -.8s;
+
+}
+body:not(.disable-thumbnail-panning) .thumbnail-box.vertical-panning .thumb {
+    animation-name: pan-thumbnail-vertically;
+}
+
+@keyframes pan-thumbnail-horizontally {
+    /* This starts in the middle, pans left, pauses, pans right, pauses, returns to the middle, then pauses again. */
+    0%   { object-position: left top; } /* left */
+    40%  { object-position: right top; } /* pan right */
+    50%  { object-position: right top; } /* pause */
+    90%  { object-position: left top; } /* pan left */
+    100%  { object-position: left top; } /* pause */
+}
+
+@keyframes pan-thumbnail-vertically {
+    /* This starts at the top, pans down, pauses, pans back up, then pauses again. */
+    0%   { object-position: 50% 0%; }
+    40%  { object-position: 50% 100%; }
+    50%  { object-position: 50% 100%; }
+    90%  { object-position: 50% 0%; }
+    100% { object-position: 50% 0%; }
+}
+
+.thumbnail-container .thumbnail-box:not(.muted) .muted {
+    display: none;
+}
+.thumbnail-container .thumbnail-box .muted {
+    pointer-events: none;
+    left: 0;
+    top: 50%;
+    width: 100%;
+    height: 32px;
+    color: #000;
+    position: absolute;
+    text-shadow: 0px 1px 1px #fff, 0px -1px 1px #fff, 1px 0px 1px #fff, -1px 0px 1px #fff;
+    font-size: 22px;
+}
+
+/* Zoom muted images in a little, and zoom them out on hover, which is the opposite
+ * of other images.  This also helps hide the black bleed around the edge caused by
+ * the blur. */
+.thumbnail-container .thumbnail-box.muted .thumb {
+    filter: blur(10px);
+    transform: scale(1.25, 1.25);
+}
+body:not(.disable-thumbnail-zooming) .thumbnail-container .thumbnail-box.muted .thumb:hover {
+    transform: scale(1, 1);
+}
+
+/* Hide the fake thumbnail used to detect when we've scrolled to the bottom.
+ * Note that we need to hide something inside the <li>, not the whole entry,
+ * or offsetTop will be 0, which breaks get_visible_thumbnails. */
+.thumbnail-container .next-page-placeholder > .thumbnail-inner {
+    display: none !important;
+}
+
+.thumbnail-container .dot img.thumb {
+    /* This doesn't work as well on thumbnails. */
+    /*
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+    image-rendering: pixelated;
+    */
+}
+
+@keyframes flash-thumbnail {
+    0% {
+        box-shadow: 0 0 15px 10px #0d0;
+    }
+}
+
+.thumbnail-container .flash a {
+    animation-name: flash-thumbnail;
+    animation-duration: 300ms;
+    animation-timing-function: ease-out;
+    animation-iteration-count: 1;
+}    
+
+body:not(.premium) .bookmark-tag-selection { display: none; }
+
+.box-link {
+    display: inline-block;
+    cursor: pointer;
+    text-decoration: none;
+    padding: .25em .5em;
+    margin: .25em .25em;
+    color: #fff;
+    background-color: #000;
+}
+body.light .box-link {
+    background-color: #fff;
+    color: #222;
+}
+
+.box-link:hover {
+    background-color: #222;
+}
+
+body.light .box-link:hover {
+    background-color: #eee;
+}
+
+.box-link.selected {
+    background-color: #008;
+}
+body.light .box-link.selected {
+    background-color: #ffc;
+}
+
+.thumbnail-container .following-tag {
+    text-decoration: none;
+}
+
+.thumbnail-container .search-options-row {
+    display: flex;
+    flex-direction: row;
+}
+
+.thumbnail-container .search-options-row .hover-area {
+    top: -10px;
+    height: 150%;
+}
+.thumbnail-container .option-list {
+    display: flex;
+    flex-direction: column;
+}
+.search-options-row > div.active > .box-link {
+    background-color: #004;
+}
+.light .search-options-row > div.active > .box-link {
+    background-color: #ffc;
+}
+.search-box {
+    white-space: nowrap;
+    margin-bottom: 4px;
+    position: relative; /* to position the search dropdown */
+}
+
+/* The block around the input box and submit button.  A history dropdown widget will
+ * be placed in here. */
+.tag-search-box {
+    display: inline-block;
+    position: relative;
+}
+
+input.search-tags {
+    font-size: 1.2em;
+    padding: 6px 10px;
+    padding-right: 30px; /* extra space for the submit button */
+    vertical-align: middle;
+}
+
+.thumbnail-container .search-submit-button {
+    display: inline-block;
+    margin-left: -30px; /* overlap the input */
+    vertical-align: middle;
+    cursor: pointer;
+}
+
+.thumbnail-ui-box .avatar-container {
+    float: right;
+    position: relative;
+    margin-left: 25px;
+    margin-bottom: 10px;
+}
+
+.image-for-suggestions {
+    float: right;
+    margin-left: 25px;
+    margin-bottom: 10px;
+}
+
+.grey-icon {
+    fill: #888;
+}
+.light .grey-icon {
+    fill: #666;
+}
+:hover > .grey-icon {
+    fill: #eee;
+}
+.light :hover > .grey-icon {
+    fill: #222;
+}
+/* If a grey-icon is directly inside a visible popup menu, eg. the navigation icon: */
+.popup-visible > .grey-icon {
+    fill: #eee;
+}
+.light .popup-visible > .grey-icon {
+    fill: #222;
+}
+
+.mute-display .muted-image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: blur(20px);
+    opacity: .75;
+}
+
+.mute-display .muted-text {
+    position: absolute;
+    width: 100%;
+    top: 50%;
+    left: 0;
+    text-align: center;
+    font-size: 30px;
+    color: #000;
+    text-shadow: 0px 1px 1px #fff, 0px -1px 1px #fff, 1px 0px 1px #fff, -1px 0px 1px #fff;
+}
+
+/* Tag lists are usually inline.  Make the tag filter a vertical list. */
+.member-tags-box .post-tag-list,
+.search-tags-box .related-tag-list {
+    max-height: 300px;
+    display: block;
+    overflow-x: hidden;
+    overflow-y: auto;
+    white-space: nowrap;
+}
+.member-tags-box .post-tag-list .following-tag,
+.search-tags-box .related-tag-list .tag {
+    display: block;
+}
+
+.member-tags-box .post-tag-list .following-tag:hover:After,
+.search-tags-box .related-tag-list .tag:hover:after {
+    left: auto;
+    right: 0px;
+}
+
+.input-dropdown {
+    width: 100%;
+    margin: 1px;
+    max-height: 400px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    position: absolute;
+    background-color: #fff;
+}
+
+.input-dropdown > .input-dropdown-list {
+    display: flex;
+    flex-direction: column;
+}
+.input-dropdown > .input-dropdown-list > .entry {
+    display: flex;
+    flex-direction: row;
+    color: #000;
+    align-items: center;
+}
+.input-dropdown > .input-dropdown-list > .entry.selected {
+    background-color: #ffa;
+}
+
+.input-dropdown > .input-dropdown-list > .entry:hover {
+    background-color: #ddd;
+}
+
+/* Hide the button to remove history entries from non-history entries. */
+.input-dropdown > .input-dropdown-list > .entry:not(.history) .remove-history-entry {
+    display: none;
+}
+
+.input-dropdown > .input-dropdown-list > .entry > A.tag {
+    color: #000;
+    flex: 1;
+    padding: 4px;
+    padding-left: 7px;
+}
+
+.input-dropdown > .input-dropdown-list .remove-history-entry {
+    padding: 0 8px 0px 5px;
+}
+.input-dropdown > .input-dropdown-list .remove-history-entry:hover {
+    color: #f33;
+}
+

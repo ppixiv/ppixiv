@@ -1,0 +1,536 @@
+<div class="main-container noise-background">
+    <div class=image-container></div>
+
+    <div class=loading-progress-bar></div>
+
+    <div class=hover-message>
+        <div class=message></div>
+    </div>
+
+    <div class=ui>
+        <div class=hover-box></div>
+        <div class=ui-box>
+            <!-- The avatar icon in the top-right.  This is absolutely positioned, since we don't
+                 want this to push the rest of the UI down. -->
+            <div class="avatar-popup" style="position: absolute; top: 1em; right: 1em;"></div>
+
+            <!-- The title and author.  The margin-right here is to prevent this from
+                 overlapping the absolutely-positioned avatar icon above. -->
+            <div style="display: flex; flex-direction: row; margin-right: 4em;">
+                <div>
+                    <span class="title-block popup">
+                        <!-- Put the title and author in separate inline-blocks, to encourage
+                             the browser to wrap between them if possible, putting the author
+                             on its own line if they won\'t both fit, but still allowing the
+                             title to wrap if it\'s too long by itself. -->
+                        <span style="display: inline-block;" class="title-font">
+                            <a class="title"></a>
+                        </span>
+                        <span style="display: inline-block;" class="author-block title-font">
+                            <span style="font-size: 12px;">by</span>
+                            <a class="author"></a>
+                        </span>
+                        <a class=edit-post href=#>Edit post</a>
+                    </span>
+                </div>
+            </div>
+
+            <div class=button-row>
+                <a class="disable-ui-button popup" data-popup="Return to Pixiv" href="#no-ppixiv">
+                    <svg class="pixiv-icon grey-icon" xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="-2 6 50 50">
+                        <path d="M35.93 16.864a14.682 14.682 0 0 1 5.087 11.185c.013 4.453-2.118 8.348-5.424 10.957-3.306 2.624-7.75 4.076-12.636 4.076-5.56 0-10.718-2.023-10.718-2.023v6.527c.953.279 2.517.876 1.524 1.869H6.24c-.983-.983.46-1.562 1.55-1.87V19.918c-2.53 1.943-3.827 3.627-4.49 4.877.768 2.447-.681 2.326-.681 2.326L0 22.965s9.294-10.537 22.957-10.537c5.242 0 9.753 1.623 12.973 4.436zm-3.986 19.958c2.286-2.275 3.57-5.241 3.584-8.843-.011-3.696-1.213-6.876-3.413-9.27-2.205-2.379-5.465-3.947-9.617-3.95-3.418-.007-7.65 1.135-10.259 2.988v20.758c2.378 1.17 5.98 1.999 10.259 1.996 3.835.003 7.16-1.424 9.446-3.68zM47.67 12.428c.68 0 1.232.551"/>
+                    </svg>                    
+                </a>
+
+                <div class="show-thumbnails-button popup" data-popup="Show all">
+                    <svg class=grey-icon xmlns="http://www.w3.org/2000/svg" width="38" height="32" viewBox="0 -1 32 32" style="">
+                        <path d="M 4 4 h 10 v 10 h -10 v -10"/>
+                        <path d="M 18 4 h 10 v 10 h -10 v -10"/>
+                        <path d="M 4 18 h 10 v 10 h -10 v -10"/>
+                        <path d="M 18 18 h 10 v 10 h -10 v -10"/>
+                    </svg>
+                </div>
+
+                <div class="download-button popup">
+                    <svg class=grey-icon version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 537.794 537.795">
+                        <g>
+                            <path d="M463.091,466.114H74.854c-11.857,0-21.497,9.716-21.497,21.497v28.688c0,11.857,9.716,21.496,21.497,21.496h388.084
+                                    c11.857,0,21.496-9.716,21.496-21.496v-28.688C484.665,475.677,474.949,466.114,463.091,466.114z"/>
+                            <path d="M253.94,427.635c4.208,4.208,9.716,6.35,15.147,6.35c5.508,0,11.016-2.142,15.147-6.35l147.033-147.033
+                                    c8.339-8.338,8.339-21.955,0-30.447l-20.349-20.349c-8.339-8.339-21.956-8.339-30.447,0l-75.582,75.659V21.497
+                                    C304.889,9.639,295.173,0,283.393,0h-28.688c-11.857,0-21.497,9.562-21.497,21.497v284.044l-75.658-75.659
+                                    c-8.339-8.338-22.032-8.338-30.447,0l-20.349,20.349c-8.338,8.338-8.338,22.032,0,30.447L253.94,427.635z"/>
+                        </g>
+                    </svg>
+                </div>
+
+                <div class=bookmark-button style="display: flex; flex-direction: row; align-items: center;">
+                    <span class=popup>
+                        <svg class="heart grey-icon" viewBox="0 0 32 32" width=32 height=32>
+                            <path d="M21,5.5 C24.8659932,5.5 28,8.63400675 28,12.5 C28,18.2694439 24.2975093,23.1517313 17.2206059,27.1100183 C16.4622493,27.5342993 15.5379984,27.5343235 14.779626,27.110148 C7.70250208,23.1517462 4,18.2694529 4,12.5 C4,8.63400691 7.13400681,5.5 11,5.5 C12.829814,5.5 14.6210123,6.4144028 16,7.8282366 C17.3789877,6.4144028 19.170186,5.5 21,5.5 Z" />
+                        </svg>
+                        <div class="popup-menu-box bookmark-popup">
+                            <div class=hover-area></div>
+                            <div class=bookmarked>
+                                <div class="button unbookmark-button">
+                                    Remove&nbsp;Bookmark
+                                </div>
+                            </div>
+                            <div class=not-bookmarked>
+                                <div class="button bookmark-button public">
+                                    Bookmark
+                                </div>
+                                <div class="button bookmark-button private">
+                                    Bookmark&nbsp;Privately
+                                </div>
+                                <div class=premium-only>
+                                    <input class=bookmark-tag-list>
+                                    <div style="display: flex; align-items: center;">
+                                        <div style="flex: 1;">Bookmark tags:</div>
+                                        <div class="refresh-bookmark-tags refresh-icon"></div>
+                                    </div>
+                                    <div class=bookmark-tag-selector></div>
+                                </div>
+                            </div>
+                        </div>
+                    </span>
+                </div>
+               
+                <div class="like-button popup">
+                    <svg class="like-icon grey-icon" viewBox="0 0 12 12" width=28 height=28>
+                        <path d="M2,6 C0.8954305,6 0,5.1045695 0,4 C0,2.8954305 0.8954305,2 2,2 C3.1045695,2 4,2.8954305 4,4 C4,5.1045695 3.1045695,6 2,6 Z M10,6 C8.8954305,6 8,5.1045695 8,4 C8,2.8954305 8.8954305,2 10,2 C11.1045695,2 12,2.8954305 12,4 C12,5.1045695 11.1045695,6 10,6 Z M2.1109127,8.8890873 C1.72038841,8.498563 1.72038841,7.86539803 2.1109127,7.47487373 C2.501437,7.08434944 3.13460197,7.08434944 3.52512627,7.47487373 C4.89196129,8.84170876 7.10803871,8.84170876 8.47487373,7.47487373 C8.86539803,7.08434944 9.498563,7.08434944 9.8890873,7.47487373 C10.2796116,7.86539803 10.2796116,8.498563 9.8890873,8.8890873 C7.74120369,11.0369709 4.25879631,11.0369709 2.1109127,8.8890873 Z" />
+                    </svg>
+                </div>
+
+                <a class="similar-illusts-button popup" data-popup="Similar illustrations" href=#>
+                    <svg class="grey-icon similar-illusts-icon" xmlns="http://www.w3.org/2000/svg" version="1.1" width="32" height="32" viewBox="10 5 80 60">
+                        <path d="M52.084,56.25H43.75c-1.151,0-2.083-0.932-2.083-2.083s0.932-2.084,2.083-2.084h8.334  c1.151,0,2.083,0.933,2.083,2.084S53.235,56.25,52.084,56.25z"></path>
+                        <path d="M47.917,12.5c-1.151,0-2.083-0.932-2.083-2.083V2.083C45.834,0.932,46.766,0,47.917,0S50,0.932,50,2.083  v8.333C50,11.568,49.068,12.5,47.917,12.5z"></path>
+                        <path d="M29.167,31.25h-8.333c-1.151,0-2.084-0.932-2.084-2.083s0.933-2.084,2.084-2.084h8.333  c1.151,0,2.083,0.933,2.083,2.084S30.318,31.25,29.167,31.25z"></path>
+                        <path d="M34.375,17.708c-0.532,0-1.065-0.203-1.473-0.61l-5.895-5.892c-0.813-0.814-0.813-2.132,0-2.946  c0.813-0.814,2.132-0.814,2.946,0l5.895,5.892c0.813,0.814,0.813,2.132,0,2.946C35.441,17.505,34.908,17.708,34.375,17.708z"></path>
+                        <path d="M61.459,17.708c-0.533,0-1.066-0.203-1.474-0.61c-0.813-0.813-0.813-2.132,0-2.946l5.893-5.895  c0.813-0.814,2.132-0.814,2.945,0c0.814,0.814,0.814,2.132,0,2.946l-5.892,5.895C62.524,17.505,61.991,17.708,61.459,17.708z"></path>
+                        <path d="M75,31.25h-8.333c-1.151,0-2.083-0.932-2.083-2.083s0.932-2.084,2.083-2.084H75  c1.151,0,2.084,0.933,2.084,2.084S76.151,31.25,75,31.25z"></path>
+                        <path d="M52.084,58.333H43.75c-1.151,0-2.083,0.933-2.083,2.084S42.599,62.5,43.75,62.5h1.042  c0,1.151,0.932,2.083,2.083,2.083h2.084c1.151,0,2.083-0.932,2.083-2.083h1.042c1.151,0,2.083-0.932,2.083-2.083  S53.235,58.333,52.084,58.333z"></path>
+                        <path d="M58.655,39.01c2.38-2.596,3.845-6.045,3.845-9.843c0-8.055-6.529-14.583-14.583-14.583  s-14.583,6.529-14.583,14.583c0,3.674,1.369,7.021,3.61,9.584c0.975,1.097,4.723,5.54,4.723,9.166c0,1.151,0.932,2.083,2.083,2.083  h8.334c1.151,0,2.083-0.932,2.083-2.083V47.8C54.237,44.439,57.441,40.416,58.655,39.01z"></path>
+                    </svg>
+                </a>
+            </div>
+           
+            <div class=tag-list></div>
+            <div class=description></div>
+        </div>
+    </div>
+
+    <div class="thumbnail-container noise-background" hidden>
+        <div class="thumbnail-ui">
+            <div style="flex: 1;"></div>
+
+            <div class=thumbnail-ui-box>
+                <div class="data-source-specific avatar-container" data-datasource="artist illust"></div>
+                <a href=# class="data-source-specific image-for-suggestions" data-datasource=related-illusts>
+                    <img src=#>
+                </a>
+
+                <div class="displaying title-font"></div>
+
+                <div class=button-row>
+                    <a class="disable-ui-button popup" data-popup="Return to Pixiv" href="#no-ppixiv">
+                        <svg class="pixiv-icon grey-icon" xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="-2 6 50 50">
+                            <path d="M35.93 16.864a14.682 14.682 0 0 1 5.087 11.185c.013 4.453-2.118 8.348-5.424 10.957-3.306 2.624-7.75 4.076-12.636 4.076-5.56 0-10.718-2.023-10.718-2.023v6.527c.953.279 2.517.876 1.524 1.869H6.24c-.983-.983.46-1.562 1.55-1.87V19.918c-2.53 1.943-3.827 3.627-4.49 4.877.768 2.447-.681 2.326-.681 2.326L0 22.965s9.294-10.537 22.957-10.537c5.242 0 9.753 1.623 12.973 4.436zm-3.986 19.958c2.286-2.275 3.57-5.241 3.584-8.843-.011-3.696-1.213-6.876-3.413-9.27-2.205-2.379-5.465-3.947-9.617-3.95-3.418-.007-7.65 1.135-10.259 2.988v20.758c2.378 1.17 5.98 1.999 10.259 1.996 3.835.003 7.16-1.424 9.446-3.68zM47.67 12.428c.68 0 1.232.551"/>
+                        </svg>
+                    </a>
+
+                    <div class=navigation-menu-box>
+                        <svg class="navigation-menu-icon grey-icon" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 -1 32 32" style="">
+                            <path d="M 6 6 h 20 v 4 h -20 v -4"/>
+                            <path d="M 6 13 h 20 v 4 h -20 v -4"/>
+                            <path d="M 6 20 h 20 v 4 h -20 v -4"/>
+                        </svg>
+                        <div class="popup-menu-box">
+                            <div class=hover-area></div>
+                            <div class=option-list>
+                                <a class=box-link href="/new_illust.php#ppixiv">New works</a>
+                                <a class=box-link href="/bookmark_new_illust.php#ppixiv">New works by following</a>
+                                <a class=box-link href="/bookmark.php?p=1#ppixiv">Bookmarks</a>
+                                <a class=box-link href="/discovery#ppixiv">Recommended works</a>
+                                <a class=box-link href="/ranking.php#ppixiv">Rankings</a>
+                                <!-- This links to the bookmark page for the user we're currently viewing, if any. -->
+                                <a class="box-link user-bookmarks" href="#" hidden></a>
+
+                                <div class="navigation-search-box" style="padding: .25em; margin: .25em;">
+                                    <div class=search-box>
+                                        <input class=search-tags placeholder=Search>
+                                        <span class=search-submit-button>🔍</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class=settings-menu-box>
+                        <svg class=grey-icon width="24" height="24" viewbox="-1 0 16 16" xmlns="http://www.w3.org/2000/svg">
+                            <path id="a" d="m14,9.3l0,-2.57l-1.575,-0.264c-0.117,-0.44 -0.292,-0.848 -0.496,-1.2l0.93,-1.285l-1.81,-1.84l-1.31,0.908c-0.38,-0.205 -0.79,-0.38 -1.196,-0.497l-0.259,-1.552l-2.568,0l-0.263,1.578c-0.437,0.117 -0.816,0.293 -1.196,0.497l-1.282,-0.905l-1.838,1.81l0.934,1.287c-0.2,0.38 -0.376,0.79 -0.493,1.228l-1.578,0.235l0,2.57l1.575,0.264c0.117,0.438 0.292,0.818 0.496,1.198l-0.93,1.315l1.809,1.813l1.312,-0.938c0.38,0.205 0.787,0.38 1.224,0.497l0.26,1.551l2.566,0l0.263,-1.578c0.408,-0.117 0.817,-0.293 1.196,-0.497l1.315,0.935l1.81,-1.812l-0.935,-1.315c0.203,-0.38 0.38,-0.76 0.495,-1.2l1.544,-0.23l0,-0.003zm-7,1.407c-1.488,0 -2.683,-1.2 -2.683,-2.69s1.225,-2.69 2.683,-2.69c1.458,0 2.683,1.198 2.683,2.69c0,1.49 -1.195,2.688 -2.683,2.688l0,0.002z"/>
+                        </svg>                        
+
+                        <div class="popup-menu-box">
+                            <div class=hover-area></div>
+                            <!-- This could be generalized to a widget, but we don't have enough
+                                 options yet. -->
+                            <div class=option-list>
+                                <div class="toggle-big-thumbnails box-link">
+                                    <span class=on>☑</span>
+                                    <span class=off>☐</span>
+                                    <span style="margin-left: 2px;">Big thumbnails</span>
+                                </div>
+
+                                <div class="toggle-light-mode box-link">
+                                    <span class=on>☑</span>
+                                    <span class=off>☐</span>
+                                    <span style="margin-left: 2px;">Light mode</span>
+                                </div>
+
+                                <div class="toggle-thumbnail-zooming box-link">
+                                    <span class=on>☑</span>
+                                    <span class=off>☐</span>
+                                    <span style="margin-left: 2px;">Thumbnail zooming</span>
+                                </div>
+
+                                <div class="toggle-thumbnail-panning box-link">
+                                    <span class=on>☑</span>
+                                    <span class=off>☐</span>
+                                    <span style="margin-left: 2px;">Thumbnail panning</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="data-source-specific" data-datasource=discovery>
+                    <a class="box-link popup" data-type=all data-popup="Show all works" href="?mode=all#ppixiv">All</a>
+                    <a class="box-link popup" data-type=safe data-popup="Show all-ages works" href="?mode=safe#ppixiv">All ages</a>
+                    <a class="box-link popup" data-type=r18 data-popup="Show R18 works" href="?mode=r18#ppixiv">R18</a>
+                </div>
+
+                <div class="data-source-specific" data-datasource=new_illust>
+                    <a class="box-link popup" data-type=new-illust-type-all data-popup="Show all works" href="#">All</a>
+                    <a class="box-link popup" data-type=new-illust-type-illust data-popup="Show illustrations only" href="#">Illustrations</a>
+                    <a class="box-link popup" data-type=new-illust-type-manga data-popup="Show manga only" href="#">Manga</a>
+                    <a class="box-link popup" data-type=new-illust-type-ugoira data-popup="Show ugoira only" href="#">Ugoira</a>
+
+                    <a class="box-link popup" data-type=new-illust-ages-all data-popup="Show all-ages works" href="#">All ages</a>
+                    <a class="box-link popup" data-type=new-illust-ages-r18 data-popup="Show R18 works" href="#">R18</a>
+                </div>
+                
+                <div class="data-source-specific" data-datasource=rankings>
+                    <div>
+                        <span class=nav-tomorrow>
+                            <a class="box-link popup" data-popup="Show the next day" href="#">Next day</a>
+                        </span>
+
+                        <span class=nav-today></span>
+
+                        <span class=nav-yesterday> <!-- so box-link's display style doesn't override hidden -->
+                            <a class="box-link popup" data-popup="Show the previous day" href="#">Previous day</a>
+                        </span>
+                    </div>
+
+                    <div class="checked-links">
+                        <a class="box-link popup" data-type=content-all data-popup="Show all works" href="#">All</a>
+                        <a class="box-link popup" data-type=content-illust data-popup="Show illustrations only" href="#">Illustrations</a>
+                        <a class="box-link popup" data-type=content-ugoira data-popup="Show ugoira only" href="#">Ugoira</a>
+                        <a class="box-link popup" data-type=content-manga data-popup="Show manga only" href="#">Manga</a>
+                    </div>
+
+                    <div class="checked-links">
+                        <a class="box-link popup" data-type=mode-daily data-popup="Daily rankings" href="#">Daily</a>
+                        <a class="box-link popup" data-type=mode-daily-r18 data-popup="Show R18 works (daily only)" href="#">R18</a>
+                        <a class="box-link popup" data-type=mode-weekly data-popup="Weekly rankings" href="#">Weekly</a>
+                        <a class="box-link popup" data-type=mode-monthly data-popup="Monthly rankings" href="#">Monthly</a>
+                        <a class="box-link popup" data-type=mode-rookie data-popup="Rookie rankings" href="#">Rookie</a>
+                        <a class="box-link popup" data-type=mode-male data-popup="Popular among males" href="#">Male</a>
+                        <a class="box-link popup" data-type=mode-female data-popup="Popular among females" href="#">Female</a>
+                    </div>
+                </div>
+                 
+                <div class="data-source-specific" data-datasource=bookmarks>
+                    <div class=bookmarks-public-private>
+                        <a class="box-link popup" data-type=public data-popup="Show public bookmarks" href=#>Public</a>
+                        <a class="box-link popup" data-type=private data-popup="Show private bookmarks" href=#>Private</a>
+                    </div>
+                </div>                
+
+                <div class="data-source-specific" data-datasource="bookmarks bookmarks_new_illust">
+                    <div class=bookmark-tag-selection>
+                        <span>Bookmark tags:</span>
+                        <span class=bookmark-tag-list></span>
+                    </div>
+                </div>
+
+                <div class="data-source-specific" data-datasource=artist>
+                    <div class=search-options-row>
+                        <a class="box-link popup" data-type=works data-popup="Show all works" href=#>Works</a>
+                        <a class="box-link popup" data-type=manga data-popup="Show manga only" href=#>Manga</a>
+                        <a class="box-link popup" data-type=ugoira data-popup="Show ugoira only" href=#>Ugoira</a>
+
+                        <div class=member-tags-box>
+                            <span class=box-link>Tags</span>
+                            <div class=popup-menu-box>
+                                <div class=hover-area></div>
+                                <span class=post-tag-list></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                 
+                <div class="data-source-specific" data-datasource=search>
+                    <div class="search-page-tag-entry search-box">
+                        <div class=tag-search-box>
+                            <input class=search-tags placeholder=Tags>
+                            <span class=search-submit-button>🔍</span>
+                        </div>
+
+                        <div class=search-tags-box style="display: inline-block;">
+                            <span class=box-link>Related tags</span>
+                            <div class=popup-menu-box>
+                                <div class=hover-area></div>
+                                <div class=related-tag-list></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+
+                    <!-- We don't currently have popup text for these, since it's a little annoying to
+                         have it pop over the menu. -->
+                    <div class=search-options-row>
+                        <div class=ages-box>
+                            <span class=box-link>Ages</span>
+                            <div class="popup-menu-box">
+                                <div class=hover-area></div>
+                                <div class=option-list>
+                                    <a class=box-link data-type=ages-all data-default=1 href="?mode=all#ppixiv">All</a>
+                                    <a class=box-link data-type=ages-safe href="?mode=safe#ppixiv">All ages</a>
+                                    <a class=box-link data-type=ages-r18 href="?mode=r18#ppixiv">R18</a>
+                                </div>
+                            </div>
+                        </div>
+                       
+                        <div class=popularity-box>
+                            <span class=box-link>Popularity</span>
+                            <div class="popup-menu-box">
+                                <div class=hover-area></div>
+                                <div class=option-list>
+                                    <a class=box-link data-type=order-newest data-default=1 href="?order=all#ppixiv">Newest</a>
+                                    <a class=box-link data-type=order-oldest data-default=1 href="?order=all#ppixiv">Oldest</a>
+                                    <a class="box-link premium-only" data-type=order-male href="?order=popular_male_d#ppixiv">Male</a>
+                                    <a class="box-link premium-only" data-type=order-female href="?order=popular_female_d#ppixiv">Female</a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class=type-box>
+                            <span class=box-link>Type</span>
+                            <div class="popup-menu-box">
+                                <div class=hover-area></div>
+                                <div class=option-list>
+                                    <a class=box-link data-type=search-type-all data-default=1 href="?type=all#ppixiv">All</a>
+                                    <a class=box-link data-type=search-type-illust href="?type=illust#ppixiv">Illustrations</a>
+                                    <a class=box-link data-type=search-type-manga href="?type=manga#ppixiv">Manga</a>
+                                    <a class=box-link data-type=search-type-ugoira href="?type=ugoira#ppixiv">Ugoira</a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class=search-mode-box>
+                            <span class=box-link>Search mode</span>
+                            <div class="popup-menu-box">
+                                <div class=hover-area></div>
+                                <div class=option-list>
+                                    <a class=box-link data-type=search-all data-default=1 href="?#ppixiv">Tag</a>
+                                    <a class=box-link data-type=search-exact href="?s_mode=s_tag_full#ppixiv">Exact tag match</a>
+                                    <a class=box-link data-type=search-text href="?s_mode=s_tc#ppixiv">Text search</a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class=size-box>
+                            <span class=box-link>Image size</span>
+                            <div class="popup-menu-box">
+                                <div class=hover-area></div>
+                                <div class=option-list>
+                                    <a class=box-link data-type=res-all data-default=1 href="#">All</a>
+                                    <a class=box-link data-type=res-high href="?wlt=3000&hlt=3000#ppixiv">High-res</a>
+                                    <a class=box-link data-type=res-medium href="?wlt=1000&wgt=2999&hlt=1000&hgt=2999#ppixiv">Medium-res</a>
+                                    <a class=box-link data-type=res-low href="?wgt=999&hgt=999#ppixiv">Low-res</a>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class=aspect-ratio-box>
+                            <span class=box-link>Aspect ratio</span>
+                            <div class="popup-menu-box">
+                                <div class=hover-area></div>
+                                <div class=option-list>
+                                    <a class=box-link data-type=aspect-ratio-all data-default=1 href="?ratio=0.5#ppixiv">All</a>
+                                    <a class=box-link data-type=aspect-ratio-landscape href="?ratio=0.5#ppixiv">Landscape</a>
+                                    <a class=box-link data-type=aspect-ratio-portrait href="?ratio=-0.5#ppixiv">Portrait</a>
+                                    <a class=box-link data-type=aspect-ratio-square href="?ratio=0#ppixiv">Square</a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bookmarks-box premium-only">
+                            <span class=box-link>Bookmarks</span>
+                            <div class="popup-menu-box">
+                                <div class=hover-area></div>
+                                <!-- The Pixiv search form shows 300-499, 500-999 and 1000-.  That's not
+                                     really useful and the query parameters let us filter differently, so we
+                                     replace it with a more useful "minimum bookmarks" filter. -->
+                                <div class="option-list min-bookmarks">
+                                    <a class=box-link data-type=bookmarks-all data-default=1 href="#ppixiv">All</a>
+                                    <a class=box-link data-type=bookmarks-100 href=#>100+</a>
+                                    <a class=box-link data-type=bookmarks-250 href=#>250+</a>
+                                    <a class=box-link data-type=bookmarks-500 href=#>500+</a>
+                                    <a class=box-link data-type=bookmarks-1000 href=#>1000+</a>
+                                    <a class=box-link data-type=bookmarks-2500 href=#>2500+</a>
+                                    <a class=box-link data-type=bookmarks-5000 href=#>5000+</a>
+                                </div>
+                            </div>
+                        </div>
+                       
+
+                        <div class="time-box premium-only">
+                            <span class=box-link>Time</span>
+                            <div class="popup-menu-box">
+                                <div class=hover-area></div>
+                                <div class=option-list>
+                                    <a class=box-link data-type=time-all data-default=1 href="#">All</a>
+                                    <a class=box-link data-type=time-week href="#">This week</a>
+                                    <a class=box-link data-type=time-month href="#">This month</a>
+                                    <a class=box-link data-type=time-year href="#">This year</a>
+                                    <style>
+                                        .years-ago {
+                                            padding: .25em;
+                                            margin: .25em;
+                                            white-space: nowrap;
+                                        }
+                                        /* These links are mostly the same as box-link, but since the
+                                         * menu background is the same as the box-link background color,
+                                         * we shift it a little to make it clear these are buttons. */
+                                        .years-ago > a {
+                                            padding: 4px 10px;
+                                            background-color: #444;
+                                        }
+                                        body.light .years-ago > a {
+                                            background-color: #ccc;
+                                        }
+                                    </style>
+                                    <div class=years-ago>
+                                        <a class=box-link data-type=time-years-ago-1 href="#">1</a>
+                                        <a class=box-link data-type=time-years-ago-2 href="#">2</a>
+                                        <a class=box-link data-type=time-years-ago-3 href="#">3</a>
+                                        <a class=box-link data-type=time-years-ago-4 href="#">4</a>
+                                        <a class=box-link data-type=time-years-ago-5 href="#">5</a>
+                                        <a class=box-link data-type=time-years-ago-6 href="#">6</a>
+                                        <a class=box-link data-type=time-years-ago-7 href="#">7</a>
+                                        <span>years ago</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <a href=# class="reset-search box-link popup" data-popup="Clear all search options">Reset</a>
+                    </div>
+                </div>
+            </div>
+            <div style="flex: 1;">
+            </div>
+        </div>
+
+        <ul class=thumbnails></ul>
+    </div>
+
+    <div hidden class=templates>
+        <div class=template-bookmark-tag-entry>
+            <div class=bookmark-tag-entry>
+                <span class=tag-name></span>
+                <a class=remove href=#>X</a>
+            </div>
+        </div>
+        <ul class=template-thumbnail>
+            <li class=thumbnail-box>
+                <div class=thumbnail-inner>
+                    <a class=thumbnail-link href=#>
+                        <img class=thumb>
+                        <div class=ugoira-icon hidden></div>
+                        <div class=page-count-box hidden>
+                            <span class=page-icon></span>
+                            <span class=page-count></span>
+                        </div>
+                        <div class=muted>
+                            <span>Muted:</span>
+                            <span class=muted-label></span>
+                        </div>
+                    </a>
+                </div>
+            </li>
+        </ul>
+
+        <div class=template-muted>
+            <div class=mute-display>
+                <img class=muted-image>
+                <div class=muted-text>
+                    <Span>Muted:</span>
+                    <span class=muted-label></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- A user avatar, with a follow/unfollow UI. -->
+        <div class="template-avatar">
+            <div class="follow-container">
+                <img class=avatar alt="" style="margin-left: auto; display: block;">
+                <div class="popup-menu-box follow-popup">
+                    <div class=hover-area></div>
+                    <div class=following>
+
+                        <div class="button unfollow-button">
+                            Unfollow
+                        </div>
+                    </div>
+                    <div class=not-following>
+                        <div class="button follow-button public">
+                            Follow
+                        </div>
+                        <div class="button follow-button private">
+                            Follow&nbsp;Privately
+                        </div>
+                        <input class="folder premium-only" placeholder="Folder">
+                        </input>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class=template-tag-dropdown>
+            <div>
+                <!-- This is to make sure there isn't a gap between the input and the dropdown,
+                     so we don't consider the mouse out of the box when it moves from the input
+                     to the autocomplete box. -->
+                <div class=hover-box style="top: -10px; width: 100%; z-index: -1;"></div>
+                    
+                <div class=input-dropdown>
+                    <div class=input-dropdown-list>
+                        <!-- template-tag-dropdown-entry instances will be added here. -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class=template-tag-dropdown-entry>
+            <div class=entry>
+                <a class=tag></a>
+                <a class=remove-history-entry href=#>X</a>
+            </div>
+        </div>
+    </div>
+</div>
