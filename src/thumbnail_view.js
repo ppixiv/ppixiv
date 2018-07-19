@@ -491,47 +491,47 @@ class thumbnail_view
 
     update_from_settings()
     {
-        helpers.set_class(this.container, "big-thumbnails", GM_getValue("thumbnail-size") == "big");
+        helpers.set_class(this.container, "big-thumbnails", helpers.get_value("thumbnail-size") == "big");
         this.set_visible_thumbs();
 
-        helpers.set_class(document.body, "light", GM_getValue("theme") == "light");
+        helpers.set_class(document.body, "light", helpers.get_value("theme") == "light");
 
-        helpers.set_class(document.body, "disable-thumbnail-panning", GM_getValue("disable_thumbnail_panning"));
-        helpers.set_class(document.body, "disable-thumbnail-zooming", GM_getValue("disable_thumbnail_zooming"));
+        helpers.set_class(document.body, "disable-thumbnail-panning", helpers.get_value("disable_thumbnail_panning"));
+        helpers.set_class(document.body, "disable-thumbnail-zooming", helpers.get_value("disable_thumbnail_zooming"));
     }
 
     toggle_big_thumbnails()
     {
-        var big_thumbnails = GM_getValue("thumbnail-size") == "big";
+        var big_thumbnails = helpers.get_value("thumbnail-size") == "big";
         big_thumbnails = !big_thumbnails;
-        GM_setValue("thumbnail-size", big_thumbnails? "big":"normal");
+        helpers.set_value("thumbnail-size", big_thumbnails? "big":"normal");
 
         this.update_from_settings();
     }
 
     toggle_light_mode()
     {
-        var light_mode = GM_getValue("theme") == "light";
+        var light_mode = helpers.get_value("theme") == "light";
         light_mode = !light_mode;
-        GM_setValue("theme", light_mode? "light":"dark");
+        helpers.set_value("theme", light_mode? "light":"dark");
 
         this.update_from_settings();
     }
 
     toggle_disable_thumbnail_panning()
     {
-        var disable_panning = GM_getValue("disable_thumbnail_panning");
+        var disable_panning = helpers.get_value("disable_thumbnail_panning");
         disable_panning = !disable_panning;
-        GM_setValue("disable_thumbnail_panning", disable_panning);
+        helpers.set_value("disable_thumbnail_panning", disable_panning);
 
         this.update_from_settings();
     }
 
     toggle_disable_thumbnail_zooming()
     {
-        var disable_zooming = GM_getValue("disable_thumbnail_zooming");
+        var disable_zooming = helpers.get_value("disable_thumbnail_zooming");
         disable_zooming = !disable_zooming;
-        GM_setValue("disable_thumbnail_zooming", disable_zooming);
+        helpers.set_value("disable_thumbnail_zooming", disable_zooming);
 
         this.update_from_settings();
     }
@@ -552,7 +552,7 @@ class thumbnail_view
         }        
 
         // If true, we're loading and showing larger resolution thumbnails.
-        var big_thumbnails = GM_getValue("thumbnail-size") == "big";
+        var big_thumbnails = helpers.get_value("thumbnail-size") == "big";
         helpers.set_class(this.container, "big-thumbnails", big_thumbnails);
 
         for(var element of elements)

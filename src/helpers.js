@@ -1,4 +1,29 @@
 var helpers = {
+    // Get and set values in localStorage.
+    //
+    // We don't use helpers.set_value/helpers.get_value since GreaseMonkey is inconsistent and changed
+    // these functions unnecessarily.  We could polyfill those with this, but that would cause
+    // the storage to change if those functions are restored.  Doing it this way also allows
+    // us to share settings if a user switches from GM to TM.
+    get_value: function(key, default_value)
+    {
+        key = "_ppixiv_" + key;
+
+        if(!(key in localStorage))
+            return default_value;
+
+        var result = localStorage[key];
+        return JSON.parse(result);
+    },
+
+    set_value: function(key, value)
+    {
+        key = "_ppixiv_" + key;
+
+        var value = JSON.stringify(value);
+        localStorage[key] = value;
+    },
+
     // Preload an array of images.
     preload_images: function(images)
     {
@@ -583,12 +608,12 @@ var helpers = {
 
     set_recent_bookmark_tags(tags)
     {
-        GM_setValue("recent-bookmark-tags", JSON.stringify(tags));
+        helpers.set_value("recent-bookmark-tags", JSON.stringify(tags));
     },
 
     get_recent_bookmark_tags()
     {
-        var recent_bookmark_tags = GM_getValue("recent-bookmark-tags");
+        var recent_bookmark_tags = helpers.get_value("recent-bookmark-tags");
         if(recent_bookmark_tags == null)
             return [];
         return JSON.parse(recent_bookmark_tags);
@@ -617,7 +642,7 @@ var helpers = {
     // Add tag to the recent search list, or move it to the front.
     add_recent_search_tag(tag)
     {
-        var recent_tags = GM_getValue("recent-tag-searches") || [];
+        var recent_tags = helpers.get_value("recent-tag-searches") || [];
         var idx = recent_tags.indexOf(tag);
         if(idx != -1)
             recent_tags.splice(idx, 1);
@@ -625,7 +650,7 @@ var helpers = {
 
         // Trim the list.
         recent_tags.splice(50);
-        GM_setValue("recent-tag-searches", recent_tags);
+        helpers.set_value("recent-tag-searches", recent_tags);
 
         window.dispatchEvent(new Event("recent-tag-searches-changed"));
     },
@@ -633,7 +658,7 @@ var helpers = {
     remove_recent_search_tag(tag)
     {
         // Remove tag from the list.  There should normally only be one.
-        var recent_tags = GM_getValue("recent-tag-searches") || [];
+        var recent_tags = helpers.get_value("recent-tag-searches") || [];
         while(1)
         {
             var idx = recent_tags.indexOf(tag);
@@ -641,7 +666,7 @@ var helpers = {
                 break;
             recent_tags.splice(idx, 1);
         }
-        GM_setValue("recent-tag-searches", recent_tags);
+        helpers.set_value("recent-tag-searches", recent_tags);
         
         window.dispatchEvent(new Event("recent-tag-searches-changed"));
     },

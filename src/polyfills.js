@@ -18,28 +18,6 @@ var install_polyfills = function()
     if(script_global_exists("GM") && GM.xmlHttpRequest && !script_global_exists("GM_xmlhttpRequest"))
         window.GM_xmlhttpRequest = GM.xmlHttpRequest;
 
-    // Work around GreaseMonkey frovolously removing GM_setValue and GM_getValue.
-    if(window.GM_getValue == null)
-    {
-        window.GM_getValue = function(key)
-        {
-            key = "_ppixiv_" + key;
-
-            var result = localStorage[key];
-            if(result == null)
-                return null;
-            return JSON.parse(result);
-        }
-
-        window.GM_setValue = function(key, value)
-        {
-            key = "_ppixiv_" + key;
-
-            var value = JSON.stringify(value);
-            localStorage[key] = value;
-        }
-    }
-
     // padStart polyfill:
     // https://github.com/uxitten/polyfill/blob/master/string.polyfill.js
     // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/padStart

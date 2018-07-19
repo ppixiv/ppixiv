@@ -248,7 +248,7 @@ class tag_search_dropdown_widget
         var list = this.tag_dropdown.querySelector(".input-dropdown-list");
         helpers.remove_elements(list);
 
-        var tags = GM_getValue("recent-tag-searches") || [];
+        var tags = helpers.get_value("recent-tag-searches") || [];
         var autocompleted_tags = this.current_autocomplete_results;
         
         for(var tag of autocompleted_tags)
