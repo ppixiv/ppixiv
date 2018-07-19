@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        ppixiv
 // @author      ppixiv
-// @description Improved Pixiv image viewing
+// @description Better Pixiv image viewing | Download ugoira as MKV | One-click like, bookmark, follow
 // @include     http://*.pixiv.net/*
 // @include     https://*.pixiv.net/*
 // @run-at      document-start
