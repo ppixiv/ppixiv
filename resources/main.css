@@ -48,6 +48,7 @@ textarea:focus, input:focus, a:focus {
 }
 @keyframes flash-progress-bar { to { opacity: 0; } }
 .refresh-icon {
+    cursor: pointer;
 }
 .progress-bar.hide {
     animation: flash-progress-bar 500ms linear 1 forwards;
@@ -173,21 +174,29 @@ body:not(.hide-ui) .hover-box:hover + .ui-box {
     flex-direction: row;
     align-items: center;
     height: 32px;
-    margin-top: .5em;
+    margin-top: 5px;
+    margin-bottom: 4px;
 }
 
-.disable-ui-button svg.pixiv-icon {
-    /* The .pixiv-icon class on this element sets the background. */
-    display: inline-block;
-    width: 26px;
+/* An icon in a button strip. */
+.icon-button {
+    display: block;
+    width: 32px;
     height: auto;
+}
+
+.disable-ui-button > .icon-button {
+    /* The .pixiv-icon class on this element sets the background. */
+    padding: 3px; /* center the 26px icon */
     margin: 0 4px;
     cursor: pointer;
 }
-.disable-ui-button:hover svg.pixiv-icon {
+.disable-ui-button:hover > .icon-button {
     fill: #0096FA;
 }
-
+.settings-menu-box > .icon-button {
+    padding: 4px; /* center the 24px icon */
+}
 .show-thumbnails-button {
     cursor: pointer;
 }
@@ -290,9 +299,9 @@ body.dot canvas.filtering {
 /* When bookmarked, show the bookmark state. */
 .bookmark-button { cursor: pointer; }
 .bookmark-button .bookmark-popup { cursor: initial; } /* stop cursor: pointer above from propagating all the way down */
-body:not(.bookmarked) .bookmark-button:hover svg.heart,
-body.bookmarked .bookmark-button.bookmarked-public svg.heart { fill: #f00; }
-.bookmark-button.bookmarked-private svg.heart { fill: #800; stroke: #fff; }
+body:not(.bookmarked) .bookmark-button:hover              svg.heart,
+body.bookmarked       .bookmark-button.bookmarked-public  svg.heart { fill: #f00; }
+                      .bookmark-button.bookmarked-private svg.heart { fill: #800; stroke: #fff; }
 body.bookmarked .bookmark-button input { display: none; }
 .bookmark-button > span.popup {
     margin: 0 3px;
@@ -300,18 +309,18 @@ body.bookmarked .bookmark-button input { display: none; }
 .like-button {
     cursor: pointer;
 }
-.like-button > svg.like-icon {
+.like-button > .icon-button {
     margin: 0 4px;
 }
-.similar-illusts-button:hover > svg.similar-illusts-icon {
+.similar-illusts-button:hover > .icon-button {
     fill: #FF0 !important; /* override grey-icon hover color */
 }
-.similar-illusts-button > svg.similar-illusts-icon {
-    margin-top: -4px;
+.similar-illusts-button > .icon-button {
+    margin-top: -3px;
 }
 
-.like-button.liked > .like-icon,
-.like-button:not(.liked) > .like-icon:hover {
+.like-button.liked > .icon-button,
+.like-button:not(.liked) > .icon-button:hover {
     fill: #0F0 !important; /* override grey-icon hover color */
 }
 .description {
