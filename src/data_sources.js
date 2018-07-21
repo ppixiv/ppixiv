@@ -288,7 +288,8 @@ class data_source
         if(this.id_list.is_page_loaded(page))
         {
             setTimeout(function() {
-                callback();
+                if(callback != null)
+                    callback();
             }.bind(this), 0);
             return true;
         }
