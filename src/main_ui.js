@@ -636,9 +636,6 @@ main_ui.prototype.refresh_ui = function()
     // Set the popup for the thumbnails button based on the label of the data source.
     this.container.querySelector(".show-thumbnails-button").dataset.popup = this.data_source.get_displaying_text();
 
-    var seconds_old = (new Date() - new Date(illust_data.createDate)) / 1000;
-    this.container.querySelector(".title-block").dataset.popup = helpers.age_to_string(seconds_old) + " ago";
-
     this.element_author.textContent = user_data.name;
     this.element_author.href = "/member_illust.php?id=" + user_data.userId;
 
@@ -646,6 +643,42 @@ main_ui.prototype.refresh_ui = function()
 
     this.element_title.textContent = illust_data.illustTitle;
     this.element_title.href = "/member_illust.php?mode=medium&illust_id=" + illust_id;
+
+    // Fill in the post info text.
+    var set_info = function(query, text)
+    {
+        var node = this.container.querySelector(query);
+        node.innerText = text;
+        node.hidden = text == "";
+    }.bind(this);
+
+    var seconds_old = (new Date() - new Date(illust_data.createDate)) / 1000;
+    set_info(".post-info > .post-age", helpers.age_to_string(seconds_old) + " ago");
+
+    var info = "";
+    if(illust_data.illustType != 2 && illust_data.pageCount == 1)
+    {
+        // Add the resolution and file type for single images.
+        var ext = helpers.get_extension(illust_data.urls.original).toUpperCase();
+        info += illust_data.width + "x" + illust_data.height + " " + ext;
+    }
+    set_info(".post-info > .image-info", info);
+
+    var duration = "";
+    if(illust_data.illustType == 2)
+    {
+        var seconds = 0;
+        for(var frame of illust_data.ugoiraMetadata.frames)
+            seconds += frame.delay / 1000;
+
+        var duration = seconds.toFixed(duration >= 10? 0:1);
+        duration += seconds == 1? " second":" seconds";
+    }
+    set_info(".post-info > .ugoira-duration", duration);
+    set_info(".post-info > .ugoira-frames", illust_data.illustType == 2? (illust_data.ugoiraMetadata.frames.length + " frames"):"");
+
+    // Add the page count for manga.
+    set_info(".post-info > .page-count", illust_data.pageCount == 1? "":(illust_data.pageCount + " pages"));
 
     // The comment (description) can contain HTML.
     this.element_comment.hidden = illust_data.illustComment == "";
