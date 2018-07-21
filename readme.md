@@ -11,6 +11,7 @@ Features:
 - One-click bookmarks and following.
 - Download ugoira as an MKV.
 - Download manga pages as a ZIP.
+- Ugoira seeking.
 - Navigate search results with the mouse wheel or keyboard (pgup, pgdn).
 - Background image loading for fast navigation.
 - Pause, rewind and frame advance videos.

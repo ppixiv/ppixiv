@@ -14,6 +14,7 @@ FILES=\
     src/on_click_viewer.js \
     src/polyfills.js \
     src/progress_bar.js \
+    src/seek_bar.js \
     src/struct.js \
     src/ugoira_downloader_mjpeg.js \
     src/viewer.js \

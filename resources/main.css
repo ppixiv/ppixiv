@@ -57,6 +57,43 @@ textarea:focus, input:focus, a:focus {
 .loading-progress-bar .progress-bar {
     z-index: 100;
 }
+
+/* .seek-bar is the outer seek bar area, which is what can be dragged. */
+.seek-bar {
+    position: absolute;
+    bottom: 0px;
+    left: 0px;
+    width: 100%;
+
+    box-sizing: content-box;
+    height: 12px;
+    padding-top: 25px;
+
+    cursor: pointer;
+}
+
+.seek-bar .seek-empty {
+    height: 100%;
+    background-color: rgba(0,0,0,0.25);
+}
+
+.seek-bar .seek-fill {
+    background-color: #F00;
+    height: 100%;
+}
+
+.seek-bar .seek-empty {
+    transition: transform .25s;
+    transform: translate(0, 12px);
+}
+
+.seek-bar.visible .seek-empty {
+    transform: translate(0, 6px);
+}
+.seek-bar.dragging .seek-empty {
+    transform: translate(0, 0);
+}
+
 .title-font {
     font-weight: 700;
     font-size: 20px;

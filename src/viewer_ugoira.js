@@ -1,6 +1,6 @@
 class viewer_ugoira extends viewer
 {
-    constructor(container, illust_data, progress)
+    constructor(container, illust_data, seek_bar, progress)
     {
         super(container, illust_data);
         
@@ -9,10 +9,13 @@ class viewer_ugoira extends viewer
         this.onkeydown = this.onkeydown.bind(this);
         this.drew_frame = this.drew_frame.bind(this);
         this.progress = this.progress.bind(this);
+        this.seek_callback = this.seek_callback.bind(this);
 
         this.illust_data = illust_data;
         this.container = container;
         this.progress_callback = progress;
+
+        this.seek_bar = seek_bar;
 
         // Create an image to display the static image while we load.
         this.preview_img = document.createElement("img");
@@ -35,7 +38,11 @@ class viewer_ugoira extends viewer
         this.canvas.addEventListener("click", this.clicked_canvas, false);
 
         // True if we want to play if the window has focus.  We always pause when backgrounded.
-        this.wantPlaying = true;
+        this.want_playing = true;
+
+        // True if the user is seeking.  We temporarily pause while seeking.  This is separate
+        // from this.want_playing so we stay paused after seeking if we were paused at the start.
+        this.seeking = false;
 
         window.addEventListener("visibilitychange", this.refresh_focus);
 
@@ -61,9 +68,15 @@ class viewer_ugoira extends viewer
         if(this.progress_callback)
             this.progress_callback(value);
 
-        // Once we send "finished", don't make any more progress calls.
         if(value == null)
+        {
+            // Once we send "finished", don't make any more progress calls.
             this.progress_callback = null;
+
+            // Enable the seek bar once loading finishes.
+            if(this.seek_bar)
+                this.seek_bar.set_callback(this.seek_callback);
+        }
     }
 
     // Once we draw a frame, hide the preview and show the canvas.  This avoids
@@ -72,6 +85,14 @@ class viewer_ugoira extends viewer
     {
         this.preview_img.hidden = true;
         this.canvas.hidden = false;
+
+        if(this.seek_bar)
+        {
+            // Update the seek bar.
+            var frame_time = this.player.getCurrentFrameTime();
+            this.seek_bar.set_current_time(this.player.getCurrentFrameTime());
+            this.seek_bar.set_duration(this.player.getTotalDuration());
+        }
     }
 
     // This is sent manually by the UI handler so we can control focus better.
@@ -149,19 +170,25 @@ class viewer_ugoira extends viewer
 
     play()
     {
-        this.wantPlaying = true;
+        this.want_playing = true;
         this.refresh_focus();
     }
 
     pause()
     {
-        this.wantPlaying = false;
+        this.want_playing = false;
         this.refresh_focus();
     }
 
     shutdown()
     {
         this.finished = true;
+
+        if(this.seek_bar)
+        {
+            this.seek_bar.set_callback(null);
+            this.seek_bar = null;
+        }
 
         window.removeEventListener("visibilitychange", this.refresh_focus);
 
@@ -181,7 +208,7 @@ class viewer_ugoira extends viewer
         if(this.player == null)
             return;
 
-        var active = this.wantPlaying && !window.document.hidden;
+        var active = this.want_playing && !this.seeking && !window.document.hidden;
         if(active)
             this.player.play(); 
         else
@@ -190,8 +217,18 @@ class viewer_ugoira extends viewer
 
     clicked_canvas(e)
     {
-        this.wantPlaying = !this.wantPlaying;
+        this.want_playing = !this.want_playing;
         this.refresh_focus();
     }
+
+    // This is called when the user interacts with the seek bar.
+    seek_callback(pause, seconds)
+    {
+        this.seeking = pause;
+        this.refresh_focus();
+
+        if(seconds != null)
+            this.player.setCurrentFrameTime(seconds);
+    };
 }
 

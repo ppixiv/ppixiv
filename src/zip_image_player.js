@@ -43,6 +43,16 @@ function ZipImagePlayer(options) {
     this._debugLog("Frame count: " + this._frameCount);
     this._frame = 0;
     this._loadFrame = 0;
+
+    // Make a list of timestamps for each frame.
+    this._frameTimestamps = [];
+    var milliseconds = 0;
+    for(var frame of this.op.metadata.frames)
+    {
+        this._frameTimestamps.push(milliseconds);
+        milliseconds += frame.delay;
+    }
+
     this._frameImages = [];
     this._paused = false;
     this._startLoad();
@@ -422,6 +432,32 @@ ZipImagePlayer.prototype = {
         if(frame < 0)
             frame += this._frameCount;
         this._frame = frame;
+        this._displayFrame();
+    },
+    getTotalDuration: function() {
+        var last_frame = this.op.metadata.frames.length - 1;
+        return this._frameTimestamps[last_frame] / 1000;
+    },
+    getCurrentFrameTime: function() {
+        return this._frameTimestamps[this._frame] / 1000;
+    },
+
+    // Set the video to the closest frame to the given time.
+    setCurrentFrameTime: function(seconds) {
+        // We don't actually need to check all frames, but there's no need to optimize this.
+        var closest_frame = null;
+        var closest_error = null;
+        for(var frame = 0; frame < this.op.metadata.frames.length; ++frame)
+        {
+            var error = Math.abs(seconds - this._frameTimestamps[frame]/1000);
+            if(closest_frame == null || error < closest_error)
+            {
+                closest_frame = frame;
+                closest_error = error;
+            }
+        }
+
+        this._frame = closest_frame;
         this._displayFrame();
     },
     getLoadedFrames: function() {

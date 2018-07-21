@@ -384,6 +384,7 @@ var main_ui = function(data_source)
     // A bar showing how far along in an image sequence we are:
     this.manga_page_bar = new progress_bar(this.container.querySelector(".ui-box")).controller();
     this.progress_bar = new progress_bar(this.container.querySelector(".loading-progress-bar"));
+    this.seek_bar = new seek_bar(this.container.querySelector(".ugoira-seek-bar"));
 
     helpers.add_clicks_to_search_history(document.body);
     this.refresh_ui();
@@ -566,7 +567,7 @@ main_ui.prototype.image_data_loaded = function(illust_data)
     // Create the image viewer.
     var progress_bar = this.progress_bar.controller();
     if(illust_data.illustType == 2)
-        this.viewer = new viewer_ugoira(image_container, illust_data, function(value) {
+        this.viewer = new viewer_ugoira(image_container, illust_data, this.seek_bar, function(value) {
             progress_bar.set(value);
         }.bind(this));
     else
