@@ -248,19 +248,11 @@ ZipImagePlayer.prototype = {
         this._loadFrame += 1;
         var off = this._fileDataStart(this._files[meta.file].off);
         var end = off + this._files[meta.file].len;
-        var url;
         var mime_type = this.op.metadata.mime_type || "image/png";
-        var slice;
-        if (!this._buf.slice) {
-            slice = new ArrayBuffer(this._files[meta.file].len);
-            var view = new Uint8Array(slice);
-            view.set(this._bytes.subarray(off, end));
-        } else {
-            slice = this._buf.slice(off, end);
-        }
+        var slice = this._buf.slice(off, end);
         var blob = new Blob([slice], {type: mime_type});
         /*_this._debugLog("Loading " + meta.file + " to frame " + frame);*/
-        url = URL.createObjectURL(blob);
+        var url = URL.createObjectURL(blob);
         this._loadImage(frame, url, true);
     },
     _loadImage: function(frame, url, isBlob) {
