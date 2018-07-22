@@ -153,7 +153,7 @@ class image_data
 
     loaded_image_info(illust_result)
     {
-        if(illust_result.error)
+        if(illust_result == null || illust_result.error)
             return;
 
         var illust_data = illust_result.body;

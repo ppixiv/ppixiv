@@ -102,7 +102,7 @@ var helpers = {
             "headers": {
                 "Accept": "application/json",
             },
-            onload: function(e) {
+            onload: function(data) {
                 // Once the request finishes, future requests can be done normally and should be served
                 // out of cache.
                 delete helpers._fetches[url];
@@ -112,7 +112,7 @@ var helpers = {
                 {
                     try {
                         if(options.onload)
-                            options.onload(e);
+                            options.onload(data);
                     } catch(exc) {
                         console.error(exc);
                     }
@@ -145,12 +145,6 @@ var helpers = {
             },
         });        
 
-        if(request == null)
-        {
-            request = {};
-            request.abort = function() { }
-        }
-
         // Remember the number of times fetch_resource has been called on this URL.
         request.fetch_count = 1;
         request.callers = [];
@@ -171,7 +165,7 @@ var helpers = {
             {
                 var idx = request.callers.indexOf(options);
                 if(idx != -1)
-                        request.callers.splice(idx, 1);
+                    request.callers.splice(idx, 1);
             }
             
             if(request.fetch_count == 0)
@@ -275,6 +269,7 @@ var helpers = {
     // much of a dependable platform.
     block_network_requests: function()
     {
+        RealXMLHttpRequest = window.XMLHttpRequest;        
         window.Image = function() { };
 
         dummy_fetch = function() { };
@@ -370,36 +365,196 @@ var helpers = {
         return str.join("&");
     },
 
-    // Send a request withi GM_xmlhttpRequest.
-    //
-    // The referer, cookie and CSRF token will be filled in automatically.
+    // Sending requests in user scripts is a nightmare:
+    // - In TamperMonkey you can simply use unsafeWindow.XMLHttpRequest.  However, in newer versions
+    // of GreaseMonkey, the request will be sent, but event handlers (eg. load) will fail with a
+    // permissions error.  (That doesn't make sense, since you can assign DOM events that way.)
+    // - window.XMLHttpRequest will work, but won't make the request as the window, so it will
+    // act like a cross-origin request.  We have to use GM_xmlHttpRequest/GM.XMLHttpRequest instead.
+    // - But, we can't use that in TamperMonkey (at least in Chrome), since ArrayBuffer is incredibly
+    // slow.  It seems to do its own slow buffer decoding: a 2 MB ArrayBuffer can take over half a
+    // second to decode.  We need to use regular XHR with TamperMonkey.
+    // - GM_xmlhttpRequest in GreaseMonkey doesn't send a referer by default, and we need to set it
+    // manually.  (TamperMonkey does send a referer by default.)
+
+    // send_request_gm: Send a request with GM_xmlhttpRequest.
     //
     // The returned object will have an abort method that might abort the request.
     // (TamperMonkey provides abort, but GreaseMonkey doesn't.)
     //
-    // Note that options will be modified.
+    // Only the following options are supported:
+    //
+    // - headers
+    // - method
+    // - data
+    // - responseType
+    // - onload
+    // - onprogress
+    //
+    // The returned object will only have abort, which is a no-op in GM.
+    //
+    // onload will always be called (unless the request is aborted), so there's always just
+    // one place to put cleanup handlers when a request finishes.
+    //
+    // onload will be called with only resp.response and not the full response object.  On
+    // error, onload(null) will be called rather than onerror.
+    //
+    // We use a limited interface since we have two implementations of this, one using XHR (for TM)
+    // and one using GM_xmlhttpRequest (for GM), and this prevents us from accidentally
+    // using a field that's only implemented with GM_xmlhttpRequest and breaking TM.
+    send_request_gm: function(user_options)
+    {
+        var options = {};
+        for(var key of ["url", "headers", "method", "data", "responseType", "onload", "onprogress"])
+        {
+            if(!(key in user_options))
+                continue;
+
+            // We'll override onload.
+            if(key == "onload")
+            {
+                options.real_onload = user_options.onload;
+                continue;
+            }
+            options[key] = user_options[key];
+        }
+
+        // Set the referer, or some requests will fail.
+        var url = new URL(document.location);
+        url.hash = "";
+        options.headers["Referer"] = url.toString();
+
+        options.onload = function(response)
+        {
+            if(options.real_onload)
+            {
+                try {
+                    options.real_onload(response.response);
+                } catch(e) {
+                    console.error(e);
+                }
+            }
+        };
+
+        // When is this ever called?
+        options.onerror = function(response)
+        {
+            console.log("Request failed:", response);
+            if(options.real_onload)
+            {
+                try {
+                    options.real_onload(null);
+                } catch(e) {
+                    console.error(e);
+                }
+            }
+        }        
+
+        var actual_request = GM_xmlhttpRequest(options);
+
+        return {
+            abort: function()
+            {
+                // actual_request is null with newer, broken versions of GM, in which case
+                // we only pretend to cancel the request.
+                if(actual_request != null)
+                    actual_request.abort();
+
+                // Remove real_onload, so if we can't actually cancel the request, we still
+                // won't call onload, since the caller is no longer expecting it.
+                delete options.real_onload;
+            },
+        };
+    },
+
+    // The same as send_request_gm, but with XHR.
+    send_request_xhr: function(options)
+    {
+        var xhr = new RealXMLHttpRequest();        
+        xhr.open(options.method || "GET", options.url);
+
+        if(options.headers)
+        {
+            for(var key in options.headers)
+                xhr.setRequestHeader(key, options.headers[key]);
+        }
+        
+        if(options.responseType)
+            xhr.responseType = options.responseType;
+
+        xhr.addEventListener("load", function(e) {
+            if(options.onload)
+            {
+                try {
+                    options.onload(xhr.response);
+                } catch(exc) {
+                    console.error(exc);
+                }
+            }
+        });
+
+        xhr.addEventListener("progress", function(e) {
+            if(options.onprogress)
+            {
+                try {
+                    options.onprogress(e);
+                } catch(exc) {
+                    console.error(exc);
+                }
+            }
+        });
+        
+        if(options.method == "POST")
+            xhr.send(options.data);
+        else
+            xhr.send();
+
+        return {
+            abort: function()
+            {
+                console.log("cancel");
+                xhr.abort();
+            },
+        };
+    },
+
+    send_request: function(options)
+    {
+        // In GreaseMonkey, use send_request_gm.  Otherwise, use send_request_xhr.  If
+        // GM_info.scriptHandler doesn't exist, assume we're in GreaseMonkey, since 
+        // TamperMonkey always defines it.
+        //
+        // (e also assume that if GM_info doesn't exist we're in GreaseMonkey, since it's
+        // GM that has a nasty habit of removing APIs that people are using, so if that
+        // happens we're probably in GM.
+        var greasemonkey = true;
+        try
+        {
+            greasemonkey = GM_info.scriptHandler == null || GM_info.scriptHandler == "Greasemonkey";
+        } catch(e) {
+            greasemonkey = true;
+        }
+
+        if(greasemonkey)
+            return helpers.send_request_gm(options);
+        else
+            return helpers.send_request_xhr(options);
+    },
+
+    // Send a request with the referer, cookie and CSRF token filled in.
     send_pixiv_request: function(options)
     {
         if(options.headers == null)
             options.headers = {};
 
-        options.headers["Cookie"] = document.cookie;
-        options.headers["x-csrf-token"] = global_data.csrf_token;
+        // Only set x-csrf-token for requests to www.pixiv.net.  It's only needed for API
+        // calls (not things like ugoira ZIPs), and the request will fail if we're in XHR
+        // mode and set headers, since it'll trigger CORS.
+        var hostname = new URL(options.url, document.location).hostname;
+        if(hostname == "www.pixiv.net")
+            options.headers["x-csrf-token"] = global_data.csrf_token;
 
-        // Use the page URL with the hash removed.
-        var url = new URL(document.location);
-        url.hash = "";
-        options.headers["Referer"] = url.toString();
-
-        var request = GM_xmlhttpRequest(options);
-        if(request == null)
-        {
-            request = {
-                abort: function() { },
-            };
-        }
-
-        return request;
+        return helpers.send_request(options);
     },
 
     // Why does Pixiv have 3 APIs?
@@ -416,9 +571,8 @@ var helpers = {
                 "Accept": "application/json",
                 "Content-Type": "application/x-www-form-urlencoded; charset=utf-8",
             },
-            onload: function(result) {
-                var data = result.response;
-                if(data.error)
+            onload: function(data) {
+                if(data && data.error)
                     console.error("Error in XHR request:", data.message)
 
                 if(callback)
@@ -451,9 +605,8 @@ var helpers = {
                 "Accept": "application/json",
             },
 
-            onload: function(result) {
-                var data = result.response;
-                if(data.error)
+            onload: function(data) {
+                if(data && data.error)
                     console.error("Error in XHR request:", data.message)
 
                 if(callback)
@@ -481,10 +634,8 @@ var helpers = {
                 "Accept": "application/json",
                 "Content-Type": "application/json; charset=utf-8",
             },
-            onload: function(result) {
-                var data = result.response;
-                console.log(data);
-                if(data.error)
+            onload: function(data) {
+                if(data && data.error)
                     console.error("Error in XHR request:", data.message)
 
                 if(callback)
@@ -516,9 +667,8 @@ var helpers = {
             "headers": {
                 "Accept": "application/json",
             },
-            onload: function(result) {
-                var data = result.response;
-                if(data.error)
+            onload: function(data) {
+                if(data && data.error)
                     console.error("Error in XHR request:", data.message)
 
                 if(callback)

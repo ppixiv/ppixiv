@@ -105,6 +105,9 @@ class avatar_widget
             restrict: follow_privately? 1:0,
             format: "json",
         }, function(result) {
+            if(result == null)
+                return;
+
             // This doesn't return any data.  Record that we're following and refresh the UI.
             this.user_data.isFollowed = true;
             this.set_from_user_data(this.user_data);
@@ -132,6 +135,9 @@ class avatar_widget
             type: "bookuser",
             id: this.user_data.userId,
         }, function(result) {
+            if(result == null)
+                return;
+
             // Record that we're no longer following and refresh the UI.
             this.user_data.isFollowed = false;
             this.set_from_user_data(this.user_data);
@@ -971,7 +977,6 @@ main_ui.prototype.move = function(down)
             console.log("Reached the end of the list");
             return false;
         }
-        console.log("...");
 
         return true;
     }
@@ -1098,7 +1103,7 @@ main_ui.prototype.bookmark_add = function(private_bookmark)
         "comment": "",
         "restrict": private_bookmark? 1:0,
     }, function(result) {
-        if(result.error)
+        if(result == null || result.error)
             return;
 
         // Clear the tag list after saving a bookmark.  Otherwise, it's too easy to set a tag for one
@@ -1135,7 +1140,7 @@ main_ui.prototype.bookmark_remove = function()
         mode: "delete_illust_bookmark",
         bookmark_id: bookmark_id,
     }, function(result) {
-        if(result.error)
+        if(result == null || result.error)
             return;
 
         console.log("Removing bookmark finished");

@@ -88,18 +88,14 @@ ZipImagePlayer.prototype = {
 
         // Use helpers.fetch_resource, so we share fetches with preloading.
         var xhr = helpers.fetch_resource(this.op.source, {
-            onload: function(ev) {
+            onload: function(response) {
                 if (_this._dead) {
                     return;
                 }
-                _this._debugLog("Load: status=" + ev.status);
-                if (ev.status != 200) {
-                    _this._error("Unexpected HTTP status " + ev.status);
-                }
-                var length = ev.response.byteLength;
+                _this._buf = response;
+                var length = _this._buf.byteLength;
                 _this._len = length;
                 _this._pHead = length;
-                _this._buf = ev.response;
                 _this._bytes = new Uint8Array(_this._buf);
                 this._findCentralDirectory();
 

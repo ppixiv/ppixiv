@@ -5,7 +5,6 @@ class tag_search_dropdown_widget
 {
     constructor(input_element)
     {
-        console.log("...");
         this.dropdown_onclick = this.dropdown_onclick.bind(this);
         this.input_onfocus = this.input_onfocus.bind(this);
         this.input_onblur = this.input_onblur.bind(this);

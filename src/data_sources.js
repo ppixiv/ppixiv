@@ -798,10 +798,7 @@ class data_source_rankings extends data_source
             data.mode = mode;
 
         helpers.get_request("/ranking.php", data, function(result) {
-        console.log(result);
-
             // If "next" is false, this is the last page.
-            console.log(result.next);
             if(!result.next)
                 this.max_page = Math.min(page, this.max_page);
 
