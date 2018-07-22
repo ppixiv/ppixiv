@@ -56,8 +56,6 @@ class avatar_widget
         this.root = helpers.create_from_template(".template-avatar");
         helpers.set_class(this.root, "big", this.options.big);
 
-        this.element_author_avatar = this.root.querySelector(".avatar");
-
         // Show the favorite UI when hovering over the avatar icon.
         var avatar_popup = this.root; //container.querySelector(".avatar-popup");
         avatar_popup.addEventListener("mouseover", function(e) { helpers.set_class(avatar_popup, "popup-visible", true); }.bind(this));
@@ -81,13 +79,15 @@ class avatar_widget
         // We can't tell if we're followed privately or not, only that we're following.
         helpers.set_class(this.root, "followed", this.user_data.isFollowed);
 
+        this.root.querySelector(".avatar-link").href = "/member_illust.php?id=" + user_data.userId;
+
         // If we don't have an image because we're loaded from a source that doesn't give us them,
         // just hide the avatar image.  Note that this image is low-res even though there's usually
         // a larger version available (grr).
-        this.element_author_avatar.hidden = user_data.image == null;
+        var element_author_avatar = this.root.querySelector(".avatar");
         var key = this.options.big? "imageBig":"image";
         if(user_data[key])
-            this.element_author_avatar.src = user_data[key];
+            element_author_avatar.src = user_data[key];
     }
     
     follow(follow_privately)

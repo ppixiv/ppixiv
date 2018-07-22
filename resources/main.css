@@ -301,6 +301,20 @@ body.disable-thumbnail-panning .toggle-thumbnail-panning > .on { display: none; 
     width: 170px;
     height: 170px;
 }
+.follow-popup {
+    margin-top: 10px;
+    right: 0px;
+}
+.follow-container .hover-area {
+    top: -12px;
+}
+.follow-container .avatar-link {
+    display: block;
+}
+.follow-popup .folder {
+    display: block;
+}
+
 .follow-container.followed .follow-popup .not-following { display: none; }
 .follow-container:not(.followed) .follow-popup .following { display: none; }
 .follow-container.followed .avatar {
@@ -410,13 +424,6 @@ body.light .description * {
     z-index: 98;
 }
 
-.follow-popup {
-    margin-top: 10px;
-    right: 0px;
-}
-.follow-popup .folder {
-    display: block;
-}
 body:not(.premium) .premium-only { display: none; }
 .popup-menu-box {
     position: absolute;
@@ -918,7 +925,7 @@ input.search-tags {
     display: block;
 }
 
-.member-tags-box .post-tag-list .following-tag:hover:After,
+.member-tags-box .post-tag-list .following-tag:hover:after,
 .search-tags-box .related-tag-list .tag:hover:after {
     left: auto;
     right: 0px;
