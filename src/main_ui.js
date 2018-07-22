@@ -759,15 +759,6 @@ main_ui.prototype.onwheel = function(e)
     if(e.target == this.element_comment)
         return;
 
-    // Let the viewer handle the input first.
-    if(this.viewer && this.viewer.onwheel)
-    {
-        this.viewer.onwheel(e);
-        if(e.defaultPrevented)
-            return;
-    }
-
-
     var down = e.deltaY > 0;
     this.move(down);
 }
@@ -872,13 +863,12 @@ main_ui.prototype.onkeydown = function(e)
 
     switch(e.keyCode)
     {
-    case 66: // b
-
     case 86: // l
         e.stopPropagation();
         this.clicked_like(e);
         return;
 
+    case 38: // up
     case 33: // pgup
         e.preventDefault();
         e.stopPropagation();
@@ -886,6 +876,7 @@ main_ui.prototype.onkeydown = function(e)
         this.move(false);
         break;
 
+    case 40: // down
     case 34: // pgdn
         e.preventDefault();
         e.stopPropagation();
@@ -926,6 +917,13 @@ main_ui.prototype.move = function(down)
     this.latest_navigation_direction_down = down;
 
     this.cancel_async_navigation();
+
+    // Let the viewer handle the input first.
+    if(this.viewer && this.viewer.move)
+    {
+        if(this.viewer.move(down))
+            return;
+    }
 
     // Get the next (or previous) illustration after the current one.
     var new_illust_id = this.data_source.id_list.get_neighboring_illust_id(this.current_illust_id, down);

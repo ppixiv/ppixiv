@@ -13,7 +13,6 @@ class viewer_images extends viewer
         this.progress_bar = options.progress_bar;
         this.manga_page_bar = options.manga_page_bar;
         
-        this.onwheel = this.onwheel.bind(this);
         this.onkeydown = this.onkeydown.bind(this);
 
         this.index = options.show_last_image? illust_data.pageCount-1:0;
@@ -60,18 +59,6 @@ class viewer_images extends viewer
         this.index = new_index;
         this.refresh();
         return true;
-    }
-
-    onwheel(e)
-    {
-        var down = e.deltaY > 0;
-        if(this.move(down))
-        {
-            // If we changed images, stop the event so the global mousewheel handler
-            // doesn't change the image.
-            e.stopPropagation();
-            e.preventDefault();
-        }
     }
 
     refresh(e)
