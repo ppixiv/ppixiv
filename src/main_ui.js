@@ -934,11 +934,21 @@ main_ui.prototype.move = function(down)
         // That page isn't loaded.  Try to load it.
         var next_page = this.data_source.id_list.get_page_for_neighboring_illust(this.current_illust_id, down);
 
+        // If we can't find the next page, then the current image isn't actually loaded in
+        // the current search results.  This can happen if the page is reloaded: we'll show
+        // the previous image, but we won't have the results loaded (and the results may have
+        // changed).  Just jump to the first image in the results so we get back to a place
+        // we can navigate from.
+        //
+        // Note that we use id_list.get_first_id rather than get_default_illust_id, which is
+        // just the image we're already on.
         if(next_page == null)
         {
             // We should normally know which page the illustration we're currently viewing is on.
             console.warn("Don't know the next page for illust", this.current_illust_id);
-            return;
+            new_illust_id = this.data_source.id_list.get_first_id();
+            this.show_image(new_illust_id, false, false /* don't add to history */);
+            return true;
         }
 
         console.log("Loading the next page of results:", next_page);
