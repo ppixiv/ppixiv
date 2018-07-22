@@ -225,7 +225,6 @@ var helpers = {
         // If we revoke the URL now, or with a small timeout, Firefox sometimes just doesn't show
         // the save dialog, and there's no way to know when we can, so just use a large timeout.
         setTimeout(function() {
-            console.log("done");
             window.URL.revokeObjectURL(blobUrl);
             a.parentNode.removeChild(a);
         }.bind(this), 1000);
@@ -733,6 +732,30 @@ var helpers = {
     // Remove the iframe when the callback returns.
     load_data_in_iframe: function(url, callback)
     {
+        if(GM_info.scriptHandler == "Tampermonkey")
+        {
+            // If we're in Tampermonkey, we don't need any of the iframe hijinks and we can
+            // simply make a request with responseType: document.  This is much cleaner than
+            // the Greasemonkey workaround below.
+            helpers.send_pixiv_request({
+                "method": "GET",
+                "url": url,
+                "responseType": "document",
+
+                onload: function(data) {
+                    callback(data);
+                },
+            });
+            return;
+        }
+
+        // The above won't work with Greasemonkey.  It returns a document we can't access,
+        // raising exceptions if we try to access it.  Greasemonkey's sandboxing needs to
+        // be shot into the sun.
+        //
+        // Instead, we load the document in a sandboxed iframe.  It'll still load resources
+        // that we don't need (though they'll mostly load from cache), but it won't run
+        // scripts.
         var iframe = document.createElement("iframe");
 
         // Enable sandboxing, so scripts won't run in the iframe.  Set allow-same-origin, or
