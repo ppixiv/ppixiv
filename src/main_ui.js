@@ -994,7 +994,6 @@ main_ui.prototype.move = function(down)
 main_ui.prototype.clicked_download = function(e)
 {
     var clicked_button = e.target.closest(".download-button");
-    console.log(clicked_button);
     if(clicked_button == null)
         return;
 
@@ -1014,9 +1013,7 @@ main_ui.prototype.clicked_download = function(e)
 
     if(download_type == "MKV")
     {
-        new ugoira_downloader_mjpeg(illust_data, function(value) {
-            this.progress_bar.set(value);
-        }.bind(this));
+        new ugoira_downloader_mjpeg(illust_data, this.progress_bar.controller());
         return;
     }
 

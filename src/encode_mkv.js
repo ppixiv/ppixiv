@@ -256,10 +256,8 @@ var encode_mkv = (function() {
                 frame_time += ms / 1000.0;
                 current_pos += cluster.byteLength;
             };
-            console.log(frame_file_positions);
 
             // Add the frame index.
-            console.log(ebml_cues(frame_file_times, frame_file_positions));
             parts.push(ebml_cues(frame_file_times, frame_file_positions));
 
             // Create an EBMLSegment containing all of the parts (excluding the header).

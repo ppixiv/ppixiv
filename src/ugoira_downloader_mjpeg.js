@@ -25,7 +25,13 @@ var ugoira_downloader_mjpeg = function(illust_data, progress)
 ugoira_downloader_mjpeg.prototype.zip_finished_loading = function(progress)
 {
     if(this.progress)
-        this.progress(progress);
+    {
+        try {
+            this.progress.set(progress);
+        } catch(e) {
+            console.error(e);
+        }
+    }
 
     // We just want to know when the ZIP has been completely downloaded, which is indicated when progress
     // finishes.
