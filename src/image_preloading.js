@@ -153,6 +153,9 @@ class image_preloader
             // Store the illust_info for current_illust_id.
             this.current_illust_info = illust_info;
 
+            // Preload thumbnails.
+            this.preload_thumbs(illust_info);
+
             this.check_fetch_queue();
 
         }.bind(this));
@@ -178,6 +181,9 @@ class image_preloader
 
             // Store the illust_info for current_illust_id.
             this.speculative_illust_info = illust_info;
+
+            // Preload thumbnails.
+            this.preload_thumbs(illust_info);
 
             this.check_fetch_queue();
         }.bind(this));
@@ -307,17 +313,27 @@ class image_preloader
         var results = [];
         for(var page = 0; page < illust_data.pageCount; ++page)
         {
-            var url = helpers.get_url_for_page(illust_data, page, "thumb");
-            results.push(new _img_preloader(url));
-        }
-
-        for(var page = 0; page < illust_data.pageCount; ++page)
-        {
             var url = helpers.get_url_for_page(illust_data, page, "original");
             results.push(new _img_preloader(url));
         }
 
         return results;
+    }
+
+    preload_thumbs(illust_info)
+    {
+        // We're only interested in preloading thumbs for manga pages for the manga
+        // thumbnail bar.
+        if(illust_info.pageCount < 2)
+            return;
+
+        // Preload thumbs directly rather than queueing, since they load quickly and
+        // this reduces flicker in the manga thumbnail bar.
+        var thumbs = [];
+        for(var page = 0; page < illust_info.pageCount; ++page)
+            thumbs.push(helpers.get_url_for_page(illust_info, page, "thumb"));
+
+        helpers.preload_images(thumbs);
     }
 };
 
