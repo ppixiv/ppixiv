@@ -338,6 +338,10 @@ var main_ui = function(data_source)
     this.thumbnail_view.set_data_source(this.data_source);
 
     new refresh_bookmark_tag_widget(this.container.querySelector(".refresh-bookmark-tags"));
+    this.manga_thumbnails = new manga_thumbnail_widget(this.container.querySelector(".manga-thumbnail-container"));
+    this.manga_thumbnails.set_page_changed_callback(function(page) {
+        this.viewer.set_page(page);
+    }.bind(this));
 
     this.avatar_widget = new avatar_widget({
         parent: this.container.querySelector(".avatar-popup"),
@@ -493,6 +497,8 @@ main_ui.prototype.stop_displaying_image = function()
         this.viewer = null;
     }
 
+    this.manga_thumbnails.set_illust_info(null);
+    
     this.wanted_illust_id = null;
     this.wanted_illust_last_page = null;
     this.current_illust_id = -1;
@@ -564,12 +570,22 @@ main_ui.prototype.image_data_loaded = function(illust_data)
     // Check if this image is muted.
     var muted_tag = main.any_tag_muted(illust_data.tags.tags);
     var muted_user = main.is_muted_user_id(illust_data.userId);
+
     if(muted_tag || muted_user)
     {
+        // Tell the thumbnail view about the image.  If the image is muted, disable thumbs.
+        this.manga_thumbnails.set_illust_info(null);
+
+        // If the image is muted, load a dummy viewer.
         this.viewer = new viewer_muted(image_container, illust_data);
         return;
     }
  
+    // Tell the thumbnail view about the image.
+    this.manga_thumbnails.set_illust_info(illust_data);
+    this.manga_thumbnails.current_page_changed(want_last_page? (illust_data.pageCount-1):0);
+    this.manga_thumbnails.snap_transition();
+
     // Create the image viewer.
     var progress_bar = this.progress_bar.controller();
     if(illust_data.illustType == 2)
@@ -591,6 +607,9 @@ main_ui.prototype.image_data_loaded = function(illust_data)
 main_ui.prototype.shown_page_changed = function(page, total_pages, url)
 {
     this.cancel_async_navigation();
+
+    // Let the manga thumbnail display know about the selected page.
+    this.manga_thumbnails.current_page_changed(page);
 }
 
 main_ui.prototype.data_source_updated = function()
@@ -868,6 +887,7 @@ main_ui.prototype.onkeydown = function(e)
         this.clicked_like(e);
         return;
 
+    case 37: // left
     case 38: // up
     case 33: // pgup
         e.preventDefault();
@@ -876,6 +896,7 @@ main_ui.prototype.onkeydown = function(e)
         this.move(false);
         break;
 
+    case 39: // right
     case 40: // down
     case 34: // pgdn
         e.preventDefault();

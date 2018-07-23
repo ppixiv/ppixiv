@@ -302,15 +302,19 @@ class image_preloader
             return results;
         }
 
-        // Otherwise, preload the images.
+        // Otherwise, preload the images.  Preload thumbs first, since they'll load
+        // much faster.
         var results = [];
+        for(var page = 0; page < illust_data.pageCount; ++page)
+        {
+            var url = helpers.get_url_for_page(illust_data, page, "thumb");
+            results.push(new _img_preloader(url));
+        }
+
         for(var page = 0; page < illust_data.pageCount; ++page)
         {
             var url = helpers.get_url_for_page(illust_data, page, "original");
             results.push(new _img_preloader(url));
-
-            // We don't use thumbs yet.
-            // images.push(helpers.get_url_for_page(illust_data, page, "thumb"));
         }
 
         return results;

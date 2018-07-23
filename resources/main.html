@@ -4,6 +4,25 @@
     <div class=ugoira-seek-bar></div>
     <div class=loading-progress-bar></div>
 
+    <!-- This covers the progress bar. -->
+    <div class=manga-thumbnail-container>
+        <div class=strip>
+            <div class=manga-thumbnail-arrow data-direction=left>
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="100" viewBox="0 0 20 100">
+                    <path d="M 0 50 L 20 0 L 20 100 L 0 50" />
+                </svg>
+            </div>
+
+            <div class=manga-thumbnails></div>
+
+            <div class=manga-thumbnail-arrow data-direction=right>
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="100" viewBox="0 0 20 100">
+                    <path d="M 20 50 L 0 0 L 0 100 L 20 50" />
+                </svg>
+            </div>
+        </div>
+    </div>
+
     <div class=hover-message>
         <div class=message></div>
     </div>
@@ -540,6 +559,12 @@
             <div class=entry>
                 <a class=tag></a>
                 <a class=remove-history-entry href=#>X</a>
+            </div>
+        </div>
+
+        <div class=template-manga-thumbnail>
+            <div class=manga-thumbnail-box>
+                <img class=manga-thumb>
             </div>
         </div>
     </div>

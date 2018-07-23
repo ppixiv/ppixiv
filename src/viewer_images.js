@@ -49,6 +49,12 @@ class viewer_images extends viewer
             this.progress_bar.detach();
     }
 
+    set_page(page)
+    {
+        this.index = page;
+        this.refresh();
+    }
+
     move(down)
     {
         var new_index = this.index + (down? +1:-1);
@@ -56,12 +62,11 @@ class viewer_images extends viewer
         if(new_index == this.index)
             return false;
 
-        this.index = new_index;
-        this.refresh();
+        this.set_page(new_index);
         return true;
     }
 
-    refresh(e)
+    refresh()
     {
         var url = this.images[this.index];
         if(this.viewer && this.img.src == url)
@@ -73,7 +78,7 @@ class viewer_images extends viewer
         if(this.options.page_changed)
             this.options.page_changed(this.index, this.images.length, url);
 
-        if(this.progress_bar)
+/*        if(this.progress_bar)
         {
             if(this.images.length == 1)
                 this.progress_bar.set(null);
@@ -83,7 +88,7 @@ class viewer_images extends viewer
                 this.progress_bar.set((this.index+1) / this.images.length);
                 this.progress_bar.show_briefly();
             }
-        }
+        } */
         
         // If we have a manga_page_bar, update to show the current page.
         if(this.manga_page_bar)

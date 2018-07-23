@@ -7,7 +7,7 @@ a {
     /*color: #fff;*/
     color: inherit;
 }
-.light a {
+body.light a {
     color: inherit;
 }
 .image-container {
@@ -976,5 +976,122 @@ input.search-tags {
 }
 .input-dropdown > .input-dropdown-list .remove-history-entry:hover {
     color: #f33;
+}
+
+.manga-thumbnail-container
+{
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 240px;
+    max-height: 30%;
+    user-select: none;
+    -moz-user-select: none;
+}
+
+body.hide-ui .manga-thumbnail-container
+{
+    display: none;
+}
+
+/* The .strip container is the overall strip.  This is a flexbox that puts the nav
+ * arrows on the outside, and the thumb strip stretching in the middle.  The thumb
+ * strip itself is also a flexbox, for the actual thumbs. */
+.manga-thumbnail-container > .strip
+{
+    background-color: #444;
+    height: 100%;
+    display: flex;
+    flex-direction: row;
+
+    opacity: 0;
+    transition: transform .15s, opacity .15s;
+    transform: translate(0, 25px);
+}
+body.light .manga-thumbnail-container > .strip
+{
+    background-color: #ddd;
+}
+
+.manga-thumbnail-container.visible > .strip
+{
+    opacity: 1;
+    transform: translate(0, 0);
+}
+
+.manga-thumbnail-container > .strip > .manga-thumbnails {
+    flex: 1;
+
+    display: flex;
+    flex-direction: row;
+    overflow: hidden;
+    justify-content: left;
+    scroll-behavior: smooth;
+    height: 100%;
+    padding: 5px 0;
+}
+
+.manga-thumbnail-container .manga-thumbnail-box
+{
+    cursor: pointer;
+    height: 100%;
+    margin: 0 5px;
+
+    /* The first entry has the cursor inside it.  Set these to relative, so the
+     * cursor position is relative to it. */
+    position: relative;
+}
+
+.manga-thumbnail-container .manga-thumbnail-box img.manga-thumb
+{
+    /* XXX: test with very narrow images, see if we need a max-width */
+    height: 100%;
+    width: auto;
+    border-radius: 3px;
+}
+
+.manga-thumbnail-arrow
+{
+    height: 100%;
+    width: 30px;
+    margin: 0 6px;
+}
+
+.manga-thumbnail-arrow > svg
+{
+    fill: #888;
+}
+.manga-thumbnail-arrow:hover > svg
+{
+    fill: #ff0;
+}
+body.light .manga-thumbnail-arrow:hover > svg
+{
+    stroke: #aa0;
+}
+
+.manga-thumbnail-arrow > svg
+{
+    display: block;
+    height: 100%;
+    width: 100%;
+    padding: 4px;
+}
+
+.thumb-list-cursor
+{
+    position: absolute;
+    left: 0;
+    bottom: -6px;
+    width: 40px;
+    height: 4px;
+    background-color: #FFF;
+    border-radius: 2px;
+}
+
+body.light .thumb-list-cursor
+{
+    background-color: #666;
 }
 
