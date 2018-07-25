@@ -1045,7 +1045,6 @@ body.light .manga-thumbnail-container > .strip
 
 .manga-thumbnail-container .manga-thumbnail-box img.manga-thumb
 {
-    /* XXX: test with very narrow images, see if we need a max-width */
     height: 100%;
     width: auto;
     border-radius: 3px;
