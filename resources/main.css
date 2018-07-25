@@ -1049,6 +1049,12 @@ body.light .manga-thumbnail-container > .strip
     height: 100%;
     width: auto;
     border-radius: 3px;
+
+    /* This will limit the width to 300px, cropping if needed.  This prevents
+     * very wide aspect ratio images from breaking the layout.  Only a fixed
+     * size will work here, percentage values won't work. */
+    max-width: 400px;
+    object-fit: cover;
 }
 
 .manga-thumbnail-arrow
