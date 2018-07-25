@@ -5,6 +5,7 @@ class scroll_handler
         this.container = container;
     }
 
+    // Bring item into view.  We'll also try to keep the next and previous items visible.
     scroll_into_view(item)
     {
         // Make sure item is a direct child of the container.
@@ -15,7 +16,8 @@ class scroll_handler
         }
 
         // Scroll so the items to the left and right of the current thumbnail are visible,
-        // so you can tell whether there's another entry to scroll to.
+        // so you can tell whether there's another entry to scroll to.  If we can't fit
+        // them, center the selection.
         var scroller_left = this.container.getBoundingClientRect().left;
         var left = item.offsetLeft - scroller_left;
         
@@ -26,10 +28,33 @@ class scroll_handler
         if(item.nextElementSibling)
             right = Math.max(right, item.nextElementSibling.offsetLeft + item.nextElementSibling.offsetWidth - scroller_left);
 
-        if(this.container.scrollLeft > left)
-            this.container.scrollLeft = left;
-        if(this.container.scrollLeft + this.container.offsetWidth < right)
-            this.container.scrollLeft = right - this.container.offsetWidth;
+        var new_left = this.container.scrollLeft;
+        if(new_left > left)
+            new_left = left;
+        if(new_left + this.container.offsetWidth < right)
+            new_left = right - this.container.offsetWidth;
+        this.container.scrollLeft = new_left;
+
+        // If we didn't fit the previous and next entries, there isn't enough space.  This
+        // might be a wide thumbnail or the window might be very narrow.  Just center the
+        // selection.  Note that we need to compare against the value we assigned and not
+        // read scrollLeft back, since the API is broken and reads back the smoothed value
+        // rather than the target we set.
+        if(new_left > left ||
+           new_left + this.container.offsetWidth < right)
+        {
+            this.center_item(item);
+        }
+    }
+
+    // Scroll the given item to the center.
+    center_item(item)
+    {
+        var scroller_left = this.container.getBoundingClientRect().left;
+        var left = item.offsetLeft - scroller_left;
+        left += item.offsetWidth/2;
+        left -= this.container.offsetWidth / 2;
+        this.container.scrollLeft = left;
     }
 
     /* Snap to the target position, cancelling any smooth scrolling. */
