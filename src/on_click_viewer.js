@@ -1,3 +1,30 @@
+/* Hiding the cursor in CSS is a pain.  It can be done with a global CSS style, but that
+ * causes framerate hitches since it causes a global style recalculation.  This class puts
+ * a blocker over the whole window to hide the cursor.  This doesn't work in general (it
+ * blocks mouse events), but it works fine for click and drag. */
+class hide_mouse_cursor
+{
+    constructor()
+    {
+        this.blocker = document.createElement("div");
+        this.blocker.style.zIndex = 10000;
+        this.blocker.style.width = "100%";
+        this.blocker.style.height = "100%";
+        this.blocker.style.position = "fixed";
+        this.blocker.style.top = "0px";
+        this.blocker.style.left = "0px";
+        this.blocker.style.cursor = "none";
+        document.body.appendChild(this.blocker);
+    }
+
+    remove()
+    {
+        if(this.blocker.parentNode == null)
+            return;
+        this.blocker.parentNode.removeChild(this.blocker);
+    }
+}
+
 // View img fullscreen.  Clicking the image will zoom it to its original size and scroll
 // it around.
 //
@@ -146,9 +173,7 @@ on_click_viewer.prototype.mousedown = function(e)
     if(e.target != this.img && e.target != this.img.parentNode)
         return;
 
-    this.disabled_cursor_on_element = e.target;
-    this.saved_cursor = e.target.style.cursor;
-    e.target.style.cursor = "none";
+    this.hide_cursor = new hide_mouse_cursor();
 
     // Don't show the UI if the mouse hovers over it while dragging.
     document.body.classList.add("hide-ui");
@@ -199,11 +224,10 @@ on_click_viewer.prototype.stop_dragging = function()
 {
     window.removeEventListener("mousemove", this.mousemove);
 
-    if(this.disabled_cursor_on_element != null)
+    if(this.hide_cursor)
     {
-        this.disabled_cursor_on_element.style.cursor = this.saved_cursor;
-        this.disabled_cursor_on_element = null;
-        this.saved_cursor = null;
+        this.hide_cursor.remove();
+        this.hide_cursor = null;
     }
     
     document.body.classList.remove("hide-ui");

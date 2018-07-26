@@ -30,7 +30,6 @@ textarea:focus, input:focus, a:focus {
 
 .main-container {
     position: fixed;
-    z-index: 100000;
     top: 0px;
     left: 0px;
     width: 100%;
