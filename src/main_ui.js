@@ -317,6 +317,18 @@ var main_ui = function(data_source)
 
     window.addEventListener("popstate", this.window_onpopstate);
 
+    // Don't restore the scroll position.
+    //
+    // If we browser back to a search page and we were scrolled ten pages down, scroll
+    // restoration will try to scroll down to it incrementally, causing us to load all
+    // data in the search from the top all the way down to where we were.  This can cause
+    // us to spam the server with dozens of requests.  This happens on F5 refresh, which
+    // isn't useful (if you're refreshing a search page, you want to see new results anyway),
+    // and recommendations pages are different every time anyway.
+    //
+    // This won't affect browser back from an image to the enclosing search.
+    history.scrollRestoration = "manual";    
+
     document.head.appendChild(document.createElement("title"));
     this.document_icon = document.head.appendChild(document.createElement("link"));
     this.document_icon.setAttribute("rel", "icon");
