@@ -226,15 +226,9 @@ var encode_mkv = (function() {
             parts.push(ebml_info(duration));
             parts.push(ebml_tracks(this.width, this.height));
 
-            // Figure out how many bytes there are from the start of the file to the first
-            // frame.
-            var current_pos = header_parts.byteLength;
-
-            // The size of the segment (which comes before all parts) doesn't change based
-            // on the number of entries, so create an empty one to quickly find out how much
-            // to advance.
-            current_pos += ebml_segment([]).byteLength;
- 
+            // current_pos is the relative position from the start of the segment (after the ID and
+            // size bytes) to the beginning of the cluster.
+            var current_pos = 0;
             for(var part of parts)
                 current_pos += part.byteLength;
 
