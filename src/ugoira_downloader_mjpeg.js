@@ -53,13 +53,12 @@ ugoira_downloader_mjpeg.prototype.zip_finished_loading = function(progress)
         // will be effectively lost when looping.  In theory the duration field on the file should tell the
         // player this, but at least VLC doesn't do that.
         //
-        // Work around this by adding a 0-duration blank frame at the end.  This seems to work well at
-        // least with VLC: the last real frame is displayed properly, and the blank frame doesn't cause flicker.
+        // Work around this by repeating the last frame with a zero duration.
         //
         // In theory we could set the "invisible" bit on this frame ("decoded but not displayed"), but that
         // doesn't seem to be used, at least not by VLC.
-        var blank_frame = helpers.create_blank_image("image/jpeg", this.illust_data.width, this.illust_data.height);
-        encoder.add(blank_frame, 0);
+        var frame_data = this.player.getFrameData(frame_count-1);
+        encoder.add(frame_data, 0);
         
         // Build the file.
         var mkv = encoder.build();
