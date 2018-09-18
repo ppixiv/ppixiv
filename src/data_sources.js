@@ -1047,6 +1047,19 @@ class data_source_from_page extends data_source
     finished_loading_illust(page, document, callback)
     {
         var illust_ids = this.parse_document(document);
+        if(illust_ids == null)
+        {
+            // The most common case of there being no data in the document is loading
+            // a deleted illustration.  See if we can find an error message.
+            console.error("No data on page");
+            var error = document.querySelector(".error-message");
+            var error_message = "Error loading page";
+            if(error != null)
+                error_message = error.textContent;
+            message_widget.singleton.show(error_message);
+            message_widget.singleton.clear_timer();
+            return;
+        }
 
         // Assume that if the first request returns 10 items, all future pages will too.  This
         // is usually correct unless we happen to load the last page last.  Allow this to increase

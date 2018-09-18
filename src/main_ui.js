@@ -21,7 +21,7 @@ class message_widget
         this.container.querySelector(".message").innerHTML = message;
 
         this.container.classList.add("show");
-        setTimeout(function() {
+        this.timer = setTimeout(function() {
             this.container.classList.remove("show");
         }.bind(this), 3000);
     }
