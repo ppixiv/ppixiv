@@ -1298,11 +1298,6 @@ class data_source_current_illust extends data_source_from_page
         this.user_info = data.preload.user[user_id];
         var this_illust_data = data.preload.illust[illust_id];
 
-        // XXX: This is done in main.js, so we don't need to do it here.
-        // Add the precache data for the image and user.
-        image_data.singleton().add_illust_data(this_illust_data);
-        image_data.singleton().add_user_data(data.preload.user[user_id]);
-
         // Stash the user data so we can use it in get_displaying_text.
         this.user_info = data.preload.user[user_id];
 
