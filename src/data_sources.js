@@ -1122,14 +1122,8 @@ class data_source_from_page extends data_source
 //
 // However, we can only do searching and filtering on the user page, and that's
 // where we land when we load a link to the user.
-class data_source_artist extends data_source_from_page
+class data_source_artist extends data_source
 {
-    constructor(doc)
-    {
-        super(doc);
-
-        this.fetched_user_info = false;
-    }
     get name() { return "artist"; }
   
     get viewing_user_id()
@@ -1145,56 +1139,54 @@ class data_source_artist extends data_source_from_page
         return this.username;
     };
     
-    load_page(page, callback)
+    load_page_internal(page, callback)
     {
-        // The first time we load a page, start loading the user's info too.
-        if(!this.fetched_user_info)
-        {
-            this.fetched_user_info = true;
-            var url = new URL(document.location);
-            var user_id = url.searchParams.get("id");
-            if(user_id == null)
-            {
-                console.error("Don't know how to handle URL:", url);
-                return;
-            }
-            
-            image_data.singleton().get_user_info(user_id, function(user_info) {
-                // Refresh our UI now that we have user info.
-                this.user_info = user_info;
-                this.call_update_listeners();
-            }.bind(this));
-        }
+        if(page != 1)
+            return false;
 
-        return super.load_page(page, callback);
-    }
-    
-    parse_document(document)
-    {
-        // Find the user's name.  We'll get this with the user data when it's fetched later, but
-        // we grab it now so we can return it from get_displaying_text.
-        var user_name_element = document.querySelector("a.user-name[title]");
-        this.username = user_name_element.title;
-
-        // Grab the user's post tags, if any.
         this.post_tags = [];
-        for(var element of document.querySelectorAll(".user-tags a[href*='member_illust'][href*='tag=']"))
-        {
-            var tag = new URL(element.href).searchParams.get("tag");
-            if(tag != null)
-                this.post_tags.push(tag);
-        }
+        
+        // Make sure the user info is loaded.  This should normally be preloaded by globalInitData
+        // in main.js, and this won't make a request.
+        image_data.singleton().get_user_info(this.viewing_user_id, function(user_info) {
+            console.log("... continue");
+            this.user_info = user_info;
+            this.call_update_listeners();
 
-        var items = document.querySelectorAll("A.work[href*='member_illust.php']");
+            helpers.get_request("/ajax/user/" + this.viewing_user_id + "/profile/all", {}, function(result) {
+                var illust_ids = [];
+                for(var illust_id in result.body.illusts)
+                    illust_ids.push(illust_id);
 
-        var illust_ids = [];
-        for(var item of items)
-        {
-            var url = new URL(item.href);
-            illust_ids.push(url.searchParams.get("illust_id"));
-        }
-        return illust_ids;
-    }
+                // Register the new page of data.
+                this.add_page(page, illust_ids);
+
+                if(callback)
+                    callback();
+
+                // Request common tags for these posts.
+                //
+                // get_request doesn't handle PHP's wonky array format for GET arguments, so we just
+                // format it here.
+                this.post_tags = [];
+                var tags_for_illust_ids = illust_ids.slice(0,50);
+                var id_args = "";
+                for(var id of tags_for_illust_ids)
+                {
+                    if(id_args != "")
+                        id_args += "&";
+                    id_args += "ids%5B%5D=" + id;
+                }
+                helpers.get_request("/ajax/tags/frequent/illust?" + id_args, {}, function(result) {
+                    for(var tag of result.body)
+                        this.post_tags.push(tag);
+                    this.call_update_listeners();
+                }.bind(this));
+            }.bind(this));
+        }.bind(this));        
+
+        return true;
+    };
 
     refresh_thumbnail_ui(container, thumbnail_view)
     {
@@ -1244,12 +1236,18 @@ class data_source_artist extends data_source_from_page
         this.set_active_popup_highlight(container, [".member-tags-box"]);
     }
 
-    get page_title() { return this.username; }
+    get page_title()
+    {
+        if(this.user_info)
+            return this.user_info.name;
+        else
+            return "Loading...";
+    }
 
     get_displaying_text()
     {
-        if(this.username)
-            return this.username + "'s illustrations";
+        if(this.user_info)
+            return this.user_info.name + "'s illustrations";
         else
             return "Illustrations";
     };
@@ -1292,6 +1290,7 @@ class data_source_current_illust extends data_source_from_page
         this.user_info = data.preload.user[user_id];
         var this_illust_data = data.preload.illust[illust_id];
 
+        // XXX: This is done in main.js, so we don't need to do it here.
         // Add the precache data for the image and user.
         image_data.singleton().add_illust_data(this_illust_data);
         image_data.singleton().add_user_data(data.preload.user[user_id]);

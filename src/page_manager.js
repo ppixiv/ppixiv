@@ -65,7 +65,9 @@ class page_manager
         // Note that member_illust.php is both illustration pages (mode=medium&illust_id) and author pages (id=).
         if(url.pathname == "/member_illust.php" && url.searchParams.get("mode") == "medium")
             return data_source_current_illust;
-        if(url.pathname == "/member_illust.php" && url.searchParams.get("id") != null)
+        else if(url.pathname == "/member.php" && url.searchParams.get("id") != null)
+            return data_source_artist;
+        else if(url.pathname == "/member_illust.php" && url.searchParams.get("id") != null)
             return data_source_artist;
         else if(url.pathname == "/bookmark.php" && url.searchParams.get("type") == null)
             return data_source_bookmarks;

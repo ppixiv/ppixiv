@@ -98,8 +98,16 @@ class main_controller
         var data = helpers.get_global_init_data(document);
         if(data != null)
         {
-            // If data is available, this is a newer page with globalInitData.
             this.init_global_data(data.token, data.userData.id, data.premium && data.premium.popularSearch, data.mute);
+
+            // If data is available, this is a newer page with globalInitData.
+            // This can have one or more user and/or illust data, which we'll preload
+            // so we don't need to fetch it later.
+            for(var preload_illust_id in data.preload.illust)
+                image_data.singleton().add_illust_data(data.preload.illust[preload_illust_id]);
+
+            for(var preload_user_id in data.preload.user)
+                image_data.singleton().add_user_data(data.preload.user[preload_user_id]);
         }
         else
         {
