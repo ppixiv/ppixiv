@@ -1157,6 +1157,14 @@ class data_source_artist extends data_source
                 var illust_ids = [];
                 for(var illust_id in result.body.illusts)
                     illust_ids.push(illust_id);
+                for(var illust_id in result.body.manga)
+                    illust_ids.push(illust_id);
+
+                // Sort the two sets of IDs back together, putting higher (newer) IDs first.
+                illust_ids.sort(function(lhs, rhs)
+                {
+                    return parseInt(rhs) - parseInt(lhs);
+                });
 
                 // Register the new page of data.
                 this.add_page(page, illust_ids);
