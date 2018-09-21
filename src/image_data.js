@@ -51,15 +51,31 @@ class image_data
         this.load_image_info(illust_id);
     }
 
-    // Just get user info.
-    get_user_info(user_id, callback)
+    // The user request can either return a small subset of data (just the username,
+    // profile image URL, etc.), or a larger set with a webpage URL, Twitter, etc.
+    // User preloads often only have the smaller set, and we want to use the preload
+    // data whenever possible.
+    //
+    // getuser_info requests the smaller set of data, and get_user_info_full requests
+    // the full data.
+    //
+    // Note that get_user_info will return the full data if we have it already.
+    get_user_info_full(user_id, callback)
     {
         // If callback is null, just fetch the data.
         if(callback != null)
             this.pending_user_info_calls.push([user_id, callback]);
 
-        this.load_user_info(user_id);
-    }
+        this.load_user_info(user_id, true);
+    };
+
+    get_user_info(user_id, callback)
+    {
+        if(callback != null)
+            this.pending_user_info_calls.push([user_id, callback]);
+
+        this.load_user_info(user_id, false);
+    };
     
     call_pending_callbacks()
     {
@@ -196,7 +212,7 @@ class image_data
         }
     }
 
-    load_user_info(user_id)
+    load_user_info(user_id, load_full_data)
     {
         // If we're already loading this user, stop.
         if(this.loading_user_data_ids[user_id])
@@ -209,15 +225,24 @@ class image_data
         // to fire any waiting callbacks.
         if(this.user_data[user_id] != null)
         {
-            setTimeout(function() {
-                this.call_pending_callbacks();
-            }.bind(this), 0);
-            return;
+            // user_info.partial is 1 if it's the full data (this is backwards).
+            // If we need full data and we only have partial data, we still need to request
+            // data.
+            if(!load_full_data || this.user_data[user_id].partial)
+            {
+                setTimeout(function() {
+                    this.call_pending_callbacks();
+                }.bind(this), 0);
+                return;
+            }
         }
 
+        // We can say {full: 1} to get more profile info (webpage URL, twitter, etc.).
+        // That info isn't included in preloads, though, so it's not used for now to keep
+        // things consistent.
         // console.log("Fetch user", user_id);
         this.loading_user_data_ids[user_id] = true;
-        helpers.get_request("/ajax/user/" + user_id, {}, this.loaded_user_info);
+        helpers.get_request("/ajax/user/" + user_id, {full:1}, this.loaded_user_info);
     }
 
     loaded_user_info(user_result)

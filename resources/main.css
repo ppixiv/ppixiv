@@ -422,6 +422,10 @@ body.light .description * {
     white-space: nowrap;
     z-index: 98;
 }
+.popup-bottom:hover:after {
+    top: auto;
+    bottom: -2em;
+}
 
 body:not(.premium) .premium-only { display: none; }
 .popup-menu-box {
@@ -555,6 +559,31 @@ body.light .thumbnail-container .thumbnail-ui-box {
 
 .thumbnail-container .thumbnail-ui-box .displaying {
     padding-bottom: 4px;
+}
+
+.thumbnail-container .thumbnail-ui-box .contact-link {
+    display: block;
+    width: 31px;
+    height: 31px;
+    margin: 0 3px;
+    stroke: #888;
+}
+.thumbnail-container .thumbnail-ui-box .contact-link:hover { stroke: #fff; }
+body.light .thumbnail-container .thumbnail-ui-box .contact-link { stroke: #666; }
+body.light .thumbnail-container .thumbnail-ui-box .contact-link:hover { stroke: #222; }
+
+.thumbnail-container .thumbnail-ui-box .webpage-link {
+    display: block;
+    margin: 0 2px;
+    width: 26px;
+    height: 26px;
+}
+
+.thumbnail-container .thumbnail-ui-box .twitter-icon {
+    display: block;
+    width: 32px;
+    height: 32px;
+    margin: 0 1px;
 }
 
 /* .thumbnails is the actual thumbnail list. */

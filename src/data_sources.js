@@ -1148,8 +1148,7 @@ class data_source_artist extends data_source
         
         // Make sure the user info is loaded.  This should normally be preloaded by globalInitData
         // in main.js, and this won't make a request.
-        image_data.singleton().get_user_info(this.viewing_user_id, function(user_info) {
-            console.log("... continue");
+        image_data.singleton().get_user_info_full(this.viewing_user_id, function(user_info) {
             this.user_info = user_info;
             this.call_update_listeners();
 
@@ -1204,10 +1203,29 @@ class data_source_artist extends data_source
             helpers.set_page_icon(this.user_info.isFollowed? binary_data['favorited_icon.png']:binary_data['regular_pixiv_icon.png']);
         }
 
+        // Set the webpage link.
+        var webpage_url = this.user_info && this.user_info.webpage;
+        var webpage_link = container.querySelector(".webpage-link");
+        webpage_link.hidden = webpage_url == null;
+        if(webpage_url != null)
+            webpage_link.href = webpage_url;
+
+        // Set the twitter link.
+        var twitter_url = this.user_info && this.user_info.social && this.user_info.social.twitter && this.user_info.social.twitter.url;
+        var twitter_link = container.querySelector(".twitter-icon");
+        twitter_link.hidden = twitter_url == null;
+        if(twitter_url != null)
+            twitter_link.href = twitter_url;
+
+        // Set the "send a message" link.
+        var contact_url = "https://www.pixiv.net/messages.php?receiver_id=" + this.viewing_user_id;
+        var contact_link = container.querySelector(".contact-link");
+        contact_link.href = contact_url;
+
         this.set_item(container, "works", {type: null});
         this.set_item(container, "manga", {type: "manga"});
         this.set_item(container, "ugoira", {type: "ugoira"});
-
+        
         // Refresh the post tag list.
         var current_query = new URL(document.location).searchParams.toString();
         
