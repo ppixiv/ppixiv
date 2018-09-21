@@ -1195,6 +1195,20 @@ class data_source_artist extends data_source
         return true;
     };
 
+    // Update the address bar with the current illustration ID.  If that illust ID is on a different
+    // page and we know the page number, update that as well.
+    set_current_illust_id(illust_id, add_to_history)
+    {
+        var query_args = page_manager.singleton().get_query_args();
+        var hash_args = page_manager.singleton().get_hash_args();
+
+        // Store the current illust ID in the hash, since the real bookmark page doesn't have
+        // an illust_id.
+        hash_args.set("illust_id", illust_id);
+
+        page_manager.singleton().set_args(query_args, hash_args, add_to_history);
+    };
+    
     refresh_thumbnail_ui(container, thumbnail_view)
     {
         if(this.user_info)
