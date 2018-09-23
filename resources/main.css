@@ -258,9 +258,6 @@ body:not(.hide-ui) .hover-box:hover + .ui-box {
 }
 
 /* Toggle boxes for the settings menu: */
-.thumbnail-container.big-thumbnails .toggle-big-thumbnails > .off { display: none; }
-.thumbnail-container:not(.big-thumbnails) .toggle-big-thumbnails > .on { display: none; }
-
 body.light .toggle-light-mode > .off { display: none; }
 body:not(.light) .toggle-light-mode > .on { display: none; }
 
@@ -596,8 +593,11 @@ body.light .thumbnail-container .thumbnail-ui-box .contact-link:hover { stroke: 
 
 .thumbnail-container ul {
     margin: 0;
-    max-width: 1200px;
     margin: 0 auto; /* center */
+}
+
+body:not([data-thumbnail-mode="wide"]) .thumbnail-container ul {
+    max-width: 1200px;
 }
 
 .thumbnail-container li.thumbnail-box {
@@ -620,7 +620,8 @@ body.light .thumbnail-container .thumbnail-ui-box .contact-link:hover { stroke: 
     color: #fff;
 }
 
-.thumbnail-container.big-thumbnails li.thumbnail-box a.thumbnail-link {
+body[data-thumbnail-mode="big"]  li.thumbnail-box a.thumbnail-link,
+body[data-thumbnail-mode="wide"]  li.thumbnail-box a.thumbnail-link {
     width: 300px;
     height: 300px;
 }

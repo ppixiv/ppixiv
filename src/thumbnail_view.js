@@ -11,7 +11,6 @@ class thumbnail_view
         this.onpopstate = this.onpopstate.bind(this);
 //        this.onmousemove = this.onmousemove.bind(this);
         this.submit_search = this.submit_search.bind(this);
-        this.toggle_big_thumbnails = this.toggle_big_thumbnails.bind(this);
         this.toggle_light_mode = this.toggle_light_mode.bind(this);
         this.toggle_disable_thumbnail_panning = this.toggle_disable_thumbnail_panning.bind(this);
         this.toggle_disable_thumbnail_zooming = this.toggle_disable_thumbnail_zooming.bind(this);
@@ -81,10 +80,12 @@ class thumbnail_view
         this.container.querySelector(".search-page-tag-entry .search-submit-button").addEventListener("click", this.submit_search);
         this.container.querySelector(".navigation-search-box .search-submit-button").addEventListener("click", this.submit_search);
 
-        this.container.querySelector(".toggle-big-thumbnails").addEventListener("click", this.toggle_big_thumbnails);
         this.container.querySelector(".toggle-light-mode").addEventListener("click", this.toggle_light_mode);
         this.container.querySelector(".toggle-thumbnail-zooming").addEventListener("click", this.toggle_disable_thumbnail_zooming);
         this.container.querySelector(".toggle-thumbnail-panning").addEventListener("click", this.toggle_disable_thumbnail_panning);
+        this.container.querySelector(".thumbnail-mode-big").addEventListener("click", this.set_thumbnail_mode.bind(this, "big"));
+        this.container.querySelector(".thumbnail-mode-small").addEventListener("click", this.set_thumbnail_mode.bind(this, "normal"));
+        this.container.querySelector(".thumbnail-mode-wide").addEventListener("click", this.set_thumbnail_mode.bind(this, "wide"));
 
         // Create the tag dropdown for the search page input.
         new tag_search_dropdown_widget(this.container.querySelector(".tag-search-box .search-tags"));
@@ -491,21 +492,32 @@ class thumbnail_view
 
     update_from_settings()
     {
-        helpers.set_class(this.container, "big-thumbnails", helpers.get_value("thumbnail-size") == "big");
+        var thumbnail_mode = helpers.get_value("thumbnail-size");
+        document.body.dataset.thumbnailMode = thumbnail_mode;
         this.set_visible_thumbs();
 
         helpers.set_class(document.body, "light", helpers.get_value("theme") == "light");
 
         helpers.set_class(document.body, "disable-thumbnail-panning", helpers.get_value("disable_thumbnail_panning"));
         helpers.set_class(document.body, "disable-thumbnail-zooming", helpers.get_value("disable_thumbnail_zooming"));
+
+        // Set the selected flags for the thumbnail mode.
+        helpers.set_class(this.container.querySelector(".thumbnail-mode-big"), "selected", thumbnail_mode == "big");
+        helpers.set_class(this.container.querySelector(".thumbnail-mode-small"), "selected", thumbnail_mode == "normal");
+        helpers.set_class(this.container.querySelector(".thumbnail-mode-wide"), "selected", thumbnail_mode == "wide");
     }
 
-    toggle_big_thumbnails()
+    // Return true if we're in big thumbnail mode.
+    get_big_thumbnail_mode()
     {
-        var big_thumbnails = helpers.get_value("thumbnail-size") == "big";
-        big_thumbnails = !big_thumbnails;
-        helpers.set_value("thumbnail-size", big_thumbnails? "big":"normal");
-
+        // If we're in wide mode, force big thumbs.
+        var mode = helpers.get_value("thumbnail-size");
+        return mode == "big" || mode == "wide";
+    }
+ 
+    set_thumbnail_mode(mode)
+    {
+        helpers.set_value("thumbnail-size", mode);
         this.update_from_settings();
     }
 
@@ -552,7 +564,8 @@ class thumbnail_view
         }        
 
         // If true, we're loading and showing larger resolution thumbnails.
-        var big_thumbnails = helpers.get_value("thumbnail-size") == "big";
+        var big_thumbnails = this.get_big_thumbnail_mode();
+        
         helpers.set_class(this.container, "big-thumbnails", big_thumbnails);
 
         for(var element of elements)
