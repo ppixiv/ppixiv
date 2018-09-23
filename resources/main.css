@@ -812,8 +812,6 @@ body:not(.disable-thumbnail-zooming) .thumbnail-container .thumbnail-box.muted .
     animation-iteration-count: 1;
 }    
 
-body:not(.premium) .bookmark-tag-selection { display: none; }
-
 .box-link {
     display: inline-block;
     cursor: pointer;
