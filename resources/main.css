@@ -558,6 +558,14 @@ body.light .thumbnail-container .thumbnail-ui-box {
     padding-bottom: 4px;
 }
 
+.thumbnail-container .thumbnail-ui-box .bookmarks-link {
+    display: block;
+    fill: #888;
+}
+.thumbnail-container .thumbnail-ui-box .bookmarks-link:hover { fill: #fff; }
+body.light .thumbnail-container .thumbnail-ui-box .bookmarks-link { fill: #666; }
+body.light .thumbnail-container .thumbnail-ui-box .bookmarks-link:hover { fill: #222; }
+
 .thumbnail-container .thumbnail-ui-box .contact-link {
     display: block;
     width: 31px;

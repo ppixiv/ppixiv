@@ -1217,6 +1217,12 @@ class data_source_artist extends data_source
             helpers.set_page_icon(this.user_info.isFollowed? binary_data['favorited_icon.png']:binary_data['regular_pixiv_icon.png']);
         }
 
+        // Set the bookmarks link.
+        var bookmarks_url = "https://www.pixiv.net/bookmark.php?id=" + this.viewing_user_id + "&rest=show";
+        var bookmarks_link = container.querySelector(".bookmarks-link");
+        bookmarks_link.href = bookmarks_url;
+        bookmarks_link.dataset.popup = this.user_info? ("View " + this.user_info.name + "'s bookmarks"):"View bookmarks";
+
         // Set the webpage link.
         var webpage_url = this.user_info && this.user_info.webpage;
         var webpage_link = container.querySelector(".webpage-link");
