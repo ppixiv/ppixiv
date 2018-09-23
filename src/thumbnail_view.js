@@ -216,20 +216,80 @@ class thumbnail_view
         // Set the regular icon.  The data source might change it to something else.
         helpers.set_page_icon(binary_data['regular_pixiv_icon.png']);
         
-        // Update the link to bookmarks for the user we're viewing.
-        var viewing_user_id = this.data_source.viewing_user_id;
-        var viewing_username = this.data_source.viewing_username;
-        var show_bookmark_link = viewing_user_id != null && viewing_username != null && viewing_username != global_data.user_id;
-        var user_bookmarks = this.container.querySelector(".user-bookmarks");
-        user_bookmarks.hidden = !show_bookmark_link;
-        if(show_bookmark_link)
-        {
-            user_bookmarks.href = "/bookmark.php?id=" + viewing_user_id + "#ppixiv";
-            user_bookmarks.textContent = viewing_username + "'s Bookmarks";
-        }
+        this.refresh_ui_for_user_id();
 
         this.data_source.refresh_thumbnail_ui(ui_box, this);
     };
+
+    // Update UI that requires user info for a user we're viewing.
+    //
+    // We want to update this like any other UI, automatically refreshing it if the
+    // user ID changes, but we may need to make a user info request to fill this in.
+    refresh_ui_for_user_info(user_info)
+    {
+        // Set the bookmarks link.
+        var bookmarks_link = this.container.querySelector(".bookmarks-link");
+        bookmarks_link.hidden = user_info == null;
+        if(user_info != null)
+        {
+            var bookmarks_url = "/bookmark.php?id=" + user_info.userId + "&rest=show";
+            bookmarks_link.href = bookmarks_url;
+            bookmarks_link.dataset.popup = user_info? ("View " + user_info.name + "'s bookmarks"):"View bookmarks";
+        }
+
+        // Set the webpage link.
+        var webpage_url = user_info && user_info.webpage;
+        var webpage_link = this.container.querySelector(".webpage-link");
+        webpage_link.hidden = webpage_url == null;
+        if(webpage_url != null)
+            webpage_link.href = webpage_url;
+
+        // Set the twitter link.
+        var twitter_url = user_info && user_info.social && user_info.social.twitter && user_info.social.twitter.url;
+        var twitter_link = this.container.querySelector(".twitter-icon");
+        twitter_link.hidden = twitter_url == null;
+        if(twitter_url != null)
+        {
+            twitter_link.href = twitter_url;
+            var path = new URL(twitter_url).pathname;
+            var parts = path.split("/");
+            twitter_link.dataset.popup = parts.length > 1? ("@" + parts[1]):"Twitter";
+        }
+
+        // Set the "send a message" link.
+        var contact_link = this.container.querySelector(".contact-link");
+        contact_link.hidden = user_info == null;
+        if(user_info != null)
+            contact_link.href = "/messages.php?receiver_id=" + user_info.userId;
+    }
+
+    // Call refresh_ui_for_user_info with the user_info for the user we're viewing,
+    // if the user ID has changed.
+    refresh_ui_for_user_id()
+    {
+        var user_id = this.data_source.viewing_user_id;
+        if(user_id == this.last_updated_user_id)
+            return;
+
+        this.last_updated_user_id = user_id;
+
+        // If there's no user, or if we're viewing ourself (our own bookmarks page),
+        // just hide the user-related UI.
+        if(user_id == null || user_id == window.global_data.user_id)
+        {
+            this.refresh_ui_for_user_info(null);
+            return;
+        }
+
+        image_data.singleton().get_user_info_full(user_id, function(user_info) {
+            // If last_updated_user_id changed since we started this request, the user ID
+            // changed and we started a different request.
+            if(this.last_updated_user_id != user_id)
+                return;
+
+            this.refresh_ui_for_user_info(user_info);
+        }.bind(this));
+    }
 
     set_enabled_from_url()
     {

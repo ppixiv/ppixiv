@@ -434,12 +434,6 @@ class data_source
         return null;
     };
 
-    // If we're viewing a page specific to a user (an illustration or artist page), return
-    // the username we're viewing.  This can change when refreshing the UI.
-    get viewing_username()
-    {
-        return null;
-    };
     // Add or remove an update listener.  These are called when the data source has new data,
     // or wants a UI refresh to happen.
     add_update_listener(callback)
@@ -1132,13 +1126,6 @@ class data_source_artist extends data_source
         return query_args.get("id");
     };
 
-    // If we're viewing a page specific to a user (an illustration or artist page), return
-    // the username we're viewing.  This can change when refreshing the UI.
-    get viewing_username()
-    {
-        return this.username;
-    };
-    
     load_page_internal(page, callback)
     {
         if(page != 1)
@@ -1220,31 +1207,6 @@ class data_source_artist extends data_source
             thumbnail_view.avatar_widget.set_from_user_data(this.user_info);
             helpers.set_page_icon(this.user_info.isFollowed? binary_data['favorited_icon.png']:binary_data['regular_pixiv_icon.png']);
         }
-
-        // Set the bookmarks link.
-        var bookmarks_url = "https://www.pixiv.net/bookmark.php?id=" + this.viewing_user_id + "&rest=show";
-        var bookmarks_link = container.querySelector(".bookmarks-link");
-        bookmarks_link.href = bookmarks_url;
-        bookmarks_link.dataset.popup = this.user_info? ("View " + this.user_info.name + "'s bookmarks"):"View bookmarks";
-
-        // Set the webpage link.
-        var webpage_url = this.user_info && this.user_info.webpage;
-        var webpage_link = container.querySelector(".webpage-link");
-        webpage_link.hidden = webpage_url == null;
-        if(webpage_url != null)
-            webpage_link.href = webpage_url;
-
-        // Set the twitter link.
-        var twitter_url = this.user_info && this.user_info.social && this.user_info.social.twitter && this.user_info.social.twitter.url;
-        var twitter_link = container.querySelector(".twitter-icon");
-        twitter_link.hidden = twitter_url == null;
-        if(twitter_url != null)
-            twitter_link.href = twitter_url;
-
-        // Set the "send a message" link.
-        var contact_url = "https://www.pixiv.net/messages.php?receiver_id=" + this.viewing_user_id;
-        var contact_link = container.querySelector(".contact-link");
-        contact_link.href = contact_url;
 
         this.set_item(container, "works", {type: null});
         this.set_item(container, "manga", {type: "manga"});
@@ -1419,13 +1381,6 @@ class data_source_current_illust extends data_source_from_page
             return null;
         return this.user_info.userId;
     };
-    
-    get viewing_username()
-    {
-        if(this.user_info == null)
-            return null;
-        return this.user_info.name;
-    }
 };
 
 // bookmark.php
@@ -1647,13 +1602,6 @@ class data_source_bookmarks extends data_source
         
         return query_args.get("id");
     };
-    
-    get viewing_username()
-    {
-        if(this.user_info == null)
-            return null;
-        return this.user_info.name;
-    }
 
     // Return true if we're viewing our own bookmarks.
     viewing_own_bookmarks()

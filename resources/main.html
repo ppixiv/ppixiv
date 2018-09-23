@@ -161,16 +161,16 @@
                 <div style="display: flex; flex-direction: row; align-items: center;">
                     <div class="displaying title-font"></div>
                     <div style="flex: 1;"></div>
-                    <div class=data-source-specific data-datasource=artist>
-                        <a href=# rel=noreferrer class="webpage-link grey-icon popup popup-bottom" data-popup="Webpage">
+                    <div>
+                        <a href=# rel=noreferrer class="webpage-link grey-icon popup popup-bottom" data-popup="Webpage" hidden>
                             <svg viewBox="0 0 391.08 391.08">
                                 <path d="M326.67,203.55L200.38,91.71,74,203.6V363.47a7.44,7.44,0,0,0,7.46,7.45h79v-70.1a7.44,7.44,0,0,1,7.45-7.46h64.88a7.44,7.44,0,0,1,7.45,7.46v70.1h79a7.42,7.42,0,0,0,7.45-7.45V203.55Z" transform="translate(-4.8 -5.17)"/>
                                 <path d="M199.65,30.51L20.44,189.19l18.88,21.29L200.38,67.86l161,142.62,18.84-21.29L201.08,30.51l-0.7.81-0.73-.81h0Z" transform="translate(-4.8 -5.17)"/>
                             </svg>
                         </a>
                     </div>
-                    <div class=data-source-specific data-datasource=artist>
-                        <a href=# rel=noreferrer class="twitter-icon grey-icon popup popup-bottom" data-popup="Twitter">
+                    <div>
+                        <a href=# rel=noreferrer class="twitter-icon grey-icon popup popup-bottom" data-popup="Twitter" hidden>
                             <svg viewBox="0 0 32 32">
                                 <path d="M3,24.3115115 C3.43335894,24.361638 3.8743224,24.3872818 4.32140898,24.3872818 C6.9166246,24.3872818 9.30513552,23.5195519 11.2009327,22.063852 C8.77696697,22.0200155 6.73125206,20.4508052 6.02640184,18.2943991 C6.36455613,18.3577829 6.71159881,18.391749 7.0685175,18.391749 C7.57377373,18.391749 8.0631296,18.325462 8.52799298,18.2014038 C5.99381104,17.7028486 4.0844837,15.5090896 4.0844837,12.8792882 C4.0844837,12.8564507 4.0844837,12.8337099 4.08487874,12.8110659 C4.83180072,13.2175936 5.68587732,13.4617424 6.59397564,13.4899022 C5.10763744,12.5165971 4.12961703,10.8552624 4.12961703,8.97222947 C4.12961703,7.97753828 4.40278723,7.04516649 4.87960057,6.24352996 C7.61169757,9.52729793 11.6933502,11.6881554 16.2971469,11.9144987 C16.2027324,11.5172609 16.1536486,11.1029917 16.1536486,10.6775941 C16.1536486,7.68016635 18.6339076,5.25 21.6931965,5.25 C23.2863931,5.25 24.7260178,5.90919218 25.7365302,6.96407385 C26.9982882,6.7206024 28.1838034,6.26888351 29.2540656,5.64694749 C28.8404587,6.91433445 27.9621859,7.97802213 26.8184462,8.64979431 C27.9389773,8.5185752 29.006573,8.22681589 30,7.79512823 C29.2573247,8.88358883 28.318117,9.83957232 27.2359048,10.6048236 C27.2465708,10.8375537 27.2519039,11.0716385 27.2519039,11.3069813 C27.2519039,18.4794219 21.680259,26.75 11.4913859,26.75 C8.36316252,26.75 5.45142105,25.8514974 3,24.3115115 Z"></path>
                             </svg>
@@ -178,16 +178,16 @@
                         </a>
                     </div>
 
-                    <div class=data-source-specific data-datasource=artist>
-                        <a class="bookmarks-link popup popup-bottom" href=# rel=noreferrer data-popup="View bookmarks">
+                    <div>
+                        <a class="bookmarks-link popup popup-bottom" href=# rel=noreferrer data-popup="View bookmarks" hidden>
                             <svg viewBox="0 0 510 510" style="width: 28px;">
                                 <path d="M510,197.472l-183.37-15.734L255,12.75l-71.629,168.988L0,197.472l139.103,120.539L97.41,497.25L255,402.186 l157.59,95.064l-41.692-179.239L510,197.472z M255,354.348l-95.957,57.886l25.398-109.166l-84.736-73.389l111.69-9.588 L255,117.172l43.605,102.918l111.689,9.588l-84.711,73.389l25.398,109.166L255,354.348z"
                                 />
                             </svg>
                         </a>
                     </div>
-                    <div class=data-source-specific data-datasource=artist>
-                        <a class="contact-link popup popup-bottom" href=# rel=noreferrer data-popup="Send a message">
+                    <div>
+                        <a class="contact-link popup popup-bottom" href=# rel=noreferrer data-popup="Send a message" hidden>
                             <svg viewBox="0 0 114 114">
                                 <path stroke-width="7" fill="none" d="m7,20h98v72H7zl44,44q5,4 10,0l44-44M7,92l36-36m26,0 36,36"/>
                             </svg>
@@ -216,8 +216,6 @@
                                 <a class=box-link href="/bookmark.php?p=1#ppixiv">Bookmarks</a>
                                 <a class=box-link href="/discovery#ppixiv">Recommended works</a>
                                 <a class=box-link href="/ranking.php#ppixiv">Rankings</a>
-                                <!-- This links to the bookmark page for the user we're currently viewing, if any. -->
-                                <a class="box-link user-bookmarks" href="#" hidden></a>
 
                                 <div class="navigation-search-box" style="padding: .25em; margin: .25em;">
                                     <div class=search-box>
