@@ -814,6 +814,8 @@ body:not(.premium) .bookmark-tag-selection { display: none; }
     margin: .25em .25em;
     color: #fff;
     background-color: #000;
+    user-select: none;
+    -moz-user-select: none;
 }
 body.light .box-link {
     background-color: #fff;
