@@ -579,9 +579,6 @@ class thumbnail_view
             if(info == null)
                 continue;
 
-            var ugoira = info.illust_type == 2;
-            info.illust_page_count;
-
             // Set this thumb.  Do this even if pending is set, so we update if big_thumbnails has changed.
             var url = info.url;
             if(big_thumbnails)
@@ -591,16 +588,16 @@ class thumbnail_view
 
             // Check if this illustration is muted (blocked).
             var muted_tag = main.any_tag_muted(info.tags);
-            var muted_user = main.is_muted_user_id(info.illust_user_id);
+            var muted_user = main.is_muted_user_id(info.userId);
             if(muted_tag || muted_user)
             {
                 element.classList.add("muted");
 
                 // The image will be obscured, but we still shouldn't load the image the user blocked (which
                 // is something Pixiv does wrong).  Load the user profile image instead.
-                thumb.src = info.user_profile_img;
+                thumb.src = info.profileImageUrl;
 
-                element.querySelector(".muted-label").textContent = muted_tag? muted_tag:info.user_name;
+                element.querySelector(".muted-label").textContent = muted_tag? muted_tag:info.userName;
 
                 // We can use this if we want a "show anyway' UI.
                 thumb.dataset.mutedUrl = url;
@@ -617,7 +614,7 @@ class thumbnail_view
                 // make the thumbnail jitter in place.
                 //
                 // Don't pan muted images.
-                var aspect_ratio = info.illust_width / info.illust_height;
+                var aspect_ratio = info.width / info.height;
                 var min_aspect_for_pan = 1.1;
                 var max_aspect_for_pan = 4;
                 var vertical_panning = aspect_ratio > (1/max_aspect_for_pan) && aspect_ratio < 1/min_aspect_for_pan;
@@ -639,13 +636,13 @@ class thumbnail_view
             // to work normally.
             element.querySelector("a.thumbnail-link").href = "/member_illust.php?mode=medium&illust_id=" + illust_id + "#ppixiv";
 
-            if(info.illust_type == 2)
+            if(info.illustType == 2)
                 element.querySelector(".ugoira-icon").hidden = false;
 
-            if(info.illust_page_count > 1)
+            if(info.pageCount > 1)
             {
                 element.querySelector(".page-count-box").hidden = false;
-                element.querySelector(".page-count-box .page-count").textContent = info.illust_page_count;
+                element.querySelector(".page-count-box .page-count").textContent = info.pageCount;
             }
 
 
@@ -653,7 +650,7 @@ class thumbnail_view
 
             // Set the popup.
             var a = element.querySelector(".thumbnail-inner");
-            var popup = info.user_name + ": " + info.illust_title;
+            var popup = info.userName + ": " + info.title;
             a.classList.add("popup");
             a.dataset.popup = popup;
         }        

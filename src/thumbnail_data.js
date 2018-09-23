@@ -85,24 +85,86 @@ class thumbnail_data
         for(var id of ids_to_load)
             this.loading_ids[id] = true;
 
+        // There's also
+        //
+        // https://www.pixiv.net/ajax/user/user_id/profile/illusts?ids[]=1&ids[]=2&...
+        //
+        // which is used by newer pages.  That's useful since it tells us whether each
+        // image is bookmarked.  However, it doesn't tell us the user's name or profile image
+        // URL, and for some reason it's limited to a particular user.  Hopefully they'll
+        // have an updated generic illustration lookup call if they ever update the
+        // regular search pages, and we can switch to it then.
         helpers.rpc_get_request("/rpc/illust_list.php", {
             illust_ids: ids_to_load.join(","),
 
             // Specifying this gives us 240x240 thumbs, which we want, rather than the 150x150
             // ones we'll get if we don't (though changing the URL is easy enough too).
             page: "discover",
-        }, this.loaded_thumbnail_info);
+        }, function(results) {
+            this.loaded_thumbnail_info(results, true);
+        }.bind(this));
     }
 
-    loaded_thumbnail_info(thumb_result)
+    get thumbnail_info_map()
+    {
+        if(this._thumbnail_info_map != null)
+            return this._thumbnail_info_map;
+
+        this._thumbnail_info_map = [
+            ["illust_id", "id"],
+            ["url", "url"],
+            ["tags", "tags"],
+            ["illust_user_id", "userId"],
+            ["illust_width", "width"],
+            ["illust_height", "height"],
+            ["illust_type", "illustType"],
+            ["illust_page_count", "pageCount"],
+            ["illust_title", "title"],
+            ["user_profile_img", "profileImageUrl"],
+            ["user_name", "userName"],
+        ];
+        return this._thumbnail_info_map;
+    };
+
+    // This is called when we have new thumbnail data available.  thumb_result is
+    // an array of thumbnail items.
+    //
+    // This can come from /rpc/illust_list.php, or from search results.  These have
+    // the same data, but for some reason everything has different names.  Figure out
+    // which format the entries have, and if they have the format used by illust_list.php,
+    // remap them to the format used by search results.  Check that all fields we expect
+    // exist, to make it easier to notice if something is wrong.
+    //
+    loaded_thumbnail_info(thumb_result, from_illust_list)
     {
         if(thumb_result.error)
             return;
 
+        var thumbnail_info_map = this.thumbnail_info_map;
         var urls = [];
         for(var thumb_info of thumb_result)
         {
-            var illust_id = thumb_info.illust_id;
+            // Remap the thumb info.  We do this even for data not from illust_list.php
+            // (which doesn't need remapping) in order to check that we have the keys
+            // we expect.  This also removes keys we don't use, so if we start using a new
+            // key, we remember to update the map.
+            var remapped_thumb_info = { };
+            for(var pair of thumbnail_info_map)
+            {
+                var from_key = pair[from_illust_list? 0:1];
+                var to_key = pair[1];
+                if(!(from_key in thumb_info))
+                {
+                    console.warn("Thumbnail info is missing key:", from_key);
+                    continue;
+                }
+                var value = thumb_info[from_key];
+                remapped_thumb_info[to_key] = value;
+            }
+
+            thumb_info = remapped_thumb_info;
+
+            var illust_id = thumb_info.id;
             delete this.loading_ids[illust_id];
 
             // Store the data.
@@ -113,7 +175,7 @@ class thumbnail_data
                 urls.push(thumb_info.url);
 
             // Let image_data know about the user for this illust, to speed up fetches later.
-            image_data.singleton().set_user_id_for_illust_id(thumb_info.illust_id, thumb_info.illust_user_id);
+            image_data.singleton().set_user_id_for_illust_id(thumb_info.illust_id, thumb_info.userId);
         }
 
         // Preload thumbnails.

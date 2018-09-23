@@ -1502,6 +1502,10 @@ class data_source_bookmarks extends data_source
                 for(var illust_data of result.body.works)
                     illust_ids.push(illust_data.id);
 
+                // This request returns all of the thumbnail data we need.  Forward it to
+                // thumbnail_data so we don't need to look it up.
+                thumbnail_data.singleton().loaded_thumbnail_info(result.body.works);
+
                 // Sort the two sets of IDs back together, putting higher (newer) IDs first.
                 illust_ids.sort(function(lhs, rhs)
                 {
