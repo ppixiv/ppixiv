@@ -572,7 +572,7 @@ var helpers = {
             },
             onload: function(data) {
                 if(data && data.error)
-                    console.error("Error in XHR request:", data.message)
+                    console.error("Error in XHR request (" + url + "):", data.message)
 
                 if(callback)
                     callback(data);
@@ -606,7 +606,7 @@ var helpers = {
 
             onload: function(data) {
                 if(data && data.error)
-                    console.error("Error in XHR request:", data.message)
+                    console.error("Error in XHR request (" + url + "):", data.message)
 
                 if(callback)
                     callback(data);
@@ -635,7 +635,7 @@ var helpers = {
             },
             onload: function(data) {
                 if(data && data.error)
-                    console.error("Error in XHR request:", data.message)
+                    console.error("Error in XHR request (" + url + "):", data.message)
 
                 if(callback)
                     callback(data);
@@ -668,7 +668,7 @@ var helpers = {
             },
             onload: function(data) {
                 if(data && data.error)
-                    console.error("Error in XHR request:", data.message)
+                    console.error("Error in XHR request (" + url + "):", data.message)
 
                 if(callback)
                     callback(data);

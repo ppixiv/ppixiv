@@ -1177,18 +1177,22 @@ class data_source_artist extends data_source
                 // format it here.
                 this.post_tags = [];
                 var tags_for_illust_ids = illust_ids.slice(0,50);
-                var id_args = "";
-                for(var id of tags_for_illust_ids)
+                if(page == 1 && tags_for_illust_ids.length > 0)
                 {
-                    if(id_args != "")
-                        id_args += "&";
-                    id_args += "ids%5B%5D=" + id;
+                    var id_args = "";
+                    for(var id of tags_for_illust_ids)
+                    {
+                        if(id_args != "")
+                            id_args += "&";
+                        id_args += "ids%5B%5D=" + id;
+                    }
+
+                    helpers.get_request("/ajax/tags/frequent/illust?" + id_args, {}, function(result) {
+                        for(var tag of result.body)
+                            this.post_tags.push(tag);
+                        this.call_update_listeners();
+                    }.bind(this));
                 }
-                helpers.get_request("/ajax/tags/frequent/illust?" + id_args, {}, function(result) {
-                    for(var tag of result.body)
-                        this.post_tags.push(tag);
-                    this.call_update_listeners();
-                }.bind(this));
             }.bind(this));
         }.bind(this));        
 
@@ -1516,18 +1520,22 @@ class data_source_bookmarks extends data_source
                 // format it here.
                 this.post_tags = [];
                 var tags_for_illust_ids = illust_ids.slice(0,50);
-                var id_args = "";
-                for(var id of tags_for_illust_ids)
+                if(page == 1 && tags_for_illust_ids.length > 0)
                 {
-                    if(id_args != "")
-                        id_args += "&";
-                    id_args += "ids%5B%5D=" + id;
+                    var id_args = "";
+                    for(var id of tags_for_illust_ids)
+                    {
+                        if(id_args != "")
+                            id_args += "&";
+                        id_args += "ids%5B%5D=" + id;
+                    }
+
+                    helpers.get_request("/ajax/tags/frequent/illust?" + id_args, {}, function(result) {
+                        for(var tag of result.body)
+                            this.post_tags.push(tag);
+                        this.call_update_listeners();
+                    }.bind(this));
                 }
-                helpers.get_request("/ajax/tags/frequent/illust?" + id_args, {}, function(result) {
-                    for(var tag of result.body)
-                        this.post_tags.push(tag);
-                    this.call_update_listeners();
-                }.bind(this));
             }.bind(this));
         }.bind(this));        
 
