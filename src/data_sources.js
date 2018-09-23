@@ -1428,7 +1428,11 @@ class data_source_current_illust extends data_source_from_page
 //
 // If id is in the query, we're viewing another user's bookmarks.  Otherwise, we're
 // viewing our own.
-class data_source_bookmarks extends data_source_from_page
+//
+// Pixiv currently serves two unrelated pages for this URL, using an API-driven one
+// for viewing someone else's bookmarks and a static page for viewing your own.  We
+// always use the API in either case.
+class data_source_bookmarks extends data_source
 {
     get name() { return "bookmarks"; }
     
@@ -1438,63 +1442,106 @@ class data_source_bookmarks extends data_source_from_page
         this.bookmark_tags = [];
     }
 
-    // Return true if we're viewing our own bookmarks.
-    viewing_own_bookmarks()
+    load_page_internal(page, callback)
     {
-        var query_args = page_manager.singleton().get_query_args();
-        return !query_args.has("id");
-    }
+        this.post_tags = [];
 
-    // Parse the loaded document and return the illust_ids.
-    parse_document(document)
-    {
-        var title = document.querySelector(".user-name[title]");
-        this.username = title.getAttribute("title");
+        // Fetch bookmark tags.  We can do this in parallel with everything else.
+        var url = "https://www.pixiv.net/ajax/user/" + this.viewing_user_id + "/illusts/bookmark/tags";
+        helpers.get_request(url, {}, function(result) {
+            for(var bookmark_tag of result.body.public)
+            {
+                // Skip "uncategorized".  This is always the first entry.  There's no clear
+                // marker for it, so just check the tag name.  We don't assume it'll always
+                // be the first entry in case this changes.
+                if(bookmark_tag.tag == "未分類")
+                    continue;
+                if(this.bookmark_tags.indexOf(bookmark_tag.tag) != -1)
+                    continue;
+                this.bookmark_tags.push(bookmark_tag.tag);
+            }
+            for(var bookmark_tag of result.body.private)
+            {
+                if(bookmark_tag.tag == "未分類")
+                    continue;
+                if(this.bookmark_tags.indexOf(bookmark_tag.tag) != -1)
+                    continue;
+                this.bookmark_tags.push(bookmark_tag.tag);
+            }
 
-        // Grab the user's bookmark tags, if any.
-        this.bookmark_tags = [];
-        for(var element of document.querySelectorAll("#bookmark_list a[href*='bookmark.php']"))
-        {
-            var tag = new URL(element.href).searchParams.get("tag");
-            if(tag != null)
-                this.bookmark_tags.push(tag);
-        }
+            this.bookmark_tags.sort();
 
-        var items = document.querySelectorAll("._image-items .image-item");
+            // Update the UI with the tag list.
+            this.call_update_listeners();
+        }.bind(this));
+        
+        // Make sure the user info is loaded.  This should normally be preloaded by globalInitData
+        // in main.js, and this won't make a request.
+        image_data.singleton().get_user_info_full(this.viewing_user_id, function(user_info) {
+            this.user_info = user_info;
+            this.call_update_listeners();
 
-        var user_data = { };
-        var illust_ids = [];
+            var query_args = page_manager.singleton().get_query_args();
+            var rest = query_args.get("rest") || "show";
+            var tag = query_args.get("tag") || "";
 
-        for(var i = 0; i < items.length; ++i)
-        {
-            var item = items[i];
+            var data = {
+                tag: tag,
+                offset: (page-1)*48,
+                limit: 48,
+                rest: rest, // public or private (no way to get both)
+            };
 
-            // Pull the illustration ID out of the link.  For some reason, URLSearchParams
-            // is stupid and can't handle being given a .search that has ? on it.  
-            var link = item.querySelector("a[href^='member_illust']");
-            var user_data_div = item.querySelector("[data-user_id]");
+            var url = "/ajax/user/" + this.viewing_user_id + "/illusts/bookmarks";
+            helpers.get_request(url, data, function(result) {
+                var illust_ids = [];
+                for(var illust_data of result.body.works)
+                    illust_ids.push(illust_data.id);
 
-            // If user_data_div doesn't exist, skip the entry even if we have a link.  This happens
-            // for deleted entries.
-            if(user_data_div == null)
-                continue;
+                // Sort the two sets of IDs back together, putting higher (newer) IDs first.
+                illust_ids.sort(function(lhs, rhs)
+                {
+                    return parseInt(rhs) - parseInt(lhs);
+                });
 
-            var query = new URL(link.href).search.substr(1);
-            var params = new URLSearchParams(query);
-            var illust_id = params.get("illust_id");
-            illust_ids.push(illust_id);
-        }
+                // Register the new page of data.
+                this.add_page(page, illust_ids);
 
-        return illust_ids;
-    }
+                if(callback)
+                    callback();
 
+                // Request common tags for these posts.
+                //
+                // get_request doesn't handle PHP's wonky array format for GET arguments, so we just
+                // format it here.
+                this.post_tags = [];
+                var tags_for_illust_ids = illust_ids.slice(0,50);
+                var id_args = "";
+                for(var id of tags_for_illust_ids)
+                {
+                    if(id_args != "")
+                        id_args += "&";
+                    id_args += "ids%5B%5D=" + id;
+                }
+                helpers.get_request("/ajax/tags/frequent/illust?" + id_args, {}, function(result) {
+                    for(var tag of result.body)
+                        this.post_tags.push(tag);
+                    this.call_update_listeners();
+                }.bind(this));
+            }.bind(this));
+        }.bind(this));        
+
+        return true;
+    };
+    
     get page_title()
     {
         if(!this.viewing_own_bookmarks())
         {
-            if(this.username)
-                return this.viewing_username + "'s Bookmarks";
-            return "User's Bookmarks";
+            if(this.user_info)
+                return this.user_info.name + "'s Bookmarks";
+            else
+                return "Loading...";
         }
 
         return "Bookmarks";
@@ -1504,8 +1551,8 @@ class data_source_bookmarks extends data_source_from_page
     {
         if(!this.viewing_own_bookmarks())
         {
-            if(this.viewing_username)
-                return this.viewing_username + "'s Bookmarks";
+            if(this.user_info)
+                return this.user_info.name + "'s Bookmarks";
             return "User's Bookmarks";
         }
 
@@ -1567,15 +1614,39 @@ class data_source_bookmarks extends data_source_from_page
             add_tag_link(tag);
     }
 
-    get viewing_user_id()
+    set_current_illust_id(illust_id, add_to_history)
     {
         var query_args = page_manager.singleton().get_query_args();
+        var hash_args = page_manager.singleton().get_hash_args();
+
+        // Store the current illust ID in the hash.
+        hash_args.set("illust_id", illust_id);
+
+        page_manager.singleton().set_args(query_args, hash_args, add_to_history);
+    };
+    
+    get viewing_user_id()
+    {
+        // If there's no user ID in the URL, view our own bookmarks.
+        var query_args = page_manager.singleton().get_query_args();
+        var user_id = query_args.get("id");
+        if(user_id == null)
+            return window.global_data.user_id;
+        
         return query_args.get("id");
     };
     
     get viewing_username()
     {
-        return this.username;
+        if(this.user_info == null)
+            return null;
+        return this.user_info.name;
+    }
+
+    // Return true if we're viewing our own bookmarks.
+    viewing_own_bookmarks()
+    {
+        return this.viewing_user_id == window.global_data.user_id;
     }
 };
 
