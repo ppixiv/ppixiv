@@ -891,7 +891,6 @@ input.search-tags {
     float: right;
     position: relative;
     margin-left: 25px;
-    margin-bottom: 10px;
 }
 
 .image-for-suggestions {
@@ -901,6 +900,7 @@ input.search-tags {
 .image-for-suggestions > img {
     display: block;
     max-height: 150px;
+    border-radius: 5px; /* matches the avatar display */
 }
 
 .grey-icon {
