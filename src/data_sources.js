@@ -724,7 +724,7 @@ class data_source_related_illusts extends data_source
         source_link.hidden = this.illust_info == null;
         if(this.illust_info)
         {
-            source_link.href = "/member_illust.php?illust_id=" + this.illust_info.illustId + "#ppixiv";
+            source_link.href = "/member_illust.php?mode=medium&illust_id=" + this.illust_info.illustId + "#ppixiv";
 
             var img = source_link.querySelector(".image-for-suggestions > img");
             img.src = this.illust_info.urls.thumb;
