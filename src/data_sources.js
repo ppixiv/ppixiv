@@ -1535,7 +1535,7 @@ class data_source_bookmarks extends data_source
         return displaying;
     };
 
-    refresh_thumbnail_ui(container)
+    refresh_thumbnail_ui(container, thumbnail_view)
     {
         // The public/private button only makes sense when viewing your own bookmarks.
         container.querySelector(".bookmarks-public-private").hidden = !this.viewing_own_bookmarks();
@@ -1579,6 +1579,9 @@ class data_source_bookmarks extends data_source
         add_tag_link("Uncategorized");
         for(var tag of this.bookmark_tags || [])
             add_tag_link(tag);
+
+        if(this.user_info)
+            thumbnail_view.avatar_widget.set_from_user_data(this.user_info);
     }
 
     set_current_illust_id(illust_id, add_to_history)
