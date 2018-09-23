@@ -1403,11 +1403,12 @@ class data_source_bookmarks extends data_source
 
     load_page_internal(page, callback)
     {
-        this.post_tags = [];
+        this.bookmark_tags = [];
 
         // Fetch bookmark tags.  We can do this in parallel with everything else.
         var url = "https://www.pixiv.net/ajax/user/" + this.viewing_user_id + "/illusts/bookmark/tags";
         helpers.get_request(url, {}, function(result) {
+            var tag_counts = {};
             for(var bookmark_tag of result.body.public)
             {
                 // Skip "uncategorized".  This is always the first entry.  There's no clear
@@ -1415,20 +1416,31 @@ class data_source_bookmarks extends data_source
                 // be the first entry in case this changes.
                 if(bookmark_tag.tag == "未分類")
                     continue;
-                if(this.bookmark_tags.indexOf(bookmark_tag.tag) != -1)
-                    continue;
-                this.bookmark_tags.push(bookmark_tag.tag);
+                tag_counts[bookmark_tag.tag] = parseInt(bookmark_tag.cnt);
             }
+
             for(var bookmark_tag of result.body.private)
             {
                 if(bookmark_tag.tag == "未分類")
                     continue;
-                if(this.bookmark_tags.indexOf(bookmark_tag.tag) != -1)
-                    continue;
-                this.bookmark_tags.push(bookmark_tag.tag);
+                if(!(bookmark_tag.tag in tag_counts))
+                    tag_counts[bookmark_tag.tag] = 0;
+                tag_counts[bookmark_tag.tag] += parseInt(bookmark_tag.cnt);
             }
 
-            this.bookmark_tags.sort();
+            var all_tags = [];
+            for(var tag in tag_counts)
+                all_tags.push(tag);
+
+            // Sort tags by count, so we can trim just the most used tags.
+            all_tags.sort(function(lhs, rhs) {
+                return tag_counts[rhs] - tag_counts[lhs];
+            });
+
+            // Trim the list.  Some users will return thousands of tags.
+            all_tags.splice(20);
+            all_tags.sort();
+            this.bookmark_tags = all_tags;
 
             // Update the UI with the tag list.
             this.call_update_listeners();
@@ -1472,29 +1484,6 @@ class data_source_bookmarks extends data_source
 
                 if(callback)
                     callback();
-
-                // Request common tags for these posts.
-                //
-                // get_request doesn't handle PHP's wonky array format for GET arguments, so we just
-                // format it here.
-                this.post_tags = [];
-                var tags_for_illust_ids = illust_ids.slice(0,50);
-                if(page == 1 && tags_for_illust_ids.length > 0)
-                {
-                    var id_args = "";
-                    for(var id of tags_for_illust_ids)
-                    {
-                        if(id_args != "")
-                            id_args += "&";
-                        id_args += "ids%5B%5D=" + id;
-                    }
-
-                    helpers.get_request("/ajax/tags/frequent/illust?" + id_args, {}, function(result) {
-                        for(var tag of result.body)
-                            this.post_tags.push(tag);
-                        this.call_update_listeners();
-                    }.bind(this));
-                }
             }.bind(this));
         }.bind(this));        
 
