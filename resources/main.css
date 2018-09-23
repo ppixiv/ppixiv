@@ -897,7 +897,10 @@ input.search-tags {
 .image-for-suggestions {
     float: right;
     margin-left: 25px;
-    margin-bottom: 10px;
+}
+.image-for-suggestions > img {
+    display: block;
+    max-height: 150px;
 }
 
 .grey-icon {
