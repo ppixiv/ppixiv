@@ -1259,7 +1259,7 @@ class data_source_artist extends data_source
     get_displaying_text()
     {
         if(this.user_info)
-            return this.user_info.name + "'s illustrations";
+            return this.user_info.name + "'s Illustrations";
         else
             return "Illustrations";
     };
@@ -1353,7 +1353,7 @@ class data_source_current_illust extends data_source_from_page
     get_displaying_text()
     {
         if(this.user_info)
-            return this.user_info.name + "'s illustrations";
+            return this.user_info.name + "'s Illustrations";
         else
             return "Illustrations";
     };
