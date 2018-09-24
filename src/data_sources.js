@@ -555,6 +555,12 @@ class data_source
             helpers.set_class(box, "active", !selected_default);
         }
     }
+
+    // Return true of the thumbnail view should show bookmark icons for this source.
+    get show_bookmark_icons()
+    {
+        return true;
+    }
 };
 
 // /discovery
@@ -1599,6 +1605,13 @@ class data_source_bookmarks extends data_source
     viewing_own_bookmarks()
     {
         return this.viewing_user_id == window.global_data.user_id;
+    }
+
+    // Don't show bookmark icons for the user's own bookmarks.  Every image on that page
+    // is bookmarked, so it's just a lot of noise.
+    get show_bookmark_icons()
+    {
+        return !this.viewing_own_bookmarks();
     }
 };
 

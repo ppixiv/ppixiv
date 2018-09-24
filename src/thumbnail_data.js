@@ -100,6 +100,9 @@ class thumbnail_data
             // Specifying this gives us 240x240 thumbs, which we want, rather than the 150x150
             // ones we'll get if we don't (though changing the URL is easy enough too).
             page: "discover",
+
+            // We do our own muting, but for some reason this flag is needed to get bookmark info.
+            exclude_muted_illusts: 1,
         }, function(results) {
             this.loaded_thumbnail_info(results, true);
         }.bind(this));
@@ -160,6 +163,45 @@ class thumbnail_data
                 }
                 var value = thumb_info[from_key];
                 remapped_thumb_info[to_key] = value;
+            }
+
+            // Bookmark data is a special case:
+            if(from_illust_list)
+            {
+                // The old API has is_bookmarked: true, bookmark_id: "id" and bookmark_illust_restrict: 0 or 1.
+                // bookmark_id and bookmark_illust_restrict are omitted if is_bookmarked is false.
+                //
+                // The new API is a dictionary:
+                //
+                // bookmarkData = {
+                //     bookmark_id: id,
+                //     private: false
+                // }
+                //
+                // or null if not bookmarked.
+                //
+                // Some pages return buggy results.  /ajax/user/id/profile/all includes bookmarkData,
+                // but private is always false, so we can't tell if it's a private bookmark.  This is
+                // a site bug that we can't do anything about (it affects the site too).
+                if(!('is_bookmarked' in thumb_info))
+                    console.warn("Thumbnail info is missing key: is_bookmarked");
+                else
+                {
+                    if(thumb_info.is_bookmarked)
+                        remapped_thumb_info.bookmarkData = {
+                            bookmarkId: thumb_info.bookmark_id,
+                            private: thumb_info.bookmark_illust_restrict == 1,
+                        };
+                    else
+                    {
+                        remapped_thumb_info.bookmarkData = null;
+                    }
+                }
+            } else {
+                if(!('bookmarkData' in thumb_info))
+                    console.warn("Thumbnail info is missing key: bookmarkData");
+                else
+                    remapped_thumb_info.bookmarkData = thumb_info.bookmarkData;
             }
 
             thumb_info = remapped_thumb_info;

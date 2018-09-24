@@ -663,6 +663,27 @@ body[data-thumbnail-mode="wide"]  li.thumbnail-box a.thumbnail-link {
     margin-left: -4px;
 }
 
+.thumbnail-container li.thumbnail-box .heart {
+    pointer-events: none;
+    width: 32px;
+    height: 32px;
+    left: 0px;
+    bottom: 0px;
+    position: absolute;
+}
+.thumbnail-container li.thumbnail-box .heart > svg {
+    transition: opacity .5s;
+}
+.thumbnail-container li.thumbnail-box .heart[data-bookmark-type="public"] > svg {
+    fill: #f00; stroke: #000; stroke-width: .5px;
+}
+.thumbnail-container li.thumbnail-box .heart[data-bookmark-type="private"] > svg {
+    fill: #800; stroke: #fff;
+}
+
+.thumbnail-inner:hover .heart > svg {
+    opacity: 0.5;
+}
 .thumbnail-container li.thumbnail-box .ugoira-icon {
     pointer-events: none;
     width: 32px;

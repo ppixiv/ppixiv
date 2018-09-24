@@ -705,8 +705,9 @@ class thumbnail_view
                 element.querySelector(".page-count-box .page-count").textContent = info.pageCount;
             }
 
-
             helpers.set_class(element, "dot", helpers.tags_contain_dot(info));
+
+            this.refresh_bookmark_icon(element);
 
             // Set the popup.
             var a = element.querySelector(".thumbnail-inner");
@@ -714,6 +715,44 @@ class thumbnail_view
             a.classList.add("popup");
             a.dataset.popup = popup;
         }        
+    }
+
+    // Refresh the thumbnail for illust_id.
+    //
+    // This is used to refresh the bookmark icon when changing a bookmark.
+    refresh_thumbnail(illust_id)
+    {
+        var ul = this.container.querySelector("ul.thumbnails");
+        var thumbnail_element = ul.querySelector("[data-illust_id=\"" + illust_id + "\"]");
+        if(thumbnail_element == null)
+            return;
+        this.refresh_bookmark_icon(thumbnail_element);
+    }
+
+    // Set the bookmarked heart for thumbnail_element.  This can change if the user bookmarks
+    // or un-bookmarks an image.
+    refresh_bookmark_icon(thumbnail_element)
+    {
+        var illust_id = thumbnail_element.dataset.illust_id;
+        if(illust_id == null)
+            return;
+
+        // Get thumbnail info.
+        var thumbnail_info = thumbnail_data.singleton().get_one_thumbnail_info(illust_id);
+        if(thumbnail_info == null)
+            return;
+
+        var show_bookmark_heart = thumbnail_info.bookmarkData != null;
+        if(this.data_source != null && !this.data_source.show_bookmark_icons)
+            show_bookmark_heart = false;
+        
+        thumbnail_element.querySelector(".heart").hidden = !show_bookmark_heart;
+        if(!show_bookmark_heart)
+            return;
+
+        // Note that Pixiv returns wrong data for bookmarkType on a lot of pages, so
+        // we'll often end up showing public for private bookmarks.
+        thumbnail_element.querySelector(".heart").dataset.bookmarkType = thumbnail_info.bookmarkData.private? "private":"public";
     }
 
     // Return a list of thumbnails that are either visible, or close to being visible

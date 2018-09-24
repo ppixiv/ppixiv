@@ -343,6 +343,7 @@ var main_ui = function(data_source)
     helpers.add_style('.ugoira-icon { background-image: url("' + binary_data['play-button.svg'] + '"); };');
     helpers.add_style('.page-icon { background-image: url("' + binary_data['page-icon.png'] + '"); };');
     helpers.add_style('.refresh-icon:after { content: url("' + binary_data['refresh-icon.svg'] + '"); };');
+    helpers.add_style('.heart-icon:after { content: url("' + binary_data['heart-icon.svg'] + '"); };');
     
     helpers.add_style(resources['main.css']);
 
@@ -1164,6 +1165,20 @@ main_ui.prototype.bookmark_add = function(private_bookmark)
 
         illust_data.bookmarkCount++;
 
+        // Thumbnail info also records whether an image is bookmarked.  Update this illust's
+        // thumbnail info if it's loaded.
+        var thumbnail_info = thumbnail_data.singleton().get_one_thumbnail_info(illust_id);
+        if(thumbnail_info != null)
+        {
+            thumbnail_info.bookmarkData = {
+                "id": result.body.last_bookmark_id,
+                "private": private_bookmark,
+            }
+
+            // Tell the thumbnail to refresh the thumbnail bookmark icon if this post is displayed.
+            this.thumbnail_view.refresh_thumbnail(illust_id);
+        }
+        
         // Refresh the UI if we're still on the same post.
         if(this.current_illust_id == illust_id)
             this.refresh_ui();
@@ -1190,6 +1205,15 @@ main_ui.prototype.bookmark_remove = function()
         illust_data.bookmarkData = false;
         illust_data.bookmarkCount--;
 
+        var thumbnail_info = thumbnail_data.singleton().get_one_thumbnail_info(illust_id);
+        if(thumbnail_info != null)
+        {
+            thumbnail_info.bookmarkData = null;
+
+            // Tell the thumbnail to refresh the thumbnail bookmark icon if this post is displayed.
+            this.thumbnail_view.refresh_thumbnail(illust_id);
+        }
+         
         message_widget.singleton.show("Bookmark removed");
 
         // Refresh the UI if we're still on the same post.
