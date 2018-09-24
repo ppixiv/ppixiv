@@ -1,1034 +1,1034 @@
 // The main UI.  This handles creating the viewers and the global UI.
-var main_ui = function(data_source)
+class main_ui
 {
-    if(debug_show_ui) document.body.classList.add("force-ui");
+    constructor(data_source)
+    {
+        if(debug_show_ui) document.body.classList.add("force-ui");
 
-    this.onwheel = this.onwheel.bind(this);
-    this.refresh_ui = this.refresh_ui.bind(this);
-    this.onkeydown = this.onkeydown.bind(this);
-    this.clicked_bookmark = this.clicked_bookmark.bind(this);
-    this.clicked_like = this.clicked_like.bind(this);
-    this.shown_page_changed = this.shown_page_changed.bind(this);
-    this.clicked_download = this.clicked_download.bind(this);
-    this.image_data_loaded = this.image_data_loaded.bind(this);
-    this.clicked_bookmark_tag_selector = this.clicked_bookmark_tag_selector.bind(this);
-    this.refresh_bookmark_tag_highlights = this.refresh_bookmark_tag_highlights.bind(this);
-    this.window_onpopstate = this.window_onpopstate.bind(this);
-    this.set_image_from_thumbnail = this.set_image_from_thumbnail.bind(this);
-    this.toggle_thumbnail_view = this.toggle_thumbnail_view.bind(this);
-    this.data_source_updated = this.data_source_updated.bind(this);
+        this.onwheel = this.onwheel.bind(this);
+        this.refresh_ui = this.refresh_ui.bind(this);
+        this.onkeydown = this.onkeydown.bind(this);
+        this.clicked_bookmark = this.clicked_bookmark.bind(this);
+        this.clicked_like = this.clicked_like.bind(this);
+        this.shown_page_changed = this.shown_page_changed.bind(this);
+        this.clicked_download = this.clicked_download.bind(this);
+        this.image_data_loaded = this.image_data_loaded.bind(this);
+        this.clicked_bookmark_tag_selector = this.clicked_bookmark_tag_selector.bind(this);
+        this.refresh_bookmark_tag_highlights = this.refresh_bookmark_tag_highlights.bind(this);
+        this.window_onpopstate = this.window_onpopstate.bind(this);
+        this.set_image_from_thumbnail = this.set_image_from_thumbnail.bind(this);
+        this.toggle_thumbnail_view = this.toggle_thumbnail_view.bind(this);
+        this.data_source_updated = this.data_source_updated.bind(this);
 
-    this.current_illust_id = -1;
-    this.latest_navigation_direction_down = true;
+        this.current_illust_id = -1;
+        this.latest_navigation_direction_down = true;
 
-    this.data_source = data_source;
-    this.data_source.add_update_listener(this.data_source_updated);
+        this.data_source = data_source;
+        this.data_source.add_update_listener(this.data_source_updated);
 
-    window.addEventListener("popstate", this.window_onpopstate);
+        window.addEventListener("popstate", this.window_onpopstate);
 
-    // Don't restore the scroll position.
+        // Don't restore the scroll position.
+        //
+        // If we browser back to a search page and we were scrolled ten pages down, scroll
+        // restoration will try to scroll down to it incrementally, causing us to load all
+        // data in the search from the top all the way down to where we were.  This can cause
+        // us to spam the server with dozens of requests.  This happens on F5 refresh, which
+        // isn't useful (if you're refreshing a search page, you want to see new results anyway),
+        // and recommendations pages are different every time anyway.
+        //
+        // This won't affect browser back from an image to the enclosing search.
+        history.scrollRestoration = "manual";    
+
+        document.head.appendChild(document.createElement("title"));
+        this.document_icon = document.head.appendChild(document.createElement("link"));
+        this.document_icon.setAttribute("rel", "icon");
+       
+        helpers.add_style('body .noise-background { background-image: url("' + binary_data['noise.png'] + '"); };');
+        helpers.add_style('body.light .noise-background { background-image: url("' + binary_data['noise-light.png'] + '"); };');
+        helpers.add_style('.ugoira-icon { background-image: url("' + binary_data['play-button.svg'] + '"); };');
+        helpers.add_style('.page-icon { background-image: url("' + binary_data['page-icon.png'] + '"); };');
+        helpers.add_style('.refresh-icon:after { content: url("' + binary_data['refresh-icon.svg'] + '"); };');
+        helpers.add_style('.heart-icon:after { content: url("' + binary_data['heart-icon.svg'] + '"); };');
+        
+        helpers.add_style(resources['main.css']);
+
+        // Create the page.
+        this.container = document.body.appendChild(helpers.create_node(resources['main.html']));
+
+        new hide_mouse_cursor_on_idle(this.container.querySelector(".image-container"));
+
+        this.thumbnail_view = new thumbnail_view(this.container.querySelector(".thumbnail-container"), this.set_image_from_thumbnail);
+        this.thumbnail_view.set_data_source(this.data_source);
+
+        new refresh_bookmark_tag_widget(this.container.querySelector(".refresh-bookmark-tags"));
+        this.manga_thumbnails = new manga_thumbnail_widget(this.container.querySelector(".manga-thumbnail-container"));
+        this.manga_thumbnails.set_page_changed_callback(function(page) {
+            this.viewer.set_page(page);
+        }.bind(this));
+
+        this.avatar_widget = new avatar_widget({
+            parent: this.container.querySelector(".avatar-popup"),
+            changed_callback: this.refresh_ui,
+        });
+
+        // Show the bookmark UI when hovering over the bookmark icon.
+        var bookmark_popup = this.container.querySelector(".bookmark-button");
+        bookmark_popup.addEventListener("mouseover", function(e) { helpers.set_class(bookmark_popup, "popup-visible", true); }.bind(this));
+        bookmark_popup.addEventListener("mouseout", function(e) { helpers.set_class(bookmark_popup, "popup-visible", false); }.bind(this));
+
+        bookmark_popup.querySelector(".heart").addEventListener("click", this.clicked_bookmark.bind(this, false), false);
+        bookmark_popup.querySelector(".bookmark-button.public").addEventListener("click", this.clicked_bookmark.bind(this, false), false);
+        bookmark_popup.querySelector(".bookmark-button.private").addEventListener("click", this.clicked_bookmark.bind(this, true), false);
+        bookmark_popup.querySelector(".unbookmark-button").addEventListener("click", this.clicked_bookmark.bind(this, true), false);
+        this.element_bookmark_tag_list = bookmark_popup.querySelector(".bookmark-tag-list");
+
+        // Bookmark publically when enter is pressed on the bookmark tag input.
+        helpers.input_handler(bookmark_popup.querySelector(".bookmark-tag-list"), this.clicked_bookmark.bind(this, false));
+
+
+        bookmark_popup.querySelector(".bookmark-tag-selector").addEventListener("click", this.clicked_bookmark_tag_selector);
+        this.element_bookmark_tag_list.addEventListener("input", this.refresh_bookmark_tag_highlights);
+
+        // stopPropagation on mousewheel movement inside the bookmark popup, so we allow the scroller to move
+        // rather than changing images.
+        bookmark_popup.addEventListener("wheel", function(e) { e.stopPropagation(); });
+
+        this.container.querySelector(".download-button").addEventListener("click", this.clicked_download);
+        this.container.querySelector(".show-thumbnails-button").addEventListener("click", this.toggle_thumbnail_view);
+
+        window.addEventListener("bookmark-tags-changed", this.refresh_ui);
+
+        this.element_title = this.container.querySelector(".title");
+        this.element_author = this.container.querySelector(".author");
+        this.element_bookmarked = this.container.querySelector(".bookmark-button");
+
+        this.element_liked = this.container.querySelector(".like-button");
+        this.element_liked.addEventListener("click", this.clicked_like, false);
+
+        this.tag_widget = new tag_widget({
+            parent: this.container.querySelector(".tag-list"),
+        });
+        this.element_tags = this.container.querySelector(".tag-list");
+        this.element_comment = this.container.querySelector(".description");
+
+        this.container.addEventListener("wheel", this.onwheel);
+        window.addEventListener("keydown", this.onkeydown);
+
+        // A bar showing how far along in an image sequence we are:
+        this.manga_page_bar = new progress_bar(this.container.querySelector(".ui-box")).controller();
+        this.progress_bar = new progress_bar(this.container.querySelector(".loading-progress-bar"));
+        this.seek_bar = new seek_bar(this.container.querySelector(".ugoira-seek-bar"));
+
+        helpers.add_clicks_to_search_history(document.body);
+        this.refresh_ui();
+        
+        // Load the initial state.
+        this.load_current_state();
+    }
+
+    window_onpopstate(e)
+    {
+        // The URL changed, eg. because the user navigated, so load the new state.
+        console.log("History state changed");
+        this.load_current_state();
+    }
+
+    load_current_state()
+    {
+        this.data_source.load_from_current_state(function() {
+            // Don't load the default image if the thumbnail view is enabled.
+            if(this.thumbnail_view.enabled)
+                return;
+
+            // Show the default image.
+            var show_illust_id = this.data_source.get_default_illust_id();
+            console.log("Showing initial image", show_illust_id);
+            this.show_image(show_illust_id);
+        }.bind(this));
+
+        this.refresh_ui();
+    }
+
+    // This is called when the user clicks a thumbnail in the thumbnail view to display it.
     //
-    // If we browser back to a search page and we were scrolled ten pages down, scroll
-    // restoration will try to scroll down to it incrementally, causing us to load all
-    // data in the search from the top all the way down to where we were.  This can cause
-    // us to spam the server with dozens of requests.  This happens on F5 refresh, which
-    // isn't useful (if you're refreshing a search page, you want to see new results anyway),
-    // and recommendations pages are different every time anyway.
+    // Normally when we go from one image to another, we leave the previous image viewer in
+    // place until we have image data for the new image, so we don't flash a black screen.
+    // That looks ugly when coming from the thumbnail list, since we show whatever previous
+    // image was being viewed briefly.  Instead, remove the viewer immediately.
+    set_image_from_thumbnail(illust_id)
+    {
+        this.stop_displaying_image();
+        
+        // Add this to history, since we want browser back to go back to the thumbnails.
+        this.show_image(illust_id, false, true /* do add to history */);
+    }
+
+    // Show an image.
     //
-    // This won't affect browser back from an image to the enclosing search.
-    history.scrollRestoration = "manual";    
+    // If the illustration has multiple pages and show_last_page is true, show the last page
+    // instead of the first.  This is used when navigating backwards.
+    //
+    // If add_to_history is true, we're loading an image because the user navigated to it (eg.
+    // pressing pgdn), so we should add it to history.  If it's false, we're loading it because
+    // the history state was changed (eg. browser back), so we shouldn't add a new state.
+    show_image(illust_id, show_last_page, add_to_history)
+    {
+        this.cancel_async_navigation();
+        
+        // Remember that this is the image we want to be displaying.
+        this.wanted_illust_id = illust_id;
+        this.wanted_illust_last_page = show_last_page;
 
-    document.head.appendChild(document.createElement("title"));
-    this.document_icon = document.head.appendChild(document.createElement("link"));
-    this.document_icon.setAttribute("rel", "icon");
-   
-    helpers.add_style('body .noise-background { background-image: url("' + binary_data['noise.png'] + '"); };');
-    helpers.add_style('body.light .noise-background { background-image: url("' + binary_data['noise-light.png'] + '"); };');
-    helpers.add_style('.ugoira-icon { background-image: url("' + binary_data['play-button.svg'] + '"); };');
-    helpers.add_style('.page-icon { background-image: url("' + binary_data['page-icon.png'] + '"); };');
-    helpers.add_style('.refresh-icon:after { content: url("' + binary_data['refresh-icon.svg'] + '"); };');
-    helpers.add_style('.heart-icon:after { content: url("' + binary_data['heart-icon.svg'] + '"); };');
-    
-    helpers.add_style(resources['main.css']);
+        // Tell the preloader about the current image.
+        image_preloader.singleton.set_current_image(illust_id);
 
-    // Create the page.
-    this.container = document.body.appendChild(helpers.create_node(resources['main.html']));
+        // Update the address bar with the new image.
+        this.data_source.set_current_illust_id(illust_id, add_to_history);
 
-    new hide_mouse_cursor_on_idle(this.container.querySelector(".image-container"));
+        // Load info for this image if needed.
+        image_data.singleton().get_image_info(illust_id, this.image_data_loaded);
+    }
 
-    this.thumbnail_view = new thumbnail_view(this.container.querySelector(".thumbnail-container"), this.set_image_from_thumbnail);
-    this.thumbnail_view.set_data_source(this.data_source);
+    // If we started navigating to a new image and were delayed to load data (either to load
+    // the image or to load a new page), cancel it and stay where we are.
+    cancel_async_navigation()
+    {
+        // If we previously set a pending navigation, this navigation overrides it.
+        this.pending_navigation = null;
 
-    new refresh_bookmark_tag_widget(this.container.querySelector(".refresh-bookmark-tags"));
-    this.manga_thumbnails = new manga_thumbnail_widget(this.container.querySelector(".manga-thumbnail-container"));
-    this.manga_thumbnails.set_page_changed_callback(function(page) {
-        this.viewer.set_page(page);
-    }.bind(this));
-
-    this.avatar_widget = new avatar_widget({
-        parent: this.container.querySelector(".avatar-popup"),
-        changed_callback: this.refresh_ui,
-    });
-
-    // Show the bookmark UI when hovering over the bookmark icon.
-    var bookmark_popup = this.container.querySelector(".bookmark-button");
-    bookmark_popup.addEventListener("mouseover", function(e) { helpers.set_class(bookmark_popup, "popup-visible", true); }.bind(this));
-    bookmark_popup.addEventListener("mouseout", function(e) { helpers.set_class(bookmark_popup, "popup-visible", false); }.bind(this));
-
-    bookmark_popup.querySelector(".heart").addEventListener("click", this.clicked_bookmark.bind(this, false), false);
-    bookmark_popup.querySelector(".bookmark-button.public").addEventListener("click", this.clicked_bookmark.bind(this, false), false);
-    bookmark_popup.querySelector(".bookmark-button.private").addEventListener("click", this.clicked_bookmark.bind(this, true), false);
-    bookmark_popup.querySelector(".unbookmark-button").addEventListener("click", this.clicked_bookmark.bind(this, true), false);
-    this.element_bookmark_tag_list = bookmark_popup.querySelector(".bookmark-tag-list");
-
-    // Bookmark publically when enter is pressed on the bookmark tag input.
-    helpers.input_handler(bookmark_popup.querySelector(".bookmark-tag-list"), this.clicked_bookmark.bind(this, false));
+        // If show_image started loading a new image, unset it.  If add_to_history was
+        // true, we won't remove the history entry.
+        this.wanted_illust_id = this.current_illust_id;
+        if(this.current_illust_id != -1)
+            this.data_source.set_current_illust_id(this.current_illust_id, false);
+    }
 
 
-    bookmark_popup.querySelector(".bookmark-tag-selector").addEventListener("click", this.clicked_bookmark_tag_selector);
-    this.element_bookmark_tag_list.addEventListener("input", this.refresh_bookmark_tag_highlights);
+    // Stop displaying any image (and cancel any wanted navigation), putting us back
+    // to where we were before displaying any images.
+    //
+    // This will also prevent the next image displayed from triggering speculative
+    // loading, which we don't want to do when clicking an image in the thumbnail
+    // view.
+    stop_displaying_image()
+    {
+        if(this.viewer != null)
+        {
+            this.viewer.shutdown();
+            this.viewer = null;
+        }
 
-    // stopPropagation on mousewheel movement inside the bookmark popup, so we allow the scroller to move
-    // rather than changing images.
-    bookmark_popup.addEventListener("wheel", function(e) { e.stopPropagation(); });
+        this.manga_thumbnails.set_illust_info(null);
+        
+        this.wanted_illust_id = null;
+        this.wanted_illust_last_page = null;
+        this.current_illust_id = -1;
+        this.refresh_ui();
+    }
 
-    this.container.querySelector(".download-button").addEventListener("click", this.clicked_download);
-    this.container.querySelector(".show-thumbnails-button").addEventListener("click", this.toggle_thumbnail_view);
+    image_data_loaded(illust_data)
+    {
+        var illust_id = illust_data.illustId;
 
-    window.addEventListener("bookmark-tags-changed", this.refresh_ui);
+        // If this isn't image data for the image we want to be showing, ignore it.
+        if(this.wanted_illust_id != illust_id)
+            return;
 
-    this.element_title = this.container.querySelector(".title");
-    this.element_author = this.container.querySelector(".author");
-    this.element_bookmarked = this.container.querySelector(".bookmark-button");
+        console.log("Showing image", illust_id);
+        
+        var want_last_page = this.wanted_illust_last_page;
 
-    this.element_liked = this.container.querySelector(".like-button");
-    this.element_liked.addEventListener("click", this.clicked_like, false);
+        // If true, this is the first image we're displaying.
+        var first_image_displayed = this.current_illust_id == -1;
 
-    this.tag_widget = new tag_widget({
-        parent: this.container.querySelector(".tag-list"),
-    });
-    this.element_tags = this.container.querySelector(".tag-list");
-    this.element_comment = this.container.querySelector(".description");
+        this.wanted_illust_id = null;
+        this.wanted_illust_last_page = null;
 
-    this.container.addEventListener("wheel", this.onwheel);
-    window.addEventListener("keydown", this.onkeydown);
+        if(illust_id == this.current_illust_id)
+        {
+            console.log("Image ID not changed");
+            return;
+        }
 
-    // A bar showing how far along in an image sequence we are:
-    this.manga_page_bar = new progress_bar(this.container.querySelector(".ui-box")).controller();
-    this.progress_bar = new progress_bar(this.container.querySelector(".loading-progress-bar"));
-    this.seek_bar = new seek_bar(this.container.querySelector(".ugoira-seek-bar"));
+        // Speculatively load the next image, which is what we'll show if you press page down, so
+        // advancing through images is smoother.
+        //
+        // We don't do this when showing the first image, since the most common case is simply
+        // viewing a single image and not navigating to any others, so this avoids making
+        // speculative loads every time you load a single illustration.
+        if(!first_image_displayed)
+        {
+            // Let image_preloader handle speculative loading.  If preload_illust_id is null,
+            // we're telling it that we don't need to load anything.
+            var preload_illust_id = this.data_source.id_list.get_neighboring_illust_id(illust_id, this.latest_navigation_direction_down);
+            image_preloader.singleton.set_speculative_image(preload_illust_id);
+        }
 
-    helpers.add_clicks_to_search_history(document.body);
-    this.refresh_ui();
-    
-    // Load the initial state.
-    this.load_current_state();
-}
+        this.current_illust_id = illust_id;
+        this.current_illust_data = illust_data;
 
-main_ui.prototype.download_types = ["image", "ZIP", "MKV"];
+        this.refresh_ui();
 
-main_ui.prototype.window_onpopstate = function(e)
-{
-    // The URL changed, eg. because the user navigated, so load the new state.
-    console.log("History state changed");
-    this.load_current_state();
-}
+        var illust_data = this.current_illust_data;
+        
+        // If the image has the ドット絵 tag, enable nearest neighbor filtering.
+        helpers.set_class(document.body, "dot", helpers.tags_contain_dot(illust_data));
 
-main_ui.prototype.load_current_state = function()
-{
-    this.data_source.load_from_current_state(function() {
-        // Don't load the default image if the thumbnail view is enabled.
+        // Dismiss any message when changing images.
+        message_widget.singleton.hide();
+       
+        // If we're showing something else, remove it.
+        if(this.viewer != null)
+        {
+            this.viewer.shutdown();
+            this.viewer = null;
+        }
+
+        this.manga_page_bar.set(null);
+
+        var image_container = this.container.querySelector(".image-container");
+
+        // Check if this image is muted.
+        var muted_tag = main.any_tag_muted(illust_data.tags.tags);
+        var muted_user = main.is_muted_user_id(illust_data.userId);
+
+        if(muted_tag || muted_user)
+        {
+            // Tell the thumbnail view about the image.  If the image is muted, disable thumbs.
+            this.manga_thumbnails.set_illust_info(null);
+
+            // If the image is muted, load a dummy viewer.
+            this.viewer = new viewer_muted(image_container, illust_data);
+            return;
+        }
+     
+        // Tell the thumbnail view about the image.
+        this.manga_thumbnails.set_illust_info(illust_data);
+        this.manga_thumbnails.current_page_changed(want_last_page? (illust_data.pageCount-1):0);
+        this.manga_thumbnails.snap_transition();
+
+        // Create the image viewer.
+        var progress_bar = this.progress_bar.controller();
+        if(illust_data.illustType == 2)
+            this.viewer = new viewer_ugoira(image_container, illust_data, this.seek_bar, function(value) {
+                progress_bar.set(value);
+            }.bind(this));
+        else
+        {
+            this.viewer = new viewer_images(image_container, illust_data, {
+                page_changed: this.shown_page_changed,
+                progress_bar: progress_bar,
+                manga_page_bar: this.manga_page_bar,
+                show_last_image: want_last_page,
+            });
+        }
+    }
+
+    // This is called when the page of a multi-page illustration sequence changes.
+    shown_page_changed(page, total_pages, url)
+    {
+        this.cancel_async_navigation();
+
+        // Let the manga thumbnail display know about the selected page.
+        this.manga_thumbnails.current_page_changed(page);
+    }
+
+    data_source_updated()
+    {
+        this.refresh_ui();
+    }
+
+    // Refresh the UI for the current image.
+    refresh_ui()
+    {
+        // Don't refresh if the thumbnail view is active.  We're not visible, and we'll just
+        // step over its page title, etc.
         if(this.thumbnail_view.enabled)
             return;
-
-        // Show the default image.
-        var show_illust_id = this.data_source.get_default_illust_id();
-        console.log("Showing initial image", show_illust_id);
-        this.show_image(show_illust_id);
-    }.bind(this));
-
-    this.refresh_ui();
-}
-
-// This is called when the user clicks a thumbnail in the thumbnail view to display it.
-//
-// Normally when we go from one image to another, we leave the previous image viewer in
-// place until we have image data for the new image, so we don't flash a black screen.
-// That looks ugly when coming from the thumbnail list, since we show whatever previous
-// image was being viewed briefly.  Instead, remove the viewer immediately.
-main_ui.prototype.set_image_from_thumbnail = function(illust_id)
-{
-    this.stop_displaying_image();
-    
-    // Add this to history, since we want browser back to go back to the thumbnails.
-    this.show_image(illust_id, false, true /* do add to history */);
-}
-
-// Show an image.
-//
-// If the illustration has multiple pages and show_last_page is true, show the last page
-// instead of the first.  This is used when navigating backwards.
-//
-// If add_to_history is true, we're loading an image because the user navigated to it (eg.
-// pressing pgdn), so we should add it to history.  If it's false, we're loading it because
-// the history state was changed (eg. browser back), so we shouldn't add a new state.
-main_ui.prototype.show_image = function(illust_id, show_last_page, add_to_history)
-{
-    this.cancel_async_navigation();
-    
-    // Remember that this is the image we want to be displaying.
-    this.wanted_illust_id = illust_id;
-    this.wanted_illust_last_page = show_last_page;
-
-    // Tell the preloader about the current image.
-    image_preloader.singleton.set_current_image(illust_id);
-
-    // Update the address bar with the new image.
-    this.data_source.set_current_illust_id(illust_id, add_to_history);
-
-    // Load info for this image if needed.
-    image_data.singleton().get_image_info(illust_id, this.image_data_loaded);
-}
-
-// If we started navigating to a new image and were delayed to load data (either to load
-// the image or to load a new page), cancel it and stay where we are.
-main_ui.prototype.cancel_async_navigation = function()
-{
-    // If we previously set a pending navigation, this navigation overrides it.
-    this.pending_navigation = null;
-
-    // If show_image started loading a new image, unset it.  If add_to_history was
-    // true, we won't remove the history entry.
-    this.wanted_illust_id = this.current_illust_id;
-    if(this.current_illust_id != -1)
-        this.data_source.set_current_illust_id(this.current_illust_id, false);
-}
-
-
-// Stop displaying any image (and cancel any wanted navigation), putting us back
-// to where we were before displaying any images.
-//
-// This will also prevent the next image displayed from triggering speculative
-// loading, which we don't want to do when clicking an image in the thumbnail
-// view.
-main_ui.prototype.stop_displaying_image = function()
-{
-    if(this.viewer != null)
-    {
-        this.viewer.shutdown();
-        this.viewer = null;
-    }
-
-    this.manga_thumbnails.set_illust_info(null);
-    
-    this.wanted_illust_id = null;
-    this.wanted_illust_last_page = null;
-    this.current_illust_id = -1;
-    this.refresh_ui();
-}
-
-main_ui.prototype.image_data_loaded = function(illust_data)
-{
-    var illust_id = illust_data.illustId;
-
-    // If this isn't image data for the image we want to be showing, ignore it.
-    if(this.wanted_illust_id != illust_id)
-        return;
-
-    console.log("Showing image", illust_id);
-    
-    var want_last_page = this.wanted_illust_last_page;
-
-    // If true, this is the first image we're displaying.
-    var first_image_displayed = this.current_illust_id == -1;
-
-    this.wanted_illust_id = null;
-    this.wanted_illust_last_page = null;
-
-    if(illust_id == this.current_illust_id)
-    {
-        console.log("Image ID not changed");
-        return;
-    }
-
-    // Speculatively load the next image, which is what we'll show if you press page down, so
-    // advancing through images is smoother.
-    //
-    // We don't do this when showing the first image, since the most common case is simply
-    // viewing a single image and not navigating to any others, so this avoids making
-    // speculative loads every time you load a single illustration.
-    if(!first_image_displayed)
-    {
-        // Let image_preloader handle speculative loading.  If preload_illust_id is null,
-        // we're telling it that we don't need to load anything.
-        var preload_illust_id = this.data_source.id_list.get_neighboring_illust_id(illust_id, this.latest_navigation_direction_down);
-        image_preloader.singleton.set_speculative_image(preload_illust_id);
-    }
-
-    this.current_illust_id = illust_id;
-    this.current_illust_data = illust_data;
-
-    this.refresh_ui();
-
-    var illust_data = this.current_illust_data;
-    
-    // If the image has the ドット絵 tag, enable nearest neighbor filtering.
-    helpers.set_class(document.body, "dot", helpers.tags_contain_dot(illust_data));
-
-    // Dismiss any message when changing images.
-    message_widget.singleton.hide();
-   
-    // If we're showing something else, remove it.
-    if(this.viewer != null)
-    {
-        this.viewer.shutdown();
-        this.viewer = null;
-    }
-
-    this.manga_page_bar.set(null);
-
-    var image_container = this.container.querySelector(".image-container");
-
-    // Check if this image is muted.
-    var muted_tag = main.any_tag_muted(illust_data.tags.tags);
-    var muted_user = main.is_muted_user_id(illust_data.userId);
-
-    if(muted_tag || muted_user)
-    {
-        // Tell the thumbnail view about the image.  If the image is muted, disable thumbs.
-        this.manga_thumbnails.set_illust_info(null);
-
-        // If the image is muted, load a dummy viewer.
-        this.viewer = new viewer_muted(image_container, illust_data);
-        return;
-    }
- 
-    // Tell the thumbnail view about the image.
-    this.manga_thumbnails.set_illust_info(illust_data);
-    this.manga_thumbnails.current_page_changed(want_last_page? (illust_data.pageCount-1):0);
-    this.manga_thumbnails.snap_transition();
-
-    // Create the image viewer.
-    var progress_bar = this.progress_bar.controller();
-    if(illust_data.illustType == 2)
-        this.viewer = new viewer_ugoira(image_container, illust_data, this.seek_bar, function(value) {
-            progress_bar.set(value);
-        }.bind(this));
-    else
-    {
-        this.viewer = new viewer_images(image_container, illust_data, {
-            page_changed: this.shown_page_changed,
-            progress_bar: progress_bar,
-            manga_page_bar: this.manga_page_bar,
-            show_last_image: want_last_page,
-        });
-    }
-}
-
-// This is called when the page of a multi-page illustration sequence changes.
-main_ui.prototype.shown_page_changed = function(page, total_pages, url)
-{
-    this.cancel_async_navigation();
-
-    // Let the manga thumbnail display know about the selected page.
-    this.manga_thumbnails.current_page_changed(page);
-}
-
-main_ui.prototype.data_source_updated = function()
-{
-    this.refresh_ui();
-}
-
-// Refresh the UI for the current image.
-main_ui.prototype.refresh_ui = function()
-{
-    // Don't refresh if the thumbnail view is active.  We're not visible, and we'll just
-    // step over its page title, etc.
-    if(this.thumbnail_view.enabled)
-        return;
-    
-    // Pull out info about the user and illustration.
-    var illust_id = this.current_illust_id;
-
-    // Update the disable UI button to point at the current image's illustration page.
-    var disable_button = this.container.querySelector(".disable-ui-button");
-    disable_button.href = "/member_illust.php?mode=medium&illust_id=" + illust_id + "#no-ppixiv";
-
-    // If we're not showing an image yet, hide the UI and don't try to update it.
-    helpers.set_class(this.container.querySelector(".ui"), "disabled", illust_id == -1);
-    if(illust_id == -1)
-    {
-        helpers.set_page_title("Loading...");
-        return;
-    }
-
-    var illust_data = this.current_illust_data;
-    var user_data = illust_data.userInfo;
-
-    var page_title = "";
-    if(illust_data.bookmarkData)
-        page_title += "★";
-    page_title += user_data.name + " - " + illust_data.illustTitle;
-    helpers.set_page_title(page_title);
-
-    helpers.set_page_icon(user_data.isFollowed? binary_data['favorited_icon.png']:binary_data['regular_pixiv_icon.png']);
-
-    // Show the author if it's someone else's post, or the edit link if it's ours.
-    var our_post = global_data.user_id == user_data.userId;
-    this.container.querySelector(".author-block").hidden = our_post;
-    this.container.querySelector(".edit-post").hidden = !our_post;
-    this.container.querySelector(".edit-post").href = "/member_illust_mod.php?mode=mod&illust_id=" + illust_id;
-
-    this.avatar_widget.set_from_user_data(user_data);
-
-    // Set the popup for the thumbnails button based on the label of the data source.
-    this.container.querySelector(".show-thumbnails-button").dataset.popup = this.data_source.get_displaying_text();
-
-    this.element_author.textContent = user_data.name;
-    this.element_author.href = "/member_illust.php?id=" + user_data.userId;
-
-    this.container.querySelector(".similar-illusts-button").href = "/bookmark_detail.php?illust_id=" + illust_id + "#ppixiv";
-
-    this.element_title.textContent = illust_data.illustTitle;
-    this.element_title.href = "/member_illust.php?mode=medium&illust_id=" + illust_id;
-
-    // Fill in the post info text.
-    var set_info = function(query, text)
-    {
-        var node = this.container.querySelector(query);
-        node.innerText = text;
-        node.hidden = text == "";
-    }.bind(this);
-
-    var seconds_old = (new Date() - new Date(illust_data.createDate)) / 1000;
-    set_info(".post-info > .post-age", helpers.age_to_string(seconds_old) + " ago");
-
-    var info = "";
-    if(illust_data.illustType != 2 && illust_data.pageCount == 1)
-    {
-        // Add the resolution and file type for single images.
-        var ext = helpers.get_extension(illust_data.urls.original).toUpperCase();
-        info += illust_data.width + "x" + illust_data.height + " " + ext;
-    }
-    set_info(".post-info > .image-info", info);
-
-    var duration = "";
-    if(illust_data.illustType == 2)
-    {
-        var seconds = 0;
-        for(var frame of illust_data.ugoiraMetadata.frames)
-            seconds += frame.delay / 1000;
-
-        var duration = seconds.toFixed(duration >= 10? 0:1);
-        duration += seconds == 1? " second":" seconds";
-    }
-    set_info(".post-info > .ugoira-duration", duration);
-    set_info(".post-info > .ugoira-frames", illust_data.illustType == 2? (illust_data.ugoiraMetadata.frames.length + " frames"):"");
-
-    // Add the page count for manga.
-    set_info(".post-info > .page-count", illust_data.pageCount == 1? "":(illust_data.pageCount + " pages"));
-
-    // The comment (description) can contain HTML.
-    this.element_comment.hidden = illust_data.illustComment == "";
-    this.element_comment.innerHTML = illust_data.illustComment;
-    helpers.fix_pixiv_links(this.element_comment);
-
-    // Set the download button popup text.
-    var download_type = this.get_download_type_for_image();
-    var download_button = this.container.querySelector(".download-button");
-    download_button.hidden = download_type == null;
-    if(download_type != null)
-        download_button.dataset.popup = "Download " + download_type;
-
-    helpers.set_class(document.body, "bookmarked", illust_data.bookmarkData);
-
-    helpers.set_class(this.element_bookmarked, "bookmarked-public", illust_data.bookmarkData && !illust_data.bookmarkData.private);
-    helpers.set_class(this.element_bookmarked, "bookmarked-private", illust_data.bookmarkData && illust_data.bookmarkData.private);
-    helpers.set_class(this.element_liked, "liked", illust_data.likeData);
-    this.element_liked.dataset.popup = illust_data.likeCount + " likes";
-    this.element_bookmarked.querySelector(".popup").dataset.popup = illust_data.bookmarkCount + " bookmarks";
-
-    this.tag_widget.set(illust_data.tags);
-
-    this.refresh_bookmark_tag_list();
-}
-
-main_ui.prototype.is_download_type_available = function(download_type)
-{
-    var illust_data = this.current_illust_data;
-    
-    // Single image downloading only works for single images.
-    if(download_type == "image")
-        return illust_data.illustType != 2 && illust_data.pageCount == 1;
-
-    // ZIP downloading only makes sense for image sequences.
-    if(download_type == "ZIP")
-        return illust_data.illustType != 2 && illust_data.pageCount > 1;
-
-    // MJPEG only makes sense for videos.
-    if(download_type == "MKV")
-    {
-        if(illust_data.illustType != 2)
-            return false;
-
-        // All of these seem to be JPEGs, but if any are PNG, disable MJPEG exporting.
-        // We could encode to JPEG, but if there are PNGs we should probably add support
-        // for APNG.
-        if(illust_data.ugoiraMetadata.mime_type != "image/jpeg")
-            return false;
-
-        return true;
-    }
-    throw "Unknown download type " + download_type;
-};
-
-main_ui.prototype.get_download_type_for_image = function()
-{
-    for(var i = 0; i < this.download_types.length; ++i)
-    {
-        var type = this.download_types[i];
-        if(this.is_download_type_available(type))
-            return type;
-    }
-
-    return null;
-}
-
-main_ui.prototype.onwheel = function(e)
-{
-    // Don't intercept wheel scrolling over the description box.
-    if(e.target == this.element_comment)
-        return;
-
-    var down = e.deltaY > 0;
-    this.move(down);
-}
-
-main_ui.prototype.onkeydown = function(e)
-{
-    if(e.keyCode == 27) // escape
-    {
-        e.preventDefault();
-        e.stopPropagation();
-
-        this.toggle_thumbnail_view();
-
-        return;
-    }
-
-    // Don't handle image viewer shortcuts when the thumbnail view is open on top of it.
-    if(this.thumbnail_view.enabled)
-        return;
-    
-    // Let the viewer handle the input first.
-    if(this.viewer && this.viewer.onkeydown)
-    {
-        this.viewer.onkeydown(e);
-        if(e.defaultPrevented)
-            return;
-    }
-
-    if(e.keyCode == 66) // b
-    {
-        // b to bookmark publically, B to bookmark privately, ^B to remove a bookmark.
-        //
-        // Use a separate hotkey to remove bookmarks, rather than toggling like the bookmark
-        // button does, so you don't have to check whether an image is bookmarked.  You can
-        // just press B to bookmark without worrying about accidentally removing a bookmark
-        // instead.
-        e.stopPropagation();
-        e.preventDefault();
-
+        
+        // Pull out info about the user and illustration.
         var illust_id = this.current_illust_id;
-        var illust_data = this.current_illust_data;
 
-        if(e.ctrlKey)
+        // Update the disable UI button to point at the current image's illustration page.
+        var disable_button = this.container.querySelector(".disable-ui-button");
+        disable_button.href = "/member_illust.php?mode=medium&illust_id=" + illust_id + "#no-ppixiv";
+
+        // If we're not showing an image yet, hide the UI and don't try to update it.
+        helpers.set_class(this.container.querySelector(".ui"), "disabled", illust_id == -1);
+        if(illust_id == -1)
         {
-            // Remove the bookmark.
-            if(illust_data.bookmarkData == null)
+            helpers.set_page_title("Loading...");
+            return;
+        }
+
+        var illust_data = this.current_illust_data;
+        var user_data = illust_data.userInfo;
+
+        var page_title = "";
+        if(illust_data.bookmarkData)
+            page_title += "★";
+        page_title += user_data.name + " - " + illust_data.illustTitle;
+        helpers.set_page_title(page_title);
+
+        helpers.set_page_icon(user_data.isFollowed? binary_data['favorited_icon.png']:binary_data['regular_pixiv_icon.png']);
+
+        // Show the author if it's someone else's post, or the edit link if it's ours.
+        var our_post = global_data.user_id == user_data.userId;
+        this.container.querySelector(".author-block").hidden = our_post;
+        this.container.querySelector(".edit-post").hidden = !our_post;
+        this.container.querySelector(".edit-post").href = "/member_illust_mod.php?mode=mod&illust_id=" + illust_id;
+
+        this.avatar_widget.set_from_user_data(user_data);
+
+        // Set the popup for the thumbnails button based on the label of the data source.
+        this.container.querySelector(".show-thumbnails-button").dataset.popup = this.data_source.get_displaying_text();
+
+        this.element_author.textContent = user_data.name;
+        this.element_author.href = "/member_illust.php?id=" + user_data.userId;
+
+        this.container.querySelector(".similar-illusts-button").href = "/bookmark_detail.php?illust_id=" + illust_id + "#ppixiv";
+
+        this.element_title.textContent = illust_data.illustTitle;
+        this.element_title.href = "/member_illust.php?mode=medium&illust_id=" + illust_id;
+
+        // Fill in the post info text.
+        var set_info = function(query, text)
+        {
+            var node = this.container.querySelector(query);
+            node.innerText = text;
+            node.hidden = text == "";
+        }.bind(this);
+
+        var seconds_old = (new Date() - new Date(illust_data.createDate)) / 1000;
+        set_info(".post-info > .post-age", helpers.age_to_string(seconds_old) + " ago");
+
+        var info = "";
+        if(illust_data.illustType != 2 && illust_data.pageCount == 1)
+        {
+            // Add the resolution and file type for single images.
+            var ext = helpers.get_extension(illust_data.urls.original).toUpperCase();
+            info += illust_data.width + "x" + illust_data.height + " " + ext;
+        }
+        set_info(".post-info > .image-info", info);
+
+        var duration = "";
+        if(illust_data.illustType == 2)
+        {
+            var seconds = 0;
+            for(var frame of illust_data.ugoiraMetadata.frames)
+                seconds += frame.delay / 1000;
+
+            var duration = seconds.toFixed(duration >= 10? 0:1);
+            duration += seconds == 1? " second":" seconds";
+        }
+        set_info(".post-info > .ugoira-duration", duration);
+        set_info(".post-info > .ugoira-frames", illust_data.illustType == 2? (illust_data.ugoiraMetadata.frames.length + " frames"):"");
+
+        // Add the page count for manga.
+        set_info(".post-info > .page-count", illust_data.pageCount == 1? "":(illust_data.pageCount + " pages"));
+
+        // The comment (description) can contain HTML.
+        this.element_comment.hidden = illust_data.illustComment == "";
+        this.element_comment.innerHTML = illust_data.illustComment;
+        helpers.fix_pixiv_links(this.element_comment);
+
+        // Set the download button popup text.
+        var download_type = this.get_download_type_for_image();
+        var download_button = this.container.querySelector(".download-button");
+        download_button.hidden = download_type == null;
+        if(download_type != null)
+            download_button.dataset.popup = "Download " + download_type;
+
+        helpers.set_class(document.body, "bookmarked", illust_data.bookmarkData);
+
+        helpers.set_class(this.element_bookmarked, "bookmarked-public", illust_data.bookmarkData && !illust_data.bookmarkData.private);
+        helpers.set_class(this.element_bookmarked, "bookmarked-private", illust_data.bookmarkData && illust_data.bookmarkData.private);
+        helpers.set_class(this.element_liked, "liked", illust_data.likeData);
+        this.element_liked.dataset.popup = illust_data.likeCount + " likes";
+        this.element_bookmarked.querySelector(".popup").dataset.popup = illust_data.bookmarkCount + " bookmarks";
+
+        this.tag_widget.set(illust_data.tags);
+
+        this.refresh_bookmark_tag_list();
+    }
+
+    is_download_type_available(download_type)
+    {
+        var illust_data = this.current_illust_data;
+        
+        // Single image downloading only works for single images.
+        if(download_type == "image")
+            return illust_data.illustType != 2 && illust_data.pageCount == 1;
+
+        // ZIP downloading only makes sense for image sequences.
+        if(download_type == "ZIP")
+            return illust_data.illustType != 2 && illust_data.pageCount > 1;
+
+        // MJPEG only makes sense for videos.
+        if(download_type == "MKV")
+        {
+            if(illust_data.illustType != 2)
+                return false;
+
+            // All of these seem to be JPEGs, but if any are PNG, disable MJPEG exporting.
+            // We could encode to JPEG, but if there are PNGs we should probably add support
+            // for APNG.
+            if(illust_data.ugoiraMetadata.mime_type != "image/jpeg")
+                return false;
+
+            return true;
+        }
+        throw "Unknown download type " + download_type;
+    };
+
+    get_download_type_for_image()
+    {
+        var download_types = ["image", "ZIP", "MKV"];
+        for(var type of download_types)
+            if(this.is_download_type_available(type))
+                return type;
+
+        return null;
+    }
+
+    onwheel(e)
+    {
+        // Don't intercept wheel scrolling over the description box.
+        if(e.target == this.element_comment)
+            return;
+
+        var down = e.deltaY > 0;
+        this.move(down);
+    }
+
+    onkeydown(e)
+    {
+        if(e.keyCode == 27) // escape
+        {
+            e.preventDefault();
+            e.stopPropagation();
+
+            this.toggle_thumbnail_view();
+
+            return;
+        }
+
+        // Don't handle image viewer shortcuts when the thumbnail view is open on top of it.
+        if(this.thumbnail_view.enabled)
+            return;
+        
+        // Let the viewer handle the input first.
+        if(this.viewer && this.viewer.onkeydown)
+        {
+            this.viewer.onkeydown(e);
+            if(e.defaultPrevented)
+                return;
+        }
+
+        if(e.keyCode == 66) // b
+        {
+            // b to bookmark publically, B to bookmark privately, ^B to remove a bookmark.
+            //
+            // Use a separate hotkey to remove bookmarks, rather than toggling like the bookmark
+            // button does, so you don't have to check whether an image is bookmarked.  You can
+            // just press B to bookmark without worrying about accidentally removing a bookmark
+            // instead.
+            e.stopPropagation();
+            e.preventDefault();
+
+            var illust_id = this.current_illust_id;
+            var illust_data = this.current_illust_data;
+
+            if(e.ctrlKey)
             {
-                message_widget.singleton.show("Image isn't bookmarked");
+                // Remove the bookmark.
+                if(illust_data.bookmarkData == null)
+                {
+                    message_widget.singleton.show("Image isn't bookmarked");
+                    return;
+                }
+
+                this.bookmark_remove();
                 return;
             }
 
+            if(illust_data.bookmarkData)
+            {
+                message_widget.singleton.show("Already bookmarked (^B to remove bookmark)");
+                return;
+            }
+            
+            this.bookmark_add(e.shiftKey);
+            return;
+        }
+
+        if(e.keyCode == 70) // f
+        {
+            // f to follow publically, F to follow privately, ^F to unfollow.
+            e.stopPropagation();
+            e.preventDefault();
+
+            var illust_data = this.current_illust_data;
+            if(illust_data == null)
+                return;
+
+            var user_data = illust_data.userInfo.isFollowed;
+            if(e.ctrlKey)
+            {
+                // Remove the bookmark.
+                if(!illust_data.userInfo.isFollowed)
+                {
+                    message_widget.singleton.show("Not following this user");
+                    return;
+                }
+
+                this.avatar_widget.unfollow();
+                return;
+            }
+
+            if(illust_data.userInfo.isFollowed)
+            {
+                message_widget.singleton.show("Already following (^F to unfollow)");
+                return;
+            }
+            
+            this.avatar_widget.follow(e.shiftKey);
+            return;
+        }
+        
+        if(e.ctrlKey || e.altKey)
+            return;
+
+        switch(e.keyCode)
+        {
+        case 86: // l
+            e.stopPropagation();
+            this.clicked_like(e);
+            return;
+
+        case 37: // left
+        case 38: // up
+        case 33: // pgup
+            e.preventDefault();
+            e.stopPropagation();
+
+            this.move(false);
+            break;
+
+        case 39: // right
+        case 40: // down
+        case 34: // pgdn
+            e.preventDefault();
+            e.stopPropagation();
+
+            this.move(true);
+            break;
+        }
+    }
+
+    toggle_thumbnail_view()
+    {
+        this.thumbnail_view.set_enabled(!this.thumbnail_view.enabled, true);
+
+        // Scroll to the current illustration.
+        if(this.current_illust_id != -1 && this.thumbnail_view.enabled)
+            this.thumbnail_view.scroll_to_illust_id(this.current_illust_id);
+
+        // If we started in the thumbnail view, we didn't load any image, so make sure we
+        // display something now.
+        if(!this.thumbnail_view.enabled)
+            this.load_current_state();
+
+        // If we're enabling the thumbnail, pulse the image that was just being viewed (or
+        // loading to be viewed), to
+        // make it easier to find your place.
+        if(this.thumbnail_view.enabled)
+        {
+            if(this.current_illust_id != -1)
+                this.thumbnail_view.pulse_thumbnail(this.current_illust_id);
+            else if(this.wanted_illust_id != -1)
+                this.thumbnail_view.pulse_thumbnail(this.wanted_illust_id);
+        }
+    }
+
+    move(down)
+    {
+        // Remember whether we're navigating forwards or backwards, for preloading.
+        this.latest_navigation_direction_down = down;
+
+        this.cancel_async_navigation();
+
+        // Let the viewer handle the input first.
+        if(this.viewer && this.viewer.move)
+        {
+            if(this.viewer.move(down))
+                return;
+        }
+
+        // Get the next (or previous) illustration after the current one.
+        var new_illust_id = this.data_source.id_list.get_neighboring_illust_id(this.current_illust_id, down);
+        if(new_illust_id == null)
+        {
+            // That page isn't loaded.  Try to load it.
+            var next_page = this.data_source.id_list.get_page_for_neighboring_illust(this.current_illust_id, down);
+
+            // If we can't find the next page, then the current image isn't actually loaded in
+            // the current search results.  This can happen if the page is reloaded: we'll show
+            // the previous image, but we won't have the results loaded (and the results may have
+            // changed).  Just jump to the first image in the results so we get back to a place
+            // we can navigate from.
+            //
+            // Note that we use id_list.get_first_id rather than get_default_illust_id, which is
+            // just the image we're already on.
+            if(next_page == null)
+            {
+                // We should normally know which page the illustration we're currently viewing is on.
+                console.warn("Don't know the next page for illust", this.current_illust_id);
+                new_illust_id = this.data_source.id_list.get_first_id();
+                this.show_image(new_illust_id, false, false /* don't add to history */);
+                return true;
+            }
+
+            console.log("Loading the next page of results:", next_page);
+
+            // The page shouldn't already be loaded.  Double-check to help prevent bugs that might
+            // spam the server requesting the same page over and over.
+            if(this.data_source.id_list.is_page_loaded(next_page))
+            {
+                console.error("Page", next_page, "is already loaded");
+                return;
+            }
+
+            // Ask the data source to load it.
+            var pending_navigation = function()
+            {
+                // If this.pending_navigation is no longer set to this function, we navigated since
+                // we requested this load and this navigation is stale, so stop.
+                if(this.pending_navigation != pending_navigation)
+                {
+                    console.log("Aborting stale navigation");
+                    return;
+                }
+
+                this.pending_navigation = null;
+
+                // If we do have an image displayed, navigate up or down based on our most recent navigation
+                // direction.  This simply retries the navigation now that we have data.
+                console.log("Retrying navigation after data load");
+                this.move(down);
+
+            }.bind(this);
+            this.pending_navigation = pending_navigation;
+
+            if(!this.data_source.load_page(next_page, this.pending_navigation))
+            {
+                console.log("Reached the end of the list");
+                return false;
+            }
+
+            return true;
+        }
+
+        // Show the new image.  If we're navigating up and there are multiple pages, show
+        // the last page instead of the first.
+        //
+        // We could add to history here, but we don't since it ends up creating way too
+        // many history states.
+        var show_last_page = !down;
+        this.show_image(new_illust_id, show_last_page, false /* don't add to history */);
+        return true;
+    }
+
+    clicked_download(e)
+    {
+        var clicked_button = e.target.closest(".download-button");
+        if(clicked_button == null)
+            return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        var illust_data = this.current_illust_data;
+
+        var download_type = this.get_download_type_for_image();
+        if(download_type == null)
+        {
+            console.error("No download types are available");
+            retunr;
+        }
+
+        console.log("Download", this.current_illust_id, "with type", download_type);
+
+        if(download_type == "MKV")
+        {
+            new ugoira_downloader_mjpeg(illust_data, this.progress_bar.controller());
+            return;
+        }
+
+        if(download_type != "image" && download_type != "ZIP")
+        {
+            console.error("Unknown download type " + download_type);
+            return;
+        }
+
+        // Download all images.
+        var images = [];
+        for(var page = 0; page < illust_data.pageCount; ++page)
+            images.push(helpers.get_url_for_page(illust_data, page, "original"));
+
+        var user_data = illust_data.userInfo;
+        helpers.download_urls(images, function(results) {
+            // If there's just one image, save it directly.
+            if(images.length == 1)
+            {
+                var url = images[0];
+                var buf = results[0];
+                var blob = new Blob([results[0]]);
+                var ext = helpers.get_extension(url);
+                var filename = user_data.name + " - " + illust_data.illustId + " - " + illust_data.illustTitle + "." + ext;
+                helpers.save_blob(blob, filename);
+                return;
+            }
+
+            // There are multiple images, and since browsers are stuck in their own little world, there's
+            // still no way in 2018 to save a batch of files to disk, so ZIP the images.
+            console.log(results);
+       
+            var filenames = [];
+            for(var i = 0; i < images.length; ++i)
+            {
+                var url = images[i];
+                var blob = results[i];
+
+                var ext = helpers.get_extension(url);
+                var filename = i.toString().padStart(3, '0') + "." + ext;
+                filenames.push(filename);
+            }
+
+            // Create the ZIP.
+            var zip = new create_zip(filenames, results);
+            var filename = user_data.name + " - " + illust_data.illustId + " - " + illust_data.illustTitle + ".zip";
+            helpers.save_blob(zip, filename);
+        }.bind(this));
+        return;
+    }
+
+    clicked_bookmark(private_bookmark, e)
+    {
+        e.preventDefault();
+        e.stopPropagation();
+
+        var illust_id = this.current_illust_id;
+        var illust_data = this.current_illust_data;
+        if(illust_data.bookmarkData)
+        {
+            // The illustration is already bookmarked, so remove the bookmark.
             this.bookmark_remove();
             return;
         }
 
-        if(illust_data.bookmarkData)
-        {
-            message_widget.singleton.show("Already bookmarked (^B to remove bookmark)");
-            return;
-        }
-        
-        this.bookmark_add(e.shiftKey);
-        return;
+        // Add a new bookmark.
+        this.bookmark_add(private_bookmark);
     }
 
-    if(e.keyCode == 70) // f
+    bookmark_add(private_bookmark)
     {
-        // f to follow publically, F to follow privately, ^F to unfollow.
-        e.stopPropagation();
-        e.preventDefault();
-
+        var illust_id = this.current_illust_id;
         var illust_data = this.current_illust_data;
-        if(illust_data == null)
-            return;
 
-        var user_data = illust_data.userInfo.isFollowed;
-        if(e.ctrlKey)
-        {
-            // Remove the bookmark.
-            if(!illust_data.userInfo.isFollowed)
-            {
-                message_widget.singleton.show("Not following this user");
+        var input_list = this.element_bookmarked.querySelector(".bookmark-tag-list");
+        var tags = this.element_bookmark_tag_list.value;
+        var tag_list = tags == ""? []:tags.split(" ");
+
+        helpers.update_recent_bookmark_tags(tag_list);
+
+        helpers.post_request("/ajax/illusts/bookmarks/add", {
+            "illust_id": illust_id,
+            "tags": tag_list,
+            "comment": "",
+            "restrict": private_bookmark? 1:0,
+        }, function(result) {
+            if(result == null || result.error)
                 return;
-            }
 
-            this.avatar_widget.unfollow();
-            return;
-        }
+            // Clear the tag list after saving a bookmark.  Otherwise, it's too easy to set a tag for one
+            // image, then forget to unset it later.
+            this.element_bookmark_tag_list.value = null;
 
-        if(illust_data.userInfo.isFollowed)
-        {
-            message_widget.singleton.show("Already following (^F to unfollow)");
-            return;
-        }
-        
-        this.avatar_widget.follow(e.shiftKey);
-        return;
-    }
-    
-    if(e.ctrlKey || e.altKey)
-        return;
+            // last_bookmark_id seems to be the ID of the new bookmark.  We need to store this correctly
+            // so the unbookmark button works.
+            console.log("New bookmark id:", result.body.last_bookmark_id, illust_id);
 
-    switch(e.keyCode)
-    {
-    case 86: // l
-        e.stopPropagation();
-        this.clicked_like(e);
-        return;
-
-    case 37: // left
-    case 38: // up
-    case 33: // pgup
-        e.preventDefault();
-        e.stopPropagation();
-
-        this.move(false);
-        break;
-
-    case 39: // right
-    case 40: // down
-    case 34: // pgdn
-        e.preventDefault();
-        e.stopPropagation();
-
-        this.move(true);
-        break;
-    }
-}
-
-main_ui.prototype.toggle_thumbnail_view = function()
-{
-    this.thumbnail_view.set_enabled(!this.thumbnail_view.enabled, true);
-
-    // Scroll to the current illustration.
-    if(this.current_illust_id != -1 && this.thumbnail_view.enabled)
-        this.thumbnail_view.scroll_to_illust_id(this.current_illust_id);
-
-    // If we started in the thumbnail view, we didn't load any image, so make sure we
-    // display something now.
-    if(!this.thumbnail_view.enabled)
-        this.load_current_state();
-
-    // If we're enabling the thumbnail, pulse the image that was just being viewed (or
-    // loading to be viewed), to
-    // make it easier to find your place.
-    if(this.thumbnail_view.enabled)
-    {
-        if(this.current_illust_id != -1)
-            this.thumbnail_view.pulse_thumbnail(this.current_illust_id);
-        else if(this.wanted_illust_id != -1)
-            this.thumbnail_view.pulse_thumbnail(this.wanted_illust_id);
-    }
-}
-
-main_ui.prototype.move = function(down)
-{
-    // Remember whether we're navigating forwards or backwards, for preloading.
-    this.latest_navigation_direction_down = down;
-
-    this.cancel_async_navigation();
-
-    // Let the viewer handle the input first.
-    if(this.viewer && this.viewer.move)
-    {
-        if(this.viewer.move(down))
-            return;
-    }
-
-    // Get the next (or previous) illustration after the current one.
-    var new_illust_id = this.data_source.id_list.get_neighboring_illust_id(this.current_illust_id, down);
-    if(new_illust_id == null)
-    {
-        // That page isn't loaded.  Try to load it.
-        var next_page = this.data_source.id_list.get_page_for_neighboring_illust(this.current_illust_id, down);
-
-        // If we can't find the next page, then the current image isn't actually loaded in
-        // the current search results.  This can happen if the page is reloaded: we'll show
-        // the previous image, but we won't have the results loaded (and the results may have
-        // changed).  Just jump to the first image in the results so we get back to a place
-        // we can navigate from.
-        //
-        // Note that we use id_list.get_first_id rather than get_default_illust_id, which is
-        // just the image we're already on.
-        if(next_page == null)
-        {
-            // We should normally know which page the illustration we're currently viewing is on.
-            console.warn("Don't know the next page for illust", this.current_illust_id);
-            new_illust_id = this.data_source.id_list.get_first_id();
-            this.show_image(new_illust_id, false, false /* don't add to history */);
-            return true;
-        }
-
-        console.log("Loading the next page of results:", next_page);
-
-        // The page shouldn't already be loaded.  Double-check to help prevent bugs that might
-        // spam the server requesting the same page over and over.
-        if(this.data_source.id_list.is_page_loaded(next_page))
-        {
-            console.error("Page", next_page, "is already loaded");
-            return;
-        }
-
-        // Ask the data source to load it.
-        var pending_navigation = function()
-        {
-            // If this.pending_navigation is no longer set to this function, we navigated since
-            // we requested this load and this navigation is stale, so stop.
-            if(this.pending_navigation != pending_navigation)
-            {
-                console.log("Aborting stale navigation");
-                return;
-            }
-
-            this.pending_navigation = null;
-
-            // If we do have an image displayed, navigate up or down based on our most recent navigation
-            // direction.  This simply retries the navigation now that we have data.
-            console.log("Retrying navigation after data load");
-            this.move(down);
-
-        }.bind(this);
-        this.pending_navigation = pending_navigation;
-
-        if(!this.data_source.load_page(next_page, this.pending_navigation))
-        {
-            console.log("Reached the end of the list");
-            return false;
-        }
-
-        return true;
-    }
-
-    // Show the new image.  If we're navigating up and there are multiple pages, show
-    // the last page instead of the first.
-    //
-    // We could add to history here, but we don't since it ends up creating way too
-    // many history states.
-    var show_last_page = !down;
-    this.show_image(new_illust_id, show_last_page, false /* don't add to history */);
-    return true;
-}
-
-main_ui.prototype.clicked_download = function(e)
-{
-    var clicked_button = e.target.closest(".download-button");
-    if(clicked_button == null)
-        return;
-
-    e.preventDefault();
-    e.stopPropagation();
-
-    var illust_data = this.current_illust_data;
-
-    var download_type = this.get_download_type_for_image();
-    if(download_type == null)
-    {
-        console.error("No download types are available");
-        retunr;
-    }
-
-    console.log("Download", this.current_illust_id, "with type", download_type);
-
-    if(download_type == "MKV")
-    {
-        new ugoira_downloader_mjpeg(illust_data, this.progress_bar.controller());
-        return;
-    }
-
-    if(download_type != "image" && download_type != "ZIP")
-    {
-        console.error("Unknown download type " + download_type);
-        return;
-    }
-
-    // Download all images.
-    var images = [];
-    for(var page = 0; page < illust_data.pageCount; ++page)
-        images.push(helpers.get_url_for_page(illust_data, page, "original"));
-
-    var user_data = illust_data.userInfo;
-    helpers.download_urls(images, function(results) {
-        // If there's just one image, save it directly.
-        if(images.length == 1)
-        {
-            var url = images[0];
-            var buf = results[0];
-            var blob = new Blob([results[0]]);
-            var ext = helpers.get_extension(url);
-            var filename = user_data.name + " - " + illust_data.illustId + " - " + illust_data.illustTitle + "." + ext;
-            helpers.save_blob(blob, filename);
-            return;
-        }
-
-        // There are multiple images, and since browsers are stuck in their own little world, there's
-        // still no way in 2018 to save a batch of files to disk, so ZIP the images.
-        console.log(results);
-   
-        var filenames = [];
-        for(var i = 0; i < images.length; ++i)
-        {
-            var url = images[i];
-            var blob = results[i];
-
-            var ext = helpers.get_extension(url);
-            var filename = i.toString().padStart(3, '0') + "." + ext;
-            filenames.push(filename);
-        }
-
-        // Create the ZIP.
-        var zip = new create_zip(filenames, results);
-        var filename = user_data.name + " - " + illust_data.illustId + " - " + illust_data.illustTitle + ".zip";
-        helpers.save_blob(zip, filename);
-    }.bind(this));
-    return;
-}
-
-main_ui.prototype.clicked_bookmark = function(private_bookmark, e)
-{
-    e.preventDefault();
-    e.stopPropagation();
-
-    var illust_id = this.current_illust_id;
-    var illust_data = this.current_illust_data;
-    if(illust_data.bookmarkData)
-    {
-        // The illustration is already bookmarked, so remove the bookmark.
-        this.bookmark_remove();
-        return;
-    }
-
-    // Add a new bookmark.
-    this.bookmark_add(private_bookmark);
-}
-
-main_ui.prototype.bookmark_add = function(private_bookmark)
-{
-    var illust_id = this.current_illust_id;
-    var illust_data = this.current_illust_data;
-
-    var input_list = this.element_bookmarked.querySelector(".bookmark-tag-list");
-    var tags = this.element_bookmark_tag_list.value;
-    var tag_list = tags == ""? []:tags.split(" ");
-
-    helpers.update_recent_bookmark_tags(tag_list);
-
-    helpers.post_request("/ajax/illusts/bookmarks/add", {
-        "illust_id": illust_id,
-        "tags": tag_list,
-        "comment": "",
-        "restrict": private_bookmark? 1:0,
-    }, function(result) {
-        if(result == null || result.error)
-            return;
-
-        // Clear the tag list after saving a bookmark.  Otherwise, it's too easy to set a tag for one
-        // image, then forget to unset it later.
-        this.element_bookmark_tag_list.value = null;
-
-        // last_bookmark_id seems to be the ID of the new bookmark.  We need to store this correctly
-        // so the unbookmark button works.
-        console.log("New bookmark id:", result.body.last_bookmark_id, illust_id);
-
-        illust_data.bookmarkData = {
-            "id": result.body.last_bookmark_id,
-            "private": private_bookmark,
-        }
-
-        illust_data.bookmarkCount++;
-
-        // Thumbnail info also records whether an image is bookmarked.  Update this illust's
-        // thumbnail info if it's loaded.
-        var thumbnail_info = thumbnail_data.singleton().get_one_thumbnail_info(illust_id);
-        if(thumbnail_info != null)
-        {
-            thumbnail_info.bookmarkData = {
+            illust_data.bookmarkData = {
                 "id": result.body.last_bookmark_id,
                 "private": private_bookmark,
             }
 
-            // Tell the thumbnail to refresh the thumbnail bookmark icon if this post is displayed.
-            this.thumbnail_view.refresh_thumbnail(illust_id);
-        }
-        
-        // Refresh the UI if we're still on the same post.
-        if(this.current_illust_id == illust_id)
-            this.refresh_ui();
+            illust_data.bookmarkCount++;
 
-        message_widget.singleton.show(private_bookmark? "Bookmarked privately":"Bookmarked");
-    }.bind(this));
-}
+            // Thumbnail info also records whether an image is bookmarked.  Update this illust's
+            // thumbnail info if it's loaded.
+            var thumbnail_info = thumbnail_data.singleton().get_one_thumbnail_info(illust_id);
+            if(thumbnail_info != null)
+            {
+                thumbnail_info.bookmarkData = {
+                    "id": result.body.last_bookmark_id,
+                    "private": private_bookmark,
+                }
 
-main_ui.prototype.bookmark_remove = function()
-{
-    var illust_id = this.current_illust_id;
-    var illust_data = this.current_illust_data;
-    var bookmark_id = illust_data.bookmarkData.id;
-    console.log("Remove bookmark", bookmark_id);
+                // Tell the thumbnail to refresh the thumbnail bookmark icon if this post is displayed.
+                this.thumbnail_view.refresh_thumbnail(illust_id);
+            }
+            
+            // Refresh the UI if we're still on the same post.
+            if(this.current_illust_id == illust_id)
+                this.refresh_ui();
 
-    helpers.rpc_post_request("/rpc/index.php", {
-        mode: "delete_illust_bookmark",
-        bookmark_id: bookmark_id,
-    }, function(result) {
-        if(result == null || result.error)
-            return;
+            message_widget.singleton.show(private_bookmark? "Bookmarked privately":"Bookmarked");
+        }.bind(this));
+    }
 
-        console.log("Removing bookmark finished");
-        illust_data.bookmarkData = false;
-        illust_data.bookmarkCount--;
+    bookmark_remove()
+    {
+        var illust_id = this.current_illust_id;
+        var illust_data = this.current_illust_data;
+        var bookmark_id = illust_data.bookmarkData.id;
+        console.log("Remove bookmark", bookmark_id);
 
-        var thumbnail_info = thumbnail_data.singleton().get_one_thumbnail_info(illust_id);
-        if(thumbnail_info != null)
+        helpers.rpc_post_request("/rpc/index.php", {
+            mode: "delete_illust_bookmark",
+            bookmark_id: bookmark_id,
+        }, function(result) {
+            if(result == null || result.error)
+                return;
+
+            console.log("Removing bookmark finished");
+            illust_data.bookmarkData = false;
+            illust_data.bookmarkCount--;
+
+            var thumbnail_info = thumbnail_data.singleton().get_one_thumbnail_info(illust_id);
+            if(thumbnail_info != null)
+            {
+                thumbnail_info.bookmarkData = null;
+
+                // Tell the thumbnail to refresh the thumbnail bookmark icon if this post is displayed.
+                this.thumbnail_view.refresh_thumbnail(illust_id);
+            }
+             
+            message_widget.singleton.show("Bookmark removed");
+
+            // Refresh the UI if we're still on the same post.
+            if(this.current_illust_id == illust_id)
+                this.refresh_ui();
+        }.bind(this));
+    }
+
+    // Refresh the list of recent bookmark tags.
+    refresh_bookmark_tag_list()
+    {
+        var bookmark_tags = this.container.querySelector(".bookmark-tag-selector");
+        helpers.remove_elements(bookmark_tags);
+
+        var recent_bookmark_tags = helpers.get_recent_bookmark_tags();
+        recent_bookmark_tags.sort();
+        for(var i = 0; i < recent_bookmark_tags.length; ++i)
         {
-            thumbnail_info.bookmarkData = null;
-
-            // Tell the thumbnail to refresh the thumbnail bookmark icon if this post is displayed.
-            this.thumbnail_view.refresh_thumbnail(illust_id);
+            var tag = recent_bookmark_tags[i];
+            var entry = helpers.create_from_template(".template-bookmark-tag-entry");
+            entry.dataset.tag = tag;
+            bookmark_tags.appendChild(entry);
+            entry.querySelector(".tag-name").innerText = tag;
         }
-         
-        message_widget.singleton.show("Bookmark removed");
 
-        // Refresh the UI if we're still on the same post.
-        if(this.current_illust_id == illust_id)
-            this.refresh_ui();
-    }.bind(this));
-}
-
-// Refresh the list of recent bookmark tags.
-main_ui.prototype.refresh_bookmark_tag_list = function()
-{
-    var bookmark_tags = this.container.querySelector(".bookmark-tag-selector");
-    helpers.remove_elements(bookmark_tags);
-
-    var recent_bookmark_tags = helpers.get_recent_bookmark_tags();
-    recent_bookmark_tags.sort();
-    for(var i = 0; i < recent_bookmark_tags.length; ++i)
-    {
-        var tag = recent_bookmark_tags[i];
-        var entry = helpers.create_from_template(".template-bookmark-tag-entry");
-        entry.dataset.tag = tag;
-        bookmark_tags.appendChild(entry);
-        entry.querySelector(".tag-name").innerText = tag;
+        this.refresh_bookmark_tag_highlights();
     }
 
-    this.refresh_bookmark_tag_highlights();
-}
-
-// Update which tags are highlighted in the bookmark tag list.
-main_ui.prototype.refresh_bookmark_tag_highlights = function()
-{
-    var bookmark_tags = this.container.querySelector(".bookmark-tag-selector");
-    
-    var tags = this.element_bookmark_tag_list.value;
-    var tags = tags.split(" ");
-    var tag_entries = bookmark_tags.querySelectorAll(".bookmark-tag-entry");
-    for(var i = 0; i < tag_entries.length; ++i)
+    // Update which tags are highlighted in the bookmark tag list.
+    refresh_bookmark_tag_highlights()
     {
-        var entry = tag_entries[i];
-        var tag = entry.dataset.tag;
-        var highlight_entry = tags.indexOf(tag) != -1;
-        helpers.set_class(entry, "enabled", highlight_entry);
+        var bookmark_tags = this.container.querySelector(".bookmark-tag-selector");
+        
+        var tags = this.element_bookmark_tag_list.value;
+        var tags = tags.split(" ");
+        var tag_entries = bookmark_tags.querySelectorAll(".bookmark-tag-entry");
+        for(var i = 0; i < tag_entries.length; ++i)
+        {
+            var entry = tag_entries[i];
+            var tag = entry.dataset.tag;
+            var highlight_entry = tags.indexOf(tag) != -1;
+            helpers.set_class(entry, "enabled", highlight_entry);
+        }
     }
-}
 
-main_ui.prototype.clicked_bookmark_tag_selector = function(e)
-{
-    var clicked_tag_entry = e.target.closest(".bookmark-tag-entry");
-    var tag = clicked_tag_entry.dataset.tag;
-
-    var clicked_remove = e.target.closest(".remove");
-    if(clicked_remove)
+    clicked_bookmark_tag_selector(e)
     {
-        // Remove the clicked tag from the recent list.
+        var clicked_tag_entry = e.target.closest(".bookmark-tag-entry");
+        var tag = clicked_tag_entry.dataset.tag;
+
+        var clicked_remove = e.target.closest(".remove");
+        if(clicked_remove)
+        {
+            // Remove the clicked tag from the recent list.
+            e.preventDefault();
+            e.stopPropagation();
+
+            var recent_bookmark_tags = helpers.get_recent_bookmark_tags();
+            var idx = recent_bookmark_tags.indexOf(tag);
+            if(idx != -1)
+                recent_bookmark_tags.splice(idx, 1);
+            helpers.set_recent_bookmark_tags(recent_bookmark_tags);
+            this.refresh_bookmark_tag_list();
+            return;
+        }
+
+        // Toggle the clicked tag.
+        var tags = this.element_bookmark_tag_list.value;
+        var tags = tags == ""? []:tags.split(" ");
+        var idx = tags.indexOf(tag);
+        if(idx != -1)
+        {
+            // Remove this tag from the list.
+            tags.splice(idx, 1);
+        }
+        else
+        {
+            // Add this tag to the list.
+            tags.push(tag);
+        }
+
+        this.element_bookmark_tag_list.value = tags.join(" ");
+        this.refresh_bookmark_tag_highlights();
+    }
+
+    clicked_like(e)
+    {
         e.preventDefault();
         e.stopPropagation();
 
-        var recent_bookmark_tags = helpers.get_recent_bookmark_tags();
-        var idx = recent_bookmark_tags.indexOf(tag);
-        if(idx != -1)
-            recent_bookmark_tags.splice(idx, 1);
-        helpers.set_recent_bookmark_tags(recent_bookmark_tags);
-        this.refresh_bookmark_tag_list();
-        return;
-    }
+        var illust_id = this.current_illust_id;
+        console.log("Clicked like on", illust_id);
 
-    // Toggle the clicked tag.
-    var tags = this.element_bookmark_tag_list.value;
-    var tags = tags == ""? []:tags.split(" ");
-    var idx = tags.indexOf(tag);
-    if(idx != -1)
-    {
-        // Remove this tag from the list.
-        tags.splice(idx, 1);
-    }
-    else
-    {
-        // Add this tag to the list.
-        tags.push(tag);
-    }
+        var illust_data = this.current_illust_data;
+        if(illust_data.likeData)
+        {
+            message_widget.singleton.show("Already liked this image");
+            return;
+        }
+        
+        helpers.post_request("/ajax/illusts/like", {
+            "illust_id": illust_id,
+        }, function() {
+            // Update the data (even if it's no longer being viewed).
+            illust_data.likeData = true;
+            illust_data.likeCount++;
 
-    this.element_bookmark_tag_list.value = tags.join(" ");
-    this.refresh_bookmark_tag_highlights();
+            // Refresh the UI if we're still on the same post.
+            if(this.current_illust_id == illust_id)
+                this.refresh_ui();
+
+            message_widget.singleton.show("Illustration liked");
+        }.bind(this));
+    }
 }
 
-main_ui.prototype.clicked_like = function(e)
-{
-    e.preventDefault();
-    e.stopPropagation();
-
-    var illust_id = this.current_illust_id;
-    console.log("Clicked like on", illust_id);
-
-    var illust_data = this.current_illust_data;
-    if(illust_data.likeData)
-    {
-        message_widget.singleton.show("Already liked this image");
-        return;
-    }
-    
-    helpers.post_request("/ajax/illusts/like", {
-        "illust_id": illust_id,
-    }, function() {
-        // Update the data (even if it's no longer being viewed).
-        illust_data.likeData = true;
-        illust_data.likeCount++;
-
-        // Refresh the UI if we're still on the same post.
-        if(this.current_illust_id == illust_id)
-            this.refresh_ui();
-
-        message_widget.singleton.show("Illustration liked");
-    }.bind(this));
-}
