@@ -72,6 +72,12 @@ class main_ui
             changed_callback: this.refresh_ui,
         });
 
+        // When a bookmark is modified, refresh the UI if we're displaying it.
+        bookmarking.singleton.add_bookmark_listener(function(illust_id) {
+            if(this.current_illust_id == illust_id)
+                this.refresh_ui();
+        }.bind(this));
+
         // Show the bookmark UI when hovering over the bookmark icon.
         var bookmark_popup = this.container.querySelector(".bookmark-button");
         bookmark_popup.addEventListener("mouseover", function(e) { helpers.set_class(bookmark_popup, "popup-visible", true); }.bind(this));
@@ -837,56 +843,16 @@ class main_ui
         var illust_id = this.current_illust_id;
         var illust_data = this.current_illust_data;
 
-        var input_list = this.element_bookmarked.querySelector(".bookmark-tag-list");
         var tags = this.element_bookmark_tag_list.value;
         var tag_list = tags == ""? []:tags.split(" ");
 
+        bookmarking.singleton.bookmark_add(illust_id, private_bookmark, tag_list);
+        
         helpers.update_recent_bookmark_tags(tag_list);
 
-        helpers.post_request("/ajax/illusts/bookmarks/add", {
-            "illust_id": illust_id,
-            "tags": tag_list,
-            "comment": "",
-            "restrict": private_bookmark? 1:0,
-        }, function(result) {
-            if(result == null || result.error)
-                return;
-
-            // Clear the tag list after saving a bookmark.  Otherwise, it's too easy to set a tag for one
-            // image, then forget to unset it later.
-            this.element_bookmark_tag_list.value = null;
-
-            // last_bookmark_id seems to be the ID of the new bookmark.  We need to store this correctly
-            // so the unbookmark button works.
-            console.log("New bookmark id:", result.body.last_bookmark_id, illust_id);
-
-            illust_data.bookmarkData = {
-                "id": result.body.last_bookmark_id,
-                "private": private_bookmark,
-            }
-
-            illust_data.bookmarkCount++;
-
-            // Thumbnail info also records whether an image is bookmarked.  Update this illust's
-            // thumbnail info if it's loaded.
-            var thumbnail_info = thumbnail_data.singleton().get_one_thumbnail_info(illust_id);
-            if(thumbnail_info != null)
-            {
-                thumbnail_info.bookmarkData = {
-                    "id": result.body.last_bookmark_id,
-                    "private": private_bookmark,
-                }
-
-                // Tell the thumbnail to refresh the thumbnail bookmark icon if this post is displayed.
-                this.thumbnail_view.refresh_thumbnail(illust_id);
-            }
-            
-            // Refresh the UI if we're still on the same post.
-            if(this.current_illust_id == illust_id)
-                this.refresh_ui();
-
-            message_widget.singleton.show(private_bookmark? "Bookmarked privately":"Bookmarked");
-        }.bind(this));
+        // Clear the tag list after saving a bookmark.  Otherwise, it's too easy to set a tag for one
+        // image, then forget to unset it later.
+        this.element_bookmark_tag_list.value = null;
     }
 
     bookmark_remove()
@@ -894,34 +860,7 @@ class main_ui
         var illust_id = this.current_illust_id;
         var illust_data = this.current_illust_data;
         var bookmark_id = illust_data.bookmarkData.id;
-        console.log("Remove bookmark", bookmark_id);
-
-        helpers.rpc_post_request("/rpc/index.php", {
-            mode: "delete_illust_bookmark",
-            bookmark_id: bookmark_id,
-        }, function(result) {
-            if(result == null || result.error)
-                return;
-
-            console.log("Removing bookmark finished");
-            illust_data.bookmarkData = false;
-            illust_data.bookmarkCount--;
-
-            var thumbnail_info = thumbnail_data.singleton().get_one_thumbnail_info(illust_id);
-            if(thumbnail_info != null)
-            {
-                thumbnail_info.bookmarkData = null;
-
-                // Tell the thumbnail to refresh the thumbnail bookmark icon if this post is displayed.
-                this.thumbnail_view.refresh_thumbnail(illust_id);
-            }
-             
-            message_widget.singleton.show("Bookmark removed");
-
-            // Refresh the UI if we're still on the same post.
-            if(this.current_illust_id == illust_id)
-                this.refresh_ui();
-        }.bind(this));
+        bookmarking.singleton.bookmark_remove(illust_id, bookmark_id);
     }
 
     // Refresh the list of recent bookmark tags.

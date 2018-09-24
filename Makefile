@@ -3,6 +3,7 @@
 FILES=\
     src/header.js \
     build/resources.js \
+    src/bookmarking.js \
     src/crc32.js \
     src/helpers.js \
     src/tweaks.js \

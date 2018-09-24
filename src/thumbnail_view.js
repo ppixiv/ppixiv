@@ -28,6 +28,11 @@ class thumbnail_view
         this.container.addEventListener("scroll", this.onscroll);
         window.addEventListener("resize", this.onscroll);
 
+        // When a bookmark is modified, refresh the heart icon.
+        bookmarking.singleton.add_bookmark_listener(function(illust_id) {
+            this.refresh_thumbnail(illust_id);
+        }.bind(this));
+        
         // Create the avatar widget shown on the artist data source.
         this.avatar_widget = new avatar_widget({
             parent: this.container.querySelector(".avatar-container"),
