@@ -743,11 +743,10 @@ class data_source_related_illusts extends data_source
 // the search results.
 class data_source_rankings extends data_source
 {
-    constructor(doc)
+    constructor()
     {
         super();
 
-        this.doc = doc;
         this.max_page = 999999;
 
         // This is the date that the page is showing us.
@@ -965,7 +964,7 @@ class data_source_rankings extends data_source
 class data_source_from_page extends data_source
 {
     // The constructor receives the original HTMLDocument.
-    constructor(doc)
+    constructor(url, doc)
     {
         super();
 
@@ -973,8 +972,7 @@ class data_source_from_page extends data_source
         this.items_per_page = 1;
 
         // Remember the URL that original_doc came from.
-        if(doc != null)
-            this.original_url = document.location.toString();
+        this.original_url = url;
     }
 
     // Return true if the two URLs refer to the same data.
@@ -1009,13 +1007,13 @@ class data_source_from_page extends data_source
         // https://www.pixiv.net/bookmark.php?p=2
         //
         // possibly with other search options.  Request the current URL page data.
-        var url = new unsafeWindow.URL(document.location);
+        var url = new unsafeWindow.URL(this.original_url);
 
         // Update the URL with the current page.
         var params = url.searchParams;
         params.set("p", page);
 
-        if(this.original_url && this.is_same_page(url, this.original_url))
+        if(this.original_url != null && this.is_same_page(url, this.original_url))
         {
             this.finished_loading_illust(page, this.original_doc, callback);
             return true;
@@ -1028,15 +1026,15 @@ class data_source_from_page extends data_source
         // This usually doesn't happen, since we'll normally use this.original_doc if we're reading
         // the same page.  Skip it if it's not needed, so we don't throw weird URLs at the site if
         // we don't have to.
-        if(this.is_same_page(url, document.location.toString()))
+        if(this.is_same_page(url, this.original_url))
             params.set("x", 1);
                 
         url.search = params.toString();
 
         console.log("Loading:", url.toString());
 
-        helpers.load_data_in_iframe(url.toString(), function(document) {
-            this.finished_loading_illust(page, document, callback);
+        helpers.load_data_in_iframe(url.toString(), function(doc) {
+            this.finished_loading_illust(page, doc, callback);
         }.bind(this));
         return true;
     };
@@ -1044,15 +1042,15 @@ class data_source_from_page extends data_source
     get estimated_items_per_page() { return this.items_per_page; }
 
     // We finished loading a page.  Parse it, register the results and call the completion callback.
-    finished_loading_illust(page, document, callback)
+    finished_loading_illust(page, doc, callback)
     {
-        var illust_ids = this.parse_document(document);
+        var illust_ids = this.parse_document(doc);
         if(illust_ids == null)
         {
             // The most common case of there being no data in the document is loading
             // a deleted illustration.  See if we can find an error message.
             console.error("No data on page");
-            var error = document.querySelector(".error-message");
+            var error = doc.querySelector(".error-message");
             var error_message = "Error loading page";
             if(error != null)
                 error_message = error.textContent;
@@ -1082,7 +1080,7 @@ class data_source_from_page extends data_source
     }
 
     // Parse the loaded document and return the illust_ids.
-    parse_document(document)
+    parse_document(doc)
     {
         throw "Not implemented";
     }
@@ -1294,9 +1292,9 @@ class data_source_current_illust extends data_source_from_page
         return super.load_page(page, callback);
     }
 
-    parse_document(document)
+    parse_document(doc)
     {
-        var data = helpers.get_global_init_data(document);
+        var data = helpers.get_global_init_data(doc);
         if(data == null)
         {
             console.error("Couldn't find globalInitData");
@@ -1401,9 +1399,9 @@ class data_source_bookmarks extends data_source
 {
     get name() { return "bookmarks"; }
     
-    constructor(doc)
+    constructor()
     {
-        super(doc);
+        super();
         this.bookmark_tags = [];
     }
 
@@ -1678,20 +1676,20 @@ class data_source_bookmarks_new_illust extends data_source_from_page
 {
     get name() { return "bookmarks_new_illust"; }
 
-    constructor(doc)
+    constructor(url, doc)
     {
-        super(doc);
+        super(url, doc);
         this.bookmark_tags = [];
     }
 
     // Parse the loaded document and return the illust_ids.
-    parse_document(document)
+    parse_document(doc)
     {
         this.bookmark_tags = [];
-        for(var element of document.querySelectorAll(".menu-items a[href*='bookmark_new_illust.php?tag'] span.icon-text"))
+        for(var element of doc.querySelectorAll(".menu-items a[href*='bookmark_new_illust.php?tag'] span.icon-text"))
             this.bookmark_tags.push(element.innerText);
         
-        var element = document.querySelector("#js-mount-point-latest-following");
+        var element = doc.querySelector("#js-mount-point-latest-following");
         var items = JSON.parse(element.dataset.items);
 
         var illust_ids = [];
@@ -1749,24 +1747,24 @@ class data_source_search extends data_source_from_page
 {
     get name() { return "search"; }
 
-    parse_document(document)
+    parse_document(doc)
     {
         // The actual results are encoded in a string for some reason.
-        var result_list_json = document.querySelector("#js-mount-point-search-result-list").dataset.items;
+        var result_list_json = doc.querySelector("#js-mount-point-search-result-list").dataset.items;
         var illusts = JSON.parse(result_list_json);
 
         // Store related tags.  Only do this the first time and don't change it when we read
         // future pages, so the tags don't keep changing as you scroll around.
         if(this.related_tags == null)
         {
-            var related_tags_json = document.querySelector("#js-mount-point-search-result-list").dataset.relatedTags;
+            var related_tags_json = doc.querySelector("#js-mount-point-search-result-list").dataset.relatedTags;
             var related_tags = JSON.parse(related_tags_json);
             this.related_tags = related_tags;
         }
 
         if(this.tag_translation == null)
         {
-            var span = document.querySelector(".search-result-information .translation-column-title");
+            var span = doc.querySelector(".search-result-information .translation-column-title");
             if(span != null)
             {
                 this.tag_translation = span.innerText;

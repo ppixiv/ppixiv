@@ -131,6 +131,10 @@ class main_controller
         helpers.move_children(document.head, html);
         helpers.move_children(document.body, html);
 
+        // Copy the location to the document copy, so the data source can tell where
+        // it came from.
+        html.location = document.location;
+
         // Now that we've cleared the document, we can unhide it.
         document.documentElement.hidden = false;
 
@@ -143,7 +147,7 @@ class main_controller
         }
 
         // Create the data source for this page, passing it the original page data.
-        var source = new data_source_class(html);
+        var source = new data_source_class(document.location.href, html);
 
         // Create the main UI.
         new main_ui(source);
