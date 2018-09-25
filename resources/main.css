@@ -523,6 +523,7 @@ body.light .bookmark-tag-entry:hover.enabled { background-color: #44a; }
     height: 100%;
     top: 0;
     left: 0;
+    overflow-x: hidden;
     /* Always show the vertical scrollbar, so we don't relayout as images load. */
     overflow-y: scroll;
     background-color: #000;
