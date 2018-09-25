@@ -1,4 +1,5 @@
 import base64, collections, glob, json, os, sys
+from StringIO import StringIO
 
 def go():
     # Collect resources into an OrderedDict, so we always output data in the same order.
@@ -9,9 +10,10 @@ def go():
         all_data[os.path.basename(fn)] = data
 
     # Output a JavaScript file containing the data.
-    sys.stdout.write('var resources = \n')
-    sys.stdout.write(json.dumps(all_data, indent=4))
-    sys.stdout.write(';\n')
+    output = StringIO()
+    output.write('var resources = \n')
+    output.write(json.dumps(all_data, indent=4))
+    output.write(';\n')
     
     # Encode binary resources to data URLs.
     binary_data = collections.OrderedDict()
@@ -28,8 +30,16 @@ def go():
         encoded_data = 'data:%s;base64,%s' % (mime_type, base64.b64encode(data))
         binary_data[os.path.basename(fn)] = encoded_data
 
-    sys.stdout.write('var binary_data = \n')
-    sys.stdout.write(json.dumps(binary_data, indent=4))
-    sys.stdout.write(';\n')
+    output.write('var binary_data = \n')
+    output.write(json.dumps(binary_data, indent=4))
+    output.write(';\n')
+
+    # I build this in Cygwin, which means all of the text files are CRLF, but Python
+    # thinks it's on a LF system.  Manually convert newlines to CRLF, so the file we
+    # output has matching newlines to the rest of the source, or else the final output
+    # file will have mixed newlines.
+    output.seek(0)
+    data = output.buf.replace('\n', '\r\n')
+    sys.stdout.write(data)
 
 go()
