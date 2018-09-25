@@ -67,7 +67,11 @@ var helpers = {
 
     create_from_template: function(type)
     {
-        var template = document.body.querySelector(type);
+        var template;
+        if(typeof(type) == "string")
+            template = document.body.querySelector(type);
+        else
+            template = type;
         return template.firstElementChild.cloneNode(true);
     },
 

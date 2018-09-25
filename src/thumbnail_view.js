@@ -778,7 +778,12 @@ class thumbnail_view
     // is on (whether it's a placeholder or not).
     create_thumb(illust_id, page)
     {
-        var entry = helpers.create_from_template(".template-thumbnail");
+        // Cache a reference to the thumbnail template.  We can do this a lot, and this
+        // query takes a lot of page setup time if we run it for each thumb.
+        if(this.thumbnail_template == null)
+            this.thumbnail_template = document.body.querySelector(".template-thumbnail");
+            
+        var entry = helpers.create_from_template(this.thumbnail_template);
 
         // Mark that this thumb hasn't been filled in yet.
         entry.dataset.pending = true;
