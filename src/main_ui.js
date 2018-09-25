@@ -385,12 +385,12 @@ class main_ui
         this.container.querySelector(".show-thumbnails-button").dataset.popup = this.data_source.get_displaying_text();
 
         this.element_author.textContent = user_data.name;
-        this.element_author.href = "/member_illust.php?id=" + user_data.userId;
+        this.element_author.href = "/member_illust.php?id=" + user_data.userId + "#ppixiv";
 
         this.container.querySelector(".similar-illusts-button").href = "/bookmark_detail.php?illust_id=" + illust_id + "#ppixiv";
 
         this.element_title.textContent = illust_data.illustTitle;
-        this.element_title.href = "/member_illust.php?mode=medium&illust_id=" + illust_id;
+        this.element_title.href = "/member_illust.php?mode=medium&illust_id=" + illust_id + "#ppixiv";
 
         // Fill in the post info text.
         var set_info = function(query, text)
