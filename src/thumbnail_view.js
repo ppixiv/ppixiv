@@ -176,6 +176,25 @@ class thumbnail_view
         this.refresh_ui();
     };
 
+    restore_scroll_position()
+    {
+        // If we saved a scroll position when navigating away from a data source earlier,
+        // restore it now.  Only do this once.
+        if(this.data_source.thumbnail_view_scroll_pos != null)
+        {
+        console.log("restore scroll to", this.data_source.thumbnail_view_scroll_pos);
+            this.container.scrollTop = this.data_source.thumbnail_view_scroll_pos;
+            delete this.data_source.thumbnail_view_scroll_pos;
+        }
+        else
+            this.scroll_to_top();
+    }
+
+    scroll_to_top()
+    {
+        this.container.scrollTop = 0;
+    }
+
     refresh_ui()
     {
         if(!this.active)
@@ -318,6 +337,7 @@ class thumbnail_view
     {
         // Remove all existing entries and collect them.
         var ul = this.container.querySelector("ul.thumbnails");
+        var original_scroll_top = this.container.scrollTop;
 
         // Make a list of [illust_id, page] thumbs to add.
         var images_to_add = [];
@@ -415,17 +435,12 @@ class thumbnail_view
             entry.classList.add("next-page-placeholder");
             entry.hidden = this.disable_loading_more_pages;
             ul.appendChild(entry);
-
-            // If we saved a scroll position when navigating away from a data source earlier,
-            // restore it now.  Only do this once.
-            if(this.data_source.thumbnail_view_scroll_pos != null)
-            {
-                this.container.scrollTop = this.data_source.thumbnail_view_scroll_pos;
-                delete this.data_source.thumbnail_view_scroll_pos;
-            }
-            else
-                this.container.scrollTop = 0;
         }
+        
+        // Restore the value of scrollTop from before we updated.  For some reason, Firefox
+        // modifies scrollTop after we add a bunch of items, which causes us to scroll to
+        // the wrong position, even though scrollRestoration is disabled.
+        this.container.scrollTop = original_scroll_top;
     }
 
     // Start loading data pages that we need to display visible thumbs, and start

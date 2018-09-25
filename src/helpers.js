@@ -1059,6 +1059,13 @@ var helpers = {
         return result;
     },
 
+    // This is incremented whenever we navigate forwards, so we can tell in onpopstate
+    // whether we're navigating forwards or backwards.
+    current_history_state_index()
+    {
+        return (history.state && history.state.index != null)? history.state.index: 0;
+    },
+
     // Set document.href, either adding or replacing the current history state.
     //
     // window.onpopstate will be synthesized if the URL is changing.
@@ -1066,11 +1073,23 @@ var helpers = {
     {
         var old_url = document.location.toString();
 
+        // history.state.index is incremented whenever we navigate forwards, so we can
+        // tell in onpopstate whether we're navigating forwards or backwards.
+        var current_history_index = helpers.current_history_state_index();
+
+        var new_history_index = current_history_index;
+        if(add_to_history)
+            new_history_index++;
+
+        var history_data = {
+            index: new_history_index
+        };
+
         // console.log("Changing state to", url.toString());
         if(add_to_history)
-            history.pushState(null, "", url.toString());
+            history.pushState(history_data, "", url.toString());
         else
-            history.replaceState(null, "", url.toString());
+            history.replaceState(history_data, "", url.toString());
 
         console.error("Set URL to", document.location.toString());
 
@@ -1080,6 +1099,11 @@ var helpers = {
             // send a synthetic one.
             console.log("Dispatching popstate:", document.location.toString());
             var event = new PopStateEvent("popstate");
+
+            // Set initialNavigation to true.  This indicates that this event is for a new
+            // navigation, and not from browser forwards/back.
+            event.initialNavigation = true;
+
             window.dispatchEvent(event);
         }
     },

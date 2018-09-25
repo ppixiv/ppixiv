@@ -178,8 +178,9 @@ class main_controller
         window.addEventListener("click", this.window_onclick_capture, true);
         window.addEventListener("popstate", this.window_onpopstate);
         window.addEventListener("keydown", this.onkeydown);
-        
+
         this.current_view = null;
+        this.current_history_index = helpers.current_history_state_index();
 
         // Don't restore the scroll position.
         //
@@ -243,7 +244,7 @@ class main_controller
         console.log("History state changed");
 
         // Set the current data source and state.
-        this.set_current_data_source(null);
+        this.set_current_data_source(null, e.initialNavigation);
     }
 
     // Create a data source for the current URL and activate it.
@@ -254,10 +255,10 @@ class main_controller
     // to preload the first page.  On navigation, html is null.  If we navigate to a page that
     // can load the first page from the HTML page, we won't load the HTML and we'll just allow
     // the first page to load like any other page.
-    set_current_data_source(html)
+    set_current_data_source(html, initial_navigation)
     {
         console.log("Loading data source for", document.location.href);
-        page_manager.singleton().create_data_source_for_url(document.location, html, this.set_enabled_view.bind(this));
+        page_manager.singleton().create_data_source_for_url(document.location, html, this.set_enabled_view.bind(this, initial_navigation));
     }
 
     show_data_source_specific_elements()
@@ -273,7 +274,11 @@ class main_controller
     }
 
     // Set either the image or thumbnail view as active.
-    set_enabled_view(data_source)
+    //
+    // If initial_navigation is true, this is from the user triggering a navigation, eg.
+    // clicking a link.  If it's false, it's from browser history navigation or the initial
+    // load.
+    set_enabled_view(initial_navigation, data_source)
     {
         console.log("Got data source", data_source? data_source.name:"null");
         this.set_data_source(data_source);
@@ -305,15 +310,45 @@ class main_controller
         // Dismiss any message when toggling between views.
         message_widget.singleton.hide();
         
-        // If we're switching from the image UI to thumbnails, try to scroll the thumbnail view
-        // to the image that was displayed.
-        if(this.ui.current_illust_id != -1 && this.thumbnail_view.active)
-            this.thumbnail_view.scroll_to_illust_id(this.ui.current_illust_id);
+        // Are we navigating forwards or back?
+        var new_history_index = helpers.current_history_state_index();
+        var navigating_forwards = new_history_index > this.current_history_index;
+        this.current_history_index = new_history_index;
 
-        // If we're enabling the thumbnail, pulse the image that was just being viewed (or
-        // loading to be viewed), to make it easier to find your place.
-        if(this.thumbnail_view.active)
-            this.thumbnail_view.pulse_thumbnail(this.ui.wanted_illust_id);
+        // Handle scrolling for the new state.
+        //
+        // We could do this better with history.state (storing each state's scroll position would
+        // allow it to restore across browser sessions, and if the same data source is multiple
+        // places in history).  Unfortunately there's no way to update history.state without
+        // calling history.replaceState, which is slow and causes jitter.  history.state being
+        // read-only is a design bug in the history API.
+        if(initial_navigation)
+        {
+            // If this is an initial navigation, eg. from a user clicking a link, always scroll to
+            // the top.  If this data source exists previously in history, we don't want to restore
+            // the scroll position from back then.
+            this.thumbnail_view.scroll_to_top();
+        }
+        else if(navigating_forwards)
+        {
+            // On browser history forwards, try to restore the scroll position.
+            this.thumbnail_view.restore_scroll_position();
+        }
+        else
+        {
+            // If we're navigating backwards, and we're switching from the image UI to thumbnails,
+            // try to scroll the thumbnail view to the image that was displayed.  Otherwise, tell
+            // the thumbnail view to restore any scroll position saved in the data source.
+            if(this.ui.current_illust_id != -1 && this.thumbnail_view.active)
+                this.thumbnail_view.scroll_to_illust_id(this.ui.current_illust_id);
+            else
+                this.thumbnail_view.restore_scroll_position();
+
+            // If we're enabling the thumbnail, pulse the image that was just being viewed (or
+            // loading to be viewed), to make it easier to find your place.
+            if(this.thumbnail_view.active)
+                this.thumbnail_view.pulse_thumbnail(this.ui.wanted_illust_id);
+        }
     }
 
     set_data_source(data_source)
