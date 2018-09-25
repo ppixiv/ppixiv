@@ -356,7 +356,7 @@ body.bookmarked       .bookmark-button.bookmarked-public  svg.heart { fill: #f00
                       .bookmark-button.bookmarked-private svg.heart { fill: #800; stroke: #fff; }
 body.bookmarked .bookmark-button input { display: none; }
 .bookmark-button > span.popup {
-    margin: 0 3px;
+    padding: 0 3px;
 }
 .like-button {
     cursor: pointer;
