@@ -37,5 +37,38 @@ var install_polyfills = function()
             }
         };
     }
+
+    // This isn't really a polyfill, but we treat it like one for convenience.
+    //
+    // When functions called from event handlers throw exceptions, GreaseMonkey usually forgets
+    // to log them to the console, probably sending them to some inconvenient browser-level log
+    // instead.  Work around some of this.  func.catch_bind is like func.bind, but also wraps
+    // the function in an exception handler to log errors correctly.  The exception will still
+    // be raised.
+    //
+    // This is only needed in Firefox, and we just point it at bind() otherwise.
+    if(navigator.userAgent.indexOf("Firefox") == -1)
+    {
+        Function.prototype.catch_bind = Function.prototype.bind;
+    } else {
+        Function.prototype.catch_bind = function()
+        {
+            var func = this;
+            var self = arguments[0];
+            var bound_args = Array.prototype.slice.call(arguments, 1);
+            var wrapped_func = function()
+            {
+                try {
+                    var called_args = Array.prototype.slice.call(arguments, 0);
+                    var args = bound_args.concat(called_args);
+                    return func.apply(self, args);
+                } catch(e) {
+                    console.error(e);
+                    throw e;
+                }
+            };
+            return wrapped_func;
+        };
+    }
 }
 

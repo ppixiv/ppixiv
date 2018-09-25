@@ -29,8 +29,7 @@ class bookmarking
 
             // last_bookmark_id seems to be the ID of the new bookmark.  We need to store this correctly
             // so the unbookmark button works.
-            console.log("New bookmark id:", result.body.last_bookmark_id, illust_id);
-
+            //
             // If this image's info is loaded, update its bookmark info.
             var illust_data = image_data.singleton().get_image_info_sync(illust_id);
             if(illust_data != null)

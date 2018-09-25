@@ -994,5 +994,91 @@ var helpers = {
                 submit(e);
         });
     },
+
+    // Parse the hash portion of our URL.  For example,
+    //
+    // #ppixiv?a=1&b=2
+    //
+    // returns { a: "1", b: "2" }.
+    //
+    // If this isn't one of our URLs, return null.
+    parse_hash: function(url)
+    {
+        var ppixiv_url = url.hash.startsWith("#ppixiv");
+        if(!ppixiv_url)
+            return null;
+        
+        // Parse the hash of the current page as a path.  For example, if
+        // the hash is #ppixiv/foo/bar?baz, parse it as /ppixiv/foo/bar?baz.
+        var adjusted_url = url.hash.replace(/#/, "/");
+        return new URL(adjusted_url, url);
+    },
+
+    get_hash_args: function(url)
+    {
+        var hash_url = helpers.parse_hash(url);
+        if(hash_url == null)
+            return new unsafeWindow.URLSearchParams();
+
+        var query = hash_url.search;
+        if(!query.startsWith("?"))
+            return new unsafeWindow.URLSearchParams();
+
+        query = query.substr(1);
+
+        // Use unsafeWindow.URLSearchParams to work around https://bugzilla.mozilla.org/show_bug.cgi?id=1414602.
+        var params = new unsafeWindow.URLSearchParams(query);
+        return params;
+    },
+    
+    // Set the hash portion of url to args, as a ppixiv url.
+    //
+    // For example, given { a: "1", b: "2" }, set the hash to #ppixiv?a=1&b=2.
+    set_hash_args: function(url, hash_params)
+    {
+        url.hash = "#ppixiv";
+
+        var hash_string = hash_params.toString();
+        if(hash_string != "")
+            url.hash += "?" + hash_string;
+    },
+
+    // Given a URLSearchParams, return a new URLSearchParams with keys sorted alphabetically.
+    sort_query_parameters(search)
+    {
+        var search_keys = unsafeWindow.Array.from(search.keys()); // GreaseMonkey encapsulation is bad
+        search_keys.sort();
+
+        var result = new URLSearchParams();
+        for(var key of search_keys)
+            result.set(key, search.get(key));
+        return result;
+    },
+
+    // Set document.href, either adding or replacing the current history state.
+    //
+    // window.onpopstate will be synthesized if the URL is changing.
+    set_page_url(url, add_to_history)
+    {
+        var old_url = document.location.toString();
+
+        // console.log("Changing state to", url.toString());
+        if(add_to_history)
+            history.pushState(null, "", url.toString());
+        else
+            history.replaceState(null, "", url.toString());
+
+        console.error("Set URL to", document.location.toString());
+
+        if(document.location.toString() != old_url)
+        {
+            // Browsers don't send onpopstate for history changes, but we want them, so
+            // send a synthetic one.
+            console.log("Dispatching popstate:", document.location.toString());
+            var event = new PopStateEvent("popstate");
+            window.dispatchEvent(event);
+        }
+    },
 };
+
 

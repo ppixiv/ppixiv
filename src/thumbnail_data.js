@@ -104,16 +104,17 @@ class thumbnail_data
             // We do our own muting, but for some reason this flag is needed to get bookmark info.
             exclude_muted_illusts: 1,
         }, function(results) {
-            this.loaded_thumbnail_info(results, true);
+            this.loaded_thumbnail_info(results, "illust_list");
         }.bind(this));
     }
 
-    get thumbnail_info_map()
+    // Get the mapping from /ajax/user/id/illusts/bookmarks to illust_list.php's keys.
+    get thumbnail_info_map_illust_list()
     {
-        if(this._thumbnail_info_map != null)
-            return this._thumbnail_info_map;
+        if(this._thumbnail_info_map_illust_list != null)
+            return this._thumbnail_info_map_illust_list;
 
-        this._thumbnail_info_map = [
+        this._thumbnail_info_map_illust_list = [
             ["illust_id", "id"],
             ["url", "url"],
             ["tags", "tags"],
@@ -124,9 +125,32 @@ class thumbnail_data
             ["illust_page_count", "pageCount"],
             ["illust_title", "title"],
             ["user_profile_img", "profileImageUrl"],
+
             ["user_name", "userName"],
         ];
-        return this._thumbnail_info_map;
+        return this._thumbnail_info_map_illust_list;
+    };
+
+    // Get the mapping from search.php and bookmark_new_illust.php to illust_list.php's keys.
+    get thumbnail_info_map_following()
+    {
+        if(this._thumbnail_info_map_following != null)
+            return this._thumbnail_info_map_following;
+
+        this._thumbnail_info_map_following = [
+            ["illustId", "id"],
+            ["url", "url"],
+            ["tags", "tags"],
+            ["userId", "userId"],
+            ["width", "width"],
+            ["height", "height"],
+            ["pageCount", "pageCount"],
+            ["illustTitle", "title"],
+            ["userName", "userName"],
+//            ["illustType", "illustType"],
+//            ["user_profile_img", "profileImageUrl"],
+        ];
+        return this._thumbnail_info_map_following;
     };
 
     // This is called when we have new thumbnail data available.  thumb_result is
@@ -138,86 +162,138 @@ class thumbnail_data
     // remap them to the format used by search results.  Check that all fields we expect
     // exist, to make it easier to notice if something is wrong.
     //
-    loaded_thumbnail_info(thumb_result, from_illust_list)
+    //
+    // Source is either the format we use directly, "normal" (returned by /ajax/user/id/illusts/bookmarks),
+    // "illust_list" for illust_list.php, or "following" for bookmark_new_illust.php (following).
+    // These are different APIs that return the same data in a bunch of different ways.  We map them to
+    // the format used by "illust_list".
+    loaded_thumbnail_info(thumb_result, source)
     {
         if(thumb_result.error)
             return;
 
-        var thumbnail_info_map = this.thumbnail_info_map;
+        var thumbnail_info_map = this.thumbnail_info_map_illust_list;
         var urls = [];
         for(var thumb_info of thumb_result)
         {
-            // Remap the thumb info.  We do this even for data not from illust_list.php
-            // (which doesn't need remapping) in order to check that we have the keys
-            // we expect.  This also removes keys we don't use, so if we start using a new
-            // key, we remember to update the map.
-            var remapped_thumb_info = { };
-            for(var pair of thumbnail_info_map)
+            if(source == "normal")
             {
-                var from_key = pair[from_illust_list? 0:1];
-                var to_key = pair[1];
-                if(!(from_key in thumb_info))
+                // The data is already in the format we want.  Just check that all keys we
+                // expect exist, and remove any keys we don't know about so we don't use them
+                // accidentally.
+                var thumbnail_info_map = this.thumbnail_info_map_illust_list;
+                var remapped_thumb_info = { };
+                for(var pair of thumbnail_info_map)
                 {
-                    console.warn("Thumbnail info is missing key:", from_key);
-                    continue;
+                    var key = pair[1];
+                    if(!(key in thumb_info))
+                    {
+                        console.warn("Thumbnail info is missing key:", from_key);
+                        continue;
+                    }
+                    remapped_thumb_info[key] = thumb_info[key];
                 }
-                var value = thumb_info[from_key];
-                remapped_thumb_info[to_key] = value;
-            }
 
-            // Bookmark data is a special case:
-            if(from_illust_list)
+                if(!('bookmarkData' in thumb_info))
+                    console.warn("Thumbnail info is missing key: bookmarkData");
+                else
+                {
+                    remapped_thumb_info.bookmarkData = thumb_info.bookmarkData;
+
+                    // See above.
+                    if(remapped_thumb_info.bookmarkData != null)
+                        delete remapped_thumb_info.bookmarkData.bookmarkId;
+                }
+            }
+            else if(source == "illust_list" || source == "following")
             {
+                // Get the mapping for this mode.
+                var thumbnail_info_map = source == "illust_list"? this.thumbnail_info_map_illust_list:this.thumbnail_info_map_following;
+                var remapped_thumb_info = { };
+                for(var pair of thumbnail_info_map)
+                {
+                    var from_key = pair[0];
+                    var to_key = pair[1];
+                    if(!(from_key in thumb_info))
+                    {
+                        console.warn("Thumbnail info is missing key:", from_key);
+                        continue;
+                    }
+                    var value = thumb_info[from_key];
+                    remapped_thumb_info[to_key] = value;
+                }
+
+                // Bookmark data is a special case.
+                //
                 // The old API has is_bookmarked: true, bookmark_id: "id" and bookmark_illust_restrict: 0 or 1.
                 // bookmark_id and bookmark_illust_restrict are omitted if is_bookmarked is false.
                 //
                 // The new API is a dictionary:
                 //
                 // bookmarkData = {
-                //     bookmark_id: id,
+                //     bookmarkId: id,
                 //     private: false
                 // }
                 //
                 // or null if not bookmarked.
                 //
+                // A couple sources of thumbnail data (bookmark_new_illust.php and search.php)
+                // don't return the bookmark ID.  We don't use this (we only edit bookmarks from
+                // the image page, where we have full image data), so we omit bookmarkId from this
+                // data.
+                //
                 // Some pages return buggy results.  /ajax/user/id/profile/all includes bookmarkData,
                 // but private is always false, so we can't tell if it's a private bookmark.  This is
                 // a site bug that we can't do anything about (it affects the site too).
-                if(!('is_bookmarked' in thumb_info))
-                    console.warn("Thumbnail info is missing key: is_bookmarked");
-                else
+                remapped_thumb_info.bookmarkData = null;
+                if(source == "illust_list")
                 {
+                    if(!('is_bookmarked' in thumb_info))
+                        console.warn("Thumbnail info is missing key: is_bookmarked");
                     if(thumb_info.is_bookmarked)
+                    {
                         remapped_thumb_info.bookmarkData = {
-                            bookmarkId: thumb_info.bookmark_id,
+                            // See above.
+                            // bookmarkId: thumb_info.bookmark_id,
                             private: thumb_info.bookmark_illust_restrict == 1,
                         };
-                    else
-                    {
-                        remapped_thumb_info.bookmarkData = null;
                     }
                 }
-            } else {
-                if(!('bookmarkData' in thumb_info))
-                    console.warn("Thumbnail info is missing key: bookmarkData");
-                else
-                    remapped_thumb_info.bookmarkData = thumb_info.bookmarkData;
+                else if(source == "following")
+                {
+                    // Why are there fifteen API variants for everything?  It's as if they
+                    // hire a contractor for every feature and nobody ever talks to each other,
+                    // so every feature has its own new API layout.
+                    if(!('isBookmarked' in thumb_info))
+                        console.warn("Thumbnail info is missing key: isBookmarked");
+                    if(thumb_info.isBookmarked)
+                    {
+                        remapped_thumb_info.bookmarkData = {
+                            private: thumb_info.isPrivateBookmark,
+                        };
+                    }
+                }
+
+                // illustType can be a string in these instead of an int, so convert it.
+                remapped_thumb_info.illustType = parseInt(remapped_thumb_info.illustType);
+
+                // Some of these APIs don't provide the user's avatar URL.  We only use it in a blurred-
+                // out thumbnail for muted images, so just drop in the "no avatar" image.
+                if(remapped_thumb_info.profileImageUrl == null)
+                    remapped_thumb_info.profileImageUrl = "https://s.pximg.net/common/images/no_profile_s.png";
             }
 
             thumb_info = remapped_thumb_info;
 
+            // Store the data.
+            this.add_thumbnail_info(thumb_info);
+
             var illust_id = thumb_info.id;
             delete this.loading_ids[illust_id];
-
-            // Store the data.
-            this.thumbnail_data[illust_id] = thumb_info;
 
             // Don't preload muted images.
             if(!this.is_muted(thumb_info))
                 urls.push(thumb_info.url);
-
-            // Let image_data know about the user for this illust, to speed up fetches later.
-            image_data.singleton().set_user_id_for_illust_id(thumb_info.illust_id, thumb_info.userId);
         }
 
         // Preload thumbnails.
@@ -227,11 +303,21 @@ class thumbnail_data
         window.dispatchEvent(new Event("thumbnailsLoaded"));
     };
 
+    // Store thumbnail info.
+    add_thumbnail_info(thumb_info)
+    {
+        var illust_id = thumb_info.id;
+        this.thumbnail_data[illust_id] = thumb_info;
+
+        // Let image_data know about the user for this illust, to speed up fetches later.
+        image_data.singleton().set_user_id_for_illust_id(thumb_info.id, thumb_info.userId);
+    }
+
     is_muted(thumb_info)
     {
-        if(main.is_muted_user_id(thumb_info.illust_user_id))
+        if(muting.singleton.is_muted_user_id(thumb_info.illust_user_id))
             return true;
-        if(main.any_tag_muted(thumb_info.tags))
+        if(muting.singleton.any_tag_muted(thumb_info.tags))
             return true;
         return false;
     }

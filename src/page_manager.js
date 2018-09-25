@@ -33,6 +33,7 @@ class page_manager
         this.window_popstate = this.window_popstate.bind(this);
         window.addEventListener("popstate", this.window_popstate, true);
 
+        this.data_sources_by_canonical_url = {};
         this.active = this._active_internal();
     };
 
@@ -87,6 +88,38 @@ class page_manager
             return null;
     };
 
+    // Create the data source for a given URL.
+    //
+    // If we've already created a data source for this URL, the same one will be
+    // returned.
+    create_data_source_for_url(url, doc, callback)
+    {
+        // need to be able to canonicalize statically
+        var data_source_class = this.get_data_source_for_url(url);
+        if(data_source_class == null)
+        {
+            console.error("Unexpected path:", url.pathname);
+            return;
+        }
+
+        // Canonicalize the URL to see if we already have a data source for this URL.
+        data_source_class.get_canonical_url(url, function(canonical_url) {
+            console.log("url", url.toString(), "becomes", canonical_url);
+            if(canonical_url in this.data_sources_by_canonical_url)
+            {
+                console.log("Reusing data source for", url.toString());
+                var source = this.data_sources_by_canonical_url[canonical_url];
+                callback(source);
+                return;
+            }
+            
+            console.log("Creating new data source for", url.toString());
+            var source = new data_source_class(url.href, doc);
+            this.data_sources_by_canonical_url[canonical_url] = source;
+            callback(source);
+        }.catch_bind(this));
+    }
+
     // Return true if it's possible for us to be active on this page.
     available()
     {
@@ -134,64 +167,23 @@ class page_manager
 
         // If we have a hash and it's not #ppixiv, then we're explicitly disabled.  If we
         // # do have a #ppixiv hash, we're explicitly enabled.
-        return this.parse_hash() != null;
+        return helpers.parse_hash(document.location) != null;
     };
-
-    // Parse our data out of the hash, returning a URL.  If the hash isn't one of ours,
-    // return null.
-    parse_hash()
-    {
-        var ppixiv_url = document.location.hash.startsWith("#ppixiv");
-        if(!ppixiv_url)
-            return null;
-
-        // Parse the hash of the current page as a path.  For example, if
-        // the hash is #ppixiv/foo/bar?baz, parse it as /ppixiv/foo/bar?baz.
-        var adjusted_url = document.location.hash.replace(/#/, "/");
-        return new URL(adjusted_url, window.location);
-    };
-
-    // Get the arguments stored in the URL hash.
-    get_hash_args()
-    {
-        var url = this.parse_hash();
-        if(url == null)
-            return new unsafeWindow.URLSearchParams();
-
-        var query = url.search;
-        if(!query.startsWith("?"))
-            return new unsafeWindow.URLSearchParams();
-
-        query = query.substr(1);
-
-        // Use unsafeWindow.URLSearchParams to work around https://bugzilla.mozilla.org/show_bug.cgi?id=1414602.
-        var params = new unsafeWindow.URLSearchParams(query);
-        return params;
-    };
-
-    // Get the arguments stored in the URL query.
-    get_query_args()
-    {
-        // Why is there no searchParams on document.location?
-        return new unsafeWindow.URL(document.location).searchParams;
-    }
 
     // Update the URL.  If add_to_history is true, add a new history state.  Otherwise,
     // replace the current one.
+    //
+    // If query_params or hash_params are null, leave the current value alone.
     set_args(query_params, hash_params, add_to_history)
     {
         var url = new URL(document.location);
-        url.search = query_params.toString();
-        url.hash = "#ppixiv";
-        var hash_string = hash_params.toString();
-        if(hash_string != "")
-            url.hash += "?" + hash_string;
+        if(query_params != null)
+            url.search = query_params.toString();
 
-        // console.log("Changing state to", url.toString());
-        if(add_to_history)
-            history.pushState(null, "", url.toString());
-        else
-            history.replaceState(null, "", url.toString());
+        if(hash_params != null)
+            helpers.set_hash_args(url, hash_params);
+
+        helpers.set_page_url(url, add_to_history);
     }
 
     // Given a list of tags, return the URL to use to search for them.  This differs

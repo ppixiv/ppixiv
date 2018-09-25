@@ -51,6 +51,14 @@ class image_data
         this.load_image_info(illust_id);
     }
 
+    // Like get_image_info, but return the result immediately.
+    //
+    // If the image info isn't loaded, don't start a request and just return null.
+    get_image_info_sync(illust_id)
+    {
+        return this.image_data[illust_id];
+    }
+
     // The user request can either return a small subset of data (just the username,
     // profile image URL, etc.), or a larger set with a webpage URL, Twitter, etc.
     // User preloads often only have the smaller set, and we want to use the preload

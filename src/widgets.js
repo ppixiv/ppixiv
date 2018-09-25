@@ -84,7 +84,7 @@ class avatar_widget
         // We can't tell if we're followed privately or not, only that we're following.
         helpers.set_class(this.root, "followed", this.user_data.isFollowed);
 
-        this.root.querySelector(".avatar-link").href = "/member_illust.php?id=" + user_data.userId;
+        this.root.querySelector(".avatar-link").href = "/member_illust.php?id=" + user_data.userId + "#ppixiv";
 
         // If we don't have an image because we're loaded from a source that doesn't give us them,
         // just hide the avatar image.  Note that this image is low-res even though there's usually

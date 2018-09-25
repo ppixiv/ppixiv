@@ -442,6 +442,9 @@ body.light .popup-menu-box {
     top: 30px;
     left: 0px;
 }
+.popup-menu-box.popup-visible {
+    visibility: inherit;
+}
 .popup-visible .popup-menu-box {
     visibility: inherit;
 }
@@ -700,8 +703,10 @@ body[data-thumbnail-mode="wide"]  li.thumbnail-box a.thumbnail-link {
 }
 
 .thumbnail-container li.thumbnail-box[data-pending] a {
-    opacity: 0.5;
-    background-color: #444;
+    /* Don't show a grey box while an image is pending.  It just causes extra
+     * flicker. */
+/*    opacity: 0.5;
+    background-color: #444;*/
 }
 
 /* Hide the img while it's pending so we don't show a broken image icon. */
@@ -822,7 +827,7 @@ body:not(.disable-thumbnail-zooming) .thumbnail-container .thumbnail-box.muted .
 
 @keyframes flash-thumbnail {
     0% {
-        box-shadow: 0 0 15px 10px #0d0;
+        filter: brightness(200%);
     }
 }
 
@@ -847,6 +852,10 @@ body:not(.disable-thumbnail-zooming) .thumbnail-container .thumbnail-box.muted .
 body.light .box-link {
     background-color: #fff;
     color: #222;
+}
+
+.box-link.disabled {
+    color: #888;
 }
 
 .box-link:hover {

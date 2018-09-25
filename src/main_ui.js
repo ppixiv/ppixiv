@@ -1,7 +1,7 @@
 // The main UI.  This handles creating the viewers and the global UI.
 class main_ui
 {
-    constructor(data_source)
+    constructor(main, container)
     {
         if(debug_show_ui) document.body.classList.add("force-ui");
 
@@ -15,51 +15,18 @@ class main_ui
         this.image_data_loaded = this.image_data_loaded.bind(this);
         this.clicked_bookmark_tag_selector = this.clicked_bookmark_tag_selector.bind(this);
         this.refresh_bookmark_tag_highlights = this.refresh_bookmark_tag_highlights.bind(this);
-        this.window_onpopstate = this.window_onpopstate.bind(this);
-        this.set_image_from_thumbnail = this.set_image_from_thumbnail.bind(this);
-        this.toggle_thumbnail_view = this.toggle_thumbnail_view.bind(this);
         this.data_source_updated = this.data_source_updated.bind(this);
 
         this.current_illust_id = -1;
         this.latest_navigation_direction_down = true;
-
-        this.data_source = data_source;
-        this.data_source.add_update_listener(this.data_source_updated);
-
-        window.addEventListener("popstate", this.window_onpopstate);
-
-        // Don't restore the scroll position.
-        //
-        // If we browser back to a search page and we were scrolled ten pages down, scroll
-        // restoration will try to scroll down to it incrementally, causing us to load all
-        // data in the search from the top all the way down to where we were.  This can cause
-        // us to spam the server with dozens of requests.  This happens on F5 refresh, which
-        // isn't useful (if you're refreshing a search page, you want to see new results anyway),
-        // and recommendations pages are different every time anyway.
-        //
-        // This won't affect browser back from an image to the enclosing search.
-        history.scrollRestoration = "manual";    
+        this.main = main;
+        this.container = container;
 
         document.head.appendChild(document.createElement("title"));
         this.document_icon = document.head.appendChild(document.createElement("link"));
         this.document_icon.setAttribute("rel", "icon");
        
-        helpers.add_style('body .noise-background { background-image: url("' + binary_data['noise.png'] + '"); };');
-        helpers.add_style('body.light .noise-background { background-image: url("' + binary_data['noise-light.png'] + '"); };');
-        helpers.add_style('.ugoira-icon { background-image: url("' + binary_data['play-button.svg'] + '"); };');
-        helpers.add_style('.page-icon { background-image: url("' + binary_data['page-icon.png'] + '"); };');
-        helpers.add_style('.refresh-icon:after { content: url("' + binary_data['refresh-icon.svg'] + '"); };');
-        helpers.add_style('.heart-icon:after { content: url("' + binary_data['heart-icon.svg'] + '"); };');
-        
-        helpers.add_style(resources['main.css']);
-
-        // Create the page.
-        this.container = document.body.appendChild(helpers.create_node(resources['main.html']));
-
         new hide_mouse_cursor_on_idle(this.container.querySelector(".image-container"));
-
-        this.thumbnail_view = new thumbnail_view(this.container.querySelector(".thumbnail-container"), this.set_image_from_thumbnail);
-        this.thumbnail_view.set_data_source(this.data_source);
 
         new refresh_bookmark_tag_widget(this.container.querySelector(".refresh-bookmark-tags"));
         this.manga_thumbnails = new manga_thumbnail_widget(this.container.querySelector(".manga-thumbnail-container"));
@@ -101,7 +68,7 @@ class main_ui
         bookmark_popup.addEventListener("wheel", function(e) { e.stopPropagation(); });
 
         this.container.querySelector(".download-button").addEventListener("click", this.clicked_download);
-        this.container.querySelector(".show-thumbnails-button").addEventListener("click", this.toggle_thumbnail_view);
+        this.container.querySelector(".show-thumbnails-button").addEventListener("click", this.main.toggle_thumbnail_view);
 
         window.addEventListener("bookmark-tags-changed", this.refresh_ui);
 
@@ -127,70 +94,67 @@ class main_ui
         this.seek_bar = new seek_bar(this.container.querySelector(".ugoira-seek-bar"));
 
         helpers.add_clicks_to_search_history(document.body);
-        this.refresh_ui();
-        
-        // Load the initial state.
-        this.load_current_state();
+
+        // We'll finish setting up when our caller calls set_data_source().
     }
 
-    window_onpopstate(e)
+    set_data_source(data_source)
     {
-        // The URL changed, eg. because the user navigated, so load the new state.
-        console.log("History state changed");
-        this.load_current_state();
-    }
+        if(data_source == this.data_source)
+            return;
 
-    load_current_state()
-    {
-        this.data_source.load_from_current_state(function() {
-            // Don't load the default image if the thumbnail view is enabled.
-            if(this.thumbnail_view.enabled)
-                return;
+        if(this.data_source != null)
+        {
+            this.data_source.remove_update_listener(this.data_source_updated);
+            this.data_source = null;
+        }
 
-            // Show the default image.
-            var show_illust_id = this.data_source.get_default_illust_id();
-            console.log("Showing initial image", show_illust_id);
-            this.show_image(show_illust_id);
-        }.bind(this));
+        this.data_source = data_source;
 
-        this.refresh_ui();
-    }
+        if(this.data_source != null)
+        {
+            this.data_source.add_update_listener(this.data_source_updated);
 
-    // This is called when the user clicks a thumbnail in the thumbnail view to display it.
-    //
-    // Normally when we go from one image to another, we leave the previous image viewer in
-    // place until we have image data for the new image, so we don't flash a black screen.
-    // That looks ugly when coming from the thumbnail list, since we show whatever previous
-    // image was being viewed briefly.  Instead, remove the viewer immediately.
-    set_image_from_thumbnail(illust_id)
-    {
-        this.stop_displaying_image();
-        
-        // Add this to history, since we want browser back to go back to the thumbnails.
-        this.show_image(illust_id, false, true /* do add to history */);
+            this.refresh_ui();
+        }
     }
 
     // Show an image.
-    //
-    // If the illustration has multiple pages and show_last_page is true, show the last page
-    // instead of the first.  This is used when navigating backwards.
-    //
-    // If add_to_history is true, we're loading an image because the user navigated to it (eg.
-    // pressing pgdn), so we should add it to history.  If it's false, we're loading it because
-    // the history state was changed (eg. browser back), so we shouldn't add a new state.
-    show_image(illust_id, show_last_page, add_to_history)
+    show_image(illust_id)
     {
+        // If we previously set a pending navigation, this navigation overrides it.
         this.cancel_async_navigation();
+
+        // If we were already shown (we're not coming from the thumbnail view), and we're showing
+        // the previous image from the one we were already showing, start at the end instead
+        // of the beginning, so we'll start at the end when browsing backwards.
+        var show_last_page = false;
+        if(this.active)
+        {
+            var next_illust_id = this.data_source.id_list.get_neighboring_illust_id(illust_id, true);
+            show_last_page = (next_illust_id == this.wanted_illust_id);
+        }
         
         // Remember that this is the image we want to be displaying.
         this.wanted_illust_id = illust_id;
         this.wanted_illust_last_page = show_last_page;
 
+        // If this image is already loaded, stop.
+        if(illust_id == this.current_illust_id)
+        {
+            console.log("illust_id", illust_id, "already displayed");
+            return;
+        }
+
+        // If we're not active, stop.  We'll show this image if we become loaded later.
+        if(!this.active)
+        {
+            console.log("show_image: stopping since we're not active");
+            return;
+        }
+
         // Tell the preloader about the current image.
         image_preloader.singleton.set_current_image(illust_id);
-
-        // Update the address bar with the new image.
-        this.data_source.set_current_illust_id(illust_id, add_to_history);
 
         // Load info for this image if needed.
         image_data.singleton().get_image_info(illust_id, this.image_data_loaded);
@@ -202,12 +166,6 @@ class main_ui
     {
         // If we previously set a pending navigation, this navigation overrides it.
         this.pending_navigation = null;
-
-        // If show_image started loading a new image, unset it.  If add_to_history was
-        // true, we won't remove the history entry.
-        this.wanted_illust_id = this.current_illust_id;
-        if(this.current_illust_id != -1)
-            this.data_source.set_current_illust_id(this.current_illust_id, false);
     }
 
 
@@ -247,9 +205,6 @@ class main_ui
 
         // If true, this is the first image we're displaying.
         var first_image_displayed = this.current_illust_id == -1;
-
-        this.wanted_illust_id = null;
-        this.wanted_illust_last_page = null;
 
         if(illust_id == this.current_illust_id)
         {
@@ -296,8 +251,8 @@ class main_ui
         var image_container = this.container.querySelector(".image-container");
 
         // Check if this image is muted.
-        var muted_tag = main.any_tag_muted(illust_data.tags.tags);
-        var muted_user = main.is_muted_user_id(illust_data.userId);
+        var muted_tag = muting.singleton.any_tag_muted(illust_data.tags.tags);
+        var muted_user = muting.singleton.is_muted_user_id(illust_data.userId);
 
         if(muted_tag || muted_user)
         {
@@ -334,7 +289,10 @@ class main_ui
     // This is called when the page of a multi-page illustration sequence changes.
     shown_page_changed(page, total_pages, url)
     {
+        // if we navigate down, then up quickly, undo any ongoing navigation to the
+        // next image
         this.cancel_async_navigation();
+        this.wanted_illust_id = this.current_illust_id;
 
         // Let the manga thumbnail display know about the selected page.
         this.manga_thumbnails.current_page_changed(page);
@@ -345,12 +303,48 @@ class main_ui
         this.refresh_ui();
     }
 
+    get active()
+    {
+        return this._active;
+    }
+
+    set active(active)
+    {
+        if(this._active == active)
+            return;
+
+        this._active = active;
+
+        if(!active)
+        {
+            this.cancel_async_navigation();
+            return;
+        }
+
+        // If show_image was called while we were inactive, load it now.
+        if(this.wanted_illust_id != this.current_illust_id)
+        {
+            // Hide any previous image.  We want to keep the previous image if we're going
+            // from image to image, but we don't want to flash the previous image when going
+            // from the thumbnail view to an image.
+            console.log("Showing illust_id", this.wanted_illust_id, "that was set while hidden");
+            var wanted_illust_id = this.wanted_illust_id;
+            this.stop_displaying_image();
+
+            // Show the image.  (this.wanted_illust_id was cleared by stop_displaying_image.)
+            this.show_image(wanted_illust_id);
+        }
+        
+        // If we're becoming active, refresh the UI, since we don't do that while we're inactive.
+        this.refresh_ui();
+    }
+
     // Refresh the UI for the current image.
     refresh_ui()
     {
         // Don't refresh if the thumbnail view is active.  We're not visible, and we'll just
         // step over its page title, etc.
-        if(this.thumbnail_view.enabled)
+        if(!this._active)
             return;
         
         // Pull out info about the user and illustration.
@@ -500,6 +494,9 @@ class main_ui
 
     onwheel(e)
     {
+        if(!this._active)
+            return;        
+
         // Don't intercept wheel scrolling over the description box.
         if(e.target == this.element_comment)
             return;
@@ -510,18 +507,8 @@ class main_ui
 
     onkeydown(e)
     {
-        if(e.keyCode == 27) // escape
-        {
-            e.preventDefault();
-            e.stopPropagation();
-
-            this.toggle_thumbnail_view();
-
-            return;
-        }
-
         // Don't handle image viewer shortcuts when the thumbnail view is open on top of it.
-        if(this.thumbnail_view.enabled)
+        if(!this._active)
             return;
         
         // Let the viewer handle the input first.
@@ -633,31 +620,6 @@ class main_ui
         }
     }
 
-    toggle_thumbnail_view()
-    {
-        this.thumbnail_view.set_enabled(!this.thumbnail_view.enabled, true);
-
-        // Scroll to the current illustration.
-        if(this.current_illust_id != -1 && this.thumbnail_view.enabled)
-            this.thumbnail_view.scroll_to_illust_id(this.current_illust_id);
-
-        // If we started in the thumbnail view, we didn't load any image, so make sure we
-        // display something now.
-        if(!this.thumbnail_view.enabled)
-            this.load_current_state();
-
-        // If we're enabling the thumbnail, pulse the image that was just being viewed (or
-        // loading to be viewed), to
-        // make it easier to find your place.
-        if(this.thumbnail_view.enabled)
-        {
-            if(this.current_illust_id != -1)
-                this.thumbnail_view.pulse_thumbnail(this.current_illust_id);
-            else if(this.wanted_illust_id != -1)
-                this.thumbnail_view.pulse_thumbnail(this.wanted_illust_id);
-        }
-    }
-
     move(down)
     {
         // Remember whether we're navigating forwards or backwards, for preloading.
@@ -669,15 +631,29 @@ class main_ui
         if(this.viewer && this.viewer.move)
         {
             if(this.viewer.move(down))
+            {
+                // If we navigated down out of this image, then navigated up back through it
+                // before the navigation happened, put this image back in the URL.
+                this.main.show_illust_id(this.current_illust_id, false /* don't add to history */);
                 return;
+            }
         }
 
+        // If we have a target illust_id, move relative to it.  Otherwise, move relative to the
+        // displayed image.  This way, if we navigate repeatedly before a previous navigation
+        // finishes, we'll keep moving rather than waiting for each navigation to complete.
+        var navigate_from_illust_id = this.wanted_illust_id;
+        if(navigate_from_illust_id == null)
+            navigate_from_illust_id = this.current_illust_id;
+
         // Get the next (or previous) illustration after the current one.
-        var new_illust_id = this.data_source.id_list.get_neighboring_illust_id(this.current_illust_id, down);
+        var new_illust_id = this.data_source.id_list.get_neighboring_illust_id(navigate_from_illust_id, down);
+        console.log("move(): id", navigate_from_illust_id, "next", new_illust_id);
+        console.log("    wanted", this.wanted_illust_id, "current", this.current_illust_id);
         if(new_illust_id == null)
         {
             // That page isn't loaded.  Try to load it.
-            var next_page = this.data_source.id_list.get_page_for_neighboring_illust(this.current_illust_id, down);
+            var next_page = this.data_source.id_list.get_page_for_neighboring_illust(navigate_from_illust_id, down);
 
             // If we can't find the next page, then the current image isn't actually loaded in
             // the current search results.  This can happen if the page is reloaded: we'll show
@@ -685,14 +661,15 @@ class main_ui
             // changed).  Just jump to the first image in the results so we get back to a place
             // we can navigate from.
             //
-            // Note that we use id_list.get_first_id rather than get_default_illust_id, which is
+            // Note that we use id_list.get_first_id rather than get_current_illust_id, which is
             // just the image we're already on.
             if(next_page == null)
             {
                 // We should normally know which page the illustration we're currently viewing is on.
-                console.warn("Don't know the next page for illust", this.current_illust_id);
+                console.warn("Don't know the next page for illust", navigate_from_illust_id);
                 new_illust_id = this.data_source.id_list.get_first_id();
-                this.show_image(new_illust_id, false, false /* don't add to history */);
+                console.log("xxx", new_illust_id);
+                this.main.show_illust_id(new_illust_id, false /* don't add to history */);
                 return true;
             }
 
@@ -736,13 +713,8 @@ class main_ui
             return true;
         }
 
-        // Show the new image.  If we're navigating up and there are multiple pages, show
-        // the last page instead of the first.
-        //
-        // We could add to history here, but we don't since it ends up creating way too
-        // many history states.
-        var show_last_page = !down;
-        this.show_image(new_illust_id, show_last_page, false /* don't add to history */);
+        // Show the new image.
+        this.main.show_illust_id(new_illust_id, false /* don't add to history */);
         return true;
     }
 

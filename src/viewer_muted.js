@@ -15,8 +15,8 @@ class viewer_muted extends viewer
         var img = this.root.querySelector(".muted-image");
         img.src = illust_data.userInfo.imageBig;
 
-        var muted_tag = main.any_tag_muted(illust_data.tags.tags);
-        var muted_user = main.is_muted_user_id(illust_data.userId);
+        var muted_tag = muting.singleton.any_tag_muted(illust_data.tags.tags);
+        var muted_user = muting.singleton.is_muted_user_id(illust_data.userId);
 
         var muted_label = this.root.querySelector(".muted-label");
         if(muted_tag)

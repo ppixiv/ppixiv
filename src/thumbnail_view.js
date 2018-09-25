@@ -1,14 +1,12 @@
 // The thumbnail overlay UI.
 class thumbnail_view
 {
-    constructor(container, show_image_callback)
+    constructor(container)
     {
         this.thumbs_loaded = this.thumbs_loaded.bind(this);
         this.data_source_updated = this.data_source_updated.bind(this);
-        this.onclick = this.onclick.bind(this);
         this.onwheel = this.onwheel.bind(this);
         this.onscroll = this.onscroll.bind(this);
-        this.onpopstate = this.onpopstate.bind(this);
 //        this.onmousemove = this.onmousemove.bind(this);
         this.submit_search = this.submit_search.bind(this);
         this.toggle_light_mode = this.toggle_light_mode.bind(this);
@@ -16,12 +14,10 @@ class thumbnail_view
         this.toggle_disable_thumbnail_zooming = this.toggle_disable_thumbnail_zooming.bind(this);
 
         this.container = container;
-        this.show_image_callback = show_image_callback;
+        this.active = false;
 
         window.addEventListener("thumbnailsLoaded", this.thumbs_loaded);
-        window.addEventListener("popstate", this.onpopstate);
 
-        this.container.addEventListener("click", this.onclick);
         this.container.addEventListener("wheel", this.onwheel);
 //        this.container.addEventListener("mousemove", this.onmousemove);
 
@@ -138,28 +134,6 @@ class thumbnail_view
         img.style.objectPosition = x + "% " + y + "%";
     }
 */
-    onclick(e)
-    {
-        // Only the <A> inside thumbnail-box is clickable.
-        var a = e.target.closest("a.thumbnail-link");
-        if(a != null)
-        {
-            // A thumbnail was clicked.  
-            e.stopPropagation();
-            e.preventDefault();
-
-            var thumb = a.closest(".thumbnail-box");
-
-            var illust_id = thumb.dataset.illust_id;
-            if(illust_id == null)
-                return;
-
-            this.show_image_callback(illust_id);
-            this.enabled = false;
-            return;
-        }
-    };
-
     onwheel(e)
     {
         // Stop event propagation so we don't change images on any viewer underneath the thumbs.
@@ -173,8 +147,17 @@ class thumbnail_view
 
     set_data_source(data_source)
     {
+        if(this.data_source == data_source)
+            return;
+
         if(this.data_source != null)
+        {
             this.data_source.remove_update_listener(this.data_source_updated);
+
+            // Store our scroll position on the data source, so we can restore it if it's
+            // reactivated.  There's only one instance of thumbnail_view, so this is safe.
+            this.data_source.thumbnail_view_scroll_pos = this.container.scrollTop;
+        }
 
         this.data_source = data_source;
 
@@ -187,7 +170,6 @@ class thumbnail_view
         // Listen to the data source loading new pages, so we can refresh the list.
         this.data_source.add_update_listener(this.data_source_updated);
 
-        this.set_enabled_from_url();
         this.refresh_images();
         this.load_needed_thumb_data();
 
@@ -196,23 +178,12 @@ class thumbnail_view
 
     refresh_ui()
     {
-        if(!this.enabled)
+        if(!this.active)
             return;
 
         var page_title = this.data_source.page_title || "Loading...";
         document.querySelector("title").textContent = page_title;
         
-        var ui_box = this.container.querySelector(".thumbnail-ui-box");
-
-        // Show UI elements with this data source in their data-datasource attribute.
-        var data_source_name = this.data_source.name;
-        for(var node of ui_box.querySelectorAll(".data-source-specific[data-datasource]"))
-        {
-            var data_sources = node.dataset.datasource.split(" ");
-            var show_element = data_sources.indexOf(data_source_name) != -1;
-            node.hidden = !show_element;
-        }
-
         var element_displaying = this.container.querySelector(".displaying");
         element_displaying.hidden = this.data_source.get_displaying_text == null;
         if(this.data_source.get_displaying_text != null)
@@ -223,6 +194,7 @@ class thumbnail_view
         
         this.refresh_ui_for_user_id();
 
+        var ui_box = this.container.querySelector(".thumbnail-ui-box");
         this.data_source.refresh_thumbnail_ui(ui_box, this);
     };
 
@@ -237,7 +209,7 @@ class thumbnail_view
         bookmarks_link.hidden = user_info == null;
         if(user_info != null)
         {
-            var bookmarks_url = "/bookmark.php?id=" + user_info.userId + "&rest=show";
+            var bookmarks_url = "/bookmark.php?id=" + user_info.userId + "&rest=show#ppixiv";
             bookmarks_link.href = bookmarks_url;
             bookmarks_link.dataset.popup = user_info? ("View " + user_info.name + "'s bookmarks"):"View bookmarks";
         }
@@ -296,52 +268,16 @@ class thumbnail_view
         }.bind(this));
     }
 
-    set_enabled_from_url()
+    set active(active)
     {
-        this.set_enabled(this.enabled, false);
-    };
+        if(this.active == active)
+            return;
 
-    onpopstate(e)
-    {
-        this.set_enabled_from_url();
-    };
+        this._active = active;
 
-    // Show or hide the thumbnail view.
-    get enabled()
-    {
-        // If thumbs is set in the hash, it's whether we're enabled.  Otherwise, use
-        // the data source's default.
-        var hash_args = page_manager.singleton().get_hash_args();
-        var enabled;
-        if(!hash_args.has("thumbs"))
-            return this.data_source.show_thumbs_by_default;
-        else
-            return hash_args.get("thumbs") == "1";
-    };
+        this.container.hidden = !active;
 
-    set enabled(enabled)
-    {
-        this.set_enabled(enabled, false);
-    }
-
-    set_enabled(enabled, add_to_history)
-    {
-        this.container.hidden = !enabled;
-
-        // Update the URL to remember whether we're in the thumb view.
-        var query_args = page_manager.singleton().get_query_args();
-        var hash_args = page_manager.singleton().get_hash_args();
-        if(enabled == this.data_source.show_thumbs_by_default)
-            hash_args.delete("thumbs");
-        else
-            hash_args.set("thumbs", enabled? "1":"0");
-
-        // Dismiss any widget when toggling between views.
-        message_widget.singleton.hide();
-
-        page_manager.singleton().set_args(query_args, hash_args, add_to_history);
-
-        if(enabled)
+        if(active)
         {
             this.refresh_ui();
 
@@ -356,9 +292,15 @@ class thumbnail_view
                 this.load_needed_thumb_data();
             }.bind(this), 0);
         }
-
-        if(!enabled)
+        else
+        {
             this.stop_pulsing_thumbnail();
+        }
+    }
+
+    get active()
+    {
+        return this._active;
     }
 
     data_source_updated()
@@ -473,6 +415,16 @@ class thumbnail_view
             entry.classList.add("next-page-placeholder");
             entry.hidden = this.disable_loading_more_pages;
             ul.appendChild(entry);
+
+            // If we saved a scroll position when navigating away from a data source earlier,
+            // restore it now.  Only do this once.
+            if(this.data_source.thumbnail_view_scroll_pos != null)
+            {
+                this.container.scrollTop = this.data_source.thumbnail_view_scroll_pos;
+                delete this.data_source.thumbnail_view_scroll_pos;
+            }
+            else
+                this.container.scrollTop = 0;
         }
     }
 
@@ -652,8 +604,8 @@ class thumbnail_view
             var thumb = element.querySelector(".thumb");
 
             // Check if this illustration is muted (blocked).
-            var muted_tag = main.any_tag_muted(info.tags);
-            var muted_user = main.is_muted_user_id(info.userId);
+            var muted_tag = muting.singleton.any_tag_muted(info.tags);
+            var muted_user = muting.singleton.is_muted_user_id(info.userId);
             if(muted_tag || muted_user)
             {
                 element.classList.add("muted");
@@ -697,9 +649,11 @@ class thumbnail_view
             // delete element.dataset.pending;
             element.removeAttribute("data-pending");
 
-            // Set the link.  We'll capture clicks and navigate in-page, but this allows middle click, etc.
-            // to work normally.
-            element.querySelector("a.thumbnail-link").href = "/member_illust.php?mode=medium&illust_id=" + illust_id + "#ppixiv";
+            // Set the link.  Setting dataset.illustId will allow this to be handled with in-page
+            // navigation, and the href will allow middle click, etc. to work normally.
+            var link = element.querySelector("a.thumbnail-link");
+            link.href = "/member_illust.php?mode=medium&illust_id=" + illust_id + "#ppixiv";
+            link.dataset.illustId = illust_id;
 
             if(info.illustType == 2)
                 element.querySelector(".ugoira-icon").hidden = false;
@@ -849,12 +803,10 @@ class thumbnail_view
         if(thumb == null)
             return;
 
-        // scrollIntoView scrolls even if the item is already in view, which doesn't make sense, so
-        // we have to manually check.
-        unsafeWindow.fff = thumb;
+        // If the item isn't visible, center it.
         var scroll_pos = this.container.scrollTop;
         if(thumb.offsetTop < scroll_pos || thumb.offsetTop + thumb.offsetHeight > scroll_pos + this.container.offsetHeight)
-            thumb.scrollIntoView();
+            this.container.scrollTop = thumb.offsetTop + thumb.offsetHeight/2 - this.container.offsetHeight/2;
     };
 
     pulse_thumbnail(illust_id)

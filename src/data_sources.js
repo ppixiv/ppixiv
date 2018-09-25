@@ -235,8 +235,9 @@ class illust_id_list
 // load all of them as a single page.
 class data_source
 {
-    constructor()
+    constructor(url)
     {
+        this.url = new URL(url);
         this.id_list = new illust_id_list();
         this.update_callbacks = [];
         this.loading_page_callbacks = {};
@@ -248,12 +249,68 @@ class data_source
     // the thumbnail view with that name.
     get name() { return null; }
     
+    // Return a canonical URL for this data source.  If the canonical URL is the same,
+    // the same instance of the data source should be used.
+    //
+    // A single data source is used eg. for a particular search and search flags.  If
+    // flags are changed, such as changing filters, a new data source instance is created.
+    // However, some parts of the URL don't cause a new data source to be used.  Return
+    // a URL with all unrelated parts removed, and with query and hash parameters sorted
+    // alphabetically.
+    //
+    // Due to some quirkiness in data_source_current_illust, this is async.
+    static get_canonical_url(url, callback)
+    {
+        // Make a copy of the URL.
+        var url = new URL(url);
+        this.remove_ignored_url_parts(url);
+
+        // Sort query parameters.  We don't use multiple parameters with the same key.
+        url.search = helpers.sort_query_parameters(url.searchParams).toString();
+
+        // Sort hash parameters.
+        var new_hash = helpers.sort_query_parameters(helpers.get_hash_args(url));
+        helpers.set_hash_args(url, new_hash);        
+        
+        var url = url.toString();
+        setTimeout(function() {
+            callback(url);
+        }, 0);
+    }
+
+    // This is overridden by subclasses to remove parts of the URL that don't affect
+    // which data source instance is used.
+    static remove_ignored_url_parts(url)
+    {
+        // If p=1 is in the query, it's the page number, which doesn't affect the data source.
+        url.searchParams.delete("p");
+
+        var hash_args = helpers.get_hash_args(url);
+
+        // #x=1 is a workaround for iframe loading.
+        hash_args.delete("x");
+
+        // #thumbs=1 just toggles whether the thumbnail view is active.
+        hash_args.delete("thumbs");
+
+        // illust_id in the hash is always just telling us which image within the current
+        // data source to view.  data_source_current_illust is different and is handled in
+        // the subclass.
+        hash_args.delete("illust_id");
+
+        // Any illust_id in the search or the hash doesn't require a new data source.
+        // bluh
+        // but the user underneath it does
+
+        helpers.set_hash_args(url, hash_args);        
+    }
+
     // Return the page that will be loaded by default, if load_page(null) is called.
     //
     // Most data sources store the page in the query.
     get_default_page()
     {
-        var query_args = page_manager.singleton().get_query_args();
+        var query_args = this.url.searchParams;
         return parseInt(query_args.get("p")) || 1;
     }
 
@@ -367,12 +424,12 @@ class data_source
     // Return the illust_id to display by default.
     //
     // This should only be called after the initial data is loaded.
-    get_default_illust_id()
+    get_current_illust_id()
     {
         // If we have an explicit illust_id in the hash, use it.  Note that some pages (in
         // particular illustration pages) put this in the query, which is handled in the particular
         // data source.
-        var hash_args = page_manager.singleton().get_hash_args();
+        var hash_args = helpers.get_hash_args(document.location);
         if(hash_args.has("illust_id"))
             return hash_args.get("illust_id");
         
@@ -394,21 +451,18 @@ class data_source
     // This is called when the currently displayed illust_id changes.  The illust_id should
     // always have been loaded by this data source, so it should be in id_list.  The data
     // source should update the history state to reflect the current state.
-    //
-    // If add_to_history, use history.pushState, otherwise use history.replaceState.  replace
-    // is true when we're just updating the current state (eg. after loading the first image)
-    // and false if we're actually navigating to a new image that should have a new history
-    // entry (eg. pressing page down).
-    set_current_illust_id(illust_id, add_to_history)
+    set_current_illust_id(illust_id, query_args, hash_args)
     {
-    };
+        // By default, put the illust_id in the hash.
+        hash_args.set("illust_id", illust_id);
+    }
 
     // Load from the current history state.  Load the current page (if needed), then call
     // callback().
     //
     // This is called when changing history states.  The data source should load the new
     // page if needed, then call this.callback.
-    load_from_current_state(callback)
+    load_current_page(callback)
     {
         this.load_page(null, callback);
     };
@@ -471,7 +525,6 @@ class data_source
                 console.error(e);
             }
         }
-        
     }
 
     // Each data source can have a different UI in the thumbnail view.  container is
@@ -580,7 +633,7 @@ class data_source_discovery extends data_source
             return false;
 
         // Get "mode" from the URL.  If it's not present, use "all".
-        var query_args = page_manager.singleton().get_query_args();
+        var query_args = this.url.searchParams;
         var mode = query_args.get("mode") || "all";
         
         var data = {
@@ -614,20 +667,6 @@ class data_source_discovery extends data_source
     get page_title() { return "Discovery"; }
     get_displaying_text() { return "Recommended Works"; }
 
-    // Update the address bar with the current illustration ID.  If that illust ID is on a different
-    // page and we know the page number, update that as well.
-    set_current_illust_id(illust_id, add_to_history)
-    {
-        var query_args = page_manager.singleton().get_query_args();
-        var hash_args = page_manager.singleton().get_hash_args();
-
-        // Store the current illust ID in the hash, since the real bookmark page doesn't have
-        // an illust_id.
-        hash_args.set("illust_id", illust_id);
-
-        page_manager.singleton().set_args(query_args, hash_args, add_to_history);
-    };
-
     refresh_thumbnail_ui(container)
     {
         // Set .selected on the current mode.
@@ -655,7 +694,7 @@ class data_source_related_illusts extends data_source
         {
             this.fetched_illust_info = true;
 
-            var query_args = page_manager.singleton().get_query_args();
+            var query_args = this.url.searchParams;
             var illust_id = query_args.get("illust_id");
             image_data.singleton().get_image_info(illust_id, function(illust_info) {
                 this.illust_info = illust_info;
@@ -671,7 +710,7 @@ class data_source_related_illusts extends data_source
         if(page != 1)
             return false;
 
-        var query_args = page_manager.singleton().get_query_args();
+        var query_args = this.url.searchParams;
         var illust_id = query_args.get("illust_id");
 
         var data = {
@@ -703,20 +742,6 @@ class data_source_related_illusts extends data_source
     get page_title() { return "Related Illusts"; }
     get_displaying_text() { return "Related Illustrations"; }
 
-    // Update the address bar with the current illustration ID.  If that illust ID is on a different
-    // page and we know the page number, update that as well.
-    set_current_illust_id(illust_id, add_to_history)
-    {
-        var query_args = page_manager.singleton().get_query_args();
-        var hash_args = page_manager.singleton().get_hash_args();
-
-        // Store the current illust ID in the hash.  This is the image being viewed, not the source
-        // image for the suggestion list (which is in the query).
-        hash_args.set("illust_id", illust_id);
-
-        page_manager.singleton().set_args(query_args, hash_args, add_to_history);
-    };
-
     refresh_thumbnail_ui(container)
     {
         // Set the source image.
@@ -743,41 +768,35 @@ class data_source_related_illusts extends data_source
 // the search results.
 class data_source_rankings extends data_source
 {
-    constructor()
+    constructor(url)
     {
-        super();
+        super(url);
 
         this.max_page = 999999;
-
-        // This is the date that the page is showing us.
-        // We want to know the date the page is showing us, even if we requested the
-        // default.  This is a little tricky since there's no unique class on that element,
-        // but it's always the element after "before" and the element before "after".
-        //
-        // We can also get this from the API response, but doing it here reduces UI
-        // pop by filling it in at the start.
-        var current = doc.querySelector(".ranking-menu .before + li > a");
-        this.today_text = current? current.innerText:"";
-
-        // Figure out today
-        var after = doc.querySelector(".ranking-menu .after > a");
-        if(after)
-            this.prev_date = new URL(after.href).searchParams.get("date");
-
-        var before = doc.querySelector(".ranking-menu .before > a");
-        if(before)
-            this.next_date = new URL(before.href).searchParams.get("date");
     }
     
     get name() { return "rankings"; }
    
     load_page_internal(page, callback)
     {
+
+        /*
+        "mode": "daily",
+        "content": "all",
+        "page": 1,
+        "prev": false,
+        "next": 2,
+        "date": "20180923",
+        "prev_date": "20180922",
+        "next_date": false,
+        "rank_total": 500        
+        */
+
         if(page > this.max_page)
             return false;
 
         // Get "mode" from the URL.  If it's not present, use "all".
-        var query_args = page_manager.singleton().get_query_args();
+        var query_args = this.url.searchParams;
         
         var data = {
             format: "json",
@@ -801,12 +820,26 @@ class data_source_rankings extends data_source
             if(!result.next)
                 this.max_page = Math.min(page, this.max_page);
 
-            /* if(this.today_text == null)
+            // Fill in the next/prev dates for the navigation buttons, and the currently
+            // displayed date.
+            if(this.today_text == null)
+            {
                 this.today_text = result.date;
+
+                // This is "YYYYMMDD".  Reformat it.
+                if(this.today_text.length == 8)
+                {
+                    var year = this.today_text.slice(0,4);
+                    var month = this.today_text.slice(4,6);
+                    var day = this.today_text.slice(6,8);
+                    this.today_text = year + "/" + month + "/" + day;
+                }
+            }
+
             if(this.prev_date == null && result.prev_date)
                 this.prev_date = result.prev_date;
             if(this.next_date == null && result.next_date)
-                this.next_date = result.next_date; */
+                this.next_date = result.next_date;
         
             // This returns a struct of data that's like the thumbnails data response,
             // but it's not quite the same.
@@ -836,23 +869,9 @@ class data_source_rankings extends data_source
     get page_title() { return "Rankings"; }
     get_displaying_text() { return "Rankings"; }
 
-    // Update the address bar with the current illustration ID.  If that illust ID is on a different
-    // page and we know the page number, update that as well.
-    set_current_illust_id(illust_id, add_to_history)
-    {
-        var query_args = page_manager.singleton().get_query_args();
-        var hash_args = page_manager.singleton().get_hash_args();
-
-        // Store the current illust ID in the hash, since the real bookmark page doesn't have
-        // an illust_id.
-        hash_args.set("illust_id", illust_id);
-
-        page_manager.singleton().set_args(query_args, hash_args, add_to_history);
-    };
-
     refresh_thumbnail_ui(container)
     {
-        var query_args = page_manager.singleton().get_query_args();
+        var query_args = this.url.searchParams;
         
         this.set_item(container, "content-all", {content: null});
         this.set_item(container, "content-illust", {content: "illust"});
@@ -870,8 +889,10 @@ class data_source_rankings extends data_source
         if(this.today_text)
             container.querySelector(".nav-today").innerText = this.today_text;
 
+        // This UI is greyed rather than hidden before we have the dates, so the UI doesn't
+        // shift around as we load.
         var yesterday = container.querySelector(".nav-yesterday");
-        yesterday.hidden = this.prev_date == null;
+        helpers.set_class(yesterday.querySelector(".box-link"), "disabled", this.prev_date == null);
         if(this.prev_date)
         {
             var url = new URL(window.location);
@@ -880,7 +901,7 @@ class data_source_rankings extends data_source
         }
 
         var tomorrow = container.querySelector(".nav-tomorrow");
-        tomorrow.hidden = this.next_date == null;
+        helpers.set_class(tomorrow.querySelector(".box-link"), "disabled", this.next_date == null);
         if(this.next_date)
         {
             var url = new URL(window.location);
@@ -966,7 +987,7 @@ class data_source_from_page extends data_source
     // The constructor receives the original HTMLDocument.
     constructor(url, doc)
     {
-        super();
+        super(url);
 
         this.original_doc = doc;
         this.items_per_page = 1;
@@ -1013,7 +1034,7 @@ class data_source_from_page extends data_source
         var params = url.searchParams;
         params.set("p", page);
 
-        if(this.original_url != null && this.is_same_page(url, this.original_url))
+        if(this.original_doc != null && this.is_same_page(url, this.original_url))
         {
             this.finished_loading_illust(page, this.original_doc, callback);
             return true;
@@ -1085,24 +1106,16 @@ class data_source_from_page extends data_source
         throw "Not implemented";
     }
 
-    // Update the address bar with the current illustration ID.  If that illust ID is on a different
-    // page and we know the page number, update that as well.
-    set_current_illust_id(illust_id, add_to_history)
+    set_current_illust_id(illust_id, query_args, hash_args)
     {
-        var query_args = page_manager.singleton().get_query_args();
-        var hash_args = page_manager.singleton().get_hash_args();
-
-        // Store the current illust ID in the hash, since the real bookmark page doesn't have
-        // an illust_id.
-        hash_args.set("illust_id", illust_id);
+        // Use the default behavior for illust_id.
+        super.set_current_illust_id(illust_id, query_args, hash_args);
 
         // Update the current page.  (This can be undefined if we're on a page that isn't
         // actually loaded for some reason.)
         var original_page = this.id_list.get_page_for_illust(illust_id);
         if(original_page != null)
             query_args.set("p", original_page);
-
-        page_manager.singleton().set_args(query_args, hash_args, add_to_history);
     };
 };
 
@@ -1126,7 +1139,7 @@ class data_source_artist extends data_source
   
     get viewing_user_id()
     {
-        var query_args = page_manager.singleton().get_query_args();
+        var query_args = this.url.searchParams;
         return query_args.get("id");
     };
 
@@ -1190,20 +1203,6 @@ class data_source_artist extends data_source
         return true;
     };
 
-    // Update the address bar with the current illustration ID.  If that illust ID is on a different
-    // page and we know the page number, update that as well.
-    set_current_illust_id(illust_id, add_to_history)
-    {
-        var query_args = page_manager.singleton().get_query_args();
-        var hash_args = page_manager.singleton().get_hash_args();
-
-        // Store the current illust ID in the hash, since the real bookmark page doesn't have
-        // an illust_id.
-        hash_args.set("illust_id", illust_id);
-
-        page_manager.singleton().set_args(query_args, hash_args, add_to_history);
-    };
-    
     refresh_thumbnail_ui(container, thumbnail_view)
     {
         if(this.user_info)
@@ -1329,21 +1328,39 @@ class data_source_current_illust extends data_source_from_page
     };
 
     // Unlike most data_source_from_page implementations, we only have a single page.
-    get_default_illust_id()
+    get_current_illust_id()
     {
         // ?illust_id should always be an illustration ID on illustration pages.
-        var query_args = page_manager.singleton().get_query_args();
+        var query_args = new URL(document.location).searchParams;
         return query_args.get("illust_id");
     };
- 
-    set_current_illust_id(illust_id, replace)
+
+    // data_source_current_illust is tricky.  Since it returns posts by the user
+    // of an image, we remove the illust_id (since two images with the same user
+    // can use the same data source), and add the user ID.
+    //
+    // This requires that get_canonical_url be asynchronous, since we might need
+    // to load the image info.
+    static get_canonical_url(url, callback)
     {
-        var query_args = page_manager.singleton().get_query_args();
-        var hash_args = page_manager.singleton().get_hash_args();
+        var url = new URL(url);
+        var illust_id = url.searchParams.get("illust_id");
+        image_data.singleton().get_image_info(illust_id, function(illust_info) {
+            var hash_args = helpers.get_hash_args(url);
+            hash_args.set("user_id", illust_info.userId);
+            helpers.set_hash_args(url, hash_args);
 
+            url.searchParams.delete("illust_id");
+            
+            data_source.get_canonical_url(url, callback);
+        }.bind(this));
+    }
+
+    // Unlike most data sources, data_source_current_illust puts the illust_id
+    // in the query rather than the hash.
+    set_current_illust_id(illust_id, query_args, hash_args)
+    {
         query_args.set("illust_id", illust_id);
-
-        page_manager.singleton().set_args(query_args, hash_args, replace);
     };
 
     get page_title()
@@ -1399,9 +1416,9 @@ class data_source_bookmarks extends data_source
 {
     get name() { return "bookmarks"; }
     
-    constructor()
+    constructor(url)
     {
-        super();
+        super(url);
         this.bookmark_tags = [];
     }
 
@@ -1456,7 +1473,7 @@ class data_source_bookmarks extends data_source
             this.user_info = user_info;
             this.call_update_listeners();
 
-            var query_args = page_manager.singleton().get_query_args();
+            var query_args = this.url.searchParams;
             var rest = query_args.get("rest") || "show";
             var tag = query_args.get("tag") || "";
 
@@ -1475,7 +1492,7 @@ class data_source_bookmarks extends data_source
 
                 // This request returns all of the thumbnail data we need.  Forward it to
                 // thumbnail_data so we don't need to look it up.
-                thumbnail_data.singleton().loaded_thumbnail_info(result.body.works);
+                thumbnail_data.singleton().loaded_thumbnail_info(result.body.works, "normal");
 
                 // Sort the two sets of IDs back together, putting higher (newer) IDs first.
                 illust_ids.sort(function(lhs, rhs)
@@ -1516,7 +1533,7 @@ class data_source_bookmarks extends data_source
             return "User's Bookmarks";
         }
 
-        var query_args = page_manager.singleton().get_query_args();
+        var query_args = this.url.searchParams;
 
         var private_bookmarks = query_args.get("rest") == "hide";
         var displaying = private_bookmarks? "Private bookmarks":"Bookmarks";
@@ -1577,21 +1594,10 @@ class data_source_bookmarks extends data_source
             thumbnail_view.avatar_widget.set_from_user_data(this.user_info);
     }
 
-    set_current_illust_id(illust_id, add_to_history)
-    {
-        var query_args = page_manager.singleton().get_query_args();
-        var hash_args = page_manager.singleton().get_hash_args();
-
-        // Store the current illust ID in the hash.
-        hash_args.set("illust_id", illust_id);
-
-        page_manager.singleton().set_args(query_args, hash_args, add_to_history);
-    };
-    
     get viewing_user_id()
     {
         // If there's no user ID in the URL, view our own bookmarks.
-        var query_args = page_manager.singleton().get_query_args();
+        var query_args = this.url.searchParams;
         var user_id = query_args.get("id");
         if(user_id == null)
             return window.global_data.user_id;
@@ -1692,6 +1698,9 @@ class data_source_bookmarks_new_illust extends data_source_from_page
         var element = doc.querySelector("#js-mount-point-latest-following");
         var items = JSON.parse(element.dataset.items);
 
+        // Populate thumbnail data with this data.
+        thumbnail_data.singleton().loaded_thumbnail_info(items, "following");
+
         var illust_ids = [];
         for(var illust of items)
             illust_ids.push(illust.illustId);
@@ -1772,6 +1781,10 @@ class data_source_search extends data_source_from_page
             }
         }
         
+        // Populate thumbnail data with this data.  This has the same format as
+        // bookmark_new_illust.php.
+        thumbnail_data.singleton().loaded_thumbnail_info(illusts, "following");
+
         var illust_ids = [];
         for(var illust of illusts)
             illust_ids.push(illust.illustId);
@@ -1781,7 +1794,7 @@ class data_source_search extends data_source_from_page
 
     get page_title()
     {
-        var query_args = page_manager.singleton().get_query_args();
+        var query_args = this.url.searchParams;
 
         var displaying = "Search: ";
         var tag = query_args.get("word");

@@ -290,9 +290,9 @@ class image_preloader
     create_preloaders_for_illust(illust_data)
     {
         // Don't precache muted images.
-        if(main.any_tag_muted(illust_data.tags.tags))
+        if(muting.singleton.any_tag_muted(illust_data.tags.tags))
             return [];
-        if(main.is_muted_user_id(illust_data.userId))
+        if(muting.singleton.is_muted_user_id(illust_data.userId))
             return [];
 
         // If this is a video, preload the ZIP.
