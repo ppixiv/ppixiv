@@ -616,6 +616,99 @@ class data_source
     }
 };
 
+// This extends data_source with local pagination.
+//
+// A few API calls just return all results as a big list of IDs.  We can handle loading
+// them all at once, but it results in a very long scroll box, which makes scrolling
+// awkward.  This artificially paginates the results.
+class data_source_fake_pagination extends data_source
+{
+    get estimated_items_per_page() { return 30; }
+
+    constructor(url)
+    {
+        super(url);
+
+        this.finish_pending_callbacks = this.finish_pending_callbacks.bind(this);
+
+        this.all_illust_ids = null;
+        this.loading_results = false;
+
+        // A list of [page, callback] calls to load_page_internal that are waiting to complete.
+        this.pending_callbacks = [];
+    }
+
+    load_page_internal(page, callback)
+    {
+        this.pending_callbacks.push([page, callback]);
+
+        // If we haven't loaded our data yet, do it now.  Otherwise, we can just
+        // finish the request.
+        if(this.all_illust_ids == null)
+        {
+            // If load_all_results is already running, just wait for the existing call to
+            // finish.
+            if(this.loading_results)
+                return;
+            this.loading_results = true;
+
+            this.load_all_results();
+        }
+        else
+            this.finish_pending_callbacks();
+
+        return true;
+    }
+
+    finish_pending_callbacks()
+    {
+        var pending_callbacks = this.pending_callbacks;
+        this.pending_callbacks = [];
+
+        // First, register all requested pages.
+        for(var item of pending_callbacks)
+        {
+            var page = item[0];
+
+            // If this page isn't loaded, load it now.
+            if(!this.id_list.is_page_loaded(page))
+            {
+                // Paginate the big list of results.  Note that page starts at 1.
+                var first_idx = (page-1) * this.estimated_items_per_page;
+                var count = this.estimated_items_per_page;
+                var illust_ids = [];
+                for(var idx = first_idx; idx < first_idx + count && idx < this.all_illust_ids.length; ++idx)
+                    illust_ids.push(this.all_illust_ids[idx]);
+            
+                // Register the new page of data.
+                this.add_page(page, illust_ids);
+            }
+        }
+        
+        // Call the callbacks asynchronously.
+        for(var item of pending_callbacks)
+        {
+            var callback = item[1];
+            setTimeout(callback, 0);
+        }
+    }
+
+    // Implemented by the subclass.  Load all results, and call finished_loading_results
+    // with the resulting IDs.
+    load_all_results()
+    {
+        throw "Not implemented";
+    }
+
+    finished_loading_results(all_illust_ids)
+    {
+        // Record the IDs.  Don't register all of them now, we'll wait until pages
+        // are requested.
+        this.all_illust_ids = all_illust_ids;
+        this.finish_pending_callbacks();
+    }
+}
+
 // /discovery
 //
 // This is an actual API call for once, so we don't need to scrape HTML.  We only show
@@ -623,15 +716,13 @@ class data_source
 //
 // The API call returns 1000 entries.  We don't do pagination, we just show the 1000 entries
 // and then stop.  I haven't checked to see if the API supports returning further pages.
-class data_source_discovery extends data_source
+class data_source_discovery extends data_source_fake_pagination
 {
     get name() { return "discovery"; }
-    
-    load_page_internal(page, callback)
-    {
-        if(page != 1)
-            return false;
 
+    // Implement data_source_fake_pagination:
+    load_all_results()
+    {
         // Get "mode" from the URL.  If it's not present, use "all".
         var query_args = this.url.searchParams;
         var mode = query_args.get("mode") || "all";
@@ -651,18 +742,11 @@ class data_source_discovery extends data_source
             for(var illust_id of result.recommendations)
                 illust_ids.push(illust_id + "");
 
-            // Register the new page of data.
-            this.add_page(page, illust_ids);
-
-            if(callback)
-                callback();
+            this.finished_loading_results(illust_ids);
         }.bind(this))
 
         return true;
     };
-
-    // This doesn't matter for this data source, since we don't load any more pages after the first.
-    get estimated_items_per_page() { return 1; }
 
     get page_title() { return "Discovery"; }
     get_displaying_text() { return "Recommended Works"; }
@@ -682,7 +766,10 @@ class data_source_discovery extends data_source
 //
 // We use this as an anchor page for viewing recommended illusts for an image, since
 // there's no dedicated page for this.
-class data_source_related_illusts extends data_source
+//
+// This returns a big chunk of results in one call, so we use data_source_fake_pagination
+// to break it up.
+class data_source_related_illusts extends data_source_fake_pagination
 {
     get name() { return "related-illusts"; }
    
@@ -705,11 +792,9 @@ class data_source_related_illusts extends data_source
         return super.load_page(page, callback);
     }
      
-    load_page_internal(page, callback)
+    // Implement data_source_fake_pagination:
+    load_all_results()
     {
-        if(page != 1)
-            return false;
-
         var query_args = this.url.searchParams;
         var illust_id = query_args.get("illust_id");
 
@@ -726,18 +811,9 @@ class data_source_related_illusts extends data_source
             for(var illust_id of result.recommendations)
                 illust_ids.push(illust_id + "");
 
-            // Register the new page of data.
-            this.add_page(page, illust_ids);
-
-            if(callback)
-                callback();
+            this.finished_loading_results(illust_ids);
         }.bind(this))
-
-        return true;
     };
-
-    // This doesn't matter for this data source, since we don't load any more pages after the first.
-    get estimated_items_per_page() { return 1; }
 
     get page_title() { return "Related Illusts"; }
     get_displaying_text() { return "Related Illustrations"; }
@@ -1268,9 +1344,26 @@ class data_source_artist extends data_source
     };
 }
 
-class data_source_current_illust extends data_source_from_page
+// Viewing a single illustration.
+//
+// This page gives us all of the user's illustration IDs, so we can treat this as
+// a data source for a user without having to make separate requests.
+//
+// This reads data from a page, but we don't use data_source_from_page here.  We
+// don't need its pagination logic, and we do want to have pagination from data_source_fake_pagination.
+// a
+class data_source_current_illust extends data_source_fake_pagination
 {
     get name() { return "illust"; }
+
+    // The constructor receives the original HTMLDocument.
+    constructor(url, doc)
+    {
+        super(url);
+
+        this.original_doc = doc;
+        this.original_url = url;
+    }
 
     // Show the illustration by default.
     get show_thumbs_by_default()
@@ -1280,15 +1373,49 @@ class data_source_current_illust extends data_source_from_page
 
     get_default_page() { return 1; }
 
-    // We only have one page and we already have it when we're constructed, but we wait to load
-    // it until load_page is called so this acts the same as the asynchronous data sources.
-    load_page(page, callback)
+    // Implement data_source_fake_pagination:
+    load_all_results()
     {
-        // This data source only ever loads a single page.
-        if(page != null && page != 1)
-            return false;
+        if(this.original_doc != null)
+        {
+            this.load_all_results_from(this.original_doc);
+            return;
+        }
 
-        return super.load_page(page, callback);
+        var url = new unsafeWindow.URL(this.original_url);
+
+        // Work around browsers not loading the iframe properly when it has the same URL.
+        url.searchParams.set("x", 1);
+        
+        console.log("Loading:", url.toString());
+
+        helpers.load_data_in_iframe(url.toString(), function(doc) {
+            this.load_all_results_from(doc);
+        }.bind(this));
+    };
+
+    // Parse out illust IDs from doc, and pass them to finished_loading_results.
+    load_all_results_from(doc)
+    {
+        var illust_ids = this.parse_document(doc);
+        if(illust_ids == null)
+        {
+            // The most common case of there being no data in the document is loading
+            // a deleted illustration.  See if we can find an error message.
+            console.error("No data on page");
+            var error = doc.querySelector(".error-message");
+            var error_message = "Error loading page";
+            if(error != null)
+                error_message = error.textContent;
+            message_widget.singleton.show(error_message);
+            message_widget.singleton.clear_timer();
+
+            // We still need to call finished_loading_results.
+            this.finished_loading_results([]);
+            return;
+        }
+
+        this.finished_loading_results(illust_ids);
     }
 
     parse_document(doc)
