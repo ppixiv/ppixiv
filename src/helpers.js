@@ -959,11 +959,16 @@ var helpers = {
         for(var a of root.querySelectorAll("A[target='_blank']"))
             a.target = "";
 
+        for(var a of root.querySelectorAll("A"))
+        {
+            a.relList.add("noreferrer");
+            a.relList.add("noopener");
+        }
+
         for(var a of root.querySelectorAll("A[href*='jump.php']"))
         {
-            a.relList.add("noreferrer");            
             var url = new URL(a.href);
-            var target = url.search.substr(1); // remove ?
+            var target = url.search.substr(1); // remove "?"
             target = decodeURIComponent(target);
             a.href = target;
         }
