@@ -98,6 +98,15 @@ class early_controller
         // Create the main controller.
         main_controller.create_singleton();
     }
+
+    // When we're disabled, but available on the current page, add the button to enable us.
+    setup_disabled_ui()
+    {
+        // Create the activation button.
+        var disabled_ui = helpers.create_node(resources['disabled.html']);
+        helpers.add_style('.ppixiv-disabled-ui > a { background-image: url("' + binary_data['activate-icon.png'] + '"); };');
+        document.body.appendChild(disabled_ui);
+    };
 }
 
 // This handles high-level navigation and controlling the different views.
@@ -228,15 +237,6 @@ class main_controller
 
         // Create the data source for this page.
         this.set_current_data_source(html);
-    };
-
-    // When we're disabled, but available on the current page, add the button to enable us.
-    setup_disabled_ui()
-    {
-        // Create the activation button.
-        var disabled_ui = helpers.create_node(resources['disabled.html']);
-        helpers.add_style('.ppixiv-disabled-ui > a { background-image: url("' + binary_data['activate-icon.png'] + '"); };');
-        document.body.appendChild(disabled_ui);
     };
 
     window_onpopstate(e)
