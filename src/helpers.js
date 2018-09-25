@@ -937,6 +937,23 @@ var helpers = {
         return false;
     },
 
+    // Find all links to Pixiv pages, and set a #ppixiv anchor.
+    //
+    // This allows links to images in things like image descriptions to be loaded
+    // internally without a page navigation.
+    make_pixiv_links_internal(root)
+    {
+        for(var a of root.querySelectorAll("A"))
+        {
+            var url = new URL(a.href, document.location);
+            if(url.hostname != "pixiv.net" && url.hostname != "www.pixiv.net" || url.hash != "")
+                continue;
+
+            url.hash = "#ppixiv";
+            a.href = url.toString();
+        }
+    },
+
     fix_pixiv_links: function(root)
     {
         for(var a of root.querySelectorAll("A[target='_blank']"))

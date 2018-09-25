@@ -432,6 +432,7 @@ class main_ui
         this.element_comment.hidden = illust_data.illustComment == "";
         this.element_comment.innerHTML = illust_data.illustComment;
         helpers.fix_pixiv_links(this.element_comment);
+        helpers.make_pixiv_links_internal(this.element_comment);
 
         // Set the download button popup text.
         var download_type = this.get_download_type_for_image();
