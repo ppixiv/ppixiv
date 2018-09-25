@@ -499,7 +499,7 @@ class main_ui
             return;        
 
         // Don't intercept wheel scrolling over the description box.
-        if(e.target == this.element_comment)
+        if(e.target.closest(".description") != null)
             return;
 
         var down = e.deltaY > 0;
