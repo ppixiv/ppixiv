@@ -356,6 +356,10 @@ class main_controller
         if(this.data_source == data_source)
             return;
 
+        // If we were showing a message for the old data source, it might be persistent,
+        // so clear it.
+        message_widget.singleton.hide();
+        
         this.data_source = data_source;
         this.show_data_source_specific_elements();
         this.ui.set_data_source(data_source);

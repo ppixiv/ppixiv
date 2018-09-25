@@ -21,9 +21,16 @@ class message_widget
         this.container.querySelector(".message").innerHTML = message;
 
         this.container.classList.add("show");
+        this.container.classList.remove("centered");
         this.timer = setTimeout(function() {
             this.container.classList.remove("show");
         }.bind(this), 3000);
+    }
+
+    // Center the current message instead of showing it at the bottom.
+    center()
+    {
+        this.container.classList.add("centered");
     }
 
     clear_timer()

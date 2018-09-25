@@ -109,10 +109,15 @@ textarea:focus, input:focus, a:focus {
     pointer-events: none;
     opacity: 0;
     transition: opacity .25s;
+    z-index: 100;
 }
 
 .hover-message.show {
     opacity: 1;
+}
+
+.hover-message.centered {
+    bottom: 50%;
 }
 
 .hover-message > .message {

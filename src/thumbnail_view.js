@@ -490,7 +490,21 @@ class thumbnail_view
             // the next-page-placeholder image so we don't keep trying to load more pages.
             // This won't prevent us from loading earlier pages.
             if(!result)
+            {
                 this.disable_loading_more_pages = true;
+
+                // If this is the first page and there are no results, then there are no images
+                // for this search.
+                if(page == 1)
+                {
+                    console.log("No results on page 1.  Showing no results");
+                    message_widget.singleton.show("No results");
+                    message_widget.singleton.center();
+                    message_widget.singleton.clear_timer();
+                }
+                
+                console.log("stop");
+            }
 
             // We could load more pages, but let's just load one at a time so we don't spam
             // requests too quickly.  Once this page loads we'll come back here and load
