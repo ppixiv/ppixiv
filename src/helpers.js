@@ -1140,7 +1140,6 @@ var helpers = {
 
         for(var selector of selectors)
         {
-            console.log("...", selector);
             var box = container.querySelector(selector);
             if(box == null)
             {

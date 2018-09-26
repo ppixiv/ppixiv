@@ -57,7 +57,7 @@ class thumbnail_view
         this.container.querySelector(".search-tags-box .related-tag-list").addEventListener("scroll", function(e) { e.stopPropagation(); }, true);
 
         // Set up hover popups.
-        helpers.setup_popups(this.container, [".navigation-menu-box", ".settings-menu-box", ".ages-box", ".popularity-box", ".type-box", ".search-mode-box", ".size-box", ".aspect-ratio-box", ".bookmarks-box", ".time-box", ".member-tags-box", ".search-tags-box"]);
+        helpers.setup_popups(this.container, [".navigation-menu-box", ".thumbnail-settings-menu-box", ".ages-box", ".popularity-box", ".type-box", ".search-mode-box", ".size-box", ".aspect-ratio-box", ".bookmarks-box", ".time-box", ".member-tags-box", ".search-tags-box"]);
 
         // Fill in the default value for the search page.  We don't do this in refresh_thumbnail_ui
         // since we don't want to clobber the user's edits later.  Only do this with the search box

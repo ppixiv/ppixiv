@@ -235,8 +235,8 @@ body:not(.hide-ui) .hover-box:hover + .ui-box {
 .disable-ui-button:hover > .icon-button {
     fill: #0096FA;
 }
-.settings-menu-box > .icon-button {
-    padding: 4px; /* center the 24px icon */
+.thumbnail-settings-menu-box > .icon-button {
+    padding: 0 4px; /* center the 24px icon */
 }
 .show-thumbnails-button {
     cursor: pointer;
@@ -258,7 +258,7 @@ body:not(.hide-ui) .hover-box:hover + .ui-box {
     animation-play-state: running;
 }
 
-.settings-menu-box svg {
+.thumbnail-settings-menu-box svg {
     margin: 0 .5em;
 }
 
