@@ -188,7 +188,11 @@ class page_manager
 
         // If we have a hash and it's not #ppixiv, then we're explicitly disabled.  If we
         // # do have a #ppixiv hash, we're explicitly enabled.
-        return helpers.parse_hash(document.location) != null;
+        //
+        // If we're explicitly enabled but aren't actually available, we're disabled.  This
+        // makes sure we don't break pages if we accidentally load them with a #ppixiv hash,
+        // or if we remove support for a page that people have in their browser session.
+        return helpers.parse_hash(document.location) != null && this.available();
     };
 
     // Update the URL.  If add_to_history is true, add a new history state.  Otherwise,
