@@ -676,13 +676,39 @@ body[data-thumbnail-mode="wide"]  li.thumbnail-box a.thumbnail-link {
     margin-left: -4px;
 }
 
+/* The similar illusts button on top of thumbnails. */
+.thumbnail-container li.thumbnail-box .similar-images-button {
+    display: block;
+    width: 32px;
+    height: 32px;
+    margin-top: -2px;
+}
+.thumbnail-container li.thumbnail-box:not(:hover) .similar-images-button {
+    visibility: hidden;
+}
+.thumbnail-container li.thumbnail-box .similar-images-button {
+    fill: #FF0 !important; /* override grey-icon hover color */
+    opacity: 0.5;
+
+    /* Use a very subtle stroke when not hovered, so it's not completely invisible
+     * on light backgrounds. */
+    stroke: rgba(0,0,0,0.5);
+}
+.thumbnail-container li.thumbnail-box .similar-images-button:hover {
+    opacity: 1;
+    stroke: #000;
+}
+
+.thumbnail-container li.thumbnail-box .thumbnail-bottom-left {
+    position: absolute;
+    display: flex;
+    left: 0px;
+    bottom: 0px;
+}
 .thumbnail-container li.thumbnail-box .heart {
     pointer-events: none;
     width: 32px;
     height: 32px;
-    left: 0px;
-    bottom: 0px;
-    position: absolute;
 }
 .thumbnail-container li.thumbnail-box .heart > svg {
     transition: opacity .5s;
@@ -740,11 +766,11 @@ body[data-thumbnail-mode="wide"]  li.thumbnail-box a.thumbnail-link {
     transform: scale(1.25, 1.25);
 }
 
-body.disable-thumbnail-zooming .thumbnail-box .thumb {
+body.disable-thumbnail-zooming .thumbnail-box .thumbnail-inner .thumb {
     transform: scale(1, 1);
 }
 
-body:not(.disable-thumbnail-zooming) .thumbnail-box .thumb:hover {
+body:not(.disable-thumbnail-zooming) .thumbnail-box .thumbnail-inner:hover .thumb {
     transform: scale(1, 1);
 }
 
@@ -756,7 +782,7 @@ body:not(.disable-thumbnail-zooming) .thumbnail-box .thumb:hover {
     animation-iteration-count: infinite;
 }
 
-.thumbnail-box .thumb:not(:hover) {
+.thumbnail-box .thumbnail-inner:not(:hover) .thumb {
     animation-play-state: paused;
 }
 
