@@ -2073,10 +2073,7 @@ class data_source_search extends data_source_from_page
         {
             var span = doc.querySelector(".search-result-information .translation-column-title");
             if(span != null)
-            {
                 this.tag_translation = span.innerText;
-                console.log(this.tag_translation);
-            }
         }
         
         // Populate thumbnail data with this data.  This has the same format as

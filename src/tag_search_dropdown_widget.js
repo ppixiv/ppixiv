@@ -167,7 +167,6 @@ class tag_search_dropdown_widget
 
         // Store the new results.
         this.current_autocomplete_results = result.candidates || [];
-        console.log(result.candidates);
 
         // Refresh the dropdown with the new results.
         this.populate_dropdown();
@@ -222,10 +221,7 @@ class tag_search_dropdown_widget
     // Select the next or previous entry in the dropdown.
     move(down)
     {
-        console.log("move down", down);
-
         var all_entries = this.tag_dropdown.querySelectorAll(".input-dropdown-list .entry");
-        console.log(all_entries);
 
         // Stop if there's nothing in the list.
         var total_entries = all_entries.length;
