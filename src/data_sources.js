@@ -836,8 +836,8 @@ class data_source_related_illusts extends data_source_fake_pagination
         }.bind(this))
     };
 
-    get page_title() { return "Related Illusts"; }
-    get_displaying_text() { return "Related Illustrations"; }
+    get page_title() { return "Similar Illusts"; }
+    get_displaying_text() { return "Similar Illustrations"; }
 
     refresh_thumbnail_ui(container)
     {
