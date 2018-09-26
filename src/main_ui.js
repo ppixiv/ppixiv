@@ -16,6 +16,7 @@ class main_ui
         this.clicked_bookmark_tag_selector = this.clicked_bookmark_tag_selector.bind(this);
         this.refresh_bookmark_tag_highlights = this.refresh_bookmark_tag_highlights.bind(this);
         this.data_source_updated = this.data_source_updated.bind(this);
+        this.toggle_auto_like = this.toggle_auto_like.bind(this);
 
         this.current_illust_id = -1;
         this.latest_navigation_direction_down = true;
@@ -38,6 +39,9 @@ class main_ui
             parent: this.container.querySelector(".avatar-popup"),
             changed_callback: this.refresh_ui,
         });
+
+        // Set up hover popups.
+        helpers.setup_popups(this.container, [".image-settings-menu-box"]);
 
         // When a bookmark is modified, refresh the UI if we're displaying it.
         bookmarking.singleton.add_bookmark_listener(function(illust_id) {
@@ -69,6 +73,7 @@ class main_ui
 
         this.container.querySelector(".download-button").addEventListener("click", this.clicked_download);
         this.container.querySelector(".show-thumbnails-button").addEventListener("click", this.main.toggle_thumbnail_view);
+        this.container.querySelector(".toggle-auto-like").addEventListener("click", this.toggle_auto_like);
 
         window.addEventListener("bookmark-tags-changed", this.refresh_ui);
 
@@ -94,6 +99,7 @@ class main_ui
         this.seek_bar = new seek_bar(this.container.querySelector(".ugoira-seek-bar"));
 
         helpers.add_clicks_to_search_history(document.body);
+        this.update_from_settings();
 
         // We'll finish setting up when our caller calls set_data_source().
     }
@@ -813,6 +819,13 @@ class main_ui
 
     bookmark_add(private_bookmark)
     {
+        // If auto-like is enabled, like an image when we bookmark it.
+        if(helpers.get_value("auto-like"))
+        {
+            console.log("Automatically liking image as well as bookmarking it due to auto-like preference");
+            this.like_image(true /* quiet */);
+        }
+        
         var illust_id = this.current_illust_id;
         var illust_data = this.current_illust_data;
 
@@ -917,14 +930,20 @@ class main_ui
     {
         e.preventDefault();
         e.stopPropagation();
+        this.like_image();
+    }
 
+    // If quiet is true, don't print any messages.
+    like_image(quiet)
+    {
         var illust_id = this.current_illust_id;
         console.log("Clicked like on", illust_id);
 
         var illust_data = this.current_illust_data;
         if(illust_data.likeData)
         {
-            message_widget.singleton.show("Already liked this image");
+            if(!quiet)
+                message_widget.singleton.show("Already liked this image");
             return;
         }
         
@@ -939,8 +958,24 @@ class main_ui
             if(this.current_illust_id == illust_id)
                 this.refresh_ui();
 
-            message_widget.singleton.show("Illustration liked");
+            if(!quiet)
+                message_widget.singleton.show("Illustration liked");
         }.bind(this));
     }
+
+    toggle_auto_like()
+    {
+        var auto_like = helpers.get_value("auto-like");
+        auto_like = !auto_like;
+        helpers.set_value("auto-like", auto_like);
+
+        this.update_from_settings();
+    }
+
+    update_from_settings()
+    {
+        helpers.set_class(document.body, "auto-like", helpers.get_value("auto-like"));
+    }    
+    
 }
 

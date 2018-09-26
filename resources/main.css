@@ -262,7 +262,7 @@ body:not(.hide-ui) .hover-box:hover + .ui-box {
     margin: 0 .5em;
 }
 
-/* Toggle boxes for the settings menu: */
+/* Toggle boxes for the settings menus: */
 body.light .toggle-light-mode > .off { display: none; }
 body:not(.light) .toggle-light-mode > .on { display: none; }
 
@@ -271,6 +271,9 @@ body.disable-thumbnail-zooming .toggle-thumbnail-zooming > .on { display: none; 
 
 body:not(.disable-thumbnail-panning) .toggle-thumbnail-panning > .off { display: none; }
 body.disable-thumbnail-panning .toggle-thumbnail-panning > .on { display: none; }
+
+body.auto-like .toggle-auto-like > .off { display: none; }
+body:not(.auto-like) .toggle-auto-like > .on { display: none; }
 
 .download-button {
     cursor: pointer;
@@ -471,7 +474,8 @@ body.light .popup-menu-box {
  * popup and the bottom that opened it, but we don't want to overlap the button and block it. */
 .bookmark-popup > .hover-area,
 .navigation-menu-box .hover-area,
-.settings-menu-box .hover-area
+.settings-menu-box .hover-area,
+.image-settings-menu-box .hover-area
 {
     top: -2px;
     height: 125%;

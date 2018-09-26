@@ -1129,6 +1129,27 @@ var helpers = {
             window.dispatchEvent(event);
         }
     },
+
+    setup_popups(container, selectors)
+    {
+        var setup_popup = function(box)
+        {
+            box.addEventListener("mouseover", function(e) { helpers.set_class(box, "popup-visible", true); });
+            box.addEventListener("mouseout", function(e) { helpers.set_class(box, "popup-visible", false); });
+        }
+
+        for(var selector of selectors)
+        {
+            console.log("...", selector);
+            var box = container.querySelector(selector);
+            if(box == null)
+            {
+                console.warn("Couldn't find", selector);
+                continue;
+            }
+            setup_popup(box);
+        }
+    },
 };
 
 
