@@ -153,6 +153,34 @@ class thumbnail_data
         return this._thumbnail_info_map_following;
     };
 
+    // Given a low-res thumbnail URL from thumbnail data, return a high-res thumbnail URL.
+    get_high_res_thumbnail_url(url)
+    {
+        // path should look like
+        //
+        // /c/250x250_80_a2/img-master/img/.../12345678_square1200.jpg
+        //
+        // where 250x250_80_a2 is the resolution and probably JPEG quality.  We want
+        // the higher-res thumbnail (which is "small" in the full image data), which
+        // looks like:
+        //
+        // /c/540x540_70/img-master/img/.../12345678_master1200.jpg
+        //
+        // The resolution field is changed, and "square1200" is changed to "master1200".
+        var url = new URL(url, document.location);
+        var path = url.pathname;
+        var re = /(\/c\/)([^\/]+)(.*)(square1200).jpg/;
+        var match = re.exec(path);
+        if(match == null)
+        {
+            console.warn("Couldn't parse thumbnail URL:", path);
+            return url.toString();
+        }
+
+        url.pathname = match[1] + "540x540_70" + match[3] + "master1200.jpg";
+        return url.toString();
+
+    }
     // This is called when we have new thumbnail data available.  thumb_result is
     // an array of thumbnail items.
     //
@@ -204,6 +232,9 @@ class thumbnail_data
                     if(remapped_thumb_info.bookmarkData != null)
                         delete remapped_thumb_info.bookmarkData.bookmarkId;
                 }
+
+                // Switch the URL from the low-res thumbnail to a higher-res one.
+                remapped_thumb_info.url = this.get_high_res_thumbnail_url(remapped_thumb_info.url);
             }
             else if(source == "illust_list" || source == "following")
             {
