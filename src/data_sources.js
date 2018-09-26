@@ -950,7 +950,10 @@ class data_source_rankings extends data_source
                 illust_ids.push(illust_id);
                 image_data.singleton().set_user_id_for_illust_id(illust_id, user_id)
             }
-        
+
+            // Register this as thumbnail data.
+            thumbnail_data.singleton().loaded_thumbnail_info(result.contents, "rankings");
+            
             // Register the new page of data.
             this.add_page(page, illust_ids);
 

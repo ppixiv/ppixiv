@@ -153,6 +153,28 @@ class thumbnail_data
         return this._thumbnail_info_map_following;
     };
 
+    get thumbnail_info_map_ranking()
+    {
+        if(this._thumbnail_info_map_ranking != null)
+            return this._thumbnail_info_map_ranking;
+
+        this._thumbnail_info_map_ranking = [
+            ["illust_id", "id"],
+            ["url", "url"],
+            ["tags", "tags"],
+            ["user_id", "userId"],
+            ["width", "width"],
+            ["height", "height"],
+            ["illust_page_count", "pageCount"],
+            ["title", "title"],
+            ["user_name", "userName"],
+//            ["illust_type", "illustType"],
+//            ["profile_img", "profileImageUrl"],
+        ];
+        return this._thumbnail_info_map_ranking;
+    };
+
+    
     // Given a low-res thumbnail URL from thumbnail data, return a high-res thumbnail URL.
     get_high_res_thumbnail_url(url)
     {
@@ -181,20 +203,25 @@ class thumbnail_data
         return url.toString();
 
     }
+
     // This is called when we have new thumbnail data available.  thumb_result is
     // an array of thumbnail items.
     //
-    // This can come from /rpc/illust_list.php, or from search results.  These have
-    // the same data, but for some reason everything has different names.  Figure out
-    // which format the entries have, and if they have the format used by illust_list.php,
-    // remap them to the format used by search results.  Check that all fields we expect
-    // exist, to make it easier to notice if something is wrong.
+    // This can come from a bunch of different places, which all return the same data, but
+    // each in a different way:
     //
+    // name           URL
+    // normal         /ajax/user/id/illusts/bookmarks
+    // illust_list    illust_list.php 
+    // following      bookmark_new_illust.php 
+    // following      search.php 
+    // rankings       ranking.php
     //
-    // Source is either the format we use directly, "normal" (returned by /ajax/user/id/illusts/bookmarks),
-    // "illust_list" for illust_list.php, or "following" for bookmark_new_illust.php (following).
-    // These are different APIs that return the same data in a bunch of different ways.  We map them to
-    // the format used by "illust_list".
+    // We map each of these to "normal".
+    //
+    // These have the same data, but for some reason everything has different names.  
+    // Remap them to "normal", and check that all fields we expect exist, to make it
+    // easier to notice if something is wrong.
     loaded_thumbnail_info(thumb_result, source)
     {
         if(thumb_result.error)
@@ -236,10 +263,15 @@ class thumbnail_data
                 // Switch the URL from the low-res thumbnail to a higher-res one.
                 remapped_thumb_info.url = this.get_high_res_thumbnail_url(remapped_thumb_info.url);
             }
-            else if(source == "illust_list" || source == "following")
+            else if(source == "illust_list" || source == "following" || source == "rankings")
             {
+                console.log("XXX", source);
                 // Get the mapping for this mode.
-                var thumbnail_info_map = source == "illust_list"? this.thumbnail_info_map_illust_list:this.thumbnail_info_map_following;
+                var thumbnail_info_map = 
+                    source == "illust_list"? this.thumbnail_info_map_illust_list:
+                    source == "following"?  this.thumbnail_info_map_following:
+                    this.thumbnail_info_map_ranking;
+
                 var remapped_thumb_info = { };
                 for(var pair of thumbnail_info_map)
                 {
@@ -253,6 +285,10 @@ class thumbnail_data
                     var value = thumb_info[from_key];
                     remapped_thumb_info[to_key] = value;
                 }
+
+                // Make sure that the illust IDs and user IDs are strings.
+                remapped_thumb_info.id = "" + remapped_thumb_info.id;
+                remapped_thumb_info.userId = "" + remapped_thumb_info.userId;
 
                 // Bookmark data is a special case.
                 //
@@ -277,7 +313,7 @@ class thumbnail_data
                 // but private is always false, so we can't tell if it's a private bookmark.  This is
                 // a site bug that we can't do anything about (it affects the site too).
                 remapped_thumb_info.bookmarkData = null;
-                if(source == "illust_list")
+                if(source == "illust_list" || source == "rankings")
                 {
                     if(!('is_bookmarked' in thumb_info))
                         console.warn("Thumbnail info is missing key: is_bookmarked");
@@ -305,6 +341,9 @@ class thumbnail_data
                     }
                 }
 
+                // rankings gives a 240x480 thumbnail.  Remap it to the 540x540 one.
+                remapped_thumb_info.url = remapped_thumb_info.url.replace("/c/240x480", "/c/540x540_70");
+
                 // illustType can be a string in these instead of an int, so convert it.
                 remapped_thumb_info.illustType = parseInt(remapped_thumb_info.illustType);
 
@@ -313,6 +352,8 @@ class thumbnail_data
                 if(remapped_thumb_info.profileImageUrl == null)
                     remapped_thumb_info.profileImageUrl = "https://s.pximg.net/common/images/no_profile_s.png";
             }
+            else
+                throw "Unrecognized source: " + source;
 
             thumb_info = remapped_thumb_info;
 
