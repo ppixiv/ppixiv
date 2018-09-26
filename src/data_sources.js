@@ -539,6 +539,8 @@ class data_source
     // a key isn't present.  For example, search.php?s_mode=s_tag is the same as omitting
     // s_mode.  We prefer to omit it rather than clutter the URL with defaults, but we
     // need to know this to figure out whether an item is selected or not.
+    //
+    // If a key begins with #, it's placed in the hash rather than the query.
     set_item(container, type, fields, default_values)
     {
         var link = container.querySelector("[data-type='" + type + "']");
@@ -553,30 +555,49 @@ class data_source
 
         // Adjust the URL for this button.
         var url = new URL(document.location);
-        var new_url = new URL(document.location);
         for(var key of Object.keys(fields))
         {
+            var original_key = key;
             var value = fields[key];
-            if(value != null)
-                new_url.searchParams.set(key, value);
-            else
-                new_url.searchParams.delete(key);
 
+            // If key begins with "#", it means it goes in the hash.
+            var hash = key.startsWith("#");
+            if(hash)
+                key = key.substr(1);
+
+            var params = hash? helpers.get_hash_args(url):url.searchParams;
+
+            // The value we're setting in the URL:
             var this_value = value;
             if(this_value == null && default_values != null)
-                this_value = default_values[key];
+                this_value = default_values[original_key];
 
-            var selected_value = url.searchParams.get(key);
+            // The value currently in the URL:
+            var selected_value = params.get(key);
             if(selected_value == null && default_values != null)
-                selected_value = default_values[key];
+                selected_value = default_values[original_key];
 
+            // If the URL didn't have the key we're setting, then it isn't selected.
             if(this_value != selected_value)
                 button_is_selected = false;
+
+            // If the value we're setting is the default, delete it instead.
+            if(default_values != null && this_value == default_values[original_key])
+                value = null;
+
+            if(value != null)
+                params.set(key, value);
+            else
+                params.delete(key);
+
+            // If hash is true, we're working on a copy, so update url's hash.
+            if(hash)
+                helpers.set_hash_args(url, params);
         }
 
         helpers.set_class(link, "selected", button_is_selected);
 
-        link.href = new_url.toString();
+        link.href = url.toString();
     };
 
     // Highlight search menu popups if any entry other than the default in them is
@@ -1539,10 +1560,13 @@ class data_source_current_illust extends data_source_fake_pagination
 // Pixiv currently serves two unrelated pages for this URL, using an API-driven one
 // for viewing someone else's bookmarks and a static page for viewing your own.  We
 // always use the API in either case.
-class data_source_bookmarks extends data_source
+//
+// For some reason, Pixiv only allows viewing either public or private bookmarks,
+// and has no way to just view all bookmarks.
+class data_source_bookmarks_base extends data_source
 {
     get name() { return "bookmarks"; }
-    
+  
     constructor(url)
     {
         super(url);
@@ -1600,44 +1624,39 @@ class data_source_bookmarks extends data_source
             this.user_info = user_info;
             this.call_update_listeners();
 
-            var query_args = this.url.searchParams;
-            var rest = query_args.get("rest") || "show";
-            var tag = query_args.get("tag") || "";
-
-            var data = {
-                tag: tag,
-                offset: (page-1)*48,
-                limit: 48,
-                rest: rest, // public or private (no way to get both)
-            };
-
-            var url = "/ajax/user/" + this.viewing_user_id + "/illusts/bookmarks";
-            helpers.get_request(url, data, function(result) {
-                var illust_ids = [];
-                for(var illust_data of result.body.works)
-                    illust_ids.push(illust_data.id);
-
-                // This request returns all of the thumbnail data we need.  Forward it to
-                // thumbnail_data so we don't need to look it up.
-                thumbnail_data.singleton().loaded_thumbnail_info(result.body.works, "normal");
-
-                // Sort the two sets of IDs back together, putting higher (newer) IDs first.
-                illust_ids.sort(function(lhs, rhs)
-                {
-                    return parseInt(rhs) - parseInt(lhs);
-                });
-
-                // Register the new page of data.
-                this.add_page(page, illust_ids);
-
-                if(callback)
-                    callback();
-            }.bind(this));
+            this.continue_loading_page_internal(page, callback);
         }.bind(this));        
 
         return true;
     };
-    
+
+    // Get API arguments to query bookmarks.
+    //
+    // If force_rest isn't null, it's either "show" (public) or "hide" (private), which
+    // overrides the search parameters.
+    get_bookmark_query_params(page, force_rest)
+    {
+        var query_args = this.url.searchParams;
+        var rest = query_args.get("rest") || "show";
+        if(force_rest != null)
+            rest = force_rest;
+        var tag = query_args.get("tag") || "";
+
+        return {
+            tag: tag,
+            offset: (page-1)*48,
+            limit: 48,
+            rest: rest, // public or private (no way to get both)
+        };
+    }
+
+
+    // This is implemented by the subclass to do the main loading.
+    continue_loading_page_internal(page, callback)
+    {
+        throw "Not implemented";
+    }
+
     get page_title()
     {
         if(!this.viewing_own_bookmarks())
@@ -1661,9 +1680,11 @@ class data_source_bookmarks extends data_source
         }
 
         var query_args = this.url.searchParams;
+        var hash_args = helpers.get_hash_args(this.url);
 
         var private_bookmarks = query_args.get("rest") == "hide";
-        var displaying = private_bookmarks? "Private bookmarks":"Bookmarks";
+        var displaying = this.viewing_all_bookmarks? "All Bookmarks":
+            private_bookmarks? "Private Bookmarks":"Public Bookmarks";
 
         var tag = query_args.get("tag");
         if(tag)
@@ -1672,14 +1693,18 @@ class data_source_bookmarks extends data_source
         return displaying;
     };
 
+    get viewing_all_bookmarks() { return false; }
+
     refresh_thumbnail_ui(container, thumbnail_view)
     {
         // The public/private button only makes sense when viewing your own bookmarks.
-        container.querySelector(".bookmarks-public-private").hidden = !this.viewing_own_bookmarks();
+        var public_private_button_container = container.querySelector(".bookmarks-public-private");
+        public_private_button_container.hidden = !this.viewing_own_bookmarks();
 
         // Set up the public and private buttons.
-        this.set_item(container, "public", {rest: null});
-        this.set_item(container, "private", {rest: "hide"});
+        this.set_item(public_private_button_container, "all", {"#show-all": 1}, {"#show-all": 1});
+        this.set_item(container, "public", {rest: null, "#show-all": 0}, {"#show-all": 1});
+        this.set_item(container, "private", {rest: "hide", "#show-all": 0}, {"#show-all": 1});
 
         // Refresh the bookmark tag list.
         var current_query = new URL(document.location).searchParams.toString();
@@ -1744,7 +1769,142 @@ class data_source_bookmarks extends data_source
     {
         return !this.viewing_own_bookmarks();
     }
+}
+
+// Normal bookmark querying.  This can only retrieve public or private bookmarks,
+// and not both.
+class data_source_bookmarks extends data_source_bookmarks_base
+{
+    continue_loading_page_internal(page, callback)
+    {
+        var data = this.get_bookmark_query_params(page);
+
+        var url = "/ajax/user/" + this.viewing_user_id + "/illusts/bookmarks";
+        helpers.get_request(url, data, function(result) {
+            var illust_ids = [];
+            for(var illust_data of result.body.works)
+                illust_ids.push(illust_data.id);
+
+            // This request returns all of the thumbnail data we need.  Forward it to
+            // thumbnail_data so we don't need to look it up.
+            thumbnail_data.singleton().loaded_thumbnail_info(result.body.works, "normal");
+
+            // Sort the two sets of IDs back together, putting higher (newer) IDs first.
+            illust_ids.sort(function(lhs, rhs)
+            {
+                return parseInt(rhs) - parseInt(lhs);
+            });
+
+            // Register the new page of data.
+            this.add_page(page, illust_ids);
+
+            if(callback)
+                callback();
+        }.bind(this));
+    }
 };
+
+// Merged bookmark querying.  This makes queries for both public and private bookmarks,
+// and merges them together.
+class data_source_bookmarks_merged extends data_source_bookmarks_base
+{
+    get viewing_all_bookmarks() { return true; }
+
+    constructor(url)
+    {
+        super(url);
+
+        this.max_page_per_type = [-1, -1]; // public, private
+        this.bookmark_illust_ids = [[], []]; // public, private
+    }
+
+    continue_loading_page_internal(page, callback)
+    {
+        // Request both the public and private bookmarks on the given page.  If we've
+        // already reached the end of either of them, don't send that request.
+        var finished = 0;
+
+        // Request both bookmark types.
+        var request_finished = function() {
+            // We're finished when both requests complete.
+            finished++;
+            if(finished < 2)
+                return;
+
+            // Both requests finished.  Combine the two lists of illust IDs into a single page
+            // and register it.
+            var illust_ids = [];
+            for(var i = 0; i < 2; ++i)
+                if(this.bookmark_illust_ids[i] != null)
+                    illust_ids = illust_ids.concat(this.bookmark_illust_ids[i][page]);
+
+            // Sort the two sets of IDs back together, putting higher (newer) IDs first.
+            //
+            // Note that there's no connection between the two lists of IDs, so the real
+            // sort won't be very useful page-to-page.
+            illust_ids.sort(function(lhs, rhs)
+            {
+                return parseInt(rhs) - parseInt(lhs);
+            });
+            
+            this.add_page(page, illust_ids);
+
+            if(callback)
+                callback();
+        }.bind(this);
+
+        this.request_bookmarks(page, "show", request_finished);
+        this.request_bookmarks(page, "hide", request_finished);
+    }
+
+    request_bookmarks(page, rest, callback)
+    {
+        var is_private = rest == "hide"? 1:0;
+        var max_page = this.max_page_per_type[is_private];
+        if(max_page != -1 && page > max_page)
+        {
+            // We're past the end, so just call the callback.
+            console.log("page", page, "beyond", max_page, rest);
+            setTimeout(callback, 0);
+            return;
+        }
+
+        var data = this.get_bookmark_query_params(page, rest);
+
+        var url = "/ajax/user/" + this.viewing_user_id + "/illusts/bookmarks";
+        helpers.get_request(url, data, function(result) {
+            var illust_ids = [];
+            for(var illust_data of result.body.works)
+                illust_ids.push(illust_data.id);
+
+            // This request returns all of the thumbnail data we need.  Forward it to
+            // thumbnail_data so we don't need to look it up.
+            thumbnail_data.singleton().loaded_thumbnail_info(result.body.works, "normal");
+
+            // Sort the two sets of IDs back together, putting higher (newer) IDs first.
+            illust_ids.sort(function(lhs, rhs)
+            {
+                return parseInt(rhs) - parseInt(lhs);
+            });
+
+            // If there are no results, remember that this is the last page, so we don't
+            // make more requests for this type.
+            if(illust_ids.length == 0)
+            {
+                if(this.max_page_per_type[is_private] == -1)
+                    this.max_page_per_type[is_private] = page;
+                else
+                    this.max_page_per_type[is_private] = Math.min(page, this.max_page_per_type[is_private]);
+                console.log("max page", this.max_page_per_type[is_private]);
+            }
+
+            // Store the IDs.  We don't register them here.
+            this.bookmark_illust_ids[is_private][page] = illust_ids;
+
+            callback();
+        }.bind(this));
+    }
+}
 
 // new_illust.php
 class data_source_new_illust extends data_source_from_page

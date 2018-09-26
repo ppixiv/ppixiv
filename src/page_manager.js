@@ -71,7 +71,20 @@ class page_manager
         else if(url.pathname == "/member_illust.php" && url.searchParams.get("id") != null)
             return data_source_artist;
         else if(url.pathname == "/bookmark.php" && url.searchParams.get("type") == null)
-            return data_source_bookmarks;
+        {
+            // If show-all=0 isn't in the hash, and we're not viewing someone else's bookmarks,
+            // we're viewing all bookmarks, so use data_source_bookmarks_merged.  Otherwise,
+            // use data_source_bookmarks.
+            var hash_args = helpers.get_hash_args(url);
+            var query_args = url.searchParams;
+            var user_id = query_args.get("id");
+            if(user_id == null)
+                user_id = window.global_data.user_id;
+            var viewing_own_bookmarks = user_id == window.global_data.user_id;
+            
+            var both_public_and_private = viewing_own_bookmarks && hash_args.get("show-all") != "0";
+            return both_public_and_private? data_source_bookmarks_merged:data_source_bookmarks;
+        }
         else if(url.pathname == "/new_illust.php" || url.pathname == "/new_illust_r18.php")
             return data_source_new_illust;
         else if(url.pathname == "/bookmark_new_illust.php")
