@@ -104,7 +104,7 @@ class thumbnail_view
         helpers.add_recent_search_tag(tags);
 
         // Run the search.
-        document.location.href = page_manager.singleton().get_url_for_tag_search(tags);
+        helpers.set_page_url(page_manager.singleton().get_url_for_tag_search(tags), true);
     }
 
     /* This scrolls the thumbnail when you hover over it.  It's sort of neat, but it's pretty
