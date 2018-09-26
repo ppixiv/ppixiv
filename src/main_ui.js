@@ -290,6 +290,9 @@ class main_ui
                 show_last_image: want_last_page,
             });
         }
+
+        // Refresh the UI now that we have a new viewer.
+        this.refresh_ui();
     }
 
     // This is called when the page of a multi-page illustration sequence changes.
@@ -302,6 +305,8 @@ class main_ui
 
         // Let the manga thumbnail display know about the selected page.
         this.manga_thumbnails.current_page_changed(page);
+
+        this.refresh_ui();
     }
 
     data_source_updated()
@@ -410,12 +415,15 @@ class main_ui
         set_info(".post-info > .post-age", helpers.age_to_string(seconds_old) + " ago");
 
         var info = "";
-        if(illust_data.illustType != 2 && illust_data.pageCount == 1)
+        if(this.viewer != null && this.viewer.current_image_width != null)
         {
-            // Add the resolution and file type for single images.
-            var ext = helpers.get_extension(illust_data.urls.original).toUpperCase();
-            info += illust_data.width + "x" + illust_data.height + " " + ext;
+            // Add the resolution and file type if available.
+            info += this.viewer.current_image_width + "x" + this.viewer.current_image_height;
         }
+        var ext = this.viewer? this.viewer.current_image_type:null;
+        if(ext != null)
+            info += " " + ext;
+
         set_info(".post-info > .image-info", info);
 
         var duration = "";

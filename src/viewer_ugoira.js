@@ -11,7 +11,6 @@ class viewer_ugoira extends viewer
         this.progress = this.progress.bind(this);
         this.seek_callback = this.seek_callback.bind(this);
 
-        this.illust_data = illust_data;
         this.container = container;
         this.progress_callback = progress;
 
