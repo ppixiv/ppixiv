@@ -625,6 +625,9 @@ body:not([data-thumbnail-mode="wide"]) .thumbnail-container ul {
     display: inline-block;
     padding: 1em;
 }
+.thumbnail-container li.thumbnail-box .thumbnail-inner {
+    position: relative;
+}
 
 .thumbnail-container li.thumbnail-box a.thumbnail-link {
     display: block;
@@ -743,6 +746,36 @@ body[data-thumbnail-mode="wide"]  li.thumbnail-box a.thumbnail-link {
      * flicker. */
 /*    opacity: 0.5;
     background-color: #444;*/
+}
+
+/* The popup title below thumbs: */
+.thumbnail-inner > .thumbnail-label {
+    position: absolute;
+    pointer-events: none;
+    visibility: hidden;
+    height: 25px;
+    white-space: nowrap;
+    width: 100%;
+    padding-top: 4px;
+}
+
+.thumbnail-inner > .thumbnail-label > div {
+    background-color: #000;
+    left: 50%;
+    position: absolute;
+    transform: translate(-50%, 0);
+    padding: 0 10px;
+    max-width: 400px;
+    overflow: hidden;
+    border-radius: 2px;
+    text-overflow: ellipsis;
+}
+body.light .thumbnail-inner > .thumbnail-label > div {
+    background-color: #fff;
+    color: #222;
+}
+.thumbnail-inner:hover .thumbnail-label {
+    visibility: visible;
 }
 
 /* Hide the img while it's pending so we don't show a broken image icon. */

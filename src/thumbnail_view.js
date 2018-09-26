@@ -690,11 +690,10 @@ class thumbnail_view
 
             this.refresh_bookmark_icon(element);
 
-            // Set the popup.
-            var a = element.querySelector(".thumbnail-inner");
-            var popup = info.userName + ": " + info.title;
-            a.classList.add("popup");
-            a.dataset.popup = popup;
+            // Set the label.
+            var label = element.querySelector(".thumbnail-label");
+            label.hidden = false;
+            label.querySelector(".label").innerText = info.userName + ": " + info.title;
         }        
     }
 
