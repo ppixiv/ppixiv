@@ -72,6 +72,14 @@ class page_manager
             return data_source_artist;
         else if(url.pathname == "/bookmark.php" && url.searchParams.get("type") == null)
         {
+            // Handle a special case: we're called by early_controller just to find out if
+            // the current page is supported or not.  This happens before window.global_data
+            // exists, so we can't check if we're viewing our own bookmarks or someone else's.
+            // In this case we don't need to, since the caller just wants to see if we return
+            // a data source or not.
+            if(window.global_data == null)
+                return data_source_bookmarks;
+
             // If show-all=0 isn't in the hash, and we're not viewing someone else's bookmarks,
             // we're viewing all bookmarks, so use data_source_bookmarks_merged.  Otherwise,
             // use data_source_bookmarks.
