@@ -1577,6 +1577,28 @@ class data_source_bookmarks_base extends data_source
     {
         this.bookmark_tags = [];
 
+        this.fetch_bookmark_tags();
+        
+        // Make sure the user info is loaded.  This should normally be preloaded by globalInitData
+        // in main.js, and this won't make a request.
+        image_data.singleton().get_user_info_full(this.viewing_user_id, function(user_info) {
+            this.user_info = user_info;
+            this.call_update_listeners();
+
+            this.continue_loading_page_internal(page, callback);
+        }.bind(this));        
+
+        return true;
+    };
+
+    // If we haven't done so yet, load bookmark tags for this bookmark page.  This
+    // happens in parallel with with page loading.
+    fetch_bookmark_tags()
+    {
+        if(this.fetched_bookmark_tags)
+            return;
+        this.fetched_bookmark_tags = true;
+
         // Fetch bookmark tags.  We can do this in parallel with everything else.
         var url = "https://www.pixiv.net/ajax/user/" + this.viewing_user_id + "/illusts/bookmark/tags";
         helpers.get_request(url, {}, function(result) {
@@ -1617,19 +1639,8 @@ class data_source_bookmarks_base extends data_source
             // Update the UI with the tag list.
             this.call_update_listeners();
         }.bind(this));
-        
-        // Make sure the user info is loaded.  This should normally be preloaded by globalInitData
-        // in main.js, and this won't make a request.
-        image_data.singleton().get_user_info_full(this.viewing_user_id, function(user_info) {
-            this.user_info = user_info;
-            this.call_update_listeners();
-
-            this.continue_loading_page_internal(page, callback);
-        }.bind(this));        
-
-        return true;
-    };
-
+    }
+    
     // Get API arguments to query bookmarks.
     //
     // If force_rest isn't null, it's either "show" (public) or "hide" (private), which
