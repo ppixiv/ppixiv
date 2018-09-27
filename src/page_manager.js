@@ -199,7 +199,7 @@ class page_manager
     // replace the current one.
     //
     // If query_params or hash_params are null, leave the current value alone.
-    set_args(query_params, hash_params, add_to_history)
+    set_args(query_params, hash_params, add_to_history, cause)
     {
         var url = new URL(document.location);
         if(query_params != null)
@@ -208,7 +208,7 @@ class page_manager
         if(hash_params != null)
             helpers.set_hash_args(url, hash_params);
 
-        helpers.set_page_url(url, add_to_history);
+        helpers.set_page_url(url, add_to_history, cause);
     }
 
     // Given a list of tags, return the URL to use to search for them.  This differs

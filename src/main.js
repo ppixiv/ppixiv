@@ -244,10 +244,10 @@ class main_controller
 
     window_onpopstate(e)
     {
-        console.log("History state changed");
+        console.log("History state changed.  initialNavigation:", e.navigationCause);
 
         // Set the current data source and state.
-        this.set_current_data_source(null, e.initialNavigation);
+        this.set_current_data_source(null, e.navigationCause || "history");
     }
 
     // Create a data source for the current URL and activate it.
@@ -258,10 +258,10 @@ class main_controller
     // to preload the first page.  On navigation, html is null.  If we navigate to a page that
     // can load the first page from the HTML page, we won't load the HTML and we'll just allow
     // the first page to load like any other page.
-    set_current_data_source(html, initial_navigation)
+    set_current_data_source(html, cause)
     {
         console.log("Loading data source for", document.location.href);
-        page_manager.singleton().create_data_source_for_url(document.location, html, this.set_enabled_view.bind(this, initial_navigation));
+        page_manager.singleton().create_data_source_for_url(document.location, html, this.set_enabled_view.catch_bind(this, cause));
     }
 
     show_data_source_specific_elements()
@@ -281,16 +281,15 @@ class main_controller
     // If initial_navigation is true, this is from the user triggering a navigation, eg.
     // clicking a link.  If it's false, it's from browser history navigation or the initial
     // load.
-    set_enabled_view(initial_navigation, data_source)
+    set_enabled_view(cause, data_source)
     {
-        console.log("Got data source", data_source? data_source.name:"null");
         this.set_data_source(data_source);
         if(data_source == null)
             return;
 
         var show_thumbs = this.showing_thumbnail_view;
         var new_view = show_thumbs? "thumbs":"image";
-        console.log("Enabling view:", new_view);
+        console.log("Enabling view:", new_view, "Navigation cause:", cause);
 
         // Mark the current view.  Other code can watch for this to tell which view is
         // active.
@@ -306,55 +305,62 @@ class main_controller
             this.ui.show_image(show_illust_id);
         }
  
-        if(new_view == this.current_view)
-            return;
+        // If we're changing between the image and thumbnail view, update the active view.
+        var view_changing = new_view != this.current_view;
+        if(view_changing)
+        {
+            this.current_view = new_view;
 
-        this.current_view = new_view;
-
-        this.thumbnail_view.active = new_view == "thumbs";
-        this.ui.active = new_view == "image";
+            this.thumbnail_view.active = new_view == "thumbs";
+            this.ui.active = new_view == "image";
        
-        // Dismiss any message when toggling between views.
-        message_widget.singleton.hide();
+            // Dismiss any message when toggling between views.
+            message_widget.singleton.hide();
+        }
         
         // Are we navigating forwards or back?
         var new_history_index = helpers.current_history_state_index();
         var navigating_forwards = new_history_index > this.current_history_index;
         this.current_history_index = new_history_index;
 
-        // Handle scrolling for the new state.
-        //
-        // We could do this better with history.state (storing each state's scroll position would
-        // allow it to restore across browser sessions, and if the same data source is multiple
-        // places in history).  Unfortunately there's no way to update history.state without
-        // calling history.replaceState, which is slow and causes jitter.  history.state being
-        // read-only is a design bug in the history API.
-        if(initial_navigation)
+        if(this.thumbnail_view.active)
         {
-            // If this is an initial navigation, eg. from a user clicking a link, always scroll to
-            // the top.  If this data source exists previously in history, we don't want to restore
-            // the scroll position from back then.
-            this.thumbnail_view.scroll_to_top();
-        }
-        else if(navigating_forwards)
-        {
-            // On browser history forwards, try to restore the scroll position.
-            this.thumbnail_view.restore_scroll_position();
-        }
-        else
-        {
-            // If we're navigating backwards, and we're switching from the image UI to thumbnails,
-            // try to scroll the thumbnail view to the image that was displayed.  Otherwise, tell
-            // the thumbnail view to restore any scroll position saved in the data source.
-            if(this.ui.current_illust_id != -1 && this.thumbnail_view.active)
-                this.thumbnail_view.scroll_to_illust_id(this.ui.current_illust_id);
-            else
+            // Handle scrolling for the new state.
+            //
+            // We could do this better with history.state (storing each state's scroll position would
+            // allow it to restore across browser sessions, and if the same data source is multiple
+            // places in history).  Unfortunately there's no way to update history.state without
+            // calling history.replaceState, which is slow and causes jitter.  history.state being
+            // read-only is a design bug in the history API.
+            if(cause == "navigation")
+            {
+                // If this is an initial navigation, eg. from a user clicking a link to a search, always
+                // scroll to the top.  If this data source exists previously in history, we don't want to
+                // restore the scroll position from back then.
+                console.log("Scroll to top for new search");
+                this.thumbnail_view.scroll_to_top();
+            }
+            else if(navigating_forwards)
+            {
+                // On browser history forwards, try to restore the scroll position.
+                console.log("Restore scroll position for forwards navigation");
                 this.thumbnail_view.restore_scroll_position();
+            }
+            else
+            {
+                // If we're navigating backwards or toggling, and we're switching from the image UI to thumbnails,
+                // try to scroll the thumbnail view to the image that was displayed.  Otherwise, tell
+                // the thumbnail view to restore any scroll position saved in the data source.
+                if(view_changing && this.ui.current_illust_id != -1 && this.thumbnail_view.active)
+                    this.thumbnail_view.scroll_to_illust_id(this.ui.current_illust_id);
+                else
+                    this.thumbnail_view.restore_scroll_position();
 
-            // If we're enabling the thumbnail, pulse the image that was just being viewed (or
-            // loading to be viewed), to make it easier to find your place.
-            if(this.thumbnail_view.active)
-                this.thumbnail_view.pulse_thumbnail(this.ui.wanted_illust_id);
+                // If we're enabling the thumbnail, pulse the image that was just being viewed (or
+                // loading to be viewed), to make it easier to find your place.
+                if(view_changing && this.thumbnail_view.active)
+                    this.thumbnail_view.pulse_thumbnail(this.ui.wanted_illust_id);
+            }
         }
     }
 
@@ -397,7 +403,7 @@ class main_controller
         var query_args = new URL(document.location).searchParams;
         var hash_args = helpers.get_hash_args(document.location);
 
-        this._set_showing_thumbnail_view_in_url(hash_args, false);
+        this._set_showing_thumbnail_view_in_url(hash_args, false, "initial");
         this.data_source.set_current_illust_id(illust_id, query_args, hash_args);
 
         page_manager.singleton().set_args(query_args, hash_args, add_to_history);        
@@ -424,7 +430,7 @@ class main_controller
             hash_args.set("thumbs", active? "1":"0");
     }
 
-    set_showing_thumbnail_view(active, add_to_history)
+    set_showing_thumbnail_view(active, add_to_history, cause)
     {
         // Update the URL to mark whether thumbs are displayed.
         var hash_args = helpers.get_hash_args(document.location);
@@ -432,13 +438,13 @@ class main_controller
 
         // Set the URL.  This will dispatch popstate, and we'll handle the state change there.
         // Update the thumbnail view.
-        page_manager.singleton().set_args(null, hash_args, add_to_history);
+        page_manager.singleton().set_args(null, hash_args, add_to_history, cause);
     }
 
     toggle_thumbnail_view(add_to_history)
     {
         var enabled = this.showing_thumbnail_view;
-        this.set_showing_thumbnail_view(!enabled, add_to_history);
+        this.set_showing_thumbnail_view(!enabled, add_to_history, "toggle");
     }
 
     // This captures clicks at the window level, allowing us to override them.
@@ -486,7 +492,7 @@ class main_controller
         }
 
         // Navigate to the URL in-page.
-        helpers.set_page_url(url, true /* add to history */);
+        helpers.set_page_url(url, true /* add to history */, "navigation");
     }
 
     init_global_data(csrf_token, user_id, premium, mutes)

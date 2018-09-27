@@ -1099,7 +1099,11 @@ var helpers = {
     // Set document.href, either adding or replacing the current history state.
     //
     // window.onpopstate will be synthesized if the URL is changing.
-    set_page_url(url, add_to_history)
+    //
+    // If cause is set, it'll be included in the popstate event as navigationCause.
+    // This can be used in event listeners to determine what caused a navigation.
+    // For browser forwards/back, this won't be present.
+    set_page_url(url, add_to_history, cause)
     {
         var old_url = document.location.toString();
 
@@ -1132,7 +1136,7 @@ var helpers = {
 
             // Set initialNavigation to true.  This indicates that this event is for a new
             // navigation, and not from browser forwards/back.
-            event.initialNavigation = true;
+            event.navigationCause = cause;
 
             window.dispatchEvent(event);
         }
