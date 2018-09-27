@@ -83,15 +83,21 @@ class main_context_menu extends popup_context_menu
         return this.displayed_menu.querySelector(".button-zoom");
     }
         
+    get _is_zoom_ui_enabled()
+    {
+        var view = document.body.dataset.currentView;
+        return view == "image" && this._on_click_viewer != null;
+    }
+
     // Update selection highlight for the context menu.
     refresh()
     {
         var view = document.body.dataset.currentView;
 
         // Enable the zoom buttons if we're in the image view and we have an on_click_viewer.
-        helpers.set_class(this.menu.querySelector(".zoom-strip"), "enabled", view == "image" && this._on_click_viewer != null);
+        helpers.set_class(this.menu.querySelector(".zoom-strip"), "enabled", this._is_zoom_ui_enabled);
 
-        if(this._on_click_viewer != null)
+        if(this._is_zoom_ui_enabled)
         {
             helpers.set_class(this.menu.querySelector(".button-zoom"), "selected", this._on_click_viewer.locked_zoom);
 
@@ -108,7 +114,7 @@ class main_context_menu extends popup_context_menu
 
     clicked_zoom_toggle(e)
     {
-        if(this._on_click_viewer == null)
+        if(!this._is_zoom_ui_enabled)
             return;
         
         this._on_click_viewer.set_zoom_center(e.clientX, e.clientY);
@@ -118,7 +124,7 @@ class main_context_menu extends popup_context_menu
 
     clicked_zoom_level(e)
     {
-        if(this._on_click_viewer == null)
+        if(!this._is_zoom_ui_enabled)
             return;
 
         var level = parseInt(e.currentTarget.dataset.level);

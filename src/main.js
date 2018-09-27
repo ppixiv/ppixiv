@@ -230,7 +230,7 @@ class main_controller
         this.container = document.body.appendChild(helpers.create_node(resources['main.html']));
 
         // Create the popup menu handler.
-        this.context_menu = new main_context_menu(document.documentElement);
+        this.context_menu = new main_context_menu(document.body);
         
         // Create the thumbnail view handler.
         this.thumbnail_view = new thumbnail_view(this.container.querySelector(".thumbnail-container"));

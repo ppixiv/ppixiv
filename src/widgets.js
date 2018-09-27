@@ -311,6 +311,8 @@ class popup_context_menu
         this.onmousedown = this.onmousedown.bind(this);
         this.onmouseup = this.onmouseup.bind(this);
         this.oncontextmenu = this.oncontextmenu.catch_bind(this);
+        this.onmouseover = this.onmouseover.bind(this);
+        this.onmouseout = this.onmouseout.bind(this);
 
         this.container = container;
 
@@ -319,6 +321,8 @@ class popup_context_menu
         // Create the menu.  The caller will attach event listeners for clicks.
         this.menu = helpers.create_from_template(".template-context-menu");
 
+        this.menu.addEventListener("mouseover", this.onmouseover, true);
+        this.menu.addEventListener("mouseout", this.onmouseout, true);
 
         // Whether the left and right mouse buttons are pressed:
         this.buttons_down = [false, false, false];
@@ -400,6 +404,26 @@ class popup_context_menu
         this.displayed_menu.style.top = y + "px";
 
         hide_mouse_cursor_on_idle.disable_all();
+    }
+
+    // If element is within a button that has a tooltip set, show it.
+    show_tooltip_for_element(element)
+    {
+        if(element != null)
+            element = element.closest("[data-tooltip]");
+        this.menu.querySelector(".tooltip-display").hidden = element == null;
+        if(element != null)
+            this.menu.querySelector(".tooltip-display-text").textContent = element.dataset.tooltip;
+    }
+
+    onmouseover(e)
+    {
+        this.show_tooltip_for_element(e.target);
+    }
+
+    onmouseout(e)
+    {
+        this.show_tooltip_for_element(e.relatedTarget);
     }
 
     hide()

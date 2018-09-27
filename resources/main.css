@@ -1254,9 +1254,8 @@ body.light .thumb-list-cursor
     border-radius: 8px;
     display: flex;
     flex-direction: column;
-}
-.light .popup-context-menu {
-    background-color: #fff;
+    user-select: none;
+    -moz-user-select: none;
 }
 .popup-context-menu .button-strip {
     display: flex;
@@ -1266,6 +1265,9 @@ body.light .thumb-list-cursor
     display: inline-block;
     background-color: #000;
     padding: 12px;
+}
+.light .popup-context-menu .button-strip > .button-block {
+    background-color: #fff;
 }
 
 /* Remove the double horizontal padding: */
@@ -1286,6 +1288,14 @@ body.light .thumb-list-cursor
     height: 100%;
     text-align: center;
     min-width: 50px;
+    cursor: default;
+}
+
+/* Show the pointer cursor for enabled buttons. */
+.popup-context-menu .button-strip.enabled > .button-block > .button {
+    cursor: pointer;
+}
+.popup-context-menu .button-strip.enabled > .button-block > .button {
     cursor: pointer;
 }
 .popup-context-menu .button-strip > .button-block > .button > svg {
@@ -1300,36 +1310,36 @@ body.light .thumb-list-cursor
     justify-content: center;
 }
 /* Grey out the buttons if this strip isn't enabled. */
-.popup-context-menu .button-strip.zoom-strip:not(.enabled) .button
+.popup-context-menu .button-strip.zoom-strip:not(.enabled) > .button-block > .button
 {
-    color: #888;
-    stroke: #888;
+    color: #666;
+    stroke: #666;
 }
 
-.popup-context-menu .button-strip .button {
+.popup-context-menu .button-strip > .button-block > .button {
     background-color: #222;
     color: #888;
     stroke: #888;
 }
-.popup-context-menu .button-strip .button:hover {
+.popup-context-menu .button-strip.enabled > .button-block > .button:hover {
     color: #fff;
     stroke: #fff;
 }
-.popup-context-menu .button-strip .button.selected {
+.popup-context-menu .button-strip > .button-block > .button.selected {
     background-color: #444;
     color: #fff;
     stroke: #fff;
 }
-.light .popup-context-menu .button-strip .button {
+.light .popup-context-menu .button-strip > .button-block > .button {
     background-color: #ccc;
-    color: #644;
-    stroke: #444;
+    color: #222;
+    stroke: #222;
 }
-.light .popup-context-menu .button-strip .button:hover {
+.light .popup-context-menu .button-strip.enabled > .button-block > .button:hover {
     color: #000;
     stroke: #000;
 }
-.light .popup-context-menu .button-strip .button.selected {
+.light .popup-context-menu .button-strip > .button-block > .button.selected {
     background-color: #eee;
     color: #000;
     stroke: #000;

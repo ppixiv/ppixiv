@@ -635,9 +635,9 @@
 
         <div class=template-context-menu>
             <div class=popup-context-menu>
-                <div class=button-strip>
+                <div class="button-strip enabled">
                     <div class=button-block>
-                        <div class="button button-return-to-search" data-level=0>
+                        <div class="button button-return-to-search" data-level=0 data-tooltip="Return to search">
                             ### inline:thumbnails-icon.svg
                         </div>
                     </div>
@@ -652,24 +652,24 @@
                     </div>
                     -->
                     <div class=button-block>
-                        <div class="button button-zoom">
+                        <div class="button button-zoom" data-tooltip="Zoom lock">
                             ### inline:zoom-plus.svg
                             ### inline:zoom-minus.svg
                         </div>
                     </div>
                     <div class=button-block>
-                        <div class="button button-zoom-level" data-level=0>
+                        <div class="button button-zoom-level" data-level=0 data-tooltip="Zoom to full">
                             ### inline:zoom-full.svg
                         </div>
                     </div>
                     <div class=button-block>
-                        <div class="button button-zoom-level" data-level=1>2x</div>
+                        <div class="button button-zoom-level" data-level=1 data-tooltip="2x zoom">2x</div>
                     </div>
                     <div class=button-block>
-                        <div class="button button-zoom-level" data-level=2>4x</div>
+                        <div class="button button-zoom-level" data-level=2 data-tooltip="4x zoom">4x</div>
                     </div>
                     <div class=button-block>
-                        <div class="button button-zoom-level" data-level=3>8x</div>
+                        <div class="button button-zoom-level" data-level=3 data-tooltip="8x zoom">8x</div>
                     </div>
                     <!--
                     <div class=button-block>
@@ -696,6 +696,9 @@
                     <div>Save all images (ZIP)</div>
                 </div>
                 -->
+                <div class=tooltip-display style="display: flex; align-items: stretch; padding: 10px 0 0 8px;">
+                    <div style="background-color: #000; padding: 0px 8px; border-radius: 4px;" class=tooltip-display-text></div>
+                </div>
             </div>
         </div>
     </div>
