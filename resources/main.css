@@ -629,6 +629,10 @@ body:not([data-thumbnail-mode="wide"]) .thumbnail-container ul {
     display: inline-block;
     padding: 1em;
 }
+/* Hide pending images (they haven't been set up yet). */
+.thumbnail-container li.thumbnail-box[data-pending] {
+    visibility: hidden;
+}
 .thumbnail-container li.thumbnail-box .thumbnail-inner {
     position: relative;
 }
