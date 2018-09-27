@@ -226,6 +226,10 @@ body:not(.hide-ui) .hover-box:hover + .ui-box {
     height: auto;
 }
 
+/* If this is an icon-button with an svg inside, set the svg to block. */
+.icon-button > svg {
+    display: block;
+}
 .disable-ui-button > .icon-button {
     /* The .pixiv-icon class on this element sets the background. */
     padding: 3px; /* center the 26px icon */
