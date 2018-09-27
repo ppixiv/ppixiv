@@ -2,7 +2,7 @@ import base64, collections, glob, json, os, re, sys
 from StringIO import StringIO
 
 def do_replacement(line):
-    m = re.match(r'^(\s*)<!-- *#inline:([^ ]+) *-->\s*$', line)
+    m = re.match(r'^(\s*)### *inline:([^\s]+)\s*$', line)
     if m is None:
         return None
     resource_filename = m.group(2)
