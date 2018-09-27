@@ -1,30 +1,3 @@
-/* Hiding the cursor in CSS is a pain.  It can be done with a global CSS style, but that
- * causes framerate hitches since it causes a global style recalculation.  This class puts
- * a blocker over the whole window to hide the cursor.  This doesn't work in general (it
- * blocks mouse events), but it works fine for click and drag. */
-class hide_mouse_cursor
-{
-    constructor()
-    {
-        this.blocker = document.createElement("div");
-        this.blocker.style.zIndex = 10000;
-        this.blocker.style.width = "100%";
-        this.blocker.style.height = "100%";
-        this.blocker.style.position = "fixed";
-        this.blocker.style.top = "0px";
-        this.blocker.style.left = "0px";
-        this.blocker.style.cursor = "none";
-        document.body.appendChild(this.blocker);
-    }
-
-    remove()
-    {
-        if(this.blocker.parentNode == null)
-            return;
-        this.blocker.parentNode.removeChild(this.blocker);
-    }
-}
-
 // View img fullscreen.  Clicking the image will zoom it to its original size and scroll
 // it around.
 //
@@ -112,8 +85,8 @@ class on_click_viewer
         this.event_target = target;
         window.addEventListener("blur", this.window_blur);
         window.addEventListener("resize", this.onresize, true);
-        target.addEventListener("mousedown", this.mousedown);
-        window.addEventListener("mouseup", this.mouseup);
+        target.addEventListener(this.using_pointer_events? "pointerdown":"mousedown", this.mousedown);
+        target.addEventListener(this.using_pointer_events? "pointerup":"mouseup", this.mouseup);
         target.addEventListener("dragstart", this.block_event);
         target.addEventListener("selectstart", this.block_event);
 
@@ -143,7 +116,8 @@ class on_click_viewer
         {
             var target = this.event_target;
             this.event_target = null;
-            target.removeEventListener("mousedown", this.mousedown);
+            target.removeEventListener(this.using_pointer_events? "pointerdown":"mousedown", this.mousedown);
+            target.removeEventListener(this.using_pointer_events? "pointerup":"mouseup", this.mouseup);
             target.removeEventListener("dragstart", this.block_event);
             target.removeEventListener("selectstart", this.block_event);
             target.style.userSelect = "none";
@@ -152,8 +126,13 @@ class on_click_viewer
 
         window.removeEventListener("blur", this.window_blur);
         window.removeEventListener("resize", this.onresize, true);
-        window.removeEventListener("mouseup", this.mouseup);
-        window.removeEventListener("mousemove", this.mousemove);
+    }
+
+    // If pointer events are available, we'll use them to hide the cursor during
+    // grabs.  Otherwise, we'll use regular mouse events and setCapture.
+    get using_pointer_events()
+    {
+        return "onpointerdown" in HTMLElement.prototype;
     }
 
     onresize(e)
@@ -176,13 +155,21 @@ class on_click_viewer
         if(e.target != this.img && e.target != this.img.parentNode)
             return;
 
-        this.hide_cursor = new hide_mouse_cursor();
+        this.event_target.style.cursor = "none";
 
         // Don't show the UI if the mouse hovers over it while dragging.
         document.body.classList.add("hide-ui");
 
         this.zoomed = true;
         this.dragged_while_zoomed = false;
+
+        if(this.using_pointer_events)
+        {
+            this.captured_pointer_id = e.pointerId;
+            this.img.setPointerCapture(this.captured_pointer_id);
+        }
+        else if(this.event_target.setCapture)
+            this.event_target.setCapture(true);
 
         var img_rect = this.img.getBoundingClientRect();
 
@@ -202,9 +189,8 @@ class on_click_viewer
 
         this.reposition();
 
-        // Only listen to mousemove while we're dragging.  Put this on window, so we get drags outside
-        // the window.
-        window.addEventListener("mousemove", this.mousemove);
+        // Only listen to mousemove while we're dragging.
+        this.event_target.addEventListener(this.using_pointer_events? "pointermove":"mousemove", this.mousemove);
     }
 
     mouseup(e)
@@ -225,17 +211,19 @@ class on_click_viewer
 
     stop_dragging()
     {
-        window.removeEventListener("mousemove", this.mousemove);
+        this.event_target.removeEventListener(this.using_pointer_events? "pointermove":"mousemove", this.mousemove);
 
-        if(this.hide_cursor)
+        if(this.using_pointer_events && this.captured_pointer_id != null)
         {
-            this.hide_cursor.remove();
-            this.hide_cursor = null;
+            this.img.releasePointerCapture(this.captured_pointer_id);
+            this.captured_pointer_id = null;
         }
+        else if(document.releaseCapture)
+            document.releaseCapture();
         
         document.body.classList.remove("hide-ui");
         
-        document.body.style.cursor = "";
+        this.event_target.style.cursor = "";
         this.zoomed = false;
         this.reposition();
         
