@@ -229,6 +229,9 @@ class main_controller
         // Create the page from our HTML resource.
         this.container = document.body.appendChild(helpers.create_node(resources['main.html']));
 
+        // Create the popup menu handler.
+        this.context_menu = new main_context_menu(document.documentElement);
+        
         // Create the thumbnail view handler.
         this.thumbnail_view = new thumbnail_view(this.container.querySelector(".thumbnail-container"));
         
@@ -288,6 +291,10 @@ class main_controller
         var show_thumbs = this.showing_thumbnail_view;
         var new_view = show_thumbs? "thumbs":"image";
         console.log("Enabling view:", new_view);
+
+        // Mark the current view.  Other code can watch for this to tell which view is
+        // active.
+        document.body.dataset.currentView = new_view;
 
         // If we're going to activate the image view, set the image first.  If we do this
         // after activating it, it'll start loading any previous image it was pointed at.

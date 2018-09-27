@@ -1,5 +1,5 @@
 <div class="main-container noise-background">
-    <div class=image-container></div>
+    <div class="image-container context-menu-target"></div>
 
     <div class=ugoira-seek-bar></div>
     <div class=loading-progress-bar></div>
@@ -517,7 +517,7 @@
             </div>
         </div>
 
-        <ul class=thumbnails></ul>
+        <ul class="thumbnails context-menu-target"></ul>
     </div>
 
     <div hidden class=templates>
@@ -636,6 +636,13 @@
         <div class=template-context-menu>
             <div class=popup-context-menu>
                 <div class=button-strip>
+                    <div class=button-block>
+                        <div class="button button-return-to-search" data-level=0>
+                            ### inline:thumbnails-icon.svg
+                        </div>
+                    </div>
+                </div>
+                <div class="button-strip zoom-strip">
                     <!-- Some of this is a disabled concept.  It's handy, but I don't like duplicating UI... -->
                     <!--
                     <div class=button-block>

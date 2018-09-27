@@ -9,6 +9,7 @@ FILES=\
     src/helpers.js \
     src/tweaks.js \
     src/widgets.js \
+    src/main_context_menu.js \
     src/create_zip.js \
     src/data_sources.js \
     src/encode_mkv.js \
