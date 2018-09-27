@@ -301,3 +301,127 @@ class refresh_bookmark_tag_widget
     }
 }
 
+// A helper for a simple right-click context menu.
+//
+// The menu opens on right click and closes when the button is released.
+class popup_context_menu
+{
+    constructor(container)
+    {
+        this.onmousedown = this.onmousedown.bind(this);
+        this.onmouseup = this.onmouseup.bind(this);
+        this.oncontextmenu = this.oncontextmenu.catch_bind(this);
+
+        this.container = container;
+
+        this.container.addEventListener("mousedown", this.onmousedown);
+
+        // Create the menu.  The caller will attach event listeners for clicks.
+        this.menu = helpers.create_from_template(".template-context-menu");
+
+
+        // Whether the left and right mouse buttons are pressed:
+        this.buttons_down = [false, false, false];
+    }
+
+    oncontextmenu(e)
+    {
+        // If shift was pressed when the mouse was clicked, just let the regular context
+        // menu open.
+        if(this.shift_was_pressed)
+            return;
+
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    onmousedown(e)
+    {
+        if(this.displayed_menu == null && e.button != 2)
+            return;
+
+        this.buttons_down[e.button] = true;
+        if(e.button != 2)
+            return;
+
+        this.shift_was_pressed = e.shiftKey;
+        if(this.shift_was_pressed)
+            return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        this.show(e.pageX, e.pageY);
+    }
+
+    // Releasing the left or right mouse button hides the menu if both the left
+    // and right buttons are released.  Pressing right, then left, then releasing
+    // right won't close the menu until left is also released.  This prevents lost
+    // inputs when quickly right-left clicking.
+    onmouseup(e)
+    {
+        this.buttons_down[e.button] = false;
+        if(!this.buttons_down[0] && !this.buttons_down[2])
+        {
+            // Run the hide asynchronously.  If we close it immediately and this
+            // release would have triggered a click event, the click won't happen.
+            setTimeout(this.hide.bind(this), 0);
+        }
+    }
+
+    // Return the element that should be under the cursor when the menu is opened.
+    get element_to_center()
+    {
+        return null;
+    }
+    show(x, y)
+    {
+        if(this.displayed_menu != null)
+            return;
+
+        this.displayed_menu = this.menu;
+        this.container.appendChild(this.displayed_menu);
+
+        // Disable popup UI while a context menu is open.
+        document.body.classList.add("hide-ui");
+        
+        window.addEventListener("mouseup", this.onmouseup);
+        window.addEventListener("contextmenu", this.oncontextmenu);
+
+        var centered_element = this.element_to_center;
+        if(centered_element == null)
+            centered_element = this.displayed_menu;
+        var pos = helpers.get_relative_pos(centered_element, this.displayed_menu);
+        x -= pos[0];
+        y -= pos[1];
+        x -= centered_element.offsetWidth / 2;
+        y -= centered_element.offsetHeight * 3 / 4;
+        this.displayed_menu.style.left = x + "px";
+        this.displayed_menu.style.top = y + "px";
+
+        hide_mouse_cursor_on_idle.disable_all();
+    }
+
+    hide()
+    {
+        if(this.displayed_menu == null)
+            return;
+
+        this.displayed_menu.parentNode.removeChild(this.displayed_menu);
+        this.displayed_menu = null;
+        hide_mouse_cursor_on_idle.enable_all();
+        this.buttons_down = [false, false, false];
+        document.body.classList.remove("hide-ui");
+        window.removeEventListener("mouseup", this.onmouseup);
+        window.removeEventListener("contextmenu", this.oncontextmenu);
+    }
+
+    shutdown()
+    {
+        this.hide();
+
+        this.container.removeEventListener("mousedown", this.onmousedown);
+        this.container.removeEventListener("click", this.onclick);
+    }
+}
+

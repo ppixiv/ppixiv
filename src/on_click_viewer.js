@@ -8,25 +8,45 @@ class on_click_viewer
     constructor(img)
     {
         this.onresize = this.onresize.bind(this);
-        this.mousedown = this.mousedown.bind(this);
+        this.mousedown = this.mousedown.catch_bind(this);
         this.mouseup = this.mouseup.bind(this);
         this.mousemove = this.mousemove.bind(this);
         this.block_event = this.block_event.bind(this);
         this.window_blur = this.window_blur.bind(this);
 
+        this._zoom_levels = [null, 2, 4, 8];
+
         // The caller can set this to a function to be called if the user clicks the image without
         // dragging.
         this.clicked_without_scrolling = null;
+
+        this.width = 1;
+        this.height = 1;
 
         this.img = img;
         this.img.style.width = "auto";
         this.img.style.height = "100%";
 
         this.enable();
+
+        this.zoom_center = [0.5, 0];
+        this.zoom_pos = [0,0];
+        this._zoom_level = helpers.get_value("zoom-level", 1);
+        console.log("set zoom level", this._zoom_level);
+
+        // Restore the most recent zoom mode.  We assume that there's only one of these on screen.
+        this.locked_zoom = helpers.get_value("zoom-mode") != "normal";
     }
 
     image_changed()
     {
+        // In locked zoom, reset the zoom center to the top-center when the image changes.
+        if(this._locked_zoom)
+        {
+            this.zoom_center = [0.5, 0];
+            this.reposition();
+        }
+
         if(this.watch_for_size_available)
         {
             clearInterval(this.watch_for_size_available);
@@ -145,6 +165,77 @@ class on_click_viewer
         this.stop_dragging();
     }
 
+    // Enable or disable zoom lock.
+    get locked_zoom()
+    {
+        return this._locked_zoom;
+    }
+
+    // Select between click-pan zooming and sticky, filled-screen zooming.
+    set locked_zoom(enable)
+    {
+        this._locked_zoom = enable;
+        helpers.set_value("zoom-mode", enable? "locked":"normal");
+
+        if(this._locked_zoom)
+            this.zoom_pos = [0,0];
+        
+        this.reposition();
+    }
+
+    // Set the zoom factor for lock zoom mode.  At 1x, the image is scaled to fill the screen
+    // in both dimensions.
+    get locked_zoom_factor()
+    {
+        return this._zoom_level;
+    }
+
+    set locked_zoom_factor(value)
+    {
+        this._zoom_level = value;
+        this.reposition();
+    }
+
+    get zoom_level()
+    {
+        return this._zoom_level;
+    }
+    
+    // Increase or decrease the zoom level.  This won't select zoom 0 (screen fill),
+    // and if we're in zoom level 0 it'll always move to 1.
+    set zoom_level(value)
+    {
+        if(this._zoom_level == value)
+            return;
+        this._zoom_level = helpers.clamp(value, 0, this._zoom_levels.length - 1);
+
+        // Save the new zoom level.
+        console.log("store", this._zoom_level);
+        helpers.set_value("zoom-level", this._zoom_level);
+        
+        this.reposition();
+    }
+    /*
+    change_zoom_level(up)
+    {
+        this._zoom_level += up? 1:-1;
+        this._zoom_level = helpers.clamp(this._zoom_level, 1, this._zoom_levels.length - 1);
+        this.reposition();
+    }
+
+    set_fill_zoom_level()
+    {
+        this._zoom_level = 0;
+        this.reposition();
+    }
+    */
+
+    // Return the zoom level, or null if we're filling the screen.
+    get _selected_zoom_level()
+    {
+        return this._zoom_levels[this._zoom_level];
+    }
+
     mousedown(e)
     {
         if(e.button != 0)
@@ -171,26 +262,43 @@ class on_click_viewer
         else if(this.event_target.setCapture)
             this.event_target.setCapture(true);
 
-        var img_rect = this.img.getBoundingClientRect();
+        // Clicking with sticky zoom just enables dragging.  It doesn't affect the
+        // actual zoom.
+        if(!this._locked_zoom)
+        {
+            // Set the zoom position to the top-left.
+            this.set_zoom_center(e.clientX, e.clientY);
+            this.zoom_pos = [0,0];
+        }
 
-        // Set the zoom position to the top-left.
-        this.zoom_pos = [0,0]; //img_rect.left, img_rect.top];
+        this.reposition();
 
+        // Only listen to mousemove while we're dragging.
+        this.event_target.addEventListener(this.using_pointer_events? "pointermove":"mousemove", this.mousemove);
+    }
+
+    // Set the center point of the zoom based on a click position.
+    //
+    // This is only used externally in locked zoom mode, to position the zoom after activating
+    // it.  It's only used internally when unlocked.
+    //
+    // This must be called *before* setting locked_zoom, since we need to look at the image
+    // size and setting locked_zoom will zoom the image.
+    set_zoom_center(x, y)
+    {
         // The size of the image being clicked:
+        var img_rect = this.img.getBoundingClientRect();
         var displayed_width = img_rect.right - img_rect.left;
         var displayed_height = img_rect.bottom - img_rect.top;
 
         // The offset of the click in pixels relative to the image:
-        var distance_from_img = [e.clientX - img_rect.left, e.clientY - img_rect.top];
+        var distance_from_img = [x - img_rect.left, y - img_rect.top];
 
         // The normalized position clicked in the image (0-1).
         // This adjusts the initial position, so the position clicked stays stationary.
         this.zoom_center = [distance_from_img[0] / displayed_width, distance_from_img[1] / displayed_height];
 
         this.reposition();
-
-        // Only listen to mousemove while we're dragging.
-        this.event_target.addEventListener(this.using_pointer_events? "pointermove":"mousemove", this.mousemove);
     }
 
     mouseup(e)
@@ -239,10 +347,11 @@ class on_click_viewer
         this.dragged_while_zoomed = true;
 
         // Apply mouse dragging.
-        var x_offset = -e.movementX;
-        var y_offset = -e.movementY;
-        this.zoom_pos[0] += x_offset * 3;
-        this.zoom_pos[1] += y_offset * 3;
+        var x_offset = e.movementX;
+        var y_offset = e.movementY;
+        
+        this.zoom_pos[0] += x_offset * -3;
+        this.zoom_pos[1] += y_offset * -3;
 
         this.reposition();
     }
@@ -253,24 +362,27 @@ class on_click_viewer
         if(this.img.parentNode == null)
             return;
 
-        var totalWidth = this.img.parentNode.offsetWidth;
-        var totalHeight = this.img.parentNode.offsetHeight;
+        var screen_width = this.img.parentNode.offsetWidth;
+        var screen_height = this.img.parentNode.offsetHeight;
         var width = this.width;
         var height = this.height;
 
         // The ratio to scale the image to fit the screen:
-        var zoom_ratio = Math.min(totalWidth/width, totalHeight/height);
+        var zoom_ratio = Math.min(screen_width/width, screen_height/height);
         this.zoom_ratio = zoom_ratio;
 
         height *= this.zoom_ratio;
         width *= this.zoom_ratio;
 
         // Normally (when unzoomed), the image is centered.
-        var left = Math.round((totalWidth - width) / 2);
-        var top = Math.round((totalHeight - height) / 2);
-
-        if(this.zoomed) {
-            var zoom_level = 2;
+        var left = Math.round((screen_width - width) / 2);
+        var top = Math.round((screen_height - height) / 2);
+        var zoomed = this.zoomed || this._locked_zoom;
+        if(zoomed) {
+            // A zoom level of null fills the image to the screen.
+            var zoom_level = this._selected_zoom_level;
+            if(zoom_level == null)
+                zoom_level = Math.max(screen_width/width, screen_height/height);
 
             // left is the position of the left side of the image.  We're going to scale around zoom_center,
             // so shift by zoom_center in the unzoomed coordinate space.  If zoom_center[0] is .5, shift
@@ -290,6 +402,27 @@ class on_click_viewer
             // Apply the position.
             left += this.zoom_pos[0];
             top += this.zoom_pos[1];
+
+            if(this._selected_zoom_level == null)
+            {
+                // When we're zooming to fill the screen, clamp panning to the screen, so we always fill the
+                // screen and don't pan past the edge.  If we're narrower than the screen, lock to center.
+                var orig_top = top, orig_left = left;
+                if(screen_height < height)
+                    top  = helpers.clamp(top, -(height - screen_height), 0); // clamp to the top and bottom
+                else
+                    top  = -(height - screen_height) / 2; // center vertically
+                if(screen_width < width)
+                    left = helpers.clamp(left, -(width - screen_width), 0); // clamp to the left and right
+                else
+                    left = -(width - screen_width) / 2; // center horizontally
+
+                // Apply any clamping we did to the position to zoom_pos too, so if you move the
+                // mouse far beyond the edge, you don't have to move it all the way back before we
+                // start panning again.
+                this.zoom_pos[0] += left - orig_left;
+                this.zoom_pos[1] += top - orig_top;
+            }
         }
 
         left = Math.round(left);

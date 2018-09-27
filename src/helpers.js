@@ -1157,6 +1157,29 @@ var helpers = {
             setup_popup(box);
         }
     },
+
+    // Return the offset of element relative to an ancestor.
+    get_relative_pos(element, ancestor)
+    {
+        var x = 0, y = 0;
+        while(element != null && element != ancestor)
+        {
+            x += element.offsetLeft;
+            y += element.offsetTop;
+            // Advance through parents until we reach the offsetParent or the ancestor
+            // that we're stopping at.  We do this rather than advancing to offsetParent,
+            // in case ancestor isn't an offsetParent.
+            var search_for = element.offsetParent;
+            while(element != ancestor && element != search_for)
+                element = element.parentNode;
+        }
+        return [x, y];
+    },
+    
+    clamp(value, min, max)
+    {
+        return Math.min(Math.max(value, min), max);
+    },
 };
 
 

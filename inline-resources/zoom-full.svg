@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" stroke-width="3" fill="none">
+    <path d="M9 14 l 0 -6 l 6 0" />
+    <path d="M25 14 l 0 -6 l -6 0" />
+    <path d="M9 18 l 0 +6 l 6 0" />
+    <path d="M25 18 l 0 +6 l -6 0" />
+</svg>

@@ -1,6 +1,68 @@
+class viewer_images_context_menu extends popup_context_menu
+{
+    constructor(container, on_click_viewer)
+    {
+        super(container);
+
+        this.on_click_viewer = on_click_viewer;
+
+        this.refresh_zoom_icons();
+
+        this.menu.querySelector(".button-zoom").addEventListener("click", this.clicked_zoom_toggle.bind(this));
+
+        for(var button of this.menu.querySelectorAll(".button-zoom-level"))
+            button.addEventListener("click", this.clicked_zoom_level.bind(this));
+    }
+
+    // Put the zoom toggle button under the cursor, so right-left click is a quick way
+    // to toggle zoom lock.
+    get element_to_center()
+    {
+        return this.displayed_menu.querySelector(".button-zoom");
+    }
+        
+    // Update selection highlight for the context menu.
+    refresh_zoom_icons()
+    {
+        helpers.set_class(this.menu.querySelector(".button-zoom"), "selected", this.on_click_viewer.locked_zoom);
+
+        var zoom_level = this.on_click_viewer.zoom_level;
+        for(var button of this.menu.querySelectorAll(".button-zoom-level"))
+            helpers.set_class(button, "selected", parseInt(button.dataset.level) == zoom_level);
+    }
+
+    clicked_zoom_toggle(e)
+    {
+        this.on_click_viewer.set_zoom_center(e.clientX, e.clientY);
+        this.on_click_viewer.locked_zoom = !this.on_click_viewer.locked_zoom;
+        this.refresh_zoom_icons();
+    }
+
+    clicked_zoom_level(e)
+    {
+        console.log(e.currentTarget);
+        var level = parseInt(e.currentTarget.dataset.level);
+
+        // If the zoom level that's already selected is clicked and we're already zoomed,
+        // just toggle zoom as if the toggle zoom button was pressed.
+        if(this.on_click_viewer.zoom_level == level && this.on_click_viewer.locked_zoom)
+        {
+            this.on_click_viewer.locked_zoom = false;
+            this.refresh_zoom_icons();
+            return;
+        }
+
+        // Each zoom button enables zoom lock, since otherwise changing the zoom level would
+        // only have an effect when click-dragging, so it looks like the buttons don't do anything.
+        this.on_click_viewer.set_zoom_center(e.clientX, e.clientY);
+        this.on_click_viewer.zoom_level = level;
+        this.on_click_viewer.locked_zoom = true;
+        this.refresh_zoom_icons();
+    }
+}
+
 // This is the viewer for static images.  We take an illust_data and show
 // either a single image or navigate between an image sequence.
-//
 class viewer_images extends viewer
 {
     constructor(container, illust_data, options)
@@ -25,6 +87,8 @@ class viewer_images extends viewer
 
         // Create a click and drag viewer for the image.
         this.viewer = new on_click_viewer(this.img);
+
+        this.context_menu = new viewer_images_context_menu(this.container, this.viewer);
 
         // Make a list of image URLs we're viewing.
         this.images = [];
@@ -84,6 +148,12 @@ class viewer_images extends viewer
 
         if(this.progress_bar)
             this.progress_bar.detach();
+
+        if(this.context_menu)
+        {
+            this.context_menu.shutdown();
+            this.context_menu = null;
+        }
     }
 
     set_page(page)

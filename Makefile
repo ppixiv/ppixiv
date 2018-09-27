@@ -8,6 +8,7 @@ FILES=\
     src/crc32.js \
     src/helpers.js \
     src/tweaks.js \
+    src/widgets.js \
     src/create_zip.js \
     src/data_sources.js \
     src/encode_mkv.js \
@@ -32,7 +33,6 @@ FILES=\
     src/page_manager.js \
     src/remove_link_interstitial.js \
     src/image_preloading.js \
-    src/widgets.js \
     src/main.js \
     src/footer.js
 

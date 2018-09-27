@@ -20,8 +20,43 @@ class hide_mouse_cursor_on_idle
         window.addEventListener("blur", this.blur, true);
         window.addEventListener("hide-cursor-immediately", this.hide_immediately, true);
 
-        this.reset_timer();
+        window.addEventListener("enable-hiding-cursor", function() { this.enable = true; }.bind(this), true);
+        window.addEventListener("disable-hiding-cursor", function() { this.enable = false; }.bind(this), true);
+
+        this.enable = true;
     }
+
+    // Temporarily disable hiding all mouse cursors.
+    static enable_all()
+    {
+        window.dispatchEvent(new Event("enable-hiding-cursor"));
+    }
+
+    static disable_all()
+    {
+        window.dispatchEvent(new Event("disable-hiding-cursor"));
+    }
+
+    set enable(value)
+    {
+        if(this._enabled == value)
+            return;
+
+        this._enabled = value;
+
+        if(this._enabled)
+            this.reset_timer();
+        else
+        {
+            this.remove_timer();
+            this.show_cursor();
+        }
+    }
+
+    get enable()
+    {
+        return this._enabled;
+    };
 
     remove_timer()
     {
