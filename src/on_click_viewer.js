@@ -117,7 +117,7 @@ class on_click_viewer
         target.addEventListener("dragstart", this.block_event);
         target.addEventListener("selectstart", this.block_event);
 
-    //    document.documentElement.style.overflow = "hidden";
+        target.style.userSelect = "none";
         target.style.MozUserSelect = "none";
     }
 
@@ -146,6 +146,7 @@ class on_click_viewer
             target.removeEventListener("mousedown", this.mousedown);
             target.removeEventListener("dragstart", this.block_event);
             target.removeEventListener("selectstart", this.block_event);
+            target.style.userSelect = "none";
             target.style.MozUserSelect = "";
         }
 
