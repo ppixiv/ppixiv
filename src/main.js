@@ -455,6 +455,9 @@ class main_controller
         if(e.button != 0)
             return;
 
+        if(!(e.target instanceof HTMLElement))
+            return;
+
         // Look up from the target for a link.
         var a = e.target.closest("A");
         if(a == null)
