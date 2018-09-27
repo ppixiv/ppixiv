@@ -13,7 +13,15 @@ var helpers = {
             return default_value;
 
         var result = localStorage[key];
-        return JSON.parse(result);
+        try {
+            return JSON.parse(result);
+        } catch(e) {
+            // Recover from invalid values in localStorage.
+            console.warn(e);
+            console.log("Removing invalid setting:", result);
+            delete localStorage.key;
+            return default_value;
+        }
     },
 
     set_value: function(key, value)
