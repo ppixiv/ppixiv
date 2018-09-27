@@ -1,12 +1,40 @@
-import base64, collections, glob, json, os, sys
+import base64, collections, glob, json, os, re, sys
 from StringIO import StringIO
 
+def do_replacement(line):
+    m = re.match(r'^(\s*)<!-- *#inline:([^ ]+) *-->\s*$', line)
+    if m is None:
+        return None
+    resource_filename = m.group(2)
+    inline_data = open('inline-resources/%s' % resource_filename, 'r').read()
+    return inline_data
+
+def replace_placeholders(data):
+    # Expand inline placeholders to the contents of files in inline-resources:
+    #
+    # <!-- #inline:filename -->
+    #
+    # These must be on a line by themselves.
+    data = data.split('\n')
+
+    for idx, line in enumerate(data):
+        replaced_data = do_replacement(line)
+        if replaced_data is not None:
+            data[idx] = replaced_data
+
+    return '\n'.join(data)
+
 def go():
+    output_file = sys.argv[1]
+
     # Collect resources into an OrderedDict, so we always output data in the same order.
     # This prevents the output from changing.
     all_data = collections.OrderedDict()
     for fn in glob.glob('resources/*'):
         data = open(fn).read()
+        if fn == 'resources/main.html':
+            data = replace_placeholders(data)
+
         all_data[os.path.basename(fn)] = data
 
     # Output a JavaScript file containing the data.
@@ -40,6 +68,6 @@ def go():
     # file will have mixed newlines.
     output.seek(0)
     data = output.buf.replace('\n', '\r\n')
-    sys.stdout.write(data)
+    open(output_file, 'w+').write(data)
 
 go()

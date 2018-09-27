@@ -41,8 +41,8 @@ all: build
 clean:
 	rm -f build/*.js
 
-build/resources.js: resources/*
-	python create_resources.py > $@
+build/resources.js: resources/* inline-resources/*
+	python create_resources.py $@
 
 build: build/ppixiv.user.js
 
