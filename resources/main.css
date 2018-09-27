@@ -358,9 +358,9 @@ body.dot canvas.filtering {
 /* When bookmarked, show the bookmark state. */
 .bookmark-button { cursor: pointer; }
 .bookmark-button .bookmark-popup { cursor: initial; } /* stop cursor: pointer above from propagating all the way down */
-body:not(.bookmarked) .bookmark-button:hover              svg.heart,
-body.bookmarked       .bookmark-button.bookmarked-public  svg.heart { fill: #f00; }
-                      .bookmark-button.bookmarked-private svg.heart { fill: #800; stroke: #fff; }
+body:not(.bookmarked) .bookmark-button:hover              .heart,
+body.bookmarked       .bookmark-button.bookmarked-public  .heart { fill: #f00; }
+                      .bookmark-button.bookmarked-private .heart { fill: #800; stroke: #fff; }
 body.bookmarked .bookmark-button input { display: none; }
 .bookmark-button > span.popup {
     padding: 0 3px;
