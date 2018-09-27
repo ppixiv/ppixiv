@@ -147,7 +147,7 @@ class thumbnail_data
             ["pageCount", "pageCount"],
             ["illustTitle", "title"],
             ["userName", "userName"],
-//            ["illustType", "illustType"],
+            ["illustType", "illustType"],
 //            ["user_profile_img", "profileImageUrl"],
         ];
         return this._thumbnail_info_map_following;
@@ -265,7 +265,6 @@ class thumbnail_data
             }
             else if(source == "illust_list" || source == "following" || source == "rankings")
             {
-                console.log("XXX", source);
                 // Get the mapping for this mode.
                 var thumbnail_info_map = 
                     source == "illust_list"? this.thumbnail_info_map_illust_list:
