@@ -1325,6 +1325,11 @@ body.light .thumb-list-cursor
     color: #888;
     stroke: #888;
 }
+.popup-context-menu .button-strip.enabled > .button-block > .button > svg {
+    width: 32px;
+    height: 32px;
+}
+
 .popup-context-menu .button-strip.enabled > .button-block > .button:hover {
     color: #fff;
     stroke: #fff;
