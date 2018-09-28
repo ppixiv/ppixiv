@@ -38,15 +38,12 @@ class on_click_viewer
         this.locked_zoom = helpers.get_value("zoom-mode") != "normal";
     }
 
+    // The current manga page has changed.
+    //
+    // This isn't called when switching from one full illustration to another, since a new
+    // on_click_viewer will be created instead.
     image_changed()
     {
-        // In locked zoom, reset the zoom center to the top-center when the image changes.
-        if(this._locked_zoom)
-        {
-            this.zoom_center = [0.5, 0];
-            this.reposition();
-        }
-
         if(this.watch_for_size_available)
         {
             clearInterval(this.watch_for_size_available);
