@@ -125,7 +125,6 @@ class thumbnail_data
             ["illust_page_count", "pageCount"],
             ["illust_title", "title"],
             ["user_profile_img", "profileImageUrl"],
-
             ["user_name", "userName"],
         ];
         return this._thumbnail_info_map_illust_list;
@@ -168,7 +167,7 @@ class thumbnail_data
             ["illust_page_count", "pageCount"],
             ["title", "title"],
             ["user_name", "userName"],
-//            ["illust_type", "illustType"],
+            ["illust_type", "illustType"],
 //            ["profile_img", "profileImageUrl"],
         ];
         return this._thumbnail_info_map_ranking;
