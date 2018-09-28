@@ -32,7 +32,6 @@ class on_click_viewer
         this.zoom_center = [0.5, 0];
         this.zoom_pos = [0,0];
         this._zoom_level = helpers.get_value("zoom-level", 1);
-        console.log("set zoom level", this._zoom_level);
 
         // Restore the most recent zoom mode.  We assume that there's only one of these on screen.
         this.locked_zoom = helpers.get_value("zoom-mode") != "normal";

@@ -377,7 +377,8 @@ class main_controller
         this.show_data_source_specific_elements();
         this.ui.set_data_source(data_source);
         this.thumbnail_view.set_data_source(data_source);
-
+        this.context_menu.set_data_source(data_source);
+        
         // Load the current page for the data source.
         this.data_source.load_current_page(function() {
             // The data source finished loading, so we know what image to display now.

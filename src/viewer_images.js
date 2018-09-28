@@ -38,7 +38,6 @@ class viewer_images extends viewer
 
     img_onload(e)
     {
-        console.log("loaded", this.img.naturalWidth, this.img.naturalHeight);
         this.call_on_page_changed();
     }
 

@@ -409,6 +409,15 @@ class popup_context_menu
     // If element is within a button that has a tooltip set, show it.
     show_tooltip_for_element(element)
     {
+        if(this.tooltip_element == element)
+            return;
+        this.tooltip_element = element;
+        this.refresh_tooltip();
+    }
+
+    refresh_tooltip()
+    {
+        var element = this.tooltip_element;
         if(element != null)
             element = element.closest("[data-tooltip]");
         this.menu.querySelector(".tooltip-display").hidden = element == null;

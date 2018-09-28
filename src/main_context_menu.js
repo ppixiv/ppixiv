@@ -89,10 +89,28 @@ class main_context_menu extends popup_context_menu
         return view == "image" && this._on_click_viewer != null;
     }
 
+    set_data_source(data_source)
+    {
+        if(this.data_source == data_source)
+            return;
+
+        this.data_source = data_source;
+        this.refresh();
+    }
+
     // Update selection highlight for the context menu.
     refresh()
     {
         var view = document.body.dataset.currentView;
+
+        // Update the tooltip for the thumbnail toggle button.
+        var title;
+        if(document.body.dataset.currentView == "image")
+            title = this.data_source != null? ("Return to " + this.data_source.get_displaying_text()):"";
+        else
+            title = "Return to image";
+        this.menu.querySelector(".button-return-to-search").dataset.tooltip = title;
+        this.refresh_tooltip();
 
         // Enable the zoom buttons if we're in the image view and we have an on_click_viewer.
         helpers.set_class(this.menu.querySelector(".zoom-strip"), "enabled", this._is_zoom_ui_enabled);
