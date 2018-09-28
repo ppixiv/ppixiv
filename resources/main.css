@@ -1118,6 +1118,14 @@ input.search-tags {
     padding-left: 7px;
 }
 
+.input-dropdown > .input-dropdown-list > .entry .suggestion-icon {
+    margin: 2px -2px 0 2px;    
+}
+
+.input-dropdown > .input-dropdown-list > .entry:not(.autocomplete) .suggestion-icon {
+    display: none;
+}
+
 .input-dropdown > .input-dropdown-list .remove-history-entry {
     padding: 0 8px 0px 5px;
 }
