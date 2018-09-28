@@ -35,6 +35,15 @@ class early_controller
         window.addEventListener("DOMContentLoaded", stop_event, true);
         window.addEventListener("load", stop_event, true);
 
+        // Newer Pixiv pages run a bunch of stuff from deferred scripts, which install a bunch of
+        // nastiness (like searching for installed polyfills--which we install--and adding wrappers
+        // around them).  Break this by defining a webpackJsonp property that can't be set.  It
+        // won't stop the page from running everything, but it keeps it from getting far enough
+        // for the weirder scripts to run.
+        Object.defineProperty(unsafeWindow, "webpackJsonp", {
+            set(value) { }
+        });
+        
         // Install polyfills.  Make sure we only do this if we're active, so we don't
         // inject polyfills into Pixiv when we're not active.
         install_polyfills();
