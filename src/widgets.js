@@ -321,6 +321,9 @@ class popup_context_menu
         // Create the menu.  The caller will attach event listeners for clicks.
         this.menu = helpers.create_from_template(".template-context-menu");
 
+        // Work around glitchiness in Chrome's click behavior (if we're in Chrome).
+        new fix_chrome_clicks(this.menu);
+
         this.menu.addEventListener("mouseover", this.onmouseover, true);
         this.menu.addEventListener("mouseout", this.onmouseout, true);
 

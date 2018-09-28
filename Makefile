@@ -7,6 +7,7 @@ FILES=\
     src/muting.js \
     src/crc32.js \
     src/helpers.js \
+    src/fix_chrome_clicks.js \
     src/tweaks.js \
     src/widgets.js \
     src/main_context_menu.js \
