@@ -2057,6 +2057,18 @@ class data_source_search extends data_source_from_page
 {
     get name() { return "search"; }
 
+    constructor(url, doc)
+    {
+        super(url, doc);
+
+        // Add the search tags to tag history.  We only do this at the start when the
+        // data source is created, not every time we navigate back to the search.
+        var query_args = this.url.searchParams;
+        var tag = query_args.get("word");
+        if(tag)
+            helpers.add_recent_search_tag(tag);
+    }
+     
     parse_document(doc)
     {
         // The actual results are encoded in a string for some reason.
