@@ -245,7 +245,7 @@ class main_controller
         this.thumbnail_view = new thumbnail_view(this.container.querySelector(".thumbnail-container"));
         
         // Create the main UI.
-        this.ui = new main_ui(this, this.container);
+        this.ui = new main_ui(this, this.container.querySelector(".image-viewer-container"));
 
         // Create the data source for this page.
         this.set_current_data_source(html);
