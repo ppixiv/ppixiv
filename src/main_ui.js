@@ -325,6 +325,7 @@ class main_ui
             return;
 
         this._active = active;
+        this.container.hidden = !active;
 
         if(!active)
         {
