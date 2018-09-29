@@ -331,7 +331,7 @@ class image_preloader
         // this reduces flicker in the manga thumbnail bar.
         var thumbs = [];
         for(var page = 0; page < illust_info.pageCount; ++page)
-            thumbs.push(helpers.get_url_for_page(illust_info, page, "thumb"));
+            thumbs.push(helpers.get_url_for_page(illust_info, page, "small"));
 
         helpers.preload_images(thumbs);
     }
