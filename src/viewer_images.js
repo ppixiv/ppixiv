@@ -14,7 +14,7 @@ class viewer_images extends viewer
         
         this.onkeydown = this.onkeydown.bind(this);
 
-        this.index = options.show_last_image? illust_data.pageCount-1:0;
+        this.index = options.manga_page || 0;
 
         // Create the image element.
         this.img = document.createElement("img");
@@ -88,21 +88,15 @@ class viewer_images extends viewer
         main_context_menu.get.on_click_viewer = null;
     }
 
-    set_page(page)
+    get page()
+    {
+        return this.index;
+    }
+
+    set page(page)
     {
         this.index = page;
         this.refresh();
-    }
-
-    move(down)
-    {
-        var new_index = this.index + (down? +1:-1);
-        new_index = Math.max(0, Math.min(this.images.length-1, new_index));
-        if(new_index == this.index)
-            return false;
-
-        this.set_page(new_index);
-        return true;
     }
 
     call_on_page_changed()

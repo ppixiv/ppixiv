@@ -86,7 +86,7 @@ class main_context_menu extends popup_context_menu
     get _is_zoom_ui_enabled()
     {
         var view = document.body.dataset.currentView;
-        return view == "image" && this._on_click_viewer != null;
+        return view == "illust" && this._on_click_viewer != null;
     }
 
     set_data_source(data_source)
@@ -105,7 +105,7 @@ class main_context_menu extends popup_context_menu
 
         // Update the tooltip for the thumbnail toggle button.
         var title;
-        if(document.body.dataset.currentView == "image")
+        if(document.body.dataset.currentView == "illust")
             title = this.data_source != null? ("Return to " + this.data_source.get_displaying_text()):"";
         else
             title = "Return to image";

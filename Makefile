@@ -32,6 +32,7 @@ FILES=\
     src/thumbnail_data.js \
     src/thumbnail_view.js \
     src/manga_thumbnail_widget.js \
+    src/manga_thumbnail_viewer.js \
     src/page_manager.js \
     src/remove_link_interstitial.js \
     src/image_preloading.js \

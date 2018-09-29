@@ -293,6 +293,12 @@ class data_source
         // #thumbs=1 just toggles whether the thumbnail view is active.
         hash_args.delete("thumbs");
 
+        // The manga page doesn't affect the data source.
+        hash_args.delete("page");
+
+        // #view=thumbs controls which view is active.
+        hash_args.delete("view");
+
         // illust_id in the hash is always just telling us which image within the current
         // data source to view.  data_source_current_illust is different and is handled in
         // the subclass.
@@ -474,12 +480,11 @@ class data_source
         return 10;
     };
 
-    // Return true if this data source wants to show thumbnails by default, or false if
-    // the default image should be shown.
-    get show_thumbs_by_default()
+    // Return the view that should be displayed by default, if no "view" field is in the URL.
+    get default_view()
     {
-        return true;
-    };
+        return "search";
+    }
 
     // If we're viewing a page specific to a user (an illustration or artist page), return
     // the user ID we're viewing.  This can change when refreshing the UI.
@@ -1390,10 +1395,10 @@ class data_source_current_illust extends data_source_fake_pagination
     }
 
     // Show the illustration by default.
-    get show_thumbs_by_default()
+    get default_view()
     {
-        return false;
-    };
+        return "illust";
+    }
 
     get_default_page() { return 1; }
 

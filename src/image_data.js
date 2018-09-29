@@ -15,13 +15,16 @@ class image_data
         // Cached data:
         this.image_data = { };
         this.user_data = { };
+        this.manga_info = { };
         this.illust_id_to_user_id = {};
 
         this.loading_image_data_ids = {};
         this.loading_user_data_ids = {};
+        this.loading_manga_info_ids = {};
 
         this.pending_image_info_calls = [];
         this.pending_user_info_calls = [];
+        this.pending_manga_page_calls = [];
     };
 
     // Return the singleton, creating it if needed.
@@ -139,6 +142,29 @@ class image_data
             // Run the callback.
             try {
                 callback(user_data);
+            } catch(e) {
+                console.error(e);
+            }
+        }
+
+        // Call manga page callbacks.  These are simpler.
+        for(var i = 0; i < this.pending_manga_page_calls.length; ++i)
+        {
+            var pending = this.pending_manga_page_calls[i];
+            var illust_id = pending[0];
+            var callback = pending[1];
+
+            var manga_info = this.manga_info[illust_id];
+            if(manga_info == null)
+                continue;
+            
+            // Remove the entry.
+            this.pending_manga_page_calls.splice(i, 1);
+            --i;
+
+            // Run the callback.
+            try {
+                callback(manga_info, illust_id);
             } catch(e) {
                 console.error(e);
             }
@@ -297,6 +323,60 @@ class image_data
     set_user_id_for_illust_id(illust_id, user_id)
     {
         this.illust_id_to_user_id[illust_id] = user_id;
+    }
+
+    // The main illust info doesn't include links to each manga page.  (They really
+    // should.)  Fetch and reteurn manga page info for illust_id.
+    //
+    // This is separate from illust info rather than storing it in the illust info,
+    // so the two can be loaded in parallel.
+    get_manga_info(illust_id, callback)
+    {
+        if(callback != null)
+            this.pending_manga_page_calls.push([illust_id, callback]);
+
+        this.load_manga_info(illust_id);
+    }
+    
+    load_manga_info(illust_id)
+    {
+        // If we're already loading this illust, stop.
+        if(this.loading_manga_info_ids[illust_id])
+        {
+            console.log("Manga pages for " + illust_id + " is already being fetched, waiting for it");
+            return;
+        }
+
+        // If we already have the user info for this illustration, we're done.  Call call_pending_callbacks
+        // to fire any waiting callbacks.
+        if(this.user_data[illust_id] != null)
+        {
+            setTimeout(function() {
+                this.call_pending_callbacks();
+            }.bind(this), 0);
+            return;
+        }
+
+        // We can say {full: 1} to get more profile info (webpage URL, twitter, etc.).
+        // That info isn't included in preloads, though, so it's not used for now to keep
+        // things consistent.
+        // console.log("Fetch manga", illust_id);
+        this.loading_manga_info_ids[illust_id] = true;
+        helpers.get_request("/ajax/illust/" + illust_id + "/pages", {}, this.loaded_manga_info.bind(this, illust_id));
+    }
+
+    loaded_manga_info(illust_id, result)
+    {
+        if(result.error)
+            return;
+
+        var manga_info = result.body;
+        delete this.loading_manga_info_ids[illust_id];
+
+        // Store the manga data.
+        this.manga_info[illust_id] = manga_info;
+
+        this.call_pending_callbacks();
     }
 }
 

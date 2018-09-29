@@ -32,7 +32,7 @@ class main_ui
         new refresh_bookmark_tag_widget(this.container.querySelector(".refresh-bookmark-tags"));
         this.manga_thumbnails = new manga_thumbnail_widget(this.container.querySelector(".manga-thumbnail-container"));
         this.manga_thumbnails.set_page_changed_callback(function(page) {
-            this.viewer.set_page(page);
+            this.viewer.page = page;
         }.bind(this));
 
         this.avatar_widget = new avatar_widget({
@@ -126,7 +126,9 @@ class main_ui
     }
 
     // Show an image.
-    show_image(illust_id)
+    //
+    // If manga_page isn't null, it's the page to display.
+    show_image(illust_id, manga_page)
     {
         // If we previously set a pending navigation, this navigation overrides it.
         this.cancel_async_navigation();
@@ -135,10 +137,12 @@ class main_ui
         // the previous image from the one we were already showing, start at the end instead
         // of the beginning, so we'll start at the end when browsing backwards.
         var show_last_page = false;
-        if(this.active)
+        var wanted_page = manga_page;
+        if(this.active && wanted_page == null)
         {
             var next_illust_id = this.data_source.id_list.get_neighboring_illust_id(illust_id, true);
             show_last_page = (next_illust_id == this.wanted_illust_id);
+            wanted_page = show_last_page? -1:0;
         }
         
         // Remember that this is the image we want to be displaying.
@@ -146,9 +150,9 @@ class main_ui
         this.wanted_illust_last_page = show_last_page;
 
         // If this image is already loaded, stop.
-        if(illust_id == this.current_illust_id)
+        if(illust_id == this.current_illust_id && this.wanted_illust_page == this.viewer.page)
         {
-            console.log("illust_id", illust_id, "already displayed");
+            console.log("illust_id", illust_id, "page", this.wanted_illust_page, "already displayed");
             return;
         }
 
@@ -192,7 +196,9 @@ class main_ui
         this.manga_thumbnails.set_illust_info(null);
         
         this.wanted_illust_id = null;
-        this.wanted_illust_last_page = null;
+
+        // The manga page to show, or the last page if -1.
+        this.wanted_illust_page = 0;
         this.current_illust_id = -1;
         this.refresh_ui();
     }
@@ -207,12 +213,10 @@ class main_ui
 
         console.log("Showing image", illust_id);
         
-        var want_last_page = this.wanted_illust_last_page;
-
         // If true, this is the first image we're displaying.
         var first_image_displayed = this.current_illust_id == -1;
 
-        if(illust_id == this.current_illust_id)
+        if(illust_id == this.current_illust_id && this.wanted_illust_page == this.viewer.page)
         {
             console.log("Image ID not changed");
             return;
@@ -270,9 +274,13 @@ class main_ui
             return;
         }
      
+        var manga_page = this.wanted_illust_page;
+        if(manga_page == -1)
+            manga_page = illust_data.pageCount - 1;
+
         // Tell the thumbnail view about the image.
         this.manga_thumbnails.set_illust_info(illust_data);
-        this.manga_thumbnails.current_page_changed(want_last_page? (illust_data.pageCount-1):0);
+        this.manga_thumbnails.current_page_changed(manga_page);
         this.manga_thumbnails.snap_transition();
 
         // Create the image viewer.
@@ -287,7 +295,7 @@ class main_ui
                 page_changed: this.shown_page_changed,
                 progress_bar: progress_bar,
                 manga_page_bar: this.manga_page_bar,
-                show_last_image: want_last_page,
+                manga_page: manga_page,
             });
         }
 
