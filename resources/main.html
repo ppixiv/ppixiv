@@ -524,6 +524,10 @@
         <ul class="thumbnails context-menu-target"></ul>
     </div>
 
+    <div class="manga-view-container noise-background" hidden>
+        <ul class="thumbnails context-menu-target"></ul>
+    </div>
+    
     <div hidden class=templates>
         <div class=template-bookmark-tag-entry>
             <div class=bookmark-tag-entry>
@@ -546,10 +550,6 @@
                             ### inline:heart-icon.svg
                         </div>
 
-                        <!-- XXX: This is a duplicate of the button in the UI.  We can't reference
-                        external resources (no way to bundle them with the script), and if we use
-                        CSS for these then we can't style their color (because SVG is poorly integrated
-                        into HTML). -->
                         <!-- I don't like having no popup here, but it's too intrusive over the thumbnail.
                              Hopefully the popup over the equivalent button in the image UI is enough to tell
                              people what this does. -->
@@ -641,6 +641,17 @@
             </div>
         </div>
 
+        <ul class=template-manga-view-thumbnail>
+            <li class=thumbnail-box>
+                <div class=thumbnail-inner>
+                    <div style="flex: 1;"></div>
+                    <a class=thumbnail-link href=#>
+                        <img class=thumb>
+                    </a>
+                </div>
+            </li>
+        </ul>
+        
         <div class=template-context-menu>
             <div class=popup-context-menu>
                 <div class="button-strip enabled">

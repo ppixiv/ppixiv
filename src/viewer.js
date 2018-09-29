@@ -11,6 +11,9 @@ class viewer
     // be used.
     shutdown() { }
 
+    set page(page) { throw "Not implemented"; }
+    get page() { return 1; }
+
     // Return the current image's dimensions.
     //
     // For single images this is available immediately from illust_data, but for manga
@@ -22,5 +25,11 @@ class viewer
 
     // Return the file type for display in the UI, eg. "PNG".
     get current_image_type() { return null; }
+
+    // If an image is displayed, clear it.
+    //
+    // This is only used with the illust viewer when changing manga pages in cases
+    // where we don't want the old image to be displayed while the new one loads.
+    stop_displaying_image() { }
 }
 

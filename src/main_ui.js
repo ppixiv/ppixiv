@@ -147,7 +147,7 @@ class main_ui
         
         // Remember that this is the image we want to be displaying.
         this.wanted_illust_id = illust_id;
-        this.wanted_illust_last_page = show_last_page;
+        this.wanted_illust_page = wanted_page;
 
         // If this image is already loaded, stop.
         if(illust_id == this.current_illust_id && this.wanted_illust_page == this.viewer.page)
@@ -213,12 +213,27 @@ class main_ui
 
         console.log("Showing image", illust_id);
         
+        if(this.wanted_illust_page == -1)
+        {
+            // We're navigating to the last page, but we didn't know the page count when we
+            // did the navigation.  Update the URL to contain the page number now that we have
+            // it.
+            var query_args = new URL(document.location).searchParams;
+            var hash_args = helpers.get_hash_args(document.location);
+            hash_args.set("page", illust_data.pageCount-1);
+            console.log("Updating URL with page number", illust_data.pageCount);
+            
+            page_manager.singleton().set_args(null, hash_args, false);
+        }
+
         // If true, this is the first image we're displaying.
         var first_image_displayed = this.current_illust_id == -1;
 
-        if(illust_id == this.current_illust_id && this.wanted_illust_page == this.viewer.page)
+        // If the illust ID isn't changing, just update the viewed page.
+        if(illust_id == this.current_illust_id && this.viewer != null)
         {
-            console.log("Image ID not changed");
+            console.log("Image ID not changed, setting page", this.wanted_illust_page);
+            this.viewer.page = this.wanted_illust_page;
             return;
         }
 
@@ -342,17 +357,26 @@ class main_ui
         }
 
         // If show_image was called while we were inactive, load it now.
-        if(this.wanted_illust_id != this.current_illust_id)
+        if(this.wanted_illust_id != this.current_illust_id || this.wanted_illust_page != this.viewer.page)
         {
+            console.log("Showing illust_id", this.wanted_illust_id, "that was set while hidden");
+            var wanted_illust_id = this.wanted_illust_id;
+            var wanted_page = this.wanted_illust_page;
+
             // Hide any previous image.  We want to keep the previous image if we're going
             // from image to image, but we don't want to flash the previous image when going
             // from the thumbnail view to an image.
-            console.log("Showing illust_id", this.wanted_illust_id, "that was set while hidden");
-            var wanted_illust_id = this.wanted_illust_id;
-            this.stop_displaying_image();
+            //
+            // If this is a new illust, we'll clear our viewer.  If it's the same illust and just
+            // a different page, just tell the viewer to clear so we don't waste time recreating
+            // it.
+            if(this.wanted_illust_id == this.current_illust_id)
+                this.viewer.stop_displaying_image();
+            else
+                this.stop_displaying_image();
 
             // Show the image.  (this.wanted_illust_id was cleared by stop_displaying_image.)
-            this.show_image(wanted_illust_id);
+            this.show_image(wanted_illust_id, wanted_page);
         }
         
         // If we're becoming active, refresh the UI, since we don't do that while we're inactive.
@@ -652,10 +676,17 @@ class main_ui
         this.cancel_async_navigation();
 
         // Let the viewer handle the input first.
-        if(this.viewer && this.viewer.move)
+        if(this.current_illust_data != null && this.current_illust_data.pageCount > 1)
         {
-            if(this.viewer.move(down))
+            var hash_args = helpers.get_hash_args(document.location);
+            var page = parseInt(hash_args.get("page") || 0);
+            page += down? +1:-1;
+
+            page = Math.max(0, Math.min(this.current_illust_data.pageCount - 1, page));
+            if(page != this.viewer.index)
             {
+                this.main.show_manga_page(this.current_illust_id, page, false /* don't add to history */);
+
                 // If we navigated down out of this image, then navigated up back through it
                 // before the navigation happened, put this image back in the URL.
                 this.main.show_illust_id(this.current_illust_id, false /* don't add to history */);

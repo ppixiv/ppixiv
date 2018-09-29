@@ -290,9 +290,6 @@ class data_source
         // #x=1 is a workaround for iframe loading.
         hash_args.delete("x");
 
-        // #thumbs=1 just toggles whether the thumbnail view is active.
-        hash_args.delete("thumbs");
-
         // The manga page doesn't affect the data source.
         hash_args.delete("page");
 

@@ -10,6 +10,10 @@ a {
 body.light a {
     color: inherit;
 }
+ul {
+    padding: 0;
+    margin: 0;
+}
 .image-viewer-container {
     width: 100%;
     height: 100%;
@@ -657,8 +661,8 @@ body:not([data-thumbnail-mode="wide"]) .thumbnail-container ul {
     color: #fff;
 }
 
-body[data-thumbnail-mode="big"]  li.thumbnail-box a.thumbnail-link,
-body[data-thumbnail-mode="wide"]  li.thumbnail-box a.thumbnail-link {
+body[data-thumbnail-mode="big"] .thumbnail-container  li.thumbnail-box a.thumbnail-link,
+body[data-thumbnail-mode="wide"] .thumbnail-container li.thumbnail-box a.thumbnail-link {
     width: 300px;
     height: 300px;
 }
@@ -1371,4 +1375,45 @@ body.light .thumb-list-cursor
    The first child is the + icon and the second child is -. */
 .popup-context-menu .button-strip .button.button-zoom:not(.selected) > :nth-child(1) { display: none; }
 .popup-context-menu .button-strip .button.button-zoom.selected > :nth-child(2) { display: none; }
+
+.manga-view-container {
+    width: 100%;
+    height: 100%;
+    overflow-x: hidden;
+    overflow-y: scroll;
+}
+
+.manga-view-container > .thumbnails {
+    width: 100%;
+    height: 100%;
+    text-align: center;
+}
+
+.manga-view-container li.thumbnail-box {
+    /* The size of .thumbnail-box is set to the dimensions of each thumb, not
+     * including padding, so set box-sizing to content-box. */
+    box-sizing: content-box;
+}
+/* .thumbnail-inner centers each thumb in the box, and aligns it to the bottom. */
+.manga-view-container li.thumbnail-box > .thumbnail-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100%;
+    width: 100%;
+}
+.manga-view-container li.thumbnail-box a.thumbnail-link {
+    display: block;
+    text-align: center;
+}
+
+.manga-view-container img.thumb {
+    border-radius: 4px;
+    display: block;
+}
+.manga-view-container li.thumbnail-box {
+    display: inline-block;
+    padding: .5em;
+    vertical-align: bottom;
+}
 

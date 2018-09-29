@@ -107,6 +107,11 @@ class viewer_images extends viewer
         this.options.page_changed(this.index, this.images.length, this.img.src);
     }
 
+    stop_displaying_image()
+    {
+        this.img.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==";
+    }
+
     refresh()
     {
         var url = this.images[this.index];
@@ -148,16 +153,13 @@ class viewer_images extends viewer
         case 36: // home
             e.stopPropagation();
             e.preventDefault();
-            this.index = 0;
-            this.refresh();
+            main_controller.singleton.show_manga_page(this.illust_data.id, 0, false /* don't add to history */);
             return;
 
         case 35: // end
             e.stopPropagation();
             e.preventDefault();
-
-            this.index = this.images.length - 1;
-            this.refresh();
+            main_controller.singleton.show_manga_page(this.illust_data.id, this.illust_data.pageCount - 1, false /* don't add to history */);
             return;
         }
     }

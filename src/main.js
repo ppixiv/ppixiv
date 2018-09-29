@@ -243,6 +243,9 @@ class main_controller
         
         // Create the thumbnail view handler.
         this.thumbnail_view = new thumbnail_view(this.container.querySelector(".thumbnail-container"));
+
+        // Create the manga page viewer.
+        this.manga_view = new manga_thumbnail_viewer(this.container.querySelector(".manga-view-container"));
         
         // Create the main UI.
         this.ui = new main_ui(this, this.container.querySelector(".image-viewer-container"));
@@ -292,12 +295,23 @@ class main_controller
     // load.
     set_enabled_view(cause, data_source)
     {
+        // Backwards compatibility: if the URL has thumbs=0, remove it and replace it
+        // with page=illust.
+        var hash_args = helpers.get_hash_args(document.location);
+        if(hash_args.has("thumbs"))
+        {
+            console.log("Removing thumbs=0 and replacing with view=illust");
+            hash_args.delete("thumbs");
+            hash_args.set("view", "illust");
+            page_manager.singleton().set_args(null, hash_args, false);
+            return;
+        }
+        
         this.set_data_source(data_source);
         if(data_source == null)
             return;
 
-        var show_thumbs = this.showing_thumbnail_view;
-        var new_view = show_thumbs? "thumbs":"image";
+        var new_view = this.get_displayed_view;
         console.log("Enabling view:", new_view, "Navigation cause:", cause);
 
         // Mark the current view.  Other code can watch for this to tell which view is
@@ -306,13 +320,8 @@ class main_controller
 
         // If we're going to activate the image view, set the image first.  If we do this
         // after activating it, it'll start loading any previous image it was pointed at.
-        if(new_view == "image")
-        {
-            var show_illust_id = this.data_source.get_current_illust_id();
-            console.log("  Show image", show_illust_id);
-
-            this.ui.show_image(show_illust_id);
-        }
+        if(new_view == "illust")
+            this._show_current_illust();
  
         // If we're changing between the image and thumbnail view, update the active view.
         var view_changing = new_view != this.current_view;
@@ -320,8 +329,9 @@ class main_controller
         {
             this.current_view = new_view;
 
-            this.thumbnail_view.active = new_view == "thumbs";
-            this.ui.active = new_view == "image";
+            this.thumbnail_view.active = new_view == "search";
+            this.ui.active = new_view == "illust";
+            this.manga_view.active = new_view == "manga";
        
             // Dismiss any message when toggling between views.
             message_widget.singleton.hide();
@@ -390,11 +400,26 @@ class main_controller
         
         // Load the current page for the data source.
         this.data_source.load_current_page(function() {
-            // The data source finished loading, so we know what image to display now.
-            var show_illust_id = this.data_source.get_current_illust_id();
-            console.log("Showing initial image", show_illust_id);
-            this.ui.show_image(show_illust_id);
+            this._show_current_illust();
         }.bind(this));
+    }
+
+    // Show the illust (and page if set) in the URL in the main viewer.  The data source
+    // should already be set.
+    _show_current_illust()
+    {
+        // The data source finished loading, so we know what image to display now.
+        var show_illust_id = this.data_source.get_current_illust_id();
+
+        // Get the manga page in this illust to show, if any.
+        var hash_args = helpers.get_hash_args(document.location);
+        var page = hash_args.get("page");
+        if(page != null)
+            page = parseInt(page);
+
+        console.log("  Show image", show_illust_id, "page", page);
+        this.ui.show_image(show_illust_id, page);
+        this.manga_view.shown_illust_id = show_illust_id;
     }
 
     show_illust_id(illust_id, add_to_history)
@@ -413,38 +438,54 @@ class main_controller
         var query_args = new URL(document.location).searchParams;
         var hash_args = helpers.get_hash_args(document.location);
 
-        this._set_showing_thumbnail_view_in_url(hash_args, false, "initial");
-        this.data_source.set_current_illust_id(illust_id, query_args, hash_args);
+        this._set_active_view_in_url(hash_args, "illust");
 
+        // Remove any leftover page from the current illust.  We'll load the default.
+        hash_args.delete("page");
+
+        this.data_source.set_current_illust_id(illust_id, query_args, hash_args);
         page_manager.singleton().set_args(query_args, hash_args, add_to_history);        
     }
 
-    // Return true if the thumbnail view should be displayed, according to the current URL.
-    get showing_thumbnail_view()
+    show_manga_page(illust_id, page, add_to_history)
+    {
+        var query_args = new URL(document.location).searchParams;
+        var hash_args = helpers.get_hash_args(document.location);
+
+        // Update the URL to show illust_id on page, in illust mode.
+        this._set_active_view_in_url(hash_args, "illust");
+        this.data_source.set_current_illust_id(illust_id, query_args, hash_args);
+        hash_args.set("page", page);
+
+        // Set the URL.
+        var url = new URL(document.location);
+        url.search = query_args.toString();
+        helpers.set_hash_args(url, hash_args);
+        helpers.set_page_url(url, add_to_history);
+    }
+
+    // Return the currently active view.
+    get get_displayed_view()
     {
         // If thumbs is set in the hash, it's whether we're enabled.  Otherwise, use
         // the data source's default.
         var hash_args = helpers.get_hash_args(document.location);
-        var enabled;
-        if(!hash_args.has("thumbs"))
-            return this.data_source.show_thumbs_by_default;
+        if(!hash_args.has("view"))
+            return this.data_source.default_view;
         else
-            return hash_args.get("thumbs") == "1";
+            return hash_args.get("view");
     }
 
-    _set_showing_thumbnail_view_in_url(hash_args, active)
+    _set_active_view_in_url(hash_args, view)
     {
-        if(active == this.data_source.show_thumbs_by_default)
-            hash_args.delete("thumbs");
-        else
-            hash_args.set("thumbs", active? "1":"0");
+        hash_args.set("view", view);
     }
 
-    set_showing_thumbnail_view(active, add_to_history, cause)
+    set_displayed_view(view, add_to_history, cause)
     {
         // Update the URL to mark whether thumbs are displayed.
         var hash_args = helpers.get_hash_args(document.location);
-        this._set_showing_thumbnail_view_in_url(hash_args, active);
+        this._set_active_view_in_url(hash_args, view);
 
         // Set the URL.  This will dispatch popstate, and we'll handle the state change there.
         // Update the thumbnail view.
@@ -453,8 +494,10 @@ class main_controller
 
     toggle_thumbnail_view(add_to_history)
     {
-        var enabled = this.showing_thumbnail_view;
-        this.set_showing_thumbnail_view(!enabled, add_to_history, "toggle");
+        var enabled = this.get_displayed_view == "search";
+        console.log("enabled:", enabled);
+        enabled = !enabled;
+        this.set_displayed_view(enabled? "search":"illust", add_to_history, "toggle");
     }
 
     // This captures clicks at the window level, allowing us to override them.
@@ -497,7 +540,17 @@ class main_controller
         // If this is a thumbnail link, show the image.
         if(a.dataset.illustId != null)
         {
-            this.show_illust_id(a.dataset.illustId, true /* add to history */);
+            if(a.dataset.pageIdx == null)
+            {
+                this.show_illust_id(a.dataset.illustId, true /* add to history */);
+            }
+            else
+            {
+                // If this is a manga page link, show the page.
+                var page = parseInt(a.dataset.pageIdx);
+                console.log("Show page", page);
+                this.show_manga_page(a.dataset.illustId, page, true /* add to history */);
+            }
             return;
         }
 
