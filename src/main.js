@@ -242,13 +242,13 @@ class main_controller
         this.context_menu = new main_context_menu(document.body);
         
         // Create the thumbnail view handler.
-        this.thumbnail_view = new thumbnail_view(this.container.querySelector(".thumbnail-container"));
+        this.thumbnail_view = new view_search(this.container.querySelector(".thumbnail-container"));
 
         // Create the manga page viewer.
-        this.manga_view = new manga_thumbnail_viewer(this.container.querySelector(".manga-view-container"));
+        this.manga_view = new view_manga(this.container.querySelector(".manga-view-container"));
         
         // Create the main UI.
-        this.ui = new main_ui(this, this.container.querySelector(".image-viewer-container"));
+        this.ui = new view_illust(this, this.container.querySelector(".image-viewer-container"));
 
         this.views = {
             search: this.thumbnail_view,
@@ -599,9 +599,6 @@ class main_controller
 
         // Set the .premium class on body if this is a premium account, to display features
         // that only work with premium.
-        //
-        // It would make more sense to do this in main_ui, but user data comes in different
-        // forms for different pages and it's simpler to just do it here.
         helpers.set_class(document.body, "premium", premium);
     };
 

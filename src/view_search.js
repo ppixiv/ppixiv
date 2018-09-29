@@ -1,8 +1,10 @@
-// The thumbnail overlay UI.
-class thumbnail_view
+// The search UI.
+class view_search extends view
 {
     constructor(container)
     {
+        super();
+        
         this.thumbs_loaded = this.thumbs_loaded.bind(this);
         this.data_source_updated = this.data_source_updated.bind(this);
         this.onwheel = this.onwheel.bind(this);

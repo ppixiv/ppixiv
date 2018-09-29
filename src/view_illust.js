@@ -1,8 +1,10 @@
 // The main UI.  This handles creating the viewers and the global UI.
-class main_ui
+class view_illust extends view
 {
     constructor(main, container)
     {
+        super();
+        
         if(debug_show_ui) document.body.classList.add("force-ui");
 
         this.onwheel = this.onwheel.bind(this);
@@ -479,10 +481,6 @@ class main_ui
             if(page != this.viewer.index)
             {
                 this.main.show_manga_page(this.current_illust_id, page, false /* don't add to history */);
-
-                // If we navigated down out of this image, then navigated up back through it
-                // before the navigation happened, put this image back in the URL.
-                this.main.show_illust_id(this.current_illust_id, false /* don't add to history */);
                 return;
             }
         }

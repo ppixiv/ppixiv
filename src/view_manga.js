@@ -2,10 +2,12 @@
 //
 // This is similar to the main search view.  It doesn't share code, since it
 // works differently enough that it would complicate things too much.
-class manga_thumbnail_viewer
+class view_manga extends view
 {
     constructor(container)
     {
+        super();
+
         this.container = container;
 
         // Create a style for our thumbnail style.

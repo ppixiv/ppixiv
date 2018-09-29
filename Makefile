@@ -27,13 +27,14 @@ FILES=\
     src/viewer_muted.js \
     src/viewer_ugoira.js \
     src/zip_image_player.js \
-    src/main_ui.js \
+    src/view.js \
+    src/view_illust.js \
+    src/view_search.js \
+    src/view_manga.js \
     src/image_ui.js \
     src/tag_search_dropdown_widget.js \
     src/thumbnail_data.js \
-    src/thumbnail_view.js \
     src/manga_thumbnail_widget.js \
-    src/manga_thumbnail_viewer.js \
     src/page_manager.js \
     src/remove_link_interstitial.js \
     src/image_preloading.js \
