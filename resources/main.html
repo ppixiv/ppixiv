@@ -31,129 +31,6 @@
 
         <div class=ui>
             <div class=hover-box></div>
-            <div class=ui-box>
-                <!-- The avatar icon in the top-right.  This is absolutely positioned, since we don't
-                     want this to push the rest of the UI down. -->
-                <div class="avatar-popup" style="position: absolute; top: 1em; right: 1em;"></div>
-
-                <!-- The title and author.  The margin-right here is to prevent this from
-                     overlapping the absolutely-positioned avatar icon above. -->
-                <div style="display: flex; flex-direction: row; margin-right: 4em;">
-                    <div>
-                        <span class="title-block">
-                            <!-- Put the title and author in separate inline-blocks, to encourage
-                                 the browser to wrap between them if possible, putting the author
-                                 on its own line if they won\'t both fit, but still allowing the
-                                 title to wrap if it\'s too long by itself. -->
-                            <span style="display: inline-block;" class="title-font">
-                                <a class="title"></a>
-                            </span>
-                            <span style="display: inline-block;" class="author-block title-font">
-                                <span style="font-size: 12px;">by</span>
-                                <a class="author"></a>
-                            </span>
-                            <a class=edit-post href=#>Edit post</a>
-                        </span>
-                    </div>
-                </div>
-
-                <div class=button-row>
-                    <a class="disable-ui-button popup" data-popup="Return to Pixiv" href="#no-ppixiv">
-                        ### inline:pixiv-icon.svg
-                    </a>
-
-                    <div class="show-thumbnails-button popup" data-popup="Show all">
-                        <div class="grey-icon icon-button">
-                            ### inline:thumbnails-icon.svg
-                        </div>
-                    </div>
-
-                    <div class="download-button popup">
-                        <svg class="grey-icon icon-button" version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 537.794 537.795">
-                            <g>
-                                <path d="M463.091,466.114H74.854c-11.857,0-21.497,9.716-21.497,21.497v28.688c0,11.857,9.716,21.496,21.497,21.496h388.084
-                                        c11.857,0,21.496-9.716,21.496-21.496v-28.688C484.665,475.677,474.949,466.114,463.091,466.114z"/>
-                                <path d="M253.94,427.635c4.208,4.208,9.716,6.35,15.147,6.35c5.508,0,11.016-2.142,15.147-6.35l147.033-147.033
-                                        c8.339-8.338,8.339-21.955,0-30.447l-20.349-20.349c-8.339-8.339-21.956-8.339-30.447,0l-75.582,75.659V21.497
-                                        C304.889,9.639,295.173,0,283.393,0h-28.688c-11.857,0-21.497,9.562-21.497,21.497v284.044l-75.658-75.659
-                                        c-8.339-8.338-22.032-8.338-30.447,0l-20.349,20.349c-8.338,8.338-8.338,22.032,0,30.447L253.94,427.635z"/>
-                            </g>
-                        </svg>
-                    </div>
-
-                    <div class=bookmark-button style="display: flex; flex-direction: row; align-items: center;">
-                        <span class=popup>
-                            <div class="heart grey-icon icon-button">
-                                ### inline:heart-icon.svg
-                            </div>
-
-                            <div class="popup-menu-box bookmark-popup">
-                                <div class=hover-area></div>
-                                <div class=bookmarked>
-                                    <div class="button unbookmark-button">
-                                        Remove&nbsp;Bookmark
-                                    </div>
-                                </div>
-                                <div class=not-bookmarked>
-                                    <div class="button bookmark-button public">
-                                        Bookmark
-                                    </div>
-                                    <div class="button bookmark-button private">
-                                        Bookmark&nbsp;Privately
-                                    </div>
-                                    <div class=premium-only>
-                                        <input class=bookmark-tag-list>
-                                        <div style="display: flex; align-items: center;">
-                                            <div style="flex: 1;">Bookmark tags:</div>
-                                            <div class="refresh-bookmark-tags refresh-icon"></div>
-                                        </div>
-                                        <div class=bookmark-tag-selector></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </span>
-                    </div>
-                   
-                    <div class="like-button popup">
-                        <div class="grey-icon icon-button">
-                            ### inline:like-button.svg
-                        </div>
-                    </div>
-
-                    <a class="similar-illusts-button popup" data-popup="Similar illustrations" href=#>
-                        <div class="grey-icon icon-button">
-                            ### inline:related-illusts.svg
-                        </div>
-                    </a>
-
-                    <div class="image-settings-menu-box settings-menu-box">
-                        <svg class="grey-icon icon-button" width="24" height="24" viewbox="-1 0 16 16" style="width: 28px; margin-top: -2px; padding-left: 2px;">
-                            <path id="a" d="m14,9.3l0,-2.57l-1.575,-0.264c-0.117,-0.44 -0.292,-0.848 -0.496,-1.2l0.93,-1.285l-1.81,-1.84l-1.31,0.908c-0.38,-0.205 -0.79,-0.38 -1.196,-0.497l-0.259,-1.552l-2.568,0l-0.263,1.578c-0.437,0.117 -0.816,0.293 -1.196,0.497l-1.282,-0.905l-1.838,1.81l0.934,1.287c-0.2,0.38 -0.376,0.79 -0.493,1.228l-1.578,0.235l0,2.57l1.575,0.264c0.117,0.438 0.292,0.818 0.496,1.198l-0.93,1.315l1.809,1.813l1.312,-0.938c0.38,0.205 0.787,0.38 1.224,0.497l0.26,1.551l2.566,0l0.263,-1.578c0.408,-0.117 0.817,-0.293 1.196,-0.497l1.315,0.935l1.81,-1.812l-0.935,-1.315c0.203,-0.38 0.38,-0.76 0.495,-1.2l1.544,-0.23l0,-0.003zm-7,1.407c-1.488,0 -2.683,-1.2 -2.683,-2.69s1.225,-2.69 2.683,-2.69c1.458,0 2.683,1.198 2.683,2.69c0,1.49 -1.195,2.688 -2.683,2.688l0,0.002z"/>
-                        </svg>                        
-                
-                        <div class="popup-menu-box">
-                            <div class=hover-area></div>
-                            <div class=option-list>
-                                <div class="toggle-auto-like box-link">
-                                    <span class=on>☑</span>
-                                    <span class=off>☐</span>
-                                    <span style="margin-left: 2px;">Bookmarking auto-likes</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class=post-info>
-                    <div class=post-age></div>
-                    <div class=page-count></div>
-                    <div class=ugoira-duration></div>
-                    <div class=ugoira-frames></div>
-                    <div class=image-info></div>
-                </div>
-               
-                <div class=tag-list></div>
-                <div class=description></div>
-            </div>
         </div>
     </div>
 
@@ -570,6 +447,132 @@
                 </div>
             </li>
         </ul>
+
+        <div class=template-image-ui>
+            <div class=ui-box>
+                <!-- The avatar icon in the top-right.  This is absolutely positioned, since we don't
+                     want this to push the rest of the UI down. -->
+                <div class="avatar-popup" style="position: absolute; top: 1em; right: 1em;"></div>
+
+                <!-- The title and author.  The margin-right here is to prevent this from
+                     overlapping the absolutely-positioned avatar icon above. -->
+                <div style="display: flex; flex-direction: row; margin-right: 4em;">
+                    <div>
+                        <span class="title-block">
+                            <!-- Put the title and author in separate inline-blocks, to encourage
+                                 the browser to wrap between them if possible, putting the author
+                                 on its own line if they won\'t both fit, but still allowing the
+                                 title to wrap if it\'s too long by itself. -->
+                            <span style="display: inline-block;" class="title-font">
+                                <a class="title"></a>
+                            </span>
+                            <span style="display: inline-block;" class="author-block title-font">
+                                <span style="font-size: 12px;">by</span>
+                                <a class="author"></a>
+                            </span>
+                            <a class=edit-post href=#>Edit post</a>
+                        </span>
+                    </div>
+                </div>
+
+                <div class=button-row>
+                    <a class="disable-ui-button popup" data-popup="Return to Pixiv" href="#no-ppixiv">
+                        ### inline:pixiv-icon.svg
+                    </a>
+
+                    <div class="show-thumbnails-button popup" data-popup="Show all">
+                        <div class="grey-icon icon-button">
+                            ### inline:thumbnails-icon.svg
+                        </div>
+                    </div>
+
+                    <div class="download-button popup">
+                        <svg class="grey-icon icon-button" version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 537.794 537.795">
+                            <g>
+                                <path d="M463.091,466.114H74.854c-11.857,0-21.497,9.716-21.497,21.497v28.688c0,11.857,9.716,21.496,21.497,21.496h388.084
+                                        c11.857,0,21.496-9.716,21.496-21.496v-28.688C484.665,475.677,474.949,466.114,463.091,466.114z"/>
+                                <path d="M253.94,427.635c4.208,4.208,9.716,6.35,15.147,6.35c5.508,0,11.016-2.142,15.147-6.35l147.033-147.033
+                                        c8.339-8.338,8.339-21.955,0-30.447l-20.349-20.349c-8.339-8.339-21.956-8.339-30.447,0l-75.582,75.659V21.497
+                                        C304.889,9.639,295.173,0,283.393,0h-28.688c-11.857,0-21.497,9.562-21.497,21.497v284.044l-75.658-75.659
+                                        c-8.339-8.338-22.032-8.338-30.447,0l-20.349,20.349c-8.338,8.338-8.338,22.032,0,30.447L253.94,427.635z"/>
+                            </g>
+                        </svg>
+                    </div>
+
+                    <div class=bookmark-button style="display: flex; flex-direction: row; align-items: center;">
+                        <span class=popup>
+                            <div class="heart grey-icon icon-button">
+                                ### inline:heart-icon.svg
+                            </div>
+
+                            <div class="popup-menu-box bookmark-popup">
+                                <div class=hover-area></div>
+                                <div class=bookmarked>
+                                    <div class="button unbookmark-button">
+                                        Remove&nbsp;Bookmark
+                                    </div>
+                                </div>
+                                <div class=not-bookmarked>
+                                    <div class="button bookmark-button public">
+                                        Bookmark
+                                    </div>
+                                    <div class="button bookmark-button private">
+                                        Bookmark&nbsp;Privately
+                                    </div>
+                                    <div class=premium-only>
+                                        <input class=bookmark-tag-list>
+                                        <div style="display: flex; align-items: center;">
+                                            <div style="flex: 1;">Bookmark tags:</div>
+                                            <div class="refresh-bookmark-tags refresh-icon"></div>
+                                        </div>
+                                        <div class=bookmark-tag-selector></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </span>
+                    </div>
+                   
+                    <div class="like-button popup">
+                        <div class="grey-icon icon-button">
+                            ### inline:like-button.svg
+                        </div>
+                    </div>
+
+                    <a class="similar-illusts-button popup" data-popup="Similar illustrations" href=#>
+                        <div class="grey-icon icon-button">
+                            ### inline:related-illusts.svg
+                        </div>
+                    </a>
+
+                    <div class="image-settings-menu-box settings-menu-box">
+                        <svg class="grey-icon icon-button" width="24" height="24" viewbox="-1 0 16 16" style="width: 28px; margin-top: -2px; padding-left: 2px;">
+                            <path id="a" d="m14,9.3l0,-2.57l-1.575,-0.264c-0.117,-0.44 -0.292,-0.848 -0.496,-1.2l0.93,-1.285l-1.81,-1.84l-1.31,0.908c-0.38,-0.205 -0.79,-0.38 -1.196,-0.497l-0.259,-1.552l-2.568,0l-0.263,1.578c-0.437,0.117 -0.816,0.293 -1.196,0.497l-1.282,-0.905l-1.838,1.81l0.934,1.287c-0.2,0.38 -0.376,0.79 -0.493,1.228l-1.578,0.235l0,2.57l1.575,0.264c0.117,0.438 0.292,0.818 0.496,1.198l-0.93,1.315l1.809,1.813l1.312,-0.938c0.38,0.205 0.787,0.38 1.224,0.497l0.26,1.551l2.566,0l0.263,-1.578c0.408,-0.117 0.817,-0.293 1.196,-0.497l1.315,0.935l1.81,-1.812l-0.935,-1.315c0.203,-0.38 0.38,-0.76 0.495,-1.2l1.544,-0.23l0,-0.003zm-7,1.407c-1.488,0 -2.683,-1.2 -2.683,-2.69s1.225,-2.69 2.683,-2.69c1.458,0 2.683,1.198 2.683,2.69c0,1.49 -1.195,2.688 -2.683,2.688l0,0.002z"/>
+                        </svg>                        
+                
+                        <div class="popup-menu-box">
+                            <div class=hover-area></div>
+                            <div class=option-list>
+                                <div class="toggle-auto-like box-link">
+                                    <span class=on>☑</span>
+                                    <span class=off>☐</span>
+                                    <span style="margin-left: 2px;">Bookmarking auto-likes</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class=post-info>
+                    <div class=post-age></div>
+                    <div class=page-count></div>
+                    <div class=ugoira-duration></div>
+                    <div class=ugoira-frames></div>
+                    <div class=image-info></div>
+                </div>
+               
+                <div class=tag-list></div>
+                <div class=description></div>
+            </div>
+        </div>
 
         <div class=template-muted>
             <div class=mute-display>

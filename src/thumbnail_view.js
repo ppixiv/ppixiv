@@ -12,6 +12,7 @@ class thumbnail_view
         this.toggle_light_mode = this.toggle_light_mode.bind(this);
         this.toggle_disable_thumbnail_panning = this.toggle_disable_thumbnail_panning.bind(this);
         this.toggle_disable_thumbnail_zooming = this.toggle_disable_thumbnail_zooming.bind(this);
+        this.refresh_thumbnail = this.refresh_thumbnail.bind(this);
 
         this.container = container;
         this.active = false;
@@ -25,9 +26,7 @@ class thumbnail_view
         window.addEventListener("resize", this.onscroll);
 
         // When a bookmark is modified, refresh the heart icon.
-        bookmarking.singleton.add_bookmark_listener(function(illust_id) {
-            this.refresh_thumbnail(illust_id);
-        }.bind(this));
+        image_data.singleton().illust_modified_callbacks.register(this.refresh_thumbnail);
         
         // Create the avatar widget shown on the artist data source.
         this.avatar_widget = new avatar_widget({

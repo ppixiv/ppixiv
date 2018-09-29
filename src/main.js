@@ -250,6 +250,12 @@ class main_controller
         // Create the main UI.
         this.ui = new main_ui(this, this.container.querySelector(".image-viewer-container"));
 
+        this.views = {
+            search: this.thumbnail_view,
+            illust: this.ui,
+            manga: this.manga_view,
+        };
+
         // Create the data source for this page.
         this.set_current_data_source(html);
     };
@@ -311,7 +317,7 @@ class main_controller
         if(data_source == null)
             return;
 
-        var new_view = this.get_displayed_view;
+        var new_view = this.get_displayed_view_name;
         console.log("Enabling view:", new_view, "Navigation cause:", cause);
 
         // Mark the current view.  Other code can watch for this to tell which view is
@@ -329,9 +335,12 @@ class main_controller
         {
             this.current_view = new_view;
 
-            this.thumbnail_view.active = new_view == "search";
-            this.ui.active = new_view == "illust";
-            this.manga_view.active = new_view == "manga";
+            for(var view_name in this.views)
+            {
+                var view = this.views[view_name];
+                view.active = new_view == view_name;
+                console.log(view_name);
+            }
        
             // Dismiss any message when toggling between views.
             message_widget.singleton.hide();
@@ -464,8 +473,8 @@ class main_controller
         helpers.set_page_url(url, add_to_history);
     }
 
-    // Return the currently active view.
-    get get_displayed_view()
+    // Return the name of the currently active view.
+    get get_displayed_view_name()
     {
         // If thumbs is set in the hash, it's whether we're enabled.  Otherwise, use
         // the data source's default.
@@ -476,12 +485,22 @@ class main_controller
             return hash_args.get("view");
     }
 
+    // Return the displayed view instance.
+    get displayed_view()
+    {
+        var view_name = this.get_displayed_view_name;
+        if(!(view_name in this.views))
+            throw "Unknown view name " + view_name;
+
+        return this.views[view_name];
+    }
+
     _set_active_view_in_url(hash_args, view)
     {
         hash_args.set("view", view);
     }
 
-    set_displayed_view(view, add_to_history, cause)
+    set_displayed_view_by_name(view, add_to_history, cause)
     {
         // Update the URL to mark whether thumbs are displayed.
         var hash_args = helpers.get_hash_args(document.location);
@@ -494,10 +513,10 @@ class main_controller
 
     toggle_thumbnail_view(add_to_history)
     {
-        var enabled = this.get_displayed_view == "search";
+        var enabled = this.get_displayed_view_name == "search";
         console.log("enabled:", enabled);
         enabled = !enabled;
-        this.set_displayed_view(enabled? "search":"illust", add_to_history, "toggle");
+        this.set_displayed_view_by_name(enabled? "search":"illust", add_to_history, "toggle");
     }
 
     // This captures clicks at the window level, allowing us to override them.
@@ -597,6 +616,10 @@ class main_controller
 
             return;
         }
+
+        // Let the view handle the input.
+        var view = this.displayed_view;
+        view.handle_onkeydown(e);
     }
 };
 

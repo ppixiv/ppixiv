@@ -59,9 +59,12 @@ class avatar_widget
     {
         this.options = options;
         this.clicked_follow = this.clicked_follow.bind(this);
+        this.user_changed = this.user_changed.bind(this);
 
         this.root = helpers.create_from_template(".template-avatar");
         helpers.set_class(this.root, "big", this.options.big);
+
+        image_data.singleton().user_modified_callbacks.register(this.user_changed);
 
         // Show the favorite UI when hovering over the avatar icon.
         var avatar_popup = this.root; //container.querySelector(".avatar-popup");
@@ -77,6 +80,19 @@ class avatar_widget
         helpers.input_handler(avatar_popup.querySelector(".folder"), this.clicked_follow.bind(this, false));
 
         this.options.parent.appendChild(this.root);
+    }
+
+    shutdown()
+    {
+        image_data.singleton().user_modified_callbacks.unregister(this.user_changed);
+    }
+
+    // Refresh when the user changes.
+    user_changed(user_id)
+    {
+        if(this.user_data == null || this.user_data.userId != user_id)
+            return;
+        this.set_from_user_data(this.user_data);
     }
 
     set_from_user_data(user_data)
@@ -122,16 +138,12 @@ class avatar_widget
 
             // This doesn't return any data.  Record that we're following and refresh the UI.
             this.user_data.isFollowed = true;
-            this.set_from_user_data(this.user_data);
+            image_data.singleton().call_user_modified_callbacks(this.user_data.userId);
 
             var message = "Followed " + username;
             if(follow_privately)
                 message += " privately";
             message_widget.singleton.show(message);
-        
-            if(this.options.changed_callback)
-                this.options.changed_callback();
-
         }.bind(this));
     }
 
@@ -152,12 +164,9 @@ class avatar_widget
 
             // Record that we're no longer following and refresh the UI.
             this.user_data.isFollowed = false;
-            this.set_from_user_data(this.user_data);
+            image_data.singleton().call_user_modified_callbacks(this.user_data.userId);
 
             message_widget.singleton.show("Unfollowed " + username);
-
-            if(this.options.changed_callback)
-                this.options.changed_callback();
         }.bind(this));
     }
 
@@ -180,6 +189,44 @@ class avatar_widget
 
         // Follow the user.
         this.follow(follow_privately);
+    }
+
+    handle_onkeydown(e)
+    {
+        if(this.user_data == null)
+            return;
+        
+        if(e.keyCode == 70) // f
+        {
+            // f to follow publically, F to follow privately, ^F to unfollow.
+            e.stopPropagation();
+            e.preventDefault();
+
+            if(this.user_data == null)
+                return;
+
+            if(e.ctrlKey)
+            {
+                // Remove the bookmark.
+                if(!this.user_data.isFollowed)
+                {
+                    message_widget.singleton.show("Not following this user");
+                    return;
+                }
+
+                this.unfollow();
+                return;
+            }
+
+            if(this.user_data.isFollowed)
+            {
+                message_widget.singleton.show("Already following (^F to unfollow)");
+                return;
+            }
+            
+            this.follow(e.shiftKey);
+            return;
+        }
     }
 };
 

@@ -12,6 +12,9 @@ class image_data
         this.load_user_info = this.load_user_info.bind(this);
         this.loaded_user_info = this.loaded_user_info.bind(this);
 
+        this.illust_modified_callbacks = new callback_list();
+        this.user_modified_callbacks = new callback_list();
+
         // Cached data:
         this.image_data = { };
         this.user_data = { };
@@ -34,6 +37,18 @@ class image_data
             image_data._singleton = new image_data();
         return image_data._singleton;
     };
+
+    // Call all illust_modified callbacks.
+    call_user_modified_callbacks(user_id)
+    {
+        console.log("User modified:", user_id);
+        this.user_modified_callbacks.call(user_id);
+    }
+
+    call_illust_modified_callbacks(illust_id)
+    {
+        this.illust_modified_callbacks.call(illust_id);
+    }
 
     // Get image data.  Call callback when it's available:
     //

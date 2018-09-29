@@ -1186,4 +1186,49 @@ var helpers = {
     },
 };
 
+// Handle maintaining and calling a list of callbacks.
+class callback_list
+{
+    constructor()
+    {
+        this.callbacks = [];
+    }
+
+    // Call all callbacks, passing all arguments to the callback.
+    call()
+    {
+        for(var callback of this.callbacks.slice())
+        {
+            try {
+                callback.apply(null, arguments);
+            } catch(e) {
+                console.error(e);
+            }
+        }
+    }
+
+    register(callback)
+    {
+        if(callback == null)
+            throw "callback can't be null";
+
+        if(this.callbacks.indexOf(callback) != -1)
+            return;
+
+        this.callbacks.push(callback);
+    }
+
+    unregister(callback)
+    {
+        if(callback == null)
+            throw "callback can't be null";
+
+        var idx = this.callbacks.indexOf(callback);
+        if(idx == -1)
+            return;
+
+        this.callbacks.splice(idx, 1);
+    }
+}
+
 

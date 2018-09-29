@@ -6,8 +6,6 @@ class image_ui
         this.image_data_loaded = this.image_data_loaded.bind(this);
         this.refresh_bookmark_tag_highlights = this.refresh_bookmark_tag_highlights.bind(this);
         this.clicked_bookmark_tag_selector = this.clicked_bookmark_tag_selector.bind(this);
-        this.bookmark_onmouseover = this.bookmark_onmouseover.bind(this);
-        this.bookmark_onmouseout = this.bookmark_onmouseout.bind(this);
         this.clicked_bookmark = this.clicked_bookmark.bind(this);
         this.clicked_download = this.clicked_download.bind(this);
         this.toggle_auto_like = this.toggle_auto_like.bind(this);
@@ -34,9 +32,8 @@ class image_ui
         this.element_bookmark_tag_list = this.bookmark_popup.querySelector(".bookmark-tag-list");
         this.element_bookmark_tag_list.addEventListener("input", this.refresh_bookmark_tag_highlights);
 
-        this.bookmark_popup.addEventListener("mouseover", this.bookmark_onmouseover);
-        this.bookmark_popup.addEventListener("mouseout", this.bookmark_onmouseout);
-        // XXX shutdowns
+        this.bookmark_popup.addEventListener("mouseover", function(e) { helpers.set_class(this.bookmark_popup, "popup-visible", true); }.bind(this));
+        this.bookmark_popup.addEventListener("mouseout", function(e) { helpers.set_class(this.bookmark_popup, "popup-visible", false); }.bind(this));
         this.bookmark_popup.querySelector(".heart").addEventListener("click", this.clicked_bookmark.bind(this, false), false);
         this.bookmark_popup.querySelector(".bookmark-button.public").addEventListener("click", this.clicked_bookmark.bind(this, false), false);
         this.bookmark_popup.querySelector(".bookmark-button.private").addEventListener("click", this.clicked_bookmark.bind(this, true), false);
@@ -73,22 +70,12 @@ class image_ui
         this.refresh();
     }
     
-    bookmark_onmouseover(e)
-    {
-        helpers.set_class(this.bookmark_popup, "popup-visible", true);
-    }
-    bookmark_onmouseout(e)
-    {
-        helpers.set_class(this.bookmark_popup, "popup-visible", false);
-    }
     shutdown()
     {
         this.avatar_widget.shutdown();
         this.element_bookmark_tag_list.removeEventListener("input", this.refresh_bookmark_tag_highlights);
 
         var bookmark_popup = this.container.querySelector(".bookmark-button");
-        bookmark_popup.removeEventListener("mouseover", this.bookmark_onmouseover);
-        bookmark_popup.removeEventListener("mouseout", this.bookmark_onmouseout);
     }
 
     get illust_id()
@@ -349,7 +336,6 @@ class image_ui
         var clicked_button = e.target.closest(".download-button");
         if(clicked_button == null)
             return;
-        console.log("xxx");
 
         e.preventDefault();
         e.stopPropagation();

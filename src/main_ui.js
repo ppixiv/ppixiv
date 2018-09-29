@@ -377,12 +377,8 @@ class main_ui
         this.move(down);
     }
 
-    onkeydown(e)
+    handle_onkeydown(e)
     {
-        // Don't handle image viewer shortcuts when the thumbnail view is open on top of it.
-        if(!this._active)
-            return;
-        
         // Let the viewer handle the input first.
         if(this.viewer && this.viewer.onkeydown)
         {
@@ -391,6 +387,10 @@ class main_ui
                 return;
         }
 
+        this.ui.handle_onkeydown(e);
+        if(e.defaultPrevented)
+            return;
+        
         if(e.keyCode == 66) // b
         {
             // b to bookmark publically, B to bookmark privately, ^B to remove a bookmark.
