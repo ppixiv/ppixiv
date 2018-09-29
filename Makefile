@@ -28,6 +28,7 @@ FILES=\
     src/viewer_ugoira.js \
     src/zip_image_player.js \
     src/main_ui.js \
+    src/image_ui.js \
     src/tag_search_dropdown_widget.js \
     src/thumbnail_data.js \
     src/thumbnail_view.js \

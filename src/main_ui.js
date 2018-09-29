@@ -7,26 +7,27 @@ class main_ui
 
         this.onwheel = this.onwheel.bind(this);
         this.refresh_ui = this.refresh_ui.bind(this);
-        this.onkeydown = this.onkeydown.bind(this);
-        this.clicked_bookmark = this.clicked_bookmark.bind(this);
-        this.clicked_like = this.clicked_like.bind(this);
         this.shown_page_changed = this.shown_page_changed.bind(this);
-        this.clicked_download = this.clicked_download.bind(this);
         this.image_data_loaded = this.image_data_loaded.bind(this);
-        this.clicked_bookmark_tag_selector = this.clicked_bookmark_tag_selector.bind(this);
-        this.refresh_bookmark_tag_highlights = this.refresh_bookmark_tag_highlights.bind(this);
         this.data_source_updated = this.data_source_updated.bind(this);
-        this.toggle_auto_like = this.toggle_auto_like.bind(this);
 
         this.current_illust_id = -1;
         this.latest_navigation_direction_down = true;
         this.main = main;
         this.container = container;
 
+        this.progress_bar = new progress_bar(this.container.querySelector(".loading-progress-bar"));
+
+        // Create a UI box and put it in its container.
+        this.ui = new image_ui(this.container.querySelector(".ui"), this.progress_bar);
+        
         document.head.appendChild(document.createElement("title"));
         this.document_icon = document.head.appendChild(document.createElement("link"));
         this.document_icon.setAttribute("rel", "icon");
        
+        image_data.singleton().user_modified_callbacks.register(this.refresh_ui);
+        image_data.singleton().illust_modified_callbacks.register(this.refresh_ui);
+
         new hide_mouse_cursor_on_idle(this.container.querySelector(".image-container"));
 
         new refresh_bookmark_tag_widget(this.container.querySelector(".refresh-bookmark-tags"));
@@ -35,71 +36,18 @@ class main_ui
             this.viewer.page = page;
         }.bind(this));
 
-        this.avatar_widget = new avatar_widget({
-            parent: this.container.querySelector(".avatar-popup"),
-            changed_callback: this.refresh_ui,
-        });
-
-        // Set up hover popups.
-        helpers.setup_popups(this.container, [".image-settings-menu-box"]);
-
-        // When a bookmark is modified, refresh the UI if we're displaying it.
-        bookmarking.singleton.add_bookmark_listener(function(illust_id) {
-            if(this.current_illust_id == illust_id)
-                this.refresh_ui();
-        }.bind(this));
-
         // Show the bookmark UI when hovering over the bookmark icon.
         var bookmark_popup = this.container.querySelector(".bookmark-button");
-        bookmark_popup.addEventListener("mouseover", function(e) { helpers.set_class(bookmark_popup, "popup-visible", true); }.bind(this));
-        bookmark_popup.addEventListener("mouseout", function(e) { helpers.set_class(bookmark_popup, "popup-visible", false); }.bind(this));
-
-        bookmark_popup.querySelector(".heart").addEventListener("click", this.clicked_bookmark.bind(this, false), false);
-        bookmark_popup.querySelector(".bookmark-button.public").addEventListener("click", this.clicked_bookmark.bind(this, false), false);
-        bookmark_popup.querySelector(".bookmark-button.private").addEventListener("click", this.clicked_bookmark.bind(this, true), false);
-        bookmark_popup.querySelector(".unbookmark-button").addEventListener("click", this.clicked_bookmark.bind(this, true), false);
-        this.element_bookmark_tag_list = bookmark_popup.querySelector(".bookmark-tag-list");
-
-        // Bookmark publically when enter is pressed on the bookmark tag input.
-        helpers.input_handler(bookmark_popup.querySelector(".bookmark-tag-list"), this.clicked_bookmark.bind(this, false));
-
-
-        bookmark_popup.querySelector(".bookmark-tag-selector").addEventListener("click", this.clicked_bookmark_tag_selector);
-        this.element_bookmark_tag_list.addEventListener("input", this.refresh_bookmark_tag_highlights);
-
-        // stopPropagation on mousewheel movement inside the bookmark popup, so we allow the scroller to move
-        // rather than changing images.
-        bookmark_popup.addEventListener("wheel", function(e) { e.stopPropagation(); });
-
-        this.container.querySelector(".download-button").addEventListener("click", this.clicked_download);
-        this.container.querySelector(".show-thumbnails-button").addEventListener("click", this.main.toggle_thumbnail_view);
-        this.container.querySelector(".toggle-auto-like").addEventListener("click", this.toggle_auto_like);
 
         window.addEventListener("bookmark-tags-changed", this.refresh_ui);
 
-        this.element_title = this.container.querySelector(".title");
-        this.element_author = this.container.querySelector(".author");
-        this.element_bookmarked = this.container.querySelector(".bookmark-button");
-
-        this.element_liked = this.container.querySelector(".like-button");
-        this.element_liked.addEventListener("click", this.clicked_like, false);
-
-        this.tag_widget = new tag_widget({
-            parent: this.container.querySelector(".tag-list"),
-        });
-        this.element_tags = this.container.querySelector(".tag-list");
-        this.element_comment = this.container.querySelector(".description");
-
         this.container.addEventListener("wheel", this.onwheel);
-        window.addEventListener("keydown", this.onkeydown);
 
         // A bar showing how far along in an image sequence we are:
         this.manga_page_bar = new progress_bar(this.container.querySelector(".ui-box")).controller();
-        this.progress_bar = new progress_bar(this.container.querySelector(".loading-progress-bar"));
         this.seek_bar = new seek_bar(this.container.querySelector(".ugoira-seek-bar"));
 
         helpers.add_clicks_to_search_history(document.body);
-        this.update_from_settings();
 
         // We'll finish setting up when our caller calls set_data_source().
     }
@@ -116,6 +64,7 @@ class main_ui
         }
 
         this.data_source = data_source;
+        this.ui.data_source = data_source;
 
         if(this.data_source != null)
         {
@@ -253,6 +202,8 @@ class main_ui
 
         this.current_illust_id = illust_id;
         this.current_illust_data = illust_data;
+
+        this.ui.illust_id = illust_id;
 
         this.refresh_ui();
 
@@ -406,6 +357,8 @@ class main_ui
             return;
         }
 
+        this.ui.refresh();
+
         var illust_data = this.current_illust_data;
         var user_data = illust_data.userInfo;
 
@@ -416,128 +369,6 @@ class main_ui
         helpers.set_page_title(page_title);
 
         helpers.set_page_icon(user_data.isFollowed? binary_data['favorited_icon.png']:binary_data['regular_pixiv_icon.png']);
-
-        // Show the author if it's someone else's post, or the edit link if it's ours.
-        var our_post = global_data.user_id == user_data.userId;
-        this.container.querySelector(".author-block").hidden = our_post;
-        this.container.querySelector(".edit-post").hidden = !our_post;
-        this.container.querySelector(".edit-post").href = "/member_illust_mod.php?mode=mod&illust_id=" + illust_id;
-
-        this.avatar_widget.set_from_user_data(user_data);
-
-        // Set the popup for the thumbnails button based on the label of the data source.
-        this.container.querySelector(".show-thumbnails-button").dataset.popup = this.data_source.get_displaying_text();
-
-        this.element_author.textContent = user_data.name;
-        this.element_author.href = "/member_illust.php?id=" + user_data.userId + "#ppixiv";
-
-        this.container.querySelector(".similar-illusts-button").href = "/bookmark_detail.php?illust_id=" + illust_id + "#ppixiv";
-
-        this.element_title.textContent = illust_data.illustTitle;
-        this.element_title.href = "/member_illust.php?mode=medium&illust_id=" + illust_id + "#ppixiv";
-
-        // Fill in the post info text.
-        var set_info = function(query, text)
-        {
-            var node = this.container.querySelector(query);
-            node.innerText = text;
-            node.hidden = text == "";
-        }.bind(this);
-
-        var seconds_old = (new Date() - new Date(illust_data.createDate)) / 1000;
-        set_info(".post-info > .post-age", helpers.age_to_string(seconds_old) + " ago");
-
-        var info = "";
-        if(this.viewer != null && this.viewer.current_image_width != null)
-        {
-            // Add the resolution and file type if available.
-            info += this.viewer.current_image_width + "x" + this.viewer.current_image_height;
-        }
-        var ext = this.viewer? this.viewer.current_image_type:null;
-        if(ext != null)
-            info += " " + ext;
-
-        set_info(".post-info > .image-info", info);
-
-        var duration = "";
-        if(illust_data.illustType == 2)
-        {
-            var seconds = 0;
-            for(var frame of illust_data.ugoiraMetadata.frames)
-                seconds += frame.delay / 1000;
-
-            var duration = seconds.toFixed(duration >= 10? 0:1);
-            duration += seconds == 1? " second":" seconds";
-        }
-        set_info(".post-info > .ugoira-duration", duration);
-        set_info(".post-info > .ugoira-frames", illust_data.illustType == 2? (illust_data.ugoiraMetadata.frames.length + " frames"):"");
-
-        // Add the page count for manga.
-        set_info(".post-info > .page-count", illust_data.pageCount == 1? "":(illust_data.pageCount + " pages"));
-
-        // The comment (description) can contain HTML.
-        this.element_comment.hidden = illust_data.illustComment == "";
-        this.element_comment.innerHTML = illust_data.illustComment;
-        helpers.fix_pixiv_links(this.element_comment);
-        helpers.make_pixiv_links_internal(this.element_comment);
-
-        // Set the download button popup text.
-        var download_type = this.get_download_type_for_image();
-        var download_button = this.container.querySelector(".download-button");
-        download_button.hidden = download_type == null;
-        if(download_type != null)
-            download_button.dataset.popup = "Download " + download_type;
-
-        helpers.set_class(document.body, "bookmarked", illust_data.bookmarkData);
-
-        helpers.set_class(this.element_bookmarked, "bookmarked-public", illust_data.bookmarkData && !illust_data.bookmarkData.private);
-        helpers.set_class(this.element_bookmarked, "bookmarked-private", illust_data.bookmarkData && illust_data.bookmarkData.private);
-        helpers.set_class(this.element_liked, "liked", illust_data.likeData);
-        this.element_liked.dataset.popup = illust_data.likeCount + " likes";
-        this.element_bookmarked.querySelector(".popup").dataset.popup = illust_data.bookmarkCount + " bookmarks";
-
-        this.tag_widget.set(illust_data.tags);
-
-        this.refresh_bookmark_tag_list();
-    }
-
-    is_download_type_available(download_type)
-    {
-        var illust_data = this.current_illust_data;
-        
-        // Single image downloading only works for single images.
-        if(download_type == "image")
-            return illust_data.illustType != 2 && illust_data.pageCount == 1;
-
-        // ZIP downloading only makes sense for image sequences.
-        if(download_type == "ZIP")
-            return illust_data.illustType != 2 && illust_data.pageCount > 1;
-
-        // MJPEG only makes sense for videos.
-        if(download_type == "MKV")
-        {
-            if(illust_data.illustType != 2)
-                return false;
-
-            // All of these seem to be JPEGs, but if any are PNG, disable MJPEG exporting.
-            // We could encode to JPEG, but if there are PNGs we should probably add support
-            // for APNG.
-            if(illust_data.ugoiraMetadata.mime_type != "image/jpeg")
-                return false;
-
-            return true;
-        }
-        throw "Unknown download type " + download_type;
-    };
-
-    get_download_type_for_image()
-    {
-        var download_types = ["image", "ZIP", "MKV"];
-        for(var type of download_types)
-            if(this.is_download_type_available(type))
-                return type;
-
-        return null;
     }
 
     onwheel(e)
@@ -590,7 +421,8 @@ class main_ui
                     return;
                 }
 
-                this.bookmark_remove();
+                actions.bookmark_remove(this.current_illust_data);
+                
                 return;
             }
 
@@ -600,44 +432,11 @@ class main_ui
                 return;
             }
             
-            this.bookmark_add(e.shiftKey);
-            return;
-        }
-
-        if(e.keyCode == 70) // f
-        {
-            // f to follow publically, F to follow privately, ^F to unfollow.
-            e.stopPropagation();
-            e.preventDefault();
-
-            var illust_data = this.current_illust_data;
-            if(illust_data == null)
-                return;
-
-            var user_data = illust_data.userInfo.isFollowed;
-            if(e.ctrlKey)
-            {
-                // Remove the bookmark.
-                if(!illust_data.userInfo.isFollowed)
-                {
-                    message_widget.singleton.show("Not following this user");
-                    return;
-                }
-
-                this.avatar_widget.unfollow();
-                return;
-            }
-
-            if(illust_data.userInfo.isFollowed)
-            {
-                message_widget.singleton.show("Already following (^F to unfollow)");
-                return;
-            }
+            actions.bookmark_add(illust_data, e.shiftKey /* private_bookmark */);
             
-            this.avatar_widget.follow(e.shiftKey);
             return;
         }
-        
+
         if(e.ctrlKey || e.altKey)
             return;
 
@@ -645,7 +444,8 @@ class main_ui
         {
         case 86: // l
             e.stopPropagation();
-            this.clicked_like(e);
+            actions.like_image(this.current_illust_data);
+            
             return;
 
         case 37: // left
@@ -772,258 +572,5 @@ class main_ui
         this.main.show_illust_id(new_illust_id, false /* don't add to history */);
         return true;
     }
-
-    clicked_download(e)
-    {
-        var clicked_button = e.target.closest(".download-button");
-        if(clicked_button == null)
-            return;
-
-        e.preventDefault();
-        e.stopPropagation();
-
-        var illust_data = this.current_illust_data;
-
-        var download_type = this.get_download_type_for_image();
-        if(download_type == null)
-        {
-            console.error("No download types are available");
-            retunr;
-        }
-
-        console.log("Download", this.current_illust_id, "with type", download_type);
-
-        if(download_type == "MKV")
-        {
-            new ugoira_downloader_mjpeg(illust_data, this.progress_bar.controller());
-            return;
-        }
-
-        if(download_type != "image" && download_type != "ZIP")
-        {
-            console.error("Unknown download type " + download_type);
-            return;
-        }
-
-        // Download all images.
-        var images = [];
-        for(var page = 0; page < illust_data.pageCount; ++page)
-            images.push(helpers.get_url_for_page(illust_data, page, "original"));
-
-        var user_data = illust_data.userInfo;
-        helpers.download_urls(images, function(results) {
-            // If there's just one image, save it directly.
-            if(images.length == 1)
-            {
-                var url = images[0];
-                var buf = results[0];
-                var blob = new Blob([results[0]]);
-                var ext = helpers.get_extension(url);
-                var filename = user_data.name + " - " + illust_data.illustId + " - " + illust_data.illustTitle + "." + ext;
-                helpers.save_blob(blob, filename);
-                return;
-            }
-
-            // There are multiple images, and since browsers are stuck in their own little world, there's
-            // still no way in 2018 to save a batch of files to disk, so ZIP the images.
-            console.log(results);
-       
-            var filenames = [];
-            for(var i = 0; i < images.length; ++i)
-            {
-                var url = images[i];
-                var blob = results[i];
-
-                var ext = helpers.get_extension(url);
-                var filename = i.toString().padStart(3, '0') + "." + ext;
-                filenames.push(filename);
-            }
-
-            // Create the ZIP.
-            var zip = new create_zip(filenames, results);
-            var filename = user_data.name + " - " + illust_data.illustId + " - " + illust_data.illustTitle + ".zip";
-            helpers.save_blob(zip, filename);
-        }.bind(this));
-        return;
-    }
-
-    clicked_bookmark(private_bookmark, e)
-    {
-        e.preventDefault();
-        e.stopPropagation();
-
-        var illust_id = this.current_illust_id;
-        var illust_data = this.current_illust_data;
-        if(illust_data.bookmarkData)
-        {
-            // The illustration is already bookmarked, so remove the bookmark.
-            this.bookmark_remove();
-            return;
-        }
-
-        // Add a new bookmark.
-        this.bookmark_add(private_bookmark);
-    }
-
-    bookmark_add(private_bookmark)
-    {
-        // If auto-like is enabled, like an image when we bookmark it.
-        if(helpers.get_value("auto-like"))
-        {
-            console.log("Automatically liking image as well as bookmarking it due to auto-like preference");
-            this.like_image(true /* quiet */);
-        }
-        
-        var illust_id = this.current_illust_id;
-        var illust_data = this.current_illust_data;
-
-        var tags = this.element_bookmark_tag_list.value;
-        var tag_list = tags == ""? []:tags.split(" ");
-
-        bookmarking.singleton.bookmark_add(illust_id, private_bookmark, tag_list);
-        
-        helpers.update_recent_bookmark_tags(tag_list);
-
-        // Clear the tag list after saving a bookmark.  Otherwise, it's too easy to set a tag for one
-        // image, then forget to unset it later.
-        this.element_bookmark_tag_list.value = null;
-    }
-
-    bookmark_remove()
-    {
-        var illust_id = this.current_illust_id;
-        var illust_data = this.current_illust_data;
-        var bookmark_id = illust_data.bookmarkData.id;
-        bookmarking.singleton.bookmark_remove(illust_id, bookmark_id);
-    }
-
-    // Refresh the list of recent bookmark tags.
-    refresh_bookmark_tag_list()
-    {
-        var bookmark_tags = this.container.querySelector(".bookmark-tag-selector");
-        helpers.remove_elements(bookmark_tags);
-
-        var recent_bookmark_tags = helpers.get_recent_bookmark_tags();
-        recent_bookmark_tags.sort();
-        for(var i = 0; i < recent_bookmark_tags.length; ++i)
-        {
-            var tag = recent_bookmark_tags[i];
-            var entry = helpers.create_from_template(".template-bookmark-tag-entry");
-            entry.dataset.tag = tag;
-            bookmark_tags.appendChild(entry);
-            entry.querySelector(".tag-name").innerText = tag;
-        }
-
-        this.refresh_bookmark_tag_highlights();
-    }
-
-    // Update which tags are highlighted in the bookmark tag list.
-    refresh_bookmark_tag_highlights()
-    {
-        var bookmark_tags = this.container.querySelector(".bookmark-tag-selector");
-        
-        var tags = this.element_bookmark_tag_list.value;
-        var tags = tags.split(" ");
-        var tag_entries = bookmark_tags.querySelectorAll(".bookmark-tag-entry");
-        for(var i = 0; i < tag_entries.length; ++i)
-        {
-            var entry = tag_entries[i];
-            var tag = entry.dataset.tag;
-            var highlight_entry = tags.indexOf(tag) != -1;
-            helpers.set_class(entry, "enabled", highlight_entry);
-        }
-    }
-
-    clicked_bookmark_tag_selector(e)
-    {
-        var clicked_tag_entry = e.target.closest(".bookmark-tag-entry");
-        var tag = clicked_tag_entry.dataset.tag;
-
-        var clicked_remove = e.target.closest(".remove");
-        if(clicked_remove)
-        {
-            // Remove the clicked tag from the recent list.
-            e.preventDefault();
-            e.stopPropagation();
-
-            var recent_bookmark_tags = helpers.get_recent_bookmark_tags();
-            var idx = recent_bookmark_tags.indexOf(tag);
-            if(idx != -1)
-                recent_bookmark_tags.splice(idx, 1);
-            helpers.set_recent_bookmark_tags(recent_bookmark_tags);
-            this.refresh_bookmark_tag_list();
-            return;
-        }
-
-        // Toggle the clicked tag.
-        var tags = this.element_bookmark_tag_list.value;
-        var tags = tags == ""? []:tags.split(" ");
-        var idx = tags.indexOf(tag);
-        if(idx != -1)
-        {
-            // Remove this tag from the list.
-            tags.splice(idx, 1);
-        }
-        else
-        {
-            // Add this tag to the list.
-            tags.push(tag);
-        }
-
-        this.element_bookmark_tag_list.value = tags.join(" ");
-        this.refresh_bookmark_tag_highlights();
-    }
-
-    clicked_like(e)
-    {
-        e.preventDefault();
-        e.stopPropagation();
-        this.like_image();
-    }
-
-    // If quiet is true, don't print any messages.
-    like_image(quiet)
-    {
-        var illust_id = this.current_illust_id;
-        console.log("Clicked like on", illust_id);
-
-        var illust_data = this.current_illust_data;
-        if(illust_data.likeData)
-        {
-            if(!quiet)
-                message_widget.singleton.show("Already liked this image");
-            return;
-        }
-        
-        helpers.post_request("/ajax/illusts/like", {
-            "illust_id": illust_id,
-        }, function() {
-            // Update the data (even if it's no longer being viewed).
-            illust_data.likeData = true;
-            illust_data.likeCount++;
-
-            // Refresh the UI if we're still on the same post.
-            if(this.current_illust_id == illust_id)
-                this.refresh_ui();
-
-            if(!quiet)
-                message_widget.singleton.show("Illustration liked");
-        }.bind(this));
-    }
-
-    toggle_auto_like()
-    {
-        var auto_like = helpers.get_value("auto-like");
-        auto_like = !auto_like;
-        helpers.set_value("auto-like", auto_like);
-
-        this.update_from_settings();
-    }
-
-    update_from_settings()
-    {
-        helpers.set_class(document.body, "auto-like", helpers.get_value("auto-like"));
-    }    
-    
 }
 

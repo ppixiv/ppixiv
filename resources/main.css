@@ -285,8 +285,8 @@ body.disable-thumbnail-zooming .toggle-thumbnail-zooming > .on { display: none; 
 body:not(.disable-thumbnail-panning) .toggle-thumbnail-panning > .off { display: none; }
 body.disable-thumbnail-panning .toggle-thumbnail-panning > .on { display: none; }
 
-body.auto-like .toggle-auto-like > .off { display: none; }
-body:not(.auto-like) .toggle-auto-like > .on { display: none; }
+.toggle-auto-like.auto-like > .off { display: none; }
+.toggle-auto-like:not(.auto-like) > .on { display: none; }
 
 .download-button {
     cursor: pointer;
@@ -366,11 +366,14 @@ body.dot canvas.filtering {
 /* When not bookmarked, highlight on hover and show the private icon on control-hover. */
 /* When bookmarked, show the bookmark state. */
 .bookmark-button { cursor: pointer; }
+.bookmark-button.bookmarked .bookmark-popup .not-bookmarked { display: none; }
+.bookmark-button:not(.bookmarked) .bookmark-popup .bookmarked { display: none; }
+
 .bookmark-button .bookmark-popup { cursor: initial; } /* stop cursor: pointer above from propagating all the way down */
-body:not(.bookmarked) .bookmark-button:hover              .heart,
-body.bookmarked       .bookmark-button.bookmarked-public  .heart { fill: #f00; }
-                      .bookmark-button.bookmarked-private .heart { fill: #800; stroke: #fff; }
-body.bookmarked .bookmark-button input { display: none; }
+.bookmark-button:not(.bookmarked):hover .heart,
+.bookmark-button.bookmarked-public  .heart { fill: #f00; }
+.bookmark-button.bookmarked-private .heart { fill: #800; stroke: #fff; }
+.bookmark-button.bookmarked input { display: none; }
 .bookmark-button > span.popup {
     padding: 0 3px;
 }
@@ -504,8 +507,6 @@ body.light .popup-menu-box {
     cursor: pointer;
 }
 
-body.bookmarked .bookmark-popup .not-bookmarked { display: none; }
-body:not(.bookmarked) .bookmark-popup .bookmarked { display: none; }
 .popup-menu-box .button:hover {
     background-color: #444;
     width: 100%;
