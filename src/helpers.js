@@ -905,7 +905,7 @@ var helpers = {
             init_elements.push(element);
         }
 
-        if(init_elements.length != 2)
+        if(init_elements.length < 1)
             return null;
         
         // Create a stub around the scripts to let them execute as if they're initializing the
@@ -913,8 +913,8 @@ var helpers = {
         var init_script = "";
         init_script += "(function() {";
         init_script += "var pixiv = { config: {}, context: {}, user: {} }; ";
-        init_script += init_elements[0].innerText;
-        init_script += init_elements[1].innerText;
+        for(var element of init_elements)
+            init_script += element.innerText;
         init_script += "return pixiv;";
         init_script += "})();";
         return eval(init_script);
