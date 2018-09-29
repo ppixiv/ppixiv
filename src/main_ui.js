@@ -304,6 +304,11 @@ class main_ui
         if(!active)
         {
             this.cancel_async_navigation();
+
+            // Remove any image we're displaying, so if we show another image later, we
+            // won't show the previous image while the new one's data loads.
+            this.stop_displaying_image();
+            
             return;
         }
 
@@ -313,18 +318,6 @@ class main_ui
             console.log("Showing illust_id", this.wanted_illust_id, "that was set while hidden");
             var wanted_illust_id = this.wanted_illust_id;
             var wanted_page = this.wanted_illust_page;
-
-            // Hide any previous image.  We want to keep the previous image if we're going
-            // from image to image, but we don't want to flash the previous image when going
-            // from the thumbnail view to an image.
-            //
-            // If this is a new illust, we'll clear our viewer.  If it's the same illust and just
-            // a different page, just tell the viewer to clear so we don't waste time recreating
-            // it.
-            if(this.wanted_illust_id == this.current_illust_id)
-                this.viewer.stop_displaying_image();
-            else
-                this.stop_displaying_image();
 
             // Show the image.  (this.wanted_illust_id was cleared by stop_displaying_image.)
             this.show_image(wanted_illust_id, wanted_page);

@@ -107,11 +107,6 @@ class viewer_images extends viewer
         this.options.page_changed(this.index, this.images.length, this.img.src);
     }
 
-    stop_displaying_image()
-    {
-        this.img.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==";
-    }
-
     refresh()
     {
         var url = this.images[this.index];
