@@ -1363,7 +1363,7 @@ body.light .thumb-list-cursor
     color: #888;
     stroke: #888;
 }
-.popup-context-menu .button-strip.enabled > .button-block > .button > svg {
+.popup-context-menu .button-strip > .button-block > .button > svg {
     width: 32px;
     height: 32px;
 }
