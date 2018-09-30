@@ -200,7 +200,7 @@ class main_controller
         window.addEventListener("popstate", this.window_onpopstate);
         window.addEventListener("keydown", this.onkeydown);
 
-        this.current_view = null;
+        this.current_view_name = null;
         this.current_history_index = helpers.current_history_state_index();
 
         // Don't restore the scroll position.
@@ -314,12 +314,12 @@ class main_controller
             return;
 
         // Figure out which view to display.
-        var new_view;
+        var new_view_name;
         var args = helpers.get_args(document.location);
         if(!args.hash.has("view"))
-            new_view = this.data_source.default_view;
+            new_view_name = this.data_source.default_view;
         else
-            new_view = args.hash.get("view");
+            new_view_name = args.hash.get("view");
 
         var args = helpers.get_args(document.location);
         var illust_id = data_source.get_current_illust_id();
@@ -327,36 +327,45 @@ class main_controller
 
         // if illust_id is set, need the image data to know whether to show manga pages
         // or the illust
-        console.log("Loading data source.  View:", new_view, "Cause:", cause, "URL:", document.location.href);
+        console.log("Loading data source.  View:", new_view_name, "Cause:", cause, "URL:", document.location.href);
         // Get the manga page in this illust to show, if any.
         console.log("  Show image", illust_id, "page", manga_page);
 
         // Mark the current view.  Other code can watch for this to tell which view is
         // active.
-        document.body.dataset.currentView = new_view;
+        document.body.dataset.currentView = new_view_name;
 
         // Set the image before activating the view.  If we do this after activating it,
         // it'll start loading any previous image it was pointed at.  Don't do this in
         // search mode, or we'll start loading the default image.
-        if(new_view == "illust")
+        if(new_view_name == "illust")
             this.ui.show_image(illust_id, manga_page);
-        else if(new_view == "manga")
+        else if(new_view_name == "manga")
             this.manga_view.shown_illust_id = illust_id;
  
+        var new_view = this.views[new_view_name];
+        var old_view = this.views[this.current_view_name];
+        var old_illust_id = old_view? old_view.displayed_illust_id:null;
+
         // If we're changing between the image and thumbnail view, update the active view.
-        var view_changing = new_view != this.current_view;
+        var view_changing = new_view != old_view;
         if(view_changing)
         {
-            this.current_view = new_view;
+            this.current_view_name = new_view_name;
 
             for(var view_name in this.views)
             {
                 var view = this.views[view_name];
-                view.active = new_view == view_name;
+                view.active = new_view_name == view_name;
             }
        
             // Dismiss any message when toggling between views.
             message_widget.singleton.hide();
+
+            // If we're enabling the thumbnail, pulse the image that was just being viewed (or
+            // loading to be viewed), to make it easier to find your place.
+            if(new_view_name == "search" && illust_id != null)
+                this.thumbnail_view.pulse_thumbnail(old_illust_id);
         }
         
         // Are we navigating forwards or back?
@@ -364,7 +373,7 @@ class main_controller
         var navigating_forwards = new_history_index > this.current_history_index;
         this.current_history_index = new_history_index;
 
-        if(this.thumbnail_view.active)
+        if(new_view_name == "search")
         {
             // Handle scrolling for the new state.
             //
@@ -387,20 +396,16 @@ class main_controller
                 console.log("Restore scroll position for forwards navigation");
                 this.thumbnail_view.restore_scroll_position();
             }
-            else
+            else if(view_changing && old_illust_id != null)
             {
                 // If we're navigating backwards or toggling, and we're switching from the image UI to thumbnails,
                 // try to scroll the thumbnail view to the image that was displayed.  Otherwise, tell
                 // the thumbnail view to restore any scroll position saved in the data source.
-                if(view_changing && this.ui.current_illust_id != -1 && this.thumbnail_view.active)
-                    this.thumbnail_view.scroll_to_illust_id(this.ui.current_illust_id);
-                else
-                    this.thumbnail_view.restore_scroll_position();
-
-                // If we're enabling the thumbnail, pulse the image that was just being viewed (or
-                // loading to be viewed), to make it easier to find your place.
-                if(view_changing && this.thumbnail_view.active)
-                    this.thumbnail_view.pulse_thumbnail(this.ui.wanted_illust_id);
+                this.thumbnail_view.scroll_to_illust_id(old_illust_id);
+            }
+            else
+            {
+                this.thumbnail_view.restore_scroll_position();
             }
         }
     }

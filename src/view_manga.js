@@ -87,6 +87,11 @@ class view_manga extends view
         this.refresh_ui();
     }
 
+    get displayed_illust_id()
+    {
+        return this.illust_id;        
+    }
+    
     refresh_ui()
     {
         helpers.set_title_and_icon(this.illust_info);

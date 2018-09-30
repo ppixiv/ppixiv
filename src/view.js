@@ -5,5 +5,11 @@ class view
     handle_onkeydown(e)
     {
     }
+
+    // If this view is displaying an image, return its ID.  Otherwise, return null.
+    get displayed_illust_id()
+    {
+        return null;
+    }
 }
 

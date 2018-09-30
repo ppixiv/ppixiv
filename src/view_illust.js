@@ -360,6 +360,11 @@ class view_illust extends view
         this.move(down);
     }
 
+    get displayed_illust_id()
+    {
+        return this.wanted_illust_id;        
+    }
+
     handle_onkeydown(e)
     {
         // Let the viewer handle the input first.
