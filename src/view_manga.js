@@ -138,35 +138,27 @@ class view_manga extends view
     get_display_aspect_ratio(manga_info)
     {
         // A lot of manga posts use the same resolution for all images, or just have
-        // one or two exceptions for things like title pages.  Try to find a common
-        // aspect ratio across most images, allowing for a couple exceptions.
-        //
-        // First, make a list of aspect ratios, in 0.1 chunks.  XXX: This doesn't deal
-        // with the boundary condition (0.899 is in a different bucket than 0.901).
-        var count_by_aspect_ratio = [];
+        // one or two exceptions for things like title pages.  If most images have
+        // about the same aspect ratio, use it.
+        var total = 0;
+        for(var manga_page of manga_info)
+            total += manga_page.width / manga_page.height;
+        var average_aspect_ratio = total / manga_info.length;
+
+        var illusts_far_from_average = 0;
         for(var manga_page of manga_info)
         {
-            var width = manga_page.width;
-            var height = manga_page.height;
-            var ratio = width / height;
-            var snapped_ratio = Math.round(10 * ratio);
-            if(count_by_aspect_ratio[snapped_ratio] == null)
-                count_by_aspect_ratio[snapped_ratio] = 0;
-            count_by_aspect_ratio[snapped_ratio]++;
+            var ratio = manga_page.width / manga_page.height;
+            console.log(average_aspect_ratio, ratio)
+            if(Math.abs(average_aspect_ratio - ratio) > 0.1)
+                illusts_far_from_average++;
         }
 
-        // If all but a small number of images have roughly the same aspect ratio, use that
-        // that for all thumbs.  If there's more variance than that, just use squares.
-        for(var ratio in count_by_aspect_ratio)
-        {
-            var total_in_ratio = count_by_aspect_ratio[ratio];
-
-            if(total_in_ratio >= this.manga_info.length - 3)
-                return ratio / 10;
-        }
-
-        // We didn't find a common aspect ratio, so just use square thumbs.
-        return 1;
+        // If we didn't find a common aspect ratio, just use square thumbs.
+        if(illusts_far_from_average > 3)
+            return 1;
+        else
+            return average_aspect_ratio;
     }
 
     get_display_resolution(width, height)
