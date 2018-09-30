@@ -11,7 +11,7 @@ class viewer
     // be used.
     shutdown() { }
 
-    set page(page) { throw "Not implemented"; }
+    set page(page) { }
     get page() { return 1; }
 
     // Return the current image's dimensions.

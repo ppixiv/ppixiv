@@ -156,8 +156,10 @@ class manga_thumbnail_widget
             if(new_page < 0 || new_page >= this.entries.length)
                 return;
 
-            if(this.page_changed_callback)
-                this.page_changed_callback(new_page);
+            main_controller.singleton.show_illust(this.illust_info.illustId, {
+                manga_page: new_page,
+            });
+            
             /*
             var entry = this.entries[new_page];
             if(entry == null)
@@ -175,8 +177,10 @@ class manga_thumbnail_widget
             e.preventDefault();
             e.stopPropagation();
 
-            if(this.page_changed_callback)
-                this.page_changed_callback(parseInt(thumb.dataset.page));
+            var new_page = parseInt(thumb.dataset.page);
+            main_controller.singleton.show_illust(this.illust_info.illustId, {
+                manga_page: new_page,
+            });
             return;
         }
     }
@@ -215,12 +219,6 @@ class manga_thumbnail_widget
         this.scroller.snap();
     }
 
-    // Set a callback(page) to call when the user clicks a page.
-    set_page_changed_callback(callback)
-    {
-        this.page_changed_callback = callback;
-    }
-
     // This is called when the manga page is changed externally.
     current_page_changed(page)
     {
@@ -229,6 +227,8 @@ class manga_thumbnail_widget
             return
         
         this.current_page = page;
+        if(this.current_page == null)
+            return;
 
         // Find the entry for the page.
         var entry = this.entries[this.current_page];

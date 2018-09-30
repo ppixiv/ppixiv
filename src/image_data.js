@@ -393,5 +393,42 @@ class image_data
 
         this.call_pending_callbacks();
     }
+
+    // Async wrappers:
+    get_image_info_async(illust_id)
+    {
+        return new Promise(resolve => {
+            this.get_image_info(illust_id, (illust_info) => {
+                resolve(illust_info);
+            });
+        });
+    }
+
+    get_user_info_async(user_id)
+    {
+        return new Promise(resolve => {
+            this.get_user_info(user_id, (user_info) => {
+                resolve(user_info);
+            });
+        });
+    }
+   
+    get_user_info_full_async(user_id)
+    {
+        return new Promise(resolve => {
+            this.get_user_info_full(user_id, (user_info) => {
+                resolve(user_info);
+            });
+        });
+    }
+
+    get_manga_info_async(illust_id)
+    {
+        return new Promise(resolve => {
+            this.get_manga_info(illust_id, (manga_info) => {
+                resolve(manga_info);
+            });
+        });
+    }
 }
 

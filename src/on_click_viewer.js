@@ -16,6 +16,20 @@ class on_click_viewer
 
         this._zoom_levels = [null, 2, 4, 8];
 
+        // Observe changes to img.src.
+        this.src_observer = new MutationObserver(function(mutation_list) {
+            for(var mutation of mutation_list) {
+                if(mutation.attributeName == "src")
+                {
+                    console.log("observer calling image_changed");
+                    this.image_changed();
+                    break;
+                }
+            }
+        }.bind(this));
+
+        this.src_observer.observe(img, { attributes: true });
+        
         // The caller can set this to a function to be called if the user clicks the image without
         // dragging.
         this.clicked_without_scrolling = null;
@@ -363,12 +377,18 @@ class on_click_viewer
         var width = this.width;
         var height = this.height;
 
+        // If the dimensions are empty then we aren't loaded.  Stop now, so the math
+        // below doesn't break.
+        if(width == 0 || height == 0 || this.img.parentNode.offsetWidth == 0 || this.img.parentNode.offsetHeight == 0)
+            return;
+
         // The ratio to scale the image to fit the screen:
         var zoom_ratio = Math.min(screen_width/width, screen_height/height);
         this.zoom_ratio = zoom_ratio;
 
         height *= this.zoom_ratio;
         width *= this.zoom_ratio;
+
 
         // Normally (when unzoomed), the image is centered.
         var left = Math.round((screen_width - width) / 2);

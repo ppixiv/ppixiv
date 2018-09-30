@@ -113,7 +113,7 @@ class page_manager
     //
     // If we've already created a data source for this URL, the same one will be
     // returned.
-    create_data_source_for_url(url, doc, callback)
+    async create_data_source_for_url(url, doc, callback)
     {
         // need to be able to canonicalize statically
         var data_source_class = this.get_data_source_for_url(url);
@@ -124,21 +124,19 @@ class page_manager
         }
 
         // Canonicalize the URL to see if we already have a data source for this URL.
-        data_source_class.get_canonical_url(url, function(canonical_url) {
-            console.log("url", url.toString(), "becomes", canonical_url);
-            if(canonical_url in this.data_sources_by_canonical_url)
-            {
-                console.log("Reusing data source for", url.toString());
-                var source = this.data_sources_by_canonical_url[canonical_url];
-                callback(source);
-                return;
-            }
-            
-            console.log("Creating new data source for", url.toString());
-            var source = new data_source_class(url.href, doc);
-            this.data_sources_by_canonical_url[canonical_url] = source;
-            callback(source);
-        }.catch_bind(this));
+        var canonical_url = await data_source_class.get_canonical_url(url);
+
+        // console.log("url", url.toString(), "becomes", canonical_url);
+        if(canonical_url in this.data_sources_by_canonical_url)
+        {
+            // console.log("Reusing data source for", url.toString());
+            return this.data_sources_by_canonical_url[canonical_url];
+        }
+        
+        // console.log("Creating new data source for", url.toString());
+        var source = new data_source_class(url.href, doc);
+        this.data_sources_by_canonical_url[canonical_url] = source;
+        return source;
     }
 
     // Return true if it's possible for us to be active on this page.
@@ -194,22 +192,6 @@ class page_manager
         // or if we remove support for a page that people have in their browser session.
         return helpers.parse_hash(document.location) != null && this.available();
     };
-
-    // Update the URL.  If add_to_history is true, add a new history state.  Otherwise,
-    // replace the current one.
-    //
-    // If query_params or hash_params are null, leave the current value alone.
-    set_args(query_params, hash_params, add_to_history, cause)
-    {
-        var url = new URL(document.location);
-        if(query_params != null)
-            url.search = query_params.toString();
-
-        if(hash_params != null)
-            helpers.set_hash_args(url, hash_params);
-
-        helpers.set_page_url(url, add_to_history, cause);
-    }
 
     // Given a list of tags, return the URL to use to search for them.  This differs
     // depending on the current page.

@@ -39,7 +39,7 @@ class viewer_images extends viewer
 
     img_onload(e)
     {
-        this.call_on_page_changed();
+        this.call_image_finished_loading();
     }
 
     // For single-page illustrations, we have the image dimensions in illust_data.
@@ -100,15 +100,12 @@ class viewer_images extends viewer
         this.refresh();
     }
 
-    call_on_page_changed()
+    call_image_finished_loading()
     {
-        if(this.options.page_changed == null)
+        if(this.options.image_finished_loading == null)
             return;
 
-        if(this.index == null)
-            return;
-
-        this.options.page_changed(this.index, this.images.length, this.img.src);
+        this.options.image_finished_loading(this.index, this.images.length, this.img.src);
     }
 
     // Remove the image.  Set this.index to show it again.
@@ -131,9 +128,6 @@ class viewer_images extends viewer
             return;
 
         this.img.src = url;
-        this.viewer.image_changed();
-
-        this.call_on_page_changed();
 
         // Decode the next and previous image.  This reduces flicker when changing pages
         // since the image will already be decoded.
@@ -171,13 +165,17 @@ class viewer_images extends viewer
         case 36: // home
             e.stopPropagation();
             e.preventDefault();
-            main_controller.singleton.show_manga_page(this.illust_data.id, 0, false /* don't add to history */);
+            main_controller.singleton.show_illust(this.illust_data.id, {
+                manga_page: 0,
+            });
             return;
 
         case 35: // end
             e.stopPropagation();
             e.preventDefault();
-            main_controller.singleton.show_manga_page(this.illust_data.id, this.illust_data.pageCount - 1, false /* don't add to history */);
+            main_controller.singleton.show_illust(this.illust_data.id, {
+                manga_page: this.illust_data.pageCount - 1,
+            });
             return;
         }
     }

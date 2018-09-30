@@ -4,6 +4,8 @@ class viewer_ugoira extends viewer
     {
         super(container, illust_data);
         
+        console.log("create player:", illust_data.illustId);
+
         this.refresh_focus = this.refresh_focus.bind(this);
         this.clicked_canvas = this.clicked_canvas.bind(this);
         this.onkeydown = this.onkeydown.bind(this);
@@ -62,6 +64,22 @@ class viewer_ugoira extends viewer
         this.refresh_focus();
     }
 
+    // When true, hide and pause the video.
+    set hide_image(value)
+    {
+        if(this._hidden == value)
+            return;
+
+        console.log("--------- Set hidden:", value);
+        this._hidden = value;
+        this.canvas.hidden = this.preview_img.hidden = this._hidden;
+        this.refresh_focus();
+    }
+    get hide_image()
+    {
+        return this._hidden;
+    }
+    
     progress(value)
     {
         if(this.progress_callback)
@@ -181,6 +199,7 @@ class viewer_ugoira extends viewer
 
     shutdown()
     {
+        console.log("shutdown player:", this.illust_data.illustId);
         this.finished = true;
 
         if(this.seek_bar)
@@ -207,7 +226,8 @@ class viewer_ugoira extends viewer
         if(this.player == null)
             return;
 
-        var active = this.want_playing && !this.seeking && !window.document.hidden;
+        console.log("focus xxx", this._hidden);
+        var active = this.want_playing && !this.seeking && !window.document.hidden && !this._hidden;
         if(active)
             this.player.play(); 
         else

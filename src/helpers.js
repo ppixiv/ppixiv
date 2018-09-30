@@ -1077,15 +1077,6 @@ var helpers = {
             url.hash += "?" + hash_string;
     },
 
-    get_args: function(url)
-    {
-        return {
-            path: url.pathname,
-            query: url.searchParams,
-            hash: helpers.get_hash_args(url),
-        }
-    },
-
     // Given a URLSearchParams, return a new URLSearchParams with keys sorted alphabetically.
     sort_query_parameters(search)
     {
@@ -1105,6 +1096,25 @@ var helpers = {
         return (history.state && history.state.index != null)? history.state.index: 0;
     },
 
+    get_args: function(url)
+    {
+        var url = new URL(url, document.location);
+        return {
+            path: url.pathname,
+            query: url.searchParams,
+            hash: helpers.get_hash_args(url),
+        }
+    },
+
+    set_args(args, add_to_history, cause)
+    {
+        var url = new URL(document.location);
+        url.pathname = args.path;
+        url.search = args.query.toString();
+        helpers.set_hash_args(url, args.hash);
+        helpers.set_page_url(url, add_to_history, cause);
+    },
+    
     // Set document.href, either adding or replacing the current history state.
     //
     // window.onpopstate will be synthesized if the URL is changing.
@@ -1149,7 +1159,7 @@ var helpers = {
         {
             // Browsers don't send onpopstate for history changes, but we want them, so
             // send a synthetic one.
-            console.log("Dispatching popstate:", document.location.toString());
+            // console.log("Dispatching popstate:", document.location.toString());
             var event = new PopStateEvent("popstate");
 
             // Set initialNavigation to true.  This indicates that this event is for a new
@@ -1213,6 +1223,28 @@ var helpers = {
         img.src = url;
 
         img.decode().then(() => { }).catch((e) => { });
+    },
+
+    // If the aspect ratio is very narrow, don't use any panning, since it becomes too spastic.
+    // If the aspect ratio is portrait, use vertical panning.
+    // If the aspect ratio is landscape, use horizontal panning.
+    //
+    // If it's in between, don't pan at all, since we don't have anywhere to move and it can just
+    // make the thumbnail jitter in place.
+    //
+    // Don't pan muted images.
+    //
+    // container_aspect_ratio is the aspect ratio of the box the thumbnail is in.  If the
+    // thumb is in a 2:1 landscape box, we'll adjust the min and max aspect ratio accordingly.
+    set_thumbnail_panning_direction(thumb, width, height, container_aspect_ratio)
+    {
+        var aspect_ratio = width / height;
+        var min_aspect_for_pan = 1.1 * container_aspect_ratio;
+        var max_aspect_for_pan = 4 * container_aspect_ratio;
+        var vertical_panning = aspect_ratio > (1/max_aspect_for_pan) && aspect_ratio < 1/min_aspect_for_pan;
+        var horizontal_panning = aspect_ratio > min_aspect_for_pan && aspect_ratio < max_aspect_for_pan;
+        helpers.set_class(thumb, "vertical-panning", vertical_panning);
+        helpers.set_class(thumb, "horizontal-panning", horizontal_panning);
     },
 };
 

@@ -4,7 +4,7 @@
     </div>
 
     <!-- main_ui: -->
-    <div class=image-viewer-container>
+    <div class=view-illust-container>
         <div class="image-container context-menu-target"></div>
 
         <div class=ugoira-seek-bar></div>
@@ -35,7 +35,7 @@
     </div>
 
     <!-- thumbnail_view: -->
-    <div class="thumbnail-container noise-background" hidden>
+    <div class="view-search-container noise-background" hidden>
         <div class="thumbnail-ui">
             <div style="flex: 1;"></div>
 
@@ -401,14 +401,9 @@
         <ul class="thumbnails context-menu-target"></ul>
     </div>
 
-    <div class="manga-view-container noise-background" hidden>
-        <div class=ui>
-            <div style="display: flex; width: 100%;">
-                <div style="flex: 1;"></div>
-                <div class=ui-container>
-                </div>
-                <div style="flex: 1;"></div>
-            </div>
+    <div class="view-manga-container noise-background" hidden>
+        <div class=ui style="display: flex; width: 100%; justify-content: center;">
+            <div class=ui-container></div>
         </div>
         
         <ul class="thumbnails context-menu-target"></ul>
@@ -656,7 +651,6 @@
         <ul class=template-manga-view-thumbnail>
             <li class=thumbnail-box>
                 <div class=thumbnail-inner>
-                    <div style="flex: 1;"></div>
                     <a class=thumbnail-link href=#>
                         <img class=thumb>
                     </a>

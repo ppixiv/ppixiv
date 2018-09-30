@@ -366,9 +366,6 @@ class thumbnail_data
                 urls.push(thumb_info.url);
         }
 
-        // Preload thumbnails.
-        helpers.preload_images(urls);
-
         // Broadcast that we have new thumbnail data available.
         window.dispatchEvent(new Event("thumbnailsLoaded"));
     };

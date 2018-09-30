@@ -644,22 +644,8 @@ class view_search extends view
             else
             {
                 thumb.src = url;
-
-                // If the aspect ratio is very narrow, don't use any panning, since it becomes too spastic.
-                // If the aspect ratio is portrait, use vertical panning.
-                // If the aspect ratio is landscape, use horizontal panning.
-                //
-                // If it's in between, don't pan at all, since we don't have anywhere to move and it can just
-                // make the thumbnail jitter in place.
-                //
-                // Don't pan muted images.
-                var aspect_ratio = info.width / info.height;
-                var min_aspect_for_pan = 1.1;
-                var max_aspect_for_pan = 4;
-                var vertical_panning = aspect_ratio > (1/max_aspect_for_pan) && aspect_ratio < 1/min_aspect_for_pan;
-                var horizontal_panning = aspect_ratio > min_aspect_for_pan && aspect_ratio < max_aspect_for_pan;
-                helpers.set_class(element, "vertical-panning", vertical_panning);
-                helpers.set_class(element, "horizontal-panning", horizontal_panning);
+                // The search page thumbs are always square (aspect ratio 1).
+                helpers.set_thumbnail_panning_direction(element, info.width, info.height, 1);
             }
 
             // Leave it alone if it's already been loaded.

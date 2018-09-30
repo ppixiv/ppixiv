@@ -13,6 +13,8 @@ class early_controller
         if(window.top != window.self)
             return;
 
+        console.log("ppixiv setup");
+
         // catch_bind isn't available if we're not active, so we use bind here.
         this.dom_content_loaded = this.dom_content_loaded.bind(this);
         window.addEventListener("DOMContentLoaded", this.dom_content_loaded, true);
@@ -40,9 +42,16 @@ class early_controller
         // around them).  Break this by defining a webpackJsonp property that can't be set.  It
         // won't stop the page from running everything, but it keeps it from getting far enough
         // for the weirder scripts to run.
-        Object.defineProperty(unsafeWindow, "webpackJsonp", {
-            set(value) { }
-        });
+        //
+        // Also, some Pixiv pages set an onerror to report errors.  Disable it if it's there,
+        // so it doesn't send errors caused by this script.  Remove _send and _time, which
+        // also send logs.  It might have already been set (TamperMonkey in Chrome doesn't
+        // implement run-at: document-start correctly), so clear it if it's there.
+        for(var key of ["onerror", "_send", "_time", "webpackJsonp"])
+        {
+            unsafeWindow[key] = null;
+            Object.defineProperty(unsafeWindow, key, { define: exportFunction(function(value) { }, unsafeWindow) });
+        }
         
         // Install polyfills.  Make sure we only do this if we're active, so we don't
         // inject polyfills into Pixiv when we're not active.
@@ -106,6 +115,7 @@ class early_controller
 
         // Create the main controller.
         main_controller.create_singleton();
+
     }
 
     // When we're disabled, but available on the current page, add the button to enable us.
@@ -141,13 +151,6 @@ class main_controller
 
     constructor()
     {
-        // Some Pixiv pages set an onerror to report errors.  Disable it if it's there,
-        // so it doesn't send errors caused by this script.  Remove _send and _time, which
-        // also send logs.  Do this early.
-        unsafeWindow.onerror = null;
-        unsafeWindow._send = exportFunction(function() { }, unsafeWindow);
-        unsafeWindow._time = exportFunction(function() { }, unsafeWindow);
-
         this.toggle_thumbnail_view = this.toggle_thumbnail_view.catch_bind(this);
         this.onkeydown = this.onkeydown.catch_bind(this);
         this.window_onclick_capture = this.window_onclick_capture.catch_bind(this);
@@ -242,13 +245,13 @@ class main_controller
         this.context_menu = new main_context_menu(document.body);
         
         // Create the thumbnail view handler.
-        this.thumbnail_view = new view_search(this.container.querySelector(".thumbnail-container"));
+        this.thumbnail_view = new view_search(this.container.querySelector(".view-search-container"));
 
         // Create the manga page viewer.
-        this.manga_view = new view_manga(this.container.querySelector(".manga-view-container"));
+        this.manga_view = new view_manga(this.container.querySelector(".view-manga-container"));
         
         // Create the main UI.
-        this.ui = new view_illust(this, this.container.querySelector(".image-viewer-container"));
+        this.ui = new view_illust(this.container.querySelector(".view-illust-container"));
 
         this.views = {
             search: this.thumbnail_view,
@@ -257,13 +260,11 @@ class main_controller
         };
 
         // Create the data source for this page.
-        this.set_current_data_source(html);
+        this.set_current_data_source(html, "initialization");
     };
 
     window_onpopstate(e)
     {
-        console.log("History state changed.  initialNavigation:", e.navigationCause);
-
         // Set the current data source and state.
         this.set_current_data_source(null, e.navigationCause || "history");
     }
@@ -276,44 +277,39 @@ class main_controller
     // to preload the first page.  On navigation, html is null.  If we navigate to a page that
     // can load the first page from the HTML page, we won't load the HTML and we'll just allow
     // the first page to load like any other page.
-    set_current_data_source(html, cause)
+    async set_current_data_source(html, cause)
     {
-        console.log("Loading data source for", document.location.href);
-        page_manager.singleton().create_data_source_for_url(document.location, html, this.set_enabled_view.catch_bind(this, cause));
-    }
+        var data_source = await page_manager.singleton().create_data_source_for_url(document.location, html);
 
-    show_data_source_specific_elements()
-    {
-        // Show UI elements with this data source in their data-datasource attribute.
-        var data_source_name = this.data_source.name;
-        for(var node of this.container.querySelectorAll(".data-source-specific[data-datasource]"))
-        {
-            var data_sources = node.dataset.datasource.split(" ");
-            var show_element = data_sources.indexOf(data_source_name) != -1;
-            node.hidden = !show_element;
-        }
-    }
-
-    // Set either the image or thumbnail view as active.
-    //
-    // If initial_navigation is true, this is from the user triggering a navigation, eg.
-    // clicking a link.  If it's false, it's from browser history navigation or the initial
-    // load.
-    set_enabled_view(cause, data_source)
-    {
         // Backwards compatibility: if the URL has thumbs=0, remove it and replace it
         // with page=illust.
-        var hash_args = helpers.get_hash_args(document.location);
-        if(hash_args.has("thumbs"))
+        var args = helpers.get_args(document.location);
+        if(args.hash.has("thumbs"))
         {
             console.log("Removing thumbs=0 and replacing with view=illust");
-            hash_args.delete("thumbs");
-            hash_args.set("view", "illust");
-            page_manager.singleton().set_args(null, hash_args, false);
+            args.hash.delete("thumbs");
+            args.hash.set("view", "illust");
+            helpers.set_args(args, false /* add_to_history */);
             return;
         }
         
-        this.set_data_source(data_source);
+        // If the data source is changing, set it.
+        if(this.data_source != data_source)
+        {
+            // If we were showing a message for the old data source, it might be persistent,
+            // so clear it.
+            message_widget.singleton.hide();
+            
+            this.data_source = data_source;
+            this.show_data_source_specific_elements();
+            this.ui.set_data_source(data_source);
+            this.thumbnail_view.set_data_source(data_source);
+            this.context_menu.set_data_source(data_source);
+            
+            // Load the current page for the data source.
+            await this.data_source.load_current_page_async();
+        }
+
         if(data_source == null)
             return;
 
@@ -325,22 +321,27 @@ class main_controller
         else
             new_view = args.hash.get("view");
 
-        if(new_view == "illust")
-        {
-        }
+        var args = helpers.get_args(document.location);
+        var illust_id = data_source.get_current_illust_id();
+        var manga_page = args.hash.has("page")? parseInt(args.hash.get("page")):null;
 
         // if illust_id is set, need the image data to know whether to show manga pages
         // or the illust
-        console.log("Enabling view:", new_view, "Navigation cause:", cause);
+        console.log("Loading data source.  View:", new_view, "Cause:", cause, "URL:", document.location.href);
+        // Get the manga page in this illust to show, if any.
+        console.log("  Show image", illust_id, "page", manga_page);
 
         // Mark the current view.  Other code can watch for this to tell which view is
         // active.
         document.body.dataset.currentView = new_view;
 
-        // If we're going to activate the image view, set the image first.  If we do this
-        // after activating it, it'll start loading any previous image it was pointed at.
+        // Set the image before activating the view.  If we do this after activating it,
+        // it'll start loading any previous image it was pointed at.  Don't do this in
+        // search mode, or we'll start loading the default image.
         if(new_view == "illust")
-            this._show_current_illust();
+            this.ui.show_image(illust_id, manga_page);
+        else if(new_view == "manga")
+            this.manga_view.shown_illust_id = illust_id;
  
         // If we're changing between the image and thumbnail view, update the active view.
         var view_changing = new_view != this.current_view;
@@ -404,85 +405,52 @@ class main_controller
         }
     }
 
-    set_data_source(data_source)
+    show_data_source_specific_elements()
     {
-        if(this.data_source == data_source)
-            return;
-
-        // If we were showing a message for the old data source, it might be persistent,
-        // so clear it.
-        message_widget.singleton.hide();
-        
-        this.data_source = data_source;
-        this.show_data_source_specific_elements();
-        this.ui.set_data_source(data_source);
-        this.thumbnail_view.set_data_source(data_source);
-        this.context_menu.set_data_source(data_source);
-        
-        // Load the current page for the data source.
-        this.data_source.load_current_page(function() {
-            this._show_current_illust();
-        }.bind(this));
+        // Show UI elements with this data source in their data-datasource attribute.
+        var data_source_name = this.data_source.name;
+        for(var node of this.container.querySelectorAll(".data-source-specific[data-datasource]"))
+        {
+            var data_sources = node.dataset.datasource.split(" ");
+            var show_element = data_sources.indexOf(data_source_name) != -1;
+            node.hidden = !show_element;
+        }
     }
 
-    // Show the illust (and page if set) in the URL in the main viewer.  The data source
-    // should already be set.
-    _show_current_illust()
+    // Show an illustration by ID.
+    //
+    // This actually just sets the history URL.  We'll do the rest of the work in popstate.
+    show_illust(illust_id, options)
     {
-        // The data source finished loading, so we know what image to display now.
-        var show_illust_id = this.data_source.get_current_illust_id();
+        if(options == null)
+            options = {};
 
-        // Get the manga page in this illust to show, if any.
-        var hash_args = helpers.get_hash_args(document.location);
-        var page = hash_args.get("page");
-        if(page != null)
-            page = parseInt(page);
+        var manga_page = options.manga_page != null? options.manga_page:null;
+        var add_to_history = options.add_to_history || false;
+        var view = options.view || "illust";
 
-        console.log("  Show image", show_illust_id, "page", page);
-        this.ui.show_image(show_illust_id, page);
-        this.manga_view.shown_illust_id = show_illust_id;
-    }
-
-    show_illust_id(illust_id, add_to_history)
-    {
         // Sanity check:
         if(illust_id == null)
         {
             console.error("Invalid illust_id", illust_id);
             return;
         }
-        console.log("show_illust_id:", illust_id, add_to_history);
 
         // Set the wanted illust_id in the URL, and disable the thumb view so we show
         // the image.  Do this in a single URL update, so we don't add multiple history
         // entries.
-        var query_args = new URL(document.location).searchParams;
-        var hash_args = helpers.get_hash_args(document.location);
+        var args = helpers.get_args(document.location);
 
-        this._set_active_view_in_url(hash_args, "illust");
+        this._set_active_view_in_url(args.hash, view);
+        this.data_source.set_current_illust_id(illust_id, args.query, args.hash);
 
         // Remove any leftover page from the current illust.  We'll load the default.
-        hash_args.delete("page");
+        if(manga_page == null)
+            args.hash.delete("page");
+        else
+            args.hash.set("page", manga_page);
 
-        this.data_source.set_current_illust_id(illust_id, query_args, hash_args);
-        page_manager.singleton().set_args(query_args, hash_args, add_to_history);        
-    }
-
-    show_manga_page(illust_id, page, add_to_history)
-    {
-        var query_args = new URL(document.location).searchParams;
-        var hash_args = helpers.get_hash_args(document.location);
-
-        // Update the URL to show illust_id on page, in illust mode.
-        this._set_active_view_in_url(hash_args, "illust");
-        this.data_source.set_current_illust_id(illust_id, query_args, hash_args);
-        hash_args.set("page", page);
-
-        // Set the URL.
-        var url = new URL(document.location);
-        url.search = query_args.toString();
-        helpers.set_hash_args(url, hash_args);
-        helpers.set_page_url(url, add_to_history);
+        helpers.set_args(args, add_to_history, "show_illust");
     }
 
     // Return the displayed view instance.
@@ -506,12 +474,9 @@ class main_controller
     set_displayed_view_by_name(view, add_to_history, cause)
     {
         // Update the URL to mark whether thumbs are displayed.
-        var hash_args = helpers.get_hash_args(document.location);
-        this._set_active_view_in_url(hash_args, view);
-
-        // Set the URL.  This will dispatch popstate, and we'll handle the state change there.
-        // Update the thumbnail view.
-        page_manager.singleton().set_args(null, hash_args, add_to_history, cause);
+        var args = helpers.get_args(document.location);
+        this._set_active_view_in_url(args.hash, view);
+        helpers.set_args(args, add_to_history, cause);
     }
 
     toggle_thumbnail_view(add_to_history)
@@ -564,17 +529,29 @@ class main_controller
         // If this is a thumbnail link, show the image.
         if(a.dataset.illustId != null)
         {
-            if(a.dataset.pageIdx == null)
+            var args = helpers.get_args(a.href);
+            var page = args.hash.has("page")? parseInt(args.hash.get("page")): null;
+            var view = "illust";
+            if(page == null)
             {
-                this.show_illust_id(a.dataset.illustId, true /* add to history */);
+                // If there's no manga page set on the link, see if we have thumbnail info for the
+                // target image loaded.  If we do, and the image has more than one page, go to the
+                // manga view instead of the illust view.
+                //
+                // This way, clicking thumbs in searches will go to the manga page, since the thumbnail
+                // info is always loaded for those, but mousewheel navigation in an illust always goes
+                // to the illust view and not back to the manga view.
+                var thumb_info = thumbnail_data.singleton().get_one_thumbnail_info(a.dataset.illustId);
+                if(page == null && thumb_info && thumb_info.pageCount > 1)
+                    view = "manga";
             }
-            else
-            {
-                // If this is a manga page link, show the page.
-                var page = parseInt(a.dataset.pageIdx);
-                console.log("Show page", page);
-                this.show_manga_page(a.dataset.illustId, page, true /* add to history */);
-            }
+
+            this.show_illust(a.dataset.illustId, {
+                view: view,
+                manga_page: page,
+                add_to_history: true
+            });
+            
             return;
         }
 

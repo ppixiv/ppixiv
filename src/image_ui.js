@@ -154,10 +154,10 @@ class image_ui
         set_info(".post-info > .post-age", helpers.age_to_string(seconds_old) + " ago");
 
         var info = "";
-        if(this.viewer != null && this.viewer.current_image_width != null)
+        if(this.displayed_width != null)
         {
             // Add the resolution and file type if available.
-            info += this.viewer.current_image_width + "x" + this.viewer.current_image_height;
+            info += this.displayed_width + "x" + this.displayed_height;
         }
         var ext = this.viewer? this.viewer.current_image_type:null;
         if(ext != null)
@@ -165,7 +165,6 @@ class image_ui
 
         set_info(".post-info > .image-info", info);
 
-        // XXX: illust callbacks should be called when ugoiraMetadata becomes available
         var duration = "";
         if(illust_data.illustType == 2)
         {
@@ -216,6 +215,15 @@ class image_ui
             // Set the popup for the thumbnails button based on the label of the data source.
             this.container.querySelector(".show-thumbnails-button").dataset.popup = this._data_source.get_displaying_text();
         }
+    }
+
+    // Set the resolution to display in image info.  If both are null, no resolution
+    // is displayed.
+    set_displayed_resolution(width, height)
+    {
+        this.displayed_width = width;
+        this.displayed_height = height;
+        this.refresh();
     }
 
     // Refresh the list of recent bookmark tags.

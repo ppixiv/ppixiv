@@ -17,15 +17,16 @@ class view_manga extends view
         document.body.appendChild(this.thumbnail_dimensions_style);
     }
 
-    // XXX: don't load manga data while !this.active
     set active(active)
     {
         if(this.active == active)
             return;
-        console.log("manga view:", active);
 
         this._active = active;
         this.container.hidden = !active;
+
+        if(active)
+            this.load_illust_id();
     }
 
     get active()
@@ -46,34 +47,39 @@ class view_manga extends view
         this.illust_id = illust_id;
         this.illust_info = null;
         this.manga_info = null;
-
         this.ui.illust_id = illust_id;
-        
+
         // Refresh even if illust_id is null, so we quickly clear the view.
         this.refresh_images();
         if(this.illust_id == null)
             return;
 
-        console.log("Loading manga view for:", this.illust_id);
-        // Load info about this post.
-        image_data.singleton().get_image_info(this.illust_id, this.got_illust_info.bind(this));
-        image_data.singleton().get_manga_info(this.illust_id, this.got_manga_info.bind(this));
+        if(!this.active)
+            return;
+
+        this.load_illust_id();
     }
 
-    got_illust_info(illust_info)
+    async load_illust_id()
     {
+        if(this.illust_id == null)
+            return;
+        
+        console.log("Loading manga view for:", this.illust_id);
+
+        // Load both image and manga info in parallel.
+        var results = await Promise.all([
+            image_data.singleton().get_image_info_async(this.illust_id),
+            image_data.singleton().get_manga_info_async(this.illust_id),
+        ]);
+
+        var illust_info = results[0];
         if(illust_info.id != this.illust_id)
             return;
-        console.log("XXX1 illust");
-        this.illust_info = illust_info;
-    }
 
-    got_manga_info(manga_info, illust_id)
-    {
-        if(illust_id != this.illust_id)
-            return;
-        console.log("got", illust_id);
-        this.manga_info = manga_info;
+        this.illust_info = results[0];
+        this.manga_info = results[1];
+
         this.refresh_images();
     }
 
@@ -82,36 +88,70 @@ class view_manga extends view
         // Remove all existing entries and collect them.
         var ul = this.container.querySelector("ul.thumbnails");
         helpers.remove_elements(ul);
-//        var original_scroll_top = this.container.scrollTop;
 
         if(this.manga_info == null)
             return;
 
-        /* Given a size to fit thumbs into, find the max width and height.  A lot
-         * of manga posts use the same resolution for all images, so fitting all
-         * images into this will pack most posts cleanly. */
-        var max_width = 1;
-        var max_height = 1;
-        for(var manga_page of this.manga_info)
-        {
-            var width = manga_page.width;
-            var height = manga_page.height;
+        // Get the aspect ratio to crop images to.
+        var ratio = this.get_display_aspect_ratio(this.manga_info);
 
-            var size = this.get_display_resolution(manga_page.width, manga_page.height);
-            max_width = Math.max(max_width, size[0]);
-            max_height = Math.max(max_height, size[1]);
-        }
+        // Figure out the size to use.
+        // XXX: large/small/wide thumb settings
+        var max_width = 400;
+        var max_height = 400;
+        if(ratio < 1)
+            max_width *= ratio;
+        else if(ratio > 1)
+            max_height /= ratio;
 
-        this.thumbnail_dimensions_style.textContent = ".manga-view-container .thumbnail-box { width: " + max_width + "px; max-height: " + max_height + "px; }";
-
+        this.thumbnail_dimensions_style.textContent = ".view-manga-container .thumbnail-link { width: " + max_width + "px; height: " + max_height + "px; }";
 
         for(var page = 0; page < this.manga_info.length; ++page)
         {
             var manga_page = this.manga_info[page];
             
             var entry = this.create_thumb(page, manga_page);
+            var link = entry.querySelector(".thumbnail-link");
+            helpers.set_thumbnail_panning_direction(entry, manga_page.width, manga_page.height, ratio);
+            
             ul.appendChild(entry);
         }
+    }
+
+    // Given a list of manga infos, return the aspect ratio we'll crop them to.
+    get_display_aspect_ratio(manga_info)
+    {
+        // A lot of manga posts use the same resolution for all images, or just have
+        // one or two exceptions for things like title pages.  Try to find a common
+        // aspect ratio across most images, allowing for a couple exceptions.
+        //
+        // First, make a list of aspect ratios, in 0.1 chunks.  XXX: This doesn't deal
+        // with the boundary condition (0.899 is in a different bucket than 0.901).
+        var count_by_aspect_ratio = [];
+        for(var manga_page of manga_info)
+        {
+            var width = manga_page.width;
+            var height = manga_page.height;
+            var ratio = width / height;
+            var snapped_ratio = Math.round(10 * ratio);
+            console.log("ratio", snapped_ratio);
+            if(count_by_aspect_ratio[snapped_ratio] == null)
+                count_by_aspect_ratio[snapped_ratio] = 0;
+            count_by_aspect_ratio[snapped_ratio]++;
+        }
+
+        // If all but a small number of images have roughly the same aspect ratio, use that
+        // that for all thumbs.  If there's more variance than that, just use squares.
+        for(var ratio in count_by_aspect_ratio)
+        {
+            var total_in_ratio = count_by_aspect_ratio[ratio];
+
+            if(total_in_ratio >= this.manga_info.length - 3)
+                return ratio / 10;
+        }
+
+        // We didn't find a common aspect ratio, so just use square thumbs.
+        return 1;
     }
 
     get_display_resolution(width, height)

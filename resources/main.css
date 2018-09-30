@@ -14,7 +14,7 @@ ul {
     padding: 0;
     margin: 0;
 }
-.image-viewer-container {
+.view-illust-container {
     width: 100%;
     height: 100%;
 }
@@ -146,7 +146,7 @@ body.light .hover-message > .message {
     color: #222;
 }
 
-.image-viewer-container .ui {
+.view-illust-container .ui {
     position: absolute;
     top: 0px;
     left: 0px;
@@ -156,10 +156,10 @@ body.light .hover-message > .message {
     height: auto;
     margin: .5em;
 }
-.image-viewer-container .ui-box {
+.view-illust-container .ui-box {
     pointer-events: none;
 }
-.image-viewer-container .ui.disabled {
+.view-illust-container .ui.disabled {
     display: none;
 }
 
@@ -196,15 +196,19 @@ body.light .hover-message > .message {
     position: relative;
 }
 
+.view-manga-container .ui-container {
+    width: 30%;
+}
+
 /* Since the UI isn't a popup on the manga page, hide the description and
  * tag list to make it smaller.  These can be viewed while viewing a page. */
-.manga-view-container .ui-box .description,
-.manga-view-container .ui-box .tag-list
+.view-manga-container .ui-box .description,
+.view-manga-container .ui-box .tag-list
 {
     display: none;
 }
 
-.image-viewer-container .ui-box {
+.view-illust-container .ui-box {
     transition: transform .25s, opacity .25s;
     opacity: 0;
     transform: translate(-50px, 0);
@@ -217,15 +221,15 @@ body.light .ui-box {
 }
 
 /* Debugging: */
-body.force-ui .image-viewer-container .ui > .ui-box {
+body.force-ui .view-illust-container .ui > .ui-box {
     opacity: 1;
     transform: translate(0, 0);
     pointer-events: inherit;
 }
 
 /* Show the UI on hover when hide-ui isn't set. */
-body:not(.hide-ui) .image-viewer-container .ui-box:hover,
-body:not(.hide-ui) .image-viewer-container .hover-box:hover + .ui-box {
+body:not(.hide-ui) .view-illust-container .ui-box:hover,
+body:not(.hide-ui) .view-illust-container .hover-box:hover + .ui-box {
     opacity: 1;
     transform: translate(0, 0);
     pointer-events: auto;
@@ -548,7 +552,7 @@ body.light .bookmark-tag-entry.enabled { background-color: #00c; color: #fff; }
 body.light .bookmark-tag-entry:hover { background-color: #ccc; }
 body.light .bookmark-tag-entry:hover.enabled { background-color: #44a; }
 
-.thumbnail-container {
+.view-search-container {
     position: absolute;
     width: 100%;
     height: 100%;
@@ -561,8 +565,8 @@ body.light .bookmark-tag-entry:hover.enabled { background-color: #44a; }
     color: #fff;
 }
 
-.thumbnail-container .thumbnail-ui,
-.manga-view-container .ui
+.view-search-container .thumbnail-ui,
+.view-manga-container .ui
 {
     /* This places the thumbnail UI at the top, so the thumbnails sit below it when
      * scrolled all the way up, and scroll underneath it. */
@@ -577,7 +581,7 @@ body.light .bookmark-tag-entry:hover.enabled { background-color: #44a; }
     z-index: 1;
 }
 
-.thumbnail-container .thumbnail-ui-box {
+.view-search-container .thumbnail-ui-box {
     width: 50%;
     /* Make sure this doesn't get too narrow, or it'll overlap too much of the thumbnail area. */
     min-width: 800px;
@@ -589,44 +593,44 @@ body.light .bookmark-tag-entry:hover.enabled { background-color: #44a; }
     padding: 10px;
 }
 
-body.light .thumbnail-container .thumbnail-ui-box {
+body.light .view-search-container .thumbnail-ui-box {
     background-color: #ddd;
     color: #444;
     box-shadow: 0 0 15px 10px #fff;
 }
 
 
-.thumbnail-container .thumbnail-ui-box .displaying {
+.view-search-container .thumbnail-ui-box .displaying {
     padding-bottom: 4px;
 }
 
-.thumbnail-container .thumbnail-ui-box .bookmarks-link {
+.view-search-container .thumbnail-ui-box .bookmarks-link {
     display: block;
     fill: #888;
 }
-.thumbnail-container .thumbnail-ui-box .bookmarks-link:hover { fill: #fff; }
-body.light .thumbnail-container .thumbnail-ui-box .bookmarks-link { fill: #666; }
-body.light .thumbnail-container .thumbnail-ui-box .bookmarks-link:hover { fill: #222; }
+.view-search-container .thumbnail-ui-box .bookmarks-link:hover { fill: #fff; }
+body.light .view-search-container .thumbnail-ui-box .bookmarks-link { fill: #666; }
+body.light .view-search-container .thumbnail-ui-box .bookmarks-link:hover { fill: #222; }
 
-.thumbnail-container .thumbnail-ui-box .contact-link {
+.view-search-container .thumbnail-ui-box .contact-link {
     display: block;
     width: 31px;
     height: 31px;
     margin: 0 3px;
     stroke: #888;
 }
-.thumbnail-container .thumbnail-ui-box .contact-link:hover { stroke: #fff; }
-body.light .thumbnail-container .thumbnail-ui-box .contact-link { stroke: #666; }
-body.light .thumbnail-container .thumbnail-ui-box .contact-link:hover { stroke: #222; }
+.view-search-container .thumbnail-ui-box .contact-link:hover { stroke: #fff; }
+body.light .view-search-container .thumbnail-ui-box .contact-link { stroke: #666; }
+body.light .view-search-container .thumbnail-ui-box .contact-link:hover { stroke: #222; }
 
-.thumbnail-container .thumbnail-ui-box .webpage-link {
+.view-search-container .thumbnail-ui-box .webpage-link {
     display: block;
     margin: 0 2px;
     width: 26px;
     height: 26px;
 }
 
-.thumbnail-container .thumbnail-ui-box .twitter-icon {
+.view-search-container .thumbnail-ui-box .twitter-icon {
     display: block;
     width: 32px;
     height: 32px;
@@ -634,42 +638,37 @@ body.light .thumbnail-container .thumbnail-ui-box .contact-link:hover { stroke: 
 }
 
 /* .thumbnails is the actual thumbnail list. */
-.thumbnail-container .thumbnails {
+.view-search-container .thumbnails {
     user-select: none;
     -moz-user-select: none;
     padding: 0;
     text-align: center;
 }
 
-.thumbnail-container ul {
+.view-search-container ul {
     margin: 0;
     margin: 0 auto; /* center */
 }
 
-body:not([data-thumbnail-mode="wide"]) .thumbnail-container ul {
+body:not([data-thumbnail-mode="wide"]) .view-search-container ul {
     max-width: 1200px;
 }
 
-.thumbnail-container li.thumbnail-box {
+li.thumbnail-box {
     display: inline-block;
     padding: 1em;
 }
 /* Hide pending images (they haven't been set up yet). */
-.thumbnail-container li.thumbnail-box[data-pending] {
+li.thumbnail-box[data-pending] {
     visibility: hidden;
 }
-.thumbnail-container li.thumbnail-box .thumbnail-inner {
+li.thumbnail-box .thumbnail-inner {
     position: relative;
 }
 
-.thumbnail-container li.thumbnail-box a.thumbnail-link {
+li.thumbnail-box a.thumbnail-link {
     display: block;
 
-    /* Note that the actual images we get are up to 240x240.  Making this smaller can look
-     * cramped, and also can significantly increase the number of pages we'll load at once
-     * by causing lots of thumbnails to be on screen at once. */
-    width: 200px;
-    height: 200px;
     border-radius: 4px;
     overflow: hidden;
     position: relative;
@@ -677,8 +676,17 @@ body:not([data-thumbnail-mode="wide"]) .thumbnail-container ul {
     color: #fff;
 }
 
-body[data-thumbnail-mode="big"] .thumbnail-container  li.thumbnail-box a.thumbnail-link,
-body[data-thumbnail-mode="wide"] .thumbnail-container li.thumbnail-box a.thumbnail-link {
+/* Set the size of thumbs.  For the manga view, this is set in code. */
+.view-search-container li.thumbnail-box a.thumbnail-link {
+    /* Note that the actual images we get are up to 240x240.  Making this smaller can look
+     * cramped, and also can significantly increase the number of pages we'll load at once
+     * by causing lots of thumbnails to be on screen at once. */
+    width: 200px;
+    height: 200px;
+}
+
+body[data-thumbnail-mode="big"] .view-search-container  li.thumbnail-box a.thumbnail-link,
+body[data-thumbnail-mode="wide"] .view-search-container li.thumbnail-box a.thumbnail-link {
     width: 300px;
     height: 300px;
 }
@@ -713,16 +721,16 @@ body[data-thumbnail-mode="wide"] .thumbnail-container li.thumbnail-box a.thumbna
 }
 
 /* The similar illusts button on top of thumbnails. */
-.thumbnail-container li.thumbnail-box .similar-images-button {
+.view-search-container li.thumbnail-box .similar-images-button {
     display: block;
     width: 32px;
     height: 32px;
     margin-top: -2px;
 }
-.thumbnail-container li.thumbnail-box:not(:hover) .similar-images-button {
+.view-search-container li.thumbnail-box:not(:hover) .similar-images-button {
     visibility: hidden;
 }
-.thumbnail-container li.thumbnail-box .similar-images-button {
+.view-search-container li.thumbnail-box .similar-images-button {
     fill: #FF0 !important; /* override grey-icon hover color */
     opacity: 0.5;
 
@@ -730,36 +738,36 @@ body[data-thumbnail-mode="wide"] .thumbnail-container li.thumbnail-box a.thumbna
      * on light backgrounds. */
     stroke: rgba(0,0,0,0.5);
 }
-.thumbnail-container li.thumbnail-box .similar-images-button:hover {
+.view-search-container li.thumbnail-box .similar-images-button:hover {
     opacity: 1;
     stroke: #000;
 }
 
-.thumbnail-container li.thumbnail-box .thumbnail-bottom-left {
+.view-search-container li.thumbnail-box .thumbnail-bottom-left {
     position: absolute;
     display: flex;
     left: 0px;
     bottom: 0px;
 }
-.thumbnail-container li.thumbnail-box .heart {
+.view-search-container li.thumbnail-box .heart {
     pointer-events: none;
     width: 32px;
     height: 32px;
 }
-.thumbnail-container li.thumbnail-box .heart > svg {
+.view-search-container li.thumbnail-box .heart > svg {
     transition: opacity .5s;
 }
-.thumbnail-container li.thumbnail-box .heart[data-bookmark-type="public"] > svg {
+.view-search-container li.thumbnail-box .heart[data-bookmark-type="public"] > svg {
     fill: #f00; stroke: #000; stroke-width: .5px;
 }
-.thumbnail-container li.thumbnail-box .heart[data-bookmark-type="private"] > svg {
+.view-search-container li.thumbnail-box .heart[data-bookmark-type="private"] > svg {
     fill: #800; stroke: #fff;
 }
 
 .thumbnail-inner:hover .heart > svg {
     opacity: 0.5;
 }
-.thumbnail-container li.thumbnail-box .ugoira-icon {
+.view-search-container li.thumbnail-box .ugoira-icon {
     pointer-events: none;
     width: 32px;
     height: 32px;
@@ -774,7 +782,7 @@ body[data-thumbnail-mode="wide"] .thumbnail-container li.thumbnail-box a.thumbna
     opacity: 0.5;
 }
 
-.thumbnail-container li.thumbnail-box[data-pending] a {
+.view-search-container li.thumbnail-box[data-pending] a {
     /* Don't show a grey box while an image is pending.  It just causes extra
      * flicker. */
 /*    opacity: 0.5;
@@ -812,11 +820,11 @@ body.light .thumbnail-inner > .thumbnail-label > div {
 }
 
 /* Hide the img while it's pending so we don't show a broken image icon. */
-.thumbnail-container li.thumbnail-box[data-pending] a img.thumb {
+li.thumbnail-box[data-pending] a img.thumb {
     display: none;
 }
 
-.thumbnail-container .thumb {
+.thumbnail-box .thumb {
     object-fit: cover;
 
     /* Show the top-center of the thunbnail.  This generally makes more sense
@@ -824,19 +832,16 @@ body.light .thumbnail-inner > .thumbnail-label > div {
     object-position: 50% 0%;    
     width: 100%;
     height: 100%;
+}
 
+/* Be careful not to set any transform: scale if zooming is disabled.  A scale of 1
+ * will cause thumbnails to shift around in Firefox. */
+body:not(.disable-thumbnail-zooming) .view-search-container .thumbnail-box .thumb {
     transition: transform .5s;
-
-    /* Zooming in on hover and zooming out both look interesting.  I'm not sure
-     * which is better. */
     transform: scale(1.25, 1.25);
 }
 
-body.disable-thumbnail-zooming .thumbnail-box .thumbnail-inner .thumb {
-    transform: scale(1, 1);
-}
-
-body:not(.disable-thumbnail-zooming) .thumbnail-box .thumbnail-inner:hover .thumb {
+body:not(.disable-thumbnail-zooming) .view-search-container .thumbnail-box .thumbnail-inner:hover .thumb {
     transform: scale(1, 1);
 }
 
@@ -885,10 +890,10 @@ body:not(.disable-thumbnail-panning) .thumbnail-box.vertical-panning .thumb {
     100% { object-position: 50% 0%; }
 }
 
-.thumbnail-container .thumbnail-box:not(.muted) .muted {
+.view-search-container .thumbnail-box:not(.muted) .muted {
     display: none;
 }
-.thumbnail-container .thumbnail-box .muted {
+.view-search-container .thumbnail-box .muted {
     pointer-events: none;
     left: 0;
     top: 50%;
@@ -903,22 +908,22 @@ body:not(.disable-thumbnail-panning) .thumbnail-box.vertical-panning .thumb {
 /* Zoom muted images in a little, and zoom them out on hover, which is the opposite
  * of other images.  This also helps hide the black bleed around the edge caused by
  * the blur. */
-.thumbnail-container .thumbnail-box.muted .thumb {
+.view-search-container .thumbnail-box.muted .thumb {
     filter: blur(10px);
     transform: scale(1.25, 1.25);
 }
-body:not(.disable-thumbnail-zooming) .thumbnail-container .thumbnail-box.muted .thumb:hover {
+body:not(.disable-thumbnail-zooming) .view-search-container .thumbnail-box.muted .thumb:hover {
     transform: scale(1, 1);
 }
 
 /* Hide the fake thumbnail used to detect when we've scrolled to the bottom.
  * Note that we need to hide something inside the <li>, not the whole entry,
  * or offsetTop will be 0, which breaks get_visible_thumbnails. */
-.thumbnail-container .next-page-placeholder > .thumbnail-inner {
+.view-search-container .next-page-placeholder > .thumbnail-inner {
     display: none !important;
 }
 
-.thumbnail-container .dot img.thumb {
+.view-search-container .dot img.thumb {
     /* This doesn't work as well on thumbnails. */
     /*
     image-rendering: -moz-crisp-edges;
@@ -933,7 +938,7 @@ body:not(.disable-thumbnail-zooming) .thumbnail-container .thumbnail-box.muted .
     }
 }
 
-.thumbnail-container .flash a {
+.view-search-container .flash a {
     animation-name: flash-thumbnail;
     animation-duration: 300ms;
     animation-timing-function: ease-out;
@@ -975,20 +980,20 @@ body.light .box-link.selected {
     background-color: #ffc;
 }
 
-.thumbnail-container .following-tag {
+.view-search-container .following-tag {
     text-decoration: none;
 }
 
-.thumbnail-container .search-options-row {
+.view-search-container .search-options-row {
     display: flex;
     flex-direction: row;
 }
 
-.thumbnail-container .search-options-row .hover-area {
+.view-search-container .search-options-row .hover-area {
     top: -10px;
     height: 150%;
 }
-.thumbnail-container .option-list {
+.view-search-container .option-list {
     display: flex;
     flex-direction: column;
 }
@@ -1018,7 +1023,7 @@ input.search-tags {
     vertical-align: middle;
 }
 
-.thumbnail-container .search-submit-button {
+.view-search-container .search-submit-button {
     display: inline-block;
     margin-left: -30px; /* overlap the input */
     vertical-align: middle;
@@ -1392,44 +1397,41 @@ body.light .thumb-list-cursor
 .popup-context-menu .button-strip .button.button-zoom:not(.selected) > :nth-child(1) { display: none; }
 .popup-context-menu .button-strip .button.button-zoom.selected > :nth-child(2) { display: none; }
 
-.manga-view-container {
+.view-manga-container {
     width: 100%;
     height: 100%;
     overflow-x: hidden;
     overflow-y: scroll;
 }
 
-.manga-view-container > .thumbnails {
+.view-manga-container > .thumbnails {
     width: 100%;
     height: 100%;
     text-align: center;
 }
 
-.manga-view-container li.thumbnail-box {
+.view-manga-container li.thumbnail-box {
     /* The size of .thumbnail-box is set to the dimensions of each thumb, not
      * including padding, so set box-sizing to content-box. */
-    box-sizing: content-box;
+//    box-sizing: content-box;
 }
 /* .thumbnail-inner centers each thumb in the box, and aligns it to the bottom. */
-.manga-view-container li.thumbnail-box > .thumbnail-inner {
+/*
+ * .view-manga-container li.thumbnail-box > .thumbnail-inner {
     display: flex;
     flex-direction: column;
     align-items: center;
     height: 100%;
     width: 100%;
 }
-.manga-view-container li.thumbnail-box a.thumbnail-link {
-    display: block;
-    text-align: center;
-}
 
-.manga-view-container img.thumb {
+.view-manga-container img.thumb {
     border-radius: 4px;
     display: block;
 }
-.manga-view-container li.thumbnail-box {
+.view-manga-container li.thumbnail-box {
     display: inline-block;
     padding: .5em;
     vertical-align: bottom;
 }
-
+*/

@@ -259,7 +259,7 @@ class data_source
     // alphabetically.
     //
     // Due to some quirkiness in data_source_current_illust, this is async.
-    static get_canonical_url(url, callback)
+    static async get_canonical_url(url)
     {
         // Make a copy of the URL.
         var url = new URL(url);
@@ -272,10 +272,7 @@ class data_source
         var new_hash = helpers.sort_query_parameters(helpers.get_hash_args(url));
         helpers.set_hash_args(url, new_hash);        
         
-        var url = url.toString();
-        setTimeout(function() {
-            callback(url);
-        }, 0);
+        return url.toString();
     }
 
     // This is overridden by subclasses to remove parts of the URL that don't affect
@@ -315,6 +312,15 @@ class data_source
     {
         var query_args = this.url.searchParams;
         return parseInt(query_args.get("p")) || 1;
+    }
+
+    async load_page_async(page)
+    {
+        return new Promise(resolve => {
+            this.load_page(page, (result) => {
+                resolve(result);
+            });
+        });
     }
 
     // Load the given page, or the page of the current history state if page is null.
@@ -469,6 +475,15 @@ class data_source
     {
         this.load_page(null, callback);
     };
+
+    async load_current_page_async()
+    {
+        return new Promise(resolve => {
+            this.load_current_page((user_info) => {
+                resolve();
+            });
+        });
+    }
 
     // Return the estimated number of items per page.  This is used to pad the thumbnail
     // list to reduce items moving around when we load pages.
@@ -1494,19 +1509,19 @@ class data_source_current_illust extends data_source_fake_pagination
     //
     // This requires that get_canonical_url be asynchronous, since we might need
     // to load the image info.
-    static get_canonical_url(url, callback)
+    static async get_canonical_url(url, callback)
     {
         var url = new URL(url);
         var illust_id = url.searchParams.get("illust_id");
-        image_data.singleton().get_image_info(illust_id, function(illust_info) {
-            var hash_args = helpers.get_hash_args(url);
-            hash_args.set("user_id", illust_info.userId);
-            helpers.set_hash_args(url, hash_args);
+        var illust_info = await image_data.singleton().get_image_info_async(illust_id);
 
-            url.searchParams.delete("illust_id");
-            
-            data_source.get_canonical_url(url, callback);
-        }.bind(this));
+        var hash_args = helpers.get_hash_args(url);
+        hash_args.set("user_id", illust_info.userId);
+        helpers.set_hash_args(url, hash_args);
+
+        url.searchParams.delete("illust_id");
+        
+        return await data_source.get_canonical_url(url);
     }
 
     // Unlike most data sources, data_source_current_illust puts the illust_id
