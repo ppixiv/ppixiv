@@ -1239,8 +1239,9 @@ var helpers = {
     set_thumbnail_panning_direction(thumb, width, height, container_aspect_ratio)
     {
         var aspect_ratio = width / height;
-        var min_aspect_for_pan = 1.1 * container_aspect_ratio;
-        var max_aspect_for_pan = 4 * container_aspect_ratio;
+        aspect_ratio /= container_aspect_ratio;
+        var min_aspect_for_pan = 1.1;
+        var max_aspect_for_pan = 4;
         var vertical_panning = aspect_ratio > (1/max_aspect_for_pan) && aspect_ratio < 1/min_aspect_for_pan;
         var horizontal_panning = aspect_ratio > min_aspect_for_pan && aspect_ratio < max_aspect_for_pan;
         helpers.set_class(thumb, "vertical-panning", vertical_panning);
