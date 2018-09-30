@@ -365,6 +365,11 @@ class view_illust extends view
         return this.wanted_illust_id;        
     }
 
+    get displayed_illust_page()
+    {
+        return this.wanted_illust_page;
+    }
+
     handle_onkeydown(e)
     {
         // Let the viewer handle the input first.
@@ -459,6 +464,8 @@ class view_illust extends view
         // See if we should change the manga page.
         if(this.current_illust_data != null && this.current_illust_data.pageCount > 1)
         {
+            // XXX this.wanted_illust_page?
+            
             var hash_args = helpers.get_hash_args(document.location);
             var old_page = parseInt(hash_args.get("page") || 0);
             var new_page = old_page + (down? +1:-1);

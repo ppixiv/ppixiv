@@ -175,7 +175,6 @@ class view_search extends view
         // restore it now.  Only do this once.
         if(this.data_source.thumbnail_view_scroll_pos != null)
         {
-        console.log("restore scroll to", this.data_source.thumbnail_view_scroll_pos);
             this.container.scrollTop = this.data_source.thumbnail_view_scroll_pos;
             delete this.data_source.thumbnail_view_scroll_pos;
         }

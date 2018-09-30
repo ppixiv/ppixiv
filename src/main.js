@@ -346,6 +346,7 @@ class main_controller
         var new_view = this.views[new_view_name];
         var old_view = this.views[this.current_view_name];
         var old_illust_id = old_view? old_view.displayed_illust_id:null;
+        var old_illust_page = old_view? old_view.displayed_illust_page:null;
 
         // If we're changing between the image and thumbnail view, update the active view.
         var view_changing = new_view != old_view;
@@ -373,40 +374,38 @@ class main_controller
         var navigating_forwards = new_history_index > this.current_history_index;
         this.current_history_index = new_history_index;
 
-        if(new_view_name == "search")
+        // Handle scrolling for the new state.
+        //
+        // We could do this better with history.state (storing each state's scroll position would
+        // allow it to restore across browser sessions, and if the same data source is multiple
+        // places in history).  Unfortunately there's no way to update history.state without
+        // calling history.replaceState, which is slow and causes jitter.  history.state being
+        // read-only is a design bug in the history API.
+        if(cause == "navigation")
         {
-            // Handle scrolling for the new state.
-            //
-            // We could do this better with history.state (storing each state's scroll position would
-            // allow it to restore across browser sessions, and if the same data source is multiple
-            // places in history).  Unfortunately there's no way to update history.state without
-            // calling history.replaceState, which is slow and causes jitter.  history.state being
-            // read-only is a design bug in the history API.
-            if(cause == "navigation")
-            {
-                // If this is an initial navigation, eg. from a user clicking a link to a search, always
-                // scroll to the top.  If this data source exists previously in history, we don't want to
-                // restore the scroll position from back then.
-                console.log("Scroll to top for new search");
-                this.thumbnail_view.scroll_to_top();
-            }
-            else if(navigating_forwards)
-            {
-                // On browser history forwards, try to restore the scroll position.
-                console.log("Restore scroll position for forwards navigation");
-                this.thumbnail_view.restore_scroll_position();
-            }
-            else if(view_changing && old_illust_id != null)
-            {
-                // If we're navigating backwards or toggling, and we're switching from the image UI to thumbnails,
-                // try to scroll the thumbnail view to the image that was displayed.  Otherwise, tell
-                // the thumbnail view to restore any scroll position saved in the data source.
-                this.thumbnail_view.scroll_to_illust_id(old_illust_id);
-            }
-            else
-            {
-                this.thumbnail_view.restore_scroll_position();
-            }
+            // If this is an initial navigation, eg. from a user clicking a link to a search, always
+            // scroll to the top.  If this data source exists previously in history, we don't want to
+            // restore the scroll position from back then.
+            console.log("Scroll to top for new search");
+            new_view.scroll_to_top();
+        }
+        else if(navigating_forwards)
+        {
+            // On browser history forwards, try to restore the scroll position.
+            console.log("Restore scroll position for forwards navigation");
+            new_view.restore_scroll_position();
+        }
+        else if(view_changing && old_illust_id != null)
+        {
+            // If we're navigating backwards or toggling, and we're switching from the image UI to thumbnails,
+            // try to scroll the thumbnail view to the image that was displayed.  Otherwise, tell
+            // the thumbnail view to restore any scroll position saved in the data source.
+            console.log("Scroll to", old_illust_id, old_illust_page);
+            new_view.scroll_to_illust_id(old_illust_id, old_illust_page);
+        }
+        else
+        {
+            new_view.restore_scroll_position();
         }
     }
 
@@ -455,7 +454,7 @@ class main_controller
         else
             args.hash.set("page", manga_page);
 
-        helpers.set_args(args, add_to_history, "show_illust");
+        helpers.set_args(args, add_to_history, "navigation");
     }
 
     // Return the displayed view instance.

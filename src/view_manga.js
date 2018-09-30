@@ -12,6 +12,7 @@ class view_manga extends view
         this.refresh_ui = this.refresh_ui.bind(this);
 
         this.ui = new image_ui(this.container.querySelector(".ui-container"), this.progress_bar);
+        this.scroll_positions_by_illust_id = {};
         
         image_data.singleton().user_modified_callbacks.register(this.refresh_ui);
         image_data.singleton().illust_modified_callbacks.register(this.refresh_ui);
@@ -27,6 +28,17 @@ class view_manga extends view
             return;
 
         this._active = active;
+
+        if(!active)
+        {
+            // Save the old scroll position.
+            if(this.illust_id != null)
+            {
+                console.log("save scroll position for", this.illust_id, this.container.scrollTop);
+                this.scroll_positions_by_illust_id[this.illust_id] = this.container.scrollTop;
+            }
+        }
+
         this.container.hidden = !active;
 
         if(active)
@@ -101,6 +113,8 @@ class view_manga extends view
 
     refresh_images()
     {
+        var original_scroll_top = this.container.scrollTop;
+
         // Remove all existing entries and collect them.
         var ul = this.container.querySelector("ul.thumbnails");
         helpers.remove_elements(ul);
@@ -132,6 +146,11 @@ class view_manga extends view
             
             ul.appendChild(entry);
         }
+        
+        // Restore the value of scrollTop from before we updated.  For some reason, Firefox
+        // modifies scrollTop after we add a bunch of items, which causes us to scroll to
+        // the wrong position, even though scrollRestoration is disabled.
+        this.container.scrollTop = original_scroll_top;
     }
 
     // Given a list of manga infos, return the aspect ratio we'll crop them to.
@@ -214,5 +233,45 @@ class view_manga extends view
         return element;
     }
 
+    scroll_to_top()
+    {
+        // Read offsetHeight to force layout to happen.  If we don't do this, setting scrollTop
+        // sometimes has no effect in Firefox.
+        this.container.offsetHeight;
+        this.container.scrollTop = 0;
+        console.log("scroll to top", this.container.scrollTop, this.container.hidden, this.container.offsetHeight);
+    }
+
+    restore_scroll_position()
+    {
+        // If we saved a scroll position when navigating away from a data source earlier,
+        // restore it now.  Only do this once.
+        var scroll_pos = this.scroll_positions_by_illust_id[this.illust_id];
+        if(scroll_pos != null)
+        {
+            console.log("scroll pos:", scroll_pos);
+            this.container.scrollTop = scroll_pos;
+            delete this.scroll_positions_by_illust_id[this.illust_id];
+        }
+        else
+            this.scroll_to_top();
+    }
+
+    scroll_to_illust_id(illust_id, manga_page)
+    {
+        if(manga_page == null)
+            return;
+
+        var thumb = this.container.querySelector('[data-page-idx="' + manga_page + '"]');
+        if(thumb == null)
+            return;
+
+        console.log("Scrolling to", thumb);
+
+        // If the item isn't visible, center it.
+        var scroll_pos = this.container.scrollTop;
+        if(thumb.offsetTop < scroll_pos || thumb.offsetTop + thumb.offsetHeight > scroll_pos + this.container.offsetHeight)
+            this.container.scrollTop = thumb.offsetTop + thumb.offsetHeight/2 - this.container.offsetHeight/2;
+    }
 }
 

@@ -11,5 +11,17 @@ class view
     {
         return null;
     }
+
+    // If this view is displaying a manga page, return its ID.  Otherwise, return null.
+    // If this is non-null, displayed_illust_id will always also be non-null.
+    get displayed_illust_page()
+    {
+        return null;
+    }
+
+    // These are called to restore the scroll position on navigation.
+    scroll_to_top() { }
+    restore_scroll_position() { }
+    scroll_to_illust_id(illust_id, manga_page) { }
 }
 
