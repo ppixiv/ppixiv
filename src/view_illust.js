@@ -338,24 +338,13 @@ class view_illust extends view
 
         // If we're not showing an image yet, hide the UI and don't try to update it.
         helpers.set_class(this.container.querySelector(".ui"), "disabled", illust_id == -1);
+
+        helpers.set_title_and_icon(this.current_illust_data);
+
         if(illust_id == -1)
-        {
-            helpers.set_page_title("Loading...");
             return;
-        }
 
         this.ui.refresh();
-
-        var illust_data = this.current_illust_data;
-        var user_data = illust_data.userInfo;
-
-        var page_title = "";
-        if(illust_data.bookmarkData)
-            page_title += "★";
-        page_title += user_data.name + " - " + illust_data.illustTitle;
-        helpers.set_page_title(page_title);
-
-        helpers.set_page_icon(user_data.isFollowed? binary_data['favorited_icon.png']:binary_data['regular_pixiv_icon.png']);
     }
 
     onwheel(e)

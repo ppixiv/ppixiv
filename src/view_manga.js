@@ -9,9 +9,13 @@ class view_manga extends view
         super();
 
         this.container = container;
+        this.refresh_ui = this.refresh_ui.bind(this);
 
         this.ui = new image_ui(this.container.querySelector(".ui-container"), this.progress_bar);
         
+        image_data.singleton().user_modified_callbacks.register(this.refresh_ui);
+        image_data.singleton().illust_modified_callbacks.register(this.refresh_ui);
+
         // Create a style for our thumbnail style.
         this.thumbnail_dimensions_style = document.createElement("style");
         document.body.appendChild(this.thumbnail_dimensions_style);
@@ -50,7 +54,7 @@ class view_manga extends view
         this.ui.illust_id = illust_id;
 
         // Refresh even if illust_id is null, so we quickly clear the view.
-        this.refresh_images();
+        this.refresh_ui();
         if(this.illust_id == null)
             return;
 
@@ -80,6 +84,13 @@ class view_manga extends view
         this.illust_info = results[0];
         this.manga_info = results[1];
 
+        this.refresh_ui();
+    }
+
+    refresh_ui()
+    {
+        helpers.set_title_and_icon(this.illust_info);
+        
         this.refresh_images();
     }
 

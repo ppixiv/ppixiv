@@ -1246,6 +1246,24 @@ var helpers = {
         helpers.set_class(thumb, "vertical-panning", vertical_panning);
         helpers.set_class(thumb, "horizontal-panning", horizontal_panning);
     },
+
+    set_title_and_icon(illust_data)
+    {
+        var user_data = illust_data? illust_data.userInfo:null;
+        helpers.set_page_icon(user_data && user_data.isFollowed? binary_data['favorited_icon.png']:binary_data['regular_pixiv_icon.png']);
+        if(illust_data == null)
+        {
+            helpers.set_page_title("Loading...");
+            return;
+        }
+
+        var page_title = "";
+        if(illust_data.bookmarkData)
+            page_title += "★";
+
+        page_title += user_data.name + " - " + illust_data.illustTitle;
+        helpers.set_page_title(page_title);
+    },
 };
 
 // Handle maintaining and calling a list of callbacks.
