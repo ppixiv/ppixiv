@@ -134,7 +134,6 @@ class view_manga extends view
             var height = manga_page.height;
             var ratio = width / height;
             var snapped_ratio = Math.round(10 * ratio);
-            console.log("ratio", snapped_ratio);
             if(count_by_aspect_ratio[snapped_ratio] == null)
                 count_by_aspect_ratio[snapped_ratio] = 0;
             count_by_aspect_ratio[snapped_ratio]++;

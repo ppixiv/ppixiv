@@ -526,26 +526,14 @@ class main_controller
         if(open_popup != null)
             open_popup.classList.remove("popup-visible");
 
-        // If this is a thumbnail link, show the image.
+        // Search links to images always go to the member_illust page, but if they're
+        // clicked in-page we want to stay on the same search and just show the image,
+        // so handle them directly.
         if(a.dataset.illustId != null)
         {
             var args = helpers.get_args(a.href);
             var page = args.hash.has("page")? parseInt(args.hash.get("page")): null;
-            var view = "illust";
-            if(page == null)
-            {
-                // If there's no manga page set on the link, see if we have thumbnail info for the
-                // target image loaded.  If we do, and the image has more than one page, go to the
-                // manga view instead of the illust view.
-                //
-                // This way, clicking thumbs in searches will go to the manga page, since the thumbnail
-                // info is always loaded for those, but mousewheel navigation in an illust always goes
-                // to the illust view and not back to the manga view.
-                var thumb_info = thumbnail_data.singleton().get_one_thumbnail_info(a.dataset.illustId);
-                if(page == null && thumb_info && thumb_info.pageCount > 1)
-                    view = "manga";
-            }
-
+            var view = args.hash.has("view")? args.hash.get("view"):"illust";
             this.show_illust(a.dataset.illustId, {
                 view: view,
                 manga_page: page,

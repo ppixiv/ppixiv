@@ -644,6 +644,7 @@ class view_search extends view
             else
             {
                 thumb.src = url;
+
                 // The search page thumbs are always square (aspect ratio 1).
                 helpers.set_thumbnail_panning_direction(element, info.width, info.height, 1);
             }
@@ -661,6 +662,9 @@ class view_search extends view
             // navigation, and the href will allow middle click, etc. to work normally.
             var link = element.querySelector("a.thumbnail-link");
             link.href = "/member_illust.php?mode=medium&illust_id=" + illust_id + "#ppixiv";
+            if(info.pageCount > 1)
+                link.href += "?view=manga";
+
             link.dataset.illustId = illust_id;
 
             if(info.illustType == 2)
