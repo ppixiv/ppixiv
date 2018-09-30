@@ -503,7 +503,7 @@ class main_controller
         if(e.button != 0)
             return;
 
-        if(!(e.target instanceof HTMLElement))
+        if(!(e.target instanceof Element))
             return;
 
         // Look up from the target for a link.
