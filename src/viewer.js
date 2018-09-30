@@ -30,6 +30,7 @@ class viewer
     //
     // This is only used with the illust viewer when changing manga pages in cases
     // where we don't want the old image to be displayed while the new one loads.
-    stop_displaying_image() { }
+    set hide_image(value) { }
+    get hide_image() { return false; }
 }
 

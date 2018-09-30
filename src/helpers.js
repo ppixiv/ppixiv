@@ -1184,6 +1184,18 @@ var helpers = {
     {
         return Math.min(Math.max(value, min), max);
     },
+
+    // If image.decode is available, asynchronously decode url.
+    decode_image(url)
+    {
+        if(HTMLImageElement.prototype.decode == null)
+            return;
+        
+        var img = document.createElement("img");
+        img.src = url;
+
+        img.decode().then(() => { }).catch((e) => { });
+    },
 };
 
 // Handle maintaining and calling a list of callbacks.

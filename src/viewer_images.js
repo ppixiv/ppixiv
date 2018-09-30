@@ -11,8 +11,9 @@ class viewer_images extends viewer
         this.progress_bar = options.progress_bar;
         this.manga_page_bar = options.manga_page_bar;
         this.img_onload = this.img_onload.bind(this);
-        
         this.onkeydown = this.onkeydown.bind(this);
+
+        this.blank_image = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
 
         this.index = options.manga_page || 0;
 
@@ -104,7 +105,23 @@ class viewer_images extends viewer
         if(this.options.page_changed == null)
             return;
 
+        if(this.index == null)
+            return;
+
         this.options.page_changed(this.index, this.images.length, this.img.src);
+    }
+
+    // Remove the image.  Set this.index to show it again.
+    set hide_image(value)
+    {
+        if(value)
+            this.img.src = this.blank_image;
+        else
+            this.refresh();
+    }
+    get hide_image()
+    {
+        return this.img.src == this.blank_image;
     }
 
     refresh()
@@ -118,6 +135,12 @@ class viewer_images extends viewer
 
         this.call_on_page_changed();
 
+        // Decode the next and previous image.  This reduces flicker when changing pages
+        // since the image will already be decoded.
+        if(this.index > 0)
+            helpers.decode_image(this.images[this.index - 1]);
+        if(this.index + 1 < this.images.length)
+            helpers.decode_image(this.images[this.index + 1]);
 
 /*        if(this.progress_bar)
         {

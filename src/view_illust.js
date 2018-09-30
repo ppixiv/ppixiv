@@ -101,7 +101,7 @@ class view_illust extends view
         this.wanted_illust_page = wanted_page;
 
         // If this image is already loaded, stop.
-        if(illust_id == this.current_illust_id && this.wanted_illust_page == this.viewer.page)
+        if(illust_id == this.current_illust_id && this.wanted_illust_page == this.viewer.page && !this.viewer.hide_image)
         {
             console.log("illust_id", illust_id, "page", this.wanted_illust_page, "already displayed");
             return;
@@ -309,20 +309,18 @@ class view_illust extends view
 
             // Remove any image we're displaying, so if we show another image later, we
             // won't show the previous image while the new one's data loads.
-            this.stop_displaying_image();
+            if(this.viewer != null)
+                this.viewer.hide_image = true;
             
             return;
         }
 
         // If show_image was called while we were inactive, load it now.
-        if(this.wanted_illust_id != this.current_illust_id || this.wanted_illust_page != this.viewer.page)
+        if(this.wanted_illust_id != this.current_illust_id || this.wanted_illust_page != this.viewer.page || this.viewer.hide_image)
         {
+            // Show the image.
             console.log("Showing illust_id", this.wanted_illust_id, "that was set while hidden");
-            var wanted_illust_id = this.wanted_illust_id;
-            var wanted_page = this.wanted_illust_page;
-
-            // Show the image.  (this.wanted_illust_id was cleared by stop_displaying_image.)
-            this.show_image(wanted_illust_id, wanted_page);
+            this.show_image(this.wanted_illust_id, this.wanted_illust_page);
         }
         
         // If we're becoming active, refresh the UI, since we don't do that while we're inactive.
