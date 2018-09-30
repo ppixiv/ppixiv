@@ -226,7 +226,6 @@ class viewer_ugoira extends viewer
         if(this.player == null)
             return;
 
-        console.log("focus xxx", this._hidden);
         var active = this.want_playing && !this.seeking && !window.document.hidden && !this._hidden;
         if(active)
             this.player.play(); 
