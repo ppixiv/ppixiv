@@ -468,17 +468,16 @@ class view_illust extends view
 
         this.cancel_async_navigation();
 
-        // Let the viewer handle the input first.
+        // See if we should change the manga page.
         if(this.current_illust_data != null && this.current_illust_data.pageCount > 1)
         {
             var hash_args = helpers.get_hash_args(document.location);
-            var page = parseInt(hash_args.get("page") || 0);
-            page += down? +1:-1;
-
-            page = Math.max(0, Math.min(this.current_illust_data.pageCount - 1, page));
-            if(page != this.viewer.index)
+            var old_page = parseInt(hash_args.get("page") || 0);
+            var new_page = old_page + (down? +1:-1);
+            new_page = Math.max(0, Math.min(this.current_illust_data.pageCount - 1, new_page));
+            if(new_page != old_page)
             {
-                this.main.show_manga_page(this.current_illust_id, page, false /* don't add to history */);
+                this.main.show_manga_page(this.current_illust_id, new_page, false /* don't add to history */);
                 return;
             }
         }

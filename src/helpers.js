@@ -1077,6 +1077,15 @@ var helpers = {
             url.hash += "?" + hash_string;
     },
 
+    get_args: function(url)
+    {
+        return {
+            path: url.pathname,
+            query: url.searchParams,
+            hash: helpers.get_hash_args(url),
+        }
+    },
+
     // Given a URLSearchParams, return a new URLSearchParams with keys sorted alphabetically.
     sort_query_parameters(search)
     {
@@ -1125,7 +1134,16 @@ var helpers = {
         else
             history.replaceState(history_data, "", url.toString());
 
-        console.error("Set URL to", document.location.toString());
+        // Chrome is broken.  After replacing state for a while, it starts logging
+        //
+        // "Throttling history state changes to prevent the browser from hanging."
+        //
+        // This is completely broken: it triggers with state changes no faster than the
+        // user can move the mousewheel (much too sensitive), and it happens on replaceState
+        // and not just pushState (which you should be able to call as fast as you want).
+        //
+        // People don't think things through.
+        console.error("Set URL to", document.location.toString(), add_to_history);
 
         if(document.location.toString() != old_url)
         {

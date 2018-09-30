@@ -7,8 +7,10 @@ class image_ui
         this.refresh_bookmark_tag_highlights = this.refresh_bookmark_tag_highlights.bind(this);
         this.clicked_bookmark_tag_selector = this.clicked_bookmark_tag_selector.bind(this);
         this.clicked_bookmark = this.clicked_bookmark.bind(this);
+        this.clicked_like = this.clicked_like.bind(this);
         this.clicked_download = this.clicked_download.bind(this);
         this.toggle_auto_like = this.toggle_auto_like.bind(this);
+        this.refresh = this.refresh.bind(this);
 
         this.container = container;
         this.progress_bar = progress_bar;
@@ -26,6 +28,8 @@ class image_ui
 
         // Set up hover popups.
         helpers.setup_popups(this.container, [".image-settings-menu-box"]);
+        
+        image_data.singleton().illust_modified_callbacks.register(this.refresh);
         
         // Show the bookmark UI when hovering over the bookmark icon.
         this.bookmark_popup = this.container.querySelector(".bookmark-button");
@@ -72,6 +76,7 @@ class image_ui
     
     shutdown()
     {
+        image_data.singleton().illust_modified_callbacks.unregister(this.refresh);
         this.avatar_widget.shutdown();
         this.element_bookmark_tag_list.removeEventListener("input", this.refresh_bookmark_tag_highlights);
 
@@ -118,7 +123,6 @@ class image_ui
         var illust_id = illust_data.illustId;
         var user_data = illust_data.userInfo;
         
-        console.log("refresh ui");
         // Show the author if it's someone else's post, or the edit link if it's ours.
         var our_post = global_data.user_id == user_data.userId;
         this.container.querySelector(".author-block").hidden = our_post;
@@ -294,12 +298,10 @@ class image_ui
 
     clicked_bookmark(private_bookmark, e)
     {
-        console.log("XXXXX");
         e.preventDefault();
         e.stopPropagation();
 
-        var illust_data = this.illust_data;
-        if(illust_data.bookmarkData)
+        if(this.illust_data.bookmarkData)
         {
             // The illustration is already bookmarked, so remove the bookmark.
             actions.bookmark_remove(this.illust_data);
@@ -307,14 +309,7 @@ class image_ui
         }
 
         // Add a new bookmark.
-   
-    // XXX
-        var illust_id = this.current_illust_id;
-        var illust_data = this.illust_data;
-
-        try {
-        actions.bookmark_add(illust_data, private_bookmark, this.tag_list);
-        } catch(e) { console.error(e); }
+        actions.bookmark_add(this.illust_data, private_bookmark, this.tag_list);
         
         // Clear the tag list after saving a bookmark.  Otherwise, it's too easy to set a tag for one
         // image, then forget to unset it later.

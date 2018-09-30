@@ -10,6 +10,8 @@ class view_manga extends view
 
         this.container = container;
 
+        this.ui = new image_ui(this.container.querySelector(".ui-container"), this.progress_bar);
+        
         // Create a style for our thumbnail style.
         this.thumbnail_dimensions_style = document.createElement("style");
         document.body.appendChild(this.thumbnail_dimensions_style);
@@ -45,6 +47,8 @@ class view_manga extends view
         this.illust_info = null;
         this.manga_info = null;
 
+        this.ui.illust_id = illust_id;
+        
         // Refresh even if illust_id is null, so we quickly clear the view.
         this.refresh_images();
         if(this.illust_id == null)

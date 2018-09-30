@@ -146,7 +146,7 @@ body.light .hover-message > .message {
     color: #222;
 }
 
-.ui {
+.image-viewer-container .ui {
     position: absolute;
     top: 0px;
     left: 0px;
@@ -155,10 +155,11 @@ body.light .hover-message > .message {
     width: 30%;
     height: auto;
     margin: .5em;
+}
+.image-viewer-container .ui-box {
     pointer-events: none;
 }
-
-.ui.disabled {
+.image-viewer-container .ui.disabled {
     display: none;
 }
 
@@ -192,6 +193,18 @@ body.light .hover-message > .message {
     padding: 1em;
     color: #EEE;
     border-radius: 8px;
+    position: relative;
+}
+
+/* Since the UI isn't a popup on the manga page, hide the description and
+ * tag list to make it smaller.  These can be viewed while viewing a page. */
+.manga-view-container .ui-box .description,
+.manga-view-container .ui-box .tag-list
+{
+    display: none;
+}
+
+.image-viewer-container .ui-box {
     transition: transform .25s, opacity .25s;
     opacity: 0;
     transform: translate(-50px, 0);
@@ -204,15 +217,15 @@ body.light .ui-box {
 }
 
 /* Debugging: */
-body.force-ui .ui > .ui-box {
+body.force-ui .image-viewer-container .ui > .ui-box {
     opacity: 1;
     transform: translate(0, 0);
     pointer-events: inherit;
 }
 
-/* Show the UI on hover when hide-ui isn\'t set. */
-body:not(.hide-ui) .ui-box:hover,
-body:not(.hide-ui) .hover-box:hover + .ui-box {
+/* Show the UI on hover when hide-ui isn't set. */
+body:not(.hide-ui) .image-viewer-container .ui-box:hover,
+body:not(.hide-ui) .image-viewer-container .hover-box:hover + .ui-box {
     opacity: 1;
     transform: translate(0, 0);
     pointer-events: auto;
@@ -548,7 +561,9 @@ body.light .bookmark-tag-entry:hover.enabled { background-color: #44a; }
     color: #fff;
 }
 
-.thumbnail-container .thumbnail-ui {
+.thumbnail-container .thumbnail-ui,
+.manga-view-container .ui
+{
     /* This places the thumbnail UI at the top, so the thumbnails sit below it when
      * scrolled all the way up, and scroll underneath it. */
     position: sticky;

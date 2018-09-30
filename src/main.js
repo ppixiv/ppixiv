@@ -317,7 +317,20 @@ class main_controller
         if(data_source == null)
             return;
 
-        var new_view = this.get_displayed_view_name;
+        // Figure out which view to display.
+        var new_view;
+        var args = helpers.get_args(document.location);
+        if(!args.hash.has("view"))
+            new_view = this.data_source.default_view;
+        else
+            new_view = args.hash.get("view");
+
+        if(new_view == "illust")
+        {
+        }
+
+        // if illust_id is set, need the image data to know whether to show manga pages
+        // or the illust
         console.log("Enabling view:", new_view, "Navigation cause:", cause);
 
         // Mark the current view.  Other code can watch for this to tell which view is
@@ -339,7 +352,6 @@ class main_controller
             {
                 var view = this.views[view_name];
                 view.active = new_view == view_name;
-                console.log(view_name);
             }
        
             // Dismiss any message when toggling between views.
@@ -473,26 +485,17 @@ class main_controller
         helpers.set_page_url(url, add_to_history);
     }
 
-    // Return the name of the currently active view.
-    get get_displayed_view_name()
-    {
-        // If thumbs is set in the hash, it's whether we're enabled.  Otherwise, use
-        // the data source's default.
-        var hash_args = helpers.get_hash_args(document.location);
-        if(!hash_args.has("view"))
-            return this.data_source.default_view;
-        else
-            return hash_args.get("view");
-    }
-
     // Return the displayed view instance.
     get displayed_view()
     {
-        var view_name = this.get_displayed_view_name;
-        if(!(view_name in this.views))
-            throw "Unknown view name " + view_name;
+        for(var view_name in this.views)
+        {
+            var view = this.views[view_name];
+            if(view.active)
+                return view;
+        }        
 
-        return this.views[view_name];
+        throw "No view is active";
     }
 
     _set_active_view_in_url(hash_args, view)
@@ -513,7 +516,9 @@ class main_controller
 
     toggle_thumbnail_view(add_to_history)
     {
-        var enabled = this.get_displayed_view_name == "search";
+        var old_view = this.displayed_view;
+
+        var enabled = old_view == this.views.search;
         console.log("enabled:", enabled);
         enabled = !enabled;
         this.set_displayed_view_by_name(enabled? "search":"illust", add_to_history, "toggle");
