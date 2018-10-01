@@ -353,6 +353,9 @@ class thumbnail_data
             else
                 throw "Unrecognized source: " + source;
 
+            // Different APIs return different thumbnail URLs.
+            remapped_thumb_info.url = remapped_thumb_info.url.replace(/\/240x240\//, "/540x540_70/");
+            
             thumb_info = remapped_thumb_info;
 
             // Store the data.
