@@ -83,17 +83,16 @@ class view_illust extends view
         // the previous image from the one we were already showing, start at the end instead
         // of the beginning, so we'll start at the end when browsing backwards.
         var show_last_page = false;
-        var wanted_page = manga_page;
-        if(this.active && wanted_page == null)
+        if(this.active && manga_page == null)
         {
             var next_illust_id = this.data_source.id_list.get_neighboring_illust_id(illust_id, true);
             show_last_page = (next_illust_id == this.wanted_illust_id);
-            wanted_page = show_last_page? -1:0;
+            manga_page = show_last_page? -1:0;
         }
         
         // Remember that this is the image we want to be displaying.
         this.wanted_illust_id = illust_id;
-        this.wanted_illust_page = wanted_page;
+        this.wanted_illust_page = manga_page;
 
         // If this image is already loaded, just make sure it's not hidden.
         if(illust_id == this.current_illust_id && this.wanted_illust_page == this.viewer.page && !this.viewer.hide_image)
@@ -122,15 +121,27 @@ class view_illust extends view
             return;
         }
 
-        console.log("Showing image", illust_id);
-        if(this.wanted_illust_page == -1)
+        // If manga_page is -1, we didn't know the page count when we did the navigation
+        // and we want the last page.  Otherwise, just make sure the page is in range.
+        if(manga_page == -1)
+            manga_page = illust_data.pageCount - 1;
+        else
+            manga_page = helpers.clamp(manga_page, 0, illust_data.pageCount-1);
+
+        console.log("Showing image", illust_id, "page", manga_page);
+
+        // If we adjusted the page, update the URL.  For single-page posts, there should be
+        // no page field.
+        var args = helpers.get_args(document.location);
+        var wanted_page_arg = illust_data.pageCount > 1? (manga_page + 1).toString():null;
+        if(args.hash.get("page") != wanted_page_arg)
         {
-            // We're navigating to the last page, but we didn't know the page count when we
-            // did the navigation.  Update the URL to contain the page number now that we have
-            // it.
-            var args = helpers.get_args(document.location);
-            args.hash.set("page", illust_data.pageCount-1);
-            console.log("Updating URL with page number", illust_data.pageCount);
+            if(wanted_page_arg != null)
+                args.hash.set("page", wanted_page_arg);
+            else
+                args.hash.delete("page");
+
+            console.log("Updating URL with page number:", args.hash.toString());
             helpers.set_args(args, false /* add_to_history */);
         }
 
@@ -294,6 +305,7 @@ class view_illust extends view
 
         if(!active)
         {
+            console.log("Hide illust,", this.viewer != null);
             this.cancel_async_navigation();
 
             // Remove any image we're displaying, so if we show another image later, we
@@ -464,10 +476,8 @@ class view_illust extends view
         // See if we should change the manga page.
         if(this.current_illust_data != null && this.current_illust_data.pageCount > 1)
         {
-            // XXX this.wanted_illust_page?
-            
-            var hash_args = helpers.get_hash_args(document.location);
-            var old_page = parseInt(hash_args.get("page") || 0);
+            var old_page = this.wanted_illust_page;
+            console.log("navigate", down, "from", old_page);
             var new_page = old_page + (down? +1:-1);
             new_page = Math.max(0, Math.min(this.current_illust_data.pageCount - 1, new_page));
             if(new_page != old_page)

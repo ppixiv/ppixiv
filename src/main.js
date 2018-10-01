@@ -324,7 +324,7 @@ class main_controller
 
         var args = helpers.get_args(document.location);
         var illust_id = data_source.get_current_illust_id();
-        var manga_page = args.hash.has("page")? parseInt(args.hash.get("page")):null;
+        var manga_page = args.hash.has("page")? parseInt(args.hash.get("page"))-1:null;
 
         // if illust_id is set, need the image data to know whether to show manga pages
         // or the illust
@@ -454,7 +454,7 @@ class main_controller
         if(manga_page == null)
             args.hash.delete("page");
         else
-            args.hash.set("page", manga_page);
+            args.hash.set("page", manga_page + 1);
 
         helpers.set_args(args, add_to_history, "navigation");
     }
@@ -574,7 +574,7 @@ class main_controller
         if(a.dataset.illustId != null)
         {
             var args = helpers.get_args(a.href);
-            var page = args.hash.has("page")? parseInt(args.hash.get("page")): null;
+            var page = args.hash.has("page")? parseInt(args.hash.get("page"))-1: null;
             var view = args.hash.has("view")? args.hash.get("view"):"illust";
             this.show_illust(a.dataset.illustId, {
                 view: view,
@@ -616,6 +616,11 @@ class main_controller
 
     onkeydown(e)
     {
+        // Ignore keypresses if we haven't set up the view yet.
+        var view = this.displayed_view;
+        if(view == null)
+            return;
+
         if(e.keyCode == 27) // escape
         {
             e.preventDefault();
@@ -627,7 +632,6 @@ class main_controller
         }
 
         // Let the view handle the input.
-        var view = this.displayed_view;
         view.handle_onkeydown(e);
     }
 };
