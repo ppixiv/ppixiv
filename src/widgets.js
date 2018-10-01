@@ -383,7 +383,7 @@ class popup_context_menu
     {
         // Don't cancel context menus that aren't inside a context-menu-target, unless they're within
         // the context menu itself (which happens in Firefox).
-        if(!helpers.is_above(this.container, e.target) && e.target.closest(".context-menu-target") == null)
+        if(!helpers.is_above(this.menu, e.target) && e.target.closest(".context-menu-target") == null)
             return;
 
         // If shift was pressed when the mouse was clicked, just let the regular context
