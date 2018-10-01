@@ -110,10 +110,9 @@ class avatar_widget
         this.root.querySelector(".avatar-link").href = "/member_illust.php?id=" + user_data.userId + "#ppixiv";
 
         // If we don't have an image because we're loaded from a source that doesn't give us them,
-        // just hide the avatar image.  Note that this image is low-res even though there's usually
-        // a larger version available (grr).
+        // just hide the avatar image.
         var element_author_avatar = this.root.querySelector(".avatar");
-        var key = this.options.big? "imageBig":"image";
+        var key = "imageBig";
         if(user_data[key])
             element_author_avatar.src = user_data[key];
     }
