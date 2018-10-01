@@ -395,16 +395,6 @@ class popup_context_menu
 
     oncontextmenu(e)
     {
-        // Don't cancel context menus that aren't inside a context-menu-target, unless they're within
-        // the context menu itself (which happens in Firefox).
-        if(!helpers.is_above(this.menu, e.target) && !this.context_menu_enabled_for_element(e.target))
-            return;
-
-        // If shift was pressed when the mouse was clicked, just let the regular context
-        // menu open.
-        if(this.shift_was_pressed)
-            return;
-
         e.preventDefault();
         e.stopPropagation();
     }
@@ -455,6 +445,8 @@ class popup_context_menu
     {
         if(this.displayed_menu != null)
             return;
+
+        this.start_preventing_context_menu();
 
         this.displayed_menu = this.menu;
         this.container.appendChild(this.displayed_menu);
@@ -512,6 +504,8 @@ class popup_context_menu
         if(this.displayed_menu == null)
             return;
 
+        this.stop_preventing_context_menu_after_delay();
+        
         this.displayed_menu.parentNode.removeChild(this.displayed_menu);
         this.displayed_menu = null;
         hide_mouse_cursor_on_idle.enable_all();
@@ -526,6 +520,57 @@ class popup_context_menu
 
         this.container.removeEventListener("mousedown", this.onmousedown);
         this.container.removeEventListener("click", this.onclick);
+        this.stop_preventing_context_menu();
+    }
+
+    // Work around bad Firefox oncontextmenu behavior (seen in 62).  In Chrome and older
+    // versions of Firefox, contextmenu is always sent to the same element as mousedown,
+    // even if you move the mouse before releasing the button.  Current versions of Firefox
+    // send contextmenu to the element the mouse is over at the time of the mouse release.
+    // This makes it impossible to tell what element was clicked on in the first place.
+    // That's bad, since you want to be able to prevent the context menu if you did something
+    // else with the right mouse button, like our popup menus.
+    //
+    // Work around this by temporarily blocking all contextmenu events in the document
+    // after our popup closes.  That blocks the context menu regardless of which element
+    // it goes to.  This is brief enough that it won't interfere with other real context
+    // menus.
+    cancel_stop_preventing_context_menu_after_delay()
+    {
+        if(this.timer == null)
+            return;
+
+        clearTimeout(this.timer);
+        this.timer = null;
+    }
+
+    stop_preventing_context_menu_after_delay()
+    {
+        this.cancel_stop_preventing_context_menu_after_delay();
+
+        this.timer = setTimeout(function() {
+            this.timer = null;
+            this.stop_preventing_context_menu();
+        }.bind(this), 100);
+    }
+
+    start_preventing_context_menu()
+    {
+        this.cancel_stop_preventing_context_menu_after_delay();
+
+        if(this.preventing_context_menu)
+            return;
+
+        this.preventing_context_menu = true;
+        window.addEventListener("contextmenu", this.oncontextmenu);
+    }
+
+    stop_preventing_context_menu()
+    {
+        if(!this.preventing_context_menu)
+            return;
+
+        this.preventing_context_menu = false;
         window.removeEventListener("contextmenu", this.oncontextmenu);
     }
 }
