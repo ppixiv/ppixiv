@@ -978,8 +978,13 @@ var helpers = {
 
         for(var a of root.querySelectorAll("A"))
         {
-            a.relList.add("noreferrer");
-            a.relList.add("noopener");
+            if(a.relList == null)
+                a.rel += " noreferrer noopener"; // stupid Edge
+            else
+            {
+                a.relList.add("noreferrer");
+                a.relList.add("noopener");
+            }
         }
 
         for(var a of root.querySelectorAll("A[href*='jump.php']"))
@@ -1162,7 +1167,7 @@ var helpers = {
         // and not just pushState (which you should be able to call as fast as you want).
         //
         // People don't think things through.
-        console.error("Set URL to", document.location.toString(), add_to_history);
+        console.log("Set URL to", document.location.toString(), add_to_history);
 
         if(document.location.toString() != old_url)
         {
