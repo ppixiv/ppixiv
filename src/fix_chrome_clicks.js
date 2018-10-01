@@ -100,22 +100,13 @@ class fix_chrome_clicks
         // The button was released.  Unregister our temporary event listeners.
         this.stop_waiting_for_release();
 
-        // Return true if ancestor is one of descendant's parents, or if descendant is ancestor.
-        var is_above = function(ancestor, descendant)
-        {
-            var node = descendant;
-            while(descendant != null && descendant != ancestor)
-                descendant = descendant.parentNode;
-            return descendant == ancestor;
-        }
-
         // console.log("released:", e.target.id, "after click on", pressed_node.id);
 
         var released_node = e.target;
         var click_target = null;
-        if(is_above(released_node, pressed_node))
+        if(helpers.is_above(released_node, pressed_node))
             click_target = released_node;
-        else if(is_above(pressed_node, released_node))
+        else if(helpers.is_above(pressed_node, released_node))
             click_target = pressed_node;
 
         if(click_target == null)
@@ -125,7 +116,7 @@ class fix_chrome_clicks
         }
 
         // If the click target is above our container, stop.
-        if(is_above(click_target, this.container))
+        if(helpers.is_above(click_target, this.container))
             return;
 
         // Why is cancelling the event not preventing mouse events and click events?

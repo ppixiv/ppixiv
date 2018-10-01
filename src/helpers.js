@@ -66,6 +66,15 @@ var helpers = {
         }
     },
 
+    // Return true if ancestor is one of descendant's parents, or if descendant is ancestor.
+    is_above(ancestor, descendant)
+    {
+        var node = descendant;
+        while(descendant != null && descendant != ancestor)
+            descendant = descendant.parentNode;
+        return descendant == ancestor;
+    },
+
     create_style: function(css)
     {
         var style = document.createElement("style");

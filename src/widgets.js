@@ -364,6 +364,7 @@ class popup_context_menu
         this.container = container;
 
         this.container.addEventListener("mousedown", this.onmousedown);
+        window.addEventListener("contextmenu", this.oncontextmenu);
 
         // Create the menu.  The caller will attach event listeners for clicks.
         this.menu = helpers.create_from_template(".template-context-menu");
@@ -380,6 +381,11 @@ class popup_context_menu
 
     oncontextmenu(e)
     {
+        // Don't cancel context menus that aren't inside a context-menu-target, unless they're within
+        // the context menu itself (which happens in Firefox).
+        if(!helpers.is_above(this.container, e.target) && e.target.closest(".context-menu-target") == null)
+            return;
+
         // If shift was pressed when the mouse was clicked, just let the regular context
         // menu open.
         if(this.shift_was_pressed)
@@ -440,7 +446,6 @@ class popup_context_menu
         document.body.classList.add("hide-ui");
         
         window.addEventListener("mouseup", this.onmouseup);
-        window.addEventListener("contextmenu", this.oncontextmenu);
 
         var centered_element = this.element_to_center;
         if(centered_element == null)
@@ -496,7 +501,6 @@ class popup_context_menu
         this.buttons_down = [false, false, false];
         document.body.classList.remove("hide-ui");
         window.removeEventListener("mouseup", this.onmouseup);
-        window.removeEventListener("contextmenu", this.oncontextmenu);
     }
 
     shutdown()
@@ -505,6 +509,7 @@ class popup_context_menu
 
         this.container.removeEventListener("mousedown", this.onmousedown);
         this.container.removeEventListener("click", this.onclick);
+        window.removeEventListener("contextmenu", this.oncontextmenu);
     }
 }
 

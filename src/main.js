@@ -351,7 +351,6 @@ class main_controller
 
         // If we're changing between the image and thumbnail view, update the active view.
         var view_changing = new_view != old_view;
-        console.log("XXX", new_view, old_view);
         if(view_changing)
         {
             this.current_view_name = new_view_name;
