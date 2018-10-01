@@ -155,6 +155,11 @@ body.light .hover-message > .message {
     width: 30%;
     height: auto;
     margin: .5em;
+
+    /* Disable events on the top-level container, so it doesn't block clicks on the
+     * image when the UI isn't visible.  We'll reenable events on the hover-box and ui-box
+     * below it where we actually want pointer events. */
+    pointer-events: none;
 }
 .view-illust-container .ui-box {
     pointer-events: none;
