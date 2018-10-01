@@ -287,5 +287,10 @@ class view_manga extends view
         if(thumb.offsetTop < scroll_pos || thumb.offsetTop + thumb.offsetHeight > scroll_pos + this.container.offsetHeight)
             this.container.scrollTop = thumb.offsetTop + thumb.offsetHeight/2 - this.container.offsetHeight/2;
     }
+
+    handle_onkeydown(e)
+    {
+        this.ui.handle_onkeydown(e);
+    }    
 }
 

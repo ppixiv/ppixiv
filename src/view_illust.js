@@ -396,56 +396,11 @@ class view_illust extends view
         if(e.defaultPrevented)
             return;
         
-        if(e.keyCode == 66) // b
-        {
-            // b to bookmark publically, B to bookmark privately, ^B to remove a bookmark.
-            //
-            // Use a separate hotkey to remove bookmarks, rather than toggling like the bookmark
-            // button does, so you don't have to check whether an image is bookmarked.  You can
-            // just press B to bookmark without worrying about accidentally removing a bookmark
-            // instead.
-            e.stopPropagation();
-            e.preventDefault();
-
-            var illust_id = this.current_illust_id;
-            var illust_data = this.current_illust_data;
-
-            if(e.ctrlKey)
-            {
-                // Remove the bookmark.
-                if(illust_data.bookmarkData == null)
-                {
-                    message_widget.singleton.show("Image isn't bookmarked");
-                    return;
-                }
-
-                actions.bookmark_remove(this.current_illust_data);
-                
-                return;
-            }
-
-            if(illust_data.bookmarkData)
-            {
-                message_widget.singleton.show("Already bookmarked (^B to remove bookmark)");
-                return;
-            }
-            
-            actions.bookmark_add(illust_data, e.shiftKey /* private_bookmark */);
-            
-            return;
-        }
-
         if(e.ctrlKey || e.altKey)
             return;
 
         switch(e.keyCode)
         {
-        case 86: // l
-            e.stopPropagation();
-            actions.like_image(this.current_illust_data);
-            
-            return;
-
         case 37: // left
         case 38: // up
         case 33: // pgup
