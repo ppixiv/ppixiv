@@ -595,7 +595,7 @@ class thumbnail_size_slider_widget
     {
         var value = parseInt(helpers.get_value(this.preference_name));
         if(typeof(value) != "number" || isNaN(value))
-            value = 2;
+            value = 4;
         this.value = value;
     }
 
