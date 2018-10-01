@@ -56,8 +56,8 @@ class image_ui
         this.element_liked.addEventListener("click", this.clicked_like, false);
 
         this.container.querySelector(".download-button").addEventListener("click", this.clicked_download);
-        this.container.querySelector(".show-thumbnails-button").addEventListener("click", function(e) {
-            main_controller.singleton.toggle_thumbnail_view();
+        this.container.querySelector(".navigate-out-button").addEventListener("click", function(e) {
+            main_controller.singleton.navigate_out();
         }.bind(this));
 
         this.container.querySelector(".toggle-auto-like").addEventListener("click", this.toggle_auto_like);
@@ -210,11 +210,10 @@ class image_ui
                 download_button.dataset.popup = "Download " + download_type;
         }
 
-        if(this._data_source != null)
-        {
-            // Set the popup for the thumbnails button based on the label of the data source.
-            this.container.querySelector(".show-thumbnails-button").dataset.popup = this._data_source.get_displaying_text();
-        }
+        // Set the popup for the thumbnails button.
+        var navigate_out_label = main_controller.singleton.navigate_out_label;
+        var title = navigate_out_label != null? ("Return to " + navigate_out_label):"";
+        this.container.querySelector(".navigate-out-button").dataset.popup = title;
     }
 
     // Set the resolution to display in image info.  If both are null, no resolution

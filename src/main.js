@@ -138,7 +138,7 @@ class main_controller
         if(main_controller._singleton != null)
             throw "main_controller is already created";
 
-        main_controller._singleton = new main_controller();
+        new main_controller();
     }
 
     static get singleton()
@@ -151,7 +151,8 @@ class main_controller
 
     constructor()
     {
-        this.toggle_thumbnail_view = this.toggle_thumbnail_view.catch_bind(this);
+        main_controller._singleton = this;
+
         this.onkeydown = this.onkeydown.catch_bind(this);
         this.window_onclick_capture = this.window_onclick_capture.catch_bind(this);
         this.window_onpopstate = this.window_onpopstate.catch_bind(this);
@@ -350,6 +351,7 @@ class main_controller
 
         // If we're changing between the image and thumbnail view, update the active view.
         var view_changing = new_view != old_view;
+        console.log("XXX", new_view, old_view);
         if(view_changing)
         {
             this.current_view_name = new_view_name;
@@ -467,7 +469,7 @@ class main_controller
                 return view;
         }        
 
-        throw "No view is active";
+        return null;
     }
 
     _set_active_view_in_url(hash_args, view)
@@ -483,14 +485,50 @@ class main_controller
         helpers.set_args(args, add_to_history, cause);
     }
 
-    toggle_thumbnail_view(add_to_history)
+    // Navigate out.
+    //
+    // This navigates from the illust page to the manga page (for multi-page posts) or search, and
+    // from the manga page to search.
+    //
+    // This is similar to browser back, but allows moving up to the search even for new tabs.  It
+    // would be better for this to integrate with browser history (just browser back if browser back
+    // is where we're going), but for some reason you can't view history state entries even if they're
+    // on the same page, so there's no way to tell where History.back() would take us.
+    _get_navigate_out_target()
     {
-        var old_view = this.displayed_view;
+        var new_page = null;
+        var view = this.displayed_view;
 
-        var enabled = old_view == this.views.search;
-        console.log("enabled:", enabled);
-        enabled = !enabled;
-        this.set_displayed_view_by_name(enabled? "search":"illust", add_to_history, "toggle");
+        // This gets called by the popup menu when it's created before we have any view.
+        if(view == null)
+            return [null, null];
+
+        if(view == this.views.manga)
+        {
+            return ["search", "search"];
+        }
+        else if(view == this.views.illust)
+        {
+            var page_count = view.current_illust_data != null? view.current_illust_data.pageCount:1;
+            if(page_count > 1)
+                return ["manga", "page list"];
+            else
+                return ["search", "search"];
+        }
+        else
+            return [null, null];
+    }
+    get navigate_out_label()
+    {
+        var target = this._get_navigate_out_target();
+        return target[1];
+    }
+    navigate_out()
+    {
+        var target = this._get_navigate_out_target();
+        var new_page = target[0];
+        if(new_page != null)
+            this.set_displayed_view_by_name(new_page, true /*add_to_history*/, "out");
     }
 
     // This captures clicks at the window level, allowing us to override them.
@@ -583,7 +621,7 @@ class main_controller
             e.preventDefault();
             e.stopPropagation();
 
-            this.toggle_thumbnail_view();
+            this.navigate_out();
 
             return;
         }

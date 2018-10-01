@@ -104,16 +104,15 @@ class main_context_menu extends popup_context_menu
         var view = document.body.dataset.currentView;
 
         // Update the tooltip for the thumbnail toggle button.
-        var title;
-        if(document.body.dataset.currentView == "illust")
-            title = this.data_source != null? ("Return to " + this.data_source.get_displaying_text()):"";
-        else
-            title = "Return to image";
+        var navigate_out_label = main_controller.singleton.navigate_out_label;
+        var title = navigate_out_label != null? ("Return to " + navigate_out_label):"";
         this.menu.querySelector(".button-return-to-search").dataset.tooltip = title;
+        helpers.set_class(this.menu.querySelector(".button-return-to-search"), "enabled", navigate_out_label != null);
         this.refresh_tooltip();
 
         // Enable the zoom buttons if we're in the image view and we have an on_click_viewer.
-        helpers.set_class(this.menu.querySelector(".zoom-strip"), "enabled", this._is_zoom_ui_enabled);
+        for(var element of this.menu.querySelectorAll(".zoom-strip .button"))
+            helpers.set_class(element, "enabled", this._is_zoom_ui_enabled);
 
         if(this._is_zoom_ui_enabled)
         {
@@ -127,7 +126,7 @@ class main_context_menu extends popup_context_menu
 
     clicked_return_to_search(e)
     {
-        main_controller.singleton.toggle_thumbnail_view();
+        main_controller.singleton.navigate_out();
     }
 
     clicked_zoom_toggle(e)
