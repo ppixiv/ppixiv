@@ -197,7 +197,8 @@ body.light .hover-message > .message {
 }
 
 .view-manga-container .ui-container {
-    width: 30%;
+    width: 500px;
+    max-width: 90%;
 }
 
 /* Since the UI isn't a popup on the manga page, hide the description and
