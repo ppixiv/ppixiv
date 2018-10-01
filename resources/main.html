@@ -667,12 +667,19 @@
         
         <div class=template-context-menu>
             <div class=popup-context-menu>
-                <div class="button-strip enabled">
+                <div class=button-strip>
                     <div class=button-block>
                         <div class="button button-return-to-search" data-level=0 data-tooltip="Return to search">
                             ### inline:thumbnails-icon.svg
                         </div>
                     </div>
+
+                    <div class=button-block>
+                        <div class="button button-fullscreen enabled" data-level=0 data-tooltip="Fullscreen">
+                            ### inline:fullscreen.svg
+                        </div>
+                    </div>
+                    
                 </div>
                 <div class="button-strip zoom-strip">
                     <!-- Some of this is a disabled concept.  It's handy, but I don't like duplicating UI... -->
@@ -695,13 +702,19 @@
                         </div>
                     </div>
                     <div class=button-block>
-                        <div class="button button-zoom-level" data-level=1 data-tooltip="2x zoom">2x</div>
+                        <div class="button button-zoom-level" data-level=1 data-tooltip="2x zoom">
+                            <div>2x</div>
+                        </div>
                     </div>
                     <div class=button-block>
-                        <div class="button button-zoom-level" data-level=2 data-tooltip="4x zoom">4x</div>
+                        <div class="button button-zoom-level" data-level=2 data-tooltip="4x zoom">
+                            <div>4x</div>
+                        </div>
                     </div>
                     <div class=button-block>
-                        <div class="button button-zoom-level" data-level=3 data-tooltip="8x zoom">8x</div>
+                        <div class="button button-zoom-level" data-level=3 data-tooltip="8x zoom">
+                            <div>8x</div>
+                        </div>
                     </div>
                     <!--
                     <div class=button-block>

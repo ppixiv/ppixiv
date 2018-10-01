@@ -1314,30 +1314,18 @@ body.light .thumb-list-cursor
 .popup-context-menu .button-strip > .button-block:first-child { border-radius: 5px 0 0 5px; }
 .popup-context-menu .button-strip > .button-block:last-child { border-radius: 0 5px 5px 0; }
 
-.popup-context-menu .button-strip > .button-block > .button {
+.popup-context-menu .button-strip .button {
     color: #fff;
     border-radius: 4px;
-    padding: 4px 8px;
+    padding: 6px 8px;
     height: 100%;
     text-align: center;
-    min-width: 50px;
     cursor: default;
 }
 
 /* Show the pointer cursor for enabled buttons. */
-.popup-context-menu .button-strip .button {
+.popup-context-menu .button-strip .button.enabled {
     cursor: pointer;
-}
-.popup-context-menu .button-strip .button > svg {
-    width: 100%;
-    height: 100%;
-}
-
-/* Center the text vertically in the zoom buttons. */
-.popup-context-menu .button-strip .button-zoom-level {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
 }
 
 /* Grey out the buttons if this strip isn't enabled. */
@@ -1348,9 +1336,15 @@ body.light .thumb-list-cursor
 }
 
 .popup-context-menu .button-strip .button {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
     background-color: #222;
     color: #888;
     stroke: #888;
+}
+.popup-context-menu .button-strip .button > * {
+    min-width: 32px;
 }
 .popup-context-menu .button-strip .button > svg {
     width: 32px;

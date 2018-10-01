@@ -41,6 +41,7 @@ class main_context_menu extends popup_context_menu
         this.refresh();
 
         this.menu.querySelector(".button-return-to-search").addEventListener("click", this.clicked_return_to_search.bind(this));
+        this.menu.querySelector(".button-fullscreen").addEventListener("click", this.clicked_fullscreen.bind(this));
         this.menu.querySelector(".button-zoom").addEventListener("click", this.clicked_zoom_toggle.bind(this));
 
         for(var button of this.menu.querySelectorAll(".button-zoom-level"))
@@ -127,6 +128,14 @@ class main_context_menu extends popup_context_menu
     clicked_return_to_search(e)
     {
         main_controller.singleton.navigate_out();
+    }
+
+    clicked_fullscreen(e)
+    {
+        if(!document.fullscreenElement)
+            document.documentElement.requestFullscreen();
+        else
+            document.exitFullscreen(); 
     }
 
     clicked_zoom_toggle(e)

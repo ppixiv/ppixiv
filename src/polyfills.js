@@ -70,5 +70,26 @@ var install_polyfills = function()
             return wrapped_func;
         };
     }
+
+    if(!("requestFullscreen" in Element.prototype))
+    {
+        // Web API prefixing needs to be shot into the sun.
+        if("webkitRequestFullScreen" in Element.prototype)
+        {
+            Element.prototype.requestFullscreen = Element.prototype.webkitRequestFullScreen;
+            HTMLDocument.prototype.exitFullscreen = HTMLDocument.prototype.webkitCancelFullScreen;
+            Object.defineProperty(HTMLDocument.prototype, "fullscreenElement", {
+                get: function() { return this.webkitFullscreenElement; }
+            });
+        }
+        else if("mozRequestFullScreen" in Element.prototype)
+        {
+            Element.prototype.requestFullscreen = Element.prototype.mozRequestFullScreen;
+            HTMLDocument.prototype.exitFullscreen = HTMLDocument.prototype.mozCancelFullScreen;
+            Object.defineProperty(HTMLDocument.prototype, "fullscreenElement", {
+                get: function() { return this.mozFullScreenElement; }
+            });
+        }
+    }
 }
 
