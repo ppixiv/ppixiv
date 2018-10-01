@@ -245,6 +245,9 @@ class main_controller
         // Create the popup menu handler.
         this.context_menu = new main_context_menu(document.body);
         
+        // Create the main progress bar.
+        this.progress_bar = new progress_bar(this.container.querySelector(".loading-progress-bar"));
+        
         // Create the thumbnail view handler.
         this.thumbnail_view = new view_search(this.container.querySelector(".view-search-container"));
 

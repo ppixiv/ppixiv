@@ -16,6 +16,7 @@ class view_manga extends view
 
         window.addEventListener("resize", this.window_onresize);
 
+        this.progress_bar = main_controller.singleton.progress_bar;
         this.ui = new image_ui(this.container.querySelector(".ui-container"), this.progress_bar);
         this.scroll_positions_by_illust_id = {};
         

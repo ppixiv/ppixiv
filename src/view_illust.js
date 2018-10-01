@@ -15,7 +15,7 @@ class view_illust extends view
         this.latest_navigation_direction_down = true;
         this.container = container;
 
-        this.progress_bar = new progress_bar(this.container.querySelector(".loading-progress-bar"));
+        this.progress_bar = main_controller.singleton.progress_bar;
 
         // Create a UI box and put it in its container.
         this.ui = new image_ui(this.container.querySelector(".ui"), this.progress_bar);
