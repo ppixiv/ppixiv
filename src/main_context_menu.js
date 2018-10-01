@@ -64,19 +64,6 @@ class main_context_menu extends popup_context_menu
         this.refresh();
     }
 
-    // Override onmousedown to decide whether a click is over an element where we
-    // should open the context menu.
-    //
-    // The context menu is installed globally, but we only want the context menu
-    // to open over certain elements, like the image view.  Right clicking links
-    // in the UI, etc. should use the standard context menu.
-    onmousedown(e)
-    {
-        if(this.displayed_menu == null && e.target.closest(".context-menu-target") == null)
-            return;
-        return super.onmousedown(e);
-    }
-
     // Put the zoom toggle button under the cursor, so right-left click is a quick way
     // to toggle zoom lock.
     get element_to_center()

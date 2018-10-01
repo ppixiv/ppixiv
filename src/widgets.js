@@ -379,11 +379,26 @@ class popup_context_menu
         this.buttons_down = [false, false, false];
     }
 
+    context_menu_enabled_for_element(element)
+    {
+        while(element != null && element instanceof Element)
+        {
+            if(element.dataset.contextMenuTarget == "off")
+                return false;
+
+            if("contextMenuTarget" in element.dataset)
+                return true;
+
+            element = element.parentNode;
+        }
+        return false;
+    }
+
     oncontextmenu(e)
     {
         // Don't cancel context menus that aren't inside a context-menu-target, unless they're within
         // the context menu itself (which happens in Firefox).
-        if(!helpers.is_above(this.menu, e.target) && e.target.closest(".context-menu-target") == null)
+        if(!helpers.is_above(this.menu, e.target) && !this.context_menu_enabled_for_element(e.target))
             return;
 
         // If shift was pressed when the mouse was clicked, just let the regular context
@@ -397,6 +412,9 @@ class popup_context_menu
 
     onmousedown(e)
     {
+        if(this.displayed_menu == null && !this.context_menu_enabled_for_element(e.target))
+            return;
+        
         if(this.displayed_menu == null && e.button != 2)
             return;
 

@@ -5,7 +5,7 @@
 
     <!-- main_ui: -->
     <div class=view-illust-container>
-        <div class="image-container context-menu-target"></div>
+        <div class=image-container data-context-menu-target></div>
 
         <div class=ugoira-seek-bar></div>
         <div class=loading-progress-bar></div>
@@ -35,11 +35,11 @@
     </div>
 
     <!-- thumbnail_view: -->
-    <div class="view-search-container noise-background" hidden>
-        <div class="thumbnail-ui">
+    <div class="view-search-container noise-background" data-context-menu-target hidden>
+        <div class=thumbnail-ui>
             <div style="flex: 1;"></div>
 
-            <div class=thumbnail-ui-box>
+            <div class=thumbnail-ui-box data-context-menu-target=off>
                 <div class="data-source-specific avatar-container" data-datasource="artist illust bookmarks"></div>
                 <a href=# class="data-source-specific image-for-suggestions" data-datasource=related-illusts>
                     <!-- A blank image, so we don't load anything: -->
@@ -396,15 +396,15 @@
             </div>
         </div>
 
-        <ul class="thumbnails context-menu-target"></ul>
+        <ul class=thumbnails></ul>
     </div>
 
-    <div class="view-manga-container noise-background" hidden>
+    <div class="view-manga-container noise-background" data-context-menu-target hidden>
         <div class=ui style="display: flex; width: 100%; justify-content: center;">
-            <div class=ui-container></div>
+            <div class=ui-container data-context-menu-target=off></div>
         </div>
         
-        <ul class="thumbnails context-menu-target"></ul>
+        <ul class=thumbnails></ul>
     </div>
     
     <div hidden class=templates>
