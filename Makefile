@@ -43,15 +43,22 @@ FILES=\
 
 all: build
 
+# This is used by create_debug_script.py.
+get_all_files:
+	@echo $(FILES)
+
 clean:
 	rm -f build/*.js
+
+build/ppixiv-debug.user.js: Makefile
+	./create_debug_script.py $@
 
 build/resources.js: resources/* inline-resources/*
 	python create_resources.py $@
 
-build: build/ppixiv.user.js
+build: build/ppixiv.user.js build/ppixiv-debug.user.js
 
-build/ppixiv.user.js: $(FILES)
+build/ppixiv.user.js: Makefile $(FILES)
 	cat $(FILES) > build/ppixiv.user.js
 
 install: build/ppixiv.user.js
