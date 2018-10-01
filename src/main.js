@@ -17,7 +17,10 @@ class early_controller
 
         // catch_bind isn't available if we're not active, so we use bind here.
         this.dom_content_loaded = this.dom_content_loaded.bind(this);
-        window.addEventListener("DOMContentLoaded", this.dom_content_loaded, true);
+        if(document.readyState == "loading")
+            window.addEventListener("DOMContentLoaded", this.dom_content_loaded, true);
+        else
+            setTimeout(this.dom_content_loaded, 0);
 
         if(!page_manager.singleton().active)
             return;
@@ -30,11 +33,15 @@ class early_controller
         // listeners on both of these and block propagation, so those won't be run.  This keeps most
         // of the site scripts from running underneath us.  Make sure this is registered after our
         // own DOMContentLoaded listener above, or it'll block ours too.
+        //
+        // This doesn't always work in Chrome.  TamperMonkey often runs user scripts very late,
+        // even after DOMContentLoaded has already been sent, even in run-at: document-start.
         var stop_event = function(e) {
             e.preventDefault();
             e.stopImmediatePropagation();
         };
-        window.addEventListener("DOMContentLoaded", stop_event, true);
+        if(document.readyState == "loading")
+            window.addEventListener("DOMContentLoaded", stop_event, true);
         window.addEventListener("load", stop_event, true);
 
         // Newer Pixiv pages run a bunch of stuff from deferred scripts, which install a bunch of
