@@ -508,3 +508,56 @@ class popup_context_menu
     }
 }
 
+// A widget to control the thumbnail size slider.
+class thumbnail_size_slider_widget
+{
+    constructor(preference_name, slider)
+    {
+        this.oninput = this.oninput.bind(this);
+
+        this.preference_name = preference_name;
+        this.slider = slider;
+        this.on_change = new callback_list();
+
+        this.load_from_pref();
+
+        this.slider.addEventListener("input", this.oninput);
+    }
+
+    load_from_pref()
+    {
+        var value = parseInt(helpers.get_value(this.preference_name));
+        if(typeof(value) != "number" || isNaN(value))
+            value = 2;
+        this.value = value;
+    }
+
+    save_to_pref()
+    {
+        helpers.set_value(this.preference_name, this.value);
+    }
+    
+    set value(value)
+    {
+        this.slider.value = value;
+        this.on_change.call();
+    }
+
+    get value()
+    {
+        return parseInt(this.slider.value);
+    }
+
+    get size()
+    {
+        var width = 100 * Math.pow(1.3, this.slider.value);
+        return width;
+    }
+
+    oninput(e)
+    {
+        this.save_to_pref();
+        this.on_change.call();
+    }
+};
+

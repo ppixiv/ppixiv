@@ -1225,6 +1225,90 @@ var helpers = {
         img.decode().then(() => { }).catch((e) => { });
     },
 
+    // Return a CSS style to specify thumbnail resolutions.
+    //
+    // Based on the dimensions of the container and a desired pixel size of thumbnails,
+    // figure out how many columns to display to bring us as close as possible to the
+    // desired size.
+    //
+    // container is the containing block (eg. ul.thumbnails).
+    // top_selector is a CSS selector for the thumbnail block.  We should be able to
+    // simply create a scoped stylesheet, but browsers don't understand the importance
+    // of encapsulation.
+    make_thumbnail_sizing_style(container, top_selector, options)
+    {
+        // The total pixel size we want each thumbnail to have:
+        var desired_size = options.size || 300;
+        var ratio = options.ratio || 1;
+        var max_columns = options.max_columns || 5;
+
+        var desired_pixels = desired_size*desired_size / window.devicePixelRatio;
+        var container_width = container.parentNode.clientWidth;
+        var padding = container_width / 100;
+        padding = Math.min(padding, 10);
+        padding = Math.round(padding);
+        if(options.min_padding)
+            padding = Math.max(padding, options.min_padding);
+        
+        var closest_error_to_desired_pixels = -1;
+        var best_size = [0,0];
+        var best_columns = 0;
+        for(var columns = max_columns; columns >= 1; --columns)
+        {
+            // The amount of space in the container remaining for images, after subtracting
+            // the padding around each image.
+            var remaining_width = container_width - padding*columns*2;
+            var max_width = remaining_width / columns;
+            var max_height = max_width;
+            if(ratio < 1)
+                max_width *= ratio;
+            else if(ratio > 1)
+                max_height /= ratio;
+
+            max_width = Math.floor(max_width);
+            max_height = Math.floor(max_height);
+
+            var pixels = max_width * max_height;
+            var error = Math.abs(pixels - desired_pixels);
+            if(closest_error_to_desired_pixels == -1 || error < closest_error_to_desired_pixels)
+            {
+                closest_error_to_desired_pixels = error;
+                best_size = [max_width, max_height];
+                best_columns = columns;
+            }
+        }
+
+        max_width = best_size[0];
+        max_height = best_size[1];
+
+        // If we want a smaller thumbnail size than we can reach within the max column
+        // count, we won't have reached desired_pixels.  In this case, just clamp to it.
+        // This will cause us to use too many columns, which we'll correct below with
+        // container_width.
+        if(max_width * max_height > desired_pixels)
+        {
+            max_height = max_width = Math.round(Math.sqrt(desired_pixels));
+
+            if(ratio < 1)
+                max_width *= ratio;
+            else if(ratio > 1)
+                max_height /= ratio;
+        }
+
+        // Clamp the width of the container to the number of columns we expect.
+        var container_width = max_columns * (max_width+padding*2);
+
+        var css = 
+            top_selector + " .thumbnail-link { " +
+                "width: " + max_width + "px; " +
+                "height: " + max_height + "px; " +
+            "} " + 
+            top_selector + " li.thumbnail-box { padding: " + padding + "px; }";
+        if(container_width != null)
+            css += top_selector + " > .thumbnails { max-width: " + container_width + "px; }";
+        return css;
+    },
+    
     // If the aspect ratio is very narrow, don't use any panning, since it becomes too spastic.
     // If the aspect ratio is portrait, use vertical panning.
     // If the aspect ratio is landscape, use horizontal panning.

@@ -15,11 +15,14 @@ class view_search extends view
         this.toggle_disable_thumbnail_panning = this.toggle_disable_thumbnail_panning.bind(this);
         this.toggle_disable_thumbnail_zooming = this.toggle_disable_thumbnail_zooming.bind(this);
         this.refresh_thumbnail = this.refresh_thumbnail.bind(this);
+        this.refresh_images = this.refresh_images.bind(this);
+        this.window_onresize = this.window_onresize.bind(this);
 
         this.container = container;
         this.active = false;
 
         window.addEventListener("thumbnailsLoaded", this.thumbs_loaded);
+        window.addEventListener("resize", this.window_onresize);
 
         this.container.addEventListener("wheel", this.onwheel);
 //        this.container.addEventListener("mousemove", this.onmousemove);
@@ -29,6 +32,9 @@ class view_search extends view
 
         // When a bookmark is modified, refresh the heart icon.
         image_data.singleton().illust_modified_callbacks.register(this.refresh_thumbnail);
+
+        this.thumbnail_dimensions_style = document.createElement("style");
+        document.body.appendChild(this.thumbnail_dimensions_style);
         
         // Create the avatar widget shown on the artist data source.
         this.avatar_widget = new avatar_widget({
@@ -77,9 +83,6 @@ class view_search extends view
         this.container.querySelector(".toggle-light-mode").addEventListener("click", this.toggle_light_mode);
         this.container.querySelector(".toggle-thumbnail-zooming").addEventListener("click", this.toggle_disable_thumbnail_zooming);
         this.container.querySelector(".toggle-thumbnail-panning").addEventListener("click", this.toggle_disable_thumbnail_panning);
-        this.container.querySelector(".thumbnail-mode-big").addEventListener("click", this.set_thumbnail_mode.bind(this, "big"));
-        this.container.querySelector(".thumbnail-mode-small").addEventListener("click", this.set_thumbnail_mode.bind(this, "normal"));
-        this.container.querySelector(".thumbnail-mode-wide").addEventListener("click", this.set_thumbnail_mode.bind(this, "wide"));
 
         // Create the tag dropdown for the search page input.
         new tag_search_dropdown_widget(this.container.querySelector(".tag-search-box .search-tags"));
@@ -87,9 +90,20 @@ class view_search extends view
         // Create the tag dropdown for the search input in the menu dropdown.
         new tag_search_dropdown_widget(this.container.querySelector(".navigation-search-box .search-tags"));
 
+        this.thumbnail_size_slider = new thumbnail_size_slider_widget("thumbnail-size", this.container.querySelector(".thumbnail-size"));
+        this.thumbnail_size_slider.on_change.register(this.refresh_images);
+
         this.update_from_settings();
         this.refresh_images();
         this.load_needed_thumb_data();
+    }
+
+    window_onresize(e)
+    {
+        if(!this.active)
+            return;
+
+        this.refresh_images();
     }
 
     submit_search(e)
@@ -428,7 +442,25 @@ class view_search extends view
             entry.hidden = this.disable_loading_more_pages;
             ul.appendChild(entry);
         }
+
+        if(this.container.offsetWidth == 0)
+            return;
+
+
+        var width = this.thumbnail_size_slider.size;
         
+        this.thumbnail_dimensions_style.textContent = helpers.make_thumbnail_sizing_style(ul, ".view-search-container", {
+            wide: true,
+            size: this.thumbnail_size_slider.size,
+            max_columns: 5,
+
+            // Set a minimum padding to make sure there's room for the popup text to fit between images.
+            min_padding: 15,
+        });
+
+
+
+
         // Restore the value of scrollTop from before we updated.  For some reason, Firefox
         // modifies scrollTop after we add a bunch of items, which causes us to scroll to
         // the wrong position, even though scrollRestoration is disabled.
@@ -533,30 +565,12 @@ class view_search extends view
         var thumbnail_mode = helpers.get_value("thumbnail-size");
         document.body.dataset.thumbnailMode = thumbnail_mode;
         this.set_visible_thumbs();
+        this.refresh_images();
 
         helpers.set_class(document.body, "light", helpers.get_value("theme") == "light");
 
         helpers.set_class(document.body, "disable-thumbnail-panning", helpers.get_value("disable_thumbnail_panning"));
         helpers.set_class(document.body, "disable-thumbnail-zooming", helpers.get_value("disable_thumbnail_zooming"));
-
-        // Set the selected flags for the thumbnail mode.
-        helpers.set_class(this.container.querySelector(".thumbnail-mode-big"), "selected", thumbnail_mode == "big");
-        helpers.set_class(this.container.querySelector(".thumbnail-mode-small"), "selected", thumbnail_mode == "normal");
-        helpers.set_class(this.container.querySelector(".thumbnail-mode-wide"), "selected", thumbnail_mode == "wide");
-    }
-
-    // Return true if we're in big thumbnail mode.
-    get_big_thumbnail_mode()
-    {
-        // If we're in wide mode, force big thumbs.
-        var mode = helpers.get_value("thumbnail-size");
-        return mode == "big" || mode == "wide";
-    }
- 
-    set_thumbnail_mode(mode)
-    {
-        helpers.set_value("thumbnail-size", mode);
-        this.update_from_settings();
     }
 
     toggle_light_mode()
@@ -601,11 +615,6 @@ class view_search extends view
             illust_ids.push(element.dataset.illust_id);
         }        
 
-        // If true, we're loading and showing larger resolution thumbnails.
-        var big_thumbnails = this.get_big_thumbnail_mode();
-        
-        helpers.set_class(this.container, "big-thumbnails", big_thumbnails);
-
         for(var element of elements)
         {
             var illust_id = element.dataset.illust_id;
@@ -617,11 +626,8 @@ class view_search extends view
             if(info == null)
                 continue;
 
-            // Set this thumb.  Do this even if pending is set, so we update if big_thumbnails has changed.
+            // Set this thumb.
             var url = info.url;
-            if(big_thumbnails)
-                url = info.url.replace(/\/240x240\//, "/540x540_70/");
-
             var thumb = element.querySelector(".thumb");
 
             // Check if this illustration is muted (blocked).

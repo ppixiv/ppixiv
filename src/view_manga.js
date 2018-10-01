@@ -8,8 +8,13 @@ class view_manga extends view
     {
         super();
 
-        this.container = container;
         this.refresh_ui = this.refresh_ui.bind(this);
+        this.window_onresize = this.window_onresize.bind(this);
+        this.refresh_images = this.refresh_images.bind(this);
+
+        this.container = container;
+
+        window.addEventListener("resize", this.window_onresize);
 
         this.ui = new image_ui(this.container.querySelector(".ui-container"), this.progress_bar);
         this.scroll_positions_by_illust_id = {};
@@ -17,9 +22,21 @@ class view_manga extends view
         image_data.singleton().user_modified_callbacks.register(this.refresh_ui);
         image_data.singleton().illust_modified_callbacks.register(this.refresh_ui);
 
+        this.thumbnail_size_slider = new thumbnail_size_slider_widget("manga-thumbnail-size", this.container.querySelector(".thumbnail-size"));
+        this.thumbnail_size_slider.on_change.register(this.refresh_images);
+        
         // Create a style for our thumbnail style.
         this.thumbnail_dimensions_style = document.createElement("style");
         document.body.appendChild(this.thumbnail_dimensions_style);
+    }
+
+    window_onresize(e)
+    {
+        if(!this.active)
+            return;
+        
+        console.log("resize");
+        this.refresh_images();
     }
 
     set active(active)
@@ -125,16 +142,15 @@ class view_manga extends view
         // Get the aspect ratio to crop images to.
         var ratio = this.get_display_aspect_ratio(this.manga_info);
 
-        // Figure out the size to use.
-        // XXX: large/small/wide thumb settings
-        var max_width = 400;
-        var max_height = 400;
-        if(ratio < 1)
-            max_width *= ratio;
-        else if(ratio > 1)
-            max_height /= ratio;
+        this.thumbnail_dimensions_style.textContent = helpers.make_thumbnail_sizing_style(ul, ".view-manga-container", {
+            wide: true,
+            size: this.thumbnail_size_slider.size,
+            ratio: ratio,
 
-        this.thumbnail_dimensions_style.textContent = ".view-manga-container .thumbnail-link { width: " + max_width + "px; height: " + max_height + "px; }";
+            // We preload this page anyway since it doesn't cause a lot of API calls, so we
+            // can allow a high column count and just let the size take over.
+            max_columns: 15,
+        });
 
         for(var page = 0; page < this.manga_info.length; ++page)
         {
@@ -168,7 +184,6 @@ class view_manga extends view
         for(var manga_page of manga_info)
         {
             var ratio = manga_page.width / manga_page.height;
-            console.log(average_aspect_ratio, ratio)
             if(Math.abs(average_aspect_ratio - ratio) > 0.1)
                 illusts_far_from_average++;
         }

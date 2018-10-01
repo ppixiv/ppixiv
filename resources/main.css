@@ -197,7 +197,7 @@ body.light .hover-message > .message {
 }
 
 .view-manga-container .ui-container {
-    width: 500px;
+    width: 600px;
     max-width: 90%;
 }
 
@@ -305,6 +305,10 @@ body.disable-thumbnail-panning .toggle-thumbnail-panning > .on { display: none; 
 
 .toggle-auto-like.auto-like > .off { display: none; }
 .toggle-auto-like:not(.auto-like) > .on { display: none; }
+
+/* Only show the thumbnail size slider in the manga view version of these settings, not
+ * in the illust view. */
+.view-illust-container .thumbnail-size-box { display: none; }
 
 .download-button {
     cursor: pointer;
@@ -651,10 +655,6 @@ body.light .view-search-container .thumbnail-ui-box .contact-link:hover { stroke
     margin: 0 auto; /* center */
 }
 
-body:not([data-thumbnail-mode="wide"]) .view-search-container ul {
-    max-width: 1200px;
-}
-
 li.thumbnail-box {
     display: inline-block;
     padding: 1em;
@@ -675,21 +675,6 @@ li.thumbnail-box a.thumbnail-link {
     position: relative;
     text-decoration: none;
     color: #fff;
-}
-
-/* Set the size of thumbs.  For the manga view, this is set in code. */
-.view-search-container li.thumbnail-box a.thumbnail-link {
-    /* Note that the actual images we get are up to 240x240.  Making this smaller can look
-     * cramped, and also can significantly increase the number of pages we'll load at once
-     * by causing lots of thumbnails to be on screen at once. */
-    width: 200px;
-    height: 200px;
-}
-
-body[data-thumbnail-mode="big"] .view-search-container  li.thumbnail-box a.thumbnail-link,
-body[data-thumbnail-mode="wide"] .view-search-container li.thumbnail-box a.thumbnail-link {
-    width: 300px;
-    height: 300px;
 }
 
 .page-count-box {
@@ -1407,6 +1392,12 @@ body.light .thumb-list-cursor
     width: 100%;
     height: 100%;
     text-align: center;
+
+    /* If we don't fill the screen, center. */
+    margin: 0 auto;
+}
+.view-manga-container > .thumbnails {
+    width: 100%;
 }
 
 .view-manga-container li.thumbnail-box {
