@@ -1,5 +1,5 @@
 This user script improves viewing illustrations on Pixiv.  This can be used
-with TamperMonkey and GreaseMonkey in Firefox and Chrome.
+with TamperMonkey and GreaseMonkey in Firefox, Chrome and Edge.
 
 The most recent version [can be installed here](https://s3.amazonaws.com/ppixiv/ppixiv.user.js).
 
