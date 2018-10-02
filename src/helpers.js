@@ -89,7 +89,8 @@ var helpers = {
             template = document.body.querySelector(type);
         else
             template = type;
-        return template.firstElementChild.cloneNode(true);
+
+        return document.importNode(template.content, true).firstElementChild;
     },
 
     // Fetch a simple data resource, and call callback with the result.

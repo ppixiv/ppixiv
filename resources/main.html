@@ -408,14 +408,15 @@
         <ul class=thumbnails></ul>
     </div>
     
-    <div hidden class=templates>
-        <div class=template-bookmark-tag-entry>
+    <!-- Templates: -->
+    <div>
+        <template class=template-bookmark-tag-entry>
             <div class=bookmark-tag-entry>
                 <span class=tag-name></span>
                 <a class=remove href=#>X</a>
             </div>
-        </div>
-        <ul class=template-thumbnail>
+        </template>
+        <template class=template-thumbnail>
             <li class=thumbnail-box>
                 <div class=thumbnail-inner>
                     <a class=thumbnail-link href=#>
@@ -449,9 +450,9 @@
                     </div>
                 </div>
             </li>
-        </ul>
+        </template>
 
-        <div class=template-image-ui>
+        <template class=template-image-ui>
             <div class=ui-box>
                 <!-- The avatar icon in the top-right.  This is absolutely positioned, since we don't
                      want this to push the rest of the UI down. -->
@@ -584,9 +585,9 @@
                 <div class=tag-list></div>
                 <div class=description></div>
             </div>
-        </div>
+        </template>
 
-        <div class=template-muted>
+        <template class=template-muted>
             <div class=mute-display>
                 <img class=muted-image>
                 <div class=muted-text>
@@ -594,10 +595,10 @@
                     <span class=muted-label></span>
                 </div>
             </div>
-        </div>
+        </template>
 
         <!-- A user avatar, with a follow/unfollow UI. -->
-        <div class="template-avatar">
+        <template class="template-avatar">
             <div class="follow-container">
                 <a href=# class=avatar-link>
                     <img class=avatar alt="" style="margin-left: auto; display: block;">
@@ -622,9 +623,9 @@
                     </div>
                 </div>
             </div>
-        </div>
+        </template>
 
-        <div class=template-tag-dropdown>
+        <template class=template-tag-dropdown>
             <div>
                 <!-- This is to make sure there isn't a gap between the input and the dropdown,
                      so we don't consider the mouse out of the box when it moves from the input
@@ -637,9 +638,9 @@
                     </div>
                 </div>
             </div>
-        </div>
+        </template>
 
-        <div class=template-tag-dropdown-entry>
+        <template class=template-tag-dropdown-entry>
             <div class=entry>
                 <div class=suggestion-icon>
                     ### inline:search-result-icon.svg
@@ -648,15 +649,15 @@
                 <a class=tag></a>
                 <a class=remove-history-entry href=#>X</a>
             </div>
-        </div>
+        </template>
 
-        <div class=template-manga-thumbnail>
+        <template class=template-manga-thumbnail>
             <div class=manga-thumbnail-box>
                 <img class=manga-thumb>
             </div>
-        </div>
+        </template>
 
-        <ul class=template-manga-view-thumbnail>
+        <template class=template-manga-view-thumbnail>
             <li class=thumbnail-box>
                 <div class=thumbnail-inner>
                     <a class=thumbnail-link href=#>
@@ -664,9 +665,9 @@
                     </a>
                 </div>
             </li>
-        </ul>
+        </template>
         
-        <div class=template-context-menu>
+        <template class=template-context-menu>
             <div class=popup-context-menu>
                 <div class=button-strip>
                     <div class=button-block>
@@ -746,6 +747,6 @@
                     <div style="background-color: #000; padding: 0px 8px; border-radius: 4px;" class=tooltip-display-text></div>
                 </div>
             </div>
-        </div>
+        </template>
     </div>
 </div>
