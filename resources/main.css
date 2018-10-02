@@ -154,7 +154,6 @@ body.light .hover-message > .message {
     max-height: 500px;
     width: 30%;
     height: auto;
-    margin: .5em;
 
     /* Disable events on the top-level container, so it doesn't block clicks on the
      * image when the UI isn't visible.  We'll reenable events on the hover-box and ui-box
@@ -199,6 +198,9 @@ body.light .hover-message > .message {
     color: #EEE;
     border-radius: 8px;
     position: relative;
+}
+.view-illust-container .ui-box {
+    margin: .5em;
 }
 
 .view-manga-container .ui-container {
