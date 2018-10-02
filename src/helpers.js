@@ -670,6 +670,15 @@ var helpers = {
         });        
     },
 
+    async get_request_async(url, data)
+    {
+        return new Promise(resolve => {
+            helpers.get_request(url, data, (result) => {
+                resolve(result);
+            });
+        });
+    },
+
     get_request: function(url, data, callback)
     {
         var params = new URLSearchParams();
@@ -747,6 +756,15 @@ var helpers = {
         };
 
         start_next();
+    },
+
+    async load_data_in_iframe_async(url)
+    {
+        return new Promise(resolve => {
+            helpers.load_data_in_iframe(url, (result) => {
+                resolve(result);
+            });
+        });
     },
 
     // Load a page in an iframe, and call callback on the resulting document.

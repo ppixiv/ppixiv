@@ -314,15 +314,6 @@ class data_source
         return parseInt(query_args.get("p")) || 1;
     }
 
-    async load_page_async(page)
-    {
-        return new Promise(resolve => {
-            this.load_page(page, (result) => {
-                resolve(result);
-            });
-        });
-    }
-
     // Load the given page, or the page of the current history state if page is null.
     // Call callback when the load finishes.
     //
@@ -372,6 +363,10 @@ class data_source
             return true;
         }
 
+        // Check if this is past the end.
+        if(!this.load_page_available(page))
+            return false;
+        
         // Create the callbacks list for this page if it doesn't exist.  This also records that
         // the request for this page is in progress.
         if(this.loading_page_callbacks[page] == null)
@@ -409,7 +404,7 @@ class data_source
         }.bind(this);
 
         // Start the actual load.
-        var result = this.load_page_internal(page, function() {
+        this.load_page_internal(page).then(function() {
             // If is_synchronous is true, the data source finished immediately before load_page_internal
             // returned.  This happens when the data is already available and didn't need to be loaded.
             // Make sure we complete the load asynchronously even if it finished synchronously.
@@ -421,13 +416,7 @@ class data_source
 
         is_synchronous = false;
 
-        if(!result)
-        {
-            // No request was actually started, so we're not calling the callback.
-            delete this.loading_page_callbacks[page];
-        }
-
-        return result;
+        return true;
     }
 
     // Return the illust_id to display by default.
@@ -452,9 +441,18 @@ class data_source
     }
 
     // This is implemented by the subclass.
-    load_page_internal(page, callback)
+    async load_page_internal(page)
     {
-        return false;
+        throw "Not implemented";
+    }
+
+    // Return true if page is an available page (not past the end).
+    //
+    // We'll always stop if we read a page and it's empty.  This allows the extra
+    // last request to be avoided if we know the last page earlier.
+    load_page_available(page)
+    {
+        return true;
     }
 
     // This is called when the currently displayed illust_id changes.  The illust_id should
@@ -667,68 +665,47 @@ class data_source_fake_pagination extends data_source
     {
         super(url);
 
-        this.finish_pending_callbacks = this.finish_pending_callbacks.bind(this);
-
         this.all_illust_ids = null;
-        this.loading_results = false;
-
-        // A list of [page, callback] calls to load_page_internal that are waiting to complete.
-        this.pending_callbacks = [];
     }
 
-    load_page_internal(page, callback)
+    async load_page_internal(page)
     {
-        this.pending_callbacks.push([page, callback]);
-
-        // If we haven't loaded our data yet, do it now.  Otherwise, we can just
-        // finish the request.
-        if(this.all_illust_ids == null)
+        if(this.loading_results == null)
         {
-            // If load_all_results is already running, just wait for the existing call to
-            // finish.
-            if(this.loading_results)
-                return;
-            this.loading_results = true;
+            this.loading_results = new Promise(resolve => {
+                setTimeout(async function() {
+                    var all_illust_ids = await this.load_all_results();
 
-            this.load_all_results();
+                    // Record the IDs.  Don't register all of them now, we'll wait until pages
+                    // are requested.
+                    this.all_illust_ids = all_illust_ids;
+                    
+                    // Allow all calls to load_page_internal to continue.
+                    resolve();
+                }.bind(this), 0);
+            });
         }
-        else
-            this.finish_pending_callbacks();
 
-        return true;
+        // Wait for loading_results to complete, if it hasn't yet.
+        await this.loading_results;
+        this.register_loaded_page(page);
     }
 
-    finish_pending_callbacks()
+    register_loaded_page(page)
     {
-        var pending_callbacks = this.pending_callbacks;
-        this.pending_callbacks = [];
+        // If this page isn't loaded, load it now.
+        if(this.id_list.is_page_loaded(page))
+            return;
 
-        // First, register all requested pages.
-        for(var item of pending_callbacks)
-        {
-            var page = item[0];
-
-            // If this page isn't loaded, load it now.
-            if(!this.id_list.is_page_loaded(page))
-            {
-                // Paginate the big list of results.  Note that page starts at 1.
-                var first_idx = (page-1) * this.estimated_items_per_page;
-                var count = this.estimated_items_per_page;
-                var illust_ids = [];
-                for(var idx = first_idx; idx < first_idx + count && idx < this.all_illust_ids.length; ++idx)
-                    illust_ids.push(this.all_illust_ids[idx]);
-            
-                // Register the new page of data.
-                this.add_page(page, illust_ids);
-            }
-        }
-        
-        // Call the callbacks asynchronously.
-        for(var item of pending_callbacks)
-        {
-            var callback = item[1];
-            setTimeout(callback, 0);
-        }
+        // Paginate the big list of results.  Note that page starts at 1.
+        var first_idx = (page-1) * this.estimated_items_per_page;
+        var count = this.estimated_items_per_page;
+        var illust_ids = [];
+        for(var idx = first_idx; idx < first_idx + count && idx < this.all_illust_ids.length; ++idx)
+            illust_ids.push(this.all_illust_ids[idx]);
+    
+        // Register the new page of data.
+        this.add_page(page, illust_ids);
     }
 
     // Implemented by the subclass.  Load all results, and call finished_loading_results
@@ -738,6 +715,7 @@ class data_source_fake_pagination extends data_source
         throw "Not implemented";
     }
 
+    // XXX remove
     finished_loading_results(all_illust_ids)
     {
         // Record the IDs.  Don't register all of them now, we'll wait until pages
@@ -759,7 +737,7 @@ class data_source_discovery extends data_source_fake_pagination
     get name() { return "discovery"; }
 
     // Implement data_source_fake_pagination:
-    load_all_results()
+    async load_all_results()
     {
         // Get "mode" from the URL.  If it's not present, use "all".
         var query_args = this.url.searchParams;
@@ -773,17 +751,15 @@ class data_source_discovery extends data_source_fake_pagination
             mode: mode,
         };
 
-        helpers.get_request("/rpc/recommender.php", data, function(result) {
-            // Unlike other APIs, this one returns IDs as ints rather than strings.  Convert back
-            // to strings.
-            var illust_ids = [];
-            for(var illust_id of result.recommendations)
-                illust_ids.push(illust_id + "");
+        var result = await helpers.get_request_async("/rpc/recommender.php", data);
 
-            this.finished_loading_results(illust_ids);
-        }.bind(this))
+        // Unlike other APIs, this one returns IDs as ints rather than strings.  Convert back
+        // to strings.
+        var illust_ids = [];
+        for(var illust_id of result.recommendations)
+            illust_ids.push(illust_id + "");
 
-        return true;
+        return illust_ids;
     };
 
     get page_title() { return "Discovery"; }
@@ -831,7 +807,7 @@ class data_source_related_illusts extends data_source_fake_pagination
     }
      
     // Implement data_source_fake_pagination:
-    load_all_results()
+    async load_all_results()
     {
         var query_args = this.url.searchParams;
         var illust_id = query_args.get("illust_id");
@@ -842,15 +818,15 @@ class data_source_related_illusts extends data_source_fake_pagination
             num_recommendations: 1000,
         };
 
-        helpers.get_request("/rpc/recommender.php", data, function(result) {
-            // Unlike other APIs, this one returns IDs as ints rather than strings.  Convert back
-            // to strings.
-            var illust_ids = [];
-            for(var illust_id of result.recommendations)
-                illust_ids.push(illust_id + "");
+        var result = await helpers.get_request_async("/rpc/recommender.php", data);
 
-            this.finished_loading_results(illust_ids);
-        }.bind(this))
+        // Unlike other APIs, this one returns IDs as ints rather than strings.  Convert back
+        // to strings.
+        var illust_ids = [];
+        for(var illust_id of result.recommendations)
+            illust_ids.push(illust_id + "");
+
+        return illust_ids;
     };
 
     get page_title() { return "Similar Illusts"; }
@@ -890,8 +866,13 @@ class data_source_rankings extends data_source
     }
     
     get name() { return "rankings"; }
-   
-    load_page_internal(page, callback)
+
+    load_page_available(page)
+    {
+        return page <= this.max_page;
+    }
+
+    async load_page_internal(page)
     {
 
         /*
@@ -905,9 +886,6 @@ class data_source_rankings extends data_source
         "next_date": false,
         "rank_total": 500        
         */
-
-        if(page > this.max_page)
-            return false;
 
         // Get "mode" from the URL.  If it's not present, use "all".
         var query_args = this.url.searchParams;
@@ -929,56 +907,51 @@ class data_source_rankings extends data_source
         if(mode)
             data.mode = mode;
 
-        helpers.get_request("/ranking.php", data, function(result) {
-            // If "next" is false, this is the last page.
-            if(!result.next)
-                this.max_page = Math.min(page, this.max_page);
+        var result = await helpers.get_request_async("/ranking.php", data);
 
-            // Fill in the next/prev dates for the navigation buttons, and the currently
-            // displayed date.
-            if(this.today_text == null)
+        // If "next" is false, this is the last page.
+        if(!result.next)
+            this.max_page = Math.min(page, this.max_page);
+
+        // Fill in the next/prev dates for the navigation buttons, and the currently
+        // displayed date.
+        if(this.today_text == null)
+        {
+            this.today_text = result.date;
+
+            // This is "YYYYMMDD".  Reformat it.
+            if(this.today_text.length == 8)
             {
-                this.today_text = result.date;
-
-                // This is "YYYYMMDD".  Reformat it.
-                if(this.today_text.length == 8)
-                {
-                    var year = this.today_text.slice(0,4);
-                    var month = this.today_text.slice(4,6);
-                    var day = this.today_text.slice(6,8);
-                    this.today_text = year + "/" + month + "/" + day;
-                }
+                var year = this.today_text.slice(0,4);
+                var month = this.today_text.slice(4,6);
+                var day = this.today_text.slice(6,8);
+                this.today_text = year + "/" + month + "/" + day;
             }
+        }
 
-            if(this.prev_date == null && result.prev_date)
-                this.prev_date = result.prev_date;
-            if(this.next_date == null && result.next_date)
-                this.next_date = result.next_date;
+        if(this.prev_date == null && result.prev_date)
+            this.prev_date = result.prev_date;
+        if(this.next_date == null && result.next_date)
+            this.next_date = result.next_date;
+    
+        // This returns a struct of data that's like the thumbnails data response,
+        // but it's not quite the same.
+        var illust_ids = [];
+        for(var item of result.contents)
+        {
+            // Most APIs return IDs as strings, but this one returns them as ints.
+            // Convert them to strings.
+            var illust_id = "" + item.illust_id;
+            var user_id = "" + item.user_id;
+            illust_ids.push(illust_id);
+            image_data.singleton().set_user_id_for_illust_id(illust_id, user_id)
+        }
+
+        // Register this as thumbnail data.
+        thumbnail_data.singleton().loaded_thumbnail_info(result.contents, "rankings");
         
-            // This returns a struct of data that's like the thumbnails data response,
-            // but it's not quite the same.
-            var illust_ids = [];
-            for(var item of result.contents)
-            {
-                // Most APIs return IDs as strings, but this one returns them as ints.
-                // Convert them to strings.
-                var illust_id = "" + item.illust_id;
-                var user_id = "" + item.user_id;
-                illust_ids.push(illust_id);
-                image_data.singleton().set_user_id_for_illust_id(illust_id, user_id)
-            }
-
-            // Register this as thumbnail data.
-            thumbnail_data.singleton().loaded_thumbnail_info(result.contents, "rankings");
-            
-            // Register the new page of data.
-            this.add_page(page, illust_ids);
-
-            if(callback)
-                callback();
-        }.bind(this))
-
-        return true;
+        // Register the new page of data.
+        this.add_page(page, illust_ids);
     };
 
     get estimated_items_per_page() { return 50; }
@@ -1138,7 +1111,12 @@ class data_source_from_page extends data_source
         return url1 == url2;
     }
 
-    load_page_internal(page, callback)
+    load_page_available(page)
+    {
+        return true;
+    }
+    
+    async load_page_internal(page)
     {
         // Our page URL looks like eg.
         //
@@ -1153,7 +1131,7 @@ class data_source_from_page extends data_source
 
         if(this.original_doc != null && this.is_same_page(url, this.original_url))
         {
-            this.finished_loading_illust(page, this.original_doc, callback);
+            this.finished_loading_illust(page, this.original_doc);
             return true;
         }
 
@@ -1171,16 +1149,14 @@ class data_source_from_page extends data_source
 
         console.log("Loading:", url.toString());
 
-        helpers.load_data_in_iframe(url.toString(), function(doc) {
-            this.finished_loading_illust(page, doc, callback);
-        }.bind(this));
-        return true;
+        var doc = await helpers.load_data_in_iframe_async(url.toString());
+        this.finished_loading_illust(page, doc);
     };
 
     get estimated_items_per_page() { return this.items_per_page; }
 
-    // We finished loading a page.  Parse it, register the results and call the completion callback.
-    finished_loading_illust(page, doc, callback)
+    // We finished loading a page.  Parse it and register the results.
+    finished_loading_illust(page, doc)
     {
         var illust_ids = this.parse_document(doc);
         if(illust_ids == null)
@@ -1212,9 +1188,6 @@ class data_source_from_page extends data_source
             this.original_doc = null;
             this.original_url = null;
         }
-
-        if(callback)
-            callback();
     }
 
     // Parse the loaded document and return the illust_ids.
@@ -1260,64 +1233,61 @@ class data_source_artist extends data_source
         return query_args.get("id");
     };
 
-    load_page_internal(page, callback)
+    load_page_available(page)
     {
-        if(page != 1)
-            return false;
-
+        return page == 1;
+    }
+    
+    async load_page_internal(page)
+    {
         this.post_tags = [];
         
         // Make sure the user info is loaded.  This should normally be preloaded by globalInitData
         // in main.js, and this won't make a request.
-        image_data.singleton().get_user_info_full(this.viewing_user_id, function(user_info) {
-            this.user_info = user_info;
+        var user_info = await image_data.singleton().get_user_info_full_async(this.viewing_user_id);
+        console.log("xxx", user_info);
+
+        this.user_info = user_info;
+        this.call_update_listeners();
+
+        var result = await helpers.get_request_async("/ajax/user/" + this.viewing_user_id + "/profile/all", {});
+
+        var illust_ids = [];
+        for(var illust_id in result.body.illusts)
+            illust_ids.push(illust_id);
+        for(var illust_id in result.body.manga)
+            illust_ids.push(illust_id);
+
+        // Sort the two sets of IDs back together, putting higher (newer) IDs first.
+        illust_ids.sort(function(lhs, rhs)
+        {
+            return parseInt(rhs) - parseInt(lhs);
+        });
+
+        // Register the new page of data.
+        this.add_page(page, illust_ids);
+
+        // Request common tags for these posts.
+        //
+        // get_request doesn't handle PHP's wonky array format for GET arguments, so we just
+        // format it here.
+        this.post_tags = [];
+        var tags_for_illust_ids = illust_ids.slice(0,50);
+        if(page == 1 && tags_for_illust_ids.length > 0)
+        {
+            var id_args = "";
+            for(var id of tags_for_illust_ids)
+            {
+                if(id_args != "")
+                    id_args += "&";
+                id_args += "ids%5B%5D=" + id;
+            }
+
+            var frequent_tag_result = await helpers.get_request_async("/ajax/tags/frequent/illust?" + id_args, {});
+            for(var tag of frequent_tag_result.body)
+                this.post_tags.push(tag);
             this.call_update_listeners();
-
-            helpers.get_request("/ajax/user/" + this.viewing_user_id + "/profile/all", {}, function(result) {
-                var illust_ids = [];
-                for(var illust_id in result.body.illusts)
-                    illust_ids.push(illust_id);
-                for(var illust_id in result.body.manga)
-                    illust_ids.push(illust_id);
-
-                // Sort the two sets of IDs back together, putting higher (newer) IDs first.
-                illust_ids.sort(function(lhs, rhs)
-                {
-                    return parseInt(rhs) - parseInt(lhs);
-                });
-
-                // Register the new page of data.
-                this.add_page(page, illust_ids);
-
-                if(callback)
-                    callback();
-
-                // Request common tags for these posts.
-                //
-                // get_request doesn't handle PHP's wonky array format for GET arguments, so we just
-                // format it here.
-                this.post_tags = [];
-                var tags_for_illust_ids = illust_ids.slice(0,50);
-                if(page == 1 && tags_for_illust_ids.length > 0)
-                {
-                    var id_args = "";
-                    for(var id of tags_for_illust_ids)
-                    {
-                        if(id_args != "")
-                            id_args += "&";
-                        id_args += "ids%5B%5D=" + id;
-                    }
-
-                    helpers.get_request("/ajax/tags/frequent/illust?" + id_args, {}, function(result) {
-                        for(var tag of result.body)
-                            this.post_tags.push(tag);
-                        this.call_update_listeners();
-                    }.bind(this));
-                }
-            }.bind(this));
-        }.bind(this));        
-
-        return true;
+        }
     };
 
     refresh_thumbnail_ui(container, thumbnail_view)
@@ -1392,7 +1362,6 @@ class data_source_artist extends data_source
 //
 // This reads data from a page, but we don't use data_source_from_page here.  We
 // don't need its pagination logic, and we do want to have pagination from data_source_fake_pagination.
-// a
 class data_source_current_illust extends data_source_fake_pagination
 {
     get name() { return "illust"; }
@@ -1415,13 +1384,10 @@ class data_source_current_illust extends data_source_fake_pagination
     get_default_page() { return 1; }
 
     // Implement data_source_fake_pagination:
-    load_all_results()
+    async load_all_results()
     {
         if(this.original_doc != null)
-        {
-            this.load_all_results_from(this.original_doc);
-            return;
-        }
+            return this.load_all_results_from(this.original_doc);
 
         var url = new unsafeWindow.URL(this.original_url);
 
@@ -1430,33 +1396,28 @@ class data_source_current_illust extends data_source_fake_pagination
         
         console.log("Loading:", url.toString());
 
-        helpers.load_data_in_iframe(url.toString(), function(doc) {
-            this.load_all_results_from(doc);
-        }.bind(this));
+        var doc = await helpers.load_data_in_iframe_async(url.toString());
+        return this.load_all_results_from(doc);
     };
 
     // Parse out illust IDs from doc, and pass them to finished_loading_results.
     load_all_results_from(doc)
     {
         var illust_ids = this.parse_document(doc);
-        if(illust_ids == null)
-        {
-            // The most common case of there being no data in the document is loading
-            // a deleted illustration.  See if we can find an error message.
-            console.error("No data on page");
-            var error = doc.querySelector(".error-message");
-            var error_message = "Error loading page";
-            if(error != null)
-                error_message = error.textContent;
-            message_widget.singleton.show(error_message);
-            message_widget.singleton.clear_timer();
+        if(illust_ids != null)
+            return illust_ids;
 
-            // We still need to call finished_loading_results.
-            this.finished_loading_results([]);
-            return;
-        }
+        // The most common case of there being no data in the document is loading
+        // a deleted illustration.  See if we can find an error message.
+        console.error("No data on page");
+        var error = doc.querySelector(".error-message");
+        var error_message = "Error loading page";
+        if(error != null)
+            error_message = error.textContent;
+        message_widget.singleton.show(error_message);
+        message_widget.singleton.clear_timer();
 
-        this.finished_loading_results(illust_ids);
+        return [];
     }
 
     parse_document(doc)
@@ -1593,7 +1554,7 @@ class data_source_bookmarks_base extends data_source
         this.bookmark_tags = [];
     }
 
-    load_page_internal(page, callback)
+    async load_page_internal(page)
     {
         this.bookmark_tags = [];
 
@@ -1601,14 +1562,12 @@ class data_source_bookmarks_base extends data_source
         
         // Make sure the user info is loaded.  This should normally be preloaded by globalInitData
         // in main.js, and this won't make a request.
-        image_data.singleton().get_user_info_full(this.viewing_user_id, function(user_info) {
-            this.user_info = user_info;
-            this.call_update_listeners();
+        var user_info = await image_data.singleton().get_user_info_full_async(this.viewing_user_id);
 
-            this.continue_loading_page_internal(page, callback);
-        }.bind(this));        
+        this.user_info = user_info;
+        this.call_update_listeners();
 
-        return true;
+        await this.continue_loading_page_internal(page);
     };
 
     // If we haven't done so yet, load bookmark tags for this bookmark page.  This
@@ -1681,9 +1640,8 @@ class data_source_bookmarks_base extends data_source
         };
     }
 
-
     // This is implemented by the subclass to do the main loading.
-    continue_loading_page_internal(page, callback)
+    async continue_loading_page_internal(page)
     {
         throw "Not implemented";
     }
@@ -1806,32 +1764,29 @@ class data_source_bookmarks_base extends data_source
 // and not both.
 class data_source_bookmarks extends data_source_bookmarks_base
 {
-    continue_loading_page_internal(page, callback)
+    async continue_loading_page_internal(page)
     {
         var data = this.get_bookmark_query_params(page);
 
         var url = "/ajax/user/" + this.viewing_user_id + "/illusts/bookmarks";
-        helpers.get_request(url, data, function(result) {
-            var illust_ids = [];
-            for(var illust_data of result.body.works)
-                illust_ids.push(illust_data.id);
+        var result = await helpers.get_request_async(url, data);
 
-            // This request returns all of the thumbnail data we need.  Forward it to
-            // thumbnail_data so we don't need to look it up.
-            thumbnail_data.singleton().loaded_thumbnail_info(result.body.works, "normal");
+        var illust_ids = [];
+        for(var illust_data of result.body.works)
+            illust_ids.push(illust_data.id);
 
-            // Sort the two sets of IDs back together, putting higher (newer) IDs first.
-            illust_ids.sort(function(lhs, rhs)
-            {
-                return parseInt(rhs) - parseInt(lhs);
-            });
+        // This request returns all of the thumbnail data we need.  Forward it to
+        // thumbnail_data so we don't need to look it up.
+        thumbnail_data.singleton().loaded_thumbnail_info(result.body.works, "normal");
 
-            // Register the new page of data.
-            this.add_page(page, illust_ids);
+        // Sort the two sets of IDs back together, putting higher (newer) IDs first.
+        illust_ids.sort(function(lhs, rhs)
+        {
+            return parseInt(rhs) - parseInt(lhs);
+        });
 
-            if(callback)
-                callback();
-        }.bind(this));
+        // Register the new page of data.
+        this.add_page(page, illust_ids);
     }
 };
 
@@ -1849,91 +1804,77 @@ class data_source_bookmarks_merged extends data_source_bookmarks_base
         this.bookmark_illust_ids = [[], []]; // public, private
     }
 
-    continue_loading_page_internal(page, callback)
+    async continue_loading_page_internal(page)
     {
         // Request both the public and private bookmarks on the given page.  If we've
         // already reached the end of either of them, don't send that request.
-        var finished = 0;
+        var request1 = this.request_bookmarks(page, "show");
+        var request2 = this.request_bookmarks(page, "hide");
 
-        // Request both bookmark types.
-        var request_finished = function() {
-            // We're finished when both requests complete.
-            finished++;
-            if(finished < 2)
-                return;
+        // Wait for both requests to finish.
+        await Promise.all([request1, request2]);
 
-            // Both requests finished.  Combine the two lists of illust IDs into a single page
-            // and register it.
-            var illust_ids = [];
-            for(var i = 0; i < 2; ++i)
-                if(this.bookmark_illust_ids[i] != null)
-                    illust_ids = illust_ids.concat(this.bookmark_illust_ids[i][page]);
+        // Both requests finished.  Combine the two lists of illust IDs into a single page
+        // and register it.
+        var illust_ids = [];
+        for(var i = 0; i < 2; ++i)
+            if(this.bookmark_illust_ids[i] != null)
+                illust_ids = illust_ids.concat(this.bookmark_illust_ids[i][page]);
 
-            // Sort the two sets of IDs back together, putting higher (newer) IDs first.
-            //
-            // Note that there's no connection between the two lists of IDs, so the real
-            // sort won't be very useful page-to-page.
-            illust_ids.sort(function(lhs, rhs)
-            {
-                return parseInt(rhs) - parseInt(lhs);
-            });
-            
-            this.add_page(page, illust_ids);
-
-            if(callback)
-                callback();
-        }.bind(this);
-
-        this.request_bookmarks(page, "show", request_finished);
-        this.request_bookmarks(page, "hide", request_finished);
+        // Sort the two sets of IDs back together, putting higher (newer) IDs first.
+        //
+        // Note that there's no connection between the two lists of IDs, so the real
+        // sort won't be very useful page-to-page.
+        illust_ids.sort(function(lhs, rhs)
+        {
+            return parseInt(rhs) - parseInt(lhs);
+        });
+        
+        this.add_page(page, illust_ids);
     }
 
-    request_bookmarks(page, rest, callback)
+    async request_bookmarks(page, rest)
     {
         var is_private = rest == "hide"? 1:0;
         var max_page = this.max_page_per_type[is_private];
         if(max_page != -1 && page > max_page)
         {
-            // We're past the end, so just call the callback.
+            // We're past the end.
             console.log("page", page, "beyond", max_page, rest);
-            setTimeout(callback, 0);
             return;
         }
 
         var data = this.get_bookmark_query_params(page, rest);
 
         var url = "/ajax/user/" + this.viewing_user_id + "/illusts/bookmarks";
-        helpers.get_request(url, data, function(result) {
-            var illust_ids = [];
-            for(var illust_data of result.body.works)
-                illust_ids.push(illust_data.id);
+        var result = await helpers.get_request_async(url, data);
+        var illust_ids = [];
+        for(var illust_data of result.body.works)
+            illust_ids.push(illust_data.id);
 
-            // This request returns all of the thumbnail data we need.  Forward it to
-            // thumbnail_data so we don't need to look it up.
-            thumbnail_data.singleton().loaded_thumbnail_info(result.body.works, "normal");
+        // This request returns all of the thumbnail data we need.  Forward it to
+        // thumbnail_data so we don't need to look it up.
+        thumbnail_data.singleton().loaded_thumbnail_info(result.body.works, "normal");
 
-            // Sort the two sets of IDs back together, putting higher (newer) IDs first.
-            illust_ids.sort(function(lhs, rhs)
-            {
-                return parseInt(rhs) - parseInt(lhs);
-            });
+        // Sort the two sets of IDs back together, putting higher (newer) IDs first.
+        illust_ids.sort(function(lhs, rhs)
+        {
+            return parseInt(rhs) - parseInt(lhs);
+        });
 
-            // If there are no results, remember that this is the last page, so we don't
-            // make more requests for this type.
-            if(illust_ids.length == 0)
-            {
-                if(this.max_page_per_type[is_private] == -1)
-                    this.max_page_per_type[is_private] = page;
-                else
-                    this.max_page_per_type[is_private] = Math.min(page, this.max_page_per_type[is_private]);
-                console.log("max page", this.max_page_per_type[is_private]);
-            }
+        // If there are no results, remember that this is the last page, so we don't
+        // make more requests for this type.
+        if(illust_ids.length == 0)
+        {
+            if(this.max_page_per_type[is_private] == -1)
+                this.max_page_per_type[is_private] = page;
+            else
+                this.max_page_per_type[is_private] = Math.min(page, this.max_page_per_type[is_private]);
+            console.log("max page", this.max_page_per_type[is_private]);
+        }
 
-            // Store the IDs.  We don't register them here.
-            this.bookmark_illust_ids[is_private][page] = illust_ids;
-
-            callback();
-        }.bind(this));
+        // Store the IDs.  We don't register them here.
+        this.bookmark_illust_ids[is_private][page] = illust_ids;
     }
 }
 
