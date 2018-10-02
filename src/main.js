@@ -383,7 +383,7 @@ class main_controller
         
         // Are we navigating forwards or back?
         var new_history_index = helpers.current_history_state_index();
-        var navigating_forwards = new_history_index > this.current_history_index;
+        var navigating_forwards = cause == "history" && new_history_index > this.current_history_index;
         this.current_history_index = new_history_index;
 
         // Handle scrolling for the new state.
