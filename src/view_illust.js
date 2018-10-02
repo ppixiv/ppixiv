@@ -18,8 +18,14 @@ class view_illust extends view
         this.progress_bar = main_controller.singleton.progress_bar;
 
         // Create a UI box and put it in its container.
-        this.ui = new image_ui(this.container.querySelector(".ui"), this.progress_bar);
+        var ui_container = this.container.querySelector(".ui");
+        this.ui = new image_ui(ui_container, this.progress_bar);
         
+        var hover_circle = this.container.querySelector(".ui .hover-circle");
+        var ui_box = this.container.querySelector(".ui-box");
+        hover_circle.addEventListener("mouseover", (e) => { helpers.set_class(ui_box, "popup-visible", true); });
+        hover_circle.addEventListener("mouseout", (e) => { helpers.set_class(ui_box, "popup-visible", false); });
+
         document.head.appendChild(document.createElement("title"));
         this.document_icon = document.head.appendChild(document.createElement("link"));
         this.document_icon.setAttribute("rel", "icon");

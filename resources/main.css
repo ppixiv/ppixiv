@@ -191,6 +191,26 @@ body.light .hover-message > .message {
     left: 0;
     pointer-events: auto; /* reenable pointer events that are disabled on .ui */
 }
+.hover-sphere {
+    width: 500px;
+    height: 500px;
+
+    /* Clamp the sphere to a percentage of the viewport width, so it gets smaller for
+     * small windows. */
+    max-width: 30vw;
+    max-height: 30vw;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+.hover-sphere circle {
+    pointer-events: auto; /* reenable pointer events that are disabled on .ui */
+}
+.hover-sphere > svg {
+    width: 100%;
+    height: 100%;
+    transform: translate(-50%,-50%)
+}
 .ui-box {
     background-color: #222;
     border: solid 2px #000;
@@ -237,7 +257,8 @@ body.force-ui .view-illust-container .ui > .ui-box {
 
 /* Show the UI on hover when hide-ui isn't set. */
 body:not(.hide-ui) .view-illust-container .ui-box:hover,
-body:not(.hide-ui) .view-illust-container .hover-box:hover + .ui-box {
+body:not(.hide-ui) .view-illust-container .hover-box:hover + .ui-box,
+body:not(.hide-ui) .view-illust-container .ui-box.popup-visible {
     opacity: 1;
     transform: translate(0, 0);
     pointer-events: auto;
