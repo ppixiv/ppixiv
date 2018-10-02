@@ -318,32 +318,41 @@ class refresh_bookmark_tag_widget
 
     onclick(e)
     {
+        this.refresh();
+    }
+
+    async refresh(e)
+    {
         if(this.running)
             return;
 
         this.running = true;
         helpers.set_class(this.container,"spin", this.running);
 
-        helpers.load_data_in_iframe("/bookmark.php", function(document) {
+        try {
+            var doc = await helpers.load_data_in_iframe_async("/bookmark.php");
+            f();
+        } finally {
             this.running = false;
+
             // For some reason, if we disable the spin in this callback, the icon skips
             // for a frame every time (at least in Firefox).  There's no actual processing
             // skip and it doesn't happen if we set the class from a timer.
             setTimeout(function() {
                 helpers.set_class(this.container,"spin", this.running);
             }.bind(this), 100);
+        }
 
-            var bookmark_tags = [];
-            for(var element of document.querySelectorAll("#bookmark_list a[href*='bookmark.php']"))
-            {
-                var tag = new URL(element.href).searchParams.get("tag");
-                if(tag != null)
-                    bookmark_tags.push(tag);
-            }
-            helpers.set_recent_bookmark_tags(bookmark_tags);
+        var bookmark_tags = [];
+        for(var element of doc.querySelectorAll("#bookmark_list a[href*='bookmark.php']"))
+        {
+            var tag = new URL(element.href).searchParams.get("tag");
+            if(tag != null)
+                bookmark_tags.push(tag);
+        }
+        helpers.set_recent_bookmark_tags(bookmark_tags);
 
-            window.dispatchEvent(new Event("bookmark-tags-changed"));
-        }.bind(this));
+        window.dispatchEvent(new Event("bookmark-tags-changed"));
     }
 }
 
