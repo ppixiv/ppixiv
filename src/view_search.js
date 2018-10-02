@@ -563,7 +563,6 @@ class view_search extends view
     update_from_settings()
     {
         var thumbnail_mode = helpers.get_value("thumbnail-size");
-        document.body.dataset.thumbnailMode = thumbnail_mode;
         this.set_visible_thumbs();
         this.refresh_images();
 

@@ -247,7 +247,8 @@ class main_controller
         helpers.add_style(resources['main.css']);
        
         // Create the page from our HTML resource.
-        this.container = document.body.appendChild(helpers.create_node(resources['main.html']));
+        document.body.insertAdjacentHTML("beforeend", resources['main.html']);
+        this.container = document.body;
 
         // Create the popup menu handler.
         this.context_menu = new main_context_menu(document.body);
