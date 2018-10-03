@@ -231,7 +231,10 @@ class image_ui
         set_info(".post-info > .ugoira-frames", illust_data.illustType == 2? (illust_data.ugoiraMetadata.frames.length + " frames"):"");
 
         // Add the page count for manga.
-        set_info(".post-info > .page-count", illust_data.pageCount == 1? "":(illust_data.pageCount + " pages"));
+        var page_text = "";
+        if(illust_data.pageCount > 1 && this.displayed_page != null)
+            page_text = "Page " + (this.displayed_page+1) + "/" + illust_data.pageCount;
+        set_info(".post-info > .page-count", page_text);
 
         // The comment (description) can contain HTML.
         var element_comment = this.container.querySelector(".description");
@@ -270,8 +273,9 @@ class image_ui
 
     // Set the resolution to display in image info.  If both are null, no resolution
     // is displayed.
-    set_displayed_resolution(width, height)
+    set_displayed_page_info(page, width, height)
     {
+        this.displayed_page = page;
         this.displayed_width = width;
         this.displayed_height = height;
         this.refresh();

@@ -343,9 +343,10 @@ class view_illust extends view
             return;
         
         // Tell the UI the image resolution.
+        var page = this.viewer != null && this.viewer.page;
         var width = this.viewer != null && this.viewer.current_image_width;
         var height = this.viewer != null && this.viewer.current_image_height;
-        this.ui.set_displayed_resolution(width, height);
+        this.ui.set_displayed_page_info(page, width, height);
 
         // Pull out info about the user and illustration.
         var illust_id = this.current_illust_id;
