@@ -128,7 +128,19 @@ class main_context_menu extends popup_context_menu
         var down = e.deltaY > 0;
         this._on_click_viewer.relative_zoom_level += down? -1:+1;
 
+        // As a special case, if we're in 1x zoom from above and we return to 1x relative zoom
+        // (eg. the user mousewheeled up and then back down), switch to another zoom mode.
+        // Otherwise, if you zoom up and then back down, the zoom level is left at 1x, so click
+        // zooming seems to be broken.  We don't know what the old zoom setting was to restore it,
+        // so we just switch to fill zoom.
+        if(this._on_click_viewer.relative_zoom_level == 0 && this._on_click_viewer.zoom_level == 4)
+        {
+            this._on_click_viewer.zoom_level = 0;
+            this._on_click_viewer.locked_zoom = false;
+        }
+
         this._on_click_viewer.set_image_position(e.clientX, e.clientY, center);
+        this.refresh();
     }
 
     hide()
