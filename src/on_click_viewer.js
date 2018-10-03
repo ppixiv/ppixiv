@@ -265,9 +265,16 @@ class on_click_viewer
     }
 
     // Given a screen position, return the normalized position relative to the image.
-    // (0,0) is the top-left of the image and (1,1) is the bottom-right.
+    // (0,0) is the top-left of the image and (1,1) is the bottom-right.  If x is null,
+    // return the center of the screen.
     get_image_position(x, y)
     {
+        if(x == null)
+        {
+            x = this.img.parentNode.offsetWidth / 2;
+            y = this.img.parentNode.offsetHeight / 2;
+        }
+
         // zoom_pos shifts the image around in screen space.
         var zoom_center = [0,0];
         if(this.zoom_active)
@@ -298,6 +305,12 @@ class on_click_viewer
     {
         if(!this.zoom_active)
             return;
+
+        if(x == null)
+        {
+            x = this.img.parentNode.offsetWidth / 2;
+            y = this.img.parentNode.offsetHeight / 2;
+        }
 
         // This just does the inverse of get_image_position.
         zoom_center = [zoom_center[0], zoom_center[1]];
@@ -337,7 +350,7 @@ class on_click_viewer
         document.body.classList.add("hide-ui");
 
         if(!this._locked_zoom)
-            var zoom_center_percent = this.get_image_position(e.clientX, e.clientY);            
+            var zoom_center_percent = this.get_image_position(e.pageX, e.pageY);            
 
         this.zoomed = true;
         this.dragged_while_zoomed = false;
@@ -353,7 +366,7 @@ class on_click_viewer
         // If this is a click-zoom, align the zoom to the point on the image that
         // was clicked.
         if(!this._locked_zoom)
-            this.set_image_position(e.clientX, e.clientY, zoom_center_percent);
+            this.set_image_position(e.pageX, e.pageY, zoom_center_percent);
 
         this.reposition();
 

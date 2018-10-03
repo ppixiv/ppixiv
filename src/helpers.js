@@ -1382,6 +1382,20 @@ var helpers = {
         page_title += user_data.name + " - " + illust_data.illustTitle;
         helpers.set_page_title(page_title);
     },
+
+    // Return 1 if the given keydown event should zoom in, -1 if it should zoom
+    // out, or null if it's not a zoom keypress.
+    is_zoom_hotkey(e)
+    {
+        if(!e.ctrlKey)
+            return null;
+        
+        if(e.keyCode == 107 /* keypad + */ || e.keyCode == 187) /* = */
+            return +1;
+        if(e.keyCode == 109 /* keypad - */ || e.keyCode == 189) /* - */ 
+            return -1;
+        return null;
+    }
 };
 
 // Handle maintaining and calling a list of callbacks.

@@ -161,6 +161,7 @@ class main_controller
         main_controller._singleton = this;
 
         this.onkeydown = this.onkeydown.catch_bind(this);
+        this.redirect_event_to_view = this.redirect_event_to_view.catch_bind(this);
         this.window_onclick_capture = this.window_onclick_capture.catch_bind(this);
         this.window_onpopstate = this.window_onpopstate.catch_bind(this);
 
@@ -206,6 +207,11 @@ class main_controller
 
         window.addEventListener("click", this.window_onclick_capture, true);
         window.addEventListener("popstate", this.window_onpopstate);
+
+        window.addEventListener("keyup", this.redirect_event_to_view);
+        window.addEventListener("keydown", this.redirect_event_to_view);
+        window.addEventListener("keypress", this.redirect_event_to_view);
+
         window.addEventListener("keydown", this.onkeydown);
 
         this.current_view_name = null;
@@ -624,6 +630,30 @@ class main_controller
         helpers.set_class(document.body, "premium", premium);
     };
 
+    // Redirect keyboard events that didn't go into the active view.
+    redirect_event_to_view(e)
+    {
+        var view = this.displayed_view;
+        if(view == null)
+            return;
+
+        // If the keyboard input didn't go to an element inside the view, redirect
+        // it to the view's container.
+        var target = e.target;
+        // If the event is going to an element inside the view already, just let it continue.
+        if(helpers.is_above(view.container, e.target))
+            return;
+
+        // Clone the event and redispatch it to the view's container.
+        var e2 = new e.constructor(e.type, e);
+        if(!view.container.dispatchEvent(e2))
+        {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            return;
+        }
+    }
+
     onkeydown(e)
     {
         // Ignore keypresses if we haven't set up the view yet.
@@ -640,7 +670,7 @@ class main_controller
 
             return;
         }
-
+       
         // Let the view handle the input.
         view.handle_onkeydown(e);
     }

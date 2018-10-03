@@ -608,6 +608,7 @@ class thumbnail_size_slider_widget
     {
         this.oninput = this.oninput.bind(this);
         this.onwheel = this.onwheel.bind(this);
+        this.onkeydown = this.onkeydown.bind(this);
 
         this.preference_name = preference_name;
         this.slider = slider;
@@ -617,17 +618,34 @@ class thumbnail_size_slider_widget
 
         this.slider.addEventListener("input", this.oninput);
         input_container.addEventListener("wheel", this.onwheel);
+        input_container.addEventListener("keydown", this.onkeydown);
+    }
+
+    onkeydown(e)
+    {
+        var zoom = helpers.is_zoom_hotkey(e);
+        if(zoom != null)
+        {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            this.move(zoom < 0);
+        }
     }
 
     onwheel(e)
     {
-        if(!e.ctrlKey && !this.visible)
+        if(!e.ctrlKey)
             return;
 
         e.preventDefault();
         e.stopImmediatePropagation();
 
-        var down = e.deltaY > 0;
+        this.move(e.deltaY > 0);
+    }
+
+    // Increase or decrease zoom.
+    move(down)
+    {
         var value = this.value;
         value += down?-1:+1;
         value = helpers.clamp(value, 0, 5);

@@ -24,6 +24,7 @@ class main_context_menu extends popup_context_menu
         main_context_menu._singleton = this;
 
         this.onwheel = this.onwheel.bind(this);
+        this.onkeydown = this.onkeydown.bind(this);
         this.on_click_viewer = null;
 
         // Refresh the menu when the view changes.
@@ -47,6 +48,7 @@ class main_context_menu extends popup_context_menu
         this.menu.querySelector(".button-fullscreen").addEventListener("click", this.clicked_fullscreen.bind(this));
         this.menu.querySelector(".button-zoom").addEventListener("click", this.clicked_zoom_toggle.bind(this));
         window.addEventListener("wheel", this.onwheel, true);
+        window.addEventListener("keydown", this.onkeydown);
 
         for(var button of this.menu.querySelectorAll(".button-zoom-level"))
             button.addEventListener("click", this.clicked_zoom_level.bind(this));
@@ -91,7 +93,17 @@ class main_context_menu extends popup_context_menu
         this.refresh();
     }
 
-    // This is only registered while the menu is open.
+    onkeydown(e)
+    {
+        var zoom = helpers.is_zoom_hotkey(e);
+        if(zoom != null)
+        {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            this.handle_zoom_event(e, zoom < 0);
+        }
+    }
+
     onwheel(e)
     {
         // Stop if zooming isn't enabled.
@@ -102,6 +114,13 @@ class main_context_menu extends popup_context_menu
         if(!e.ctrlKey && !this.visible)
             return;
 
+        var down = e.deltaY > 0;
+        this.handle_zoom_event(e, down);
+    }
+    
+    // Handle both mousewheel and control-+/- zooming.
+    handle_zoom_event(e, down)
+    {
         e.preventDefault();
         e.stopImmediatePropagation();
 
@@ -113,7 +132,8 @@ class main_context_menu extends popup_context_menu
             this.hide_temporarily = true;
         }
 
-        let center = this._on_click_viewer.get_image_position(e.clientX, e.clientY);
+        // If e is a keyboard event, e.pageX is null and this will be the center of the screen.
+        let center = this._on_click_viewer.get_image_position(e.pageX, e.pageY);
         
         // If mousewheel zooming is used while not zoomed, turn on zooming and set
         // a 1x zoom factor, so we zoom relative to the previously unzoomed image.
@@ -125,7 +145,6 @@ class main_context_menu extends popup_context_menu
             this.refresh();
         }
 
-        var down = e.deltaY > 0;
         this._on_click_viewer.relative_zoom_level += down? -1:+1;
 
         // As a special case, if we're in 1x zoom from above and we return to 1x relative zoom
@@ -139,7 +158,7 @@ class main_context_menu extends popup_context_menu
             this._on_click_viewer.locked_zoom = false;
         }
 
-        this._on_click_viewer.set_image_position(e.clientX, e.clientY, center);
+        this._on_click_viewer.set_image_position(e.pageX, e.pageY, center);
         this.refresh();
     }
 
@@ -192,9 +211,9 @@ class main_context_menu extends popup_context_menu
         if(!this._is_zoom_ui_enabled)
             return;
         
-        let center = this._on_click_viewer.get_image_position(e.clientX, e.clientY);
+        let center = this._on_click_viewer.get_image_position(e.pageX, e.pageY);
         this._on_click_viewer.locked_zoom = !this._on_click_viewer.locked_zoom;
-        this._on_click_viewer.set_image_position(e.clientX, e.clientY, center);
+        this._on_click_viewer.set_image_position(e.pageX, e.pageY, center);
 
         this.refresh();
     }
@@ -216,7 +235,7 @@ class main_context_menu extends popup_context_menu
         }
 
 
-        let center = this._on_click_viewer.get_image_position(e.clientX, e.clientY);
+        let center = this._on_click_viewer.get_image_position(e.pageX, e.pageY);
         
         // Each zoom button enables zoom lock, since otherwise changing the zoom level would
         // only have an effect when click-dragging, so it looks like the buttons don't do anything.
@@ -224,7 +243,7 @@ class main_context_menu extends popup_context_menu
         this._on_click_viewer.locked_zoom = true;
         this._on_click_viewer.relative_zoom_level = 0;
 
-        this._on_click_viewer.set_image_position(e.clientX, e.clientY, center);
+        this._on_click_viewer.set_image_position(e.pageX, e.pageY, center);
         
         this.refresh();
     }
