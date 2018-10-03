@@ -405,6 +405,14 @@ class on_click_viewer
         if(!this.zoomed)
             return;
 
+        // If button 1 isn't pressed, treat this as a pointerup.  (The pointer events API
+        // is really poorly designed in its handling of multiple button presses.)
+        if((e.buttons & 1) == 0)
+        {
+            this.pointerup(e);
+            return;
+        }
+
         this.dragged_while_zoomed = true;
 
         // Apply mouse dragging.
