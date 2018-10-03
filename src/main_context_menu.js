@@ -162,6 +162,16 @@ class main_context_menu extends popup_context_menu
         this.refresh();
     }
 
+    show(x, y)
+    {
+        // If RMB is pressed while dragging LMB, stop dragging the window when we
+        // show the popup.
+        if(this.on_click_viewer != null)
+            this.on_click_viewer.stop_dragging();
+
+        super.show(x, y);
+    }
+    
     hide()
     {
         super.hide();
