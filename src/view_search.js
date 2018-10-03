@@ -90,7 +90,8 @@ class view_search extends view
         // Create the tag dropdown for the search input in the menu dropdown.
         new tag_search_dropdown_widget(this.container.querySelector(".navigation-search-box .search-tags"));
 
-        this.thumbnail_size_slider = new thumbnail_size_slider_widget("thumbnail-size", this.container.querySelector(".thumbnail-size"));
+        this.thumbnail_size_slider = new thumbnail_size_slider_widget("thumbnail-size",
+                this.container.querySelector(".thumbnail-size"), this.container);
         this.thumbnail_size_slider.on_change.register(this.refresh_images);
 
         this.update_from_settings();

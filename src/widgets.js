@@ -603,9 +603,11 @@ class popup_context_menu
 // A widget to control the thumbnail size slider.
 class thumbnail_size_slider_widget
 {
-    constructor(preference_name, slider)
+    // input_container is the element we watch for the mousewheel on.
+    constructor(preference_name, slider, input_container)
     {
         this.oninput = this.oninput.bind(this);
+        this.onwheel = this.onwheel.bind(this);
 
         this.preference_name = preference_name;
         this.slider = slider;
@@ -614,6 +616,23 @@ class thumbnail_size_slider_widget
         this.load_from_pref();
 
         this.slider.addEventListener("input", this.oninput);
+        input_container.addEventListener("wheel", this.onwheel);
+    }
+
+    onwheel(e)
+    {
+        if(!e.ctrlKey && !this.visible)
+            return;
+
+        e.preventDefault();
+        e.stopImmediatePropagation();
+
+        var down = e.deltaY > 0;
+        var value = this.value;
+        value += down?-1:+1;
+        value = helpers.clamp(value, 0, 5);
+        this.value = value;
+        this.save_to_pref();
     }
 
     load_from_pref()
@@ -631,6 +650,9 @@ class thumbnail_size_slider_widget
     
     set value(value)
     {
+        if(this.slider.value == value)
+            return;
+
         this.slider.value = value;
         this.on_change.call();
     }

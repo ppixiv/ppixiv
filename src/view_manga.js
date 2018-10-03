@@ -23,7 +23,9 @@ class view_manga extends view
         image_data.singleton().user_modified_callbacks.register(this.refresh_ui);
         image_data.singleton().illust_modified_callbacks.register(this.refresh_ui);
 
-        this.thumbnail_size_slider = new thumbnail_size_slider_widget("manga-thumbnail-size", this.container.querySelector(".thumbnail-size"));
+        this.thumbnail_size_slider = new thumbnail_size_slider_widget("manga-thumbnail-size",
+                this.container.querySelector(".thumbnail-size"),
+                this.container);
         this.thumbnail_size_slider.on_change.register(this.refresh_images);
         
         // Create a style for our thumbnail style.
