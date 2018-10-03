@@ -1383,7 +1383,7 @@ body.light .thumb-list-cursor
     color: #fff;
     stroke: #fff;
 }
-.popup-context-menu .button-strip .button.selected {
+.popup-context-menu .button-strip .button.enabled.selected {
     background-color: #444;
     color: #fff;
     stroke: #fff;
