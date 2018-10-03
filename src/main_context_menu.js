@@ -5,6 +5,8 @@
 //
 // Not all items are available all the time.  This is a singleton class, so it's easy
 // for different parts of the UI to tell us when they're active.
+//
+// This also handles alt-mousewheel zooming.
 class main_context_menu extends popup_context_menu
 {
     // Return the singleton.
@@ -21,6 +23,7 @@ class main_context_menu extends popup_context_menu
             throw "Singleton already exists";
         main_context_menu._singleton = this;
 
+        this.onwheel = this.onwheel.bind(this);
         this.on_click_viewer = null;
 
         // Refresh the menu when the view changes.
@@ -43,6 +46,7 @@ class main_context_menu extends popup_context_menu
         this.menu.querySelector(".button-return-to-search").addEventListener("click", this.clicked_return_to_search.bind(this));
         this.menu.querySelector(".button-fullscreen").addEventListener("click", this.clicked_fullscreen.bind(this));
         this.menu.querySelector(".button-zoom").addEventListener("click", this.clicked_zoom_toggle.bind(this));
+        window.addEventListener("wheel", this.onwheel, true);
 
         for(var button of this.menu.querySelectorAll(".button-zoom-level"))
             button.addEventListener("click", this.clicked_zoom_level.bind(this));
@@ -51,6 +55,7 @@ class main_context_menu extends popup_context_menu
     shutdown()
     {
         this.mode_observer.disconnect();
+        window.removeEventListener("wheel", this.onwheel, true);
         super.shutdown();
     }
 
@@ -84,6 +89,51 @@ class main_context_menu extends popup_context_menu
 
         this.data_source = data_source;
         this.refresh();
+    }
+
+    // This is only registered while the menu is open.
+    onwheel(e)
+    {
+        // Stop if zooming isn't enabled.
+        if(!this._is_zoom_ui_enabled)
+            return;
+
+        // Only mousewheel zoom if control is pressed, or if the popup menu is visible.
+        if(!e.ctrlKey && !this.visible)
+            return;
+
+        e.preventDefault();
+        e.stopImmediatePropagation();
+
+        if(!this.hide_temporarily)
+        {
+            // Hide the poopup menu.  It remains open, so hide() will still be called when
+            // the right mouse button is released and the overall flow remains unchanged, but
+            // the popup itself will be hidden.
+            this.hide_temporarily = true;
+        }
+
+        let center = this._on_click_viewer.get_image_position(e.clientX, e.clientY);
+        
+        // If mousewheel zooming is used while not zoomed, turn on zooming and set
+        // a 1x zoom factor, so we zoom relative to the previously unzoomed image.
+        if(!this._on_click_viewer.zoom_active)
+        {
+            this._on_click_viewer.zoom_level = 4; // level 4 is 1x
+            this._on_click_viewer.locked_zoom = true;
+            this._on_click_viewer.relative_zoom_level = 0;
+            this.refresh();
+        }
+
+        var down = e.deltaY > 0;
+        this._on_click_viewer.relative_zoom_level += down? -1:+1;
+
+        this._on_click_viewer.set_image_position(e.clientX, e.clientY, center);
+    }
+
+    hide()
+    {
+        super.hide();
     }
 
     // Update selection highlight for the context menu.
@@ -130,8 +180,10 @@ class main_context_menu extends popup_context_menu
         if(!this._is_zoom_ui_enabled)
             return;
         
-        this._on_click_viewer.set_zoom_center(e.clientX, e.clientY);
+        let center = this._on_click_viewer.get_image_position(e.clientX, e.clientY);
         this._on_click_viewer.locked_zoom = !this._on_click_viewer.locked_zoom;
+        this._on_click_viewer.set_image_position(e.clientX, e.clientY, center);
+
         this.refresh();
     }
 
@@ -144,18 +196,24 @@ class main_context_menu extends popup_context_menu
 
         // If the zoom level that's already selected is clicked and we're already zoomed,
         // just toggle zoom as if the toggle zoom button was pressed.
-        if(this._on_click_viewer.zoom_level == level && this._on_click_viewer.locked_zoom)
+        if(this._on_click_viewer.zoom_level == level && this._on_click_viewer.relative_zoom_level == 0 && this._on_click_viewer.locked_zoom)
         {
             this.on_click_viewer.locked_zoom = false;
             this.refresh();
             return;
         }
 
+
+        let center = this._on_click_viewer.get_image_position(e.clientX, e.clientY);
+        
         // Each zoom button enables zoom lock, since otherwise changing the zoom level would
         // only have an effect when click-dragging, so it looks like the buttons don't do anything.
-        this._on_click_viewer.set_zoom_center(e.clientX, e.clientY);
         this._on_click_viewer.zoom_level = level;
         this._on_click_viewer.locked_zoom = true;
+        this._on_click_viewer.relative_zoom_level = 0;
+
+        this._on_click_viewer.set_image_position(e.clientX, e.clientY, center);
+        
         this.refresh();
     }
 }

@@ -450,8 +450,14 @@ class popup_context_menu
     {
         return null;
     }
+    get visible()
+    {
+        return this.displayed_menu != null;
+    }
     show(x, y)
     {
+        this.menu.hidden = false;
+
         if(this.displayed_menu != null)
             return;
 
@@ -506,6 +512,16 @@ class popup_context_menu
     onmouseout(e)
     {
         this.show_tooltip_for_element(e.relatedTarget);
+    }
+
+    get hide_temporarily()
+    {
+        return this.menu.hidden;
+    }
+
+    set hide_temporarily(value)
+    {
+        this.menu.hidden = value;
     }
 
     hide()
