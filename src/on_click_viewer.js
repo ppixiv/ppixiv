@@ -423,12 +423,10 @@ class on_click_viewer
         var x_offset = e.movementX;
         var y_offset = e.movementY;
        
-        // zoom_pos is normalized to 0-1.  Scale movement by the dimensions of the
-        // image.
-        var width = this.width;
-        var height = this.height;
-        this.zoom_pos[0] += x_offset * -3 * this._effective_width / width;
-        this.zoom_pos[1] += y_offset * -3 * this._effective_height / height;
+        // Scale movement by the zoom level.
+        var zoom_level = this._effective_zoom_level;
+        this.zoom_pos[0] += x_offset * -1 * zoom_level;
+        this.zoom_pos[1] += y_offset * -1 * zoom_level;
 
         this.reposition();
     }
