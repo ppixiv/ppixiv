@@ -8,9 +8,9 @@ class on_click_viewer
     constructor(img)
     {
         this.onresize = this.onresize.bind(this);
-        this.mousedown = this.mousedown.catch_bind(this);
-        this.mouseup = this.mouseup.bind(this);
-        this.mousemove = this.mousemove.bind(this);
+        this.pointerdown = this.pointerdown.catch_bind(this);
+        this.pointerup = this.pointerup.bind(this);
+        this.pointermove = this.pointermove.bind(this);
         this.block_event = this.block_event.bind(this);
         this.window_blur = this.window_blur.bind(this);
 
@@ -127,8 +127,8 @@ class on_click_viewer
         this.event_target = target;
         window.addEventListener("blur", this.window_blur);
         window.addEventListener("resize", this.onresize, true);
-        target.addEventListener(this.using_pointer_events? "pointerdown":"mousedown", this.mousedown);
-        target.addEventListener(this.using_pointer_events? "pointerup":"mouseup", this.mouseup);
+        target.addEventListener("pointerdown", this.pointerdown);
+        target.addEventListener("pointerup", this.pointerup);
         target.addEventListener("dragstart", this.block_event);
         target.addEventListener("selectstart", this.block_event);
 
@@ -158,8 +158,8 @@ class on_click_viewer
         {
             var target = this.event_target;
             this.event_target = null;
-            target.removeEventListener(this.using_pointer_events? "pointerdown":"mousedown", this.mousedown);
-            target.removeEventListener(this.using_pointer_events? "pointerup":"mouseup", this.mouseup);
+            target.removeEventListener("pointerdown", this.pointerdown);
+            target.removeEventListener("pointerup", this.pointerup);
             target.removeEventListener("dragstart", this.block_event);
             target.removeEventListener("selectstart", this.block_event);
             target.style.userSelect = "none";
@@ -168,13 +168,6 @@ class on_click_viewer
 
         window.removeEventListener("blur", this.window_blur);
         window.removeEventListener("resize", this.onresize, true);
-    }
-
-    // If pointer events are available, we'll use them to hide the cursor during
-    // grabs.  Otherwise, we'll use regular mouse events and setCapture.
-    get using_pointer_events()
-    {
-        return "onpointerdown" in HTMLElement.prototype;
     }
 
     onresize(e)
@@ -334,10 +327,12 @@ class on_click_viewer
         this.reposition();
     }
 
-    mousedown(e)
+    pointerdown(e)
     {
         if(e.button != 0)
             return;
+
+        console.log(e);
 
         // We only want clicks on the image, or on the container backing the image, not other
         // elements inside the container.
@@ -355,13 +350,8 @@ class on_click_viewer
         this.zoomed = true;
         this.dragged_while_zoomed = false;
 
-        if(this.using_pointer_events)
-        {
-            this.captured_pointer_id = e.pointerId;
-            this.img.setPointerCapture(this.captured_pointer_id);
-        }
-        else if(this.event_target.setCapture)
-            this.event_target.setCapture(true);
+        this.captured_pointer_id = e.pointerId;
+        this.img.setPointerCapture(this.captured_pointer_id);
 
         // If this is a click-zoom, align the zoom to the point on the image that
         // was clicked.
@@ -370,11 +360,11 @@ class on_click_viewer
 
         this.reposition();
 
-        // Only listen to mousemove while we're dragging.
-        this.event_target.addEventListener(this.using_pointer_events? "pointermove":"mousemove", this.mousemove);
+        // Only listen to pointermove while we're dragging.
+        this.event_target.addEventListener("pointermove", this.pointermove);
     }
 
-    mouseup(e)
+    pointerup(e)
     {
         if(e.button != 0)
             return;
@@ -392,15 +382,13 @@ class on_click_viewer
 
     stop_dragging()
     {
-        this.event_target.removeEventListener(this.using_pointer_events? "pointermove":"mousemove", this.mousemove);
+        this.event_target.removeEventListener("pointermove", this.pointermove);
 
-        if(this.using_pointer_events && this.captured_pointer_id != null)
+        if(this.captured_pointer_id != null)
         {
             this.img.releasePointerCapture(this.captured_pointer_id);
             this.captured_pointer_id = null;
         }
-        else if(document.releaseCapture)
-            document.releaseCapture();
         
         document.body.classList.remove("hide-ui");
         
@@ -412,7 +400,7 @@ class on_click_viewer
             this.clicked_without_scrolling();
     }
 
-    mousemove(e)
+    pointermove(e)
     {
         if(!this.zoomed)
             return;
