@@ -1,11 +1,22 @@
-var helpers = {
-    // Get and set values in localStorage.
-    //
-    // We don't use helpers.set_value/helpers.get_value since GreaseMonkey is inconsistent and changed
-    // these functions unnecessarily.  We could polyfill those with this, but that would cause
-    // the storage to change if those functions are restored.  Doing it this way also allows
-    // us to share settings if a user switches from GM to TM.
-    get_value: function(key, default_value)
+// Get and set values in localStorage.
+//
+// We don't use helpers.set_value/helpers.get_value since GreaseMonkey is inconsistent and changed
+// these functions unnecessarily.  We could polyfill those with this, but that would cause
+// the storage to change if those functions are restored.  Doing it this way also allows
+// us to share settings if a user switches from GM to TM.
+class settings
+{
+    static get_change_callback_list(key)
+    {
+        if(settings._callbacks == null)
+            settings._callbacks = {};
+        var callbacks = settings._callbacks[key];
+        if(callbacks == null)
+            callbacks = settings._callbacks[key] = new callback_list();
+        return callbacks;
+    }
+
+    static get(key, default_value)
     {
         key = "_ppixiv_" + key;
 
@@ -22,14 +33,44 @@ var helpers = {
             delete localStorage.key;
             return default_value;
         }
+    }
+
+    static set(key, value)
+    {
+        // JSON.stringify incorrectly serializes undefined as "undefined", which isn't
+        // valid JSON.  We shouldn't be doing this anyway.
+        if(value === undefined)
+            throw "Key can't be set to undefined: " + key;
+
+        var setting_key = "_ppixiv_" + key;
+
+        var value = JSON.stringify(value);
+        localStorage[setting_key] = value;
+
+        // Call change listeners for this key.
+        settings.get_change_callback_list(key).call(key);
+    }
+
+    static register_change_callback(key, callback)
+    {
+        settings.get_change_callback_list(key).register(callback);
+    }
+
+    static unregister_change_callback(key, callback)
+    {
+        settings.get_change_callback_list(key).unregister(callback);
+    }
+}
+
+var helpers = {
+    get_value: function(key, default_value)
+    {
+        return settings.get(key, default_value);
     },
 
     set_value: function(key, value)
     {
-        key = "_ppixiv_" + key;
-
-        var value = JSON.stringify(value);
-        localStorage[key] = value;
+        return settings.set(key, value);
     },
 
     // Preload an array of images.
@@ -86,7 +127,11 @@ var helpers = {
     {
         var template;
         if(typeof(type) == "string")
+        {
             template = document.body.querySelector(type);
+            if(template == null)
+                throw "Missing template: " + type;
+        }
         else
             template = type;
 

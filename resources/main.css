@@ -321,20 +321,10 @@ body:not(.hide-ui) .view-illust-container .ui-box.popup-visible {
     margin: 0 .5em;
 }
 
-/* Toggle boxes for the settings menus: */
-body.light .toggle-light-mode > .off { display: none; }
-body:not(.light) .toggle-light-mode > .on { display: none; }
-
-body:not(.disable-thumbnail-zooming) .toggle-thumbnail-zooming > .off { display: none; }
-body.disable-thumbnail-zooming .toggle-thumbnail-zooming > .on { display: none; }
-
-body:not(.disable-thumbnail-panning) .toggle-thumbnail-panning > .off { display: none; }
-body.disable-thumbnail-panning .toggle-thumbnail-panning > .on { display: none; }
-
-.toggle-auto-like.auto-like > .off { display: none; }
-.toggle-auto-like:not(.auto-like) > .on { display: none; }
-
-.thumbnail-size-box input.thumbnail-size {
+.popup-menu-box .menu-toggle {
+    display: block;
+}
+.menu-slider input {
     vertical-align: middle;
     width: 100%;
     padding: 0;

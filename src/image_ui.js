@@ -9,7 +9,6 @@ class image_ui
         this.clicked_bookmark = this.clicked_bookmark.bind(this);
         this.clicked_like = this.clicked_like.bind(this);
         this.clicked_download = this.clicked_download.bind(this);
-        this.toggle_auto_like = this.toggle_auto_like.bind(this);
         this.refresh = this.refresh.bind(this);
 
         this.container = container;
@@ -60,9 +59,21 @@ class image_ui
             main_controller.singleton.navigate_out();
         }.bind(this));
 
-        this.container.querySelector(".toggle-auto-like").addEventListener("click", this.toggle_auto_like);
+        var settings_menu = this.container.querySelector(".settings-menu-box > .popup-menu-box");
         
-        this.update_from_settings();
+        this.thumbnail_size_slider = new thumbnail_size_slider_widget(settings_menu, {
+            label: "Thumbnail size",
+            setting: "manga-thumbnail-size",
+            input_container: this.container,
+            
+            min: 0,
+            max: 5,
+        });
+
+        new menu_option_toggle(settings_menu, {
+            label: "Bookmarking auto-likes",
+            setting: "auto-like",
+        });
     }
 
     set data_source(data_source)
@@ -400,20 +411,5 @@ class image_ui
 
         actions.download_illust(this.illust_data, this.progress_bar.controller());
     }
-
-    toggle_auto_like()
-    {
-        var auto_like = helpers.get_value("auto-like");
-        auto_like = !auto_like;
-        helpers.set_value("auto-like", auto_like);
-
-        this.update_from_settings();
-    }
-
-    update_from_settings()
-    {
-        var toggle = this.container.querySelector(".toggle-auto-like");
-        helpers.set_class(toggle, "auto-like", helpers.get_value("auto-like"));
-    }    
  }
 

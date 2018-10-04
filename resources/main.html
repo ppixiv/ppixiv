@@ -125,36 +125,7 @@
 
                         <div class="popup-menu-box">
                             <div class=hover-area></div>
-                            <!-- This could be generalized to a widget, but we don't have enough
-                                 options yet. -->
-                            <div class=option-list>
-                                <div class=thumbnail-size-box>
-                                    <div class="box-section">
-                                        <span style="">Thumbnail size</span>
-                                    </div>
-                                    <div class="box-section">
-                                        <input class=thumbnail-size type=range min=0 max=5>
-                                    </div>
-                                </div>
-
-                                <div class="toggle-light-mode box-link">
-                                    <span class=on>☑</span>
-                                    <span class=off>☐</span>
-                                    <span style="margin-left: 2px;">Light mode</span>
-                                </div>
-
-                                <div class="toggle-thumbnail-zooming box-link">
-                                    <span class=on>☑</span>
-                                    <span class=off>☐</span>
-                                    <span style="margin-left: 2px;">Thumbnail zooming</span>
-                                </div>
-
-                                <div class="toggle-thumbnail-panning box-link">
-                                    <span class=on>☑</span>
-                                    <span class=off>☐</span>
-                                    <span style="margin-left: 2px;">Thumbnail panning</span>
-                                </div>
-                            </div>
+                            <div class=option-list></div>
                         </div>
                     </div>
                 </div>
@@ -562,20 +533,6 @@
                         <div class="popup-menu-box">
                             <div class=hover-area></div>
                             <div class=option-list>
-                                <div class=thumbnail-size-box>
-                                    <div class="box-section">
-                                        <span style="">Thumbnail size</span>
-                                    </div>
-                                    <div class="box-section">
-                                        <input class=thumbnail-size type=range min=0 max=5>
-                                    </div>
-                                </div>
-
-                                <div class="toggle-auto-like box-link">
-                                    <span class=on>☑</span>
-                                    <span class=off>☐</span>
-                                    <span style="margin-left: 2px;">Bookmarking auto-likes</span>
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -752,6 +709,24 @@
                 <div class=tooltip-display style="display: flex; align-items: stretch; padding: 10px 0 0 8px;">
                     <div style="background-color: #000; padding: 0px 8px; border-radius: 4px;" class=tooltip-display-text></div>
                 </div>
+            </div>
+        </template>
+
+        <template class=template-menu-slider>
+            <div class="menu-slider thumbnail-size-box">
+                <div class="box-section">
+                    <span class=label></span>
+                </div>
+                <div class="box-section">
+                    <input class=thumbnail-size type=range>
+                </div>
+            </div>
+        </template>
+        <template class=template-menu-toggle>
+            <div class="menu-toggle box-link">
+                <span class=on>☑</span>
+                <span class=off>☐</span>
+                <span class=label style="margin-left: 2px;"></span>
             </div>
         </template>
     </div>

@@ -11,12 +11,10 @@ class view_search extends view
         this.onscroll = this.onscroll.bind(this);
 //        this.onmousemove = this.onmousemove.bind(this);
         this.submit_search = this.submit_search.bind(this);
-        this.toggle_light_mode = this.toggle_light_mode.bind(this);
-        this.toggle_disable_thumbnail_panning = this.toggle_disable_thumbnail_panning.bind(this);
-        this.toggle_disable_thumbnail_zooming = this.toggle_disable_thumbnail_zooming.bind(this);
         this.refresh_thumbnail = this.refresh_thumbnail.bind(this);
         this.refresh_images = this.refresh_images.bind(this);
         this.window_onresize = this.window_onresize.bind(this);
+        this.update_from_settings = this.update_from_settings.bind(this);
 
         this.container = container;
         this.active = false;
@@ -80,19 +78,42 @@ class view_search extends view
         this.container.querySelector(".search-page-tag-entry .search-submit-button").addEventListener("click", this.submit_search);
         this.container.querySelector(".navigation-search-box .search-submit-button").addEventListener("click", this.submit_search);
 
-        this.container.querySelector(".toggle-light-mode").addEventListener("click", this.toggle_light_mode);
-        this.container.querySelector(".toggle-thumbnail-zooming").addEventListener("click", this.toggle_disable_thumbnail_zooming);
-        this.container.querySelector(".toggle-thumbnail-panning").addEventListener("click", this.toggle_disable_thumbnail_panning);
+        var settings_menu = this.container.querySelector(".settings-menu-box > .popup-menu-box");
+
+        this.thumbnail_size_slider = new thumbnail_size_slider_widget(settings_menu, {
+            label: "Thumbnail size",
+            setting: "thumbnail-size",
+            input_container: this.container,
+            onchange: this.refresh_images,
+            min: 0,
+            max: 5,
+        });
+
+        new menu_option_toggle_light_theme(settings_menu, {
+            label: "Light mode",
+            setting: "theme",
+            onchange: this.update_from_settings,
+        });
+
+        new menu_option_toggle(settings_menu, {
+            label: "Thumbnail zooming",
+            setting: "disable_thumbnail_zooming",
+            onchange: this.update_from_settings,
+            invert_display: true,
+        });
+
+        new menu_option_toggle(settings_menu, {
+            label: "Thumbnail panning",
+            setting: "disable_thumbnail_panning",
+            onchange: this.update_from_settings,
+            invert_display: true,
+        });
 
         // Create the tag dropdown for the search page input.
         new tag_search_dropdown_widget(this.container.querySelector(".tag-search-box .search-tags"));
             
         // Create the tag dropdown for the search input in the menu dropdown.
         new tag_search_dropdown_widget(this.container.querySelector(".navigation-search-box .search-tags"));
-
-        this.thumbnail_size_slider = new thumbnail_size_slider_widget("thumbnail-size",
-                this.container.querySelector(".thumbnail-size"), this.container);
-        this.thumbnail_size_slider.on_change.register(this.refresh_images);
 
         this.update_from_settings();
         this.refresh_images();
@@ -448,11 +469,9 @@ class view_search extends view
             return;
 
 
-        var width = this.thumbnail_size_slider.size;
-        
         this.thumbnail_dimensions_style.textContent = helpers.make_thumbnail_sizing_style(ul, ".view-search-container", {
             wide: true,
-            size: this.thumbnail_size_slider.size,
+            size: this.thumbnail_size_slider.thumbnail_size,
             max_columns: 5,
 
             // Set a minimum padding to make sure there's room for the popup text to fit between images.
@@ -567,39 +586,11 @@ class view_search extends view
         this.set_visible_thumbs();
         this.refresh_images();
 
-        helpers.set_class(document.body, "light", helpers.get_value("theme") == "light");
-
-        helpers.set_class(document.body, "disable-thumbnail-panning", helpers.get_value("disable_thumbnail_panning"));
-        helpers.set_class(document.body, "disable-thumbnail-zooming", helpers.get_value("disable_thumbnail_zooming"));
+        helpers.set_class(document.body, "light", settings.get("theme") == "light");
+        helpers.set_class(document.body, "disable-thumbnail-panning", settings.get("disable_thumbnail_panning"));
+        helpers.set_class(document.body, "disable-thumbnail-zooming", settings.get("disable_thumbnail_zooming"));
     }
 
-    toggle_light_mode()
-    {
-        var light_mode = helpers.get_value("theme") == "light";
-        light_mode = !light_mode;
-        helpers.set_value("theme", light_mode? "light":"dark");
-
-        this.update_from_settings();
-    }
-
-    toggle_disable_thumbnail_panning()
-    {
-        var disable_panning = helpers.get_value("disable_thumbnail_panning");
-        disable_panning = !disable_panning;
-        helpers.set_value("disable_thumbnail_panning", disable_panning);
-
-        this.update_from_settings();
-    }
-
-    toggle_disable_thumbnail_zooming()
-    {
-        var disable_zooming = helpers.get_value("disable_thumbnail_zooming");
-        disable_zooming = !disable_zooming;
-        helpers.set_value("disable_thumbnail_zooming", disable_zooming);
-
-        this.update_from_settings();
-    }
-     
     // Set the URL for all loaded thumbnails that are onscreen.
     //
     // This won't trigger loading any data (other than the thumbnails themselves).

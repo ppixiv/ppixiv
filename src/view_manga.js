@@ -23,10 +23,7 @@ class view_manga extends view
         image_data.singleton().user_modified_callbacks.register(this.refresh_ui);
         image_data.singleton().illust_modified_callbacks.register(this.refresh_ui);
 
-        this.thumbnail_size_slider = new thumbnail_size_slider_widget("manga-thumbnail-size",
-                this.container.querySelector(".thumbnail-size"),
-                this.container);
-        this.thumbnail_size_slider.on_change.register(this.refresh_images);
+        settings.register_change_callback("manga-thumbnail-size", this.refresh_images);
         
         // Create a style for our thumbnail style.
         this.thumbnail_dimensions_style = document.createElement("style");
@@ -147,7 +144,7 @@ class view_manga extends view
 
         this.thumbnail_dimensions_style.textContent = helpers.make_thumbnail_sizing_style(ul, ".view-manga-container", {
             wide: true,
-            size: this.thumbnail_size_slider.size,
+            size: this.ui.thumbnail_size_slider.thumbnail_size,
             ratio: ratio,
 
             // We preload this page anyway since it doesn't cause a lot of API calls, so we
