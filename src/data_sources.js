@@ -570,6 +570,7 @@ class data_source
 
         // Adjust the URL for this button.
         var url = new URL(document.location);
+        var hash_args = helpers.get_hash_args(url);
         for(var key of Object.keys(fields))
         {
             var original_key = key;
@@ -580,7 +581,7 @@ class data_source
             if(hash)
                 key = key.substr(1);
 
-            var params = hash? helpers.get_hash_args(url):url.searchParams;
+            var params = hash? hash_args:url.searchParams;
 
             // The value we're setting in the URL:
             var this_value = value;
@@ -604,11 +605,8 @@ class data_source
                 params.set(key, value);
             else
                 params.delete(key);
-
-            // If hash is true, we're working on a copy, so update url's hash.
-            if(hash)
-                helpers.set_hash_args(url, params);
         }
+        helpers.set_hash_args(url, hash_args);
 
         helpers.set_class(link, "selected", button_is_selected);
 
@@ -1250,13 +1248,18 @@ class data_source_artist extends data_source
         this.user_info = user_info;
         this.call_update_listeners();
 
+        var query_args = this.url.searchParams;
+        var type = query_args.get("type");
+
         var result = await helpers.get_request_async("/ajax/user/" + this.viewing_user_id + "/profile/all", {});
 
         var illust_ids = [];
-        for(var illust_id in result.body.illusts)
-            illust_ids.push(illust_id);
-        for(var illust_id in result.body.manga)
-            illust_ids.push(illust_id);
+        if(type == null || type == "illust")
+            for(var illust_id in result.body.illusts)
+                illust_ids.push(illust_id);
+        if(type == null || type == "manga")
+            for(var illust_id in result.body.manga)
+                illust_ids.push(illust_id);
 
         // Sort the two sets of IDs back together, putting higher (newer) IDs first.
         illust_ids.sort(function(lhs, rhs)
@@ -1298,9 +1301,9 @@ class data_source_artist extends data_source
             helpers.set_page_icon(this.user_info.isFollowed? binary_data['favorited_icon.png']:binary_data['regular_pixiv_icon.png']);
         }
 
-        this.set_item(container, "works", {type: null});
-        this.set_item(container, "manga", {type: "manga"});
-        this.set_item(container, "ugoira", {type: "ugoira"});
+        this.set_item(container, "artist-works", {type: null});
+        this.set_item(container, "artist-illust", {type: "illust"});
+        this.set_item(container, "artist-manga", {type: "manga"});
         
         // Refresh the post tag list.
         var current_query = new URL(document.location).searchParams.toString();
