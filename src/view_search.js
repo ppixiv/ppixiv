@@ -84,9 +84,14 @@ class view_search extends view
             label: "Thumbnail size",
             setting: "thumbnail-size",
             input_container: this.container,
-            onchange: this.refresh_images,
             min: 0,
             max: 5,
+            onchange: function() {
+                // refresh_images first to update thumbnail_dimensions_style, then call onscroll
+                // to fill in images.
+                this.refresh_images();
+                this.onscroll();
+            }.bind(this),
         });
 
         new menu_option_toggle_light_theme(settings_menu, {
