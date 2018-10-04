@@ -338,6 +338,7 @@ body.disable-thumbnail-panning .toggle-thumbnail-panning > .on { display: none; 
     vertical-align: middle;
     width: 100%;
     padding: 0;
+    margin: 0;
 }
 /* Only show the thumbnail size slider in the manga view version of these settings, not
  * in the illust view. */
