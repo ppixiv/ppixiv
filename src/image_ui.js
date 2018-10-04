@@ -74,6 +74,11 @@ class image_ui
             label: "Bookmarking auto-likes",
             setting: "auto-like",
         });
+
+        new menu_option_toggle(settings_menu, {
+            label: "Hold shift to open context menu",
+            setting: "invert-popup-hotkey",
+        });
     }
 
     set data_source(data_source)

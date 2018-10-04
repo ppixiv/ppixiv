@@ -109,6 +109,11 @@ class view_search extends view
             invert_display: true,
         });
 
+        new menu_option_toggle(settings_menu, {
+            label: "Hold shift to open context menu",
+            setting: "invert-popup-hotkey",
+        });
+        
         // Create the tag dropdown for the search page input.
         new tag_search_dropdown_widget(this.container.querySelector(".tag-search-box .search-tags"));
             

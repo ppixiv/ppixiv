@@ -372,7 +372,6 @@ class popup_context_menu
         this.container = container;
 
         this.container.addEventListener("mousedown", this.onmousedown);
-        window.addEventListener("contextmenu", this.oncontextmenu);
 
         // Create the menu.  The caller will attach event listeners for clicks.
         this.menu = helpers.create_from_template(".template-context-menu");
@@ -402,6 +401,7 @@ class popup_context_menu
         return false;
     }
 
+    // This is only registered when we actually want to be blocking the context menu.
     oncontextmenu(e)
     {
         e.preventDefault();
@@ -420,7 +420,11 @@ class popup_context_menu
         if(e.button != 2)
             return;
 
+        // If invert-popup-hotkey is true, hold shift to open the popup menu.  Otherwise,
+        // hold shift to suppress the popup menu so the browser context menu will open.
         this.shift_was_pressed = e.shiftKey;
+        if(helpers.get_value("invert-popup-hotkey"))
+            this.shift_was_pressed = !this.shift_was_pressed;
         if(this.shift_was_pressed)
             return;
 
