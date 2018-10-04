@@ -61,14 +61,17 @@ class image_ui
 
         var settings_menu = this.container.querySelector(".settings-menu-box > .popup-menu-box");
         
-        this.thumbnail_size_slider = new thumbnail_size_slider_widget(settings_menu, {
-            label: "Thumbnail size",
-            setting: "manga-thumbnail-size",
-            input_container: this.container,
-            
-            min: 0,
-            max: 5,
-        });
+        // Only add the thumbnail size option in the manga page.  We don't want it in
+        // the illust page and its hotkey handling will confuse zooming.
+        if(this.container.closest(".view-manga-container"))
+        {
+            this.thumbnail_size_slider = new thumbnail_size_slider_widget(settings_menu, {
+                label: "Thumbnail size",
+                setting: "manga-thumbnail-size",
+                min: 0,
+                max: 5,
+            });
+        }
 
         new menu_option_toggle(settings_menu, {
             label: "Bookmarking auto-likes",

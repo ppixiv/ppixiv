@@ -1435,9 +1435,9 @@ var helpers = {
         if(!e.ctrlKey)
             return null;
         
-        if(e.keyCode == 107 /* keypad + */ || e.keyCode == 187) /* = */
+        if(e.code == "NumpadAdd" || e.code == "Equal") /* = */
             return +1;
-        if(e.keyCode == 109 /* keypad - */ || e.keyCode == 189) /* - */ 
+        if(e.code == "NumpadSubtract" || e.code == "Minus") /* - */ 
             return -1;
         return null;
     }

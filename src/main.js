@@ -208,9 +208,9 @@ class main_controller
         window.addEventListener("click", this.window_onclick_capture, true);
         window.addEventListener("popstate", this.window_onpopstate);
 
-        window.addEventListener("keyup", this.redirect_event_to_view);
-        window.addEventListener("keydown", this.redirect_event_to_view);
-        window.addEventListener("keypress", this.redirect_event_to_view);
+        window.addEventListener("keyup", this.redirect_event_to_view, true);
+        window.addEventListener("keydown", this.redirect_event_to_view, true);
+        window.addEventListener("keypress", this.redirect_event_to_view, true);
 
         window.addEventListener("keydown", this.onkeydown);
 
@@ -365,6 +365,9 @@ class main_controller
         var old_view = this.views[this.current_view_name];
         var old_illust_id = old_view? old_view.displayed_illust_id:null;
         var old_illust_page = old_view? old_view.displayed_illust_page:null;
+
+        // main_context_menu uses this to see which view is active.
+        document.body.dataset.currentView = new_view_name;
 
         // If we're changing between the image and thumbnail view, update the active view.
         var view_changing = new_view != old_view;

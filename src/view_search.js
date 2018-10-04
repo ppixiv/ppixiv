@@ -83,7 +83,6 @@ class view_search extends view
         this.thumbnail_size_slider = new thumbnail_size_slider_widget(settings_menu, {
             label: "Thumbnail size",
             setting: "thumbnail-size",
-            input_container: this.container,
             min: 0,
             max: 5,
             onchange: function() {

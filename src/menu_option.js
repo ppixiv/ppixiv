@@ -139,7 +139,6 @@ class menu_option_slider extends menu_option
 // A widget to control the thumbnail size slider.
 class thumbnail_size_slider_widget extends menu_option_slider
 {
-    // input_container is the element we watch for the mousewheel on.
     constructor(container, options)
     {
         super(container, options);
@@ -147,8 +146,9 @@ class thumbnail_size_slider_widget extends menu_option_slider
         this.onwheel = this.onwheel.bind(this);
         this.onkeydown = this.onkeydown.bind(this);
 
-        this.options.input_container.addEventListener("wheel", this.onwheel);
-        this.options.input_container.addEventListener("keydown", this.onkeydown);
+        var view = this.container.closest(".view");
+        view.addEventListener("wheel", this.onwheel);
+        view.addEventListener("keydown", this.onkeydown);
 
         this.refresh();
     }

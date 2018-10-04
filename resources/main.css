@@ -330,9 +330,6 @@ body:not(.hide-ui) .view-illust-container .ui-box.ui-visible {
     padding: 0;
     margin: 0;
 }
-/* Only show the thumbnail size slider in the manga view version of these settings, not
- * in the illust view. */
-.view-illust-container .thumbnail-size-box { display: none; }
 
 .download-button {
     cursor: pointer;

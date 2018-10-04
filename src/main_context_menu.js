@@ -95,12 +95,15 @@ class main_context_menu extends popup_context_menu
 
     onkeydown(e)
     {
-        var zoom = helpers.is_zoom_hotkey(e);
-        if(zoom != null)
+        if(this._is_zoom_ui_enabled)
         {
-            e.preventDefault();
-            e.stopImmediatePropagation();
-            this.handle_zoom_event(e, zoom < 0);
+            var zoom = helpers.is_zoom_hotkey(e);
+            if(zoom != null)
+            {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                this.handle_zoom_event(e, zoom < 0);
+            }
         }
     }
 
@@ -114,6 +117,9 @@ class main_context_menu extends popup_context_menu
         if(!e.ctrlKey && !this.visible)
             return;
 
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        
         var down = e.deltaY > 0;
         this.handle_zoom_event(e, down);
     }
