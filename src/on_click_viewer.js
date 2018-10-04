@@ -332,8 +332,6 @@ class on_click_viewer
         if(e.button != 0)
             return;
 
-        console.log(e);
-
         // We only want clicks on the image, or on the container backing the image, not other
         // elements inside the container.
         if(e.target != this.img && e.target != this.img.parentNode)

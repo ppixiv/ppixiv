@@ -48,7 +48,6 @@ class menu_option_toggle extends menu_option
     {
         super.refresh();
 
-        console.log("changed:", this.options.setting);
         var value = this.value;
         if(this.options.invert_display)
             value = !value;

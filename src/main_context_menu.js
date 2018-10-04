@@ -138,8 +138,11 @@ class main_context_menu extends popup_context_menu
             this.hide_temporarily = true;
         }
 
-        // If e is a keyboard event, e.pageX is null and this will be the center of the screen.
-        let center = this._on_click_viewer.get_image_position(e.pageX, e.pageY);
+        // If e is a keyboard event, use null to use the center of the screen.
+        var keyboard = e instanceof KeyboardEvent;
+        var pageX = keyboard? null:e.pageX;
+        var pageY = keyboard? null:e.pageY;
+        let center = this._on_click_viewer.get_image_position(pageX, pageY);
         
         // If mousewheel zooming is used while not zoomed, turn on zooming and set
         // a 1x zoom factor, so we zoom relative to the previously unzoomed image.
@@ -164,7 +167,7 @@ class main_context_menu extends popup_context_menu
             this._on_click_viewer.locked_zoom = false;
         }
 
-        this._on_click_viewer.set_image_position(e.pageX, e.pageY, center);
+        this._on_click_viewer.set_image_position(pageX, pageY, center);
         this.refresh();
     }
 
