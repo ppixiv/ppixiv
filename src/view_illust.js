@@ -23,8 +23,8 @@ class view_illust extends view
         
         var hover_circle = this.container.querySelector(".ui .hover-circle");
         var ui_box = this.container.querySelector(".ui-box");
-        hover_circle.addEventListener("mouseover", (e) => { helpers.set_class(ui_box, "popup-visible", true); });
-        hover_circle.addEventListener("mouseout", (e) => { helpers.set_class(ui_box, "popup-visible", false); });
+        hover_circle.addEventListener("mouseover", (e) => { helpers.set_class(ui_box, "ui-visible", true); });
+        hover_circle.addEventListener("mouseout", (e) => { helpers.set_class(ui_box, "ui-visible", false); });
 
         document.head.appendChild(document.createElement("title"));
         this.document_icon = document.head.appendChild(document.createElement("link"));

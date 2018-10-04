@@ -258,7 +258,7 @@ body.force-ui .view-illust-container .ui > .ui-box {
 /* Show the UI on hover when hide-ui isn't set. */
 body:not(.hide-ui) .view-illust-container .ui-box:hover,
 body:not(.hide-ui) .view-illust-container .hover-box:hover + .ui-box,
-body:not(.hide-ui) .view-illust-container .ui-box.popup-visible {
+body:not(.hide-ui) .view-illust-container .ui-box.ui-visible {
     opacity: 1;
     transform: translate(0, 0);
     pointer-events: auto;

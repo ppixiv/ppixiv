@@ -95,8 +95,6 @@ class image_ui
         image_data.singleton().illust_modified_callbacks.unregister(this.refresh);
         this.avatar_widget.shutdown();
         this.element_bookmark_tag_list.removeEventListener("input", this.refresh_bookmark_tag_highlights);
-
-        var bookmark_popup = this.container.querySelector(".bookmark-button");
     }
 
     get illust_id()
