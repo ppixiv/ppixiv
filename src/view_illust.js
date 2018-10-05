@@ -76,6 +76,15 @@ class view_illust extends view
         }
     }
 
+    get _hide_image()
+    {
+        return this.container.querySelector(".image-container").hidden;
+    }
+    set _hide_image(value)
+    {
+        this.container.querySelector(".image-container").hidden = value;
+    }
+    
     // Show an image.
     //
     // If manga_page isn't null, it's the page to display.
@@ -101,7 +110,7 @@ class view_illust extends view
         this.wanted_illust_page = manga_page;
 
         // If this image is already loaded, just make sure it's not hidden.
-        if(illust_id == this.current_illust_id && this.wanted_illust_page == this.viewer.page && !this.viewer.hide_image)
+        if(illust_id == this.current_illust_id && this.wanted_illust_page == this.viewer.page && !this._hide_image)
         {
             console.log("illust_id", illust_id, "page", this.wanted_illust_page, "already displayed");
             return;
@@ -161,7 +170,7 @@ class view_illust extends view
             this.viewer.page = this.wanted_illust_page;
             if(this.manga_thumbnails)
                 this.manga_thumbnails.current_page_changed(manga_page);
-            this.viewer.hide_image = false;
+            this._hide_image = false;
 
             return;
         }
@@ -201,6 +210,10 @@ class view_illust extends view
             this.viewer.shutdown();
             this.viewer = null;
         }
+
+        // The viewer is gone, so we can unhide the image container without flashing the
+        // previous image.
+        this._hide_image = false;
 
         var image_container = this.container.querySelector(".image-container");
 
@@ -317,13 +330,13 @@ class view_illust extends view
             // Remove any image we're displaying, so if we show another image later, we
             // won't show the previous image while the new one's data loads.
             if(this.viewer != null)
-                this.viewer.hide_image = true;
+                this._hide_image = true;
             
             return;
         }
 
         // If show_image was called while we were inactive, load it now.
-        if(this.wanted_illust_id != this.current_illust_id || this.wanted_illust_page != this.viewer.page || this.viewer.hide_image)
+        if(this.wanted_illust_id != this.current_illust_id || this.wanted_illust_page != this.viewer.page || this._hide_image)
         {
             // Show the image.
             console.log("Showing illust_id", this.wanted_illust_id, "that was set while hidden");

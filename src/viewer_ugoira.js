@@ -64,22 +64,6 @@ class viewer_ugoira extends viewer
         this.refresh_focus();
     }
 
-    // When true, hide and pause the video.
-    set hide_image(value)
-    {
-        if(this._hidden == value)
-            return;
-
-        console.log("--------- Set hidden:", value);
-        this._hidden = value;
-        this.canvas.hidden = this.preview_img.hidden = this._hidden;
-        this.refresh_focus();
-    }
-    get hide_image()
-    {
-        return this._hidden;
-    }
-    
     progress(value)
     {
         if(this.progress_callback)

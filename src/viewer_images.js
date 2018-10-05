@@ -108,19 +108,6 @@ class viewer_images extends viewer
         this.options.image_finished_loading(this.index, this.images.length, this.img.src);
     }
 
-    // Remove the image.  Set this.index to show it again.
-    set hide_image(value)
-    {
-        if(value)
-            this.img.src = this.blank_image;
-        else
-            this.refresh();
-    }
-    get hide_image()
-    {
-        return this.img.src == this.blank_image;
-    }
-
     refresh()
     {
         var url = this.images[this.index];
