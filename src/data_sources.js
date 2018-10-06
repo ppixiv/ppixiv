@@ -1772,6 +1772,12 @@ class data_source_bookmarks extends data_source_bookmarks_base
         var url = "/ajax/user/" + this.viewing_user_id + "/illusts/bookmarks";
         var result = await helpers.get_request_async(url, data);
 
+        // Put higher (newer) bookmarks first.
+        result.body.works.sort(function(lhs, rhs)
+        {
+            return parseInt(rhs.bookmarkData.id) - parseInt(lhs.bookmarkData.id);
+        });
+
         var illust_ids = [];
         for(var illust_data of result.body.works)
             illust_ids.push(illust_data.id);
@@ -1779,12 +1785,6 @@ class data_source_bookmarks extends data_source_bookmarks_base
         // This request returns all of the thumbnail data we need.  Forward it to
         // thumbnail_data so we don't need to look it up.
         thumbnail_data.singleton().loaded_thumbnail_info(result.body.works, "normal");
-
-        // Sort the two sets of IDs back together, putting higher (newer) IDs first.
-        illust_ids.sort(function(lhs, rhs)
-        {
-            return parseInt(rhs) - parseInt(lhs);
-        });
 
         // Register the new page of data.
         this.add_page(page, illust_ids);
@@ -1821,15 +1821,6 @@ class data_source_bookmarks_merged extends data_source_bookmarks_base
         for(var i = 0; i < 2; ++i)
             if(this.bookmark_illust_ids[i] != null)
                 illust_ids = illust_ids.concat(this.bookmark_illust_ids[i][page]);
-
-        // Sort the two sets of IDs back together, putting higher (newer) IDs first.
-        //
-        // Note that there's no connection between the two lists of IDs, so the real
-        // sort won't be very useful page-to-page.
-        illust_ids.sort(function(lhs, rhs)
-        {
-            return parseInt(rhs) - parseInt(lhs);
-        });
         
         this.add_page(page, illust_ids);
     }
@@ -1849,6 +1840,13 @@ class data_source_bookmarks_merged extends data_source_bookmarks_base
 
         var url = "/ajax/user/" + this.viewing_user_id + "/illusts/bookmarks";
         var result = await helpers.get_request_async(url, data);
+
+        // Put higher (newer) bookmarks first.
+        result.body.works.sort(function(lhs, rhs)
+        {
+            return parseInt(rhs.bookmarkData.id) - parseInt(lhs.bookmarkData.id);
+        });
+
         var illust_ids = [];
         for(var illust_data of result.body.works)
             illust_ids.push(illust_data.id);
@@ -1856,12 +1854,6 @@ class data_source_bookmarks_merged extends data_source_bookmarks_base
         // This request returns all of the thumbnail data we need.  Forward it to
         // thumbnail_data so we don't need to look it up.
         thumbnail_data.singleton().loaded_thumbnail_info(result.body.works, "normal");
-
-        // Sort the two sets of IDs back together, putting higher (newer) IDs first.
-        illust_ids.sort(function(lhs, rhs)
-        {
-            return parseInt(rhs) - parseInt(lhs);
-        });
 
         // If there are no results, remember that this is the last page, so we don't
         // make more requests for this type.
