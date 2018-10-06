@@ -376,6 +376,12 @@ class image_ui
         this.refresh_bookmark_tag_highlights();
     }
 
+    get tag_list()
+    {
+        var tags = this.element_bookmark_tag_list.value;
+        return tags == ""? []:tags.split(" ");
+    }
+    
     clicked_bookmark(private_bookmark, e)
     {
         e.preventDefault();
