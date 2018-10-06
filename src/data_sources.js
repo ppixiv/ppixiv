@@ -1559,8 +1559,6 @@ class data_source_bookmarks_base extends data_source
 
     async load_page_internal(page)
     {
-        this.bookmark_tags = [];
-
         this.fetch_bookmark_tags();
         
         // Make sure the user info is loaded.  This should normally be preloaded by globalInitData
