@@ -78,10 +78,14 @@ class image_ui
             setting: "auto-like",
         });
 
-        new menu_option_toggle(settings_menu, {
-            label: "Hold shift to open context menu",
-            setting: "invert-popup-hotkey",
-        });
+        // Firefox's contextmenu behavior is broken, so hide this option.
+        if(navigator.userAgent.indexOf("Firefox/") == -1)
+        {
+            new menu_option_toggle(settings_menu, {
+                label: "Hold shift to open context menu",
+                setting: "invert-popup-hotkey",
+            });
+        }
     }
 
     set data_source(data_source)

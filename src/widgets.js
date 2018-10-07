@@ -422,8 +422,14 @@ class popup_context_menu
 
         // If invert-popup-hotkey is true, hold shift to open the popup menu.  Otherwise,
         // hold shift to suppress the popup menu so the browser context menu will open.
+        //
+        // Firefox doesn't cancel the context menu if shift is pressed.  This seems like a
+        // well-intentioned but deeply confused attempt to let people override pages that
+        // block the context menu, making it impossible for us to let you choose context
+        // menu behavior and probably making it impossible for games to have sane keyboard
+        // behavior at all.
         this.shift_was_pressed = e.shiftKey;
-        if(helpers.get_value("invert-popup-hotkey"))
+        if(navigator.userAgent.indexOf("Firefox/") == -1 && helpers.get_value("invert-popup-hotkey"))
             this.shift_was_pressed = !this.shift_was_pressed;
         if(this.shift_was_pressed)
             return;
