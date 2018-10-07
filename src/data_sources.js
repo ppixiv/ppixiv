@@ -1225,11 +1225,43 @@ class data_source_artist extends data_source_fake_pagination
 {
     get name() { return "artist"; }
   
+    constructor(url)
+    {
+        super(url);
+
+        this.post_tags = [];
+    }
+
     get viewing_user_id()
     {
         var query_args = this.url.searchParams;
         return query_args.get("id");
     };
+
+    async get_user_tags(user_info)
+    {
+        if(user_info.frequentTags)
+            return user_info.frequentTags;
+
+        var result = await helpers.get_request_async("https://www.pixiv.net/ajax/user/" + user_info.userId + "/illustmanga/tags", {});
+        if(result.error)
+        {
+            console.error("Error fetching tags for user " + user_info.userId + ": " + result.error);
+            user_info.frequentTags = [];
+            return user_info.frequentTags
+        }
+
+        // Sort most frequent tags first.
+        result.body.sort(function(lhs, rhs) {
+            return rhs.cnt - lhs.cnt;
+        })
+
+        var tags = [];
+        for(var tag_info of result.body)
+            tags.push(tag_info.tag);
+        this.post_tags = tags;
+        this.call_update_listeners();
+    }
 
     async load_all_results()
     {
@@ -1238,7 +1270,6 @@ class data_source_artist extends data_source_fake_pagination
         // Make sure the user info is loaded.  This should normally be preloaded by globalInitData
         // in main.js, and this won't make a request.
         var user_info = await image_data.singleton().get_user_info_full_async(this.viewing_user_id);
-        console.log("xxx", user_info);
 
         this.user_info = user_info;
         this.call_update_listeners();
@@ -1262,27 +1293,8 @@ class data_source_artist extends data_source_fake_pagination
             return parseInt(rhs) - parseInt(lhs);
         });
 
-        // Request common tags for these posts.
-        //
-        // get_request doesn't handle PHP's wonky array format for GET arguments, so we just
-        // format it here.
-        this.post_tags = [];
-        var tags_for_illust_ids = illust_ids.slice(0,50);
-        if(tags_for_illust_ids.length > 0)
-        {
-            var id_args = "";
-            for(var id of tags_for_illust_ids)
-            {
-                if(id_args != "")
-                    id_args += "&";
-                id_args += "ids%5B%5D=" + id;
-            }
-
-            var frequent_tag_result = await helpers.get_request_async("/ajax/tags/frequent/illust?" + id_args, {});
-            for(var tag of frequent_tag_result.body)
-                this.post_tags.push(tag);
-            this.call_update_listeners();
-        }
+        // Load the user's common tags.  Don't wait for this to finish.
+        // this.get_user_tags(this.user_info);
 
         return illust_ids;
     };
@@ -1313,6 +1325,7 @@ class data_source_artist extends data_source_fake_pagination
             a.innerText = tag;
 
             var url = new URL(document.location);
+            url.hash = "#ppixiv";
 
             if(tag != "All")
                 url.searchParams.set("tag", tag);
