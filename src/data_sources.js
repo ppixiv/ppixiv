@@ -1221,7 +1221,7 @@ class data_source_from_page extends data_source
 //
 // However, we can only do searching and filtering on the user page, and that's
 // where we land when we load a link to the user.
-class data_source_artist extends data_source
+class data_source_artist extends data_source_fake_pagination
 {
     get name() { return "artist"; }
   
@@ -1231,12 +1231,7 @@ class data_source_artist extends data_source
         return query_args.get("id");
     };
 
-    load_page_available(page)
-    {
-        return page == 1;
-    }
-    
-    async load_page_internal(page)
+    async load_all_results()
     {
         this.post_tags = [];
         
@@ -1267,16 +1262,13 @@ class data_source_artist extends data_source
             return parseInt(rhs) - parseInt(lhs);
         });
 
-        // Register the new page of data.
-        this.add_page(page, illust_ids);
-
         // Request common tags for these posts.
         //
         // get_request doesn't handle PHP's wonky array format for GET arguments, so we just
         // format it here.
         this.post_tags = [];
         var tags_for_illust_ids = illust_ids.slice(0,50);
-        if(page == 1 && tags_for_illust_ids.length > 0)
+        if(tags_for_illust_ids.length > 0)
         {
             var id_args = "";
             for(var id of tags_for_illust_ids)
@@ -1291,6 +1283,8 @@ class data_source_artist extends data_source
                 this.post_tags.push(tag);
             this.call_update_listeners();
         }
+
+        return illust_ids;
     };
 
     refresh_thumbnail_ui(container, thumbnail_view)
