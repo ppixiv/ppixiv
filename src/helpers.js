@@ -1341,7 +1341,22 @@ var helpers = {
     decode_image(url)
     {
         if(HTMLImageElement.prototype.decode == null)
+        {
+            // If we don't have img.decode, fake it by drawing the image into an offscreen canvas
+            // to force the browser to decode it.
+            var img = document.createElement("img");
+            img.src = url;
+            img.onload = (e) => {
+                var canvas = document.createElement("canvas");
+                canvas.width = 1;
+                canvas.height = 1;
+
+                var context = canvas.getContext('2d');
+                context.drawImage(img, 0, 0);
+            };
+
             return;
+        }
         
         var img = document.createElement("img");
         img.src = url;
