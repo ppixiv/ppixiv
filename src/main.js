@@ -113,9 +113,17 @@ class early_controller
         // If we're not active, stop without doing anything and leave the page alone.
         if(!page_manager.singleton().active)
         {
-            // If we're disabled and can be enabled on this page, add the button.
             if(page_manager.singleton().available())
+            {
+                // If we're disabled and can be enabled on this page, add our button.
                 this.setup_disabled_ui();
+
+                // Remember that we're disabled in this tab.  This way, clicking the "return
+                // to Pixiv" button will remember that we're disabled.  We do this on page load
+                // rather than when the button is clicked so this works when middle-clicking
+                // the button to open a regular Pixiv page in a tab.
+                page_manager.singleton().store_ppixiv_disabled(true);
+            }
             
             return;
         }

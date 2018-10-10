@@ -45,18 +45,6 @@ class page_manager
         return page_manager._singleton;
     };
 
-    // Disable us, reloading the page to display it normally.
-    disable()
-    {
-        document.location.hash = "no-ppixiv";
-    };
-
-    // Enable us, reloading the page if needed.
-    enable()
-    {
-        document.location.hash = "ppixiv";
-    };
-
     // Return the data source for a URL, or null if the page isn't supported.
     get_data_source_for_url(url)
     {
@@ -149,29 +137,48 @@ class page_manager
     window_popstate(e)
     {
         var currently_active = this._active_internal();
-        if(this.active != currently_active)
-        {
-            // Stop propagation, so other listeners don't see this.  For example, this prevents
-            // the thumbnail viewer from turning on or off as a result of us changing the hash
-            // to "#no-ppixiv".
-            e.stopImmediatePropagation();
+        if(this.active == currently_active)
+            return;
 
-            console.log("Active state changed");
+        // Stop propagation, so other listeners don't see this.  For example, this prevents
+        // the thumbnail viewer from turning on or off as a result of us changing the hash
+        // to "#no-ppixiv".
+        e.stopImmediatePropagation();
 
-            // The URL has changed and caused us to want to activate or deactivate.  Reload the
-            // page.
-            //
-            // We'd prefer to reload with cache, like a regular navigation, but Firefox seems
-            // to reload without cache no matter what we do, even though document.location.reload
-            // is only supposed to bypass cache on reload(true).  There doesn't seem to be any
-            // reliable workaround.
-            document.location.reload();
-        }
-    };
+        if(this.active == currently_active)
+            return;
+        
+        this.store_ppixiv_disabled(!currently_active);
+        
+        console.log("Active state changed");
+
+        // The URL has changed and caused us to want to activate or deactivate.  Reload the
+        // page.
+        //
+        // We'd prefer to reload with cache, like a regular navigation, but Firefox seems
+        // to reload without cache no matter what we do, even though document.location.reload
+        // is only supposed to bypass cache on reload(true).  There doesn't seem to be any
+        // reliable workaround.
+        document.location.reload();
+    }
+
+    store_ppixiv_disabled(disabled)
+    {
+        // Remember that we're enabled or disabled in this tab.
+        if(disabled)
+            window.sessionStorage.ppixiv_disabled = 1;
+        else
+            delete window.sessionStorage.ppixiv_disabled;
+    }
 
     // Return true if we're active by default on the current page.
     active_by_default()
     {
+        // If this is set, the user clicked the "return to Pixiv" button.  Stay disabled
+        // in this tab until we're reactivated.
+        if(window.sessionStorage.ppixiv_disabled)
+            return false;
+
         return this.available();
     };
 
