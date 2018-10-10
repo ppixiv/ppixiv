@@ -249,9 +249,9 @@ class view_illust extends view
         // Create the image viewer.
         var progress_bar = this.progress_bar.controller();
         if(illust_data.illustType == 2)
-            this.viewer = new viewer_ugoira(image_container, illust_data, this.seek_bar, function(value) {
-                progress_bar.set(value);
-            }.bind(this));
+            this.viewer = new viewer_ugoira(image_container, illust_data, this.seek_bar, {
+                progress_bar: progress_bar,
+            });
         else
         {
             this.viewer = new viewer_images(image_container, illust_data, {

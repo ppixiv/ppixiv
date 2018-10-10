@@ -146,109 +146,96 @@ var helpers = {
     // the second out of cache.  This causes duplicate requests when prefetching video ZIPs.
     // This works around that problem by returning the existing XHR if one is already in progress.
     _fetches: {},
-    fetch_resource: function(url, options)
+    async fetch_resource(url, options)
     {
-        if(this._fetches[url])
+        if(options == null)
+            options = {};
+
+        // If there's an abort signal and it's already signalled, do nothing.
+        if(options.signal && options.signal.aborted)
+            throw "Aborted by signal";
+
+
+        // If there's no ongoing fetch for this URL, create one.  Otherwise, we'll just wait
+        // on the existing request.
+        if(this._fetches[url] == null)
+        {
+            // options.signal may be an abort signal, but it only aborts this instance of the
+            // request.  abort_actual_request is our internal signal to abort the actual request,
+            // which we only do if every fetch for this request is aborted.
+            var abort_actual_request = new AbortController();
+            var request = helpers.send_pixiv_request({
+                "method": "GET",
+                "url": url,
+                "responseType": "arraybuffer",
+
+                "headers": {
+                    "Accept": "application/json",
+                },
+                signal: abort_actual_request.signal,
+
+                onprogress: function(e) {
+                    for(var options of request.callers.slice())
+                    {
+                        try {
+                            if(options.onprogress)
+                                options.onprogress(e);
+                        } catch(exc) {
+                            console.error(exc);
+                        }
+                    }
+                },
+            });        
+            request.abort_actual_request = abort_actual_request;
+            this._fetches[url] = request;
+
+            // Remember the number of times fetch_resource has been called on this URL.
+            request.fetch_count = 0;
+            request.callers = [];
+            request.callers.push(options);
+        }
+        else
         {
             var request = this._fetches[url];
-
-            // Remember that another fetch was made for this resource.
-            request.fetch_count++;
-
-            if(options != null)
-                request.callers.push(options);
-
-            return request;
         }
-
-        var request = helpers.send_pixiv_request({
-            "method": "GET",
-            "url": url,
-            "responseType": "arraybuffer",
-
-            "headers": {
-                "Accept": "application/json",
-            },
-            onload: function(data) {
-                // Once the request finishes, future requests can be done normally and should be served
-                // out of cache.
-                delete helpers._fetches[url];
-
-                // Call onloads.
-                for(var options of request.callers.slice())
-                {
-                    try {
-                        if(options.onload)
-                            options.onload(data);
-                    } catch(exc) {
-                        console.error(exc);
-                    }
-                }
-            },
-
-            onerror: function(e) {
-                console.error("Fetch failed");
-                for(var options of request.callers.slice())
-                {
-                    try {
-                        if(options.onerror)
-                            options.onerror(e);
-                    } catch(exc) {
-                        console.error(exc);
-                    }
-                }
-            },
-
-            onprogress: function(e) {
-                for(var options of request.callers.slice())
-                {
-                    try {
-                        if(options.onprogress)
-                            options.onprogress(e);
-                    } catch(exc) {
-                        console.error(exc);
-                    }
-                }
-            },
-        });        
-
-        // Remember the number of times fetch_resource has been called on this URL.
-        request.fetch_count = 1;
-        request.callers = [];
-        request.callers.push(options);
-
-        this._fetches[url] = request;
+        // Remember that another fetch was made for this resource.
+        request.fetch_count++;
 
         // Override request.abort to reference count fetching, so we only cancel the load if
         // every caller cancels.
-        //
-        // Note that this means you'll still receive events if the fetch isn't actually
-        // cancelled, so you should unregister event listeners if that's important.
-        var original_abort = request.abort;
-        request.abort = function()
+        request.callers.push(options);
+        if(options.signal)
         {
-            // Remove this caller's callbacks, if any.
-            if(options != null)
-            {
-                var idx = request.callers.indexOf(options);
-                if(idx != -1)
-                    request.callers.splice(idx, 1);
-            }
-            
-            if(request.fetch_count == 0)
-            {
-                console.error("Fetch was aborted more times than it was started:", url);
-                return;
-            }
+            options.signal.addEventListener("abort", (e) => {
+                // Remove this caller's callbacks, if any.
+                if(options != null)
+                {
+                    var idx = request.callers.indexOf(options);
+                    if(idx != -1)
+                        request.callers.splice(idx, 1);
+                }
+                
+                if(request.fetch_count == 0)
+                {
+                    console.error("Fetch was aborted more times than it was started:", url);
+                    return;
+                }
 
-            request.fetch_count--;
-            if(request.fetch_count > 0)
-                return;
+                request.fetch_count--;
+                if(request.fetch_count > 0)
+                    return;
+                delete this._fetches[url];
 
-            original_abort.call(request);
-        };
+                // Abort the underlying request.
+                abort_actual_request.abort();
+            });
+        }
 
-        return request;
+        try {
+            return await request;
+        } finally {
+            delete helpers._fetches[url];
+        }
     },
 
     // For some reason, only the mode=manga page actually has URLs to each page.  Avoid
@@ -318,12 +305,6 @@ var helpers = {
         for(var i = 0; i < binary.length; ++i)
             array[i] = binary.charCodeAt(i);
         return array;
-    },
-
-    fetch_ugoira_metadata: function(illust_id, callback)
-    {
-        var url = "/ajax/illust/" + illust_id + "/ugoira_meta";
-        return helpers.get_request(url, {}, callback);
     },
 
     // Stop the underlying page from sending XHR requests, since we're not going to display any
@@ -468,129 +449,139 @@ var helpers = {
     // We use a limited interface since we have two implementations of this, one using XHR (for TM)
     // and one using GM_xmlhttpRequest (for GM), and this prevents us from accidentally
     // using a field that's only implemented with GM_xmlhttpRequest and breaking TM.
-    send_request_gm: function(user_options)
+    send_request_gm: function(options)
     {
-        var options = {};
-        for(var key of ["url", "headers", "method", "data", "responseType", "onload", "onprogress"])
-        {
-            if(!(key in user_options))
-                continue;
+        if(options == null)
+            options = {};
 
-            // We'll override onload.
-            if(key == "onload")
+        return new Promise((resolve, reject) => {
+            if(options.signal && options.signal.aborted)
             {
-                options.real_onload = user_options.onload;
-                continue;
+                reject("Aborted by signal");
+                return;
             }
-            options[key] = user_options[key];
-        }
-
-        // Set the referer, or some requests will fail.
-        var url = new URL(document.location);
-        url.hash = "";
-        options.headers["Referer"] = url.toString();
-
-        options.onload = function(response)
-        {
-            if(options.real_onload)
+            
+            var req_options = {};
+            for(var key of ["url", "headers", "method", "data", "responseType", "onload", "onprogress"])
             {
-                try {
-                    options.real_onload(response.response);
-                } catch(e) {
-                    console.error(e);
+                if(!(key in options))
+                    continue;
+
+                // We'll override onload.
+                if(key == "onload")
+                {
+                    req_options.real_onload = options.onload;
+                    continue;
                 }
+                req_options[key] = options[key];
             }
-        };
 
-        // When is this ever called?
-        options.onerror = function(response)
-        {
-            console.log("Request failed:", response);
-            if(options.real_onload)
+            // Set the referer, or some requests will fail.
+            var url = new URL(document.location);
+            url.hash = "";
+            req_options.headers["Referer"] = url.toString();
+
+            req_options.onload = function(response)
             {
-                try {
-                    options.real_onload(null);
-                } catch(e) {
-                    console.error(e);
-                }
+                resolve(response.response);
+            };
+
+            // When is this ever called?
+            req_options.onerror = function(response)
+            {
+                console.log("Request failed:", response);
+                reject(e);
+            }        
+
+            var actual_request = GM_xmlhttpRequest(req_options);
+
+            if(options.signal)
+            {
+                options.signal.addEventListener("abort", (e) => {
+                    console.log("Aborting XHR");
+
+                    // actual_request is null with newer, broken versions of GM, in which case
+                    // we only pretend to cancel the request.
+                    if(actual_request != null)
+                        actual_request.abort();
+
+                    // Remove real_onload, so if we can't actually cancel the request, we still
+                    // won't call onload, since the caller is no longer expecting it.
+                    delete req_options.real_onload;
+
+                    reject("Aborted by signal");
+                });        
             }
-        }        
-
-        var actual_request = GM_xmlhttpRequest(options);
-
-        return {
-            abort: function()
-            {
-                // actual_request is null with newer, broken versions of GM, in which case
-                // we only pretend to cancel the request.
-                if(actual_request != null)
-                    actual_request.abort();
-
-                // Remove real_onload, so if we can't actually cancel the request, we still
-                // won't call onload, since the caller is no longer expecting it.
-                delete options.real_onload;
-            },
-        };
+        });        
     },
 
     // The same as send_request_gm, but with XHR.
     send_request_xhr: function(options)
     {
-        var xhr = new RealXMLHttpRequest();        
-        xhr.open(options.method || "GET", options.url);
+        if(options == null)
+            options = {};
 
-        if(options.headers)
-        {
-            for(var key in options.headers)
-                xhr.setRequestHeader(key, options.headers[key]);
-        }
-        
-        if(options.responseType)
-            xhr.responseType = options.responseType;
-
-        xhr.addEventListener("load", function(e) {
-            if(options.onload)
+        return new Promise((resolve, reject) => {
+            if(options.signal && options.signal.aborted)
             {
-                try {
-                    options.onload(xhr.response);
-                } catch(exc) {
-                    console.error(exc);
-                }
+                reject("Aborted by signal");
+                return;
             }
-        });
+            
+            var xhr = new RealXMLHttpRequest();        
 
-        xhr.addEventListener("progress", function(e) {
-            if(options.onprogress)
+            if(options.signal)
             {
-                try {
-                    options.onprogress(e);
-                } catch(exc) {
-                    console.error(exc);
-                }
+                options.signal.addEventListener("abort", (e) => {
+                    console.log("Aborting XHR");
+                    xhr.abort();
+                    reject("Aborted by signal");
+                });        
             }
-        });
-        
-        if(options.method == "POST")
-            xhr.send(options.data);
-        else
-            xhr.send();
 
-        return {
-            abort: function()
+            xhr.open(options.method || "GET", options.url);
+
+            if(options.headers)
             {
-                console.log("cancel");
-                xhr.abort();
-            },
-        };
+                for(var key in options.headers)
+                    xhr.setRequestHeader(key, options.headers[key]);
+            }
+            
+            if(options.responseType)
+                xhr.responseType = options.responseType;
+
+            xhr.addEventListener("load", (e) => {
+                resolve(xhr.response);
+            });
+            xhr.addEventListener("error", (e) => {
+                reject(e);
+            });
+
+            xhr.addEventListener("progress", function(e) {
+                if(options.onprogress)
+                {
+                    try {
+                        options.onprogress(e);
+                    } catch(exc) {
+                        console.error(exc);
+                    }
+                }
+            });
+            
+            if(options.method == "POST")
+                xhr.send(options.data);
+            else
+                xhr.send();
+        });
     },
 
-    send_request: function(options)
+    async send_request(options)
     {
         // In GreaseMonkey, use send_request_gm.  Otherwise, use send_request_xhr.  If
         // GM_info.scriptHandler doesn't exist, assume we're in GreaseMonkey, since 
         // TamperMonkey always defines it.
         //
-        // (e also assume that if GM_info doesn't exist we're in GreaseMonkey, since it's
+        // We also assume that if GM_info doesn't exist we're in GreaseMonkey, since it's
         // GM that has a nasty habit of removing APIs that people are using, so if that
         // happens we're probably in GM.
         var greasemonkey = true;
@@ -602,13 +593,13 @@ var helpers = {
         }
 
         if(greasemonkey)
-            return helpers.send_request_gm(options);
+            return await helpers.send_request_gm(options);
         else
-            return helpers.send_request_xhr(options);
+            return await helpers.send_request_xhr(options);
     },
 
     // Send a request with the referer, cookie and CSRF token filled in.
-    send_pixiv_request: function(options)
+    async send_pixiv_request(options)
     {
         if(options.headers == null)
             options.headers = {};
@@ -620,13 +611,13 @@ var helpers = {
         if(hostname == "www.pixiv.net")
             options.headers["x-csrf-token"] = global_data.csrf_token;
 
-        return helpers.send_request(options);
+        return await helpers.send_request(options);
     },
 
     // Why does Pixiv have 300 APIs?
-    rpc_post_request: function(url, data, callback)
+    async rpc_post_request(url, data)
     {
-        return helpers.send_pixiv_request({
+        var result = await helpers.send_pixiv_request({
             "method": "POST",
             "url": url,
 
@@ -637,24 +628,19 @@ var helpers = {
                 "Accept": "application/json",
                 "Content-Type": "application/x-www-form-urlencoded; charset=utf-8",
             },
-            onload: function(data) {
-                if(data && data.error)
-                    console.error("Error in XHR request (" + url + "):", data.message)
+        });
 
-                if(callback)
-                    callback(data);
-            },
+        if(result.error)
+            throw "Error in XHR request (" + url + "): "+ result.message;
 
-            onerror: function(e) {
-                console.error("Fetch failed");
-                if(callback)
-                    callback({"error": true, "message": "XHR error"});
-            },
-        });        
+        return result;
     },
 
-    rpc_get_request: function(url, data, callback)
+    async rpc_get_request(url, data, options)
     {
+        if(options == null)
+            options = {};
+
         var params = new URLSearchParams();
         for(var key in data)
             params.set(key, data[key]);
@@ -662,34 +648,26 @@ var helpers = {
         if(query != "")
             url += "?" + query;
         
-        return helpers.send_pixiv_request({
+        var result = await helpers.send_pixiv_request({
             "method": "GET",
             "url": url,
             "responseType": "json",
+            "signal": options.signal,
 
             "headers": {
                 "Accept": "application/json",
             },
-
-            onload: function(data) {
-                if(data && data.error)
-                    console.error("Error in XHR request (" + url + "):", data.message)
-
-                if(callback)
-                    callback(data);
-            },
-
-            onerror: function(result) {
-                console.error("Fetch failed");
-                if(callback)
-                    callback({"error": true, "message": "XHR error"});
-            },
         });
+
+        if(result.error)
+            throw "Error in XHR request (" + url + "): "+ result.message;
+
+        return result;
     },
 
-    post_request: function(url, data, callback)
+    async post_request(url, data)
     {
-        return helpers.send_pixiv_request({
+        var result = helpers.send_pixiv_request({
             "method": "POST",
             "url": url,
             "responseType": "json",
@@ -700,41 +678,15 @@ var helpers = {
                 "Accept": "application/json",
                 "Content-Type": "application/json; charset=utf-8",
             },
-            onload: function(data) {
-                if(data && data.error)
-                    console.error("Error in XHR request (" + url + "):", data.message)
-
-                if(callback)
-                    callback(data);
-            },
-
-            onerror: function(e) {
-                console.error("Fetch failed");
-                if(callback)
-                    callback({"error": true, "message": "XHR error"});
-            },
         });        
+
+        if(result.error)
+            throw "Error in XHR request (" + url + "): "+ result.message;
+
+        return result;
     },
 
-    async post_request_async(url, data)
-    {
-        return new Promise(resolve => {
-            helpers.post_request(url, data, (result) => {
-                resolve(result);
-            });
-        });
-    },
-
-    async get_request_async(url, data)
-    {
-        return new Promise(resolve => {
-            helpers.get_request(url, data, (result) => {
-                resolve(result);
-            });
-        });
-    },
-
-    get_request: function(url, data, callback)
+    async get_request(url, data, options)
     {
         var params = new URLSearchParams();
         for(var key in data)
@@ -743,36 +695,34 @@ var helpers = {
         if(query != "")
             url += "?" + query;
 
-        return helpers.send_pixiv_request({
+        if(options == null)
+            options = {};
+
+        var result = await helpers.send_pixiv_request({
             "method": "GET",
             "url": url,
             "responseType": "json",
+            "signal": options.signal,
 
             "headers": {
                 "Accept": "application/json",
             },
-            onload: function(data) {
-                if(data && data.error)
-                    console.error("Error in XHR request (" + url + "):", data.message)
+        });
 
-                if(callback)
-                    callback(data);
-            },
+        // If the result isn't valid JSON, we'll get a null result.
+        if(result == null)
+            result = { error: true, message: "Invalid response" };
+        if(result.error)
+            throw "Error in XHR request (" + url + "): "+ result.message;
 
-            onerror: function(e) {
-                console.error("Fetch failed");
-                if(callback)
-                    callback({"error": true, "message": "XHR error"});
-            },
-        });        
+        return result;
     },
 
-    post_form_request: function (url, params, callback)
+    async post_form_request(url, params)
     {
         params.set("tt", global_data.csrf_token);
         
-        console.log("...", params);
-        helpers.send_pixiv_request({
+        var result = await helpers.send_pixiv_request({
             "method": "POST",
             "url": url,
 
@@ -781,28 +731,10 @@ var helpers = {
             "headers": {
                 "Content-Type": "application/x-www-form-urlencoded",
             },
-            onload: function(data) {
-                if(callback)
-                    callback(data);
-            },
-
-            onerror: function(e) {
-                console.error("Fetch failed");
-                if(callback)
-                    callback({"error": true, "message": "XHR error"});
-            },
-        });        
-    },
-
-    async post_form_request_async(url, data)
-    {
-        return new Promise(resolve => {
-            helpers.post_form_request(url, data, (result) => {
-                resolve(result);
-            });
         });
-    },
 
+        return result;
+    },
     
     // Download all URLs in the list.  Call callback with an array containing one ArrayData for each URL.  If
     // any URL fails to download, call callback with null.
@@ -850,34 +782,21 @@ var helpers = {
         start_next();
     },
 
-    async load_data_in_iframe_async(url)
-    {
-        return new Promise(resolve => {
-            helpers.load_data_in_iframe(url, (result) => {
-                resolve(result);
-            });
-        });
-    },
-
     // Load a page in an iframe, and call callback on the resulting document.
     // Remove the iframe when the callback returns.
-    load_data_in_iframe: function(url, callback)
+    async load_data_in_iframe(url)
     {
         if(GM_info.scriptHandler == "Tampermonkey")
         {
             // If we're in Tampermonkey, we don't need any of the iframe hijinks and we can
             // simply make a request with responseType: document.  This is much cleaner than
             // the Greasemonkey workaround below.
-            helpers.send_pixiv_request({
+            var result = await helpers.send_pixiv_request({
                 "method": "GET",
                 "url": url,
                 "responseType": "document",
-
-                onload: function(data) {
-                    callback(data);
-                },
             });
-            return;
+            return result;
         }
 
         // The above won't work with Greasemonkey.  It returns a document we can't access,
@@ -887,26 +806,27 @@ var helpers = {
         // Instead, we load the document in a sandboxed iframe.  It'll still load resources
         // that we don't need (though they'll mostly load from cache), but it won't run
         // scripts.
-        var iframe = document.createElement("iframe");
+        return new Promise((resolve, reject) => {
+            var iframe = document.createElement("iframe");
 
-        // Enable sandboxing, so scripts won't run in the iframe.  Set allow-same-origin, or
-        // we won't be able to access it in contentDocument (which doesn't really make sense,
-        // sandbox is for sandboxing the iframe, not us).
-        iframe.sandbox = "allow-same-origin";
-        iframe.src = url;
-        iframe.hidden = true;
-        document.body.appendChild(iframe);
+            // Enable sandboxing, so scripts won't run in the iframe.  Set allow-same-origin, or
+            // we won't be able to access it in contentDocument (which doesn't really make sense,
+            // sandbox is for sandboxing the iframe, not us).
+            iframe.sandbox = "allow-same-origin";
+            iframe.src = url;
+            iframe.hidden = true;
+            document.body.appendChild(iframe);
 
-        iframe.addEventListener("load", function(e) {
-            try {
-                callback(iframe.contentDocument);
-            } catch(e) {
-                // GM error logs don't make it to the console for some reason.
-                console.error(e);
-            } finally {
-                // Remove the iframe.  For some reason, we have to do this after processing it.
-                document.body.removeChild(iframe);
-            }
+            iframe.addEventListener("load", function(e) {
+                try {
+                    resolve(iframe.contentDocument);
+                } finally {
+                    // Remove the iframe.  For some reason, we have to do this after processing it.
+                    setTimeout(() => {
+                        document.body.removeChild(iframe);
+                    }, 0);
+                }
+            });
         });
     },
 

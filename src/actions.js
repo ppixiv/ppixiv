@@ -5,7 +5,7 @@ class actions
     //
     // If private_bookmark is true, bookmark privately.
     // tag_list is an array of bookmark tags.
-    static bookmark_add(illust_info, private_bookmark, tag_list)
+    static async bookmark_add(illust_info, private_bookmark, tag_list)
     {
         // If auto-like is enabled, like an image when we bookmark it.
         if(helpers.get_value("auto-like"))
@@ -19,47 +19,44 @@ class actions
         if(tag_list != null)
             helpers.update_recent_bookmark_tags(tag_list);
         
-        helpers.post_request("/ajax/illusts/bookmarks/add", {
+        var result = await helpers.post_request("/ajax/illusts/bookmarks/add", {
             "illust_id": illust_id,
             "tags": tag_list,
             "comment": "",
             "restrict": private_bookmark? 1:0,
-        }, function(result) {
-            if(result == null || result.error)
-                return;
+        });
 
-            // last_bookmark_id seems to be the ID of the new bookmark.  We need to store this correctly
-            // so the unbookmark button works.
-            //
-            // If this image's info is loaded, update its bookmark info.
-            var illust_info = image_data.singleton().get_image_info_sync(illust_id);
-            if(illust_info != null)
-            {
-                illust_info.bookmarkData = {
-                    "id": result.body.last_bookmark_id,
-                    "private": private_bookmark,
-                }
-
-                illust_info.bookmarkCount++;
+        // last_bookmark_id seems to be the ID of the new bookmark.  We need to store this correctly
+        // so the unbookmark button works.
+        //
+        // If this image's info is loaded, update its bookmark info.
+        var illust_info = image_data.singleton().get_image_info_sync(illust_id);
+        if(illust_info != null)
+        {
+            illust_info.bookmarkData = {
+                "id": result.body.last_bookmark_id,
+                "private": private_bookmark,
             }
 
-            // If this image's thumbnail info is loaded, update that too.
-            var thumbnail_info = thumbnail_data.singleton().get_one_thumbnail_info(illust_id);
-            if(thumbnail_info != null)
-            {
-                thumbnail_info.bookmarkData = {
-                    "id": result.body.last_bookmark_id,
-                    "private": private_bookmark,
-                }
-            }
-            
-            message_widget.singleton.show(private_bookmark? "Bookmarked privately":"Bookmarked");
+            illust_info.bookmarkCount++;
+        }
 
-            image_data.singleton().call_illust_modified_callbacks(illust_id);
-        }.bind(this));
+        // If this image's thumbnail info is loaded, update that too.
+        var thumbnail_info = thumbnail_data.singleton().get_one_thumbnail_info(illust_id);
+        if(thumbnail_info != null)
+        {
+            thumbnail_info.bookmarkData = {
+                "id": result.body.last_bookmark_id,
+                "private": private_bookmark,
+            }
+        }
+        
+        message_widget.singleton.show(private_bookmark? "Bookmarked privately":"Bookmarked");
+
+        image_data.singleton().call_illust_modified_callbacks(illust_id);
     }
 
-    static bookmark_remove(illust_info)
+    static async bookmark_remove(illust_info)
     {
         if(illust_info.bookmarkData == null)
         {
@@ -72,26 +69,23 @@ class actions
         
         console.log("Remove bookmark", bookmark_id);
         
-        helpers.rpc_post_request("/rpc/index.php", {
+        var result = await helpers.rpc_post_request("/rpc/index.php", {
             mode: "delete_illust_bookmark",
             bookmark_id: bookmark_id,
-        }, function(result) {
-            if(result == null || result.error)
-                return;
+        });
 
-            console.log("Removing bookmark finished");
+        console.log("Removing bookmark finished");
 
-            illust_info.bookmarkData = null;
-            illust_info.bookmarkCount--;
+        illust_info.bookmarkData = null;
+        illust_info.bookmarkCount--;
 
-            var thumbnail_info = thumbnail_data.singleton().get_one_thumbnail_info(illust_id);
-            if(thumbnail_info != null)
-                thumbnail_info.bookmarkData = null;
-             
-            message_widget.singleton.show("Bookmark removed");
+        var thumbnail_info = thumbnail_data.singleton().get_one_thumbnail_info(illust_id);
+        if(thumbnail_info != null)
+            thumbnail_info.bookmarkData = null;
+         
+        message_widget.singleton.show("Bookmark removed");
 
-            image_data.singleton().call_illust_modified_callbacks(illust_id);
-        }.bind(this));
+        image_data.singleton().call_illust_modified_callbacks(illust_id);
     }
 
     // Change an existing bookmark to public or private.
@@ -122,7 +116,7 @@ class actions
         params.toString();
 
         // This returns an HTML page that we don't care about.
-        var result = await helpers.post_form_request_async("/bookmark_setting.php", params);
+        var result = await helpers.post_form_request("/bookmark_setting.php", params);
 
         // last_bookmark_id seems to be the ID of the new bookmark.  We need to store this correctly
         // so the unbookmark button works.
@@ -153,7 +147,7 @@ class actions
     }
 
     // If quiet is true, don't print any messages.
-    static like_image(illust_data, quiet)
+    static async like_image(illust_data, quiet)
     {
         var illust_id = illust_data.illustId;
         console.log("Clicked like on", illust_id);
@@ -164,19 +158,55 @@ class actions
             return;
         }
         
-        helpers.post_request("/ajax/illusts/like", {
+        var result = await helpers.post_request("/ajax/illusts/like", {
             "illust_id": illust_id,
-        }, function() {
-            // Update the image data.
-            illust_data.likeData = true;
-            illust_data.likeCount++;
-            image_data.singleton().call_illust_modified_callbacks(illust_id);
+        });
 
-            if(!quiet)
-                message_widget.singleton.show("Illustration liked");
-        }.bind(this));
+        // Update the image data.
+        illust_data.likeData = true;
+        illust_data.likeCount++;
+        image_data.singleton().call_illust_modified_callbacks(illust_id);
+
+        if(!quiet)
+            message_widget.singleton.show("Illustration liked");
     }
 
+    static async follow(user_data, follow_privately, tags)
+    {
+        var result = await helpers.rpc_post_request("/bookmark_add.php", {
+            mode: "add",
+            type: "user",
+            user_id: user_data.userId,
+            tag: tags,
+            restrict: follow_privately? 1:0,
+            format: "json",
+        });
+
+        // This doesn't return any data.  Record that we're following and refresh the UI.
+        user_data.isFollowed = true;
+        image_data.singleton().call_user_modified_callbacks(user_data.userId);
+
+        var message = "Followed " + user_data.name;
+        if(follow_privately)
+            message += " privately";
+        message_widget.singleton.show(message);
+    }
+   
+    static async unfollow(user_data)
+    {
+        var result = await helpers.rpc_post_request("/rpc_group_setting.php", {
+            mode: "del",
+            type: "bookuser",
+            id: user_data.userId,
+        });
+
+        // Record that we're no longer following and refresh the UI.
+        user_data.isFollowed = false;
+        image_data.singleton().call_user_modified_callbacks(user_data.userId);
+
+        message_widget.singleton.show("Unfollowed " + user_data.name);
+    }
+    
     // Image downloading
     //
     // Download illust_data.

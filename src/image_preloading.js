@@ -94,18 +94,20 @@ class _xhr_preloader extends _preloader
     {
         this.callback = callback;
 
-        this.xhr = helpers.fetch_resource(this.url, {
+        this.abort_controller = new AbortController();
+        helpers.fetch_resource(this.url, {
             onload: this._run_callback,
+            signal: this.abort_controller.signal,
         });
     }
 
     cancel()
     {
-        if(this.xhr == null)
+        if(this.abort_controller == null)
             return;
 
-        this.xhr.abort();
-        this.xhr = null;
+        this.abort_controller.abort();
+        this.abort_controller = null;
     }
 }
 

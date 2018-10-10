@@ -1,6 +1,6 @@
 class viewer_ugoira extends viewer
 {
-    constructor(container, illust_data, seek_bar, progress)
+    constructor(container, illust_data, seek_bar, options)
     {
         super(container, illust_data);
         
@@ -14,7 +14,7 @@ class viewer_ugoira extends viewer
         this.seek_callback = this.seek_callback.bind(this);
 
         this.container = container;
-        this.progress_callback = progress;
+        this.options = options;
 
         this.seek_bar = seek_bar;
 
@@ -66,13 +66,13 @@ class viewer_ugoira extends viewer
 
     progress(value)
     {
-        if(this.progress_callback)
-            this.progress_callback(value);
+        if(this.options.progress_bar)
+            this.options.progress_bar.set(value);
 
         if(value == null)
         {
             // Once we send "finished", don't make any more progress calls.
-            this.progress_callback = null;
+            this.options.progress_bar = null;
 
             // Enable the seek bar once loading finishes.
             if(this.seek_bar)

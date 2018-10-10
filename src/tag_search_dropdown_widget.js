@@ -10,7 +10,6 @@ class tag_search_dropdown_widget
         this.input_onblur = this.input_onblur.bind(this);
         this.input_onkeydown = this.input_onkeydown.bind(this);
         this.input_oninput = this.input_oninput.bind(this);
-        this.autocomplete_request_finished = this.autocomplete_request_finished.bind(this);
         this.parent_onmouseenter = this.parent_onmouseenter.bind(this);
         this.parent_onmouseleave = this.parent_onmouseleave.bind(this);
         this.populate_dropdown = this.populate_dropdown.bind(this);
@@ -114,7 +113,7 @@ class tag_search_dropdown_widget
         this.tag_dropdown.hidden = true;
     }
 
-    run_autocomplete()
+    async run_autocomplete()
     {
         // If true, this is a value change caused by keyboard navigation.  Don't run autocomplete,
         // since we don't want to change the dropdown due to navigating in it.
@@ -139,31 +138,34 @@ class tag_search_dropdown_widget
         {
             // Don't send requests with an empty string.  Just finish the search synchronously,
             // so we clear the autocomplete immediately.
-            this.cancel_autocomplete_request();
+            if(this.abort_autocomplete != null)
+                this.abort_autocomplete.abort();
             this.autocomplete_request_finished("", { candidates: [] });
             return;
         }
 
         // Run the search.
-        this.autocomplete_request = helpers.rpc_get_request("/rpc/cps.php", {
-            keyword: tags,
-        }, this.autocomplete_request_finished.bind(this, tags));
+        try {
+            this.abort_autocomplete = new AbortController();
+            var result = await helpers.rpc_get_request("/rpc/cps.php", {
+                keyword: tags,
+            }, {
+                signal: this.abort_autocomplete.signal,
+            });
+
+            this.autocomplete_request_finished(tags, result);
+        } catch(e) {
+            console.info("Tag autocomplete aborted:", e);
+        } finally {
+            this.abort_autocomplete = null;
+        }
     }
     
-    cancel_autocomplete_request()
-    {
-        if(this.autocomplete_request == null)
-            return;
-
-        this.autocomplete_request.abort();
-        this.autocomplete_request = null;
-    }
-
     // A tag autocomplete request finished.
     autocomplete_request_finished(tags, result)
     {
         this.most_recent_search = tags;
-        this.autocomplete_request = null;
+        this.abort_autocomplete = null;
 
         // Store the new results.
         this.current_autocomplete_results = result.candidates || [];
@@ -198,7 +200,8 @@ class tag_search_dropdown_widget
         this.navigating = true;
         try {
             // If there's an autocomplete request in the air, cancel it.
-            this.cancel_autocomplete_request();
+            if(this.abort_autocomplete != null)
+                this.abort_autocomplete.abort();
 
             // Clear any old selection.
             var all_entries = this.tag_dropdown.querySelectorAll(".input-dropdown-list .entry");

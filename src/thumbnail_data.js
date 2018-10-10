@@ -71,7 +71,7 @@ class thumbnail_data
     }
 
     // Load thumbnail info for the given list of IDs.
-    load_thumbnail_info(illust_ids)
+    async load_thumbnail_info(illust_ids)
     {
         // Make a list of IDs that we're not already loading.
         var ids_to_load = [];
@@ -94,7 +94,7 @@ class thumbnail_data
         // URL, and for some reason it's limited to a particular user.  Hopefully they'll
         // have an updated generic illustration lookup call if they ever update the
         // regular search pages, and we can switch to it then.
-        helpers.rpc_get_request("/rpc/illust_list.php", {
+        var result = await helpers.rpc_get_request("/rpc/illust_list.php", {
             illust_ids: ids_to_load.join(","),
 
             // Specifying this gives us 240x240 thumbs, which we want, rather than the 150x150
@@ -103,9 +103,9 @@ class thumbnail_data
 
             // We do our own muting, but for some reason this flag is needed to get bookmark info.
             exclude_muted_illusts: 1,
-        }, function(results) {
-            this.loaded_thumbnail_info(results, "illust_list");
-        }.bind(this));
+        });
+
+        this.loaded_thumbnail_info(result, "illust_list");
     }
 
     // Get the mapping from /ajax/user/id/illusts/bookmarks to illust_list.php's keys.

@@ -83,35 +83,11 @@ ZipImagePlayer.prototype = {
             console.log(msg);
         }
     },
-    _load: function() {
+    async _load() {
         var _this = this;
 
         // Use helpers.fetch_resource, so we share fetches with preloading.
-        var xhr = helpers.fetch_resource(this.op.source, {
-            onload: function(response) {
-                if (_this._dead) {
-                    return;
-                }
-                _this._buf = response;
-                var length = _this._buf.byteLength;
-                _this._len = length;
-                _this._pHead = length;
-                _this._bytes = new Uint8Array(_this._buf);
-                this._findCentralDirectory();
-
-                if(this.op.progress)
-                {
-                    try {
-                        setTimeout(function() {
-                            this.op.progress(null);
-                        }.bind(this), 0);
-                    } catch(e) {
-                        console.error(e);
-                    }
-                }
-            }.bind(this),
-
-            onerror: this._mkerr("Fetch failed"),
+        var response = helpers.fetch_resource(this.op.source, {
             onprogress: function(e) {
                 if(!this.op.progress)
                     return;
@@ -122,6 +98,28 @@ ZipImagePlayer.prototype = {
                 }
             }.bind(this),
         });
+        var response = await response;
+        
+        if (_this._dead) {
+            return;
+        }
+        _this._buf = response;
+        var length = _this._buf.byteLength;
+        _this._len = length;
+        _this._pHead = length;
+        _this._bytes = new Uint8Array(_this._buf);
+        this._findCentralDirectory();
+
+        if(this.op.progress)
+        {
+            try {
+                setTimeout(function() {
+                    this.op.progress(null);
+                }.bind(this), 0);
+            } catch(e) {
+                console.error(e);
+            }
+        }
     },
     _startLoad: function() {
         var _this = this;

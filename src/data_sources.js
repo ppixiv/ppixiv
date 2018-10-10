@@ -737,7 +737,7 @@ class data_source_discovery extends data_source_fake_pagination
             mode: mode,
         };
 
-        var result = await helpers.get_request_async("/rpc/recommender.php", data);
+        var result = await helpers.get_request("/rpc/recommender.php", data);
 
         // Unlike other APIs, this one returns IDs as ints rather than strings.  Convert back
         // to strings.
@@ -804,7 +804,7 @@ class data_source_related_illusts extends data_source_fake_pagination
             num_recommendations: 1000,
         };
 
-        var result = await helpers.get_request_async("/rpc/recommender.php", data);
+        var result = await helpers.get_request("/rpc/recommender.php", data);
 
         // Unlike other APIs, this one returns IDs as ints rather than strings.  Convert back
         // to strings.
@@ -893,7 +893,7 @@ class data_source_rankings extends data_source
         if(mode)
             data.mode = mode;
 
-        var result = await helpers.get_request_async("/ranking.php", data);
+        var result = await helpers.get_request("/ranking.php", data);
 
         // If "next" is false, this is the last page.
         if(!result.next)
@@ -1135,7 +1135,7 @@ class data_source_from_page extends data_source
 
         console.log("Loading:", url.toString());
 
-        var doc = await helpers.load_data_in_iframe_async(url.toString());
+        var doc = await helpers.load_data_in_iframe(url.toString());
         this.finished_loading_illust(page, doc);
     };
 
@@ -1286,7 +1286,7 @@ class data_source_artist extends data_source
                 "manga";
 
             var url = "/ajax/user/" + this.viewing_user_id + "/" + type_for_url + "/tag/" + encodeURIComponent(tag);
-            var result = await helpers.get_request_async(url, {
+            var result = await helpers.get_request(url, {
                 offset: (page-1)*48,
                 limit: 48,
             });
@@ -1320,7 +1320,7 @@ class data_source_artist extends data_source
         var query_args = this.url.searchParams;
         var type = query_args.get("type");
 
-        var result = await helpers.get_request_async("/ajax/user/" + this.viewing_user_id + "/profile/all", {});
+        var result = await helpers.get_request("/ajax/user/" + this.viewing_user_id + "/profile/all", {});
 
         var illust_ids = [];
         if(type == null || type == "illust")
@@ -1434,7 +1434,7 @@ class data_source_artist extends data_source
         if(user_info.frequentTags)
             return user_info.frequentTags;
 
-        var result = await helpers.get_request_async("https://www.pixiv.net/ajax/user/" + user_info.userId + "/illustmanga/tags", {});
+        var result = await helpers.get_request("https://www.pixiv.net/ajax/user/" + user_info.userId + "/illustmanga/tags", {});
         if(result.error)
         {
             console.error("Error fetching tags for user " + user_info.userId + ": " + result.error);
@@ -1514,7 +1514,7 @@ class data_source_current_illust extends data_source_fake_pagination
         
         console.log("Loading:", url.toString());
 
-        var doc = await helpers.load_data_in_iframe_async(url.toString());
+        var doc = await helpers.load_data_in_iframe(url.toString());
         return this.load_all_results_from(doc);
     };
 
@@ -1687,7 +1687,7 @@ class data_source_bookmarks_base extends data_source
 
     // If we haven't done so yet, load bookmark tags for this bookmark page.  This
     // happens in parallel with with page loading.
-    fetch_bookmark_tags()
+    async fetch_bookmark_tags()
     {
         if(this.fetched_bookmark_tags)
             return;
@@ -1695,44 +1695,44 @@ class data_source_bookmarks_base extends data_source
 
         // Fetch bookmark tags.  We can do this in parallel with everything else.
         var url = "https://www.pixiv.net/ajax/user/" + this.viewing_user_id + "/illusts/bookmark/tags";
-        helpers.get_request(url, {}, function(result) {
-            var tag_counts = {};
-            for(var bookmark_tag of result.body.public)
-            {
-                // Skip "uncategorized".  This is always the first entry.  There's no clear
-                // marker for it, so just check the tag name.  We don't assume it'll always
-                // be the first entry in case this changes.
-                if(bookmark_tag.tag == "未分類")
-                    continue;
-                tag_counts[bookmark_tag.tag] = parseInt(bookmark_tag.cnt);
-            }
+        var result = await helpers.get_request(url, {});
 
-            for(var bookmark_tag of result.body.private)
-            {
-                if(bookmark_tag.tag == "未分類")
-                    continue;
-                if(!(bookmark_tag.tag in tag_counts))
-                    tag_counts[bookmark_tag.tag] = 0;
-                tag_counts[bookmark_tag.tag] += parseInt(bookmark_tag.cnt);
-            }
+        var tag_counts = {};
+        for(var bookmark_tag of result.body.public)
+        {
+            // Skip "uncategorized".  This is always the first entry.  There's no clear
+            // marker for it, so just check the tag name.  We don't assume it'll always
+            // be the first entry in case this changes.
+            if(bookmark_tag.tag == "未分類")
+                continue;
+            tag_counts[bookmark_tag.tag] = parseInt(bookmark_tag.cnt);
+        }
 
-            var all_tags = [];
-            for(var tag in tag_counts)
-                all_tags.push(tag);
+        for(var bookmark_tag of result.body.private)
+        {
+            if(bookmark_tag.tag == "未分類")
+                continue;
+            if(!(bookmark_tag.tag in tag_counts))
+                tag_counts[bookmark_tag.tag] = 0;
+            tag_counts[bookmark_tag.tag] += parseInt(bookmark_tag.cnt);
+        }
 
-            // Sort tags by count, so we can trim just the most used tags.
-            all_tags.sort(function(lhs, rhs) {
-                return tag_counts[rhs] - tag_counts[lhs];
-            });
+        var all_tags = [];
+        for(var tag in tag_counts)
+            all_tags.push(tag);
 
-            // Trim the list.  Some users will return thousands of tags.
-            all_tags.splice(20);
-            all_tags.sort();
-            this.bookmark_tags = all_tags;
+        // Sort tags by count, so we can trim just the most used tags.
+        all_tags.sort(function(lhs, rhs) {
+            return tag_counts[rhs] - tag_counts[lhs];
+        });
 
-            // Update the UI with the tag list.
-            this.call_update_listeners();
-        }.bind(this));
+        // Trim the list.  Some users will return thousands of tags.
+        all_tags.splice(20);
+        all_tags.sort();
+        this.bookmark_tags = all_tags;
+
+        // Update the UI with the tag list.
+        this.call_update_listeners();
     }
     
     // Get API arguments to query bookmarks.
@@ -1884,7 +1884,7 @@ class data_source_bookmarks extends data_source_bookmarks_base
         var data = this.get_bookmark_query_params(page);
 
         var url = "/ajax/user/" + this.viewing_user_id + "/illusts/bookmarks";
-        var result = await helpers.get_request_async(url, data);
+        var result = await helpers.get_request(url, data);
 
         // Put higher (newer) bookmarks first.
         result.body.works.sort(function(lhs, rhs)
@@ -1953,7 +1953,7 @@ class data_source_bookmarks_merged extends data_source_bookmarks_base
         var data = this.get_bookmark_query_params(page, rest);
 
         var url = "/ajax/user/" + this.viewing_user_id + "/illusts/bookmarks";
-        var result = await helpers.get_request_async(url, data);
+        var result = await helpers.get_request(url, data);
 
         // Put higher (newer) bookmarks first.
         result.body.works.sort(function(lhs, rhs)

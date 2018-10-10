@@ -117,56 +117,21 @@ class avatar_widget
             element_author_avatar.src = user_data[key];
     }
     
-    follow(follow_privately)
+    async follow(follow_privately)
     {
         if(this.user_data == null)
             return;
 
-        var username = this.user_data.name;
         var tags = this.element_follow_folder.value;
-        helpers.rpc_post_request("/bookmark_add.php", {
-            mode: "add",
-            type: "user",
-            user_id: this.user_data.userId,
-            tag: tags,
-            restrict: follow_privately? 1:0,
-            format: "json",
-        }, function(result) {
-            if(result == null)
-                return;
-
-            // This doesn't return any data.  Record that we're following and refresh the UI.
-            this.user_data.isFollowed = true;
-            image_data.singleton().call_user_modified_callbacks(this.user_data.userId);
-
-            var message = "Followed " + username;
-            if(follow_privately)
-                message += " privately";
-            message_widget.singleton.show(message);
-        }.bind(this));
+        await actions.follow(this.user_data, follow_privately, tags);
     }
 
-    unfollow()
+    async unfollow()
     {
         if(this.user_data == null)
             return;
 
-        var username = this.user_data.name;
-
-        helpers.rpc_post_request("/rpc_group_setting.php", {
-            mode: "del",
-            type: "bookuser",
-            id: this.user_data.userId,
-        }, function(result) {
-            if(result == null)
-                return;
-
-            // Record that we're no longer following and refresh the UI.
-            this.user_data.isFollowed = false;
-            image_data.singleton().call_user_modified_callbacks(this.user_data.userId);
-
-            message_widget.singleton.show("Unfollowed " + username);
-        }.bind(this));
+        await actions.unfollow(this.user_data);
     }
 
     // Note that in some cases we'll only have the user's ID and name, so we won't be able
@@ -330,8 +295,7 @@ class refresh_bookmark_tag_widget
         helpers.set_class(this.container,"spin", this.running);
 
         try {
-            var doc = await helpers.load_data_in_iframe_async("/bookmark.php");
-            f();
+            var doc = await helpers.load_data_in_iframe("/bookmark.php");
         } finally {
             this.running = false;
 

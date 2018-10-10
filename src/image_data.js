@@ -187,7 +187,7 @@ class image_data
     }
 
     // Load illust_id and all data that it depends on.  When it's available, call call_pending_callbacks.
-    load_image_info(illust_id)
+    async load_image_info(illust_id)
     {
         // If we have the user ID cached, start loading it without waiting for the
         // illustration data to load first.
@@ -211,12 +211,13 @@ class image_data
 
         // This call returns only preview data, so we can't use it to batch load data, but we could
         // use it to get thumbnails for a navigation pane:
-        // helpers.rpc_get_request("/rpc/illust_list.php?illust_ids=" + illust_id, function(result) { });
+        // var result = await helpers.rpc_get_request("/rpc/illust_list.php?illust_ids=" + illust_id);
 
-        helpers.get_request("/ajax/illust/" + illust_id, {}, this.loaded_image_info);
+        var result = await helpers.get_request("/ajax/illust/" + illust_id, {});
+        this.loaded_image_info(result);
     }
 
-    loaded_image_info(illust_result)
+    async loaded_image_info(illust_result)
     {
         if(illust_result == null || illust_result.error)
             return;
@@ -249,19 +250,15 @@ class image_data
         if(illust_data.illustType == 2)
         {
             // If this is a video, load metadata and add it to the illust_data before we store it.
-            helpers.fetch_ugoira_metadata(illust_id, function(ugoira_result) {
-                illust_data.ugoiraMetadata = ugoira_result.body;
-                finished_loading_image_data();
-            }.bind(this));
+            var ugoira_result = await helpers.get_request("/ajax/illust/" + illust_id + "/ugoira_meta");
+            illust_data.ugoiraMetadata = ugoira_result.body;
         }
-        else
-        {
-            // Otherwise, we're done loading the illustration.
-            finished_loading_image_data();
-        }
+
+        // We're done loading the illustration.
+        finished_loading_image_data();
     }
 
-    load_user_info(user_id, load_full_data)
+    async load_user_info(user_id, load_full_data)
     {
         // If we're already loading this user, stop.
         if(this.loading_user_data_ids[user_id])
@@ -291,7 +288,8 @@ class image_data
         // things consistent.
         // console.log("Fetch user", user_id);
         this.loading_user_data_ids[user_id] = true;
-        helpers.get_request("/ajax/user/" + user_id, {full:1}, this.loaded_user_info);
+        var result = await helpers.get_request("/ajax/user/" + user_id, {full:1});
+        this.loaded_user_info(result);
     }
 
     loaded_user_info(user_result)
@@ -353,7 +351,7 @@ class image_data
         this.load_manga_info(illust_id);
     }
     
-    load_manga_info(illust_id)
+    async load_manga_info(illust_id)
     {
         // If we're already loading this illust, stop.
         if(this.loading_manga_info_ids[illust_id])
@@ -377,7 +375,8 @@ class image_data
         // things consistent.
         // console.log("Fetch manga", illust_id);
         this.loading_manga_info_ids[illust_id] = true;
-        helpers.get_request("/ajax/illust/" + illust_id + "/pages", {}, this.loaded_manga_info.bind(this, illust_id));
+        var result = await helpers.get_request("/ajax/illust/" + illust_id + "/pages", {});
+        this.loaded_manga_info(illust_id, result);
     }
 
     loaded_manga_info(illust_id, result)
