@@ -27,6 +27,8 @@ class main_context_menu extends popup_context_menu
         this.onkeydown = this.onkeydown.bind(this);
         this.on_click_viewer = null;
 
+        image_data.singleton().illust_modified_callbacks.register(this.refresh_bookmark_tag_list.bind(this));
+
         // Refresh the menu when the view changes.
         this.mode_observer = new MutationObserver(function(mutationsList, observer) {
             for(var mutation of mutationsList) {
@@ -52,6 +54,156 @@ class main_context_menu extends popup_context_menu
 
         for(var button of this.menu.querySelectorAll(".button-zoom-level"))
             button.addEventListener("click", this.clicked_zoom_level.bind(this));
+
+
+
+        // The bookmark buttons, and clicks in the tag dropdown:
+        for(var a of this.menu.querySelectorAll(".button-bookmark"))
+            a.addEventListener("click", this.clicked_bookmark.bind(this));
+        this.menu.querySelector(".popup-bookmark-tag-dropdown").addEventListener("click", this.clicked_bookmark.bind(this), true);
+        this.menu.querySelector(".button-like").addEventListener("click", this.clicked_like.bind(this));
+        
+        this.bookmark_tag_dropdown = this.menu.querySelector(".popup-bookmark-tag-dropdown");
+
+        this.menu.querySelector(".button-bookmark-tags").addEventListener("click", (e) => {
+            e.preventDefault();
+
+            // Ignore clicks if this button isn't enabled.
+            if(!this.menu.querySelector(".button-bookmark-tags").classList.contains("enabled"))
+                return;
+            
+            this.bookmark_tag_dropdown.hidden = !this.bookmark_tag_dropdown.hidden;
+        });
+        this.element_bookmark_tag_list = this.menu.querySelector(".bookmark-tag-list");
+        this.refresh_bookmark_tag_list();
+    }
+
+    // Refresh the bookmarking and like UI.
+    async refresh_bookmark_tag_list()
+    {
+        var bookmark_tags = this.menu.querySelector(".popup-bookmark-tag-dropdown");
+        helpers.remove_elements(bookmark_tags);
+
+        if(this._illust_id != null)
+        {
+            var recent_bookmark_tags = helpers.get_recent_bookmark_tags();
+            recent_bookmark_tags.sort();
+            for(var i = 0; i < recent_bookmark_tags.length; ++i)
+            {
+                var tag = recent_bookmark_tags[i];
+                var entry = helpers.create_from_template(".template-popup-bookmark-tag-entry");
+                entry.dataset.tag = tag;
+                bookmark_tags.appendChild(entry);
+                entry.querySelector(".tag-name").innerText = tag;
+            }
+        }
+
+        // Grab the illust info to check if it's bookmarked.
+        var illust_id = this._illust_id;
+        var illust_data = null;
+        if(this._illust_id != null)
+            illust_data = await image_data.singleton().get_image_info_async(this._illust_id);
+
+        // Stop if the ID changed while we were async.
+        if(this._illust_id != illust_id)
+            return;
+
+        // Update the like button highlight and tooltip.
+        helpers.set_class(this.menu.querySelector(".button-like"),"liked", illust_data && illust_data.likeData);
+        this.menu.querySelector(".button-like").dataset.tooltip =
+            illust_data && !illust_data.likeData? "Like image":
+            illust_data && illust_data.likeData? "Already liked image":"";
+        helpers.set_class(this.menu.querySelector(".button-like"), "enabled", illust_data != null && !illust_data.likeData);
+
+        var bookmarked = illust_data && illust_data.bookmarkData != null;
+        var public_bookmark = illust_data && illust_data.bookmarkData && !illust_data.bookmarkData.private;
+        var private_bookmark = illust_data && illust_data.bookmarkData && illust_data.bookmarkData.private;
+
+        // Make sure the dropdown is hidden if we have no image, or if the image is already bookmarked.
+        if(illust_data == null || bookmarked)
+            this.bookmark_tag_dropdown.hidden = true;
+
+        // Set up the bookmark buttons.
+        helpers.set_class(this.menu.querySelector(".button-bookmark.public"),  "enabled",     illust_data != null);
+        helpers.set_class(this.menu.querySelector(".button-bookmark.public"),  "bookmarked",  public_bookmark);
+        helpers.set_class(this.menu.querySelector(".button-bookmark.public"),  "will-delete", public_bookmark);
+        helpers.set_class(this.menu.querySelector(".button-bookmark.private"), "enabled",     illust_data != null);
+        helpers.set_class(this.menu.querySelector(".button-bookmark.private"), "bookmarked",  private_bookmark);
+        helpers.set_class(this.menu.querySelector(".button-bookmark.private"), "will-delete", private_bookmark);
+
+        // We don't support editing tags (since bookmarkData doesn't include them), so disable the tag
+        // dropdown if the image is bookmarked.
+        helpers.set_class(this.menu.querySelector(".button-bookmark-tags"), "enabled", illust_data != null && !bookmarked);
+        
+        this.menu.querySelector(".button-bookmark.public").dataset.tooltip =
+            illust_data == null? "":
+            !bookmarked? "Bookmark image":
+            private_bookmark?"Change bookmark to public":"Remove bookmark";
+        this.menu.querySelector(".button-bookmark.private").dataset.tooltip =
+            illust_data == null? "":
+            !bookmarked? "Bookmark privately":
+            public_bookmark?"Change bookmark to private":"Remove bookmark";
+    }
+
+    // Clicked one of the top-level bookmark buttons (not the tag list).
+    async clicked_bookmark(e)
+    {
+        e.preventDefault();
+        e.stopPropagation();
+
+        // See if this is a click on the top-level bookmark buttons, or on one of the
+        // tag bookmark buttons.
+        var a = e.target.closest(".button-bookmark");
+        var tag_list = null;
+        if(a == null)
+        {
+            a = e.target.closest(".add-tagged-bookmark-button");
+
+            // Move up to the row to get the bookmark tag.
+            tag_list = [a.closest(".popup-bookmark-tag-entry").dataset.tag];
+        };
+        console.log(a);
+        console.log(tag_list);
+        console.log(e.target);
+        var private_bookmark = a.classList.contains("private");
+        console.log(private_bookmark);
+
+        // If the image isn't bookmarked it, add a bookmark.
+        var illust_data = await image_data.singleton().get_image_info_async(this._illust_id);
+        if(!illust_data.bookmarkData)
+        {
+            actions.bookmark_add(illust_data, private_bookmark, tag_list);
+            return;
+        }
+
+        // If the image is bookmarked and the opposite privacy button was clicked, edit the bookmark.
+        if(illust_data.bookmarkData.private != private_bookmark)
+        {
+            actions.bookmark_set_private(illust_data, private_bookmark);
+            return;
+        }
+
+        // Otherwise, remove the bookmark.
+        actions.bookmark_remove(illust_data);
+    }
+
+    async clicked_like(e)
+    {
+        e.preventDefault();
+        e.stopPropagation();
+
+        var illust_data = await image_data.singleton().get_image_info_async(this._illust_id);
+        actions.like_image(illust_data);
+    }
+
+    set illust_id(value)
+    {
+        if(this._illust_id == value)
+            return;
+
+        this._illust_id = value;
+
+        this.refresh_bookmark_tag_list();
     }
 
     shutdown()
@@ -115,6 +267,11 @@ class main_context_menu extends popup_context_menu
 
         // Only mousewheel zoom if control is pressed, or if the popup menu is visible.
         if(!e.ctrlKey && !this.visible)
+            return;
+
+        // We want to override almost all mousewheel events while the popup menu is open, but
+        // don't override scrolling the popup menu's tag list.
+        if(e.target.closest(".popup-bookmark-tag-dropdown"))
             return;
 
         e.preventDefault();
@@ -184,6 +341,9 @@ class main_context_menu extends popup_context_menu
     hide()
     {
         super.hide();
+
+        // Hide the tag dropdown when the menu closes.
+        this.bookmark_tag_dropdown.hidden = true;
     }
 
     // Update selection highlight for the context menu.

@@ -385,6 +385,7 @@
     
     <!-- Templates: -->
     <div>
+        <!-- Recent bookmark tags in image-ui: -->
         <template class=template-bookmark-tag-entry>
             <div class=bookmark-tag-entry>
                 <span class=tag-name></span>
@@ -498,7 +499,7 @@
                                     <div class="button bookmark-button private">
                                         Bookmark&nbsp;Privately
                                     </div>
-                                    <div class=premium-only>
+                                    <div>
                                         <input class=bookmark-tag-list>
                                         <div style="display: flex; align-items: center;">
                                             <div style="flex: 1;">Bookmark tags:</div>
@@ -692,6 +693,36 @@
                     </div>
                     -->
                 </div>
+                <div class=button-strip>
+                    <div class=button-block>
+                        <div class="button button-bookmark public">
+                            ### inline:heart-icon.svg
+                        </div>
+                    </div>
+
+                    <div class=button-block>
+                        <div class="button button-bookmark private">
+                            ### inline:heart-icon.svg
+                        </div>
+                    </div>
+                    
+                    <!-- position: relative positions the popup menu. -->
+                    <div class=button-block style="position: relative;">
+                        <div class="button button-bookmark-tags" data-tooltip="Bookmark tags">
+                            ### inline:tag-icon.svg
+                        </div>
+
+                        <div class=popup-bookmark-tag-dropdown>
+                        </div>
+                    </div>
+
+                    <div class=button-block>
+                        <div class="button button-like enabled">
+                            ### inline:like-button.svg
+                        </div>
+                    </div>
+                </div>
+                
                 <!--
                 <div style="display: flex; flex-direction: column; text-align: left;">
                     <div>
@@ -710,6 +741,19 @@
             </div>
         </template>
 
+        <!-- Recent bookmark tags in the popup menu: -->
+        <template class=template-popup-bookmark-tag-entry>
+            <div class=popup-bookmark-tag-entry style="display: flex; flex-direction: row; align-items: center; ">
+                <span class=tag-name></span>
+                <a class="add-tagged-bookmark-button public" href=# style="">
+                    ### inline:heart-icon.svg
+                </a>
+                <a class="add-tagged-bookmark-button private" href=# style="">
+                    ### inline:heart-icon.svg
+                </a>
+            </div>
+        </template>
+        
         <template class=template-menu-slider>
             <div class="menu-slider thumbnail-size-box">
                 <div class="box-section">

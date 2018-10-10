@@ -1396,6 +1396,85 @@ body.light .thumb-list-cursor
 .popup-context-menu .button-strip .button.button-zoom:not(.selected) > :nth-child(1) { display: none; }
 .popup-context-menu .button-strip .button.button-zoom.selected > :nth-child(2) { display: none; }
 
+/* Popup menu bookmarking */
+.popup-bookmark-tag-dropdown {
+    display: flex;
+    flex-direction: column;
+    background-color: #000;
+    position: absolute;
+    padding: 4px;
+    top: 100%;
+    right: 0;
+    border-radius: 4px;
+    max-height: 200px;
+    min-width: 200px;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+.popup-bookmark-tag-entry {
+    padding: 2px 8px;
+    display: flex;
+}
+.popup-bookmark-tag-entry > .tag-name {
+    flex: 1;
+}
+/* Hide the "delete" stroke over the heart icon unless clicking the button will
+ * remove the bookmark. */
+svg.heart-image .delete {
+    display: none;
+}
+
+.button.button-bookmark-tags.enabled:hover > svg #hole {
+    fill: #fff;
+}
+.button.button-bookmark-tags.enabled:hover > svg #tag {
+    fill: #444;
+}
+.popup-context-menu .button-strip .button.button-bookmark.will-delete.enabled:hover svg.heart-image .delete {
+    display: inline;
+}
+
+.popup-context-menu .button-strip .button.button-bookmark.enabled {
+    fill: #800;
+    stroke: none;
+}
+.popup-context-menu .button-strip .button.button-bookmark.private.enabled {
+    fill: #400;
+    stroke: #888;
+}
+.popup-context-menu .button-strip .button.button-bookmark.bookmarked,
+.popup-context-menu .button-strip .button.button-bookmark.enabled:hover {
+    fill: #f00;
+    stroke: none;
+}
+.popup-context-menu .button-strip .button.button-bookmark.private.bookmarked,
+.popup-context-menu .button-strip .button.button-bookmark.private.enabled:hover {
+    fill: #800;
+    stroke: #fff;
+}
+
+.popup-bookmark-tag-entry .add-tagged-bookmark-button {
+    display: block;
+    margin-left: 4px;
+}
+.popup-bookmark-tag-entry .add-tagged-bookmark-button > svg {
+    display: block;
+    height: 20px;
+    width: auto;
+    fill: #f00;
+}
+.popup-bookmark-tag-entry .add-tagged-bookmark-button.private > svg {
+    fill: #800;
+    stroke: #fff;
+}
+
+.popup-context-menu .button.button-like > svg { stroke: #666; stroke-width: .5px; }
+.popup-context-menu .button.button-like.liked > svg,
+.popup-context-menu button.button-like.enabled:not(.liked):hover > svg {
+    fill: #0F0;
+    stroke: none;
+}
+
 .view-manga-container {
     width: 100%;
     height: 100%;

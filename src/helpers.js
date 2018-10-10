@@ -623,7 +623,7 @@ var helpers = {
         return helpers.send_request(options);
     },
 
-    // Why does Pixiv have 3 APIs?
+    // Why does Pixiv have 300 APIs?
     rpc_post_request: function(url, data, callback)
     {
         return helpers.send_pixiv_request({
@@ -716,6 +716,15 @@ var helpers = {
         });        
     },
 
+    async post_request_async(url, data)
+    {
+        return new Promise(resolve => {
+            helpers.post_request(url, data, (result) => {
+                resolve(result);
+            });
+        });
+    },
+
     async get_request_async(url, data)
     {
         return new Promise(resolve => {
@@ -758,6 +767,43 @@ var helpers = {
         });        
     },
 
+    post_form_request: function (url, params, callback)
+    {
+        params.set("tt", global_data.csrf_token);
+        
+        console.log("...", params);
+        helpers.send_pixiv_request({
+            "method": "POST",
+            "url": url,
+
+            "data": params.toString(),
+
+            "headers": {
+                "Content-Type": "application/x-www-form-urlencoded",
+            },
+            onload: function(data) {
+                if(callback)
+                    callback(data);
+            },
+
+            onerror: function(e) {
+                console.error("Fetch failed");
+                if(callback)
+                    callback({"error": true, "message": "XHR error"});
+            },
+        });        
+    },
+
+    async post_form_request_async(url, data)
+    {
+        return new Promise(resolve => {
+            helpers.post_form_request(url, data, (result) => {
+                resolve(result);
+            });
+        });
+    },
+
+    
     // Download all URLs in the list.  Call callback with an array containing one ArrayData for each URL.  If
     // any URL fails to download, call callback with null.
     //

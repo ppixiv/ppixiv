@@ -358,6 +358,11 @@ class main_controller
         var illust_id = data_source.get_current_illust_id();
         var manga_page = args.hash.has("page")? parseInt(args.hash.get("page"))-1:null;
 
+        // If we're on search, we don't care what image is current.  Clear illust_id so we
+        // tell context_menu that we're not viewing anything, so it disables bookmarking.
+        if(new_view_name == "search")
+            illust_id = null;
+
         // if illust_id is set, need the image data to know whether to show manga pages
         // or the illust
         console.log("Loading data source.  View:", new_view_name, "Cause:", cause, "URL:", document.location.href);
@@ -384,6 +389,8 @@ class main_controller
         // main_context_menu uses this to see which view is active.
         document.body.dataset.currentView = new_view_name;
 
+        this.context_menu.illust_id = illust_id;
+        
         // If we're changing between the image and thumbnail view, update the active view.
         var view_changing = new_view != old_view;
         if(view_changing)
@@ -401,7 +408,7 @@ class main_controller
 
             // If we're enabling the thumbnail, pulse the image that was just being viewed (or
             // loading to be viewed), to make it easier to find your place.
-            if(new_view_name == "search" && illust_id != null)
+            if(new_view_name == "search" && old_illust_id != null)
                 this.thumbnail_view.pulse_thumbnail(old_illust_id);
         }
         

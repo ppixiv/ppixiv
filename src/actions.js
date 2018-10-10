@@ -94,6 +94,64 @@ class actions
         }.bind(this));
     }
 
+    // Change an existing bookmark to public or private.
+    static async bookmark_set_private(illust_info, private_bookmark)
+    {
+        var illust_id = illust_info.illustId;
+        var bookmark_id = illust_info.bookmarkData.id;
+        
+        // We're mimicing a form submission here, since there doesn't seem to be any
+        // API call for it.
+        var params = new URLSearchParams();
+        params.set("book_id[]", bookmark_id);
+        params.set("type", "");
+        params.set("untagged", 0);
+
+        // "rest" is actually the bookmark page the user is viewing, not the new state.
+        // We just mimic the value in the form (it probably only affects the redirect that
+        // we don't use).
+        params.set("rest", private_bookmark? "show":"hide");
+        if(private_bookmark)
+            params.set("hide", "Private");
+        else
+            params.set("show", "Public");
+        params.set("tag", "");
+        params.set("p", "1");
+        params.set("order", "");
+        params.set("add_tag", "");
+        params.toString();
+
+        // This returns an HTML page that we don't care about.
+        var result = await helpers.post_form_request_async("/bookmark_setting.php", params);
+
+        // last_bookmark_id seems to be the ID of the new bookmark.  We need to store this correctly
+        // so the unbookmark button works.
+        //
+        // If this image's info is loaded, update its bookmark info.
+        var illust_info = image_data.singleton().get_image_info_sync(illust_id);
+        if(illust_info != null)
+        {
+            illust_info.bookmarkData = {
+                id: bookmark_id,
+                private: private_bookmark,
+            }
+        }
+
+        // If this image's thumbnail info is loaded, update that too.
+        var thumbnail_info = thumbnail_data.singleton().get_one_thumbnail_info(illust_id);
+        if(thumbnail_info != null)
+        {
+            thumbnail_info.bookmarkData = {
+                id: bookmark_id,
+                private: private_bookmark,
+            }
+        }
+        
+        message_widget.singleton.show(private_bookmark? "Bookmarked privately":"Bookmarked");
+
+        image_data.singleton().call_illust_modified_callbacks(illust_id);
+    }
+
     // If quiet is true, don't print any messages.
     static like_image(illust_data, quiet)
     {
