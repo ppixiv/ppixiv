@@ -102,7 +102,7 @@ class main_context_menu extends popup_context_menu
         var illust_id = this._illust_id;
         var illust_data = null;
         if(this._illust_id != null)
-            illust_data = await image_data.singleton().get_image_info_async(this._illust_id);
+            illust_data = await image_data.singleton().get_image_info(this._illust_id);
 
         // Stop if the ID changed while we were async.
         if(this._illust_id != illust_id)
@@ -169,7 +169,7 @@ class main_context_menu extends popup_context_menu
         console.log(private_bookmark);
 
         // If the image isn't bookmarked it, add a bookmark.
-        var illust_data = await image_data.singleton().get_image_info_async(this._illust_id);
+        var illust_data = await image_data.singleton().get_image_info(this._illust_id);
         if(!illust_data.bookmarkData)
         {
             actions.bookmark_add(illust_data, private_bookmark, tag_list);
@@ -192,7 +192,7 @@ class main_context_menu extends popup_context_menu
         e.preventDefault();
         e.stopPropagation();
 
-        var illust_data = await image_data.singleton().get_image_info_async(this._illust_id);
+        var illust_data = await image_data.singleton().get_image_info(this._illust_id);
         actions.like_image(illust_data);
     }
 

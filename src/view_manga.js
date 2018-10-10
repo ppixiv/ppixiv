@@ -102,7 +102,7 @@ class view_manga extends view
 
         // Load both image and manga info in parallel.
         var results = await Promise.all([
-            image_data.singleton().get_image_info_async(this.illust_id),
+            image_data.singleton().get_image_info(this.illust_id),
             image_data.singleton().get_manga_info(this.illust_id),
         ]);
 

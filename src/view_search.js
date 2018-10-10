@@ -501,7 +501,7 @@ class view_search extends view
     //
     // FIXME: throttle loading pages if we scroll around quickly, so if we scroll
     // down a lot we don't load 10 pages of data
-    load_needed_thumb_data()
+    async load_needed_thumb_data()
     {
         // elements is a list of elements that are onscreen (or close to being onscreen).
         // We want thumbnails loaded for these, even if we need to load more thumbnail data.
@@ -537,7 +537,7 @@ class view_search extends view
         {
             console.log("Load page", page, "for thumbnails");
 
-            var result = this.data_source.load_page(page);
+            var result = await this.data_source.load_page(page);
 
             // If this page didn't load, it probably means we've reached the end.  Hide
             // the next-page-placeholder image so we don't keep trying to load more pages.

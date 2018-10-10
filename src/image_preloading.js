@@ -136,7 +136,7 @@ class image_preloader
 
     // Set the illust_id the user is currently viewing.  If illust_id is null, the user isn't
     // viewing an image (eg. currently viewing thumbnails).
-    set_current_image(illust_id)
+    async set_current_image(illust_id)
     {
         if(this.current_illust_id == illust_id)
             return;
@@ -147,25 +147,22 @@ class image_preloader
             return;
 
         // Get the image data.  This will often already be available.
-        image_data.singleton().get_image_info(this.current_illust_id, function(illust_info)
-        {
-            if(this.current_illust_id != illust_id || this.current_illust_info != null)
-                return;
+        var illust_info = await image_data.singleton().get_image_info(this.current_illust_id);
+        if(this.current_illust_id != illust_id || this.current_illust_info != null)
+            return;
 
-            // Store the illust_info for current_illust_id.
-            this.current_illust_info = illust_info;
+        // Store the illust_info for current_illust_id.
+        this.current_illust_info = illust_info;
 
-            // Preload thumbnails.
-            this.preload_thumbs(illust_info);
+        // Preload thumbnails.
+        this.preload_thumbs(illust_info);
 
-            this.check_fetch_queue();
-
-        }.bind(this));
+        this.check_fetch_queue();
     }
 
     // Set the illust_id we want to speculatively load, which is the next or previous image in
     // the current search.  If illust_id is null, we don't want to speculatively load anything.
-    set_speculative_image(illust_id)
+    async set_speculative_image(illust_id)
     {
         if(this.speculative_illust_id == illust_id)
             return;
@@ -176,19 +173,17 @@ class image_preloader
             return;
 
         // Get the image data.  This will often already be available.
-        image_data.singleton().get_image_info(this.speculative_illust_id, function(illust_info)
-        {
-            if(this.speculative_illust_id != illust_id || this.speculative_illust_info != null)
-                return;
+        var illust_info = await image_data.singleton().get_image_info(this.speculative_illust_id);
+        if(this.speculative_illust_id != illust_id || this.speculative_illust_info != null)
+            return;
 
-            // Store the illust_info for current_illust_id.
-            this.speculative_illust_info = illust_info;
+        // Store the illust_info for current_illust_id.
+        this.speculative_illust_info = illust_info;
 
-            // Preload thumbnails.
-            this.preload_thumbs(illust_info);
+        // Preload thumbnails.
+        this.preload_thumbs(illust_info);
 
-            this.check_fetch_queue();
-        }.bind(this));
+        this.check_fetch_queue();
     }
 
     // See if we need to start or stop preloads.  We do this when we have new illustration info,

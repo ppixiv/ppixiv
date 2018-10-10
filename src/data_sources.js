@@ -240,7 +240,7 @@ class data_source
         this.url = new URL(url);
         this.id_list = new illust_id_list();
         this.update_callbacks = [];
-        this.loading_page_callbacks = {};
+        this.loading_pages = {};
         this.first_empty_page = -1;
         this.update_callbacks = [];
     };
@@ -331,7 +331,22 @@ class data_source
     //
     // If we synchronously know that the page doesn't exist, return false and don't
     // call callback.  Otherwise, return true.
-    load_page(page, callback)
+    load_page(page)
+    {
+        var result = this.loading_pages[page];
+        if(result == null)
+        {
+            var result = this._load_page_async(page);
+            this.loading_pages[page] = result;
+            result.finally(() => {
+                delete this.loading_pages[page];
+            });
+        }
+
+        return result;
+    }
+
+    async _load_page_async(page)
     {
         // If page is null, use the default page.
         if(page == null)
@@ -353,80 +368,25 @@ class data_source
             return false;
         }
 
-        // If the page is already loaded, just call the callback.
+        // If the page is already loaded, stop.
         if(this.id_list.is_page_loaded(page))
-        {
-            setTimeout(function() {
-                if(callback != null)
-                    callback();
-            }.bind(this), 0);
             return true;
-        }
         
-        // If a page is loading, loading_page_callbacks[page] is a list of callbacks waiting
-        // for that page.
-        if(this.loading_page_callbacks[page])
-        {
-            // This page is currently loading, so just add the callback to that page's list.
-            // This makes sure we don't spam the same request several times if different things
-            // request it at the same time.
-            if(callback != null)
-                this.loading_page_callbacks[page].push(callback);
-            return true;
-        }
-
         // Check if this is past the end.
         if(!this.load_page_available(page))
             return false;
         
-        // Create the callbacks list for this page if it doesn't exist.  This also records that
-        // the request for this page is in progress.
-        if(this.loading_page_callbacks[page] == null)
-            this.loading_page_callbacks[page] = [];
-
-        // Add this callback to the list, if any.
-        if(callback != null)
-            this.loading_page_callbacks[page].push(callback);
-
-        var is_synchronous = true;
-
-        var completed = function()
-        {
-            // If there were no results, then we've loaded the last page.  Don't try to load
-            // any pages beyond this.
-            if(this.id_list.illust_ids_by_page[page] == null)
-            {
-                console.log("No data on page", page);
-                if(this.first_empty_page == -1 || page < this.first_empty_page)
-                    this.first_empty_page = page;
-            };
-
-            // Call all callbacks waiting for this page.
-            var callbacks = this.loading_page_callbacks[page].slice();
-            delete this.loading_page_callbacks[page];
-
-            for(var callback of callbacks)
-            {
-                try {
-                    callback();
-                } catch(e) {
-                    console.error(e);
-                }
-            }
-        }.bind(this);
-
         // Start the actual load.
-        this.load_page_internal(page).then(function() {
-            // If is_synchronous is true, the data source finished immediately before load_page_internal
-            // returned.  This happens when the data is already available and didn't need to be loaded.
-            // Make sure we complete the load asynchronously even if it finished synchronously.
-            if(is_synchronous)
-                setTimeout(completed, 0);
-            else
-                completed();
-        }.bind(this));
+        var result = await this.load_page_internal(page);
 
-        is_synchronous = false;
+        // If there were no results, then we've loaded the last page.  Don't try to load
+        // any pages beyond this.
+        if(this.id_list.illust_ids_by_page[page] == null)
+        {
+            console.log("No data on page", page);
+            if(this.first_empty_page == -1 || page < this.first_empty_page)
+                this.first_empty_page = page;
+        };
 
         return true;
     }
@@ -474,25 +434,6 @@ class data_source
     {
         // By default, put the illust_id in the hash.
         hash_args.set("illust_id", illust_id);
-    }
-
-    // Load from the current history state.  Load the current page (if needed), then call
-    // callback().
-    //
-    // This is called when changing history states.  The data source should load the new
-    // page if needed, then call this.callback.
-    load_current_page(callback)
-    {
-        this.load_page(null, callback);
-    };
-
-    async load_current_page_async()
-    {
-        return new Promise(resolve => {
-            this.load_current_page((user_info) => {
-                resolve();
-            });
-        });
     }
 
     // Return the estimated number of items per page.  This is used to pad the thumbnail
@@ -773,7 +714,7 @@ class data_source_related_illusts extends data_source_fake_pagination
 {
     get name() { return "related-illusts"; }
    
-    load_page(page, callback)
+    async _load_page_async(page)
     {
         // The first time we load a page, get info about the source illustration too, so
         // we can show it in the UI.
@@ -781,15 +722,18 @@ class data_source_related_illusts extends data_source_fake_pagination
         {
             this.fetched_illust_info = true;
 
+            // Don't wait for this to finish before continuing.
             var query_args = this.url.searchParams;
             var illust_id = query_args.get("illust_id");
-            image_data.singleton().get_image_info(illust_id, function(illust_info) {
+            image_data.singleton().get_image_info(illust_id).then((illust_info) => {
                 this.illust_info = illust_info;
                 this.call_update_listeners();
-            }.bind(this));
+            }).catch((e) => {
+                console.error(e);
+            });
         }
 
-        return super.load_page(page, callback);
+        return await super._load_page_async(page);
     }
      
     // Implement data_source_fake_pagination:
@@ -1251,7 +1195,7 @@ class data_source_artist extends data_source
     {
         // Make sure the user info is loaded.  This should normally be preloaded by globalInitData
         // in main.js, and this won't make a request.
-        this.user_info = await image_data.singleton().get_user_info_full_async(this.viewing_user_id);
+        this.user_info = await image_data.singleton().get_user_info_full(this.viewing_user_id);
 
         var query_args = this.url.searchParams;
         var hash_args = helpers.get_hash_args(this.url);
@@ -1415,7 +1359,7 @@ class data_source_artist extends data_source
 
         // Get user info.  We probably have this on this.user_info, but that async load
         // might not be finished yet.
-        var user_info = await image_data.singleton().get_user_info_full_async(this.viewing_user_id);
+        var user_info = await image_data.singleton().get_user_info_full(this.viewing_user_id);
         console.log("Loading tags for user", user_info.userId);
 
         // Load the user's common tags.
@@ -1591,7 +1535,7 @@ class data_source_current_illust extends data_source_fake_pagination
     {
         var url = new URL(url);
         var illust_id = url.searchParams.get("illust_id");
-        var illust_info = await image_data.singleton().get_image_info_async(illust_id);
+        var illust_info = await image_data.singleton().get_image_info(illust_id);
 
         var hash_args = helpers.get_hash_args(url);
         hash_args.set("user_id", illust_info.userId);
@@ -1677,7 +1621,7 @@ class data_source_bookmarks_base extends data_source
         
         // Make sure the user info is loaded.  This should normally be preloaded by globalInitData
         // in main.js, and this won't make a request.
-        var user_info = await image_data.singleton().get_user_info_full_async(this.viewing_user_id);
+        var user_info = await image_data.singleton().get_user_info_full(this.viewing_user_id);
 
         this.user_info = user_info;
         this.call_update_listeners();

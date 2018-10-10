@@ -116,7 +116,11 @@ class image_ui
 
         this._illust_id = illust_id;
         this.illust_data = null;
-        image_data.singleton().get_image_info(illust_id, this.image_data_loaded);
+        image_data.singleton().get_image_info(illust_id).then((illust_info) => {
+            this.image_data_loaded(illust_info);
+        }).catch((e) => {
+            console.error(e);
+        });
     }
 
     handle_onkeydown(e)

@@ -127,7 +127,7 @@ class view_illust extends view
         image_preloader.singleton.set_current_image(illust_id);
 
         // Load info for this image if needed.
-        var illust_data = await image_data.singleton().get_image_info_async(illust_id);
+        var illust_data = await image_data.singleton().get_image_info(illust_id);
 
         // If this is no longer the image we want to be showing, stop.
         if(this.wanted_illust_id != illust_id)

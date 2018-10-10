@@ -7,9 +7,7 @@ class image_data
 {
     constructor()
     {
-        this.call_pending_callbacks = this.call_pending_callbacks.bind(this);
         this.loaded_image_info = this.loaded_image_info.bind(this);
-        this.load_user_info = this.load_user_info.bind(this);
         this.loaded_user_info = this.loaded_user_info.bind(this);
 
         this.illust_modified_callbacks = new callback_list();
@@ -21,12 +19,8 @@ class image_data
         this.manga_info = { };
         this.illust_id_to_user_id = {};
 
-        this.loading_image_data_ids = {};
-        this.loading_user_data_ids = {};
-        this.loading_manga_info_ids = {};
-
-        this.pending_image_info_calls = [];
-        this.pending_user_info_calls = [];
+        this.illust_loads = {};
+        this.user_info_loads = {};
         this.manga_page_loads = {};
     };
 
@@ -60,15 +54,28 @@ class image_data
     //
     // If illust_id is a video, we'll also download the metadata before returning it, and store
     // it as image_data.ugoiraMetadata.
-    get_image_info(illust_id, callback)
+    get_image_info(illust_id)
     {
-        // If callback is null, just fetch the data.
-        if(callback != null)
-            this.pending_image_info_calls.push([illust_id, callback]);
+        // If we already have the image data, just return it.
+        if(this.image_data[illust_id] != null && this.image_data[illust_id].userInfo)
+        {
+            return new Promise(resolve => {
+                resolve(this.image_data[illust_id]);
+            });
+        }
 
-        this.load_image_info(illust_id);
+        // If there's already a load in progress, just return it.
+        if(this.illust_loads[illust_id] != null)
+            return this.illust_loads[illust_id];
+        
+        this.illust_loads[illust_id] = this.load_image_info(illust_id);
+        this.illust_loads[illust_id].then(() => {
+            delete this.illust_loads[illust_id];
+        });
+        
+        return this.illust_loads[illust_id];
     }
-
+    
     // Like get_image_info, but return the result immediately.
     //
     // If the image info isn't loaded, don't start a request and just return null.
@@ -77,95 +84,25 @@ class image_data
         return this.image_data[illust_id];
     }
 
-    call_pending_callbacks()
-    {
-        // Copy the list, in case get_image_info is called from a callback.
-        var callbacks = this.pending_image_info_calls.slice();
-        for(var i = 0; i < this.pending_image_info_calls.length; ++i)
-        {
-            var pending = this.pending_image_info_calls[i];
-            var illust_id = pending[0];
-            var callback = pending[1];
-
-            // Wait until we have all the info for this image.
-            var illust_data = this.image_data[illust_id];
-            if(illust_data == null)
-                continue;
-
-            var user_data = this.user_data[illust_data.userId];
-            if(user_data == null)
-                continue;
-
-            // Make sure user_data is referenced from the image.
-            illust_data.userInfo = user_data;
-
-            // Remove the entry.
-            this.pending_image_info_calls.splice(i, 1);
-            --i;
-
-            // Run the callback.
-            try {
-                callback(illust_data);
-            } catch(e) {
-                console.error(e);
-            }
-        }
-
-        // Call user info callbacks.  These are simpler.
-        var callbacks = this.pending_user_info_calls.slice();
-        for(var i = 0; i < this.pending_user_info_calls.length; ++i)
-        {
-            var pending = this.pending_user_info_calls[i];
-            var user_id = pending[0];
-            var callback = pending[1];
-
-            // Wait until we have all the info for this user.
-            var user_data = this.user_data[user_id];
-            if(user_data == null)
-                continue;
-
-            // Remove the entry.
-            this.pending_user_info_calls.splice(i, 1);
-            --i;
-
-            // Run the callback.
-            try {
-                callback(user_data);
-            } catch(e) {
-                console.error(e);
-            }
-        }
-    }
-
-    // Load illust_id and all data that it depends on.  When it's available, call call_pending_callbacks.
+    // Load illust_id and all data that it depends on.
     async load_image_info(illust_id)
     {
         // If we have the user ID cached, start loading it without waiting for the
-        // illustration data to load first.
+        // illustration data to finish loading first.  loaded_image_info will also
+        // do this, and it'll use the request we started here.
         var cached_user_id = this.illust_id_to_user_id[illust_id];
         if(cached_user_id != null)
-            this.load_user_info(cached_user_id);
-
-        // If we're already loading this illustration, stop.
-        if(this.loading_image_data_ids[illust_id])
-            return;
-
-        // If we already have this illustration, just make sure we're fetching the user.
-        if(this.image_data[illust_id] != null)
         {
-            this.load_user_info(this.image_data[illust_id].userId);
-            return;
+            console.log("Prefetching user ID", cached_user_id);
+            this.get_user_info(cached_user_id);
         }
 
         // console.log("Fetch illust", illust_id);
-        this.loading_image_data_ids[illust_id] = true;
 
-        // This call returns only preview data, so we can't use it to batch load data, but we could
-        // use it to get thumbnails for a navigation pane:
-        // var result = await helpers.rpc_get_request("/rpc/illust_list.php?illust_ids=" + illust_id);
+        console.error("Fetching", illust_id);
 
         var result = await helpers.get_request("/ajax/illust/" + illust_id, {});
-        this.loaded_image_info(result);
+        return await this.loaded_image_info(result);
     }
 
     async loaded_image_info(illust_result)
@@ -177,36 +114,38 @@ class image_data
         var illust_id = illust_data.illustId;
         // console.log("Got illust", illust_id);
 
-        // This is usually set by load_image_info, but we also need to set it if we're called by
-        // add_illust_data so it's true if we fetch metadata below.
-        this.loading_image_data_ids[illust_id] = true;
-
-        var finished_loading_image_data = function()
-        {
-            delete this.loading_image_data_ids[illust_id];
-
-            // Store the image data.
-            this.image_data[illust_id] = illust_data;
-
-            // Load user info for the illustration.
-            //
-            // Do this async rather than immediately, so if we're loading initial info with calls to
-            // add_illust_data and add_user_data, we'll give the caller a chance to finish and give us
-            // user info, rather than fetching it now when we won't need it.
-            setTimeout(function() {
-                this.load_user_info(illust_data.userId);
-            }.bind(this), 0);
-        }.bind(this);
-
+        var promises = [];
         if(illust_data.illustType == 2)
         {
             // If this is a video, load metadata and add it to the illust_data before we store it.
-            var ugoira_result = await helpers.get_request("/ajax/illust/" + illust_id + "/ugoira_meta");
+            var ugoira_result = helpers.get_request("/ajax/illust/" + illust_id + "/ugoira_meta");
+            promises.push(ugoira_result);
+        }
+
+        // Load user info for the illustration.
+        //
+        // Do this async rather than immediately, so if we're loading initial info with calls to
+        // add_illust_data and add_user_data, we'll give the caller a chance to finish and give us
+        // user info, rather than fetching it now when we won't need it.
+        var user_info = this.get_user_info(illust_data.userId);
+        promises.push(user_info);
+
+        // Wait for the user info and ugoira data to both complete.
+        await Promise.all(promises);
+
+        // Store the results.
+        var user_info = await user_info;
+        illust_data.userInfo = user_info;
+
+        if(illust_data.illustType == 2)
+        {
+            ugoira_result = await ugoira_result;
             illust_data.ugoiraMetadata = ugoira_result.body;
         }
 
-        // We're done loading the illustration.
-        finished_loading_image_data();
+        // Store the image data.
+        this.image_data[illust_id] = illust_data;
+        return illust_data;
     }
 
     // The user request can either return a small subset of data (just the username,
@@ -218,73 +157,49 @@ class image_data
     // the full data.
     //
     // Note that get_user_info will return the full data if we have it already.
-    get_user_info_full(user_id, callback)
+    async get_user_info_full(user_id)
     {
-        // If callback is null, just fetch the data.
-        if(callback != null)
-            this.pending_user_info_calls.push([user_id, callback]);
-
-        this.load_user_info(user_id, true);
-    };
-
-    get_user_info_full_async(user_id)
-    {
-        return new Promise(resolve => {
-            this.get_user_info_full(user_id, (user_info) => {
-                resolve(user_info);
-            });
-        });
+        return await this._get_user_info(user_id, true);
     }
 
-    get_user_info(user_id, callback)
+    async get_user_info(user_id)
     {
-        if(callback != null)
-            this.pending_user_info_calls.push([user_id, callback]);
-
-        this.load_user_info(user_id, false);
-    };
-    
-    get_user_info_async(user_id)
-    {
-        return new Promise(resolve => {
-            this.get_user_info(user_id, (user_info) => {
-                resolve(user_info);
-            });
-        });
+        return await this._get_user_info(user_id, false);
     }
 
-    async load_user_info(user_id, load_full_data)
+    _get_user_info(user_id, load_full_data)
     {
-        // If we're already loading this user, stop.
-        if(this.loading_user_data_ids[user_id])
-        {
-            console.log("User " + user_id + " is already being fetched, waiting for it");
-            return;
-        }
-
-        // If we already have the user info for this illustration, we're done.  Call call_pending_callbacks
-        // to fire any waiting callbacks.
+        // If we already have the user info for this illustration (and it's full data, if
+        // requested), we're done.
         if(this.user_data[user_id] != null)
         {
-            // user_info.partial is 1 if it's the full data (this is backwards).
-            // If we need full data and we only have partial data, we still need to request
-            // data.
+            // user_info.partial is 1 if it's the full data (this is backwards).  If we need
+            // full data and we only have partial data, we still need to request data.
             if(!load_full_data || this.user_data[user_id].partial)
             {
-                setTimeout(function() {
-                    this.call_pending_callbacks();
-                }.bind(this), 0);
-                return;
+                return new Promise(resolve => {
+                    resolve(this.user_data[user_id]);
+                });
             }
         }
 
-        // We can say {full: 1} to get more profile info (webpage URL, twitter, etc.).
-        // That info isn't included in preloads, though, so it's not used for now to keep
-        // things consistent.
+        // If there's already a load in progress, just return it.
+        if(this.user_info_loads[user_id] != null)
+            return this.user_info_loads[user_id];
+       
+        this.user_info_loads[user_id] = this.load_user_info(user_id);
+        this.user_info_loads[user_id].then(() => {
+            delete this.user_info_loads[user_id];
+        });
+
+        return this.user_info_loads[user_id];
+    };
+    
+    async load_user_info(user_id)
+    {
         // console.log("Fetch user", user_id);
-        this.loading_user_data_ids[user_id] = true;
         var result = await helpers.get_request("/ajax/user/" + user_id, {full:1});
-        this.loaded_user_info(result);
+        return this.loaded_user_info(result);
     }
 
     loaded_user_info(user_result)
@@ -295,12 +210,11 @@ class image_data
         var user_data = user_result.body;
         var user_id = user_data.userId;
         // console.log("Got user", user_id);
-        delete this.loading_user_data_ids[user_id];
 
         // Store the user data.
         this.user_data[user_id] = user_data;
 
-        this.call_pending_callbacks();
+        return user_data;
     }
 
     // Add image and user data to the cache that we received from other sources.  Note that if
@@ -361,22 +275,11 @@ class image_data
         // That info isn't included in preloads, though, so it's not used for now to keep
         // things consistent.
         // console.log("Fetch manga", illust_id);
-        this.loading_manga_info_ids[illust_id] = true;
         var result = await helpers.get_request("/ajax/illust/" + illust_id + "/pages", {});
 
         // Store the result.
         this.manga_info[illust_id] = result.body;
         return this.manga_info[illust_id];
-    }
-
-    // Async wrappers:
-    get_image_info_async(illust_id)
-    {
-        return new Promise(resolve => {
-            this.get_image_info(illust_id, (illust_info) => {
-                resolve(illust_info);
-            });
-        });
     }
 }
 

@@ -190,11 +190,13 @@ class main_controller
             // If data is available, this is a newer page with globalInitData.
             // This can have one or more user and/or illust data, which we'll preload
             // so we don't need to fetch it later.
-            for(var preload_illust_id in data.preload.illust)
-                image_data.singleton().add_illust_data(data.preload.illust[preload_illust_id]);
-
+            //
+            // Preload users before illusts.  Otherwise, adding the illust will cause image_data
+            // to fetch user info to fill it in.
             for(var preload_user_id in data.preload.user)
                 image_data.singleton().add_user_data(data.preload.user[preload_user_id]);
+            for(var preload_illust_id in data.preload.illust)
+                image_data.singleton().add_illust_data(data.preload.illust[preload_illust_id]);
         }
         else
         {
@@ -340,7 +342,7 @@ class main_controller
                 this.data_source.startup();
 
             // Load the current page for the data source.
-            await this.data_source.load_current_page_async();
+            await this.data_source.load_page(null);
         }
 
         if(data_source == null)
