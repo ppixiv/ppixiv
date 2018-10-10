@@ -27,7 +27,7 @@ class image_data
 
         this.pending_image_info_calls = [];
         this.pending_user_info_calls = [];
-        this.pending_manga_page_calls = [];
+        this.manga_page_loads = {};
     };
 
     // Return the singleton, creating it if needed.
@@ -157,29 +157,6 @@ class image_data
             // Run the callback.
             try {
                 callback(user_data);
-            } catch(e) {
-                console.error(e);
-            }
-        }
-
-        // Call manga page callbacks.  These are simpler.
-        for(var i = 0; i < this.pending_manga_page_calls.length; ++i)
-        {
-            var pending = this.pending_manga_page_calls[i];
-            var illust_id = pending[0];
-            var callback = pending[1];
-
-            var manga_info = this.manga_info[illust_id];
-            if(manga_info == null)
-                continue;
-            
-            // Remove the entry.
-            this.pending_manga_page_calls.splice(i, 1);
-            --i;
-
-            // Run the callback.
-            try {
-                callback(manga_info, illust_id);
             } catch(e) {
                 console.error(e);
             }
@@ -343,32 +320,24 @@ class image_data
     //
     // This is separate from illust info rather than storing it in the illust info,
     // so the two can be loaded in parallel.
-    get_manga_info(illust_id, callback)
+    get_manga_info(illust_id)
     {
-        if(callback != null)
-            this.pending_manga_page_calls.push([illust_id, callback]);
+        // If there's already a load in progress, just return it.
+        if(this.manga_page_loads[illust_id] != null)
+            return this.manga_page_loads[illust_id];
 
-        this.load_manga_info(illust_id);
+        this.manga_page_loads[illust_id] = this.load_manga_info(illust_id);
+        this.manga_page_loads[illust_id].then(() => {
+            delete this.manga_page_loads[illust_id];
+        });
+        return this.manga_page_loads[illust_id];
     }
     
     async load_manga_info(illust_id)
     {
-        // If we're already loading this illust, stop.
-        if(this.loading_manga_info_ids[illust_id])
-        {
-            console.log("Manga pages for " + illust_id + " is already being fetched, waiting for it");
-            return;
-        }
-
-        // If we already have the user info for this illustration, we're done.  Call call_pending_callbacks
-        // to fire any waiting callbacks.
-        if(this.user_data[illust_id] != null)
-        {
-            setTimeout(function() {
-                this.call_pending_callbacks();
-            }.bind(this), 0);
-            return;
-        }
+        // If we already have the manga info for this illustration, we're done.
+        if(this.manga_info[illust_id] != null)
+            return this.manga_info[illust_id];
 
         // We can say {full: 1} to get more profile info (webpage URL, twitter, etc.).
         // That info isn't included in preloads, though, so it's not used for now to keep
@@ -376,21 +345,10 @@ class image_data
         // console.log("Fetch manga", illust_id);
         this.loading_manga_info_ids[illust_id] = true;
         var result = await helpers.get_request("/ajax/illust/" + illust_id + "/pages", {});
-        this.loaded_manga_info(illust_id, result);
-    }
 
-    loaded_manga_info(illust_id, result)
-    {
-        if(result.error)
-            return;
-
-        var manga_info = result.body;
-        delete this.loading_manga_info_ids[illust_id];
-
-        // Store the manga data.
-        this.manga_info[illust_id] = manga_info;
-
-        this.call_pending_callbacks();
+        // Store the result.
+        this.manga_info[illust_id] = result.body;
+        return this.manga_info[illust_id];
     }
 
     // Async wrappers:
@@ -417,15 +375,6 @@ class image_data
         return new Promise(resolve => {
             this.get_user_info_full(user_id, (user_info) => {
                 resolve(user_info);
-            });
-        });
-    }
-
-    get_manga_info_async(illust_id)
-    {
-        return new Promise(resolve => {
-            this.get_manga_info(illust_id, (manga_info) => {
-                resolve(manga_info);
             });
         });
     }
