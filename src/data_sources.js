@@ -314,6 +314,18 @@ class data_source
         return parseInt(query_args.get("p")) || 1;
     }
 
+    // startup() is called when the data source becomes active, and shutdown is called when
+    // it's done.  This can be used to add and remove event handlers on the UI.
+    startup() 
+    {
+        this.active = true;
+    }
+
+    shutdown()
+    {
+        this.active = false;
+    }
+
     // Load the given page, or the page of the current history state if page is null.
     // Call callback when the load finishes.
     //
@@ -650,6 +662,26 @@ class data_source
     }
 };
 
+// Load a list of illust IDs, and allow retriving them by page.
+function paginate_illust_ids(illust_ids, items_per_page)
+{
+    // Paginate the big list of results.
+    var pages = [];
+    var page = null;
+    for(var illust_id of illust_ids)
+    {
+        if(page == null)
+        {
+            page = [];
+            pages.push(page);
+        }
+        page.push(illust_id);
+        if(page.length == items_per_page)
+            page = null;
+    }
+    return pages;
+}
+
 // This extends data_source with local pagination.
 //
 // A few API calls just return all results as a big list of IDs.  We can handle loading
@@ -659,67 +691,23 @@ class data_source_fake_pagination extends data_source
 {
     get estimated_items_per_page() { return 30; }
 
-    constructor(url)
-    {
-        super(url);
-
-        this.all_illust_ids = null;
-    }
-
     async load_page_internal(page)
     {
-        if(this.loading_results == null)
+        if(this.pages == null)
         {
-            this.loading_results = new Promise(resolve => {
-                setTimeout(async function() {
-                    var all_illust_ids = await this.load_all_results();
-
-                    // Record the IDs.  Don't register all of them now, we'll wait until pages
-                    // are requested.
-                    this.all_illust_ids = all_illust_ids;
-                    
-                    // Allow all calls to load_page_internal to continue.
-                    resolve();
-                }.bind(this), 0);
-            });
+            var illust_ids = await this.load_all_results();
+            this.pages = paginate_illust_ids(illust_ids, this.estimated_items_per_page);
         }
 
-        // Wait for loading_results to complete, if it hasn't yet.
-        await this.loading_results;
-        this.register_loaded_page(page);
-    }
-
-    register_loaded_page(page)
-    {
-        // If this page isn't loaded, load it now.
-        if(this.id_list.is_page_loaded(page))
-            return;
-
-        // Paginate the big list of results.  Note that page starts at 1.
-        var first_idx = (page-1) * this.estimated_items_per_page;
-        var count = this.estimated_items_per_page;
-        var illust_ids = [];
-        for(var idx = first_idx; idx < first_idx + count && idx < this.all_illust_ids.length; ++idx)
-            illust_ids.push(this.all_illust_ids[idx]);
-    
-        // Register the new page of data.
+        // Register this page.
+        var illust_ids = this.pages[page-1] || [];
         this.add_page(page, illust_ids);
     }
 
-    // Implemented by the subclass.  Load all results, and call finished_loading_results
-    // with the resulting IDs.
-    load_all_results()
+    // Implemented by the subclass.  Load all results, and return the resulting IDs.
+    async load_all_results()
     {
         throw "Not implemented";
-    }
-
-    // XXX remove
-    finished_loading_results(all_illust_ids)
-    {
-        // Record the IDs.  Don't register all of them now, we'll wait until pages
-        // are requested.
-        this.all_illust_ids = all_illust_ids;
-        this.finish_pending_callbacks();
     }
 }
 
@@ -1221,15 +1209,13 @@ class data_source_from_page extends data_source
 //
 // However, we can only do searching and filtering on the user page, and that's
 // where we land when we load a link to the user.
-class data_source_artist extends data_source_fake_pagination
+class data_source_artist extends data_source
 {
     get name() { return "artist"; }
   
     constructor(url)
     {
         super(url);
-
-        this.post_tags = [];
     }
 
     get viewing_user_id()
@@ -1238,40 +1224,97 @@ class data_source_artist extends data_source_fake_pagination
         return query_args.get("id");
     };
 
-    async get_user_tags(user_info)
+    startup()
     {
-        if(user_info.frequentTags)
-            return user_info.frequentTags;
+        super.startup();
 
-        var result = await helpers.get_request_async("https://www.pixiv.net/ajax/user/" + user_info.userId + "/illustmanga/tags", {});
-        if(result.error)
-        {
-            console.error("Error fetching tags for user " + user_info.userId + ": " + result.error);
-            user_info.frequentTags = [];
-            return user_info.frequentTags
-        }
-
-        // Sort most frequent tags first.
-        result.body.sort(function(lhs, rhs) {
-            return rhs.cnt - lhs.cnt;
-        })
-
-        var tags = [];
-        for(var tag_info of result.body)
-            tags.push(tag_info.tag);
-        this.post_tags = tags;
-        this.call_update_listeners();
+        // While we're active, watch for the tags box to open.  We only poopulate the tags
+        // dropdown if it's opened, so we don't load user tags for every user page.
+        var popup = document.body.querySelector(".member-tags-box");
+        this.src_observer = new MutationObserver((mutation_list) => {
+            if(popup.classList.contains("popup-visible"))
+                this.tag_list_opened();
+        });
+        this.src_observer.observe(popup, { attributes: true });
     }
 
-    async load_all_results()
+    shutdown()
     {
-        this.post_tags = [];
-        
+        super.shutdown();
+
+        // Remove our MutationObserver.
+        this.src_observer.disconnect();
+        this.src_observer = null;
+    }
+    
+    async load_page_internal(page)
+    {
         // Make sure the user info is loaded.  This should normally be preloaded by globalInitData
         // in main.js, and this won't make a request.
-        var user_info = await image_data.singleton().get_user_info_full_async(this.viewing_user_id);
+        this.user_info = await image_data.singleton().get_user_info_full_async(this.viewing_user_id);
 
-        this.user_info = user_info;
+        var query_args = this.url.searchParams;
+        var hash_args = helpers.get_hash_args(this.url);
+        var tag = query_args.get("tag") || "";
+        if(tag == "")
+        {
+            // If we're not filtering by tag, use the profile/all request.  This returns all of
+            // the user's illust IDs but no thumb data.
+            //
+            // We can use the "illustmanga" code path for this by leaving the tag empty, but
+            // we do it this way since that's what the site does.
+            if(this.pages == null)
+            {
+                var illust_ids = await this.load_all_results();
+                this.pages = paginate_illust_ids(illust_ids, this.estimated_items_per_page);
+            }
+
+            // Register this page.
+            var illust_ids = this.pages[page-1] || [];
+            this.add_page(page, illust_ids);
+        }
+        else
+        {
+            // We're filtering by tag.
+            var type = query_args.get("type");
+
+            // For some reason, this API uses a random field in the URL for the type instead of a normal
+            // query parameter.
+            var type_for_url =
+                type == null? "illustmanga":
+                type == "illust"?"illusts":
+                "manga";
+
+            var url = "/ajax/user/" + this.viewing_user_id + "/" + type_for_url + "/tag/" + encodeURIComponent(tag);
+            var result = await helpers.get_request_async(url, {
+                offset: (page-1)*48,
+                limit: 48,
+            });
+
+            // This data doesn't have profileImageUrl or userName.  Presumably that's because it's
+            // used on user pages which get that from user data, but this seems like more of an
+            // inconsistency than an optimization.  Fill it in for thumbnail_data.
+            for(var item of result.body.works)
+            {
+                item.userName = this.user_info.name;
+                item.profileImageUrl = this.user_info.imageBig;
+            }
+
+            var illust_ids = [];
+            for(var illust_data of result.body.works)
+                illust_ids.push(illust_data.id);
+            
+            // This request returns all of the thumbnail data we need.  Forward it to
+            // thumbnail_data so we don't need to look it up.
+            thumbnail_data.singleton().loaded_thumbnail_info(result.body.works, "normal");
+
+            // Register the new page of data.
+            this.add_page(page, illust_ids);
+        }
+    }
+    
+    async load_all_results()
+    {
         this.call_update_listeners();
 
         var query_args = this.url.searchParams;
@@ -1293,9 +1336,6 @@ class data_source_artist extends data_source_fake_pagination
             return parseInt(rhs) - parseInt(lhs);
         });
 
-        // Load the user's common tags.  Don't wait for this to finish.
-        // this.get_user_tags(this.user_info);
-
         return illust_ids;
     };
 
@@ -1312,7 +1352,8 @@ class data_source_artist extends data_source_fake_pagination
         this.set_item(container, "artist-manga", {type: "manga"});
         
         // Refresh the post tag list.
-        var current_query = new URL(document.location).searchParams.toString();
+        var query_args = this.url.searchParams;
+        var current_query = query_args.toString();
         
         var tag_list = container.querySelector(".post-tag-list");
         helpers.remove_elements(tag_list);
@@ -1341,11 +1382,78 @@ class data_source_artist extends data_source_fake_pagination
             tag_list.appendChild(a);
         };
 
-        add_tag_link("All");
-        for(var tag of this.post_tags || [])
-            add_tag_link(tag);
+        if(this.post_tags != null)
+        {
+            add_tag_link("All");
+            for(var tag of this.post_tags || [])
+                add_tag_link(tag);
+        }
+        else
+        {
+            // Tags aren't loaded yet.  We'll be refreshed after tag_list_opened loads tags.
+            var span = document.createElement("span");
+            span.innerText = "Loading...";
+            tag_list.appendChild(span);
+        }
 
-        this.set_active_popup_highlight(container, [".member-tags-box"]);
+        // Set whether the tags menu item is highlighted.  We don't use set_active_popup_highlight
+        // here so we don't need to load the tag list.
+        var box = container.querySelector(".member-tags-box");
+        helpers.set_class(box, "active", query_args.has("tag"));
+    }
+
+    // This is called when the tag list dropdown is opened.
+    async tag_list_opened()
+    {
+        // Only do this once.
+        if(this.loaded_tags)
+        {
+            console.log("already loaded");
+            return;
+        }
+        this.loaded_tags = true;
+
+        // Get user info.  We probably have this on this.user_info, but that async load
+        // might not be finished yet.
+        var user_info = await image_data.singleton().get_user_info_full_async(this.viewing_user_id);
+        console.log("Loading tags for user", user_info.userId);
+
+        // Load the user's common tags.
+        this.post_tags = await this.get_user_tags(user_info);
+
+        // If we became inactive before the above request finished, stop.
+        if(!this.active)
+            return;
+
+        // Trigger refresh_thumbnail_ui to fill in tags.
+        this.call_update_listeners();
+    }
+
+    async get_user_tags(user_info)
+    {
+        if(user_info.frequentTags)
+            return user_info.frequentTags;
+
+        var result = await helpers.get_request_async("https://www.pixiv.net/ajax/user/" + user_info.userId + "/illustmanga/tags", {});
+        if(result.error)
+        {
+            console.error("Error fetching tags for user " + user_info.userId + ": " + result.error);
+            user_info.frequentTags = [];
+            return user_info.frequentTags;
+        }
+
+        // Sort most frequent tags first.
+        result.body.sort(function(lhs, rhs) {
+            return rhs.cnt - lhs.cnt;
+        })
+
+        var tags = [];
+        for(var tag_info of result.body)
+            tags.push(tag_info.tag);
+
+        // Cache the results on the user info.
+        user_info.frequentTags = tags;
+        return tags;
     }
 
     get page_title()
@@ -1410,7 +1518,6 @@ class data_source_current_illust extends data_source_fake_pagination
         return this.load_all_results_from(doc);
     };
 
-    // Parse out illust IDs from doc, and pass them to finished_loading_results.
     load_all_results_from(doc)
     {
         var illust_ids = this.parse_document(doc);

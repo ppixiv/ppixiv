@@ -314,6 +314,10 @@ class main_controller
         // If the data source is changing, set it.
         if(this.data_source != data_source)
         {
+            // Shut down the old data source.
+            if(this.data_source != null)
+                this.data_source.shutdown();
+
             // If we were showing a message for the old data source, it might be persistent,
             // so clear it.
             message_widget.singleton.hide();
@@ -324,6 +328,9 @@ class main_controller
             this.thumbnail_view.set_data_source(data_source);
             this.context_menu.set_data_source(data_source);
             
+            if(this.data_source != null)
+                this.data_source.startup();
+
             // Load the current page for the data source.
             await this.data_source.load_current_page_async();
         }

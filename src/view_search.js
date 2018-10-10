@@ -555,8 +555,6 @@ class view_search extends view
                     message_widget.singleton.center();
                     message_widget.singleton.clear_timer();
                 }
-                
-                console.log("stop");
             }
 
             // We could load more pages, but let's just load one at a time so we don't spam

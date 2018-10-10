@@ -190,7 +190,7 @@ class thumbnail_data
         // The resolution field is changed, and "square1200" is changed to "master1200".
         var url = new URL(url, document.location);
         var path = url.pathname;
-        var re = /(\/c\/)([^\/]+)(.*)(square1200).jpg/;
+        var re = /(\/c\/)([^\/]+)(.*)(square1200|master1200).jpg/;
         var match = re.exec(path);
         if(match == null)
         {
@@ -242,7 +242,7 @@ class thumbnail_data
                     var key = pair[1];
                     if(!(key in thumb_info))
                     {
-                        console.warn("Thumbnail info is missing key:", from_key);
+                        console.warn("Thumbnail info is missing key:", key);
                         continue;
                     }
                     remapped_thumb_info[key] = thumb_info[key];
