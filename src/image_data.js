@@ -77,32 +77,6 @@ class image_data
         return this.image_data[illust_id];
     }
 
-    // The user request can either return a small subset of data (just the username,
-    // profile image URL, etc.), or a larger set with a webpage URL, Twitter, etc.
-    // User preloads often only have the smaller set, and we want to use the preload
-    // data whenever possible.
-    //
-    // getuser_info requests the smaller set of data, and get_user_info_full requests
-    // the full data.
-    //
-    // Note that get_user_info will return the full data if we have it already.
-    get_user_info_full(user_id, callback)
-    {
-        // If callback is null, just fetch the data.
-        if(callback != null)
-            this.pending_user_info_calls.push([user_id, callback]);
-
-        this.load_user_info(user_id, true);
-    };
-
-    get_user_info(user_id, callback)
-    {
-        if(callback != null)
-            this.pending_user_info_calls.push([user_id, callback]);
-
-        this.load_user_info(user_id, false);
-    };
-    
     call_pending_callbacks()
     {
         // Copy the list, in case get_image_info is called from a callback.
@@ -235,6 +209,50 @@ class image_data
         finished_loading_image_data();
     }
 
+    // The user request can either return a small subset of data (just the username,
+    // profile image URL, etc.), or a larger set with a webpage URL, Twitter, etc.
+    // User preloads often only have the smaller set, and we want to use the preload
+    // data whenever possible.
+    //
+    // getuser_info requests the smaller set of data, and get_user_info_full requests
+    // the full data.
+    //
+    // Note that get_user_info will return the full data if we have it already.
+    get_user_info_full(user_id, callback)
+    {
+        // If callback is null, just fetch the data.
+        if(callback != null)
+            this.pending_user_info_calls.push([user_id, callback]);
+
+        this.load_user_info(user_id, true);
+    };
+
+    get_user_info_full_async(user_id)
+    {
+        return new Promise(resolve => {
+            this.get_user_info_full(user_id, (user_info) => {
+                resolve(user_info);
+            });
+        });
+    }
+
+    get_user_info(user_id, callback)
+    {
+        if(callback != null)
+            this.pending_user_info_calls.push([user_id, callback]);
+
+        this.load_user_info(user_id, false);
+    };
+    
+    get_user_info_async(user_id)
+    {
+        return new Promise(resolve => {
+            this.get_user_info(user_id, (user_info) => {
+                resolve(user_info);
+            });
+        });
+    }
+
     async load_user_info(user_id, load_full_data)
     {
         // If we're already loading this user, stop.
@@ -357,24 +375,6 @@ class image_data
         return new Promise(resolve => {
             this.get_image_info(illust_id, (illust_info) => {
                 resolve(illust_info);
-            });
-        });
-    }
-
-    get_user_info_async(user_id)
-    {
-        return new Promise(resolve => {
-            this.get_user_info(user_id, (user_info) => {
-                resolve(user_info);
-            });
-        });
-    }
-   
-    get_user_info_full_async(user_id)
-    {
-        return new Promise(resolve => {
-            this.get_user_info_full(user_id, (user_info) => {
-                resolve(user_info);
             });
         });
     }
