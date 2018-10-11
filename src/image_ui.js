@@ -222,46 +222,7 @@ class image_ui
         this.container.querySelector(".similar-illusts-button").href = "/bookmark_detail.php?illust_id=" + illust_id + "#ppixiv";
 
         // Fill in the post info text.
-        var set_info = function(query, text)
-        {
-            var node = this.container.querySelector(query);
-            node.innerText = text;
-            node.hidden = text == "";
-        }.bind(this);
-
-        var seconds_old = (new Date() - new Date(illust_data.createDate)) / 1000;
-        set_info(".post-info > .post-age", helpers.age_to_string(seconds_old) + " ago");
-
-        var info = "";
-        if(this.displayed_width != null)
-        {
-            // Add the resolution and file type if available.
-            info += this.displayed_width + "x" + this.displayed_height;
-        }
-        var ext = this.viewer? this.viewer.current_image_type:null;
-        if(ext != null)
-            info += " " + ext;
-
-        set_info(".post-info > .image-info", info);
-
-        var duration = "";
-        if(illust_data.illustType == 2)
-        {
-            var seconds = 0;
-            for(var frame of illust_data.ugoiraMetadata.frames)
-                seconds += frame.delay / 1000;
-
-            var duration = seconds.toFixed(duration >= 10? 0:1);
-            duration += seconds == 1? " second":" seconds";
-        }
-        set_info(".post-info > .ugoira-duration", duration);
-        set_info(".post-info > .ugoira-frames", illust_data.illustType == 2? (illust_data.ugoiraMetadata.frames.length + " frames"):"");
-
-        // Add the page count for manga.
-        var page_text = "";
-        if(illust_data.pageCount > 1 && this.displayed_page != null)
-            page_text = "Page " + (this.displayed_page+1) + "/" + illust_data.pageCount;
-        set_info(".post-info > .page-count", page_text);
+        this.set_post_info(this.container.querySelector(".post-info"));
 
         // The comment (description) can contain HTML.
         var element_comment = this.container.querySelector(".description");
@@ -296,6 +257,52 @@ class image_ui
         var navigate_out_label = main_controller.singleton.navigate_out_label;
         var title = navigate_out_label != null? ("Return to " + navigate_out_label):"";
         this.container.querySelector(".navigate-out-button").dataset.popup = title;
+    }
+
+    set_post_info(post_info_container)
+    {
+        var illust_data = this.illust_data;
+
+        var set_info = (query, text) =>
+        {
+            var node = post_info_container.querySelector(query);
+            node.innerText = text;
+            node.hidden = text == "";
+        };
+
+        var seconds_old = (new Date() - new Date(illust_data.createDate)) / 1000;
+        set_info(".post-age", helpers.age_to_string(seconds_old) + " ago");
+
+        var info = "";
+        if(this.displayed_width != null)
+        {
+            // Add the resolution and file type if available.
+            info += this.displayed_width + "x" + this.displayed_height;
+        }
+        var ext = this.viewer? this.viewer.current_image_type:null;
+        if(ext != null)
+            info += " " + ext;
+
+        set_info(".image-info", info);
+
+        var duration = "";
+        if(illust_data.illustType == 2)
+        {
+            var seconds = 0;
+            for(var frame of illust_data.ugoiraMetadata.frames)
+                seconds += frame.delay / 1000;
+
+            var duration = seconds.toFixed(duration >= 10? 0:1);
+            duration += seconds == 1? " second":" seconds";
+        }
+        set_info(".ugoira-duration", duration);
+        set_info(".ugoira-frames", illust_data.illustType == 2? (illust_data.ugoiraMetadata.frames.length + " frames"):"");
+
+        // Add the page count for manga.
+        var page_text = "";
+        if(illust_data.pageCount > 1 && this.displayed_page != null)
+            page_text = "Page " + (this.displayed_page+1) + "/" + illust_data.pageCount;
+        set_info(".page-count", page_text);
     }
 
     // Set the resolution to display in image info.  If both are null, no resolution
