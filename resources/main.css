@@ -226,6 +226,7 @@ body.light .hover-message > .message {
 .view-manga-container .ui-container {
     width: 600px;
     max-width: 90%;
+    pointer-events: auto;
 }
 
 /* Since the UI isn't a popup on the manga page, hide the description and
@@ -605,6 +606,7 @@ body.light .bookmark-tag-entry:hover.enabled { background-color: #44a; }
     padding-top: 1em;
     margin-bottom: .5em;
     z-index: 1;
+    pointer-events: none;
 }
 
 .view-search-container .thumbnail-ui-box {
@@ -617,6 +619,7 @@ body.light .bookmark-tag-entry:hover.enabled { background-color: #44a; }
     border-radius: 4px;
 
     padding: 10px;
+    pointer-events: auto;
 }
 
 body.light .view-search-container .thumbnail-ui-box {
