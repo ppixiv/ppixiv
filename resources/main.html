@@ -646,14 +646,6 @@
                     
                 </div>
                 <div class="button-strip zoom-strip">
-                    <!-- Some of this is a disabled concept.  It's handy, but I don't like duplicating UI... -->
-                    <!--
-                    <div class=button-block>
-                        <div class="button return-button grey-icon">
-                            ### inline:thumbnails-icon.svg
-                        </div>
-                    </div>
-                    -->
                     <div class=button-block>
                         <div class="button button-zoom" data-tooltip="Zoom lock">
                             ### inline:zoom-plus.svg
@@ -680,23 +672,13 @@
                             <div>8x</div>
                         </div>
                     </div>
-                    <!--
-                    <div class=button-block>
-                        <div class="button bookmark-button" style="fill: #f00;">
-                            ### inline:heart-icon.svg
-                        </div>
-                    </div>
-                    <div class=button-block>
-                        <div class="button like-button">
-                            ### inline:like-button.svg
-                        </div>
-                    </div>
-                    -->
                 </div>
                 <div class=button-strip>
                     <div class=button-block>
-                        <div class="button button-bookmark public">
+                        <div class="button button-bookmark public" style="position: relative;">
                             ### inline:heart-icon.svg
+ 
+                            <div class=count></div>
                         </div>
                     </div>
 
@@ -712,17 +694,19 @@
                             ### inline:tag-icon.svg
                         </div>
 
-                        <div class=popup-bookmark-tag-dropdown>
+                        <div class=popup-bookmark-tag-dropdown hidden>
                         </div>
                     </div>
 
                     <div class=button-block>
-                        <div class="button button-like enabled">
+                        <div class="button button-like enabled" style="position: relative;">
                             ### inline:like-button.svg
+ 
+                            <div class=count></div>
                         </div>
                     </div>
                 </div>
-                
+                               
                 <!--
                 <div style="display: flex; flex-direction: column; text-align: left;">
                     <div>
@@ -736,7 +720,7 @@
                 </div>
                 -->
                 <div class=tooltip-display style="display: flex; align-items: stretch; padding: 10px 0 0 8px; pointer-events: none;">
-                    <div style="background-color: #000; padding: 0px 8px; border-radius: 4px;" class=tooltip-display-text></div>
+                    <div style="background-color: #000; padding: 2px 8px; border-radius: 4px;" class=tooltip-display-text></div>
                 </div>
             </div>
         </template>
@@ -745,12 +729,6 @@
         <template class=template-popup-bookmark-tag-entry>
             <div class=popup-bookmark-tag-entry style="display: flex; flex-direction: row; align-items: center; ">
                 <span class=tag-name></span>
-                <a class="add-tagged-bookmark-button public" href=# style="">
-                    ### inline:heart-icon.svg
-                </a>
-                <a class="add-tagged-bookmark-button private" href=# style="">
-                    ### inline:heart-icon.svg
-                </a>
             </div>
         </template>
         

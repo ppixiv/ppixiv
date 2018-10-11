@@ -164,7 +164,9 @@ class image_ui
                 return;
             }
             
-            actions.bookmark_add(illust_data, e.shiftKey /* private_bookmark */);
+            actions.bookmark_add(illust_data, {
+                private: e.shiftKey
+            });
             
             return;
         }
@@ -403,7 +405,10 @@ class image_ui
         }
 
         // Add a new bookmark.
-        actions.bookmark_add(this.illust_data, private_bookmark, this.tag_list);
+        actions.bookmark_add(this.illust_data, {
+            private: private_bookmark,
+            tags: this.tag_list,
+        });
         
         // Clear the tag list after saving a bookmark.  Otherwise, it's too easy to set a tag for one
         // image, then forget to unset it later.

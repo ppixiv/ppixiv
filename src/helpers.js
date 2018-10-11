@@ -630,7 +630,8 @@ var helpers = {
             },
         });
 
-        if(result.error)
+        console.log(result);
+        if(result && result.error)
             throw "Error in XHR request (" + url + "): "+ result.message;
 
         return result;
@@ -667,7 +668,7 @@ var helpers = {
 
     async post_request(url, data)
     {
-        var result = helpers.send_pixiv_request({
+        var result = await helpers.send_pixiv_request({
             "method": "POST",
             "url": url,
             "responseType": "json",

@@ -281,5 +281,45 @@ class image_data
         this.manga_info[illust_id] = result.body;
         return this.manga_info[illust_id];
     }
+
+    // Load bookmark tags and comments.
+    //
+    // There's no visible API to do this, so we have to scrape the bookmark_add page.  I wish
+    // they'd just include this in bookmarkData.  Since this takes an extra request, we should
+    // only load this if the user is viewing/editing bookmark tags.
+    get_bookmark_details(illust_info)
+    {
+        var illust_id = illust_info.illustId;
+
+        if(this.bookmark_details[illust_id] == null)
+            this.bookmark_details[illust_id] = this.load_bookmark_details(illust_info);
+
+        return this.bookmark_details[illust_id];
+    }
+
+    async load_bookmark_details(illust_info)
+    {
+        // Stop if this image isn't bookmarked.
+        if(illust_info.bookmarkData == null)
+            return;
+
+        // Stop if this is already loaded.
+        if(illust_info.bookmarkData.tags != null)
+            return;
+
+        var bookmark_page = await helpers.load_data_in_iframe("/bookmark_add.php?type=illust&illust_id=" + illust_info.illustId);
+
+        // Stop if the image was unbookmarked while we were loading.
+        if(illust_info.bookmarkData == null)
+            return;
+
+        var tags = bookmark_page.querySelector(".bookmark-detail-unit form input[name='tag']").value;
+        var comment = bookmark_page.querySelector(".bookmark-detail-unit form input[name='comment']").value;
+        tags = tags.split(" ");
+        tags = tags.filter((value) => { return value != ""; });
+
+        illust_info.bookmarkData.tags = tags;
+        illust_info.bookmarkData.comment = comment;
+     }
 }
 

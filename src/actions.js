@@ -1,59 +1,157 @@
 // Global actions.
 class actions
 {
-    // Bookmark an image.
-    //
-    // If private_bookmark is true, bookmark privately.
-    // tag_list is an array of bookmark tags.
-    static async bookmark_add(illust_info, private_bookmark, tag_list)
+    // Set a bookmark.  Any existing bookmark will be overwritten.
+    static async _bookmark_add_internal(illust_info, options)
     {
+        if(options == null)
+            options = {};
+
+        console.log("Add bookmark:", options);
+
         // If auto-like is enabled, like an image when we bookmark it.
-        if(helpers.get_value("auto-like"))
+        if(!options.disable_auto_like && helpers.get_value("auto-like"))
         {
             console.log("Automatically liking image as well as bookmarking it due to auto-like preference");
             actions.like_image(illust_info, true /* quiet */);
         }
          
+        // Remember whether this is a new bookmark or an edit.
+        var was_bookmarked = illust_info.bookmarkData != null;
+
         var illust_id = illust_info.illustId;
 
-        if(tag_list != null)
-            helpers.update_recent_bookmark_tags(tag_list);
-        
-        var result = await helpers.post_request("/ajax/illusts/bookmarks/add", {
+        var request = {
             "illust_id": illust_id,
-            "tags": tag_list,
-            "comment": "",
-            "restrict": private_bookmark? 1:0,
-        });
+            "tags": options.tags || [],
+            "comment": options.comment || "",
+            "restrict": options.private? 1:0,
+        }
+        var result = await helpers.post_request("/ajax/illusts/bookmarks/add", request);
+
+        // If this is a new bookmark, last_bookmark_id is the new bookmark ID.
+        // If we're editing an existing bookmark, last_bookmark_id is null and the
+        // bookmark ID doesn't change.
+        var new_bookmark_id = result.body.last_bookmark_id;
+        if(new_bookmark_id == null)
+            new_bookmark_id = illust_info.bookmarkData? illust_info.bookmarkData.id:null;
+        if(new_bookmark_id == null)
+            throw "Didn't get a bookmark ID";
 
         // last_bookmark_id seems to be the ID of the new bookmark.  We need to store this correctly
         // so the unbookmark button works.
         //
-        // If this image's info is loaded, update its bookmark info.
-        var illust_info = image_data.singleton().get_image_info_sync(illust_id);
-        if(illust_info != null)
-        {
-            illust_info.bookmarkData = {
-                "id": result.body.last_bookmark_id,
-                "private": private_bookmark,
-            }
-
-            illust_info.bookmarkCount++;
+        // Update bookmark info in image data.
+        //
+        // Even if we weren't given tags or a comment, we still know that they're unset,
+        // so set comment and tags so we won't need to request bookmark details later.
+        illust_info.bookmarkData = {
+            id: new_bookmark_id,
+            private: !!request.restrict,
+            comment: request.comment,
+            tags: request.tags,
         }
+        console.log("Updated bookmark data:", illust_info.bookmarkData);
+
+        if(!was_bookmarked)
+            illust_info.bookmarkCount++;
 
         // If this image's thumbnail info is loaded, update that too.
         var thumbnail_info = thumbnail_data.singleton().get_one_thumbnail_info(illust_id);
         if(thumbnail_info != null)
         {
             thumbnail_info.bookmarkData = {
-                "id": result.body.last_bookmark_id,
-                "private": private_bookmark,
+                id: result.body.last_bookmark_id,
+                private: !!request.restrict,
             }
         }
         
-        message_widget.singleton.show(private_bookmark? "Bookmarked privately":"Bookmarked");
+        message_widget.singleton.show(
+                was_bookmarked? "Bookmark edited":
+                options.private? "Bookmarked privately":"Bookmarked");
 
         image_data.singleton().call_illust_modified_callbacks(illust_id);
+    }
+
+    static bookmark_edit(illust_info, options)
+    {
+        return actions.bookmark_add(illust_info, options);
+    }
+
+    // Create or edit a bookmark.
+    //
+    // Create or edit a bookmark.  options can contain any of the fields tags, comment
+    // or private.  Fields that aren't specified will be left unchanged on an existing
+    // bookmark.
+    //
+    // This is a headache.  Pixiv only has APIs to create a new bookmark (overwriting all
+    // existing data), except for public/private which can be changed in-place, and we need
+    // to do an extra request to retrieve the tag list and comment if we need them.  We
+    // try to avoid making the extra bookmark details request if possible.
+    static async bookmark_add(illust_info, options)
+    {
+        if(options == null)
+            options = {};
+
+        console.log("Edit bookmark options:", options);
+
+        // This is a mess, since Pixiv's APIs are all over the place.
+        //
+        // If the image isn't bookmarked, just use bookmark_add.
+        if(illust_info.bookmarkData == null)
+        {
+            console.log("Initial bookmark");
+            if(options.tags != null)
+                helpers.update_recent_bookmark_tags(options.tags);
+        
+            return await actions._bookmark_add_internal(illust_info, options);
+        }
+        
+        // Special case: If we're not setting anything, then we just want this image to
+        // be bookmarked.  Since it is, just stop.
+        if(options.tags == null && options.comment == null && options.private == null)
+        {
+            console.log("Already bookmarked");
+            return;
+        }
+
+        // Special case: If all we're changing is the private flag, use bookmark_set_private
+        // so we don't fetch bookmark details.
+        if(options.tags == null && options.comment == null && options.private != null)
+        {
+            // If the image is already bookmarked, use bookmark_set_private to edit the
+            // existing bookmark.  This won't auto-like.
+            console.log("Only editing private field", options.private);
+            return await actions.bookmark_set_private(illust_info, options.private);
+        }
+
+        // If we're modifying tags or comments, we need bookmark details loaded.
+        // This will insert the info into illust_info.bookmarkData.  We could skip
+        // this if we're setting both tags and comments, but we don't currently do
+        // that.
+        await image_data.singleton().load_bookmark_details(illust_info);
+
+        var bookmark_params = {
+            // Don't auto-like if we're editing an existing bookmark.
+            disable_auto_like: true,
+        };
+
+        // Copy any of these keys that are in options to our bookmark_add arguments.
+        // Copy any fields that aren't being set from the current value.
+        for(var key of ["private", "comment", "tags"])
+        {
+            var value = options[key];
+            if(value == null)
+                value = illust_info.bookmarkData[key];
+
+            bookmark_params[key] = value;
+        }
+
+        // Only update recent tags if we're modifying tags.
+        if(options.tags != null)
+            helpers.update_recent_bookmark_tags(options.tags);
+        
+        return await actions._bookmark_add_internal(illust_info, bookmark_params);
     }
 
     static async bookmark_remove(illust_info)
@@ -67,7 +165,7 @@ class actions
         var illust_id = illust_info.illustId;
         var bookmark_id = illust_info.bookmarkData.id;
         
-        console.log("Remove bookmark", bookmark_id);
+        console.log("Remove bookmark", bookmark_id, illust_info);
         
         var result = await helpers.rpc_post_request("/rpc/index.php", {
             mode: "delete_illust_bookmark",
@@ -118,28 +216,15 @@ class actions
         // This returns an HTML page that we don't care about.
         var result = await helpers.post_form_request("/bookmark_setting.php", params);
 
-        // last_bookmark_id seems to be the ID of the new bookmark.  We need to store this correctly
-        // so the unbookmark button works.
-        //
-        // If this image's info is loaded, update its bookmark info.
-        var illust_info = image_data.singleton().get_image_info_sync(illust_id);
-        if(illust_info != null)
-        {
-            illust_info.bookmarkData = {
-                id: bookmark_id,
-                private: private_bookmark,
-            }
-        }
+        // If this image's info is loaded, update its bookmark info.  Leave fields other
+        // than private_bookmark alone.
+        if(illust_info.bookmarkData != null)
+            illust_info.bookmarkData.private = private_bookmark;
 
         // If this image's thumbnail info is loaded, update that too.
         var thumbnail_info = thumbnail_data.singleton().get_one_thumbnail_info(illust_id);
         if(thumbnail_info != null)
-        {
-            thumbnail_info.bookmarkData = {
-                id: bookmark_id,
-                private: private_bookmark,
-            }
-        }
+            thumbnail_info.bookmarkData.private = private_bookmark;
         
         message_widget.singleton.show(private_bookmark? "Bookmarked privately":"Bookmarked");
 

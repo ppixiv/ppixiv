@@ -1414,7 +1414,15 @@ body.light .thumb-list-cursor
 .popup-bookmark-tag-entry {
     padding: 2px 8px;
     display: flex;
+    cursor: pointer;
 }
+.popup-bookmark-tag-entry.active {
+    background-color: #400;
+}
+.popup-bookmark-tag-entry:not(.active):hover {
+    background-color: #222;
+}
+
 .popup-bookmark-tag-entry > .tag-name {
     flex: 1;
 }
@@ -1430,6 +1438,23 @@ svg.heart-image .delete {
 .button.button-bookmark-tags.enabled:hover > svg #tag {
     fill: #444;
 }
+
+.button.button-bookmark .count,
+.button.button-like .count
+{
+    color: #aaa;
+    font-size: .7em;
+    font-weight: bold;
+    position: absolute;
+    top: calc(100% - 14px);
+}
+/* Nudge the public heart icon up a bit to make room for the bookmark count. */
+.button.button-bookmark.public > svg,
+.button.button-like > svg
+{
+    margin-top: -10px;
+}
+
 .popup-context-menu .button-strip .button.button-bookmark.will-delete.enabled:hover svg.heart-image .delete {
     display: inline;
 }
@@ -1449,21 +1474,6 @@ svg.heart-image .delete {
 }
 .popup-context-menu .button-strip .button.button-bookmark.private.bookmarked,
 .popup-context-menu .button-strip .button.button-bookmark.private.enabled:hover {
-    fill: #800;
-    stroke: #fff;
-}
-
-.popup-bookmark-tag-entry .add-tagged-bookmark-button {
-    display: block;
-    margin-left: 4px;
-}
-.popup-bookmark-tag-entry .add-tagged-bookmark-button > svg {
-    display: block;
-    height: 20px;
-    width: auto;
-    fill: #f00;
-}
-.popup-bookmark-tag-entry .add-tagged-bookmark-button.private > svg {
     fill: #800;
     stroke: #fff;
 }

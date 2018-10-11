@@ -27,7 +27,7 @@ class main_context_menu extends popup_context_menu
         this.onkeydown = this.onkeydown.bind(this);
         this.on_click_viewer = null;
 
-        image_data.singleton().illust_modified_callbacks.register(this.refresh_bookmark_tag_list.bind(this));
+        image_data.singleton().illust_modified_callbacks.register(this.refresh_bookmark_ui.bind(this));
 
         // Refresh the menu when the view changes.
         this.mode_observer = new MutationObserver(function(mutationsList, observer) {
@@ -72,31 +72,80 @@ class main_context_menu extends popup_context_menu
             if(!this.menu.querySelector(".button-bookmark-tags").classList.contains("enabled"))
                 return;
             
-            this.bookmark_tag_dropdown.hidden = !this.bookmark_tag_dropdown.hidden;
+            this.tag_dropdown_visible = !this.tag_dropdown_visible;
         });
         this.element_bookmark_tag_list = this.menu.querySelector(".bookmark-tag-list");
-        this.refresh_bookmark_tag_list();
+        this.refresh_bookmark_ui();
+    }
+
+    get tag_dropdown_visible()
+    {
+        return !this.bookmark_tag_dropdown.hidden;
+    }
+
+    // Why can't setters be async?
+    set tag_dropdown_visible(value) { this._set_tag_dropdown_visible(value); }
+
+    async _set_tag_dropdown_visible(value)
+    {
+        if(this.bookmark_tag_dropdown.hidden == !value)
+            return;
+
+        this.bookmark_tag_dropdown.hidden = !value;
+
+        if(value)
+        {
+            // When the tag list is opened, we need to refresh the tag list.
+            this.tag_list_dirty = true;
+            
+            // We only load existing bookmark tags when the tag list is open, so refresh.
+            this.refresh_bookmark_ui();
+        }
+        else
+        {
+            // The dropdown is being closed.  See if we need to save bookmark tags.  If the
+            // image isn't bookmarked, we'll do this when the user clicks the bookmark button,
+            // but if the image was already bookmarked we do it when the tag list is closed.
+            //
+            // If tag bookmarks are set, and the image is already bookmarked, save the new
+            // tags to the bookmark.
+            //
+            // If tag bookmarks are set and the image isn't bookmarked, show a message.  The
+            // user needs to click one of the bookmark buttons to initially save the bookmark
+            // (or else we don't know whether it's a public or private bookmark).
+            var old_tags = this.initially_selected_tags;
+            var new_tags = this.selected_tags;
+            var equal = new_tags.length == old_tags.length;
+            for(var tag of new_tags)
+            {
+                if(old_tags.indexOf(tag) == -1)
+                    equal = false;
+            }
+            // If the selected tags haven't changed, we're done.
+            if(equal)
+                return;
+
+            // Save the tags.  If the image wasn't bookmarked, this will create a public bookmark.
+            console.log("Tag list closing and tags have changed");
+            var illust_data = await image_data.singleton().get_image_info(this._illust_id);
+            var is_bookmarked = illust_data.bookmarkData != null;
+
+            await actions.bookmark_edit(illust_data, {
+                tags: new_tags,
+            });
+        }
     }
 
     // Refresh the bookmarking and like UI.
-    async refresh_bookmark_tag_list()
+    async refresh_bookmark_ui()
     {
-        var bookmark_tags = this.menu.querySelector(".popup-bookmark-tag-dropdown");
-        helpers.remove_elements(bookmark_tags);
+        // If the tag dropdown is open, only refresh the list if we're dirty (eg. it was
+        // just opened).  If we're not dirty, don't refresh since we'll clobber the user's
+        // changes.
 
-        if(this._illust_id != null)
-        {
-            var recent_bookmark_tags = helpers.get_recent_bookmark_tags();
-            recent_bookmark_tags.sort();
-            for(var i = 0; i < recent_bookmark_tags.length; ++i)
-            {
-                var tag = recent_bookmark_tags[i];
-                var entry = helpers.create_from_template(".template-popup-bookmark-tag-entry");
-                entry.dataset.tag = tag;
-                bookmark_tags.appendChild(entry);
-                entry.querySelector(".tag-name").innerText = tag;
-            }
-        }
+        var bookmark_tags = this.menu.querySelector(".popup-bookmark-tag-dropdown");
+        if(!this.tag_dropdown_visible || this.tag_list_dirty)
+            helpers.remove_elements(bookmark_tags);
 
         // Grab the illust info to check if it's bookmarked.
         var illust_id = this._illust_id;
@@ -114,14 +163,67 @@ class main_context_menu extends popup_context_menu
             illust_data && !illust_data.likeData? "Like image":
             illust_data && illust_data.likeData? "Already liked image":"";
         helpers.set_class(this.menu.querySelector(".button-like"), "enabled", illust_data != null && !illust_data.likeData);
+        this.menu.querySelector(".button-bookmark .count").textContent = illust_data? illust_data.bookmarkCount:"---";
+        this.menu.querySelector(".button-like .count").textContent = illust_data? illust_data.likeCount:"---";
 
         var bookmarked = illust_data && illust_data.bookmarkData != null;
         var public_bookmark = illust_data && illust_data.bookmarkData && !illust_data.bookmarkData.private;
         var private_bookmark = illust_data && illust_data.bookmarkData && illust_data.bookmarkData.private;
 
-        // Make sure the dropdown is hidden if we have no image, or if the image is already bookmarked.
-        if(illust_data == null || bookmarked)
+        // Make sure the dropdown is hidden if we have no image.
+        if(illust_data == null)
             this.bookmark_tag_dropdown.hidden = true;
+
+        if(illust_data != null && this.tag_dropdown_visible && this.tag_list_dirty)
+        {
+            // Create a temporary entry to show loading while we load bookmark details.
+            var entry = document.createElement("span");
+            bookmark_tags.appendChild(entry);
+            entry.innerText = "Loading...";
+
+            // If the tag list is open, populate bookmark details to get bookmark tags.
+            // If the image isn't bookmarked this won't do anything.
+            await image_data.singleton().load_bookmark_details(illust_data);
+
+            // Remove elements again, in case another refresh happened while we were async
+            // and to remove the loading entry.
+            helpers.remove_elements(bookmark_tags);
+            
+            // Put tags that are set on the bookmark first in alphabetical order, followed by
+            // all other tags in order of recent use.
+            var active_tags = illust_data.bookmarkData? illust_data.bookmarkData.tags:[];
+            var shown_tags = Array.from(active_tags); // copy
+            shown_tags.sort();
+
+            var recent_bookmark_tags = Array.from(helpers.get_recent_bookmark_tags()); // copy
+            for(var tag of recent_bookmark_tags)
+                if(shown_tags.indexOf(tag) == -1)
+                    shown_tags.push(tag);
+
+            console.log("Showing tags:", shown_tags);
+
+            for(var i = 0; i < shown_tags.length; ++i)
+            {
+                var tag = shown_tags[i];
+                var entry = helpers.create_from_template(".template-popup-bookmark-tag-entry");
+                entry.dataset.tag = tag;
+                bookmark_tags.appendChild(entry);
+                entry.querySelector(".tag-name").innerText = tag;
+
+                var active = active_tags.indexOf(tag) != -1;
+                helpers.set_class(entry, "active", active);
+            }
+
+            // Remember which tags were selected when the dropdown was open, so we can tell if
+            // they've changed.
+            this.initially_selected_tags = this.selected_tags;
+        }
+        else
+        {
+            console.log("Not refreshing tag list");
+        }
+
+        this.tag_list_dirty = false;
 
         // Set up the bookmark buttons.
         helpers.set_class(this.menu.querySelector(".button-bookmark.public"),  "enabled",     illust_data != null);
@@ -133,7 +235,7 @@ class main_context_menu extends popup_context_menu
 
         // We don't support editing tags (since bookmarkData doesn't include them), so disable the tag
         // dropdown if the image is bookmarked.
-        helpers.set_class(this.menu.querySelector(".button-bookmark-tags"), "enabled", illust_data != null && !bookmarked);
+        helpers.set_class(this.menu.querySelector(".button-bookmark-tags"), "enabled", illust_data != null);
         
         this.menu.querySelector(".button-bookmark.public").dataset.tooltip =
             illust_data == null? "":
@@ -145,46 +247,79 @@ class main_context_menu extends popup_context_menu
             public_bookmark?"Change bookmark to private":"Remove bookmark";
     }
 
-    // Clicked one of the top-level bookmark buttons (not the tag list).
+    // Return an array of tags selected in the tag dropdown.
+    get selected_tags()
+    {
+        var tag_list = [];
+        var bookmark_tags = this.menu.querySelector(".popup-bookmark-tag-dropdown");
+        for(var entry of bookmark_tags.querySelectorAll(".popup-bookmark-tag-entry"))
+        {
+            if(!entry.classList.contains("active"))
+                continue;
+            tag_list.push(entry.dataset.tag);
+        }
+        return tag_list;
+    }
+
+    // Clicked one of the top-level bookmark buttons or the tag list.
     async clicked_bookmark(e)
     {
         e.preventDefault();
         e.stopPropagation();
 
-        // See if this is a click on the top-level bookmark buttons, or on one of the
-        // tag bookmark buttons.
+        a = e.target.closest(".popup-bookmark-tag-entry");
+        if(a != null)
+        {
+            // Toggle this tag.  Don't actually save it immediately, so if we make multiple
+            // changes we don't spam requests.
+            var tag = a.dataset.tag;
+            console.log("toggle", tag);
+            helpers.set_class(a, "active", !a.classList.contains("active"));
+
+            return;
+        }
+
+        // See if this is a click on a bookmark button.
         var a = e.target.closest(".button-bookmark");
-        var tag_list = null;
         if(a == null)
-        {
-            a = e.target.closest(".add-tagged-bookmark-button");
+            return;
 
-            // Move up to the row to get the bookmark tag.
-            tag_list = [a.closest(".popup-bookmark-tag-entry").dataset.tag];
-        };
-        console.log(a);
-        console.log(tag_list);
-        console.log(e.target);
         var private_bookmark = a.classList.contains("private");
-        console.log(private_bookmark);
 
-        // If the image isn't bookmarked it, add a bookmark.
+        // If the tag list dropdown is open, make a list of tags selected in the tag list dropdown.
+        // If it's closed, leave tag_list null so we don't modify the tag list.
+        var tag_list = null;
+        if(this.tag_dropdown_visible)
+            tag_list = this.selected_tags;
+
+        // If the image is bookmarked and the same privacy button was clicked, remove the bookmark.
         var illust_data = await image_data.singleton().get_image_info(this._illust_id);
-        if(!illust_data.bookmarkData)
+        if(illust_data.bookmarkData && illust_data.bookmarkData.private == private_bookmark)
         {
-            actions.bookmark_add(illust_data, private_bookmark, tag_list);
+            await actions.bookmark_remove(illust_data);
+
+            // If the current image changed while we were async, stop.
+            if(this._illust_id != illust_data.illustId)
+                return;
+            
+            // Hide the tag dropdown after unbookmarking.
+            this.tag_dropdown_visible = false;
+            
             return;
         }
 
-        // If the image is bookmarked and the opposite privacy button was clicked, edit the bookmark.
-        if(illust_data.bookmarkData.private != private_bookmark)
-        {
-            actions.bookmark_set_private(illust_data, private_bookmark);
-            return;
-        }
+        // Add or edit the bookmark.
+        await actions.bookmark_edit(illust_data, {
+            private: private_bookmark,
+            tags: tag_list,
+        });
 
-        // Otherwise, remove the bookmark.
-        actions.bookmark_remove(illust_data);
+        // If the current image changed while we were async, stop.
+        if(this._illust_id != illust_data.illustId)
+            return;
+
+        // Remember that these tags were saved.
+        this.initially_selected_tags = tag_list;        
     }
 
     async clicked_like(e)
@@ -203,7 +338,7 @@ class main_context_menu extends popup_context_menu
 
         this._illust_id = value;
 
-        this.refresh_bookmark_tag_list();
+        this.refresh_bookmark_ui();
     }
 
     shutdown()
@@ -343,7 +478,7 @@ class main_context_menu extends popup_context_menu
         super.hide();
 
         // Hide the tag dropdown when the menu closes.
-        this.bookmark_tag_dropdown.hidden = true;
+        this.tag_dropdown_visible = false;
     }
 
     // Update selection highlight for the context menu.
