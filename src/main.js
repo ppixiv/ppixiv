@@ -664,6 +664,10 @@ class main_controller
         if(view == null)
             return;
 
+        // If a popup is open, leave inputs alone.
+        if(document.body.dataset.popupOpen)
+            return;
+
         // If the keyboard input didn't go to an element inside the view, redirect
         // it to the view's container.
         var target = e.target;
@@ -686,6 +690,10 @@ class main_controller
         // Ignore keypresses if we haven't set up the view yet.
         var view = this.displayed_view;
         if(view == null)
+            return;
+
+        // If a popup is open, leave inputs alone and don't process hotkeys.
+        if(document.body.dataset.popupOpen)
             return;
 
         if(e.keyCode == 27) // escape

@@ -25,6 +25,8 @@ class main_context_menu extends popup_context_menu
 
         this.onwheel = this.onwheel.bind(this);
         this.onkeydown = this.onkeydown.bind(this);
+        this.refresh_bookmark_ui = this.refresh_bookmark_ui.bind(this);
+
         this.on_click_viewer = null;
 
         image_data.singleton().illust_modified_callbacks.register(this.refresh_bookmark_ui.bind(this));
@@ -52,6 +54,8 @@ class main_context_menu extends popup_context_menu
         window.addEventListener("wheel", this.onwheel, true);
         window.addEventListener("keydown", this.onkeydown);
 
+        settings.register_change_callback("recent-bookmark-tags", this.refresh_bookmark_ui);
+
         for(var button of this.menu.querySelectorAll(".button-zoom-level"))
             button.addEventListener("click", this.clicked_zoom_level.bind(this));
 
@@ -60,11 +64,19 @@ class main_context_menu extends popup_context_menu
         // The bookmark buttons, and clicks in the tag dropdown:
         for(var a of this.menu.querySelectorAll(".button-bookmark"))
             a.addEventListener("click", this.clicked_bookmark.bind(this));
-        this.menu.querySelector(".popup-bookmark-tag-dropdown").addEventListener("click", this.clicked_bookmark.bind(this), true);
-        this.menu.querySelector(".button-like").addEventListener("click", this.clicked_like.bind(this));
-        
         this.bookmark_tag_dropdown = this.menu.querySelector(".popup-bookmark-tag-dropdown");
+        this.bookmark_tag_dropdown.addEventListener("click", this.clicked_bookmark.bind(this), true);
+        this.menu.querySelector(".button-like").addEventListener("click", this.clicked_like.bind(this));
 
+        this.menu.querySelector(".add-tag").addEventListener("click", (e) => {
+            this.add_new_tag();
+        });
+        this.menu.querySelector(".sync-tags").addEventListener("click", async (e) => {
+            var bookmark_tags = await actions.load_recent_bookmark_tags();
+            console.log("refreshed", bookmark_tags);
+            helpers.set_recent_bookmark_tags(bookmark_tags);
+        });
+        
         this.menu.querySelector(".button-bookmark-tags").addEventListener("click", (e) => {
             e.preventDefault();
 
@@ -76,6 +88,57 @@ class main_context_menu extends popup_context_menu
         });
         this.element_bookmark_tag_list = this.menu.querySelector(".bookmark-tag-list");
         this.refresh_bookmark_ui();
+    }
+
+    // Show a prompt to enter tags, so the user can add tags that aren't already in the
+    // list.  Add the bookmarks to recents, and bookmark the image with the entered tags.
+    async add_new_tag()
+    {
+        var illust_id = this._illust_id;
+        var illust_data = await image_data.singleton().get_image_info(this._illust_id);
+
+        console.log("Show tag prompt");
+
+        // Hide the popup when we show the prompt.
+        this.hide_temporarily = true;
+
+        var prompt = new text_prompt();
+        try {
+            var tags = await prompt.result;
+        } catch {
+            // The user cancelled the prompt.
+            return;
+        }
+
+        // Split the new tags.
+        var tags = tags.split(" ");
+        tags = tags.filter((value) => { return value != ""; });
+        console.log("New tags:", tags);
+
+        // This should already be loaded, since the only way to open this prompt is
+        // in the tag dropdown.
+        await image_data.singleton().load_bookmark_details(illust_data);
+
+        // Add each tag the user entered to the tag list to update it.
+        var active_tags = illust_data.bookmarkData? Array.from(illust_data.bookmarkData.tags):[];
+
+        for(var tag of tags)
+        {
+            if(active_tags.indexOf(tag) != -1)
+                continue;
+
+            // Add this tag to recents.  bookmark_edit will add recents too, but this makes sure
+            // that we add all explicitly entered tags to recents, since bookmark_edit will only
+            // add tags that are new to the image.
+            helpers.update_recent_bookmark_tags([tag]);
+            active_tags.push(tag);
+        }
+        console.log("All tags:", active_tags);
+        
+        // Edit the bookmark.
+        await actions.bookmark_edit(illust_data, {
+            tags: active_tags,
+        });
     }
 
     get tag_dropdown_visible()
@@ -92,14 +155,17 @@ class main_context_menu extends popup_context_menu
             return;
 
         this.bookmark_tag_dropdown.hidden = !value;
+        this.menu.querySelector(".tag-dropdown-arrow").hidden = !value;
 
         if(value)
         {
-            // When the tag list is opened, we need to refresh the tag list.
-            this.tag_list_dirty = true;
-            
             // We only load existing bookmark tags when the tag list is open, so refresh.
-            this.refresh_bookmark_ui();
+            await this.refresh_bookmark_ui();
+
+            // Remember which tags were selected when the dropdown was open, so we can tell if
+            // they've changed.
+            this.initially_selected_tags = this.selected_tags;
+            console.log("Initial tags:", this.selected_tags);
         }
         else
         {
@@ -127,6 +193,8 @@ class main_context_menu extends popup_context_menu
 
             // Save the tags.  If the image wasn't bookmarked, this will create a public bookmark.
             console.log("Tag list closing and tags have changed");
+            console.log("Old tags:", old_tags);
+            console.log("New tags:", new_tags);
             var illust_data = await image_data.singleton().get_image_info(this._illust_id);
             var is_bookmarked = illust_data.bookmarkData != null;
 
@@ -139,13 +207,11 @@ class main_context_menu extends popup_context_menu
     // Refresh the bookmarking and like UI.
     async refresh_bookmark_ui()
     {
-        // If the tag dropdown is open, only refresh the list if we're dirty (eg. it was
-        // just opened).  If we're not dirty, don't refresh since we'll clobber the user's
-        // changes.
+        // Store which tags were selected, before we clear the list.
+        var old_selected_tags = this.selected_tags;
 
-        var bookmark_tags = this.menu.querySelector(".popup-bookmark-tag-dropdown");
-        if(!this.tag_dropdown_visible || this.tag_list_dirty)
-            helpers.remove_elements(bookmark_tags);
+        var bookmark_tags = this.bookmark_tag_dropdown.querySelector(".tag-list");
+        helpers.remove_elements(bookmark_tags);
 
         // Grab the illust info to check if it's bookmarked.
         var illust_id = this._illust_id;
@@ -174,7 +240,7 @@ class main_context_menu extends popup_context_menu
         if(illust_data == null)
             this.bookmark_tag_dropdown.hidden = true;
 
-        if(illust_data != null && this.tag_dropdown_visible && this.tag_list_dirty)
+        if(illust_data != null && this.tag_dropdown_visible)
         {
             // Create a temporary entry to show loading while we load bookmark details.
             var entry = document.createElement("span");
@@ -191,7 +257,17 @@ class main_context_menu extends popup_context_menu
             
             // Put tags that are set on the bookmark first in alphabetical order, followed by
             // all other tags in order of recent use.
-            var active_tags = illust_data.bookmarkData? illust_data.bookmarkData.tags:[];
+            var active_tags = illust_data.bookmarkData? Array.from(illust_data.bookmarkData.tags):[];
+
+            // If we're refreshing the list while it's open, make sure that any tags the user
+            // selected are still in the list, even if they were removed by the refresh.  Put
+            // them in active_tags, so they'll be marked as active.
+            for(var tag of old_selected_tags)
+            {
+                if(active_tags.indexOf(tag) == -1)
+                    active_tags.push(tag);
+            }
+
             var shown_tags = Array.from(active_tags); // copy
             shown_tags.sort();
 
@@ -213,17 +289,11 @@ class main_context_menu extends popup_context_menu
                 var active = active_tags.indexOf(tag) != -1;
                 helpers.set_class(entry, "active", active);
             }
-
-            // Remember which tags were selected when the dropdown was open, so we can tell if
-            // they've changed.
-            this.initially_selected_tags = this.selected_tags;
         }
         else
         {
             console.log("Not refreshing tag list");
         }
-
-        this.tag_list_dirty = false;
 
         // Set up the bookmark buttons.
         helpers.set_class(this.menu.querySelector(".button-bookmark.public"),  "enabled",     illust_data != null);
@@ -251,7 +321,7 @@ class main_context_menu extends popup_context_menu
     get selected_tags()
     {
         var tag_list = [];
-        var bookmark_tags = this.menu.querySelector(".popup-bookmark-tag-dropdown");
+        var bookmark_tags = this.bookmark_tag_dropdown;
         for(var entry of bookmark_tags.querySelectorAll(".popup-bookmark-tag-entry"))
         {
             if(!entry.classList.contains("active"))
@@ -264,12 +334,12 @@ class main_context_menu extends popup_context_menu
     // Clicked one of the top-level bookmark buttons or the tag list.
     async clicked_bookmark(e)
     {
-        e.preventDefault();
-        e.stopPropagation();
-
         a = e.target.closest(".popup-bookmark-tag-entry");
         if(a != null)
         {
+            e.preventDefault();
+            e.stopPropagation();
+
             // Toggle this tag.  Don't actually save it immediately, so if we make multiple
             // changes we don't spam requests.
             var tag = a.dataset.tag;
@@ -283,6 +353,9 @@ class main_context_menu extends popup_context_menu
         var a = e.target.closest(".button-bookmark");
         if(a == null)
             return;
+
+        e.preventDefault();
+        e.stopPropagation();
 
         var private_bookmark = a.classList.contains("private");
 
@@ -477,6 +550,10 @@ class main_context_menu extends popup_context_menu
     {
         super.hide();
 
+        // Clear the tag list when the menu closes, so it's clean on the next refresh.
+        var bookmark_tags = this.bookmark_tag_dropdown.querySelector(".tag-list");
+        helpers.remove_elements(bookmark_tags);
+        
         // Hide the tag dropdown when the menu closes.
         this.tag_dropdown_visible = false;
     }

@@ -1309,6 +1309,23 @@ body.light .thumb-list-cursor
     user-select: none;
     -moz-user-select: none;
 }
+
+.popup-context-menu .tooltip-display {
+    display: flex;
+    align-items: stretch;
+    padding: 10px 0 0 8px;
+    pointer-events: none;
+}
+.popup-context-menu .tooltip-display .tooltip-display-text {
+    background-color: #000;
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+body.light .popup-context-menu .tooltip-display .tooltip-display-text {
+    background-color: #fff;
+    color: #222;
+}
+
 .popup-context-menu .button-strip {
     display: flex;
     align-items: stretch;
@@ -1400,34 +1417,60 @@ body.light .thumb-list-cursor
 .popup-context-menu .button-strip .button.button-zoom.selected > :nth-child(2) { display: none; }
 
 /* Popup menu bookmarking */
+.popup-context-menu .button-strip .button .tag-dropdown-arrow {
+    width: 0; 
+    height: 0; 
+    border-top: 10px solid #222;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+}
+body.light .popup-context-menu .button-strip .button .tag-dropdown-arrow {
+    border-top-color: #ccc;
+}
+
 .popup-bookmark-tag-dropdown {
-    display: flex;
-    flex-direction: column;
     background-color: #000;
     position: absolute;
     padding: 4px;
-    top: 100%;
-    right: 0;
-    border-radius: 4px;
+    top: calc(100% - 4px); /* nudge up slightly to cover the rounded corners */
+    left: 0;
+    border-radius: 0px 0px 4px 4px;
+}
+body.light .popup-bookmark-tag-dropdown {
+    background-color: #fff;
+    color: #000;
+}
+
+.popup-bookmark-tag-dropdown > .tag-list {
+    display: flex;
+    flex-direction: column;
     max-height: 200px;
     min-width: 200px;
     overflow-x: hidden;
     overflow-y: auto;
 }
-.popup-bookmark-tag-entry {
-    padding: 2px 8px;
+
+.popup-bookmark-tag-dropdown > .tag-right-button-strip {
+    position: absolute;
+    top: 0;
+    left: 100%;
+    background-color: #000;
     display: flex;
+    flex-direction: column;    
+}
+body.light .popup-bookmark-tag-dropdown > .tag-right-button-strip {
+    background-color: #fff;
+}
+.popup-bookmark-tag-dropdown > .tag-right-button-strip .tag-button {
     cursor: pointer;
 }
-.popup-bookmark-tag-entry.active {
-    background-color: #400;
+.popup-bookmark-tag-dropdown > .tag-right-button-strip .tag-button > svg {
+    color: #fff;
+    fill: #fff;
 }
-.popup-bookmark-tag-entry:not(.active):hover {
-    background-color: #222;
-}
-
-.popup-bookmark-tag-entry > .tag-name {
-    flex: 1;
+body.light .popup-bookmark-tag-dropdown > .tag-right-button-strip .tag-button > svg {
+    color: #222;
+    fill: #222;
 }
 /* Hide the "delete" stroke over the heart icon unless clicking the button will
  * remove the bookmark. */
@@ -1451,6 +1494,12 @@ svg.heart-image .delete {
     position: absolute;
     top: calc(100% - 14px);
 }
+body.light .button.button-bookmark .count,
+body.light .button.button-like .count
+{
+    color: #555;
+}
+
 /* Nudge the public heart icon up a bit to make room for the bookmark count. */
 .button.button-bookmark.public > svg,
 .button.button-like > svg

@@ -149,7 +149,18 @@ class actions
 
         // Only update recent tags if we're modifying tags.
         if(options.tags != null)
-            helpers.update_recent_bookmark_tags(options.tags);
+        {
+            // Only add new tags to recent tags.  If a bookmark has tags "a b" and is being
+            // changed to "a b c", only add "c" to recently-used tags, so we don't bump tags
+            // that aren't changing.
+            for(var tag of options.tags)
+            {
+                var is_new_tag = illust_info.bookmarkData.tags.indexOf(tag) == -1;
+                console.log("new tag:", is_new_tag, tag);
+                if(is_new_tag)
+                    helpers.update_recent_bookmark_tags([tag]);
+            }
+        }
         
         return await actions._bookmark_add_internal(illust_info, bookmark_params);
     }

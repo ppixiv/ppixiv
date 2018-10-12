@@ -565,3 +565,90 @@ class popup_context_menu
     }
 }
 
+// A popup for inputting text.
+//
+// This is currently special purpose for the add tag prompt.
+class text_prompt
+{
+    constructor()
+    {
+        this.submit = this.submit.bind(this);
+        this.close = this.close.bind(this);
+        this.onkeydown = this.onkeydown.bind(this);
+
+        this.result = new Promise((completed, cancelled) => {
+            this._completed = completed;
+            this._cancelled = cancelled;
+        });
+
+        this.root = helpers.create_from_template(".template-add-tag-prompt");
+        document.body.appendChild(this.root);
+        this.input = this.root.querySelector("input.add-tag-input");
+        this.input.value = "";
+        this.input.focus();
+
+        this.root.querySelector(".close-button").addEventListener("click", this.close);
+        this.root.querySelector(".submit-button").addEventListener("click", this.submit);
+
+        this.root.addEventListener("click", (e) => {
+            // Clicks that aren't inside the box close the dialog.
+            if(e.target.closest(".box") != null)
+                return;
+
+            e.preventDefault();
+            e.stopPropagation();
+            this.close();
+        });
+
+        window.addEventListener("keydown", this.onkeydown);
+
+        // This disables global key handling and hotkeys.
+        document.body.dataset.popupOpen = "1";
+    }
+
+    onkeydown(e)
+    {
+        if(e.key == "Escape")
+        {
+            e.preventDefault();
+            e.stopPropagation();
+
+            this.close();
+        }
+
+        if(e.key == "Enter")
+        {
+            e.preventDefault();
+            e.stopPropagation();
+            this.submit();
+        }
+    }
+
+    // Close the popup and call the completion callback with the result.
+    submit(e)
+    {
+        var result = this.input.value;
+        console.log("submit", result);
+        this._remove();
+
+        this._completed(result);
+    }
+
+    close()
+    {
+        this._remove();
+
+        // Cancel the promise.  If we're actually submitting a result, 
+        this._cancelled("Cancelled by user");
+    }
+
+    _remove()
+    {
+        window.removeEventListener("keydown", this.onkeydown);
+
+        delete document.body.dataset.popupOpen;
+        this.root.remove();
+    }
+
+}
+
