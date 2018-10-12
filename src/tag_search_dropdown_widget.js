@@ -105,6 +105,10 @@ class tag_search_dropdown_widget
 
     show()
     {
+        if(!this.tag_dropdown.hidden)
+            return;
+
+        this.populate_dropdown();
         this.tag_dropdown.hidden = false;
     }
 
