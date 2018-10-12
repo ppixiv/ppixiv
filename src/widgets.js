@@ -315,8 +315,6 @@ class refresh_bookmark_tag_widget
                 bookmark_tags.push(tag);
         }
         helpers.set_recent_bookmark_tags(bookmark_tags);
-
-        window.dispatchEvent(new Event("bookmark-tags-changed"));
     }
 }
 

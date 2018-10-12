@@ -41,7 +41,7 @@ class view_illust extends view
         // Show the bookmark UI when hovering over the bookmark icon.
         var bookmark_popup = this.container.querySelector(".bookmark-button");
 
-        window.addEventListener("bookmark-tags-changed", this.refresh_ui);
+        settings.register_change_callback("recent-bookmark-tags", this.refresh_ui);
 
         this.container.addEventListener("wheel", this.onwheel);
 
