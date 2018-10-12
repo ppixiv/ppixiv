@@ -295,7 +295,7 @@ class refresh_bookmark_tag_widget
         helpers.set_class(this.container,"spin", this.running);
 
         try {
-            var doc = await helpers.load_data_in_iframe("/bookmark.php");
+            var bookmark_tags = actions.load_recent_bookmark_tags();
         } finally {
             this.running = false;
 
@@ -307,13 +307,6 @@ class refresh_bookmark_tag_widget
             }.bind(this), 100);
         }
 
-        var bookmark_tags = [];
-        for(var element of doc.querySelectorAll("#bookmark_list a[href*='bookmark.php']"))
-        {
-            var tag = new URL(element.href).searchParams.get("tag");
-            if(tag != null)
-                bookmark_tags.push(tag);
-        }
         helpers.set_recent_bookmark_tags(bookmark_tags);
     }
 }

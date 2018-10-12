@@ -395,5 +395,19 @@ class actions
 
         return null;
     }
+
+    static async load_recent_bookmark_tags()
+    {
+        var doc = await helpers.load_data_in_iframe("/bookmark.php");
+
+        var bookmark_tags = [];
+        for(var element of doc.querySelectorAll("#bookmark_list a[href*='bookmark.php']"))
+        {
+            var tag = new URL(element.href).searchParams.get("tag");
+            if(tag != null)
+                bookmark_tags.push(tag);
+        }
+        return bookmark_tags;
+    }
 }
 
