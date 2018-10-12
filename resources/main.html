@@ -587,6 +587,21 @@
             </div>
         </template>
 
+        <!-- bookmark_tag_list_widget -->
+        <template class=template-popup-bookmark-tag-dropdown>
+            <div class=popup-bookmark-tag-dropdown>
+                <div class=tag-list></div> <!-- tag list is inserted here -->
+                <div class=tag-right-button-strip>
+                    <div class="tag-button popup add-tag" data-popup="Add a different tag" style="padding: 4px 8px; text-align: center;">
+                        +
+                    </div>
+                    <div class="tag-button popup sync-tags" data-popup="Load common tags from bookmarks" style="padding: 4px 8px; ">
+                        ### inline:refresh-icon.svg
+                    </div>
+                </div>
+            </div>
+        </template>
+
         <template class=template-tag-dropdown>
             <div>
                 <!-- This is to make sure there isn't a gap between the input and the dropdown,
@@ -682,17 +697,7 @@
                             <div class=count></div>
                         </div>
 
-                        <div class=popup-bookmark-tag-dropdown hidden>
-                            <div class=tag-list></div> <!-- tag list is inserted here -->
-                            <div class=tag-right-button-strip>
-                                <div class="tag-button popup add-tag" data-popup="Add a different tag" style="padding: 4px 8px; text-align: center;">
-                                    +
-                                </div>
-                                <div class="tag-button popup sync-tags" data-popup="Load common tags from bookmarks" style="padding: 4px 8px; ">
-                                    ### inline:refresh-icon.svg
-                                </div>
-                            </div>
-                        </div>
+                        <div class=popup-bookmark-tag-dropdown-container></div>
                     </div>
 
                     <div class=button-block>
