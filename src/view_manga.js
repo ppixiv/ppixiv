@@ -54,6 +54,9 @@ class view_manga extends view
                 console.log("save scroll position for", this.illust_id, this.container.scrollTop);
                 this.scroll_positions_by_illust_id[this.illust_id] = this.container.scrollTop;
             }
+
+            // Hide the dropdown tag widget.
+            this.ui.bookmark_tag_widget.visible = false;
         }
 
         this.container.hidden = !active;

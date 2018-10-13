@@ -332,51 +332,6 @@ class tag_widget
     }
 };
 
-// A widget for refreshing bookmark tags.
-//
-// Pages don't tell us what our bookmark tags are so we can display them.  This
-// lets us sync our bookmark tag list with the tags the user has.
-class refresh_bookmark_tag_widget
-{
-    constructor(container)
-    {
-        this.onclick = this.onclick.bind(this);
-
-        this.container = container;
-        this.running = false;
-        this.container.addEventListener("click", this.onclick);
-    }
-
-    onclick(e)
-    {
-        this.refresh();
-    }
-
-    async refresh(e)
-    {
-        if(this.running)
-            return;
-
-        this.running = true;
-        helpers.set_class(this.container,"spin", this.running);
-
-        try {
-            var bookmark_tags = actions.load_recent_bookmark_tags();
-        } finally {
-            this.running = false;
-
-            // For some reason, if we disable the spin in this callback, the icon skips
-            // for a frame every time (at least in Firefox).  There's no actual processing
-            // skip and it doesn't happen if we set the class from a timer.
-            setTimeout(function() {
-                helpers.set_class(this.container,"spin", this.running);
-            }.bind(this), 100);
-        }
-
-        helpers.set_recent_bookmark_tags(bookmark_tags);
-    }
-}
-
 // A helper for a simple right-click context menu.
 //
 // The menu opens on right click and closes when the button is released.
@@ -529,10 +484,10 @@ class popup_context_menu
     {
         var element = this.tooltip_element;
         if(element != null)
-            element = element.closest("[data-tooltip]");
+            element = element.closest("[data-popup]");
         this.menu.querySelector(".tooltip-display").hidden = element == null;
         if(element != null)
-            this.menu.querySelector(".tooltip-display-text").textContent = element.dataset.tooltip;
+            this.menu.querySelector(".tooltip-display-text").textContent = element.dataset.popup;
     }
 
     onmouseover(e)
@@ -1023,7 +978,7 @@ class bookmark_button_widget extends illust_widget
         
         // Set the tooltip.
         var type_string = this.private_bookmark? "private":"public";
-        this.container.dataset.tooltip =
+        this.container.dataset.popup =
             illust_data == null? "":
             !bookmarked? (this.private_bookmark? "Bookmark privately":"Bookmark image"):
             our_bookmark_type? "Remove bookmark":
@@ -1099,7 +1054,7 @@ class like_button_widget extends illust_widget
         helpers.set_class(this.container, "liked", illust_data && illust_data.likeData);
         helpers.set_class(this.container, "enabled", illust_data != null && !illust_data.likeData);
 
-        this.container.dataset.tooltip =
+        this.container.dataset.popup =
             illust_data && !illust_data.likeData? "Like image":
             illust_data && illust_data.likeData? "Already liked image":"";
     }

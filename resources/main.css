@@ -257,14 +257,12 @@ body.force-ui .view-illust-container .ui > .ui-box {
 }
 
 /* Show the UI on hover when hide-ui isn't set. */
-body:not(.hide-ui) .view-illust-container .ui-box:hover,
-body:not(.hide-ui) .view-illust-container .hover-box:hover + .ui-box,
-body:not(.hide-ui) .view-illust-container .ui-box.ui-visible {
+body:not(.hide-ui) .view-illust-container .ui-box.hovering-over-box,
+body:not(.hide-ui) .view-illust-container .ui-box.hovering-over-sphere {
     opacity: 1;
     transform: translate(0, 0);
     pointer-events: auto;
 }
-
 
 .button-row {
     display: flex;
@@ -273,6 +271,9 @@ body:not(.hide-ui) .view-illust-container .ui-box.ui-visible {
     height: 32px;
     margin-top: 5px;
     margin-bottom: 4px;
+}
+.ui-box > .button-row .button.enabled {
+    cursor: pointer;
 }
 
 /* An icon in a button strip. */
@@ -332,18 +333,6 @@ body:not(.hide-ui) .view-illust-container .ui-box.ui-visible {
     margin: 0;
 }
 
-.download-button {
-    cursor: pointer;
-}
-.download-button > svg {
-    margin: 0 5px;
-    width: 20px;
-    height: 20px;
-}
-.bookmark-line > * {
-    vertical-align: middle;
-    display: inline-block;
-}
 .popup.avatar-popup:hover:after {
     left: auto;
     bottom: auto;
@@ -407,26 +396,6 @@ body.dot canvas.filtering {
     image-rendering: crisp-edges;
     image-rendering: pixelated;
 }
-/* When not bookmarked, highlight on hover and show the private icon on control-hover. */
-/* When bookmarked, show the bookmark state. */
-.bookmark-button { cursor: pointer; }
-.bookmark-button.bookmarked .bookmark-popup .not-bookmarked { display: none; }
-.bookmark-button:not(.bookmarked) .bookmark-popup .bookmarked { display: none; }
-
-.bookmark-button .bookmark-popup { cursor: initial; } /* stop cursor: pointer above from propagating all the way down */
-.bookmark-button:not(.bookmarked):hover .heart,
-.bookmark-button.bookmarked-public  .heart { fill: #f00; }
-.bookmark-button.bookmarked-private .heart { fill: #800; stroke: #fff; }
-.bookmark-button.bookmarked input { display: none; }
-.bookmark-button > span.popup {
-    padding: 0 3px;
-}
-.like-button {
-    cursor: pointer;
-}
-.like-button > .icon-button {
-    margin: 0 4px;
-}
 .similar-illusts-button:hover > .icon-button {
     fill: #FF0 !important; /* override grey-icon hover color */
 }
@@ -434,10 +403,6 @@ body.dot canvas.filtering {
     margin-top: -3px;
 }
 
-.like-button.liked > .icon-button,
-.like-button:not(.liked) > .icon-button:hover {
-    fill: #0F0 !important; /* override grey-icon hover color */
-}
 .post-info {
 }
 .post-info > * {
@@ -506,10 +471,6 @@ body.light .popup-menu-box {
     background-color: #fff;
     border-color: #ddd;
 }
-.bookmark-popup {
-    top: 30px;
-    left: 0px;
-}
 .popup-menu-box.popup-visible {
     visibility: inherit;
 }
@@ -532,7 +493,6 @@ body.light .popup-menu-box {
  *
  * Note that the positioning of this is important: we want to fully close the gap between the
  * popup and the bottom that opened it, but we don't want to overlap the button and block it. */
-.bookmark-popup > .hover-area,
 .navigation-menu-box .hover-area,
 .settings-menu-box .hover-area,
 .image-settings-menu-box .hover-area
@@ -541,7 +501,6 @@ body.light .popup-menu-box {
     height: 125%;
 }
 
-.bookmark-popup input,
 .follow-popup input{
     margin: .25em;
     padding: .25em;
@@ -558,26 +517,6 @@ body.light .popup-menu-box {
 body.light .popup-menu-box .button:hover {
     background-color: #ccc;
 }
-
-.bookmark-tag-selector {
-    width: 100%;
-    max-height: 200px;
-    overflow-y: auto;
-}
-.bookmark-tag-entry {
-    cursor: pointer;
-    padding: 2px 8px;
-    display: flex;
-}
-.bookmark-tag-entry > .tag-name {
-    flex: 1;
-}
-.bookmark-tag-entry.enabled { background-color: #008; }
-.bookmark-tag-entry:hover { background-color: #444; }
-.bookmark-tag-entry:hover.enabled { background-color: #44a; }
-body.light .bookmark-tag-entry.enabled { background-color: #00c; color: #fff; }
-body.light .bookmark-tag-entry:hover { background-color: #ccc; }
-body.light .bookmark-tag-entry:hover.enabled { background-color: #44a; }
 
 .view-search-container {
     position: absolute;
@@ -1057,23 +996,23 @@ input.search-tags {
 }
 
 .grey-icon {
-    fill: #888;
+    color: #888;
 }
 .light .grey-icon {
-    fill: #666;
+    color: #666;
 }
 :hover > .grey-icon {
-    fill: #eee;
+    color: #eee;
 }
 .light :hover > .grey-icon {
-    fill: #222;
+    color: #222;
 }
 /* If a grey-icon is directly inside a visible popup menu, eg. the navigation icon: */
 .popup-visible > .grey-icon {
-    fill: #eee;
+    color: #eee;
 }
 .light .popup-visible > .grey-icon {
-    fill: #222;
+    color: #222;
 }
 
 .mute-display .muted-image {
@@ -1432,9 +1371,17 @@ body.light .popup-context-menu .button-strip .button .tag-dropdown-arrow {
     background-color: #000;
     position: absolute;
     padding: 4px;
-    top: calc(100% - 4px); /* nudge up slightly to cover the rounded corners */
+    top: calc(100%);
     left: 0;
     border-radius: 0px 0px 4px 4px;
+
+    /* Put this on top of other elements, like the image-ui tag list. */
+    z-index: 1;
+}
+/* In the context menu version, nudge the tag dropdown up slightly to cover
+ * the rounded corners. */
+.popup-context-menu .popup-bookmark-tag-dropdown {
+    top: calc(100% - 4px);
 }
 body.light .popup-bookmark-tag-dropdown {
     background-color: #fff;
@@ -1485,6 +1432,11 @@ svg.heart-image .delete {
     fill: #444;
 }
 
+.button.button-bookmark,
+.button.button-like
+{
+    /* Center the count text. */
+}
 .button.button-bookmark .count,
 .button.button-like .count
 {
@@ -1493,46 +1445,66 @@ svg.heart-image .delete {
     font-weight: bold;
     position: absolute;
     top: calc(100% - 14px);
+    left: 0;
+    width: 100%;
+    text-align: center;
 }
+
+.ui-box .button > svg {
+    display: block;
+}
+
+.ui-box .button.button-bookmark .count,
+.ui-box .button.button-like .count
+{
+    top: calc(100% - 11px);
+    left: calc(-50px + 50%)
+    width: 100px;
+    pointer-events: none;
+    text-shadow: 0px 1px 1px #000, 0px -1px 1px #000, 1px 0px 1px #000, -1px 0px 1px #000;
+}
+
 body.light .button.button-bookmark .count,
 body.light .button.button-like .count
 {
     color: #555;
 }
 
-/* Nudge the public heart icon up a bit to make room for the bookmark count. */
-.button.button-bookmark.public > svg,
-.button.button-like > svg
+/* Nudge the public heart icon up a bit to make room for the bookmark count. 
+ * Only do this on the popup menu, not image-ui. */
+.popup-context-menu .button.button-bookmark.public > svg,
+.popup-context-menu .button.button-like > svg
 {
     margin-top: -10px;
 }
 
-.popup-context-menu .button-strip .button.button-bookmark.will-delete.enabled:hover svg.heart-image .delete {
+/* Bookmark buttons.  These appear in image_ui and the popup menu. */
+.button.button-bookmark.will-delete.enabled:hover svg.heart-image .delete {
     display: inline;
 }
 
-.popup-context-menu .button-strip .button.button-bookmark.enabled {
+.button.button-bookmark.enabled {
     fill: #800;
     stroke: none;
 }
-.popup-context-menu .button-strip .button.button-bookmark.private.enabled {
+.button.button-bookmark.private.enabled {
     fill: #400;
     stroke: #888;
 }
-.popup-context-menu .button-strip .button.button-bookmark.bookmarked,
-.popup-context-menu .button-strip .button.button-bookmark.enabled:hover {
+.button.button-bookmark.bookmarked,
+.button.button-bookmark.enabled:hover {
     fill: #f00;
     stroke: none;
 }
-.popup-context-menu .button-strip .button.button-bookmark.private.bookmarked,
-.popup-context-menu .button-strip .button.button-bookmark.private.enabled:hover {
+.button.button-bookmark.private.bookmarked,
+.button.button-bookmark.private.enabled:hover {
     fill: #800;
     stroke: #fff;
 }
 
-.popup-context-menu .button.button-like > svg { stroke: #666; stroke-width: .5px; }
-.popup-context-menu .button.button-like.liked > svg,
-.popup-context-menu button.button-like.enabled:not(.liked):hover > svg {
+.button.button-like > svg { stroke: #666; stroke-width: .5px; }
+.button.button-like.liked > svg,
+.button.button-like.enabled:not(.liked):hover > svg {
     fill: #0F0;
     stroke: none;
 }

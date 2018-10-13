@@ -94,7 +94,7 @@
                     </a>
 
                     <div class=navigation-menu-box>
-                        <svg class="icon-button grey-icon" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 -1 32 32" style="">
+                        <svg class="icon-button grey-icon" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 -1 32 32" style="fill: currentColor;">
                             <path d="M 6 6 h 20 v 4 h -20 v -4"/>
                             <path d="M 6 13 h 20 v 4 h -20 v -4"/>
                             <path d="M 6 20 h 20 v 4 h -20 v -4"/>
@@ -119,7 +119,7 @@
                     </div>
 
                     <div class="thumbnail-settings-menu-box settings-menu-box">
-                        <svg class="grey-icon icon-button" width="24" height="24" viewbox="-1 0 16 16">
+                        <svg class="grey-icon icon-button" width="24" height="24" viewbox="-1 0 16 16" style="fill: currentColor;">
                             <path id="a" d="m14,9.3l0,-2.57l-1.575,-0.264c-0.117,-0.44 -0.292,-0.848 -0.496,-1.2l0.93,-1.285l-1.81,-1.84l-1.31,0.908c-0.38,-0.205 -0.79,-0.38 -1.196,-0.497l-0.259,-1.552l-2.568,0l-0.263,1.578c-0.437,0.117 -0.816,0.293 -1.196,0.497l-1.282,-0.905l-1.838,1.81l0.934,1.287c-0.2,0.38 -0.376,0.79 -0.493,1.228l-1.578,0.235l0,2.57l1.575,0.264c0.117,0.438 0.292,0.818 0.496,1.198l-0.93,1.315l1.809,1.813l1.312,-0.938c0.38,0.205 0.787,0.38 1.224,0.497l0.26,1.551l2.566,0l0.263,-1.578c0.408,-0.117 0.817,-0.293 1.196,-0.497l1.315,0.935l1.81,-1.812l-0.935,-1.315c0.203,-0.38 0.38,-0.76 0.495,-1.2l1.544,-0.23l0,-0.003zm-7,1.407c-1.488,0 -2.683,-1.2 -2.683,-2.69s1.225,-2.69 2.683,-2.69c1.458,0 2.683,1.198 2.683,2.69c0,1.49 -1.195,2.688 -2.683,2.688l0,0.002z"/>
                         </svg>                        
 
@@ -385,13 +385,6 @@
     
     <!-- Templates: -->
     <div>
-        <!-- Recent bookmark tags in image-ui: -->
-        <template class=template-bookmark-tag-entry>
-            <div class=bookmark-tag-entry>
-                <span class=tag-name></span>
-                <a class=remove href=#>X</a>
-            </div>
-        </template>
         <template class=template-thumbnail>
             <li class=thumbnail-box>
                 <div class=thumbnail-inner>
@@ -455,7 +448,7 @@
                     </div>
                 </div>
 
-                <div class=button-row>
+                <div class=button-row style="background-color: #004">
                     <a class="disable-ui-button popup" data-popup="Return to Pixiv" href="#no-ppixiv">
                         ### inline:pixiv-icon.svg
                     </a>
@@ -467,55 +460,41 @@
                     </div>
 
                     <div class="download-button popup">
-                        <svg class="grey-icon icon-button" version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 537.794 537.795">
-                            <g>
-                                <path d="M463.091,466.114H74.854c-11.857,0-21.497,9.716-21.497,21.497v28.688c0,11.857,9.716,21.496,21.497,21.496h388.084
-                                        c11.857,0,21.496-9.716,21.496-21.496v-28.688C484.665,475.677,474.949,466.114,463.091,466.114z"/>
-                                <path d="M253.94,427.635c4.208,4.208,9.716,6.35,15.147,6.35c5.508,0,11.016-2.142,15.147-6.35l147.033-147.033
-                                        c8.339-8.338,8.339-21.955,0-30.447l-20.349-20.349c-8.339-8.339-21.956-8.339-30.447,0l-75.582,75.659V21.497
-                                        C304.889,9.639,295.173,0,283.393,0h-28.688c-11.857,0-21.497,9.562-21.497,21.497v284.044l-75.658-75.659
-                                        c-8.339-8.338-22.032-8.338-30.447,0l-20.349,20.349c-8.338,8.338-8.338,22.032,0,30.447L253.94,427.635z"/>
-                            </g>
-                        </svg>
-                    </div>
+                        <div class="grey-icon icon-button button enabled">
 
-                    <div class=bookmark-button style="display: flex; flex-direction: row; align-items: center;">
-                        <span class=popup>
-                            <div class="heart grey-icon icon-button">
-                                ### inline:heart-icon.svg
-                            </div>
-
-                            <div class="popup-menu-box bookmark-popup">
-                                <div class=hover-area></div>
-                                <div class=bookmarked>
-                                    <div class="button unbookmark-button">
-                                        Remove&nbsp;Bookmark
-                                    </div>
-                                </div>
-                                <div class=not-bookmarked>
-                                    <div class="button bookmark-button public">
-                                        Bookmark
-                                    </div>
-                                    <div class="button bookmark-button private">
-                                        Bookmark&nbsp;Privately
-                                    </div>
-                                    <div>
-                                        <input class=bookmark-tag-list>
-                                        <div style="display: flex; align-items: center;">
-                                            <div style="flex: 1;">Bookmark tags:</div>
-                                            <div class="refresh-bookmark-tags refresh-icon"></div>
-                                        </div>
-                                        <div class=bookmark-tag-selector></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </span>
-                    </div>
-                   
-                    <div class="like-button popup">
-                        <div class="grey-icon icon-button">
-                            ### inline:like-button.svg
+                            ### inline:download-icon.svg
                         </div>
+                    </div>
+
+                    <!-- position: relative positions the tag dropdown. -->
+                    <div style="position: relative;">
+                        <!-- position: relative positions the bookmark count. -->
+                        <div class="button button-bookmark public popup" style="position: relative;">
+                            ### inline:heart-icon.svg
+ 
+                            <div class=count></div>
+                        </div>
+
+                        <div class=popup-bookmark-tag-dropdown-container></div>
+                    </div>
+
+                    <div class="button button-bookmark private popup">
+                        ### inline:heart-icon.svg
+                    </div>
+                    
+                    <div style="position: relative;">
+                        <div class="button button-bookmark-tags popup" data-popup="Bookmark tags">
+                            ### inline:tag-icon.svg
+                            <div style="position: absolute; bottom: 2px; left: 4px;">
+                                <div class=tag-dropdown-arrow hidden></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="button button-like enabled popup" style="position: relative;">
+                        ### inline:like-button.svg
+
+                        <div class=count></div>
                     </div>
 
                     <a class="similar-illusts-button popup" data-popup="Similar illustrations" href=#>
@@ -525,7 +504,7 @@
                     </a>
 
                     <div class="image-settings-menu-box settings-menu-box">
-                        <svg class="grey-icon icon-button" width="24" height="24" viewbox="-1 0 16 16" style="width: 28px; margin-top: -2px; padding-left: 2px;">
+                        <svg class="grey-icon icon-button" width="24" height="24" viewbox="-1 0 16 16" style="width: 28px; margin-top: -2px; padding-left: 2px; fill: currentColor;">
                             <path id="a" d="m14,9.3l0,-2.57l-1.575,-0.264c-0.117,-0.44 -0.292,-0.848 -0.496,-1.2l0.93,-1.285l-1.81,-1.84l-1.31,0.908c-0.38,-0.205 -0.79,-0.38 -1.196,-0.497l-0.259,-1.552l-2.568,0l-0.263,1.578c-0.437,0.117 -0.816,0.293 -1.196,0.497l-1.282,-0.905l-1.838,1.81l0.934,1.287c-0.2,0.38 -0.376,0.79 -0.493,1.228l-1.578,0.235l0,2.57l1.575,0.264c0.117,0.438 0.292,0.818 0.496,1.198l-0.93,1.315l1.809,1.813l1.312,-0.938c0.38,0.205 0.787,0.38 1.224,0.497l0.26,1.551l2.566,0l0.263,-1.578c0.408,-0.117 0.817,-0.293 1.196,-0.497l1.315,0.935l1.81,-1.812l-0.935,-1.315c0.203,-0.38 0.38,-0.76 0.495,-1.2l1.544,-0.23l0,-0.003zm-7,1.407c-1.488,0 -2.683,-1.2 -2.683,-2.69s1.225,-2.69 2.683,-2.69c1.458,0 2.683,1.198 2.683,2.69c0,1.49 -1.195,2.688 -2.683,2.688l0,0.002z"/>
                         </svg>                        
                 
@@ -648,41 +627,41 @@
             <div class=popup-context-menu>
                 <div class=button-strip>
                     <div class=button-block>
-                        <div class="button button-return-to-search" data-level=0 data-tooltip="Return to search">
+                        <div class="button button-return-to-search" data-level=0 data-popup="Return to search">
                             ### inline:thumbnails-icon.svg
                         </div>
                     </div>
 
                     <div class=button-block>
-                        <div class="button button-fullscreen enabled" data-level=0 data-tooltip="Fullscreen">
+                        <div class="button button-fullscreen enabled" data-level=0 data-popup="Fullscreen">
                             ### inline:fullscreen.svg
                         </div>
                     </div>
                 </div>
                 <div class="button-strip zoom-strip">
                     <div class=button-block>
-                        <div class="button button-zoom" data-tooltip="Zoom lock">
+                        <div class="button button-zoom" data-popup="Zoom lock">
                             ### inline:zoom-plus.svg
                             ### inline:zoom-minus.svg
                         </div>
                     </div>
                     <div class=button-block>
-                        <div class="button button-zoom-level" data-level=0 data-tooltip="Zoom to full">
+                        <div class="button button-zoom-level" data-level=0 data-popup="Zoom to full">
                             ### inline:zoom-full.svg
                         </div>
                     </div>
                     <div class=button-block>
-                        <div class="button button-zoom-level" data-level=1 data-tooltip="2x zoom">
+                        <div class="button button-zoom-level" data-level=1 data-popup="2x zoom">
                             <div>2x</div>
                         </div>
                     </div>
                     <div class=button-block>
-                        <div class="button button-zoom-level" data-level=2 data-tooltip="4x zoom">
+                        <div class="button button-zoom-level" data-level=2 data-popup="4x zoom">
                             <div>4x</div>
                         </div>
                     </div>
                     <div class=button-block>
-                        <div class="button button-zoom-level" data-level=3 data-tooltip="8x zoom">
+                        <div class="button button-zoom-level" data-level=3 data-popup="8x zoom">
                             <div>8x</div>
                         </div>
                     </div>
@@ -707,7 +686,7 @@
                     </div>
                     
                     <div class=button-block style="position: relative;">
-                        <div class="button button-bookmark-tags" data-tooltip="Bookmark tags">
+                        <div class="button button-bookmark-tags" data-popup="Bookmark tags">
                             ### inline:tag-icon.svg
                             <div style="position: absolute; bottom: 2px; left: 4px;">
                                 <div class=tag-dropdown-arrow hidden></div>

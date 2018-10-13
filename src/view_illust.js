@@ -23,8 +23,15 @@ class view_illust extends view
         
         var hover_circle = this.container.querySelector(".ui .hover-circle");
         var ui_box = this.container.querySelector(".ui-box");
-        hover_circle.addEventListener("mouseover", (e) => { helpers.set_class(ui_box, "ui-visible", true); });
-        hover_circle.addEventListener("mouseout", (e) => { helpers.set_class(ui_box, "ui-visible", false); });
+        var ui_visibility_changed = () => {
+            // Hide the dropdown tag widget when the hover UI is hidden.
+            if(!ui_box.classList.contains("hovering-over-box") && !ui_box.classList.contains("hovering-over-sphere"))
+                this.ui.bookmark_tag_widget.visible = false;
+        };
+        ui_box.addEventListener("mouseenter", (e) => { helpers.set_class(ui_box, "hovering-over-box", true); ui_visibility_changed(); });
+        ui_box.addEventListener("mouseleave", (e) => { helpers.set_class(ui_box, "hovering-over-box", false); ui_visibility_changed(); });
+        hover_circle.addEventListener("mouseenter", (e) => { helpers.set_class(ui_box, "hovering-over-sphere", true); ui_visibility_changed(); });
+        hover_circle.addEventListener("mouseleave", (e) => { helpers.set_class(ui_box, "hovering-over-sphere", false); ui_visibility_changed(); });
 
         document.head.appendChild(document.createElement("title"));
         this.document_icon = document.head.appendChild(document.createElement("link"));
@@ -35,7 +42,6 @@ class view_illust extends view
 
         new hide_mouse_cursor_on_idle(this.container.querySelector(".image-container"));
 
-        new refresh_bookmark_tag_widget(this.container.querySelector(".refresh-bookmark-tags"));
         // this.manga_thumbnails = new manga_thumbnail_widget(this.container.querySelector(".manga-thumbnail-container"));
 
         // Show the bookmark UI when hovering over the bookmark icon.

@@ -1009,6 +1009,10 @@ class data_source_from_page extends data_source
     {
         super(url);
 
+        console.log("ctor", url, doc);
+        if(url == null)
+            throw "url can't be null";
+
         this.original_doc = doc;
         this.items_per_page = 1;
 

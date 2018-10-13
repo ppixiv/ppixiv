@@ -56,13 +56,12 @@ class main_context_menu extends popup_context_menu
 
         this.bookmark_tag_widget = new bookmark_tag_list_widget(this.menu.querySelector(".popup-bookmark-tag-dropdown-container"));
         this.toggle_tag_widget = new toggle_bookmark_tag_list_widget(this.menu.querySelector(".button-bookmark-tags"), this.bookmark_tag_widget);
+        this.like_button = new like_button_widget(this.menu.querySelector(".button-like"));
 
         // The bookmark buttons, and clicks in the tag dropdown:
         this.bookmark_buttons = [];
         for(var a of this.menu.querySelectorAll(".button-bookmark"))
             this.bookmark_buttons.push(new bookmark_button_widget(a, a.classList.contains("private"), this.bookmark_tag_widget));
-
-        this.like_button = new like_button_widget(this.menu.querySelector(".button-like"));
 
         this.element_bookmark_tag_list = this.menu.querySelector(".bookmark-tag-list");
     }
@@ -228,7 +227,7 @@ class main_context_menu extends popup_context_menu
         // Update the tooltip for the thumbnail toggle button.
         var navigate_out_label = main_controller.singleton.navigate_out_label;
         var title = navigate_out_label != null? ("Return to " + navigate_out_label):"";
-        this.menu.querySelector(".button-return-to-search").dataset.tooltip = title;
+        this.menu.querySelector(".button-return-to-search").dataset.popup = title;
         helpers.set_class(this.menu.querySelector(".button-return-to-search"), "enabled", navigate_out_label != null);
         this.refresh_tooltip();
 
