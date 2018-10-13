@@ -399,6 +399,11 @@ body.dot canvas.filtering {
 .similar-illusts-button:hover > .icon-button {
     color: #FF0 !important; /* override grey-icon hover color */
 }
+
+body.light .similar-illusts-button:hover > .icon-button {
+    stroke: #000;
+}
+
 .similar-illusts-button > .icon-button {
     margin-top: -3px;
 }
@@ -1445,6 +1450,7 @@ body.light .button.button-bookmark .count,
 body.light .button.button-like .count
 {
     color: #555;
+    text-shadow: 0px 1px 1px #fff, 0px -1px 1px #fff, 1px 0px 1px #fff, -1px 0px 1px #fff;
 }
 
 /* Nudge the public heart icon up a bit to make room for the bookmark count. 
@@ -1483,12 +1489,21 @@ body.light .button.button-like .count
     color: #800 !important;
     stroke: #fff;
 }
+body.light .button.button-bookmark.private.bookmarked,
+body.light .button.button-bookmark.private.enabled:hover {
+    color: #c00 !important;
+}
 
 .button.button-like > svg { stroke: #666; stroke-width: .5px; }
+body.light .button.button-like > svg { }
 .button.button-like.liked > svg,
 .button.button-like.enabled:not(.liked):hover > svg {
     fill: #0F0;
     stroke: none;
+}
+body.light .button.button-like.liked > svg,
+body.light .button.button-like.enabled:not(.liked):hover > svg {
+    stroke: #000;
 }
 
 .view-manga-container {
