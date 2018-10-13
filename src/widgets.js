@@ -474,10 +474,36 @@ class popup_context_menu
     // If element is within a button that has a tooltip set, show it.
     show_tooltip_for_element(element)
     {
+        if(element != null)
+            element = element.closest("[data-popup]");
+        
         if(this.tooltip_element == element)
             return;
+
         this.tooltip_element = element;
         this.refresh_tooltip();
+
+        if(this.tooltip_observer)
+        {
+            this.tooltip_observer.disconnect();
+            this.tooltip_observer = null;
+        }
+
+        if(this.tooltip_element == null)
+            return;
+
+        // Refresh the tooltip if the popup attribute changes while it's visible.
+        this.tooltip_observer = new MutationObserver((mutations) => {
+            for(var mutation of mutations) {
+                if(mutation.type == "attributes")
+                {
+                    if(mutation.attributeName == "data-popup")
+                        this.refresh_tooltip();
+                }
+            }
+        });
+        
+        this.tooltip_observer.observe(this.tooltip_element, { attributes: true });
     }
 
     refresh_tooltip()
@@ -528,6 +554,9 @@ class popup_context_menu
     shutdown()
     {
         this.hide();
+
+        // Remove any mutation observer.
+        this.show_tooltip_for_element(null);
 
         this.container.removeEventListener("mousedown", this.onmousedown);
         this.container.removeEventListener("click", this.onclick);
