@@ -680,7 +680,7 @@ class view_search extends view
             }
 
             helpers.set_class(element, "dot", helpers.tags_contain_dot(info));
-            element.querySelector("A.similar-images-button").href = "/bookmark_detail.php?illust_id=" + illust_id + "#ppixiv";
+            element.querySelector("A.similar-illusts-button").href = "/bookmark_detail.php?illust_id=" + illust_id + "#ppixiv";
 
             this.refresh_bookmark_icon(element);
 

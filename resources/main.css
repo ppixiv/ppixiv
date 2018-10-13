@@ -231,8 +231,8 @@ body.light .hover-message > .message {
 
 /* Since the UI isn't a popup on the manga page, hide the description and
  * tag list to make it smaller.  These can be viewed while viewing a page. */
-.view-manga-container .ui-box .description,
-.view-manga-container .ui-box .tag-list
+.view-manga-container .ui-box > .description,
+.view-manga-container .ui-box > .tag-list
 {
     display: none;
 }
@@ -294,7 +294,7 @@ body:not(.hide-ui) .view-illust-container .ui-box.hovering-over-sphere {
     cursor: pointer;
 }
 .disable-ui-button:hover > .icon-button {
-    fill: #0096FA;
+    color: #0096FA;
 }
 .thumbnail-settings-menu-box > .icon-button {
     padding: 0 4px; /* center the 24px icon */
@@ -397,7 +397,7 @@ body.dot canvas.filtering {
     image-rendering: pixelated;
 }
 .similar-illusts-button:hover > .icon-button {
-    fill: #FF0 !important; /* override grey-icon hover color */
+    color: #FF0 !important; /* override grey-icon hover color */
 }
 .similar-illusts-button > .icon-button {
     margin-top: -3px;
@@ -574,22 +574,14 @@ body.light .view-search-container .thumbnail-ui-box {
 
 .view-search-container .thumbnail-ui-box .bookmarks-link {
     display: block;
-    fill: #888;
 }
-.view-search-container .thumbnail-ui-box .bookmarks-link:hover { fill: #fff; }
-body.light .view-search-container .thumbnail-ui-box .bookmarks-link { fill: #666; }
-body.light .view-search-container .thumbnail-ui-box .bookmarks-link:hover { fill: #222; }
 
 .view-search-container .thumbnail-ui-box .contact-link {
     display: block;
     width: 31px;
     height: 31px;
     margin: 0 3px;
-    stroke: #888;
 }
-.view-search-container .thumbnail-ui-box .contact-link:hover { stroke: #fff; }
-body.light .view-search-container .thumbnail-ui-box .contact-link { stroke: #666; }
-body.light .view-search-container .thumbnail-ui-box .contact-link:hover { stroke: #222; }
 
 .view-search-container .thumbnail-ui-box .webpage-link {
     display: block;
@@ -670,24 +662,24 @@ li.thumbnail-box a.thumbnail-link {
 }
 
 /* The similar illusts button on top of thumbnails. */
-.view-search-container li.thumbnail-box .similar-images-button {
+.view-search-container li.thumbnail-box .similar-illusts-button {
     display: block;
     width: 32px;
     height: 32px;
     margin-top: -2px;
 }
-.view-search-container li.thumbnail-box:not(:hover) .similar-images-button {
+.view-search-container li.thumbnail-box:not(:hover) .similar-illusts-button {
     visibility: hidden;
 }
-.view-search-container li.thumbnail-box .similar-images-button {
-    fill: #FF0 !important; /* override grey-icon hover color */
+.view-search-container li.thumbnail-box .similar-illusts-button {
+    color: #FF0 !important; /* override grey-icon hover color */
     opacity: 0.5;
 
     /* Use a very subtle stroke when not hovered, so it's not completely invisible
      * on light backgrounds. */
     stroke: rgba(0,0,0,0.5);
 }
-.view-search-container li.thumbnail-box .similar-images-button:hover {
+.view-search-container li.thumbnail-box .similar-illusts-button:hover {
     opacity: 1;
     stroke: #000;
 }
@@ -1411,25 +1403,10 @@ body.light .popup-bookmark-tag-dropdown > .tag-right-button-strip {
 .popup-bookmark-tag-dropdown > .tag-right-button-strip .tag-button {
     cursor: pointer;
 }
-.popup-bookmark-tag-dropdown > .tag-right-button-strip .tag-button > svg {
-    color: #fff;
-    fill: #fff;
-}
-body.light .popup-bookmark-tag-dropdown > .tag-right-button-strip .tag-button > svg {
-    color: #222;
-    fill: #222;
-}
 /* Hide the "delete" stroke over the heart icon unless clicking the button will
  * remove the bookmark. */
 svg.heart-image .delete {
     display: none;
-}
-
-.button.button-bookmark-tags.enabled:hover > svg #hole {
-    fill: #fff;
-}
-.button.button-bookmark-tags.enabled:hover > svg #tag {
-    fill: #444;
 }
 
 .button.button-bookmark,
@@ -1483,22 +1460,27 @@ body.light .button.button-like .count
     display: inline;
 }
 
+/* These are !important to override the default white coloring in the context
+ * menu. */
+.button.button-bookmark {
+    color: #400 !important;
+}
 .button.button-bookmark.enabled {
-    fill: #800;
+    color: #800 !important;
     stroke: none;
 }
 .button.button-bookmark.private.enabled {
-    fill: #400;
+    color: #400 !important;
     stroke: #888;
 }
 .button.button-bookmark.bookmarked,
 .button.button-bookmark.enabled:hover {
-    fill: #f00;
+    color: #f00 !important;
     stroke: none;
 }
 .button.button-bookmark.private.bookmarked,
 .button.button-bookmark.private.enabled:hover {
-    fill: #800;
+    color: #800 !important;
     stroke: #fff;
 }
 

@@ -6,6 +6,6 @@
         </mask>
     </defs>
     
-    <path id="tag" d="M2 18 L 16 4 L 28 4 L 28 16 L 14 30 L2 18" mask="url(#mask)" />
-    <circle id="hole" cx="22" cy="10" r="2" fill="#888" />
+    <path id="tag" d="M2 18 L 16 4 L 28 4 L 28 16 L 14 30 L2 18" mask="url(#mask)" fill="currentColor" />
+    <circle id="hole" cx="22" cy="10" r="2" fill="#444" />
 </svg>
