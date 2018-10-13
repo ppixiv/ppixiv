@@ -1408,11 +1408,6 @@ body.light .popup-bookmark-tag-dropdown > .tag-right-button-strip {
 .popup-bookmark-tag-dropdown > .tag-right-button-strip .tag-button {
     cursor: pointer;
 }
-/* Hide the "delete" stroke over the heart icon unless clicking the button will
- * remove the bookmark. */
-svg.heart-image .delete {
-    display: none;
-}
 
 .button.button-bookmark,
 .button.button-like
@@ -1466,6 +1461,12 @@ body.light .button.button-like .count
     display: inline;
 }
 
+/* Hide the "delete" stroke over the heart icon unless clicking the button will
+ * remove the bookmark. */
+svg.heart-image .delete {
+    display: none;
+}
+
 /* These are !important to override the default white coloring in the context
  * menu. */
 .button.button-bookmark {
@@ -1475,25 +1476,11 @@ body.light .button.button-like .count
     color: #800 !important;
     stroke: none;
 }
-.button.button-bookmark.private.enabled {
-    color: #400 !important;
-    stroke: #888;
-}
 .button.button-bookmark.bookmarked,
 .button.button-bookmark.enabled:hover {
     color: #f00 !important;
     stroke: none;
 }
-.button.button-bookmark.private.bookmarked,
-.button.button-bookmark.private.enabled:hover {
-    color: #800 !important;
-    stroke: #fff;
-}
-body.light .button.button-bookmark.private.bookmarked,
-body.light .button.button-bookmark.private.enabled:hover {
-    color: #c00 !important;
-}
-
 .button.button-like > svg { stroke: #666; stroke-width: .5px; }
 body.light .button.button-like > svg { }
 .button.button-like.liked > svg,
@@ -1506,6 +1493,12 @@ body.light .button.button-like.enabled:not(.liked):hover > svg {
     stroke: #000;
 }
 
+.button-bookmark.public svg.heart-image .lock {
+    display: none;
+}
+.button-bookmark:not(:hover) svg.heart-image .lock {
+    stroke: #888;
+}
 .view-manga-container {
     width: 100%;
     height: 100%;
