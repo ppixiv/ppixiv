@@ -298,7 +298,7 @@ class view_search extends view
 
     // Call refresh_ui_for_user_info with the user_info for the user we're viewing,
     // if the user ID has changed.
-    refresh_ui_for_user_id()
+    async refresh_ui_for_user_id()
     {
         var user_id = this.data_source.viewing_user_id;
         if(user_id == this.last_updated_user_id)
@@ -314,14 +314,14 @@ class view_search extends view
             return;
         }
 
-        image_data.singleton().get_user_info_full(user_id, function(user_info) {
-            // If last_updated_user_id changed since we started this request, the user ID
-            // changed and we started a different request.
-            if(this.last_updated_user_id != user_id)
-                return;
+        var user_info = await image_data.singleton().get_user_info_full(user_id);
 
-            this.refresh_ui_for_user_info(user_info);
-        }.bind(this));
+        // If last_updated_user_id changed since we started this request, the user ID
+        // changed and we started a different request.
+        if(this.last_updated_user_id != user_id)
+            return;
+
+        this.refresh_ui_for_user_info(user_info);
     }
 
     set active(active)
