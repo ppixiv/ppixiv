@@ -1834,12 +1834,6 @@ class data_source_bookmarks extends data_source_bookmarks_base
         var url = "/ajax/user/" + this.viewing_user_id + "/illusts/bookmarks";
         var result = await helpers.get_request(url, data);
 
-        // Put higher (newer) bookmarks first.
-        result.body.works.sort(function(lhs, rhs)
-        {
-            return parseInt(rhs.bookmarkData.id) - parseInt(lhs.bookmarkData.id);
-        });
-
         var illust_ids = [];
         for(var illust_data of result.body.works)
             illust_ids.push(illust_data.id);
