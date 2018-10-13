@@ -1496,7 +1496,7 @@ body.light .button.button-like.enabled:not(.liked):hover > svg {
 .button-bookmark.public svg.heart-image .lock {
     display: none;
 }
-.button-bookmark:not(:hover) svg.heart-image .lock {
+.button-bookmark svg.heart-image .lock {
     stroke: #888;
 }
 .view-manga-container {
