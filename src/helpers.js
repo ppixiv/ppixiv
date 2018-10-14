@@ -1258,31 +1258,104 @@ var helpers = {
         return Math.min(Math.max(value, min), max);
     },
 
-    // If image.decode is available, asynchronously decode url.
-    decode_image(url)
+    // Return a promise that resolves when img finishes loading, or rejects if it
+    // fails to load.
+    wait_for_image_load(img, abort_signal)
     {
+        return new Promise((resolve, reject) => {
+            // Resolve immediately if the image is already loaded.
+            if(img.complete)
+            {
+                resolve();
+                return;
+            }
+
+            if(abort_signal && abort_signal.aborted)
+            {
+                reject("Aborted");
+                return;
+            }
+
+            var onabort = (e) => {
+                remove_listeners();
+                reject("Aborted");
+            };
+
+            var onerror = (e) => {
+                remove_listeners();
+                reject("Load error");
+            };
+
+            var onload = (e) => {
+                remove_listeners();
+                resolve();
+            };
+
+            var remove_listeners = () => {
+                img.removeEventListener("error", onerror);
+                img.removeEventListener("load", onload);
+                if(abort_signal)
+                    abort_signal.addEventListener("abort", onabort);
+            };
+
+            img.addEventListener("error", onerror);
+            img.addEventListener("load", onload);
+            if(abort_signal)
+                abort_signal.addEventListener("abort", onabort);
+        });
+    },
+
+    // If image.decode is available, asynchronously decode url.
+    async decode_image(url, abort_signal)
+    {
+        var img = document.createElement("img");
+        img.src = url;
+
+        var onabort = (e) => {
+            // If we're aborted, set the image to a small PNG, which cancels the previous load
+            // in Firefox and Chrome.
+            img.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==";
+        };
+
+        if(abort_signal)
+            abort_signal.addEventListener("abort", onabort);
+        
+        try {
+            await helpers.wait_for_image_load(img, abort_signal);
+        } catch(e) {
+            // Ignore load errors, since this is just a load optimization.
+            // console.error("Ignoring error in decode:", e);
+            return;
+        } finally {
+            // Remove the abort listener.
+            if(abort_signal)
+                abort_signal.removeEventListener("abort", onabort);
+        }
+
+        // If we finished by aborting, don't bother decoding the blank PNG we changed the
+        // image to.
+        if(abort_signal && abort_signal.aborted)
+            return;
+        
         if(HTMLImageElement.prototype.decode == null)
         {
             // If we don't have img.decode, fake it by drawing the image into an offscreen canvas
             // to force the browser to decode it.
-            var img = document.createElement("img");
-            img.src = url;
-            img.onload = (e) => {
-                var canvas = document.createElement("canvas");
-                canvas.width = 1;
-                canvas.height = 1;
+            var canvas = document.createElement("canvas");
+            canvas.width = 1;
+            canvas.height = 1;
 
-                var context = canvas.getContext('2d');
-                context.drawImage(img, 0, 0);
-            };
-
-            return;
+            var context = canvas.getContext('2d');
+            context.drawImage(img, 0, 0);
         }
-        
-        var img = document.createElement("img");
-        img.src = url;
-
-        img.decode().then(() => { }).catch((e) => { });
+        else
+        {
+            try {
+                await img.decode();
+            } catch(e) {
+                // console.error("Ignoring error in decode:", e);
+            }
+        }
     },
 
     // Return a CSS style to specify thumbnail resolutions.

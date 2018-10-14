@@ -18,24 +18,14 @@
 // A base class for fetching a single resource:
 class _preloader
 {
-    constructor()
+    // Cancel the fetch.
+    cancel()
     {
-        this._run_callback = this._run_callback.bind(this);
-    }
-
-    // Call and clear this.callback.
-    _run_callback()
-    {
-        if(this.callback == null)
+        if(this.abort_controller == null)
             return;
 
-        var cb = this.callback;
-        this.callback = null;
-        try {
-            cb(this);
-        } catch(e) {
-            console.error(e);
-        }
+        this.abort_controller.abort();
+        this.abort_controller = null;
     }
 }
 
@@ -48,35 +38,11 @@ class _img_preloader extends _preloader
         this.url = url;
     }
 
-    // Start the fetch.  This should only be called once.  callback will be called when the fetch
-    // completes (it won't be called if it's cancelled first).
-    start(callback)
+    // Start the fetch.  This should only be called once.
+    async start()
     {
-        this.callback = callback;
-
-        this.img = document.createElement("img");
-        this.img.src = this.url;
-
-        // If the image loaded synchronously, run the callbnack asynchronously.  Otherwise,
-        // call it when the image finishes loading.
-        if(this.img.complete)
-            setTimeout(this._run_callback, 0);
-        else
-            this.img.addEventListener("load", this._run_callback);
-    }
-
-    // Cancel the fetch.
-    cancel()
-    {
-        // Setting the src of an img causes any ongoing fetch to be cancelled in both Firefox
-        // and Chrome.  Set it to a transparent PNG (if we set it to "#", Chrome will try to
-        // load the page URL as an image).
-        if(this.img == null)
-            return;
-
-        this.img.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==";
-        this.img = null;
-        this.callback = null;
+        this.abort_controller = new AbortController();
+        await helpers.decode_image(this.url, this.abort_controller.signal);
     }
 }
 
@@ -90,24 +56,12 @@ class _xhr_preloader extends _preloader
         this.url = url;
     }
 
-    start(callback)
+    async start()
     {
-        this.callback = callback;
-
         this.abort_controller = new AbortController();
-        helpers.fetch_resource(this.url, {
-            onload: this._run_callback,
+        await helpers.fetch_resource(this.url, {
             signal: this.abort_controller.signal,
         });
-    }
-
-    cancel()
-    {
-        if(this.abort_controller == null)
-            return;
-
-        this.abort_controller.abort();
-        this.abort_controller = null;
     }
 }
 
@@ -124,8 +78,6 @@ class image_preloader
 
     constructor()
     {
-        this.preload_completed = this.preload_completed.bind(this);
-
         // The _preloader objects that we're currently running.
         this.preloads = [];
 
@@ -224,7 +176,7 @@ class image_preloader
         // updated_preload_list.
         var unwanted_preloads;
         var updated_preload_list = [];
-        for(var preload of filtered_preloads)
+        for(let preload of filtered_preloads)
         {
             // If we already have a preloader running for this URL, just let it continue.
             var active_preload = this._find_active_preload_by_url(preload.url);
@@ -236,8 +188,28 @@ class image_preloader
 
             // Start this preload.
             // console.log("Start preload:", preload.url);
-            preload.start(this.preload_completed);
+            preload.start().finally(() => {
+                // Add the URL to recently_preloaded_urls, so we don't try to preload this
+                // again for a while.  We do this even on error, so we don't try to load
+                // failing images repeatedly.
+                this.recently_preloaded_urls.push(preload.url);
+                this.recently_preloaded_urls.splice(1000);
+
+                // When the preload finishes (successful or not), remove it from the list.
+                var idx = this.preloads.indexOf(preload);
+                if(idx == -1)
+                {
+                    console.error("Preload finished, but we weren't running it:", preload.url);
+                    return;
+                }
+                this.preloads.splice(idx, 1);
+
+                // See if we need to start another preload.
+                this.check_fetch_queue();
+            });
+
             updated_preload_list.push(preload);
+            break;
         }
 
         // Cancel preloads in this.preloads that aren't in updated_preload_list.  These are
@@ -250,28 +222,12 @@ class image_preloader
 
             console.log("Cancelling preload:", preload.url);
             preload.cancel();
+
+            // Preloads stay in the list until the cancellation completes.
+            updated_preload_list.push(preload);
         }
 
         this.preloads = updated_preload_list;
-    }
-
-    // This is called when a preloader finishes loading.
-    preload_completed(preload)
-    {
-        // preload finished running.  Remove it from this.preload and add its URL to recently_preloaded_urls.
-        this.recently_preloaded_urls.push(preload.url);
-        this.recently_preloaded_urls.splice(1000);
-
-        var idx = this.preloads.indexOf(preload);
-        if(idx == -1)
-        {
-            console.error("Preload finished, but we weren't running it:", preload.url);
-            return;
-        }
-        this.preloads.splice(idx, 1);
-
-        // See if we need to start another preload.
-        this.check_fetch_queue();
     }
 
     // Return the preloader if we're currently preloading url.
