@@ -264,27 +264,23 @@ class image_preloader
         // Otherwise, preload the images.  Preload thumbs first, since they'll load
         // much faster.
         var results = [];
-        for(var page = 0; page < illust_data.pageCount; ++page)
-        {
-            var url = helpers.get_url_for_page(illust_data, page, "original");
-            results.push(new _img_preloader(url));
-        }
+        for(var page of illust_data.mangaPages)
+            results.push(new _img_preloader(page.urls.original));
 
         return results;
     }
 
     preload_thumbs(illust_info)
     {
-        // We're only interested in preloading thumbs for manga pages for the manga
-        // thumbnail bar.
+        // We're only interested in preloading thumbs for manga pages.
         if(illust_info.pageCount < 2)
             return;
 
         // Preload thumbs directly rather than queueing, since they load quickly and
         // this reduces flicker in the manga thumbnail bar.
         var thumbs = [];
-        for(var page = 0; page < illust_info.pageCount; ++page)
-            thumbs.push(helpers.get_url_for_page(illust_info, page, "small"));
+        for(var page of illust_info.mangaPages)
+            thumbs.push(page.urls.small);
 
         helpers.preload_images(thumbs);
     }

@@ -30,8 +30,16 @@ class viewer_images extends viewer
         // Make a list of image URLs we're viewing.
         this.images = [];
 
-        for(var page = 0; page < illust_data.pageCount; ++page)
-            this.images.push(helpers.get_url_for_page(illust_data, page, "original"));
+        // If there are multiple pages, get image info from mangaPages.  Otherwise, use
+        // the main image.
+        for(var page of illust_data.mangaPages)
+        {
+            this.images.push({
+                url: page.urls.original,
+                width: page.width,
+                height: page.height,
+            });
+        }
 
         this.refresh();
     }
@@ -106,18 +114,18 @@ class viewer_images extends viewer
 
     refresh()
     {
-        var url = this.images[this.index];
-        if(this.viewer && this.img.src == url)
+        var current_image = this.images[this.index];
+        if(this.viewer && this.img && this.img.src == current_image.url)
             return;
 
-        this.img.src = url;
+        this.img.src = current_image.url;
 
         // Decode the next and previous image.  This reduces flicker when changing pages
         // since the image will already be decoded.
         if(this.index > 0)
-            helpers.decode_image(this.images[this.index - 1]);
+            helpers.decode_image(this.images[this.index - 1].url);
         if(this.index + 1 < this.images.length)
-            helpers.decode_image(this.images[this.index + 1]);
+            helpers.decode_image(this.images[this.index + 1].url);
 
         // If we have a manga_page_bar, update to show the current page.
         if(this.manga_page_bar)

@@ -331,8 +331,8 @@ class actions
 
         // Download all images.
         var images = [];
-        for(var page = 0; page < illust_data.pageCount; ++page)
-            images.push(helpers.get_url_for_page(illust_data, page, "original"));
+        for(var page of illust_data.mangaPages)
+            images.push(page.urls.original);
 
         var user_data = illust_data.userInfo;
         helpers.download_urls(images, function(results) {

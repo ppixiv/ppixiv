@@ -321,7 +321,8 @@ class manga_thumbnail_widget
 
         for(var page = 0; page < this.illust_info.pageCount; ++page)
         {
-            var url = helpers.get_url_for_page(this.illust_info, page, "small");
+            var page_info = this.illust_info.mangaPages[page];
+            var url = page_info.urls.small;
 
             var img = document.createElement("img");
             var entry = helpers.create_from_template(".template-manga-thumbnail");

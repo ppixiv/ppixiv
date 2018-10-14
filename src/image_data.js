@@ -153,6 +153,24 @@ class image_data
             illust_data.ugoiraMetadata = ugoira_result.body;
         }
 
+        // If this is a single-page image, create a dummy single-entry mangaPages array.  This lets
+        // us treat all images the same.
+        if(illust_data.pageCount == 1)
+        {
+            illust_data.mangaPages = [{
+                width: illust_data.width,
+                height: illust_data.height,
+
+                // Rather than just referencing illust_Data.urls, copy just the image keys that
+                // exist in the regular mangaPages list (no thumbnails).
+                urls: {
+                    original: illust_data.urls.original,
+                    regular: illust_data.urls.regular,
+                    small: illust_data.urls.small,
+                }
+            }];
+        }
+
         // Store the image data.
         this.image_data[illust_id] = illust_data;
         return illust_data;

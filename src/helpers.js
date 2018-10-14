@@ -238,27 +238,6 @@ var helpers = {
         }
     },
 
-    // For some reason, only the mode=manga page actually has URLs to each page.  Avoid
-    // having to load an extra page by deriving it from the first page's URL, which looks
-    // like:
-    //
-    // https://i.pximg.net/img-original/img/1234/12/12/12/12/12/12345678_p0.jpg
-    //
-    // Replace _p0 at the end with the page number.
-    //
-    // We can't tell the size of each image this way.
-    get_url_for_page: function(illust_data, page, key)
-    {
-        var url = illust_data.urls[key];
-        var match = /^(http.*)(_p)(0)(.*)/.exec(url);
-        if(match == null)
-        {
-            console.error("Couldn't parse URL: " + url);
-            return "";
-        }
-        return match[1] + match[2] + page.toString() + match[4];
-    },
-
     // Prompt to save a blob to disk.  For some reason, the really basic FileSaver API disappeared from
     // the web.
     save_blob: function(blob, filename)
