@@ -8,7 +8,6 @@ class viewer_images extends viewer
 
         this.container = container;
         this.options = options || {};
-        this.progress_bar = options.progress_bar;
         this.manga_page_bar = options.manga_page_bar;
         this.img_onload = this.img_onload.bind(this);
         this.onkeydown = this.onkeydown.bind(this);
@@ -83,9 +82,6 @@ class viewer_images extends viewer
         if(this.img.parentNode)
             this.img.parentNode.removeChild(this.img);
 
-        if(this.progress_bar)
-            this.progress_bar.detach();
-
         main_context_menu.get.on_click_viewer = null;
     }
 
@@ -123,18 +119,6 @@ class viewer_images extends viewer
         if(this.index + 1 < this.images.length)
             helpers.decode_image(this.images[this.index + 1]);
 
-/*        if(this.progress_bar)
-        {
-            if(this.images.length == 1)
-                this.progress_bar.set(null);
-            else
-            {
-                // Flash the current manga page in the progress bar briefly.
-                this.progress_bar.set((this.index+1) / this.images.length);
-                this.progress_bar.show_briefly();
-            }
-        } */
-        
         // If we have a manga_page_bar, update to show the current page.
         if(this.manga_page_bar)
         {
