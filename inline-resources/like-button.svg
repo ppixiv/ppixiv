@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" fill="currentColor">
-    <path class="mouth" fill="#888" stroke="currentColor" stroke-width="1" stroke-linecap="round"
-    transform-origin="50% 50%"    
+    <path class="mouth" stroke-width="1" stroke-linecap="round"
+    transform-origin="50% 50%"
     d="
         M 6 14
         A 4 4.5 0 0 0 26 14

@@ -16,6 +16,83 @@ a {
     transform-origin: inherit;
 }
 
+/* Theme colors: */
+body {
+    --button-color: #888;
+    --button-highlight-color: #eee;
+
+    /* Colors for major UI boxes */
+    --ui-bg-color: #222;
+    --ui-fg-color: #fff;
+    --ui-border-color: #000;
+    --ui-shadow-color: #000; /* the shadow around some major UI elements */
+    --ui-bg-section-color: #555; /* color for sections within UI, like the description box */
+
+    --toggle-button-fg-disabled-color: #666;
+    --toggle-button-fg-dim-color: #888;
+    --toggle-button-fg-color: #fff;
+    --toggle-button-bg-dim-color: #222;
+    --toggle-button-bg-color: #444;
+
+    /* Color for frames like popup menus */
+    --frame-bg-color: #000;
+    --frame-fg-color: #fff;
+    --frame-border-color: #444;
+
+    --dropdown-menu-hover-color: #444;
+
+    /* Box links used for selection in the search UI: */
+    --box-link-fg-color: var(--frame-fg-color);
+    --box-link-bg-color: var(--frame-bg-color);
+    --box-link-disabled-color: #888;
+    --box-link-hover-color: #222;
+    --box-link-selected-color: #008;
+
+    /* Color for the minor text style, eg. the bookmark and like counts.
+     * This is smaller text, with a text border applied to make it readable. */
+    --minor-text-fg-color: #aaa;
+    --minor-text-shadow-color: #000;
+
+    --title-fg-color: #fff; /* title strip in image-ui */
+    --title-bg-color: #444;
+
+    --like-button-color: #888;
+    --like-button-liked-color: #ccc;
+    --like-button-hover-color: #fff;
+}
+
+body.light {
+    --ui-bg-color: #eee;
+    --ui-fg-color: #222;
+    --ui-border-color: #ccc;
+    --ui-shadow-color: #fff;
+    --ui-bg-section-color: #ccc; /* color for subsections */
+
+    --button-color: #666;
+    --button-highlight-color: #222;
+
+    --toggle-button-fg-dim-color: #222;
+    --toggle-button-fg-color: #000;
+    --toggle-button-bg-dim-color: #eee;
+    --toggle-button-bg-color: #ccc;
+
+    --frame-bg-color: #fff;
+    --frame-fg-color: #222;
+
+    --dropdown-menu-hover-color: #ccc;
+
+    --box-link-hover-color: #eee;
+    --box-link-selected-color: #ffc;
+
+    --minor-text-fg-color: #555; /* 555 */
+    --minor-text-shadow-color: #fff; /* fff */
+
+    --title-fg-color: #fff;
+    --title-bg-color: #888;
+
+    --like-button-liked-color: #222;
+    --like-button-hover-color: #000;
+}
 ul {
     padding: 0;
     margin: 0;
@@ -136,8 +213,8 @@ textarea:focus, input:focus, a:focus {
 }
 
 .hover-message > .message {
-    background-color: #000;
-    color: #fff;
+    background-color: var(--frame-bg-color);
+    color: var(--frame-fg-color);
     font-size: 1.4em;
     padding: 6px 15px;
     margin: 4px;
@@ -145,11 +222,6 @@ textarea:focus, input:focus, a:focus {
     text-align: center;
     border-radius: 5px;
     box-shadow: 0 0 10px 5px #aaa;
-}
-
-body.light .hover-message > .message {
-    background-color: #eee;
-    color: #222;
 }
 
 .view-illust-container .ui {
@@ -218,13 +290,14 @@ body.light .hover-message > .message {
     transform: translate(-50%,-50%)
 }
 .ui-box {
-    background-color: #222;
-    border: solid 2px #000;
+    background-color: var(--ui-bg-color);
+    color: var(--ui-fg-color);
+    border: solid 2px var(--ui-border-color);
     padding: 1em;
-    color: #EEE;
     border-radius: 8px;
     position: relative;
 }
+
 .view-illust-container .ui-box {
     margin: .5em;
 }
@@ -248,11 +321,6 @@ body.light .hover-message > .message {
     opacity: 0;
     transform: translate(-50px, 0);
     pointer-events: none;
-}
-body.light .ui-box {
-    background-color: #eee;
-    color: #222;
-    border-color: #ccc;
 }
 
 /* Debugging: */
@@ -380,13 +448,10 @@ body:not(.hide-ui) .view-illust-container .ui-box.hovering-over-sphere {
 .title-block {
     display: inline-block;
     padding: 0 10px;
-    background-color: #444;
+    color: var(--title-fg-color);
+    background-color: var(--title-bg-color);
     margin-right: 1em;
     border-radius: 8px 0;
-}
-.light .title-block {
-    background-color: #888;
-    color: #fff;
 }
 .title-block.popup:hover:after {
     top: 40px;
@@ -414,12 +479,10 @@ body.light .similar-illusts-button:hover > .icon-button {
     margin-top: -3px;
 }
 
-.post-info {
-}
 .post-info > * {
     display: inline-block;
-    background-color: #111;
-    color: #eee;
+    background-color: var(--box-link-bg-color);
+    color: var(--box-link-fg-color);
     padding: 2px 10px;
 
     /* Use a smaller, heavier font to distinguish these from tags. */
@@ -427,22 +490,18 @@ body.light .similar-illusts-button:hover > .icon-button {
     font-weight: bold;
 }
 .description {
-    border: solid 1px #000;
+    border: solid 1px var(--ui-border-color);
     padding: .35em;
-    background-color: #555;
+    background-color: var(--ui-bg-section-color);
     max-height: 10em;
     overflow-y: auto;
 }
-.light .description {
-    background-color: #ccc;
+body.light .description {
     border: none;
 }
 /* Override obnoxious colors in descriptions.  Why would you allow this? */
 .description * {
-    color: #eee !important;
-}
-body.light .description * {
-    color: #222 !important;
+    color: var(--ui-fg-color);
 }
 
 .popup {
@@ -473,15 +532,12 @@ body:not(.premium) .premium-only { display: none; }
     position: absolute;
     visibility: hidden;
     min-width: 10em;
-    background-color: #000;
-    border: 1px solid #444;
+    background-color: var(--frame-bg-color);
+    border: 1px solid var(--frame-border-color);
     padding: .25em .5em;
     z-index: 1;
 }
-body.light .popup-menu-box {
-    background-color: #fff;
-    border-color: #ddd;
-}
+
 .popup-menu-box.popup-visible {
     visibility: inherit;
 }
@@ -519,14 +575,11 @@ body.light .popup-menu-box {
 .popup-menu-box .button {
     padding: .25em;
     cursor: pointer;
+    width: 100%;
 }
 
 .popup-menu-box .button:hover {
-    background-color: #444;
-    width: 100%;
-}
-body.light .popup-menu-box .button:hover {
-    background-color: #ccc;
+    background-color: var(--dropdown-menu-hover-color);
 }
 
 .view-search-container {
@@ -563,21 +616,14 @@ body.light .popup-menu-box .button:hover {
     width: 50%;
     /* Make sure this doesn't get too narrow, or it'll overlap too much of the thumbnail area. */
     min-width: 800px;
-    background-color: #444;
-
-    box-shadow: 0 0 15px 10px #000;
+    background-color: var(--ui-bg-color);
+    color: var(--ui-fg-color);
+    box-shadow: 0 0 15px 10px var(--ui-shadow-color);
     border-radius: 4px;
 
     padding: 10px;
     pointer-events: auto;
 }
-
-body.light .view-search-container .thumbnail-ui-box {
-    background-color: #ddd;
-    color: #444;
-    box-shadow: 0 0 15px 10px #fff;
-}
-
 
 .view-search-container .thumbnail-ui-box .displaying {
     padding-bottom: 4px;
@@ -753,7 +799,8 @@ li.thumbnail-box a.thumbnail-link {
 }
 
 .thumbnail-inner > .thumbnail-label > div {
-    background-color: #000;
+    color: var(--frame-fg-color);
+    background-color: var(--frame-bg-color);
     left: 50%;
     position: absolute;
     transform: translate(-50%, 0);
@@ -762,10 +809,6 @@ li.thumbnail-box a.thumbnail-link {
     overflow: hidden;
     border-radius: 2px;
     text-overflow: ellipsis;
-}
-body.light .thumbnail-inner > .thumbnail-label > div {
-    background-color: #fff;
-    color: #222;
 }
 .thumbnail-inner:hover .thumbnail-label {
     visibility: visible;
@@ -903,33 +946,22 @@ body:not(.disable-thumbnail-zooming) .view-search-container .thumbnail-box.muted
     text-decoration: none;
     padding: .25em .5em;
     margin: .25em .25em;
-    color: #fff;
-    background-color: #000;
+    color: var(--box-link-fg-color);
+    background-color: var(--box-link-bg-color);
     user-select: none;
     -moz-user-select: none;
 }
-body.light .box-link {
-    background-color: #fff;
-    color: #222;
-}
 
 .box-link.disabled {
-    color: #888;
+    color: var(--box-link-disabled-color);
 }
 
 .box-link:hover {
-    background-color: #222;
-}
-
-body.light .box-link:hover {
-    background-color: #eee;
+    background-color: var(--box-link-hover-color);
 }
 
 .box-link.selected {
-    background-color: #008;
-}
-body.light .box-link.selected {
-    background-color: #ffc;
+    background-color: var(--box-link-selected-color);
 }
 
 .view-search-container .following-tag {
@@ -950,10 +982,7 @@ body.light .box-link.selected {
     flex-direction: column;
 }
 .search-options-row > div.active > .box-link {
-    background-color: #004;
-}
-.light .search-options-row > div.active > .box-link {
-    background-color: #ffc;
+    background-color: var(--box-link-selected-color);
 }
 .search-box {
     white-space: nowrap;
@@ -999,23 +1028,14 @@ input.search-tags {
 }
 
 .grey-icon {
-    color: #888;
-}
-.light .grey-icon {
-    color: #666;
+    color: var(--button-color);
 }
 :hover > .grey-icon {
-    color: #eee;
-}
-.light :hover > .grey-icon {
-    color: #222;
+    color: var(--button-highlight-color);
 }
 /* If a grey-icon is directly inside a visible popup menu, eg. the navigation icon: */
 .popup-visible > .grey-icon {
-    color: #eee;
-}
-.light .popup-visible > .grey-icon {
-    color: #222;
+    color: var(--button-highlight-color);
 }
 
 .mute-display .muted-image {
@@ -1137,7 +1157,7 @@ body.hide-ui .manga-thumbnail-container
  * strip itself is also a flexbox, for the actual thumbs. */
 .manga-thumbnail-container > .strip
 {
-    background-color: #444;
+    background-color: var(--ui-bg-color);
     height: 100%;
     display: flex;
     flex-direction: row;
@@ -1145,10 +1165,6 @@ body.hide-ui .manga-thumbnail-container
     opacity: 0;
     transition: transform .15s, opacity .15s;
     transform: translate(0, 25px);
-}
-body.light .manga-thumbnail-container > .strip
-{
-    background-color: #ddd;
 }
 
 .manga-thumbnail-container.visible > .strip
@@ -1228,13 +1244,8 @@ body.light .manga-thumbnail-arrow:hover > svg
     bottom: -6px;
     width: 40px;
     height: 4px;
-    background-color: #FFF;
+    background-color: var(--ui-fg-color);
     border-radius: 2px;
-}
-
-body.light .thumb-list-cursor
-{
-    background-color: #666;
 }
 
 /* The right click context menu for the image view: */
@@ -1259,13 +1270,10 @@ body.light .thumb-list-cursor
     pointer-events: none;
 }
 .popup-context-menu .tooltip-display .tooltip-display-text {
-    background-color: #000;
+    background-color: var(--frame-bg-color);
+    color: var(--frame-fg-color);
     padding: 2px 8px;
     border-radius: 4px;
-}
-body.light .popup-context-menu .tooltip-display .tooltip-display-text {
-    background-color: #fff;
-    color: #222;
 }
 
 .popup-context-menu .button-strip {
@@ -1274,11 +1282,8 @@ body.light .popup-context-menu .tooltip-display .tooltip-display-text {
 }
 .popup-context-menu .button-strip > .button-block {
     display: inline-block;
-    background-color: #000;
+    background-color: var(--frame-bg-color);
     padding: 12px;
-}
-.light .popup-context-menu .button-strip > .button-block {
-    background-color: #fff;
 }
 
 /* Remove the double horizontal padding: */
@@ -1293,33 +1298,23 @@ body.light .popup-context-menu .tooltip-display .tooltip-display-text {
 .popup-context-menu .button-strip > .button-block:last-child { border-radius: 0 5px 5px 0; }
 
 .popup-context-menu .button-strip .button {
-    color: #fff;
     border-radius: 4px;
     padding: 6px 8px;
     height: 100%;
     text-align: center;
-    cursor: default;
-}
-
-/* Show the pointer cursor for enabled buttons. */
-.popup-context-menu .button-strip .button.enabled {
     cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background-color: var(--toggle-button-bg-dim-color);
+    color: var(--toggle-button-fg-dim-color);
 }
 
 /* Grey out the buttons if this strip isn't enabled. */
 .popup-context-menu .button-strip .button:not(.enabled)
 {
-    color: #666;
-    stroke: #666;
-}
-
-.popup-context-menu .button-strip .button {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    background-color: #222;
-    color: #888;
-    stroke: #888;
+    cursor: inherit;
+    color: var(--toggle-button-fg-disabled-color);
 }
 .popup-context-menu .button-strip .button > * {
     min-width: 32px;
@@ -1330,27 +1325,11 @@ body.light .popup-context-menu .tooltip-display .tooltip-display-text {
 }
 
 .popup-context-menu .button-strip .button.enabled:hover {
-    color: #fff;
-    stroke: #fff;
+    color: var(--toggle-button-fg-color);
 }
 .popup-context-menu .button-strip .button.enabled.selected {
-    background-color: #444;
-    color: #fff;
-    stroke: #fff;
-}
-.light .popup-context-menu .button-strip .button {
-    background-color: #ccc;
-    color: #222;
-    stroke: #222;
-}
-.light .popup-context-menu .button-strip .button.enabled:hover {
-    color: #000;
-    stroke: #000;
-}
-.light .popup-context-menu .button-strip .button.selected {
-    background-color: #eee;
-    color: #000;
-    stroke: #000;
+    background-color: var(--toggle-button-bg-color);
+    color: var(--toggle-button-fg-color);
 }
 
 /* We don't have a way to add classes to inlined SVGs yet, so for now just use nth-child.
@@ -1371,7 +1350,8 @@ body.light .popup-context-menu .button-strip .button .tag-dropdown-arrow {
 }
 
 .popup-bookmark-tag-dropdown {
-    background-color: #000;
+    background-color: var(--frame-bg-color);
+    color: var(--frame-fg-color);
     position: absolute;
     padding: 4px;
     top: calc(100%);
@@ -1385,10 +1365,6 @@ body.light .popup-context-menu .button-strip .button .tag-dropdown-arrow {
  * the rounded corners. */
 .popup-context-menu .popup-bookmark-tag-dropdown {
     top: calc(100% - 4px);
-}
-body.light .popup-bookmark-tag-dropdown {
-    background-color: #fff;
-    color: #000;
 }
 
 .popup-bookmark-tag-dropdown > .tag-list {
@@ -1404,12 +1380,10 @@ body.light .popup-bookmark-tag-dropdown {
     position: absolute;
     top: 0;
     left: 100%;
-    background-color: #000;
+    background-color: var(--frame-bg-color);
+    color: var(--frame-fg-color);
     display: flex;
     flex-direction: column;    
-}
-body.light .popup-bookmark-tag-dropdown > .tag-right-button-strip {
-    background-color: #fff;
 }
 .popup-bookmark-tag-dropdown > .tag-right-button-strip .tag-button {
     cursor: pointer;
@@ -1423,7 +1397,13 @@ body.light .popup-bookmark-tag-dropdown > .tag-right-button-strip {
 .button.button-bookmark .count,
 .button.button-like .count
 {
-    color: #aaa;
+    color: var(--minor-text-fg-color);
+
+    text-shadow:
+        0px 1px 1px var(--minor-text-shadow-color),
+        0px -1px 1px var(--minor-text-shadow-color),
+        1px 0px 1px var(--minor-text-shadow-color),
+        -1px 0px 1px var(--minor-text-shadow-color);
     font-size: .7em;
     font-weight: bold;
     position: absolute;
@@ -1444,22 +1424,17 @@ body.light .popup-bookmark-tag-dropdown > .tag-right-button-strip {
     left: calc(-50px + 50%)
     width: 100px;
     pointer-events: none;
-    text-shadow: 0px 1px 1px #000, 0px -1px 1px #000, 1px 0px 1px #000, -1px 0px 1px #000;
-}
-
-body.light .button.button-bookmark .count,
-body.light .button.button-like .count
-{
-    color: #555;
-    text-shadow: 0px 1px 1px #fff, 0px -1px 1px #fff, 1px 0px 1px #fff, -1px 0px 1px #fff;
 }
 
 /* Nudge the public heart icon up a bit to make room for the bookmark count. 
  * Only do this on the popup menu, not image-ui. */
-.popup-context-menu .button.button-bookmark.public > svg,
-.popup-context-menu .button.button-like > svg
+.popup-context-menu .button.button-bookmark.public > svg
 {
     margin-top: -10px;
+}
+.popup-context-menu .button.button-like > svg
+{
+    margin-top: -2px;
 }
 
 /* Bookmark buttons.  These appear in image_ui and the popup menu. */
@@ -1488,28 +1463,33 @@ svg.heart-image .delete {
     stroke: none;
 }
 
+.button.button-like > svg {
+    color: var(--like-button-color);
+    transition: transform ease-in-out .15s;
+    transform: translate(0, 0px);
+}
+
+.button.button-like.liked > svg
+{
+    color: var(--like-button-liked-color);
+}
+.button.button-like.enabled:not(.liked):hover > svg {
+    color: var(--like-button-hover-color);
+}
 
 .button.button-like.liked > svg,
 .button.button-like.enabled:not(.liked):hover > svg {
-    color: #fff !important;
+    transform: translate(0, -2px);
 }
+.button.button-like.liked > svg {
+    transform: translate(0, -3px);
+}
+
 .button.button-like > svg .mouth
 {
     transition: transform ease-in-out .15s;
-}
-.button.button-like > svg .mouth
-{
     transform: scale(1, .75);
 }
-
-.button.button-like > svg {
-    color: #888;
-}
-body.light .button.button-like.liked > svg,
-body.light .button.button-like.enabled:not(.liked):hover > svg {
-    color: #000 !important;
-}
-
 .button.button-like.enabled:not(.liked):hover > svg .mouth {
     transform: scale(1, .9);
 }
