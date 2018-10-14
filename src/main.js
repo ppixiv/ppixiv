@@ -256,8 +256,6 @@ class main_controller
         helpers.add_style('body.light .noise-background { background-image: url("' + binary_data['noise-light.png'] + '"); };');
         helpers.add_style('.ugoira-icon { background-image: url("' + binary_data['play-button.svg'] + '"); };');
         helpers.add_style('.page-icon { background-image: url("' + binary_data['page-icon.png'] + '"); };');
-        helpers.add_style('.refresh-icon:after { content: url("' + binary_data['refresh-icon.svg'] + '"); };');
-        helpers.add_style('.heart-icon:after { content: url("' + binary_data['heart-icon.svg'] + '"); };');
         
         // Add the main CSS style.
         helpers.add_style(resources['main.css']);

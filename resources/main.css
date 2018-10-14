@@ -138,9 +138,6 @@ textarea:focus, input:focus, a:focus {
     height: 2px;
 }
 @keyframes flash-progress-bar { to { opacity: 0; } }
-.refresh-icon {
-    cursor: pointer;
-}
 .progress-bar.hide {
     animation: flash-progress-bar 500ms linear 1 forwards;
 }
@@ -375,22 +372,6 @@ body:not(.hide-ui) .view-illust-container .ui-box.hovering-over-sphere {
 }
 .navigate-out-button {
     cursor: pointer;
-}
-
-@keyframes spin { to { transform: rotate(360deg); } }
-.refresh-icon {
-    animation: spin 1000ms linear infinite;
-    animation-play-state: paused;
-}
-
-/* The icon SVG is placed in this. */
-.refresh-icon:after {
-    display: block;
-    width: 20px;
-    height: 20px;
-}
-.refresh-icon.spin {
-    animation-play-state: running;
 }
 
 .thumbnail-settings-menu-box svg {
