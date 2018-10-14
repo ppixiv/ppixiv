@@ -687,7 +687,7 @@ class view_search extends view
 
             // Set the label.
             var label = element.querySelector(".thumbnail-label");
-            label.hidden = false;
+            // label.hidden = false;
             label.querySelector(".label").innerText = info.userName + ": " + info.title;
         }        
     }

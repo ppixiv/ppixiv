@@ -882,7 +882,15 @@ class bookmark_tag_list_widget extends illust_widget
     // Why can't setters be async?
     set visible(value) { this._set_tag_dropdown_visible(value); }
 
-    async _set_tag_dropdown_visible(value)
+    // Hide the dropdown without committing anything.  This happens if a bookmark
+    // button is pressed to remove a bookmark: if we just close the dropdown normally,
+    // we'd readd the bookmark.
+    hide_without_sync()
+    {
+        this._set_tag_dropdown_visible(false, true);
+    }
+
+    async _set_tag_dropdown_visible(value, skip_save)
     {
         if(this.container.hidden == !value)
             return;
@@ -893,16 +901,14 @@ class bookmark_tag_list_widget extends illust_widget
         {
             // We only load existing bookmark tags when the tag list is open, so refresh.
             await this.refresh();
-
-            // Remember which tags were selected when the dropdown was open, so we can tell if
-            // they've changed.
-            this.initially_selected_tags = this.selected_tags;
-            console.log("Initial tags:", this.selected_tags);
         }
         else
         {
-            // Save any selected tags when the dropdown is closed.
-            this.save_current_tags();
+            if(!skip_save)
+            {
+                // Save any selected tags when the dropdown is closed.
+                this.save_current_tags();
+            }
 
             // Clear the tag list when the menu closes, so it's clean on the next refresh.
             var bookmark_tags = this.container.querySelector(".tag-list");
@@ -984,8 +990,14 @@ class bookmark_tag_list_widget extends illust_widget
         if(this._illust_id == null)
             return;
 
-        var old_tags = this.initially_selected_tags;
+        // Read new_tags before going async, since our caller will clear the list.
         var new_tags = this.selected_tags;
+
+        // Get the tags currently on the bookmark to compare.
+        var illust_data = await image_data.singleton().get_image_info(this._illust_id);
+        await image_data.singleton().load_bookmark_details(illust_data);
+        var old_tags = illust_data.bookmarkData? illust_data.bookmarkData.tags:[];
+
         var equal = new_tags.length == old_tags.length;
         for(var tag of new_tags)
         {
@@ -1000,7 +1012,6 @@ class bookmark_tag_list_widget extends illust_widget
         console.log("Tag list closing and tags have changed");
         console.log("Old tags:", old_tags);
         console.log("New tags:", new_tags);
-        var illust_data = await image_data.singleton().get_image_info(this._illust_id);
         var is_bookmarked = illust_data.bookmarkData != null;
 
         await actions.bookmark_edit(illust_data, {
@@ -1169,9 +1180,10 @@ class bookmark_button_widget extends illust_widget
             if(this._illust_id != illust_data.illustId)
                 return;
             
-            // Hide the tag dropdown after unbookmarking.
+            // Hide the tag dropdown after unbookmarking, without saving any tags in the
+            // dropdown (that would readd the bookmark).
             if(this.bookmark_tag_widget)
-                this.bookmark_tag_widget.visible = false;
+                this.bookmark_tag_widget.hide_without_sync();
             
             return;
         }
@@ -1185,9 +1197,6 @@ class bookmark_button_widget extends illust_widget
         // If the current image changed while we were async, stop.
         if(this._illust_id != illust_data.illustId)
             return;
-
-        // Remember that these tags were saved.
-        this.initially_selected_tags = tag_list;        
     }
 }
 
