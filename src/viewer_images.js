@@ -9,7 +9,6 @@ class viewer_images extends viewer
         this.container = container;
         this.options = options || {};
         this.manga_page_bar = options.manga_page_bar;
-        this.img_onload = this.img_onload.bind(this);
         this.onkeydown = this.onkeydown.bind(this);
 
         this.blank_image = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
@@ -19,7 +18,6 @@ class viewer_images extends viewer
         // Create the image element.
         this.img = document.createElement("img");
         this.img.className = "filtering";
-        this.img.addEventListener("load", this.img_onload);
         container.appendChild(this.img);
 
         // Create a click and drag viewer for the image.
@@ -42,30 +40,6 @@ class viewer_images extends viewer
         }
 
         this.refresh();
-    }
-
-    img_onload(e)
-    {
-        this.call_image_finished_loading();
-    }
-
-    // For single-page illustrations, we have the image dimensions in illust_data.
-    // For manga pages we have to get it from the image.  This will be out of date
-    // during page loads, since there's no way to tell if naturalWidth/naturalHeight
-    // have been updated.
-    get current_image_width()
-    {
-        if(this.illust_data.illustType != 2 && this.illust_data.pageCount == 1)
-            return this.illust_data.width;
-        else
-            return this.img.naturalWidth > 0? this.img.naturalWidth:null;
-    }
-    get current_image_height()
-    {
-        if(this.illust_data.illustType != 2 && this.illust_data.pageCount == 1)
-            return this.illust_data.height;
-        else
-            return this.img.naturalHeight > 0? this.img.naturalHeight:null;
     }
 
     get current_image_type()
@@ -102,14 +76,6 @@ class viewer_images extends viewer
     {
         this.index = page;
         this.refresh();
-    }
-
-    call_image_finished_loading()
-    {
-        if(this.options.image_finished_loading == null)
-            return;
-
-        this.options.image_finished_loading(this.index, this.images.length, this.img.src);
     }
 
     refresh()

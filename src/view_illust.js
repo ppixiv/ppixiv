@@ -177,10 +177,11 @@ class view_illust extends view
         if(illust_id == this.current_illust_id && this.viewer != null)
         {
             console.log("Image ID not changed, setting page", this.wanted_illust_page);
+            this._hide_image = false;
             this.viewer.page = this.wanted_illust_page;
             if(this.manga_thumbnails)
                 this.manga_thumbnails.current_page_changed(manga_page);
-            this._hide_image = false;
+            this.refresh_ui();
 
             return;
         }
@@ -265,7 +266,6 @@ class view_illust extends view
         else
         {
             this.viewer = new viewer_images(image_container, illust_data, {
-                image_finished_loading: this.refresh_ui,
                 progress_bar: progress_bar,
                 manga_page_bar: this.manga_page_bar,
                 manga_page: manga_page,
@@ -369,8 +369,9 @@ class view_illust extends view
         
         // Tell the UI the image resolution.
         var page = this.viewer != null && this.viewer.page;
-        var width = this.viewer != null && this.viewer.current_image_width;
-        var height = this.viewer != null && this.viewer.current_image_height;
+        var page_info = this.viewer? this.current_illust_data.mangaPages[page]:null;
+        var width = page_info? page_info.width:null;
+        var height = page_info? page_info.height:null;
         this.ui.set_displayed_page_info(page, width, height);
 
         // Pull out info about the user and illustration.
