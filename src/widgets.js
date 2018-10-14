@@ -318,6 +318,7 @@ class tag_widget
             if(popup)
             {
                 a.classList.add("popup");
+                a.classList.add("popup-bottom");
                 a.dataset.popup = popup;
             }
 
