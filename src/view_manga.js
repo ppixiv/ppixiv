@@ -82,7 +82,6 @@ class view_manga extends view
 
         this.illust_id = illust_id;
         this.illust_info = null;
-        this.manga_info = null;
         this.ui.illust_id = illust_id;
 
         // Refresh even if illust_id is null, so we quickly clear the view.
@@ -103,18 +102,12 @@ class view_manga extends view
         
         console.log("Loading manga view for:", this.illust_id);
 
-        // Load both image and manga info in parallel.
-        var results = await Promise.all([
-            image_data.singleton().get_image_info(this.illust_id),
-            image_data.singleton().get_manga_info(this.illust_id),
-        ]);
-
-        var illust_info = results[0];
+        // Load image info.
+        var illust_info = await image_data.singleton().get_image_info(this.illust_id);
         if(illust_info.id != this.illust_id)
             return;
 
-        this.illust_info = results[0];
-        this.manga_info = results[1];
+        this.illust_info = illust_info;
 
         this.refresh_ui();
     }
@@ -139,11 +132,11 @@ class view_manga extends view
         var ul = this.container.querySelector("ul.thumbnails");
         helpers.remove_elements(ul);
 
-        if(this.manga_info == null)
+        if(this.illust_info == null)
             return;
 
         // Get the aspect ratio to crop images to.
-        var ratio = this.get_display_aspect_ratio(this.manga_info);
+        var ratio = this.get_display_aspect_ratio(this.illust_info.mangaPages);
 
         this.thumbnail_dimensions_style.textContent = helpers.make_thumbnail_sizing_style(ul, ".view-manga-container", {
             wide: true,
@@ -155,9 +148,9 @@ class view_manga extends view
             max_columns: 15,
         });
 
-        for(var page = 0; page < this.manga_info.length; ++page)
+        for(var page = 0; page < this.illust_info.mangaPages.length; ++page)
         {
-            var manga_page = this.manga_info[page];
+            var manga_page = this.illust_info.mangaPages[page];
             
             var entry = this.create_thumb(page, manga_page);
             var link = entry.querySelector(".thumbnail-link");

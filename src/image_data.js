@@ -15,11 +15,9 @@ class image_data
         // Cached data:
         this.image_data = { };
         this.user_data = { };
-        this.manga_info = { };
 
         this.illust_loads = {};
         this.user_info_loads = {};
-        this.manga_page_loads = {};
     };
 
     // Return the singleton, creating it if needed.
@@ -99,21 +97,21 @@ class image_data
         console.error("Fetching", illust_id);
 
         var user_info_promise = null;
+        var manga_promise = null;
         var ugoira_promise = null;
 
         // Given a user ID and/or an illust_type (or null if either isn't known yet), start any
         // fetches we can.
-        var start_loading = (user_id, illust_type) => {
+        var start_loading = (user_id, illust_type, page_count) => {
             // If we know the user ID and haven't started loading user info yet, start it.
             if(user_info_promise == null && user_id != null)
                 user_info_promise = this.get_user_info(user_id);
             
             // If we know the illust type and haven't started loading other data yet, start them.
+            if(page_count != null && page_count > 1 && manga_promise == null)
+                manga_promise = helpers.get_request("/ajax/illust/" + illust_id + "/pages", {});
             if(illust_type == 2 && ugoira_promise == null)
-            {
-                // If this is a video, load metadata and add it to the illust_data before we store it.
                 ugoira_promise = helpers.get_request("/ajax/illust/" + illust_id + "/ugoira_meta");
-            }
         };
 
         // If we have thumbnail info, it tells us the user ID.  This lets us start loading
@@ -121,7 +119,7 @@ class image_data
         // Don't fetch thumbnail info if it's not already loaded.
         var thumbnail_info = thumbnail_data.singleton().get_one_thumbnail_info(illust_id);
         if(thumbnail_info != null)
-            start_loading(thumbnail_info.userId, thumbnail_info.illustType);
+            start_loading(thumbnail_info.userId, thumbnail_info.illustType, thumbnail_info.pageCount);
     
         // If we don't have illust data, block while it loads.
         if(illust_data == null)
@@ -134,7 +132,7 @@ class image_data
         }
 
         // Now that we have illust data, load anything we weren't able to load before.
-        start_loading(illust_data.userId, illust_data.illustType);
+        start_loading(illust_data.userId, illust_data.illustType, illust_data.pageCount);
 
         // Store the results.
         illust_data.userInfo = await user_info_promise;
@@ -143,6 +141,12 @@ class image_data
         // start preloading it now.
         helpers.preload_images([illust_data.userInfo.imageBig]);
         
+        if(manga_promise != null)
+        {
+            var manga_info = await manga_promise;
+            illust_data.mangaPages = manga_info.body;
+        }
+
         if(ugoira_promise != null)
         {
             var ugoira_result = await ugoira_promise;
@@ -236,41 +240,6 @@ class image_data
         this.loaded_user_info({
             body: user_data,
         });
-    }
-
-    // The main illust info doesn't include links to each manga page.  (They really
-    // should.)  Fetch and reteurn manga page info for illust_id.
-    //
-    // This is separate from illust info rather than storing it in the illust info,
-    // so the two can be loaded in parallel.
-    get_manga_info(illust_id)
-    {
-        // If there's already a load in progress, just return it.
-        if(this.manga_page_loads[illust_id] != null)
-            return this.manga_page_loads[illust_id];
-
-        this.manga_page_loads[illust_id] = this.load_manga_info(illust_id);
-        this.manga_page_loads[illust_id].then(() => {
-            delete this.manga_page_loads[illust_id];
-        });
-        return this.manga_page_loads[illust_id];
-    }
-    
-    async load_manga_info(illust_id)
-    {
-        // If we already have the manga info for this illustration, we're done.
-        if(this.manga_info[illust_id] != null)
-            return this.manga_info[illust_id];
-
-        // We can say {full: 1} to get more profile info (webpage URL, twitter, etc.).
-        // That info isn't included in preloads, though, so it's not used for now to keep
-        // things consistent.
-        // console.log("Fetch manga", illust_id);
-        var result = await helpers.get_request("/ajax/illust/" + illust_id + "/pages", {});
-
-        // Store the result.
-        this.manga_info[illust_id] = result.body;
-        return this.manga_info[illust_id];
     }
 
     // Load bookmark tags and comments.
