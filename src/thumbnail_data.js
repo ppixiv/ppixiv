@@ -378,9 +378,6 @@ class thumbnail_data
     {
         var illust_id = thumb_info.id;
         this.thumbnail_data[illust_id] = thumb_info;
-
-        // Let image_data know about the user for this illust, to speed up fetches later.
-        image_data.singleton().set_user_id_for_illust_id(thumb_info.id, thumb_info.userId);
     }
 
     is_muted(thumb_info)

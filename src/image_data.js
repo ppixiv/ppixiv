@@ -7,7 +7,6 @@ class image_data
 {
     constructor()
     {
-        this.loaded_image_info = this.loaded_image_info.bind(this);
         this.loaded_user_info = this.loaded_user_info.bind(this);
 
         this.illust_modified_callbacks = new callback_list();
@@ -17,7 +16,6 @@ class image_data
         this.image_data = { };
         this.user_data = { };
         this.manga_info = { };
-        this.illust_id_to_user_id = {};
 
         this.illust_loads = {};
         this.user_info_loads = {};
@@ -68,12 +66,17 @@ class image_data
         if(this.illust_loads[illust_id] != null)
             return this.illust_loads[illust_id];
         
-        this.illust_loads[illust_id] = this.load_image_info(illust_id);
+        var load_promise = this.load_image_info(illust_id);
+        this._started_loading_image_info(illust_id, load_promise);
+        return load_promise;
+    }
+
+    _started_loading_image_info(illust_id, load_promise)
+    {
+        this.illust_loads[illust_id] = load_promise;
         this.illust_loads[illust_id].then(() => {
             delete this.illust_loads[illust_id];
         });
-        
-        return this.illust_loads[illust_id];
     }
     
     // Like get_image_info, but return the result immediately.
@@ -85,61 +88,64 @@ class image_data
     }
 
     // Load illust_id and all data that it depends on.
-    async load_image_info(illust_id)
+    //
+    // If we already have the image data (not necessarily the rest, like ugoira_metadata),
+    // it can be supplied with illust_data.
+    async load_image_info(illust_id, illust_data)
     {
-        // If we have the user ID cached, start loading it without waiting for the
-        // illustration data to finish loading first.  loaded_image_info will also
-        // do this, and it'll use the request we started here.
-        var cached_user_id = this.illust_id_to_user_id[illust_id];
-        if(cached_user_id != null)
-        {
-            console.log("Prefetching user ID", cached_user_id);
-            this.get_user_info(cached_user_id);
-        }
-
-        // console.log("Fetch illust", illust_id);
-
+        // We need the illust data, user data, and ugoira metadata (for illustType 2).  (We could
+        // load manga data too, but we currently let the manga view do that.)  We need to know the
+        // user ID and illust type to start those loads.
         console.error("Fetching", illust_id);
 
-        var result = await helpers.get_request("/ajax/illust/" + illust_id, {});
-        return await this.loaded_image_info(result);
-    }
+        var user_info_promise = null;
+        var ugoira_promise = null;
 
-    async loaded_image_info(illust_result)
-    {
-        if(illust_result == null || illust_result.error)
-            return;
+        // Given a user ID and/or an illust_type (or null if either isn't known yet), start any
+        // fetches we can.
+        var start_loading = (user_id, illust_type) => {
+            // If we know the user ID and haven't started loading user info yet, start it.
+            if(user_info_promise == null && user_id != null)
+                user_info_promise = this.get_user_info(user_id);
+            
+            // If we know the illust type and haven't started loading other data yet, start them.
+            if(illust_type == 2 && ugoira_promise == null)
+            {
+                // If this is a video, load metadata and add it to the illust_data before we store it.
+                ugoira_promise = helpers.get_request("/ajax/illust/" + illust_id + "/ugoira_meta");
+            }
+        };
 
-        var illust_data = illust_result.body;
-        var illust_id = illust_data.illustId;
-        // console.log("Got illust", illust_id);
-
-        var promises = [];
-        if(illust_data.illustType == 2)
+        // If we have thumbnail info, it tells us the user ID.  This lets us start loading
+        // user info without waiting for the illustration data to finish loading first.
+        // Don't fetch thumbnail info if it's not already loaded.
+        var thumbnail_info = thumbnail_data.singleton().get_one_thumbnail_info(illust_id);
+        if(thumbnail_info != null)
+            start_loading(thumbnail_info.userId, thumbnail_info.illustType);
+    
+        // If we don't have illust data, block while it loads.
+        if(illust_data == null)
         {
-            // If this is a video, load metadata and add it to the illust_data before we store it.
-            var ugoira_result = helpers.get_request("/ajax/illust/" + illust_id + "/ugoira_meta");
-            promises.push(ugoira_result);
+            var illust_result_promise = helpers.get_request("/ajax/illust/" + illust_id, {});
+            var illust_result = await illust_result_promise;
+            if(illust_result == null || illust_result.error)
+                return;
+            illust_data = illust_result.body;
         }
 
-        // Load user info for the illustration.
-        //
-        // Do this async rather than immediately, so if we're loading initial info with calls to
-        // add_illust_data and add_user_data, we'll give the caller a chance to finish and give us
-        // user info, rather than fetching it now when we won't need it.
-        var user_info = this.get_user_info(illust_data.userId);
-        promises.push(user_info);
-
-        // Wait for the user info and ugoira data to both complete.
-        await Promise.all(promises);
+        // Now that we have illust data, load anything we weren't able to load before.
+        start_loading(illust_data.userId, illust_data.illustType);
 
         // Store the results.
-        var user_info = await user_info;
-        illust_data.userInfo = user_info;
+        illust_data.userInfo = await user_info_promise;
 
-        if(illust_data.illustType == 2)
+        // If we're loading image info, we're almost definitely going to load the avatar, so
+        // start preloading it now.
+        helpers.preload_images([illust_data.userInfo.imageBig]);
+        
+        if(ugoira_promise != null)
         {
-            ugoira_result = await ugoira_result;
+            var ugoira_result = await ugoira_promise;
             illust_data.ugoiraMetadata = ugoira_result.body;
         }
 
@@ -221,11 +227,8 @@ class image_data
     // we have any fetches in the air already, we'll leave them running.
     add_illust_data(illust_data)
     {
-        // Call loaded_image_info directly, so we'll load video metadata, etc.
-        this.loaded_image_info({
-            error: false,
-            body: illust_data
-        });
+        var load_promise = this.load_image_info(illust_data.illustId, illust_data);
+        this._started_loading_image_info(illust_data.illustId, load_promise);
     }
 
     add_user_data(user_data)
@@ -233,18 +236,6 @@ class image_data
         this.loaded_user_info({
             body: user_data,
         });
-    }
-
-    // When we load an image, we load the user with it, and we get the user ID from
-    // the illustration data.  However, this is slow, since we have to wait for
-    // the illust request to finish before we know what user to load.
-    //
-    // In some cases we know from other sources what user we'll need (but where we
-    // don't want to load the user yet).  This can be called to cache that, so if
-    // an illust is loaded, we can start the user fetch in parallel.
-    set_user_id_for_illust_id(illust_id, user_id)
-    {
-        this.illust_id_to_user_id[illust_id] = user_id;
     }
 
     // The main illust info doesn't include links to each manga page.  (They really

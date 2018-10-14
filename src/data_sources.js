@@ -874,7 +874,6 @@ class data_source_rankings extends data_source
             var illust_id = "" + item.illust_id;
             var user_id = "" + item.user_id;
             illust_ids.push(illust_id);
-            image_data.singleton().set_user_id_for_illust_id(illust_id, user_id)
         }
 
         // Register this as thumbnail data.

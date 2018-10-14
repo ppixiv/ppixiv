@@ -928,10 +928,7 @@ class bookmark_tag_list_widget extends illust_widget
             this.visible = false;
 
         if(illust_data == null || !this.visible)
-        {
-            console.log("Not refreshing tag list");
             return;
-        }
 
         // Create a temporary entry to show loading while we load bookmark details.
         var entry = document.createElement("span");
