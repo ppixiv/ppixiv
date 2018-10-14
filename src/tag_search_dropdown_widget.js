@@ -36,6 +36,10 @@ class tag_search_dropdown_widget
 
         this.hide();
         this.populate_dropdown();
+
+        new view_hidden_listener(this.input_element, (e) => {
+            this.hide();
+        });
     }
 
     dropdown_onclick(e)
@@ -115,6 +119,9 @@ class tag_search_dropdown_widget
     hide()
     {
         this.tag_dropdown.hidden = true;
+
+        // Make sure the input isn't focused.
+        this.input_element.blur();
     }
 
     async run_autocomplete()

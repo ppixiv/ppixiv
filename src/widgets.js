@@ -161,7 +161,6 @@ class dropdown_menu_opener
         this.visible = false;
 
         this.button.addEventListener("click", (e) => { this.button_onclick(e); });
-        document.body.addEventListener("viewhidden", (e) => { this.onviewhidden(e); });
 
         // Hide popups when any containing view is hidden.
         new view_hidden_listener(this.button, (e) => {
