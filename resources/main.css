@@ -1463,38 +1463,40 @@ svg.heart-image .delete {
     stroke: none;
 }
 
+/* This is a pain due to transition bugs in Firefox.  It doesn't like having
+ * transition: transform on both an SVG and on individual paths inside the
+ * SVG and clips the image incorrectly during the animation.  Work around this
+ * by only placing transitions on the paths. */
 .button.button-like > svg {
     color: var(--like-button-color);
-    transition: transform ease-in-out .15s;
-    transform: translate(0, 0px);
 }
 
-.button.button-like.liked > svg
-{
+.button.button-like.liked > svg {
     color: var(--like-button-liked-color);
 }
-.button.button-like.enabled:not(.liked):hover > svg {
+.button.button-like.enabled:hover > svg {
     color: var(--like-button-hover-color);
 }
 
-.button.button-like.liked > svg,
-.button.button-like.enabled:not(.liked):hover > svg {
-    transform: translate(0, -2px);
-}
-.button.button-like.liked > svg {
-    transform: translate(0, -3px);
-}
-
-.button.button-like > svg .mouth
-{
+.button.button-like               > svg > * {
     transition: transform ease-in-out .15s;
+    transform: translate(0, 0px);
+}
+.button.button-like               > svg > .mouth {
     transform: scale(1, .75);
 }
-.button.button-like.enabled:not(.liked):hover > svg .mouth {
-    transform: scale(1, .9);
+
+.button.button-like.liked         > svg > * {
+    transform: translate(0, -3px);
 }
-.button.button-like.liked > svg .mouth {
-    transform: scale(1, 1.1) translate(0, 1px);
+.button.button-like.liked         > svg > .mouth {
+    transform: scale(1, 1.1) translate(0, -3px);
+}
+.button.button-like.enabled:hover > svg > * {
+    transform: translate(0, -2px);
+}
+.button.button-like.enabled:hover > svg > .mouth {
+    transform: scale(1, .9) translate(0, -3px);
 }
 .button-bookmark.public svg.heart-image .lock {
     display: none;
