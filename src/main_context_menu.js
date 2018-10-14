@@ -211,14 +211,6 @@ class main_context_menu extends popup_context_menu
         super.show(x, y);
     }
     
-    hide()
-    {
-        super.hide();
-
-        // Hide the tag dropdown when the menu closes.
-        this.bookmark_tag_widget.visible = false;
-    }
-
     // Update selection highlight for the context menu.
     refresh()
     {

@@ -665,6 +665,9 @@ class popup_context_menu
         if(this.displayed_menu == null)
             return;
 
+        // Let menus inside the context menu know we're closing.
+        view_hidden_listener.send_viewhidden(this.menu);
+        
         this.stop_preventing_context_menu_after_delay();
         
         this.displayed_menu.parentNode.removeChild(this.displayed_menu);
@@ -847,6 +850,11 @@ class bookmark_tag_list_widget extends illust_widget
             var bookmark_tags = await actions.load_recent_bookmark_tags();
             console.log("refreshed", bookmark_tags);
             helpers.set_recent_bookmark_tags(bookmark_tags);
+        });
+
+        // Close if our containing widget is closed.
+        new view_hidden_listener(this.container, (e) => {
+            this.visible = false;
         });
 
         image_data.singleton().illust_modified_callbacks.register(this.refresh.bind(this));
