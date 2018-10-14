@@ -739,12 +739,6 @@ li.thumbnail-box a.thumbnail-link {
 .view-search-container li.thumbnail-box .heart > svg {
     transition: opacity .5s;
 }
-.view-search-container li.thumbnail-box .heart[data-bookmark-type="public"] > svg {
-    fill: #f00; stroke: #000; stroke-width: .5px;
-}
-.view-search-container li.thumbnail-box .heart[data-bookmark-type="private"] > svg {
-    fill: #800; stroke: #fff;
-}
 
 .thumbnail-inner:hover .heart > svg {
     opacity: 0.5;
@@ -1435,17 +1429,23 @@ svg.heart-image .delete {
 
 /* These are !important to override the default white coloring in the context
  * menu. */
-.button.button-bookmark {
+.button-bookmark {
     color: #400 !important;
 }
-.button.button-bookmark.enabled {
+.button-bookmark.enabled {
     color: #800 !important;
     stroke: none;
 }
-.button.button-bookmark.bookmarked,
-.button.button-bookmark.enabled:hover {
+.button-bookmark.bookmarked,
+.button-bookmark.enabled:hover {
     color: #f00 !important;
     stroke: none;
+}
+/* Add a stroke around the heart on thumbnails for visibility.  Don't
+ * change the black lock. */
+.view-search-container .thumbnails .button-bookmark svg > .heart {
+    stroke: #000;
+    stroke-width: .5px;
 }
 
 /* This is a pain due to transition bugs in Firefox.  It doesn't like having

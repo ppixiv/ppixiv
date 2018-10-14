@@ -721,13 +721,12 @@ class view_search extends view
         if(this.data_source != null && !this.data_source.show_bookmark_icons)
             show_bookmark_heart = false;
         
-        thumbnail_element.querySelector(".heart").hidden = !show_bookmark_heart;
-        if(!show_bookmark_heart)
-            return;
-
         // Note that Pixiv returns wrong data for bookmarkType on a lot of pages, so
         // we'll often end up showing public for private bookmarks.
-        thumbnail_element.querySelector(".heart").dataset.bookmarkType = thumbnail_info.bookmarkData.private? "private":"public";
+        if(show_bookmark_heart)
+            console.log(thumbnail_info.bookmarkData.private);
+        thumbnail_element.querySelector(".heart.public").hidden = !show_bookmark_heart || thumbnail_info.bookmarkData.private;
+        thumbnail_element.querySelector(".heart.private").hidden = !show_bookmark_heart || !thumbnail_info.bookmarkData.private;
     }
 
     // Return a list of thumbnails that are either visible, or close to being visible
