@@ -22,7 +22,7 @@ class image_ui
         });
 
         // Set up hover popups.
-        helpers.setup_popups(this.container, [".image-settings-menu-box"]);
+        dropdown_menu_opener.create_handlers(this.container, [".image-settings-menu-box"]);
         
         image_data.singleton().illust_modified_callbacks.register(this.refresh);
         

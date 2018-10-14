@@ -3,7 +3,7 @@ class view_search extends view
 {
     constructor(container)
     {
-        super();
+        super(container);
         
         this.thumbs_loaded = this.thumbs_loaded.bind(this);
         this.data_source_updated = this.data_source_updated.bind(this);
@@ -16,7 +16,6 @@ class view_search extends view
         this.window_onresize = this.window_onresize.bind(this);
         this.update_from_settings = this.update_from_settings.bind(this);
 
-        this.container = container;
         this.active = false;
 
         window.addEventListener("thumbnailsLoaded", this.thumbs_loaded);
@@ -62,7 +61,7 @@ class view_search extends view
         this.container.querySelector(".search-tags-box .related-tag-list").addEventListener("scroll", function(e) { e.stopPropagation(); }, true);
 
         // Set up hover popups.
-        helpers.setup_popups(this.container, [".navigation-menu-box", ".thumbnail-settings-menu-box", ".ages-box", ".popularity-box", ".type-box", ".search-mode-box", ".size-box", ".aspect-ratio-box", ".bookmarks-box", ".time-box", ".member-tags-box", ".search-tags-box"]);
+        dropdown_menu_opener.create_handlers(this.container, [".navigation-menu-box", ".thumbnail-settings-menu-box", ".ages-box", ".popularity-box", ".type-box", ".search-mode-box", ".size-box", ".aspect-ratio-box", ".bookmarks-box", ".time-box", ".member-tags-box", ".search-tags-box"]);
 
         // Fill in the default value for the search page.  We don't do this in refresh_thumbnail_ui
         // since we don't want to clobber the user's edits later.  Only do this with the search box
@@ -326,6 +325,8 @@ class view_search extends view
 
     set active(active)
     {
+        super.active = active;
+        
         if(this.active == active)
             return;
 

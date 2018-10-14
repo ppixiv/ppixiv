@@ -6,13 +6,11 @@ class view_manga extends view
 {
     constructor(container)
     {
-        super();
+        super(container);
 
         this.refresh_ui = this.refresh_ui.bind(this);
         this.window_onresize = this.window_onresize.bind(this);
         this.refresh_images = this.refresh_images.bind(this);
-
-        this.container = container;
 
         window.addEventListener("resize", this.window_onresize);
 
@@ -41,6 +39,8 @@ class view_manga extends view
 
     set active(active)
     {
+        super.active = active;
+        
         if(this.active == active)
             return;
 

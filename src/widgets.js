@@ -115,6 +115,129 @@ class message_widget
     }
 }
 
+// Show popup menus when a button is clicked.
+class dropdown_menu_opener
+{
+    static create_handlers(container, selectors)
+    {
+        for(var selector of selectors)
+        {
+            var item = container.querySelector(selector);
+            if(item == null)
+            {
+                console.warn("Couldn't find", selector);
+                continue;
+            }
+            dropdown_menu_opener.create_handler(item);
+        }
+    }
+
+    // A shortcut for creating an opener for our common button/popup layout.
+    static create_handler(container)
+    {
+        var button = container.querySelector(".menu-button");
+        var box = container.querySelector(".popup-menu-box");
+        if(button == null)
+        {
+            console.error("Couldn't find menu button for " + container);
+            return;
+        }
+        if(box == null)
+        {
+            console.error("Couldn't find menu box for " + container);
+            return;
+        }
+        new dropdown_menu_opener(button, box);
+    }
+
+    constructor(button, box)
+    {
+        this.window_onmousedown = this.window_onmousedown.bind(this);
+        this.box_onclick = this.box_onclick.bind(this);
+
+        this.button = button;
+        this.box = box;
+
+        this.visible = false;
+
+        this.button.addEventListener("click", (e) => { this.button_onclick(e); });
+        document.body.addEventListener("viewhidden", (e) => { this.onviewhidden(e); });
+
+        // Hide popups when any containing view is hidden.
+        new view_hidden_listener(this.button, (e) => {
+            this.visible = false;
+        });
+    }
+
+    // The viewhidden event is sent when the enclosing view is no longer visible, and
+    // all menus in it should be hidden.
+    onviewhidden(e)
+    {
+        this.visible = false;
+    }
+
+    get visible()
+    {
+        return !this.box.hidden;
+    }
+
+    set visible(value)
+    {
+        if(this.box.hidden == !value)
+            return;
+
+        this.box.hidden = !value;
+        helpers.set_class(this.box, "popup-visible", value);
+
+        if(value)
+        {
+            window.addEventListener("mousedown", this.window_onmousedown, true);
+            if(this.close_on_click_inside)
+                this.box.addEventListener("click", this.box_onclick, true);
+        }
+        else
+        {
+            window.removeEventListener("mousedown", this.window_onmousedown, true);
+            this.box.removeEventListener("click", this.box_onclick, true);
+        }
+    }
+
+    // Return true if this popup should close when clicking inside it.  If false,
+    // the menu will stay open until something else closes it.
+    get close_on_click_inside()
+    {
+        return true;
+    }
+
+    box_onclick(e)
+    {
+        if(e.target.closest(".keep-menu-open"))
+            return;
+
+        this.visible = false;
+    }
+
+    window_onmousedown(e)
+    {
+        // Close the popup if anything outside the dropdown is clicked.  Don't
+        // prevent the click event, so the click still happens.
+        //
+        // If this is a click inside the box or our button, ignore it.
+        if(helpers.is_above(this.button, e.target) || helpers.is_above(this.box, e.target))
+            return;
+
+        this.visible = false;
+    }
+
+    // Toggle the popup when the button is clicked.
+    button_onclick(e)
+    {
+        e.preventDefault();
+        e.stopPropagation();
+        this.visible = !this.visible;
+    }
+};
+
 class avatar_widget
 {
     // options:

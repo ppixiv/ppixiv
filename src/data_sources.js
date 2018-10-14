@@ -1178,7 +1178,7 @@ class data_source_artist extends data_source
 
         // While we're active, watch for the tags box to open.  We only poopulate the tags
         // dropdown if it's opened, so we don't load user tags for every user page.
-        var popup = document.body.querySelector(".member-tags-box");
+        var popup = document.body.querySelector(".member-tags-box > .popup-menu-box");
         this.src_observer = new MutationObserver((mutation_list) => {
             if(popup.classList.contains("popup-visible"))
                 this.tag_list_opened();

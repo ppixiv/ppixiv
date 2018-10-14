@@ -3,7 +3,7 @@ class view_illust extends view
 {
     constructor(container)
     {
-        super();
+        super(container);
         
         if(debug_show_ui) document.body.classList.add("force-ui");
 
@@ -23,10 +23,14 @@ class view_illust extends view
         
         var hover_circle = this.container.querySelector(".ui .hover-circle");
         var ui_box = this.container.querySelector(".ui-box");
+
         var ui_visibility_changed = () => {
             // Hide the dropdown tag widget when the hover UI is hidden.
             if(!ui_box.classList.contains("hovering-over-box") && !ui_box.classList.contains("hovering-over-sphere"))
-                this.ui.bookmark_tag_widget.visible = false;
+            {
+                this.ui.bookmark_tag_widget.visible = false; // XXX remove
+                view_hidden_listener.send_viewhidden(ui_box);
+            }
         };
         ui_box.addEventListener("mouseenter", (e) => { helpers.set_class(ui_box, "hovering-over-box", true); ui_visibility_changed(); });
         ui_box.addEventListener("mouseleave", (e) => { helpers.set_class(ui_box, "hovering-over-box", false); ui_visibility_changed(); });
@@ -322,6 +326,8 @@ class view_illust extends view
 
     set active(active)
     {
+        super.active = active;
+
         if(this._active == active)
             return;
 

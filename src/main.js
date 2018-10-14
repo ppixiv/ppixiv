@@ -215,7 +215,7 @@ class main_controller
 
         console.log("Starting");
 
-        window.addEventListener("click", this.window_onclick_capture, true);
+        window.addEventListener("click", this.window_onclick_capture);
         window.addEventListener("popstate", this.window_onpopstate);
 
         window.addEventListener("keyup", this.redirect_event_to_view, true);
@@ -605,11 +605,6 @@ class main_controller
         // Stop all handling for this link.
         e.preventDefault();
         e.stopImmediatePropagation();
-
-        // If this is a click inside a popup menu, close the menu before navigating.
-        var open_popup = e.target.closest(".popup-visible");
-        if(open_popup != null)
-            open_popup.classList.remove("popup-visible");
 
         // Search links to images always go to the member_illust page, but if they're
         // clicked in-page we want to stay on the same search and just show the image,

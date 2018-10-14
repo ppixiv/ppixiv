@@ -1470,4 +1470,48 @@ class callback_list
     }
 }
 
+// Listen to viewhidden on element and each of element's parents.
+//
+// When a view is hidden (eg. a top-level view or a UI popup), we send
+// viewhidden to it so dropdowns, etc. inside it can close.
+class view_hidden_listener
+{
+    static send_viewhidden(element)
+    {
+        var event = new Event("viewhidden", {
+            bubbles: false
+        });
+        element.dispatchEvent(event);
+    }
+
+    constructor(element, callback)
+    {
+        this.onviewhidden = this.onviewhidden.bind(this);
+        this.callback = callback;
+
+        // There's no way to listen on events on any parent, so we have to add listeners
+        // to each parent in the tree.
+        this.listening_on_elements = [];
+        while(element != null)
+        {
+            this.listening_on_elements.push(element);
+            element.addEventListener("viewhidden", this.onviewhidden);
+
+            element = element.parentNode;
+        }
+    }
+
+    // Remove listeners.
+    shutdown()
+    {
+        for(var element of this.listening_on_elements)
+            element.removeEventListener("viewhidden", this.onviewhidden);
+        this.listening_on_elements = [];
+    }
+
+    onviewhidden(e)
+    {
+        this.callback(e);
+    }
+};
 

@@ -1,6 +1,11 @@
 // The base class for our main views.
 class view
 {
+    constructor(container)
+    {
+        this.container = container;
+    }
+
     // Handle a key input.  This is only called while the view is active.
     handle_onkeydown(e)
     {
@@ -23,5 +28,12 @@ class view
     scroll_to_top() { }
     restore_scroll_position() { }
     scroll_to_illust_id(illust_id, manga_page) { }
+
+    set active(active)
+    {
+        // When the view isn't active, send viewhidden to close all popup menus inside it.
+        if(!active)
+            view_hidden_listener.send_viewhidden(this.container);
+    }
 }
 
