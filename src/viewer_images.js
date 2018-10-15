@@ -15,13 +15,8 @@ class viewer_images extends viewer
 
         this.index = options.manga_page || 0;
 
-        // Create the image element.
-        this.img = document.createElement("img");
-        this.img.className = "filtering";
-        container.appendChild(this.img);
-
         // Create a click and drag viewer for the image.
-        this.viewer = new on_click_viewer(this.img);
+        this.viewer = new on_click_viewer();
 
         main_context_menu.get.on_click_viewer = this.viewer;
 
@@ -84,8 +79,9 @@ class viewer_images extends viewer
         if(this.viewer && this.img && this.img.src == current_image.url)
             return;
 
-        this.img.src = current_image.url;
-
+        // Create the new image and pass it to the viewer.
+        this._create_image(current_image.url, current_image.width, current_image.height);
+        
         // Decode the next and previous image.  This reduces flicker when changing pages
         // since the image will already be decoded.
         if(this.index > 0)
@@ -101,6 +97,22 @@ class viewer_images extends viewer
             else
                 this.manga_page_bar.set((this.index+1) / this.images.length);
         }
+    }
+
+    _create_image(url, width, height)
+    {
+        if(this.img)
+        {
+            this.img.remove();
+            this.img = null;
+        }
+
+        this.img = document.createElement("img");
+        this.img.src = url;
+        this.img.className = "filtering";
+
+        this.container.appendChild(this.img);
+        this.viewer.set_new_image(this.img, width, height);
     }
 
     onkeydown(e)

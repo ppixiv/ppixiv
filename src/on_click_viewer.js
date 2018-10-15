@@ -5,7 +5,7 @@
 // more usable than doing things like zooming based on the native resolution.
 class on_click_viewer
 {
-    constructor(img)
+    constructor()
     {
         this.onresize = this.onresize.bind(this);
         this.pointerdown = this.pointerdown.catch_bind(this);
@@ -17,32 +17,12 @@ class on_click_viewer
         this._zoom_levels = [null, 2, 4, 8, 1];
         this._relative_zoom_level = 0;
 
-        // Observe changes to img.src.
-        this.src_observer = new MutationObserver(function(mutation_list) {
-            for(var mutation of mutation_list) {
-                if(mutation.attributeName == "src")
-                {
-                    console.log("observer calling image_changed");
-                    this.image_changed();
-                    break;
-                }
-            }
-        }.bind(this));
-
-        this.src_observer.observe(img, { attributes: true });
-        
         // The caller can set this to a function to be called if the user clicks the image without
         // dragging.
         this.clicked_without_scrolling = null;
 
         this.width = 1;
         this.height = 1;
-
-        this.img = img;
-        this.img.style.width = "auto";
-        this.img.style.height = "100%";
-
-        this.enable();
 
         this.zoom_pos = [0.5, 0];
         this._zoom_level = helpers.get_value("zoom-level", 1);
@@ -52,68 +32,35 @@ class on_click_viewer
         this._relative_zoom_level = helpers.get_value("zoom-level-relative") || 0;
     }
 
-    // The current manga page has changed.
-    //
-    // This isn't called when switching from one full illustration to another, since a new
-    // on_click_viewer will be created instead.
-    image_changed()
+    set_new_image(img, width, height)
     {
-        if(this.watch_for_size_available)
+        if(this.img != null)
         {
-            clearInterval(this.watch_for_size_available);
-            this.watch_for_size_available = null;
+            // Don't call this.disable, so we don't exit zoom.
+            this._remove_events();
+            this.img.remove();
         }
 
-        // Hide the image until we have the size, so it doesn't flicker for one frame in the
-        // wrong place.
-        this.img.style.display = "none";
+        this.img = img;
+        this.width = width;
+        this.height = height;
 
-        // We need to know the new natural size of the image, but in a huge web API oversight,
-        // there's no event for that.  We don't want to wait for onload, since we want to know
-        // as soon as it's changed, so we'll set a timer and check periodically until we see
-        // a change.
-        //
-        // However, if we're changing from one image to another, there's no way to know when
-        // naturalWidth is updated.  Work around this by loading the image in a second img and
-        // watching that instead.  The browser will still only load the image once.
-        var dummy_img = document.createElement("img");
-        dummy_img.src = this.img.src;
+        if(this.img == null)
+            return;
 
-        var image_ready = function() {
-            if(dummy_img.naturalWidth == 0)
-                return;
-            // Store the size.  We can't use the values on this.img, since Firefox sometimes updates
-            // them at different times.  (That seems like a bug, since browsers are never supposed to
-            // expose internal race conditions to scripts.)
-            this.width = dummy_img.naturalWidth;
-            this.height = dummy_img.naturalHeight;
+        this._add_events();
 
-            // If we've never set an image position, do it now.
-            if(!this.set_initial_image_position)
-            {
-                this.set_initial_image_position = true;
-                this.set_image_position(
-                        this.img.parentNode.offsetWidth / 2,
-                        0,
-                        [0.5, 0]);
-            }
+        // If we've never set an image position, do it now.
+        if(!this.set_initial_image_position)
+        {
+            this.set_initial_image_position = true;
+            this.set_image_position(
+                    this.img.parentNode.offsetWidth / 2,
+                    0,
+                    [0.5, 0]);
+        }
 
-
-            if(this.watch_for_size_available)
-                clearInterval(this.watch_for_size_available);
-            this.watch_for_size_available = null;
-
-            this.reposition();
-
-            this.img.style.display = "block";
-        }.bind(this);
-
-        // If the image is already loaded out of cache, it's ready now.  Checking this now
-        // reduces flicker between images.
-        if(dummy_img.naturalWidth != 0)
-            image_ready();
-        else
-            this.watch_for_size_available = setInterval(image_ready, 10);
+        this.reposition();
     }
 
     block_event(e)
@@ -122,6 +69,11 @@ class on_click_viewer
     }
 
     enable()
+    {
+        this._add_events();
+    }
+
+    _add_events()
     {
         var target = this.img.parentNode;
         this.event_target = target;
@@ -136,24 +88,8 @@ class on_click_viewer
         target.style.MozUserSelect = "none";
     }
 
-    disable()
+    _remove_events()
     {
-        if(this.img.parentNode == null)
-        {
-            console.log("Viewer already disabled");
-            return;
-        }
-
-        this.stop_dragging();
-
-        this.img.parentNode.removeChild(this.img);
-
-        if(this.watch_for_size_available)
-        {
-            clearInterval(this.watch_for_size_available);
-            this.watch_for_size_available = null;
-        }
-
         if(this.event_target)
         {
             var target = this.event_target;
@@ -168,6 +104,12 @@ class on_click_viewer
 
         window.removeEventListener("blur", this.window_blur);
         window.removeEventListener("resize", this.onresize, true);
+    }
+
+    disable()
+    {
+        this.stop_dragging();
+        this._remove_events();
     }
 
     onresize(e)
@@ -454,6 +396,9 @@ class on_click_viewer
 
     reposition()
     {
+        if(this.img == null)
+            return;
+
         // Stop if we're being called after being disabled.
         if(this.img.parentNode == null)
             return;
