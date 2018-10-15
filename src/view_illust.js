@@ -170,8 +170,9 @@ class view_illust extends view
             helpers.set_args(args, false /* add_to_history */);
         }
 
-        // If true, this is the first image we're displaying.
-        var first_image_displayed = this.current_illust_id == -1;
+        // This is the first image we're displaying if we previously had no illust ID, or
+        // if we were hidden.
+        var first_image_displayed = this.current_illust_id == -1 || this._hide_image;
 
         // If the illust ID isn't changing, just update the viewed page.
         if(illust_id == this.current_illust_id && this.viewer != null)
