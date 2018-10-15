@@ -54,6 +54,11 @@ class tag_search_dropdown_widget
             helpers.remove_recent_search_tag(tag);
             return;
         }
+
+        // Close the dropdown if the user clicks a tag (but not when clicking
+        // remove-history-entry).
+        if(e.target.closest(".tag"))
+            this.hide();
     }
 
     // Show the dropdown when the input is focused.  Hide it when the input is both

@@ -391,7 +391,7 @@ class main_controller
 
         this.context_menu.illust_id = illust_id;
         
-        // If we're changing between the image and thumbnail view, update the active view.
+        // If we're changing between views, update the active view.
         var view_changing = new_view != old_view;
         if(view_changing)
         {
