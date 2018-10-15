@@ -358,24 +358,11 @@ body:not(.hide-ui) .view-illust-container .ui-box.hovering-over-sphere {
 .icon-button > svg {
     display: block;
 }
-.disable-ui-button > .icon-button {
-    /* The .pixiv-icon class on this element sets the background. */
-    padding: 3px; /* center the 26px icon */
-    margin: 0 4px;
-    cursor: pointer;
-}
 .disable-ui-button:hover > .icon-button {
     color: #0096FA;
 }
-.thumbnail-settings-menu-box > .icon-button {
-    padding: 0 4px; /* center the 24px icon */
-}
 .navigate-out-button {
     cursor: pointer;
-}
-
-.thumbnail-settings-menu-box svg {
-    margin: 0 .5em;
 }
 
 .popup-menu-box .menu-toggle {
