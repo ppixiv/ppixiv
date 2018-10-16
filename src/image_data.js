@@ -52,6 +52,9 @@ class image_data
     // it as image_data.ugoiraMetadata.
     get_image_info(illust_id)
     {
+        if(illust_id == null)
+            return null;
+
         // If we already have the image data, just return it.
         if(this.image_data[illust_id] != null && this.image_data[illust_id].userInfo)
         {
@@ -197,6 +200,9 @@ class image_data
 
     _get_user_info(user_id, load_full_data)
     {
+        if(user_id == null)
+            return null;
+
         // If we already have the user info for this illustration (and it's full data, if
         // requested), we're done.
         if(this.user_data[user_id] != null)
