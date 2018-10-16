@@ -68,6 +68,12 @@ class view_manga extends view
 
         if(active)
             this.load_illust_id();
+        else
+        {
+            // Clear the image list so it doesn't flash on screen later.
+            var ul = this.container.querySelector("ul.thumbnails");
+            helpers.remove_elements(ul);
+        }
     }
 
     get active()
