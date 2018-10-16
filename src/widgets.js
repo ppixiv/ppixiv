@@ -297,6 +297,12 @@ class avatar_widget
     set_from_user_data(user_data)
     {
         this.user_data = user_data;
+        if(this.user_data == null)
+        {
+            this.root.hidden = true;
+            return;
+        }
+        this.root.hidden = false;
 
         var is_us = user_data.userId == global_data.user_id;
         this.root.hidden = is_us;
@@ -307,6 +313,7 @@ class avatar_widget
         helpers.set_class(this.root, "followed", this.user_data.isFollowed);
 
         this.root.querySelector(".avatar-link").href = "/member_illust.php?id=" + user_data.userId + "#ppixiv";
+        this.root.querySelector(".avatar").dataset.popup = "View " + user_data.name + "'s posts";
 
         // If we don't have an image because we're loaded from a source that doesn't give us them,
         // just hide the avatar image.

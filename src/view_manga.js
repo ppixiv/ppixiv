@@ -59,6 +59,9 @@ class view_manga extends view
 
             // Hide the dropdown tag widget.
             this.ui.bookmark_tag_widget.visible = false;
+
+            // Stop showing the user in the context menu.
+            main_context_menu.get.user_info = null;
         }
 
         this.container.hidden = !active;
@@ -121,8 +124,14 @@ class view_manga extends view
     
     refresh_ui()
     {
-        helpers.set_title_and_icon(this.illust_info);
+        if(!this._active)
+            return;
         
+        helpers.set_title_and_icon(this.illust_info);
+
+        // Tell the context menu which user is being viewed.
+        main_context_menu.get.user_info = this.illust_info.userInfo;
+
         this.refresh_images();
     }
 

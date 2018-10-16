@@ -26,7 +26,7 @@ class main_context_menu extends popup_context_menu
         this.onwheel = this.onwheel.bind(this);
         this.onkeydown = this.onkeydown.bind(this);
 
-        this.on_click_viewer = null;
+        this._on_click_viewer = null;
 
         // Refresh the menu when the view changes.
         this.mode_observer = new MutationObserver(function(mutationsList, observer) {
@@ -43,8 +43,6 @@ class main_context_menu extends popup_context_menu
             attributes: true, childList: false, subtree: false
         });
 
-        this.refresh();
-
         this.menu.querySelector(".button-return-to-search").addEventListener("click", this.clicked_return_to_search.bind(this));
         this.menu.querySelector(".button-fullscreen").addEventListener("click", this.clicked_fullscreen.bind(this));
         this.menu.querySelector(".button-zoom").addEventListener("click", this.clicked_zoom_toggle.bind(this));
@@ -58,12 +56,19 @@ class main_context_menu extends popup_context_menu
         this.toggle_tag_widget = new toggle_bookmark_tag_list_widget(this.menu.querySelector(".button-bookmark-tags"), this.bookmark_tag_widget);
         this.like_button = new like_button_widget(this.menu.querySelector(".button-like"));
 
+        this.avatar_widget = new avatar_widget({
+            parent: this.menu.querySelector(".avatar-widget-container"),
+            mode: "overlay",
+        });
+
         // The bookmark buttons, and clicks in the tag dropdown:
         this.bookmark_buttons = [];
         for(var a of this.menu.querySelectorAll(".button-bookmark"))
             this.bookmark_buttons.push(new bookmark_button_widget(a, a.classList.contains("private"), this.bookmark_tag_widget));
 
         this.element_bookmark_tag_list = this.menu.querySelector(".bookmark-tag-list");
+
+        this.refresh();
     }
 
     set illust_id(value)
@@ -86,6 +91,7 @@ class main_context_menu extends popup_context_menu
         super.shutdown();
     }
 
+    // Set the current viewer, or null if none.  If set, we'll activate zoom controls.
     get on_click_viewer()
     {
         return this._on_click_viewer;
@@ -93,6 +99,21 @@ class main_context_menu extends popup_context_menu
     set on_click_viewer(viewer)
     {
         this._on_click_viewer = viewer;
+        this.refresh();
+    }
+
+    // Set the related user currently being viewed, or null if none.
+    get user_info()
+    {
+        return this._user_info;
+    }
+    set user_info(user_info)
+    {
+        if(this._user_info == user_info)
+            return;
+        this._user_info = user_info;
+
+        console.log(this.user_info);
         this.refresh();
     }
 
@@ -226,6 +247,9 @@ class main_context_menu extends popup_context_menu
         // Enable the zoom buttons if we're in the image view and we have an on_click_viewer.
         for(var element of this.menu.querySelectorAll(".zoom-strip .button"))
             helpers.set_class(element, "enabled", this._is_zoom_ui_enabled);
+
+        // Set the avatar button.
+        this.avatar_widget.set_from_user_data(this._user_info);
 
         if(this._is_zoom_ui_enabled)
         {

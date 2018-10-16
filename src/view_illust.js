@@ -346,6 +346,9 @@ class view_illust extends view
             // won't show the previous image while the new one's data loads.
             if(this.viewer != null)
                 this._hide_image = true;
+
+            // Stop showing the user in the context menu.
+            main_context_menu.get.user_info = null;
             
             return;
         }
@@ -372,10 +375,13 @@ class view_illust extends view
         
         // Tell the UI the image resolution.
         var page = this.viewer != null && this.viewer.page;
-        var page_info = this.viewer? this.current_illust_data.mangaPages[page]:null;
+        var page_info = this.current_illust_data? this.current_illust_data.mangaPages[page]:null;
         var width = page_info? page_info.width:null;
         var height = page_info? page_info.height:null;
         this.ui.set_displayed_page_info(page, width, height);
+
+        // Tell the context menu which user is being viewed.
+        main_context_menu.get.user_info = this.current_illust_data? this.current_illust_data.userInfo:null;
 
         // Pull out info about the user and illustration.
         var illust_id = this.current_illust_id;

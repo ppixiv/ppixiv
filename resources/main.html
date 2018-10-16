@@ -521,7 +521,8 @@
         <template class="template-avatar">
             <div class="follow-container">
                 <a href=# class=avatar-link style="position: relative;">
-                    <img class=avatar alt="" style="margin-left: auto; display: block;">
+                    <img class="avatar popup popup-bottom">
+
                     <!-- We either show the following icon if we're already following (which acts as the unfollow
                          button), or the public and private follow buttons.  The follow button is only shown on hover. -->
                     <div class="follow-icon follow-button public bottom-left popup popup-bottom" data-popup="Follow publically">
@@ -536,12 +537,6 @@
                 </a>
                 <div class="popup-menu-box hover-menu-box follow-popup">
                     <div class=hover-area></div>
-                    <div class=following>
-
-                        <div class="button unfollow-button">
-                            Unfollow
-                        </div>
-                    </div>
                     <div class=not-following>
                         <div class="button follow-button public">
                             Follow
@@ -694,6 +689,10 @@
  
                             <div class=count></div>
                         </div>
+                    </div>
+
+                    <div class=button-block>
+                        <div class="avatar-widget-container"></div>
                     </div>
                 </div>
                                

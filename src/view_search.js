@@ -248,10 +248,10 @@ class view_search extends view
         // Set the regular icon.  The data source might change it to something else.
         helpers.set_page_icon(binary_data['regular_pixiv_icon.png']);
         
-        this.refresh_ui_for_user_id();
-
         var ui_box = this.container.querySelector(".thumbnail-ui-box");
         this.data_source.refresh_thumbnail_ui(ui_box, this);
+
+        this.refresh_ui_for_user_id();
     };
 
     // Return the user ID we're viewing, or null if we're not viewing anything specific to a user.
@@ -310,13 +310,17 @@ class view_search extends view
         contact_link.hidden = user_info == null;
         if(user_info != null)
             contact_link.href = "/messages.php?receiver_id=" + user_info.userId;
+
+        // Tell the context menu which user is being viewed (if we're viewing a user-specific
+        // search).
+        main_context_menu.get.user_info = user_info;
     }
 
     set active(active)
     {
         super.active = active;
         
-        if(this.active == active)
+        if(this._active == active)
             return;
 
         this._active = active;
@@ -341,6 +345,8 @@ class view_search extends view
         else
         {
             this.stop_pulsing_thumbnail();
+
+            main_context_menu.get.user_info = null;
         }
     }
 

@@ -384,10 +384,21 @@ body:not(.hide-ui) .view-illust-container .ui-box.hovering-over-sphere {
 .follow-container .avatar {
     border-radius: 5px;
     object-fit: cover;
+    transition: filter .25s;
+    display: block;
+}
+.follow-container .avatar:hover {
+    filter: brightness(120%);
 }
 .follow-container:not(.big) .avatar {
     width: 50px;
     height: 50px;
+}
+/* For the avatar in the popup menu, use the same size as the other popup menu buttons. */
+
+.avatar-widget-container .follow-container .avatar {
+    width: 44px;
+    height: 44px;
 }
 .follow-container.big .avatar {
     width: 170px;
@@ -428,12 +439,13 @@ body:not(.hide-ui) .view-illust-container .ui-box.hovering-over-sphere {
 
 .follow-container .follow-icon {
     position: absolute;
-    bottom: -7px;
+    bottom: 0;
     text-align: center;
     height: auto;
 }
-.follow-container:not(.big) .follow-icon {
-    width: 25px; /* half the size of the container */
+.follow-container .follow-icon {
+    width: 50%; /* half the size of the container */
+    max-width: 50px; /* limit the size for larger avatar displays */
 }
 
 .follow-container .follow-icon.bottom-left {
@@ -445,13 +457,21 @@ body:not(.hide-ui) .view-illust-container .ui-box.hovering-over-sphere {
 
 .follow-container .follow-icon > svg {
     display: block;
+    width: 100%;
     height: auto;
+    transition: opacity .25s;
+
+    /* Move the icon down, so the bottom of the eye is along the bottom of the
+     * container and the lock (if visible) overlaps. */
+    margin-bottom: -20%;
 }
-.follow-container.big .follow-icon > svg {
-    width: 52px;
+.follow-container:not(:hover) .follow-icon > svg {
+    opacity: 0.5;
 }
-.follow-container:not(.big) .follow-icon > svg {
-    width: 28px;
+/* Don't fade the icons in the context menu, since it's too small and it makes
+ * it too hard to see at a glance. */
+.popup-context-menu .follow-container .follow-icon > svg {
+    opacity: 1;
 }
 
 .follow-popup {
@@ -470,6 +490,11 @@ body:not(.hide-ui) .view-illust-container .ui-box.hovering-over-sphere {
 
 .follow-container.followed .follow-popup .not-following { display: none; }
 .follow-container:not(.followed) .follow-popup .following { display: none; }
+
+/* Hide the follow dropdown when following, since there's nothing in it. */
+.follow-container.followed.popup-visible .popup-menu-box.hover-menu-box {
+    visibility: hidden;
+}
 
 .title-block {
     display: inline-block;
@@ -533,6 +558,7 @@ body.light .description {
 .popup {
     position: relative;
 }
+
 .popup:hover:after {
     pointer-events: none;
     background: #111;
@@ -1287,6 +1313,11 @@ body.light .manga-thumbnail-arrow:hover > svg
     -moz-user-select: none;
 }
 
+/* Hide the normal tooltips.  The context menu shows them differently. */
+.popup-context-menu .popup:hover:after {
+    display: none;
+}
+
 .popup-context-menu .tooltip-display {
     display: flex;
     align-items: stretch;
@@ -1323,7 +1354,7 @@ body.light .manga-thumbnail-arrow:hover > svg
 
 .popup-context-menu .button-strip .button {
     border-radius: 4px;
-    padding: 6px 8px;
+    padding: 6px;
     height: 100%;
     text-align: center;
     cursor: pointer;
