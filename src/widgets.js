@@ -291,11 +291,17 @@ class avatar_widget
     {
         if(this.user_data == null || this.user_data.userId != user_id)
             return;
+
         this.set_from_user_data(this.user_data);
     }
 
     set_from_user_data(user_data)
     {
+        // Clear the previous image.  Do this even if we're going to set it below, so we show
+        // black while loading a new image rather than showing the previous image.
+        var element_author_avatar = this.root.querySelector("img.avatar");
+        element_author_avatar.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII";
+
         this.user_data = user_data;
         if(this.user_data == null)
         {
@@ -317,7 +323,6 @@ class avatar_widget
 
         // If we don't have an image because we're loaded from a source that doesn't give us them,
         // just hide the avatar image.
-        var element_author_avatar = this.root.querySelector(".avatar");
         var key = "imageBig";
         if(user_data[key])
             element_author_avatar.src = user_data[key];
@@ -554,7 +559,7 @@ class popup_context_menu
         e.preventDefault();
         e.stopPropagation();
 
-        this.show(e.pageX, e.pageY);
+        this.show(e.pageX, e.pageY, e.target);
     }
 
     // Releasing the left or right mouse button hides the menu if both the left
@@ -581,7 +586,7 @@ class popup_context_menu
     {
         return this.displayed_menu != null;
     }
-    show(x, y)
+    show(x, y, target)
     {
         this.menu.hidden = false;
 

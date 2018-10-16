@@ -222,14 +222,52 @@ class main_context_menu extends popup_context_menu
         this.refresh();
     }
 
-    show(x, y)
+    show(x, y, target)
     {
         // If RMB is pressed while dragging LMB, stop dragging the window when we
         // show the popup.
         if(this.on_click_viewer != null)
             this.on_click_viewer.stop_dragging();
 
-        super.show(x, y);
+        // See if an element representing a user was under the cursor.
+        if(target != null)
+        {
+            var user_target = target.closest("[data-user-id]");
+            if(user_target != null)
+            {
+                this._set_temporary_user(user_target.dataset.userId);
+            }
+        }
+        super.show(x, y, target);
+    }
+
+    async _set_temporary_user(user_id)
+    {
+        // Clear the avatar widget while we load user info, so we don't show the previous
+        // user's avatar while the new avatar loads.
+        this.avatar_widget.set_from_user_data(null);
+        
+        // If this object is null or changed, we know we've been hidden since we
+        // started this request.
+        var show_sentinel = this.show_sentinel = new Object();
+
+        // Read user info to see if we're following the user.
+        var user_info = await image_data.singleton().get_user_info(user_id);
+
+        // If the popup was closed while we were waiting, ignore the results.
+        if(show_sentinel != this.show_sentinel)
+            return;
+        this.show_sentinel = null;
+
+        this._clicked_user_info = user_info;
+        this.refresh();
+    }
+
+    hide()
+    {
+        this.show_sentinel = null;
+        this._clicked_user_info = null;
+        super.hide();
     }
     
     // Update selection highlight for the context menu.
@@ -249,7 +287,7 @@ class main_context_menu extends popup_context_menu
             helpers.set_class(element, "enabled", this._is_zoom_ui_enabled);
 
         // Set the avatar button.
-        this.avatar_widget.set_from_user_data(this._user_info);
+        this.avatar_widget.set_from_user_data(this._clicked_user_info || this._user_info);
 
         if(this._is_zoom_ui_enabled)
         {

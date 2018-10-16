@@ -665,6 +665,7 @@ class view_search extends view
                 link.href += "?view=manga";
 
             link.dataset.illustId = illust_id;
+            link.dataset.userId = info.userId;
 
             if(info.illustType == 2)
                 element.querySelector(".ugoira-icon").hidden = false;
