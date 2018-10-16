@@ -195,6 +195,15 @@ class view_search extends view
         this.load_needed_thumb_data();
     };
 
+    initial_refresh_ui()
+    {
+        if(this.data_source != null)
+        {
+            var ui_box = this.container.querySelector(".thumbnail-ui-box");
+            this.data_source.initial_refresh_thumbnail_ui(ui_box, this);
+        }
+    }
+
     set_data_source(data_source)
     {
         if(this.data_source == data_source)
@@ -223,6 +232,7 @@ class view_search extends view
         this.refresh_images();
         this.load_needed_thumb_data();
 
+        this.initial_refresh_ui();
         this.refresh_ui();
     };
 
@@ -341,6 +351,7 @@ class view_search extends view
 
         if(active)
         {
+            this.initial_refresh_ui();
             this.refresh_ui();
 
             // Refresh the images now, so it's possible to scroll to entries, but wait to start

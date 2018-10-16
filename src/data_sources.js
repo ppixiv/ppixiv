@@ -495,9 +495,14 @@ class data_source
         }
     }
 
+    // Refresh parts of the UI that are specific to this data source.  This is only called
+    // when first activating a data source, to update things like input fields that shouldn't
+    // be overwritten on each refresh.
+    initial_refresh_thumbnail_ui(container, view) { }
+
     // Each data source can have a different UI in the thumbnail view.  container is
     // the thumbnail-ui-box container to refresh.
-    refresh_thumbnail_ui(container) { }
+    refresh_thumbnail_ui(container, view) { }
 
     // A helper for setting up UI links.  Find the link with the given data-type,
     // set all {key: value} entries as query parameters, and remove any query parameters
@@ -2132,6 +2137,14 @@ class data_source_search extends data_source_from_page
         return displaying;
     };
 
+    initial_refresh_thumbnail_ui(container, view)
+    {
+        // Fill the search box with the current tag.
+        var query_args = this.url.searchParams;
+        var tag = query_args.get("word");
+        container.querySelector(".search-page-tag-entry .search-tags").value = tag;
+    }
+    
     refresh_thumbnail_ui(container, thumbnail_view)
     {
         if(this.related_tags)
