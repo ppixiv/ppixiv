@@ -15,6 +15,7 @@ class image_ui
 
         this.avatar_widget = new avatar_widget({
             parent: this.container.querySelector(".avatar-popup"),
+            mode: "dropdown",
         });
 
         this.tag_widget = new tag_widget({

@@ -393,6 +393,67 @@ body:not(.hide-ui) .view-illust-container .ui-box.hovering-over-sphere {
     width: 170px;
     height: 170px;
 }
+
+/* The API doesn't tell us whether a follow is private or not, so we can't show
+ * it.  The lock is only used to distinguish the "follow" and "follow privately"
+ * buttons. */
+.follow-icon .lock {
+    stroke: #888;
+}
+.follow-icon:not(.private) .lock {
+    display: none;
+}
+.follow-container .follow-icon:not(:hover) #outline1 {
+    stroke: none !important;
+}
+
+/* Hide the following icon if we're not following. */
+.follow-container:not(.followed) .follow-icon.following-icon {
+    display: none;
+}
+/* Hide the follow buttons if we're alreay following. */
+.follow-container.followed .follow-icon.follow-button {
+    display: none;
+}
+
+/* Only show the follow buttons on hover (but always show the following icon). */
+.follow-container:not(:hover) .follow-icon.follow-button {
+    display: none;
+}
+/* If use-dropdown is set, this avatar is using the dropdown UI and doesn't show the
+ * follow/unfollow overlay buttons. */
+.follow-container[data-mode="dropdown"] .follow-icon.follow-button {
+    display: none;
+}
+
+.follow-container .follow-icon {
+    position: absolute;
+    bottom: -7px;
+    text-align: center;
+    height: auto;
+}
+.follow-container:not(.big) .follow-icon {
+    width: 25px; /* half the size of the container */
+}
+
+.follow-container .follow-icon.bottom-left {
+    left: 0;
+}
+.follow-container .follow-icon.bottom-right {
+    right: 0;
+}
+
+.follow-container .follow-icon > svg {
+    display: block;
+    height: auto;
+}
+.follow-container.big .follow-icon > svg {
+    width: 52px;
+}
+.follow-container:not(.big) .follow-icon > svg {
+    width: 28px;
+}
+
 .follow-popup {
     margin-top: 10px;
     right: 0px;
@@ -409,9 +470,6 @@ body:not(.hide-ui) .view-illust-container .ui-box.hovering-over-sphere {
 
 .follow-container.followed .follow-popup .not-following { display: none; }
 .follow-container:not(.followed) .follow-popup .following { display: none; }
-.follow-container.followed .avatar {
-    box-shadow: 0 0 15px 10px #0aa;
-}
 
 .title-block {
     display: inline-block;

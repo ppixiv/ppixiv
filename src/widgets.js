@@ -246,6 +246,9 @@ class avatar_widget
     constructor(options)
     {
         this.options = options;
+        if(this.options.mode != "dropdown" && this.options.mode != "overlay")
+            throw "Invalid avatar widget mode";
+
         this.clicked_follow = this.clicked_follow.bind(this);
         this.user_changed = this.user_changed.bind(this);
 
@@ -254,14 +257,22 @@ class avatar_widget
 
         image_data.singleton().user_modified_callbacks.register(this.user_changed);
 
+        this.root.dataset.mode = this.options.mode;
+
         // Show the favorite UI when hovering over the avatar icon.
         var avatar_popup = this.root; //container.querySelector(".avatar-popup");
-        avatar_popup.addEventListener("mouseover", function(e) { helpers.set_class(avatar_popup, "popup-visible", true); }.bind(this));
-        avatar_popup.addEventListener("mouseout", function(e) { helpers.set_class(avatar_popup, "popup-visible", false); }.bind(this));
+        if(this.options.mode == "dropdown")
+        {
+            avatar_popup.addEventListener("mouseover", function(e) { helpers.set_class(avatar_popup, "popup-visible", true); }.bind(this));
+            avatar_popup.addEventListener("mouseout", function(e) { helpers.set_class(avatar_popup, "popup-visible", false); }.bind(this));
+        }
 
-        avatar_popup.querySelector(".follow-button.public").addEventListener("click", this.clicked_follow.bind(this, false), false);
-        avatar_popup.querySelector(".follow-button.private").addEventListener("click", this.clicked_follow.bind(this, true), false);
-        avatar_popup.querySelector(".unfollow-button").addEventListener("click", this.clicked_follow.bind(this, true), false);
+        for(var button of avatar_popup.querySelectorAll(".follow-button.public"))
+            button.addEventListener("click", this.clicked_follow.bind(this, false), false);
+        for(var button of avatar_popup.querySelectorAll(".follow-button.private"))
+            button.addEventListener("click", this.clicked_follow.bind(this, true), false);
+        for(var button of avatar_popup.querySelectorAll(".unfollow-button"))
+            button.addEventListener("click", this.clicked_follow.bind(this, true), false);
         this.element_follow_folder = avatar_popup.querySelector(".folder");
 
         // Follow publically when enter is pressed on the follow folder input.

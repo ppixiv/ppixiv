@@ -38,6 +38,7 @@ class view_search extends view
             parent: this.container.querySelector(".avatar-container"),
             changed_callback: this.data_source_updated,
             big: true,
+            mode: "dropdown",
         });
         
         // Create the tag widget used by the search data source.

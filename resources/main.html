@@ -520,8 +520,19 @@
         <!-- A user avatar, with a follow/unfollow UI. -->
         <template class="template-avatar">
             <div class="follow-container">
-                <a href=# class=avatar-link>
+                <a href=# class=avatar-link style="position: relative;">
                     <img class=avatar alt="" style="margin-left: auto; display: block;">
+                    <!-- We either show the following icon if we're already following (which acts as the unfollow
+                         button), or the public and private follow buttons.  The follow button is only shown on hover. -->
+                    <div class="follow-icon follow-button public bottom-left popup popup-bottom" data-popup="Follow publically">
+                        ### inline:eye-icon.svg
+                    </div>
+                    <div class="follow-icon follow-button private bottom-right popup popup-bottom" data-popup="Follow privately">
+                        ### inline:eye-icon.svg
+                    </div>
+                    <div class="follow-icon following-icon unfollow-button bottom-right popup popup-bottom" data-popup="Unfollow">
+                        ### inline:eye-icon.svg
+                    </div>
                 </a>
                 <div class="popup-menu-box hover-menu-box follow-popup">
                     <div class=hover-area></div>
