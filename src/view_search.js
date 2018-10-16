@@ -300,14 +300,9 @@ class view_search extends view
     // if the user ID has changed.
     async refresh_ui_for_user_id()
     {
-        var user_id = this.data_source.viewing_user_id;
-        if(user_id == this.last_updated_user_id)
-            return;
-
-        this.last_updated_user_id = user_id;
-
         // If there's no user, or if we're viewing ourself (our own bookmarks page),
         // just hide the user-related UI.
+        var user_id = this.data_source.viewing_user_id;
         if(user_id == null || user_id == window.global_data.user_id)
         {
             this.refresh_ui_for_user_info(null);
@@ -316,9 +311,8 @@ class view_search extends view
 
         var user_info = await image_data.singleton().get_user_info_full(user_id);
 
-        // If last_updated_user_id changed since we started this request, the user ID
-        // changed and we started a different request.
-        if(this.last_updated_user_id != user_id)
+        // Stop if the user ID changed since we started this request.
+        if(this.data_source == null || user_id != this.data_source.viewing_user_id)
             return;
 
         this.refresh_ui_for_user_info(user_info);
