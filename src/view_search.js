@@ -161,6 +161,14 @@ class view_search extends view
         // Add this tag to the recent search list.
         helpers.add_recent_search_tag(tags);
 
+        // If we're submitting by pressing enter on an input element, unfocus it and
+        // close any widgets inside it (tag dropdowns).
+        if(e.target instanceof HTMLInputElement)
+        {
+            e.target.blur();
+            view_hidden_listener.send_viewhidden(e.target);
+        }
+        
         // Run the search.
         helpers.set_page_url(page_manager.singleton().get_url_for_tag_search(tags), true);
     }
