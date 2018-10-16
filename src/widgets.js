@@ -321,11 +321,15 @@ class avatar_widget
         this.root.querySelector(".avatar-link").href = "/member_illust.php?id=" + user_data.userId + "#ppixiv";
         this.root.querySelector(".avatar").dataset.popup = "View " + user_data.name + "'s posts";
 
+        // Hide the popup in dropdown mode, since it covers the dropdown.
+        if(this.options.mode == "dropdown")
+            this.root.querySelector(".avatar").classList.remove("popup");
+
         // If we don't have an image because we're loaded from a source that doesn't give us them,
         // just hide the avatar image.
         var key = "imageBig";
         if(user_data[key])
-            element_author_avatar.src = user_data[key];
+            img.src = user_data[key];
     }
     
     async follow(follow_privately)
