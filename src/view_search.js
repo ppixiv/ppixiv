@@ -71,7 +71,19 @@ class view_search extends view
         if(tag != null)
             this.container.querySelector(".search-page-tag-entry .search-tags").value = tag;
 
-        
+        // As an optimization, start loading image info on mousedown.  We don't navigate until click,
+        // but this lets us start loading image info a bit earlier.
+        this.container.querySelector(".thumbnails").addEventListener("mousedown", (e) => {
+            if(e.button != 0)
+                return;
+
+            var a = e.target.closest("a.thumbnail-link");
+            if(a == null)
+                return;
+
+            image_data.singleton().get_image_info(a.dataset.illustId);
+        }, true);
+ 
         helpers.input_handler(this.container.querySelector(".search-page-tag-entry .search-tags"), this.submit_search);
         helpers.input_handler(this.container.querySelector(".navigation-search-box .search-tags"), this.submit_search);
 
