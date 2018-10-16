@@ -115,6 +115,49 @@ class message_widget
     }
 }
 
+// Call a callback on any click not inside a list of nodes.
+//
+// This is used to close dropdown menus.
+class click_outside_listener
+{
+    constructor(node_list, callback)
+    {
+        this.window_onmousedown = this.window_onmousedown.bind(this);
+
+        this.node_list = node_list;
+        this.callback = callback;
+
+        window.addEventListener("mousedown", this.window_onmousedown, true);
+    }
+
+    // Return true if node is below any node in node_list.
+    is_node_in_list(node)
+    {
+        for(var ancestor of this.node_list)
+        {
+            if(helpers.is_above(ancestor, node))
+                return true;
+        }
+        return false;
+    }
+    window_onmousedown(e)
+    {
+        // Close the popup if anything outside the dropdown is clicked.  Don't
+        // prevent the click event, so the click still happens.
+        //
+        // If this is a click inside the box or our button, ignore it.
+        if(this.is_node_in_list(e.target))
+            return;
+
+        this.callback();
+    }
+
+    shutdown()
+    {
+        window.removeEventListener("mousedown", this.window_onmousedown, true);
+    }
+}
+
 // Show popup menus when a button is clicked.
 class dropdown_menu_opener
 {
@@ -152,7 +195,6 @@ class dropdown_menu_opener
 
     constructor(button, box)
     {
-        this.window_onmousedown = this.window_onmousedown.bind(this);
         this.box_onclick = this.box_onclick.bind(this);
 
         this.button = button;
@@ -190,13 +232,21 @@ class dropdown_menu_opener
 
         if(value)
         {
-            window.addEventListener("mousedown", this.window_onmousedown, true);
+            this.listener = new click_outside_listener([this.button, this.box], () => {
+                this.visible = false;
+            });
+
             if(this.close_on_click_inside)
                 this.box.addEventListener("click", this.box_onclick, true);
         }
         else
         {
-            window.removeEventListener("mousedown", this.window_onmousedown, true);
+            if(this.listener)
+            {
+                this.listener.shutdown();
+                this.listener = null;
+            }
+
             this.box.removeEventListener("click", this.box_onclick, true);
         }
     }
@@ -211,18 +261,6 @@ class dropdown_menu_opener
     box_onclick(e)
     {
         if(e.target.closest(".keep-menu-open"))
-            return;
-
-        this.visible = false;
-    }
-
-    window_onmousedown(e)
-    {
-        // Close the popup if anything outside the dropdown is clicked.  Don't
-        // prevent the click event, so the click still happens.
-        //
-        // If this is a click inside the box or our button, ignore it.
-        if(helpers.is_above(this.button, e.target) || helpers.is_above(this.box, e.target))
             return;
 
         this.visible = false;
