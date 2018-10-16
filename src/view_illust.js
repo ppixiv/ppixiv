@@ -61,6 +61,8 @@ class view_illust extends view
 
         helpers.add_clicks_to_search_history(document.body);
 
+        this.active = false;
+
         // We'll finish setting up when our caller calls set_data_source().
     }
 

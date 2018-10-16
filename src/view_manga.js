@@ -26,6 +26,8 @@ class view_manga extends view
         // Create a style for our thumbnail style.
         this.thumbnail_dimensions_style = document.createElement("style");
         document.body.appendChild(this.thumbnail_dimensions_style);
+
+        this.active = false;
     }
 
     window_onresize(e)

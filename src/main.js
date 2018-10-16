@@ -305,6 +305,8 @@ class main_controller
     // the first page to load like any other page.
     async set_current_data_source(html, cause)
     {
+        // Get the current data source.  If we've already created it, this will just return
+        // the same object and not create a new one.
         var data_source = await page_manager.singleton().create_data_source_for_url(document.location, html);
 
         // Backwards compatibility: if the URL has thumbs=0, remove it and replace it
@@ -397,11 +399,11 @@ class main_controller
         {
             this.current_view_name = new_view_name;
 
-            for(var view_name in this.views)
-            {
-                var view = this.views[view_name];
-                view.active = new_view_name == view_name;
-            }
+            // Make sure we deactivate the old view before activating the new one.
+            if(old_view != null)
+                old_view.active = false;
+            if(new_view != null)
+                new_view.active = true;
        
             // Dismiss any message when toggling between views.
             message_widget.singleton.hide();
