@@ -16,9 +16,9 @@ class viewer_images extends viewer
         this.index = options.manga_page || 0;
 
         // Create a click and drag viewer for the image.
-        this.viewer = new on_click_viewer();
+        this.on_click_viewer = new on_click_viewer();
 
-        main_context_menu.get.on_click_viewer = this.viewer;
+        main_context_menu.get.on_click_viewer = this.on_click_viewer;
 
         // Make a list of image URLs we're viewing.
         this.images = [];
@@ -50,10 +50,10 @@ class viewer_images extends viewer
     
     shutdown()
     {
-        if(this.viewer)
+        if(this.on_click_viewer)
         {
-            this.viewer.disable();
-            this.viewer = null;
+            this.on_click_viewer.disable();
+            this.on_click_viewer = null;
         }
 
         if(this.img.parentNode)
@@ -76,7 +76,7 @@ class viewer_images extends viewer
     refresh()
     {
         var current_image = this.images[this.index];
-        if(this.viewer && this.img && this.img.src == current_image.url)
+        if(this.on_click_viewer && this.img && this.img.src == current_image.url)
             return;
 
         // Create the new image and pass it to the viewer.
@@ -112,7 +112,7 @@ class viewer_images extends viewer
         this.img.className = "filtering";
 
         this.container.appendChild(this.img);
-        this.viewer.set_new_image(this.img, width, height);
+        this.on_click_viewer.set_new_image(this.img, width, height);
     }
 
     onkeydown(e)
