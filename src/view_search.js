@@ -254,34 +254,28 @@ class view_search extends view
         this.data_source.refresh_thumbnail_ui(ui_box, this);
     };
 
+    // Return the user ID we're viewing, or null if we're not viewing anything specific to a user.
+    get viewing_user_id()
+    {
+        if(this.data_source == null)
+            return null;
+        return this.data_source.viewing_user_id;
+    }
+
     // Call refresh_ui_for_user_info with the user_info for the user we're viewing,
     // if the user ID has changed.
     async refresh_ui_for_user_id()
     {
-        // If there's no user, or if we're viewing ourself (our own bookmarks page),
-        // just hide the user-related UI.
-        var user_id = this.data_source.viewing_user_id;
-        if(user_id == null || user_id == window.global_data.user_id)
-        {
-            this.refresh_ui_for_user_info(null);
-            return;
-        }
+        // If we're viewing ourself (our own bookmarks page), hide the user-related UI.
+        var initial_user_id = this.viewing_user_id;
+        var user_id = initial_user_id == window.global_data.user_id? null:initial_user_id;
 
         var user_info = await image_data.singleton().get_user_info_full(user_id);
 
         // Stop if the user ID changed since we started this request.
-        if(this.data_source == null || user_id != this.data_source.viewing_user_id)
+        if(this.viewing_user_id != initial_user_id)
             return;
 
-        this.refresh_ui_for_user_info(user_info);
-    }
-
-    // Update UI that requires user info for a user we're viewing.
-    //
-    // We want to update this like any other UI, automatically refreshing it if the
-    // user ID changes, but we may need to make a user info request to fill this in.
-    refresh_ui_for_user_info(user_info)
-    {
         // Set the bookmarks link.
         var bookmarks_link = this.container.querySelector(".bookmarks-link");
         bookmarks_link.hidden = user_info == null;
