@@ -135,7 +135,72 @@ var helpers = {
         else
             template = type;
 
-        return document.importNode(template.content, true).firstElementChild;
+        var node = document.importNode(template.content, true).firstElementChild;
+
+        // Make all IDs in the template we just cloned unique.
+        for(var svg of node.querySelectorAll("svg"))
+            helpers.make_svg_ids_unique(svg);
+
+        return node;
+    },
+
+    // SVG has a big problem: it uses IDs to reference its internal assets, and that
+    // breaks if you inline the same SVG more than once in a while.  Making them unique
+    // at build time doesn't help, since they break again as soon as you clone a template.
+    // This makes styling SVGs a nightmare, since you can only style inlined SVGs.
+    //
+    // <use> doesn't help, since that's just broken with masks and gradients entirely.
+    // Broken for over a decade and nobody cares: https://bugzilla.mozilla.org/show_bug.cgi?id=353575
+    //
+    // This seems like a basic feature of SVG, and it's just broken.
+    //
+    // Work around it by making IDs within SVGs unique at runtime.  This is called whenever
+    // we clone SVGs.
+    _svg_id_sequence: 0,
+    make_svg_ids_unique(svg)
+    {
+        let id_map = {};
+        let idx = helpers._svg_id_sequence;
+
+        // First, find all IDs in the SVG and change them to something unique.
+        for(let def of svg.querySelectorAll("[id]"))
+        {
+            let old_id = def.id;
+            let new_id = def.id + "_" + idx;
+            idx++;
+            id_map[old_id] = new_id;
+            def.id = new_id;
+        }
+
+        // Search for all URL references within the SVG and point them at the new IDs.
+        for(let node of svg.querySelectorAll("*"))
+        {
+            for(let attr of node.getAttributeNames())
+            {
+                let value = node.getAttribute(attr);
+                
+                // See if this is an ID reference.  We don't try to parse all valid URLs
+                // here.
+                var re = /url\(#.*?\)/;
+                var new_value = value.replace(re, (str) => {
+                    var re = /url\(#(.*)\)/;
+                    var old_id = str.match(re)[1];
+                    let new_id = id_map[old_id];
+                    if(new_id == null)
+                    {
+                        console.warn("Unmatched SVG ID:", old_id);
+                        return str;
+                    }
+                    // Replace the ID.
+                    return "url(#" + new_id + ")";
+                });
+
+                node.setAttribute(attr, new_value);
+            }
+        }
+
+        // Store the index, so the next call will start with the next value.
+        helpers._svg_id_sequence = idx;
     },
 
     // Fetch a simple data resource, and call callback with the result.

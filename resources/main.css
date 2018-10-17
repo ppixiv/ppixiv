@@ -412,9 +412,9 @@ body:not(.hide-ui) .view-illust-container .ui-box.hovering-over-sphere {
     stroke: #888;
 }
 .follow-icon:not(.private) .lock {
-    display: none;
+    display: none !important;
 }
-.follow-container .follow-icon:not(:hover) #outline1 {
+.follow-container .follow-icon:not(:hover) .outline1 {
     stroke: none !important;
 }
 
@@ -467,6 +467,16 @@ body:not(.hide-ui) .view-illust-container .ui-box.hovering-over-sphere {
 }
 .follow-container:not(:hover) .follow-icon > svg {
     opacity: 0.5;
+}
+.follow-container .follow-icon > svg .middle {
+    transition: transform .4s ease-in-out;
+    transform: translate(0px, -2px);
+}
+.follow-container .follow-icon.unfollow-button > svg .middle {
+    transform: translate(-2px, -5px);
+}
+.follow-container .follow-icon.unfollow-button:hover > svg .middle {
+    transform: translate(2px, 5px);
 }
 /* Don't fade the icons in the context menu, since it's too small and it makes
  * it too hard to see at a glance. */
