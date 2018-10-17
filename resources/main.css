@@ -469,7 +469,7 @@ body:not(.hide-ui) .view-illust-container .ui-box.hovering-over-sphere {
     opacity: 0.5;
 }
 .follow-container .follow-icon > svg .middle {
-    transition: transform .4s ease-in-out;
+    transition: transform .1s ease-in-out;
     transform: translate(0px, -2px);
 }
 .follow-container .follow-icon.unfollow-button > svg .middle {

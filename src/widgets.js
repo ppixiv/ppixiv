@@ -275,6 +275,69 @@ class dropdown_menu_opener
     }
 };
 
+// A pointless creepy eye.  Looks away from the mouse cursor when hovering over
+// the unfollow button.
+class creepy_eye_widget
+{
+    constructor(eye)
+    {
+        this.onevent = this.onevent.bind(this);
+
+        this.eye = eye;
+
+        this.eye.addEventListener("mouseenter", this.onevent);
+        this.eye.addEventListener("mouseleave", this.onevent);
+        this.eye.addEventListener("mousemove", this.onevent);
+        this.eye_middle = this.eye.querySelector(".middle");
+    }
+
+    onevent(e)
+    {
+        if(e.type == "mouseenter")
+            this.hover = true;
+        if(e.type == "mouseleave")
+            this.hover = false;
+
+        if(!this.hover)
+        {
+            this.eye_middle.style.transform = "";
+            return;
+        }
+        var mouse = [e.pageX, e.pageY];
+
+        var bounds = this.eye.getBoundingClientRect();
+        var eye = [bounds.x + bounds.width/2, bounds.y + bounds.height/2];
+
+        var vector_length = function(vec)
+        {
+            return Math.sqrt(vec[0]*vec[0] + vec[1]*vec[1]);
+        }
+        // Normalize to get a direction vector.
+        var normalize_vector = function(vec)
+        {
+            var length = vector_length(vec);
+            if(length < 0.0001)
+                return [0,0];
+            return [vec[0]/length, vec[1]/length];
+        };
+
+        var pos = [mouse[0] - eye[0], mouse[1] - eye[1]];
+        pos = normalize_vector(pos);
+
+        if(Math.abs(pos[0]) < 0.5)
+        {
+            var negative = pos[0] < 0;
+            pos[0] = 0.5;
+            if(negative)
+                pos[0] *= -1;
+        }
+//        pos[0] = 1 - ((1-pos[0]) * (1-pos[0]));
+        pos[0] *= -3;
+        pos[1] *= -6;
+        this.eye_middle.style.transform = "translate(" + pos[0] + "px, " + pos[1] + "px)";
+    }
+}
+
 class avatar_widget
 {
     // options:
@@ -304,6 +367,8 @@ class avatar_widget
             avatar_popup.addEventListener("mouseover", function(e) { helpers.set_class(avatar_popup, "popup-visible", true); }.bind(this));
             avatar_popup.addEventListener("mouseout", function(e) { helpers.set_class(avatar_popup, "popup-visible", false); }.bind(this));
         }
+
+        new creepy_eye_widget(this.root.querySelector(".unfollow-button .eye-image"));
 
         for(var button of avatar_popup.querySelectorAll(".follow-button.public"))
             button.addEventListener("click", this.clicked_follow.bind(this, false), false);
