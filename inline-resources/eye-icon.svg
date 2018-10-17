@@ -52,6 +52,19 @@
            style="display:inline;fill:#ffffff;fill-opacity:1;stroke:#ffffff;stroke-width:0.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
       </g>
     </mask>
+    <filter
+       inkscape:collect="always"
+       style="color-interpolation-filters:sRGB"
+       id="filter4556"
+       x="-0.074548502"
+       width="1.149097"
+       y="-0.1446944"
+       height="1.2893888">
+      <feGaussianBlur
+         inkscape:collect="always"
+         stdDeviation="0.73179676"
+         id="feGaussianBlur4558" />
+    </filter>
   </defs>
   <sodipodi:namedview
      pagecolor="#ffffff"
@@ -81,6 +94,12 @@
      id="bg"
      style="display:none;fill:#000088;fill-opacity:1"
      inkscape:label="bg" />
+  <path
+     inkscape:label="shadow"
+     inkscape:connector-curvature="0"
+     id="shadow"
+     d="m 4.1355932,15.966102 c 0,0 5.4237288,-6.20339 12.0000008,-6.101695 6.576271,0.101695 11.559322,6.033898 11.559322,6.033898 0,0 -2.745763,6 -11.423729,6.101695 C 7.5932203,22.101695 4.1355932,15.966102 4.1355932,15.966102 Z"
+     style="display:inline;fill:none;fill-opacity:1;stroke:#fbfbfb;stroke-width:3.77952756;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;filter:url(#filter4556);stroke-miterlimit:4;stroke-dasharray:none" />
   <path
      inkscape:label="outline1"
      inkscape:connector-curvature="0"
@@ -126,7 +145,7 @@
      inkscape:connector-curvature="0"
      id="outline2"
      d="m 4.1355932,15.966102 c 0,0 5.4237288,-6.2033901 12.0000008,-6.1016951 6.576271,0.101695 11.559322,6.0338981 11.559322,6.0338981 0,0 -2.745763,6 -11.423729,6.101695 C 7.5932203,22.101695 4.1355932,15.966102 4.1355932,15.966102 Z"
-     style="display:inline;fill:none;fill-opacity:1;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+     style="display:inline;fill:none;fill-opacity:1;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-variant-east_asian:normal;opacity:1;vector-effect:none;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0" />
   <g
      class="lock"
      style="display:inline;fill:#000000;fill-rule:evenodd"
