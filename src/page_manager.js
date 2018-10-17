@@ -174,6 +174,11 @@ class page_manager
     // Return true if we're active by default on the current page.
     active_by_default()
     {
+        // If the disabled-by-default setting is enabled, disable by default until manually
+        // turned on.
+        if(settings.get("disabled-by-default"))
+            return false;
+
         // If this is set, the user clicked the "return to Pixiv" button.  Stay disabled
         // in this tab until we're reactivated.
         if(window.sessionStorage.ppixiv_disabled)
