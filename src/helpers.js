@@ -1539,7 +1539,38 @@ var helpers = {
         if(e.code == "NumpadSubtract" || e.code == "Minus") /* - */ 
             return -1;
         return null;
-    }
+    },
+
+    // https://stackoverflow.com/questions/1255512/how-to-draw-a-rounded-rectangle-on-html-canvas/3368118#3368118
+    /*
+     * Draws a rounded rectangle using the current state of the canvas.
+     * If you omit the last three params, it will draw a rectangle
+     * outline with a 5 pixel border radius
+     */
+    draw_round_rect(ctx, x, y, width, height, radius)
+    {
+        if(typeof radius === 'undefined')
+            radius = 5;
+        if(typeof radius === 'number') {
+            radius = {tl: radius, tr: radius, br: radius, bl: radius};
+        } else {
+            var defaultRadius = {tl: 0, tr: 0, br: 0, bl: 0};
+            for(var side in defaultRadius)
+                radius[side] = radius[side] || defaultRadius[side];
+        }
+
+        ctx.beginPath();
+        ctx.moveTo(x + radius.tl, y);
+        ctx.lineTo(x + width - radius.tr, y);
+        ctx.quadraticCurveTo(x + width, y, x + width, y + radius.tr);
+        ctx.lineTo(x + width, y + height - radius.br);
+        ctx.quadraticCurveTo(x + width, y + height, x + width - radius.br, y + height);
+        ctx.lineTo(x + radius.bl, y + height);
+        ctx.quadraticCurveTo(x, y + height, x, y + height - radius.bl);
+        ctx.lineTo(x, y + radius.tl);
+        ctx.quadraticCurveTo(x, y, x + radius.tl, y);
+        ctx.closePath();
+    },
 };
 
 // Handle maintaining and calling a list of callbacks.
@@ -1631,4 +1662,80 @@ class view_hidden_listener
         this.callback(e);
     }
 };
+
+// Filter an image to a canvas.
+//
+// When an image loads, draw it to a canvas of the same size, optionally applying filter
+// effects.
+//
+// If base_filter is supplied, it's a filter to apply to the top copy of the image.
+// If overlay(ctx, img) is supplied, it's a function to draw to the canvas.  This can
+// be used to mask the top copy.
+class image_canvas_filter
+{
+    constructor(img, canvas, base_filter, overlay)
+    {
+        this.img = img;
+        this.canvas = canvas;
+        this.base_filter = base_filter || "";
+        this.overlay = overlay;
+        this.ctx = this.canvas.getContext("2d");
+
+        this.img.addEventListener("load", this.update_canvas.bind(this));
+
+        // For some reason, browsers can't be bothered to implement onloadstart, a seemingly
+        // fundamental progress event.  So, we have to use a mutation observer to tell when
+        // the image is changed, to make sure we clear it as soon as the main image changes.
+        this.observer = new MutationObserver((mutations) => {
+            for(var mutation of mutations) {
+                if(mutation.type == "attributes")
+                {
+                    if(mutation.attributeName == "src")
+                    {
+                        this.update_canvas();
+                    }
+                }
+            }
+        });
+
+        this.observer.observe(this.img, { attributes: true });
+        
+        this.update_canvas();
+    }
+
+    clear()
+    {
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    }
+
+    update_canvas()
+    {
+        this.canvas.width = this.img.naturalWidth;
+        this.canvas.height = this.img.naturalHeight;
+
+        this.clear();
+
+        // If the image is still loading, just clear any previous image from the canvas.
+        if(!this.img.complete)
+            return;
+
+        // Draw the image onto the canvas.
+        this.ctx.save();
+        this.ctx.filter = this.base_filter;
+        this.ctx.drawImage(this.img, 0, 0);
+        this.ctx.restore();
+
+        // Composite on top of the base image.
+        this.ctx.save();
+
+        if(this.overlay)
+            this.overlay(this.ctx, this.img);
+
+        this.ctx.restore();
+        
+        // Use destination-over to draw the image underneath the overlay we just drew.
+        this.ctx.globalCompositeOperation = "destination-over";
+        this.ctx.drawImage(this.img, 0, 0);
+    }
+}
 

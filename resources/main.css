@@ -382,13 +382,26 @@ body:not(.hide-ui) .view-illust-container .ui-box.hovering-over-sphere {
     right: -10px;
 }
 .follow-container .avatar {
-    border-radius: 5px;
-    object-fit: cover;
     transition: filter .25s;
     display: block;
+    position: relative;
 }
-.follow-container .avatar:hover {
-    filter: brightness(120%);
+/* .avatar contains an image, and a canvas overlaid on top for hover effects. */
+.follow-container .avatar > canvas {
+    border-radius: 5px;
+    object-fit: cover;
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+.follow-container .avatar > canvas.highlight {
+    opacity: 0;
+    transition: opacity .25s;
+}
+.follow-container .avatar:hover > canvas.highlight {
+    opacity: 1;
 }
 .follow-container:not(.big) .avatar {
     width: 50px;

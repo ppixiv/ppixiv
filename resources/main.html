@@ -521,7 +521,10 @@
         <template class="template-avatar">
             <div class="follow-container">
                 <a href=# class=avatar-link style="position: relative;">
-                    <img class="avatar popup popup-bottom">
+                    <div class="avatar popup popup-bottom">
+                        <canvas class=main></canvas>
+                        <canvas class=highlight></canvas>
+                    </div>
 
                     <!-- We either show the following icon if we're already following (which acts as the unfollow
                          button), or the public and private follow buttons.  The follow button is only shown on hover. -->

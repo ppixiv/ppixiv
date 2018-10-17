@@ -358,6 +358,25 @@ class avatar_widget
 
         image_data.singleton().user_modified_callbacks.register(this.user_changed);
 
+        var element_author_avatar = this.root.querySelector(".avatar");
+
+        this.img = document.createElement("img");
+
+        // A canvas filter for the avatar.  This has no actual filters.  This is just to kill off any
+        // annoying GIF animations in people's avatars.
+        this.base_filter = new image_canvas_filter(this.img, element_author_avatar.querySelector("canvas.main"));
+
+        // The actual highlight filter:
+        this.highlight_filter = new image_canvas_filter(this.img, element_author_avatar.querySelector("canvas.highlight"), "brightness(150%)", (ctx, img) => {
+            ctx.globalCompositeOperation = "destination-in";
+
+            var feather = 25;
+            var radius = 15;
+            ctx.filter = "blur(" + feather + "px)";
+            helpers.draw_round_rect(ctx, feather, feather + this.img.naturalHeight/2, this.img.naturalWidth - feather*2, this.img.naturalHeight - feather*2, radius);
+            ctx.fill();
+        });
+        
         this.root.dataset.mode = this.options.mode;
 
         // Show the favorite UI when hovering over the avatar icon.
@@ -402,8 +421,8 @@ class avatar_widget
     {
         // Clear the previous image.  Do this even if we're going to set it below, so we show
         // black while loading a new image rather than showing the previous image.
-        var element_author_avatar = this.root.querySelector("img.avatar");
-        element_author_avatar.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII";
+        this.base_filter.clear();
+        this.highlight_filter.clear();
 
         this.user_data = user_data;
         if(this.user_data == null)
@@ -432,7 +451,7 @@ class avatar_widget
         // just hide the avatar image.
         var key = "imageBig";
         if(user_data[key])
-            img.src = user_data[key];
+            this.img.src = user_data[key];
     }
     
     async follow(follow_privately)
