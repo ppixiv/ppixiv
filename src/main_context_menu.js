@@ -113,7 +113,6 @@ class main_context_menu extends popup_context_menu
             return;
         this._user_info = user_info;
 
-        console.log(this.user_info);
         this.refresh();
     }
 
