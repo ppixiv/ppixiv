@@ -1205,6 +1205,9 @@ class data_source_artist extends data_source
         // in main.js, and this won't make a request.
         this.user_info = await image_data.singleton().get_user_info_full(this.viewing_user_id);
 
+        // Update to refresh our page title, which uses user_info.
+        this.call_update_listeners();
+
         var query_args = this.url.searchParams;
         var hash_args = helpers.get_hash_args(this.url);
         var tag = query_args.get("tag") || "";
