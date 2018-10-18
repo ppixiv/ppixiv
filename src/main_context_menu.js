@@ -71,17 +71,37 @@ class main_context_menu extends popup_context_menu
         this.refresh();
     }
 
+    // Return the illust ID active in the context menu, or null if none.
+    //
+    // If we're opened by right clicking on an illust, we'll show that image's
+    // info.  Otherwise, we'll show the info for the illust we're on, if any.
+    get effective_illust_id()
+    {
+        if(this._clicked_illust_info != null)
+            return this._clicked_illust_info.illustId;
+        else
+            return this._illust_id;
+    }
+
+    // When the effective illust ID changes, let our widgets know.
+    _effective_illust_id_changed()
+    {
+        var illust_id = this.effective_illust_id;
+
+        this.like_button.illust_id = illust_id;
+        this.bookmark_tag_widget.illust_id = illust_id;
+        this.toggle_tag_widget.illust_id = illust_id;
+        for(var button of this.bookmark_buttons)
+            button.illust_id = illust_id;
+    }
+
     set illust_id(value)
     {
         if(this._illust_id == value)
             return;
 
         this._illust_id = value;
-        this.like_button.illust_id = value;
-        this.bookmark_tag_widget.illust_id = value;
-        this.toggle_tag_widget.illust_id = value;
-        for(var button of this.bookmark_buttons)
-            button.illust_id = value;
+        this._effective_illust_id_changed();
     }
 
     shutdown()
@@ -228,18 +248,42 @@ class main_context_menu extends popup_context_menu
         if(this.on_click_viewer != null)
             this.on_click_viewer.stop_dragging();
 
-        // See if an element representing a user was under the cursor.
+        // See if an element representing a user and/or an illust was under the cursor.
         if(target != null)
         {
             var user_target = target.closest("[data-user-id]");
             if(user_target != null)
-            {
                 this._set_temporary_user(user_target.dataset.userId);
-            }
+
+            var illust_target = target.closest("[data-illust-id]");
+            if(illust_target != null)
+                this._set_temporary_illust(illust_target.dataset.illustId);
         }
+
         super.show(x, y, target);
     }
 
+    // Set an alternative illust ID to show.  This is effective until the context menu is hidden.
+    async _set_temporary_illust(illust_id)
+    {
+        // If this object is null or changed, we know we've been hidden since we
+        // started this request.
+        var show_sentinel = this.load_illust_sentinel = new Object();
+
+        // Read illust info to see if we're following the user.
+        console.log("get", illust_id);
+        var illust_info = await image_data.singleton().get_image_info(illust_id);
+
+        // If the popup was closed while we were waiting, ignore the results.
+        if(show_sentinel != this.load_illust_sentinel)
+            return;
+        this.load_illust_sentinel = null;
+
+        this._clicked_illust_info = illust_info;
+        this._effective_illust_id_changed();
+    }
+
+    // Set an alternative user ID to show.  This is effective until the context menu is hidden.
     async _set_temporary_user(user_id)
     {
         // Clear the avatar widget while we load user info, so we don't show the previous
@@ -248,15 +292,15 @@ class main_context_menu extends popup_context_menu
         
         // If this object is null or changed, we know we've been hidden since we
         // started this request.
-        var show_sentinel = this.show_sentinel = new Object();
+        var show_sentinel = this.load_user_sentinel = new Object();
 
         // Read user info to see if we're following the user.
         var user_info = await image_data.singleton().get_user_info(user_id);
 
         // If the popup was closed while we were waiting, ignore the results.
-        if(show_sentinel != this.show_sentinel)
+        if(show_sentinel != this.load_user_sentinel)
             return;
-        this.show_sentinel = null;
+        this.load_user_sentinel = null;
 
         this._clicked_user_info = user_info;
         this.refresh();
@@ -264,8 +308,15 @@ class main_context_menu extends popup_context_menu
 
     hide()
     {
-        this.show_sentinel = null;
+        this.load_illust_sentinel = null;
+        this.load_user_sentinel = null;
         this._clicked_user_info = null;
+        this._clicked_illust_info = null;
+
+        // Even though we're hiding, update widgets so they don't show the last image's
+        // bookmark count, etc. the next time we're displayed.
+        this._effective_illust_id_changed();
+
         super.hide();
     }
     
