@@ -1299,7 +1299,6 @@ class data_source_artist extends data_source
         if(this.user_info)
         {
             thumbnail_view.avatar_widget.set_from_user_data(this.user_info);
-            helpers.set_page_icon(this.user_info.isFollowed? binary_data['favorited_icon.png']:binary_data['regular_pixiv_icon.png']);
         }
 
         this.set_item(container, "artist-works", {type: null});
@@ -1585,7 +1584,6 @@ class data_source_current_illust extends data_source_fake_pagination
         if(this.user_info)
         {
             thumbnail_view.avatar_widget.set_from_user_data(this.user_info);
-            helpers.set_page_icon(this.user_info.isFollowed? binary_data['favorited_icon.png']:binary_data['regular_pixiv_icon.png']);
         }
     }
 

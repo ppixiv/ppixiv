@@ -27,6 +27,8 @@ class view_search extends view
         this.container.addEventListener("scroll", this.onscroll);
         window.addEventListener("resize", this.onscroll);
 
+        image_data.singleton().user_modified_callbacks.register(this.refresh_ui.bind(this));
+
         // When a bookmark is modified, refresh the heart icon.
         image_data.singleton().illust_modified_callbacks.register(this.refresh_thumbnail);
 
@@ -272,16 +274,12 @@ class view_search extends view
         if(!this.active)
             return;
 
-        var page_title = this.data_source.page_title || "Loading...";
-        document.querySelector("title").textContent = page_title;
-        
         var element_displaying = this.container.querySelector(".displaying");
         element_displaying.hidden = this.data_source.get_displaying_text == null;
         if(this.data_source.get_displaying_text != null)
             element_displaying.innerText = this.data_source.get_displaying_text();
 
-        // Set the regular icon.  The data source might change it to something else.
-        helpers.set_page_icon(binary_data['regular_pixiv_icon.png']);
+        helpers.set_page_title(this.data_source.page_title || "Loading...");
         
         var ui_box = this.container.querySelector(".thumbnail-ui-box");
         this.data_source.refresh_thumbnail_ui(ui_box, this);
@@ -310,6 +308,8 @@ class view_search extends view
         // Stop if the user ID changed since we started this request.
         if(this.viewing_user_id != initial_user_id)
             return;
+
+        helpers.set_icon(null, user_info);
 
         // Set the bookmarks link.
         var bookmarks_link = this.container.querySelector(".bookmarks-link");
