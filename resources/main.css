@@ -468,6 +468,15 @@ body:not(.hide-ui) .view-illust-container .ui-box.hovering-over-sphere {
     right: 0;
 }
 
+/* In small avatar buttons, nudge the follow buttons down off of the
+ * avatar, so they don't appear right under the cursor when you're trying
+ * to click the avatar itself.  Only do this with the follow buttons that
+ * appears on hover, not the following icon (unfollow button), and don't
+ * do it with the big avatars. */
+.follow-container:not(.big) .follow-button {
+    top: calc(100% - 5px);
+}
+
 .follow-container .follow-icon > svg {
     display: block;
     width: 100%;
