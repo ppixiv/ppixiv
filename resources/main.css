@@ -669,7 +669,6 @@ body:not(.premium) .premium-only { display: none; }
     overflow-x: hidden;
     /* Always show the vertical scrollbar, so we don't relayout as images load. */
     overflow-y: scroll;
-    background-color: #000;
     color: #fff;
 }
 
