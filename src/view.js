@@ -4,6 +4,10 @@ class view
     constructor(container)
     {
         this.container = container;
+
+        // Make our container focusable, so we can give it keyboard focus when we
+        // become active.
+        this.container.tabIndex = -1;
     }
 
     // Handle a key input.  This is only called while the view is active.
@@ -31,9 +35,19 @@ class view
 
     set active(active)
     {
-        // When the view isn't active, send viewhidden to close all popup menus inside it.
-        if(!active)
+        // Show or hide the view container.
+        this.container.hidden = !active;
+        
+        if(active)
+        {
+            // Focus the container, so it receives keyboard events, eg. home/end.
+            this.container.focus();
+        }
+        else
+        {
+            // When the view isn't active, send viewhidden to close all popup menus inside it.
             view_hidden_listener.send_viewhidden(this.container);
+        }
     }
 }
 

@@ -353,15 +353,13 @@ class view_search extends view
 
     set active(active)
     {
-        super.active = active;
-        
         if(this._active == active)
             return;
 
         this._active = active;
 
-        this.container.hidden = !active;
-
+        super.active = active;
+        
         if(active)
         {
             this.initial_refresh_ui();

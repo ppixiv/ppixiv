@@ -41,8 +41,6 @@ class view_manga extends view
 
     set active(active)
     {
-        super.active = active;
-        
         if(this.active == active)
             return;
 
@@ -64,7 +62,7 @@ class view_manga extends view
             main_context_menu.get.user_info = null;
         }
 
-        this.container.hidden = !active;
+        super.active = active;
 
         if(active)
             this.load_illust_id();
