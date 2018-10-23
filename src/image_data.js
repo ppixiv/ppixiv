@@ -246,7 +246,20 @@ class image_data
         // console.log("Got user", user_id);
 
         // Store the user data.
-        this.user_data[user_id] = user_data;
+        if(this.user_data[user_id] == null)
+            this.user_data[user_id] = user_data;
+        else
+        {
+            // If we already have an object for this user, we're probably replacing partial user data
+            // with full user data.  Don't replace the user_data object itself, since widgets will have
+            // a reference to the old one which will become stale.  Just replace the data inside the
+            // object.
+            var old_user_data = this.user_data[user_id];
+            for(var key of Object.keys(old_user_data))
+                delete old_user_data[key];
+            for(var key of Object.keys(user_data))
+                old_user_data[key] = user_data[key];
+        }
 
         return user_data;
     }
