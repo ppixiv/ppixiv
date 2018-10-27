@@ -101,9 +101,11 @@ class page_manager
     //
     // If we've already created a data source for this URL, the same one will be
     // returned.
-    async create_data_source_for_url(url, doc, callback)
+    //
+    // If force is true, we'll always create a new data source, replacing any
+    // previously created one.
+    async create_data_source_for_url(url, doc, force)
     {
-        // need to be able to canonicalize statically
         var data_source_class = this.get_data_source_for_url(url);
         if(data_source_class == null)
         {
@@ -115,7 +117,7 @@ class page_manager
         var canonical_url = await data_source_class.get_canonical_url(url);
 
         // console.log("url", url.toString(), "becomes", canonical_url);
-        if(canonical_url in this.data_sources_by_canonical_url)
+        if(!force && canonical_url in this.data_sources_by_canonical_url)
         {
             // console.log("Reusing data source for", url.toString());
             return this.data_sources_by_canonical_url[canonical_url];

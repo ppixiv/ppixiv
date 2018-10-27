@@ -89,6 +89,7 @@ class view_search extends view
         helpers.input_handler(this.container.querySelector(".search-page-tag-entry .search-tags"), this.submit_search);
         helpers.input_handler(this.container.querySelector(".navigation-search-box .search-tags"), this.submit_search);
 
+        this.container.querySelector(".refresh-search-button").addEventListener("click", this.refresh_search.bind(this));
         this.container.querySelector(".search-page-tag-entry .search-submit-button").addEventListener("click", this.submit_search);
         this.container.querySelector(".navigation-search-box .search-submit-button").addEventListener("click", this.submit_search);
 
@@ -179,6 +180,12 @@ class view_search extends view
         // Run the search.
         helpers.set_page_url(page_manager.singleton().get_url_for_tag_search(tags), true);
     }
+
+    refresh_search()
+    {
+        main_controller.singleton.refresh_current_data_source();
+    }
+        
 
     /* This scrolls the thumbnail when you hover over it.  It's sort of neat, but it's pretty
      * choppy, and doesn't transition smoothly when the mouse first hovers over the thumbnail,

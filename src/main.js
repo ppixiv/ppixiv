@@ -295,6 +295,19 @@ class main_controller
         this.set_current_data_source(null, e.navigationCause || "history");
     }
 
+    async refresh_current_data_source()
+    {
+        if(this.data_source == null)
+            return;
+
+        // Create a new data source for the same URL, replacing the previous one.
+        // This returns the data source, but just call set_current_data_source so
+        // we load the new one.
+        console.log("Refreshing data source for", document.location.toString());
+        await page_manager.singleton().create_data_source_for_url(document.location, null, true);
+        await this.set_current_data_source(null, "refresh");
+    }
+
     // Create a data source for the current URL and activate it.
     //
     // This is called on startup, and in onpopstate where we might be changing data sources.

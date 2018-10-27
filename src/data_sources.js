@@ -327,9 +327,11 @@ class data_source
         var result = this.loading_pages[page];
         if(result == null)
         {
+            console.log("started loading page", page);
             var result = this._load_page_async(page);
             this.loading_pages[page] = result;
             result.finally(() => {
+            console.log("finished loading page", page);
                 delete this.loading_pages[page];
             });
         }
@@ -1262,6 +1264,7 @@ class data_source_artist extends data_source
         var query_args = this.url.searchParams;
         var type = query_args.get("type");
 
+        console.error("loading");
         var result = await helpers.get_request("/ajax/user/" + this.viewing_user_id + "/profile/all", {});
 
         var illust_ids = [];
