@@ -305,15 +305,6 @@ class data_source
         helpers.set_hash_args(url, hash_args);        
     }
 
-    // Return the page that will be loaded by default, if load_page(null) is called.
-    //
-    // Most data sources store the page in the query.
-    get_default_page()
-    {
-        var query_args = this.url.searchParams;
-        return parseInt(query_args.get("p")) || 1;
-    }
-
     // startup() is called when the data source becomes active, and shutdown is called when
     // it's done.  This can be used to add and remove event handlers on the UI.
     startup() 
@@ -348,10 +339,6 @@ class data_source
 
     async _load_page_async(page)
     {
-        // If page is null, use the default page.
-        if(page == null)
-            page = this.get_default_page();
-
         // Check if we're trying to load backwards too far.
         if(page < 1)
         {
@@ -1452,8 +1439,6 @@ class data_source_current_illust extends data_source_fake_pagination
     {
         return "illust";
     }
-
-    get_default_page() { return 1; }
 
     // Implement data_source_fake_pagination:
     async load_all_results()

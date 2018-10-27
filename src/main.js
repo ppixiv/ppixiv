@@ -328,9 +328,6 @@ class main_controller
             
             if(this.data_source != null)
                 this.data_source.startup();
-
-            // Load the current page for the data source.
-            await this.data_source.load_page(null);
         }
 
         if(data_source == null)
