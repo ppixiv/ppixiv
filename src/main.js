@@ -309,18 +309,6 @@ class main_controller
         // the same object and not create a new one.
         var data_source = await page_manager.singleton().create_data_source_for_url(document.location, html);
 
-        // Backwards compatibility: if the URL has thumbs=0, remove it and replace it
-        // with page=illust.
-        var args = helpers.get_args(document.location);
-        if(args.hash.has("thumbs"))
-        {
-            console.log("Removing thumbs=0 and replacing with view=illust");
-            args.hash.delete("thumbs");
-            args.hash.set("view", "illust");
-            helpers.set_args(args, false /* add_to_history */);
-            return;
-        }
-        
         // If the data source is changing, set it.
         if(this.data_source != data_source)
         {
