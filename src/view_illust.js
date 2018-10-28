@@ -21,7 +21,6 @@ class view_illust extends view
         var ui_container = this.container.querySelector(".ui");
         this.ui = new image_ui(ui_container, this.progress_bar);
         
-        var hover_circle = this.container.querySelector(".ui .hover-circle");
         var ui_box = this.container.querySelector(".ui-box");
 
         var ui_visibility_changed = () => {
@@ -34,24 +33,18 @@ class view_illust extends view
         };
         ui_box.addEventListener("mouseenter", (e) => { helpers.set_class(ui_box, "hovering-over-box", true); ui_visibility_changed(); });
         ui_box.addEventListener("mouseleave", (e) => { helpers.set_class(ui_box, "hovering-over-box", false); ui_visibility_changed(); });
+
+        var hover_circle = this.container.querySelector(".ui .hover-circle");
         hover_circle.addEventListener("mouseenter", (e) => { helpers.set_class(ui_box, "hovering-over-sphere", true); ui_visibility_changed(); });
         hover_circle.addEventListener("mouseleave", (e) => { helpers.set_class(ui_box, "hovering-over-sphere", false); ui_visibility_changed(); });
 
-        document.head.appendChild(document.createElement("title"));
-        this.document_icon = document.head.appendChild(document.createElement("link"));
-        this.document_icon.setAttribute("rel", "icon");
-       
         image_data.singleton().user_modified_callbacks.register(this.refresh_ui);
         image_data.singleton().illust_modified_callbacks.register(this.refresh_ui);
+        settings.register_change_callback("recent-bookmark-tags", this.refresh_ui);
 
         new hide_mouse_cursor_on_idle(this.container.querySelector(".image-container"));
 
         // this.manga_thumbnails = new manga_thumbnail_widget(this.container.querySelector(".manga-thumbnail-container"));
-
-        // Show the bookmark UI when hovering over the bookmark icon.
-        var bookmark_popup = this.container.querySelector(".bookmark-button");
-
-        settings.register_change_callback("recent-bookmark-tags", this.refresh_ui);
 
         this.container.addEventListener("wheel", this.onwheel);
 
@@ -59,11 +52,7 @@ class view_illust extends view
         this.manga_page_bar = new progress_bar(this.container.querySelector(".ui-box")).controller();
         this.seek_bar = new seek_bar(this.container.querySelector(".ugoira-seek-bar"));
 
-        helpers.add_clicks_to_search_history(document.body);
-
         this.active = false;
-
-        // We'll finish setting up when our caller calls set_data_source().
     }
 
     set_data_source(data_source)
@@ -470,7 +459,6 @@ class view_illust extends view
         if(this.current_illust_data != null && this.current_illust_data.pageCount > 1)
         {
             var old_page = this.wanted_illust_page;
-            console.log("navigate", down, "from", old_page);
             var new_page = old_page + (down? +1:-1);
             new_page = Math.max(0, Math.min(this.current_illust_data.pageCount - 1, new_page));
             if(new_page != old_page)
@@ -491,13 +479,11 @@ class view_illust extends view
 
         // Get the next (or previous) illustration after the current one.
         var new_illust_id = this.data_source.id_list.get_neighboring_illust_id(navigate_from_illust_id, down);
-        console.log("move(): id", navigate_from_illust_id, "next", new_illust_id);
         if(new_illust_id != null)
         {
             // Show the new image.
             main_controller.singleton.show_illust(new_illust_id);
             return true;
-
         }
 
         // That page isn't loaded.  Try to load it.

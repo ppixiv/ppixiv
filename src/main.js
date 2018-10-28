@@ -262,6 +262,14 @@ class main_controller
        
         // Create the page from our HTML resource.
         document.body.insertAdjacentHTML("beforeend", resources['main.html']);
+
+        // Create the shared title and page icon.
+        document.head.appendChild(document.createElement("title"));
+        var document_icon = document.head.appendChild(document.createElement("link"));
+        document_icon.setAttribute("rel", "icon");
+
+        helpers.add_clicks_to_search_history(document.body);
+         
         this.container = document.body;
 
         // Create the popup menu handler.
