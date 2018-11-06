@@ -24,7 +24,7 @@ class on_click_viewer
         this.original_width = 1;
         this.original_height = 1;
 
-        this.zoom_pos = [0.5, 0];
+        this.zoom_pos = [0, 0];
         this._zoom_level = helpers.get_value("zoom-level", 1);
 
         // Restore the most recent zoom mode.  We assume that there's only one of these on screen.
@@ -56,7 +56,7 @@ class on_click_viewer
             this.set_initial_image_position = true;
             this.set_image_position(
                     [this.img.parentNode.offsetWidth / 2, 0],
-                    [0.5, 0]);
+                    [this.width * 0.5, 0]);
         }
 
         this.reposition();
@@ -218,11 +218,11 @@ class on_click_viewer
         zoom_center[0] -= (screen_width - this.width) / 2;
         zoom_center[1] -= (screen_height - this.height) / 2;
 
-        // Scale from the current zoom level to 0-1.
+        // Scale from the current zoom level to the effective size.
         var zoom_level = this._effective_zoom_level;
-        zoom_center[0] /= this.width * zoom_level;
-        zoom_center[1] /= this.height * zoom_level;
-
+        zoom_center[0] /= zoom_level;
+        zoom_center[1] /= zoom_level;
+        
         return zoom_center;
     }
 
@@ -237,8 +237,8 @@ class on_click_viewer
         zoom_center = [zoom_center[0], zoom_center[1]];
 
         var zoom_level = this._effective_zoom_level;
-        zoom_center[0] *= this.width * zoom_level;
-        zoom_center[1] *= this.height * zoom_level;
+        zoom_center[0] *= zoom_level;
+        zoom_center[1] *= zoom_level;
 
         // make this relative to zoom_pos, since that's what we need to set it back to below
         var screen_width = this.img.parentNode.offsetWidth;
@@ -249,8 +249,7 @@ class on_click_viewer
         zoom_center[0] -= screen_pos[0];
         zoom_center[1] -= screen_pos[1];
 
-        this.zoom_pos[0] = -zoom_center[0];
-        this.zoom_pos[1] = -zoom_center[1];
+        this.zoom_pos = [-zoom_center[0], -zoom_center[1]];
 
         this.reposition();
     }
