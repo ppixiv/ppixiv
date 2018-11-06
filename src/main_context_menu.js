@@ -282,7 +282,7 @@ class main_context_menu extends popup_context_menu
         var keyboard = e instanceof KeyboardEvent;
         var pageX = keyboard? null:e.pageX;
         var pageY = keyboard? null:e.pageY;
-        let center = this._on_click_viewer.get_image_position(pageX, pageY);
+        let center = this._on_click_viewer.get_image_position([pageX, pageY]);
         
         // If mousewheel zooming is used while not zoomed, turn on zooming and set
         // a 1x zoom factor, so we zoom relative to the previously unzoomed image.
@@ -445,7 +445,7 @@ class main_context_menu extends popup_context_menu
         if(!this._is_zoom_ui_enabled)
             return;
         
-        let center = this._on_click_viewer.get_image_position(e.pageX, e.pageY);
+        let center = this._on_click_viewer.get_image_position([e.pageX, e.pageY]);
         this._on_click_viewer.locked_zoom = !this._on_click_viewer.locked_zoom;
         this._on_click_viewer.set_image_position([e.pageX, e.pageY], center);
 
@@ -469,7 +469,7 @@ class main_context_menu extends popup_context_menu
         }
 
 
-        let center = this._on_click_viewer.get_image_position(e.pageX, e.pageY);
+        let center = this._on_click_viewer.get_image_position([e.pageX, e.pageY]);
         
         // Each zoom button enables zoom lock, since otherwise changing the zoom level would
         // only have an effect when click-dragging, so it looks like the buttons don't do anything.
