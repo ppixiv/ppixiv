@@ -191,7 +191,7 @@ class on_click_viewer
         {
             var screen_width = this.img.parentNode.offsetWidth;
             var screen_height = this.img.parentNode.offsetHeight;
-            ratio = Math.max(screen_width/this._effective_width, screen_height/this._effective_height);
+            ratio = Math.max(screen_width/this.width, screen_height/this.height);
         }
 
         ratio *= this.relative_zoom_factor;
@@ -223,13 +223,13 @@ class on_click_viewer
         // Offset by the base screen position we're in when not zoomed (centered).
         var screen_width = this.img.parentNode.offsetWidth;
         var screen_height = this.img.parentNode.offsetHeight;
-        zoom_center[0] -= (screen_width - this._effective_width) / 2;
-        zoom_center[1] -= (screen_height - this._effective_height) / 2;
+        zoom_center[0] -= (screen_width - this.width) / 2;
+        zoom_center[1] -= (screen_height - this.height) / 2;
 
         // Scale from the current zoom level to 0-1.
         var zoom_level = this._effective_zoom_level;
-        zoom_center[0] /= this._effective_width * zoom_level;
-        zoom_center[1] /= this._effective_height * zoom_level;
+        zoom_center[0] /= this.width * zoom_level;
+        zoom_center[1] /= this.height * zoom_level;
 
         return zoom_center;
     }
@@ -251,14 +251,14 @@ class on_click_viewer
         zoom_center = [zoom_center[0], zoom_center[1]];
 
         var zoom_level = this._effective_zoom_level;
-        zoom_center[0] *= this._effective_width * zoom_level;
-        zoom_center[1] *= this._effective_height * zoom_level;
+        zoom_center[0] *= this.width * zoom_level;
+        zoom_center[1] *= this.height * zoom_level;
 
         // make this relative to zoom_pos, since that's what we need to set it back to below
         var screen_width = this.img.parentNode.offsetWidth;
         var screen_height = this.img.parentNode.offsetHeight;
-        zoom_center[0] += (screen_width - this._effective_width) / 2;
-        zoom_center[1] += (screen_height - this._effective_height) / 2;
+        zoom_center[0] += (screen_width - this.width) / 2;
+        zoom_center[1] += (screen_height - this.height) / 2;
 
         zoom_center[0] -= x;
         zoom_center[1] -= y;
@@ -388,14 +388,9 @@ class on_click_viewer
         return Math.min(screen_width/this.original_width, screen_height/this.original_height);
     }
     
-    get _effective_width()
-    {
-        return this.original_width * this._image_to_screen_ratio;
-    }
-    get _effective_height()
-    {
-        return this.original_height * this._image_to_screen_ratio;
-    }
+    // Return the width and height of the image when at 1x zoom.
+    get width() { return this.original_width * this._image_to_screen_ratio; }
+    get height() { return this.original_height * this._image_to_screen_ratio; }
 
     reposition()
     {
@@ -408,8 +403,8 @@ class on_click_viewer
 
         var screen_width = this.img.parentNode.offsetWidth;
         var screen_height = this.img.parentNode.offsetHeight;
-        var width = this._effective_width;
-        var height = this._effective_height;
+        var width = this.width;
+        var height = this.height;
 
         // If the dimensions are empty then we aren't loaded.  Stop now, so the math
         // below doesn't break.
