@@ -21,8 +21,8 @@ class on_click_viewer
         // dragging.
         this.clicked_without_scrolling = null;
 
-        this.width = 1;
-        this.height = 1;
+        this.original_width = 1;
+        this.original_height = 1;
 
         this.zoom_pos = [0.5, 0];
         this._zoom_level = helpers.get_value("zoom-level", 1);
@@ -42,8 +42,8 @@ class on_click_viewer
         }
 
         this.img = img;
-        this.width = width;
-        this.height = height;
+        this.original_width = width;
+        this.original_height = height;
 
         if(this.img == null)
             return;
@@ -385,16 +385,16 @@ class on_click_viewer
         if(screen_width == 0 || screen_height == 0)
             return 1;
 
-        return Math.min(screen_width/this.width, screen_height/this.height);
+        return Math.min(screen_width/this.original_width, screen_height/this.original_height);
     }
     
     get _effective_width()
     {
-        return this.width * this._image_to_screen_ratio;
+        return this.original_width * this._image_to_screen_ratio;
     }
     get _effective_height()
     {
-        return this.height * this._image_to_screen_ratio;
+        return this.original_height * this._image_to_screen_ratio;
     }
 
     reposition()
