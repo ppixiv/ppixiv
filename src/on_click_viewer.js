@@ -55,8 +55,7 @@ class on_click_viewer
         {
             this.set_initial_image_position = true;
             this.set_image_position(
-                    this.img.parentNode.offsetWidth / 2,
-                    0,
+                    [this.img.parentNode.offsetWidth / 2, 0],
                     [0.5, 0]);
         }
 
@@ -236,16 +235,10 @@ class on_click_viewer
 
     // Given a screen position and a point on the image, align the point to the screen
     // position.  This has no effect when we're not zoomed.
-    set_image_position(x, y, zoom_center)
+    set_image_position(screen_pos, zoom_center)
     {
         if(!this.zoom_active)
             return;
-
-        if(x == null)
-        {
-            x = this.img.parentNode.offsetWidth / 2;
-            y = this.img.parentNode.offsetHeight / 2;
-        }
 
         // This just does the inverse of get_image_position.
         zoom_center = [zoom_center[0], zoom_center[1]];
@@ -260,8 +253,8 @@ class on_click_viewer
         zoom_center[0] += (screen_width - this.width) / 2;
         zoom_center[1] += (screen_height - this.height) / 2;
 
-        zoom_center[0] -= x;
-        zoom_center[1] -= y;
+        zoom_center[0] -= screen_pos[0];
+        zoom_center[1] -= screen_pos[1];
 
         this.zoom_pos[0] = -zoom_center[0];
         this.zoom_pos[1] = -zoom_center[1];
@@ -296,7 +289,7 @@ class on_click_viewer
         // If this is a click-zoom, align the zoom to the point on the image that
         // was clicked.
         if(!this._locked_zoom)
-            this.set_image_position(e.pageX, e.pageY, zoom_center_percent);
+            this.set_image_position([e.pageX, e.pageY], zoom_center_percent);
 
         this.reposition();
 

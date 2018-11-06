@@ -307,7 +307,7 @@ class main_context_menu extends popup_context_menu
             this._on_click_viewer.locked_zoom = false;
         }
 
-        this._on_click_viewer.set_image_position(pageX, pageY, center);
+        this._on_click_viewer.set_image_position([pageX, pageY], center);
         this.refresh();
     }
 
@@ -447,7 +447,7 @@ class main_context_menu extends popup_context_menu
         
         let center = this._on_click_viewer.get_image_position(e.pageX, e.pageY);
         this._on_click_viewer.locked_zoom = !this._on_click_viewer.locked_zoom;
-        this._on_click_viewer.set_image_position(e.pageX, e.pageY, center);
+        this._on_click_viewer.set_image_position([e.pageX, e.pageY], center);
 
         this.refresh();
     }
@@ -477,7 +477,7 @@ class main_context_menu extends popup_context_menu
         this._on_click_viewer.locked_zoom = true;
         this._on_click_viewer.relative_zoom_level = 0;
 
-        this._on_click_viewer.set_image_position(e.pageX, e.pageY, center);
+        this._on_click_viewer.set_image_position([e.pageX, e.pageY], center);
         
         this.refresh();
     }
