@@ -1064,10 +1064,16 @@ var helpers = {
 
         for(var a of root.querySelectorAll("A[href*='jump.php']"))
         {
+            // These can either be /jump.php?url or /jump.php?url=url.
             var url = new URL(a.href);
-            var target = url.search.substr(1); // remove "?"
-            target = decodeURIComponent(target);
-            a.href = target;
+            if(url.searchParams.has("url"))
+                a.href = url.searchParams.get("url");
+            else
+            {
+                var target = url.search.substr(1); // remove "?"
+                target = decodeURIComponent(target);
+                a.href = target;
+            }
         }
     },
 
