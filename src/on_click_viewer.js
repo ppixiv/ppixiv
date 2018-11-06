@@ -322,7 +322,11 @@ class on_click_viewer
 
     stop_dragging()
     {
-        this.event_target.removeEventListener("pointermove", this.pointermove);
+        if(this.event_target != null)
+        {
+            this.event_target.removeEventListener("pointermove", this.pointermove);
+            this.event_target.style.cursor = "";
+        }
 
         if(this.captured_pointer_id != null)
         {
@@ -332,7 +336,6 @@ class on_click_viewer
         
         document.body.classList.remove("hide-ui");
         
-        this.event_target.style.cursor = "";
         this.zoomed = false;
         this.reposition();
         
