@@ -1435,6 +1435,23 @@ body.light .popup-context-menu .button-strip .button .tag-dropdown-arrow {
     border-top-color: #ccc;
 }
 
+.popup-context-menu .context-menu-image-info {
+    /* Bottom align within the row. */
+    align-self: flex-end;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: #000;
+    padding-right: 8px;
+}
+.popup-context-menu .context-menu-image-info > * {
+    background-color: var(--box-link-bg-color);
+    color: var(--box-link-fg-color);
+    padding: 2px 0 0px 0px;
+    font-size: .8em;
+    font-weight: bold;
+}
+
 .popup-bookmark-tag-dropdown {
     background-color: var(--frame-bg-color);
     color: var(--frame-fg-color);

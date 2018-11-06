@@ -7,6 +7,50 @@
 // for different parts of the UI to tell us when they're active.
 //
 // This also handles alt-mousewheel zooming.
+class context_menu_image_info_widget extends illust_widget
+{
+    context_menu_image_info_widget(container)
+    {
+        this.container = container;
+    }
+
+    set_illust_and_page(illust_id, page)
+    {
+        if(this._illust_id == illust_id && this._page == page)
+            return;
+
+        console.log("set xxx", illust_id, page);
+        this._illust_id = illust_id;
+        this._page = page;
+        this.refresh();
+    }
+
+    refresh_internal(illust_data)
+    {
+        this.container.hidden = (illust_data == null || this._page == null);
+        if(this.container.hidden)
+            return;
+
+        var set_info = (query, text) =>
+        {
+            var node = this.container.querySelector(query);
+            node.innerText = text;
+            node.hidden = text == "";
+        };
+        
+        // Add the page count for manga.
+        var page_text = "";
+        if(illust_data.pageCount > 1)
+            page_text = "Page " + (this._page+1) + "/" + illust_data.pageCount;
+        set_info(".page-count", page_text);
+
+        var info = "";
+        var page_info = illust_data.mangaPages[this._page];
+        info += page_info.width + "x" + page_info.height;
+        set_info(".image-info", info);
+    }
+}
+
 class main_context_menu extends popup_context_menu
 {
     // Return the singleton.
@@ -27,6 +71,7 @@ class main_context_menu extends popup_context_menu
         this.onkeydown = this.onkeydown.bind(this);
 
         this._on_click_viewer = null;
+        this._page = 0;
 
         // Refresh the menu when the view changes.
         this.mode_observer = new MutationObserver(function(mutationsList, observer) {
@@ -55,6 +100,7 @@ class main_context_menu extends popup_context_menu
         this.bookmark_tag_widget = new bookmark_tag_list_widget(this.menu.querySelector(".popup-bookmark-tag-dropdown-container"));
         this.toggle_tag_widget = new toggle_bookmark_tag_list_widget(this.menu.querySelector(".button-bookmark-tags"), this.bookmark_tag_widget);
         this.like_button = new like_button_widget(this.menu.querySelector(".button-like"));
+        this.image_info_widget = new context_menu_image_info_widget(this.menu.querySelector(".context-menu-image-info"));
 
         this.avatar_widget = new avatar_widget({
             parent: this.menu.querySelector(".avatar-widget-container"),
@@ -83,9 +129,22 @@ class main_context_menu extends popup_context_menu
             return this._illust_id;
     }
 
+    get effective_page()
+    {
+        if(this._clicked_page != null)
+            return this._clicked_page;
+        else
+            return this._page;
+    }
+    
     // When the effective illust ID changes, let our widgets know.
     _effective_illust_id_changed()
     {
+        // If we're not visible, don't refresh until we are, so we don't trigger
+        // data loads.
+        if(!this.visible)
+            return;
+
         var illust_id = this.effective_illust_id;
 
         this.like_button.illust_id = illust_id;
@@ -93,6 +152,8 @@ class main_context_menu extends popup_context_menu
         this.toggle_tag_widget.illust_id = illust_id;
         for(var button of this.bookmark_buttons)
             button.illust_id = illust_id;
+
+        this.image_info_widget.set_illust_and_page(this.effective_illust_id, this.effective_page);
     }
 
     set illust_id(value)
@@ -104,6 +165,15 @@ class main_context_menu extends popup_context_menu
         this._effective_illust_id_changed();
     }
 
+    set page(value)
+    {
+        if(this._page == value)
+            return;
+
+        this._page = value;
+        this._effective_illust_id_changed();
+    }
+    
     shutdown()
     {
         this.mode_observer.disconnect();
@@ -257,14 +327,17 @@ class main_context_menu extends popup_context_menu
 
             var illust_target = target.closest("[data-illust-id]");
             if(illust_target != null)
-                this._set_temporary_illust(illust_target.dataset.illustId);
+                this._set_temporary_illust(illust_target.dataset.illustId, illust_target.dataset.pageIdx);
         }
 
         super.show(x, y, target);
+
+        // Make sure we're up to date if we deferred an update while hidden.
+        this._effective_illust_id_changed();
     }
 
     // Set an alternative illust ID to show.  This is effective until the context menu is hidden.
-    async _set_temporary_illust(illust_id)
+    async _set_temporary_illust(illust_id, page)
     {
         // If this object is null or changed, we know we've been hidden since we
         // started this request.
@@ -279,7 +352,11 @@ class main_context_menu extends popup_context_menu
             return;
         this.load_illust_sentinel = null;
 
+        if(page != null)
+            page = parseInt(page);
+
         this._clicked_illust_info = illust_info;
+        this._clicked_page = page;
         this._effective_illust_id_changed();
     }
 
@@ -312,6 +389,7 @@ class main_context_menu extends popup_context_menu
         this.load_user_sentinel = null;
         this._clicked_user_info = null;
         this._clicked_illust_info = null;
+        this._clicked_page = null;
 
         // Even though we're hiding, update widgets so they don't show the last image's
         // bookmark count, etc. the next time we're displayed.

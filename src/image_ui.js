@@ -251,11 +251,16 @@ class image_ui
         set_info(".post-age", helpers.age_to_string(seconds_old) + " ago");
 
         var info = "";
-        if(this.displayed_width != null)
+
+        // Add the resolution and file type if available.
+        if(this.displayed_page != null && this.illust_data != null)
         {
-            // Add the resolution and file type if available.
-            info += this.displayed_width + "x" + this.displayed_height;
+            var page_info = this.illust_data.mangaPages[this.displayed_page];
+            page_info.width;
+        
+            info += page_info.width + "x" + page_info.height;
         }
+
         var ext = this.viewer? this.viewer.current_image_type:null;
         if(ext != null)
             info += " " + ext;
@@ -284,11 +289,9 @@ class image_ui
 
     // Set the resolution to display in image info.  If both are null, no resolution
     // is displayed.
-    set_displayed_page_info(page, width, height)
+    set_displayed_page_info(page)
     {
         this.displayed_page = page;
-        this.displayed_width = width;
-        this.displayed_height = height;
         this.refresh();
     }
 

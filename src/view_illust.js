@@ -371,15 +371,13 @@ class view_illust extends view
         if(!this._active)
             return;
         
-        // Tell the UI the image resolution.
-        var page = this.viewer != null && this.viewer.page;
-        var page_info = this.current_illust_data? this.current_illust_data.mangaPages[page]:null;
-        var width = page_info? page_info.width:null;
-        var height = page_info? page_info.height:null;
-        this.ui.set_displayed_page_info(page, width, height);
+        // Tell the UI which page is being viewed.
+        var page = this.viewer != null? this.viewer.page:0;
+        this.ui.set_displayed_page_info(page);
 
         // Tell the context menu which user is being viewed.
         main_context_menu.get.user_info = this.current_illust_data? this.current_illust_data.userInfo:null;
+        main_context_menu.get.page = page;
 
         // Pull out info about the user and illustration.
         var illust_id = this.current_illust_id;
