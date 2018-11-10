@@ -189,6 +189,10 @@ textarea:focus, input:focus, a:focus {
         Droid Sans, Helvetica Neue, Hiragino Kaku Gothic ProN, Meiryo, sans-serif;
 }
 
+.small-font {
+    font-size: 0.8em;
+}
+
 .hover-message {
     width: 100%;
     position: absolute;
