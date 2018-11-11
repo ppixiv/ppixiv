@@ -12,7 +12,7 @@ class viewer
     shutdown() { }
 
     set page(page) { }
-    get page() { return 1; }
+    get page() { return 0; }
 
     // Return the file type for display in the UI, eg. "PNG".
     get current_image_type() { return null; }
