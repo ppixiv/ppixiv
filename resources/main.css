@@ -1201,6 +1201,8 @@ input.search-tags {
 .input-dropdown > .input-dropdown-list > .entry > A.tag {
     color: #000;
     flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
     padding: 4px;
     padding-left: 7px;
 }
