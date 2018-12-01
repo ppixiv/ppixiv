@@ -252,6 +252,8 @@ ZipImagePlayer.prototype = {
     _loadImage: function(frame, url, isBlob) {
         var _this = this;
         var image = document.createElement("img");
+
+        // "can't access dead object"
         var meta = this.op.metadata.frames[frame];
         image.addEventListener('load', function() {
             _this._debugLog("Loaded " + meta.file + " to frame " + frame);
