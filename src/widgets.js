@@ -1319,6 +1319,18 @@ class bookmark_button_widget extends illust_widget
         if(this.bookmark_tag_widget && this.bookmark_tag_widget.visible)
             tag_list = this.bookmark_tag_widget.selected_tags;
 
+        // If we have a tag list dropdown, close it before saving the bookmark.
+        //
+        // When the tag list bookmark closes, it'll save the bookmark with its current tags
+        // if they're different, creating the bookmark if needed.  If we leave it open when
+        // we save, it's possible to click the private bookmark button in the context menu,
+        // then release the right mouse button to close the context menu before the bookmark
+        // finishes saving.  The tag list won't know that the bookmark is already being saved
+        // and will save.  This can cause private bookmarks to become public bookmarks.  Just
+        // tell the tag list to close without saving, since we're committing the tag list now.
+        if(this.bookmark_tag_widget)
+            this.bookmark_tag_widget.hide_without_sync();
+
         // If the image is bookmarked and the same privacy button was clicked, remove the bookmark.
         var illust_data = await image_data.singleton().get_image_info(this._illust_id);
         if(illust_data.bookmarkData && illust_data.bookmarkData.private == this.private_bookmark)
