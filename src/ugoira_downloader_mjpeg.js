@@ -38,8 +38,24 @@ ugoira_downloader_mjpeg.prototype.zip_finished_loading = function(progress)
     if(progress != null)
         return;
 
+    // Some posts have the wrong dimensions in illust_data (63162632).  If we use it, the resulting
+    // file won't play.  Decode the first image to find the real resolution.
+    var img = document.createElement("img");
+    var blob = new Blob([this.player.getFrameData(0)], {type: this.player.op.metadata.mime_type || "image/png"});
+    var first_frame_url = URL.createObjectURL(blob);
+    img.src = first_frame_url;
+
+    img.onload = (e) =>
+    {
+        URL.revokeObjectURL(first_frame_url);
+        this.continue_saving(img.naturalWidth, img.naturalHeight)
+    };
+}
+
+ugoira_downloader_mjpeg.prototype.continue_saving = function(width, height)
+{
     try {
-        var encoder = new encode_mkv(this.illust_data.width,this.illust_data.height);
+        var encoder = new encode_mkv(width, height);
         
         // Add each frame to the encoder.
         var frame_count = this.illust_data.ugoiraMetadata.frames.length;
