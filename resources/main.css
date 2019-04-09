@@ -737,7 +737,8 @@ body:not(.premium) .premium-only { display: none; }
     height: 26px;
 }
 
-.view-search-container .thumbnail-ui-box .twitter-icon {
+.view-search-container .thumbnail-ui-box .twitter-icon,
+.view-search-container .thumbnail-ui-box .pawoo-icon {
     display: block;
     width: 32px;
     height: 32px;

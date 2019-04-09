@@ -347,6 +347,13 @@ class view_search extends view
             twitter_link.dataset.popup = parts.length > 1? ("@" + parts[1]):"Twitter";
         }
 
+        // Set the pawoo link.
+        var pawoo_url = user_info && user_info.social && user_info.social.pawoo && user_info.social.pawoo.url;
+        var pawoo_link = this.container.querySelector(".pawoo-icon");
+        pawoo_link.hidden = pawoo_url == null;
+        if(pawoo_url != null)
+            pawoo_link.href = pawoo_url;
+
         // Set the "send a message" link.
         var contact_link = this.container.querySelector(".contact-link");
         contact_link.hidden = user_info == null;
