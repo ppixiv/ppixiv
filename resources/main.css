@@ -439,7 +439,7 @@ body:not(.hide-ui) .view-illust-container .ui-box.hovering-over-sphere {
 .follow-container:not(.followed) .follow-icon.following-icon {
     display: none;
 }
-/* Hide the follow buttons if we're alreay following. */
+/* Hide the follow buttons if we're already following. */
 .follow-container.followed .follow-icon.follow-button {
     display: none;
 }
@@ -451,6 +451,12 @@ body:not(.hide-ui) .view-illust-container .ui-box.hovering-over-sphere {
 /* If use-dropdown is set, this avatar is using the dropdown UI and doesn't show the
  * follow/unfollow overlay buttons. */
 .follow-container[data-mode="dropdown"] .follow-icon.follow-button {
+    display: none;
+}
+/* Don't show follow buttons or the follow popup for the user. */
+.follow-container.self .follow-icon,
+.follow-container.self .follow-popup
+{
     display: none;
 }
 

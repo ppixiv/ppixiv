@@ -432,10 +432,7 @@ class avatar_widget
         }
         this.root.hidden = false;
 
-        var is_us = user_data.userId == global_data.user_id;
-        this.root.hidden = is_us;
-        if(is_us)
-            return;
+        helpers.set_class(this.root, "self", user_data.userId == global_data.user_id);
 
         // We can't tell if we're followed privately or not, only that we're following.
         helpers.set_class(this.root, "followed", this.user_data.isFollowed);
