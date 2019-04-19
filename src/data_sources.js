@@ -1229,8 +1229,9 @@ class data_source_artist extends data_source
                 type == "illust"?"illusts":
                 "manga";
 
-            var url = "/ajax/user/" + this.viewing_user_id + "/" + type_for_url + "/tag/" + encodeURIComponent(tag);
+            var url = "/ajax/user/" + this.viewing_user_id + "/" + type_for_url + "/tag";
             var result = await helpers.get_request(url, {
+                tag: tag,
                 offset: (page-1)*48,
                 limit: 48,
             });
