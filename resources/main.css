@@ -622,6 +622,9 @@ body.light .description {
 }
 
 body:not(.premium) .premium-only { display: none; }
+body.hide-r18 .r18 { display: none; }
+body.hide-r18g .r18g { display: none; }
+
 .popup-menu-box {
     position: absolute;
     min-width: 10em;

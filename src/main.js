@@ -185,7 +185,7 @@ class main_controller
         var data = helpers.get_global_init_data(document);
         if(data != null)
         {
-            this.init_global_data(data.token, data.userData.id, data.premium && data.premium.popularSearch, data.mute);
+            this.init_global_data(data.token, data.userData.id, data.premium && data.premium.popularSearch, data.mute, data.userData.xRestrict);
 
             // If data is available, this is a newer page with globalInitData.
             // This can have one or more user and/or illust data, which we'll preload
@@ -210,7 +210,7 @@ class main_controller
                 document.documentElement.hidden = false;
                 return;
             }
-            this.init_global_data(pixiv.context.token, pixiv.user.id, pixiv.user.premium, pixiv.user.mutes);
+            this.init_global_data(pixiv.context.token, pixiv.user.id, pixiv.user.premium, pixiv.user.mutes, pixiv.user.explicit);
         }
 
         console.log("Starting");
@@ -633,7 +633,7 @@ class main_controller
         helpers.set_page_url(url, true /* add to history */, "navigation");
     }
 
-    init_global_data(csrf_token, user_id, premium, mutes)
+    init_global_data(csrf_token, user_id, premium, mutes, content_mode)
     {
         var muted_tags = [];
         var muted_user_ids = [];
@@ -651,11 +651,17 @@ class main_controller
             // Store the token for XHR requests.
             csrf_token: csrf_token,
             user_id: user_id,
+            include_r18: content_mode >= 1,
+            include_r18g: content_mode >= 2,
         };
 
         // Set the .premium class on body if this is a premium account, to display features
         // that only work with premium.
         helpers.set_class(document.body, "premium", premium);
+
+        // These are used to hide buttons that the user has disabled.
+        helpers.set_class(document.body, "hide-r18", !window.global_data.include_r18);
+        helpers.set_class(document.body, "hide-r18g", !window.global_data.include_r18g);
     };
 
     // Redirect keyboard events that didn't go into the active view.

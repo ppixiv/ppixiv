@@ -893,6 +893,7 @@ class data_source_rankings extends data_source
 
         this.set_item(container, "mode-daily", {mode: null}, {mode: "daily"});
         this.set_item(container, "mode-daily-r18", {mode: "daily_r18"});
+        this.set_item(container, "mode-r18g", {mode: "r18g"});
         this.set_item(container, "mode-weekly", {mode: "weekly"});
         this.set_item(container, "mode-monthly", {mode: "monthly"});
         this.set_item(container, "mode-rookie", {mode: "rookie"});
@@ -930,6 +931,7 @@ class data_source_rankings extends data_source
         var available_combinations = [
             "all/daily",
             "all/daily_r18",
+            "all/r18g",
             "all/weekly",
             "all/monthly",
             "all/rookie",
@@ -938,6 +940,7 @@ class data_source_rankings extends data_source
 
             "illust/daily",
             "illust/daily_r18",
+            "illust/r18g",
             "illust/weekly",
             "illust/monthly",
             "illust/rookie",
@@ -948,6 +951,7 @@ class data_source_rankings extends data_source
 
             "manga/daily",
             "manga/daily_r18",
+            "manga/r18g",
             "manga/weekly",
             "manga/monthly",
             "manga/rookie",
