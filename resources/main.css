@@ -1,4 +1,7 @@
 * { box-sizing: border-box; }
+html {
+    overflow: hidden;
+}
 body {
     font-family: "Helvetica Neue", arial, sans-serif;
 }
