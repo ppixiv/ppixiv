@@ -1187,7 +1187,11 @@ input.search-tags {
 .input-dropdown {
     width: 100%;
     margin: 1px;
+
+    /* This is used for the search tag dropdown, which is in a fixed position at the top of the
+     * screen.  Limit the height to the size of the window minus (roughly) its position. */
     max-height: 400px;
+    max-height: calc(100vh - 200px);
     overflow-x: hidden;
     overflow-y: auto;
     position: absolute;
