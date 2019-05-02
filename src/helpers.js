@@ -411,6 +411,14 @@ var helpers = {
             element.classList.remove(className);
     },
 
+    date_to_string: function(date)
+    {
+        var date = new Date(date);
+        var day = date.toLocaleDateString();
+        var time = date.toLocaleTimeString();
+        return day + " " + time;
+    },
+
     age_to_string: function(seconds)
     {
         var to_plural = function(label, places, value)
