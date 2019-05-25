@@ -230,6 +230,11 @@ class thumbnail_data
         var urls = [];
         for(var thumb_info of thumb_result)
         {
+            // Ignore entries with "isAdContainer".  These aren't search results at all and just contain
+            // stuff we're not interested in.
+            if(thumb_info.isAdContainer)
+                continue;
+
             if(source == "normal")
             {
                 // The data is already in the format we want.  Just check that all keys we

@@ -2102,7 +2102,11 @@ class data_source_search extends data_source_from_page
 
         var illust_ids = [];
         for(var illust of illusts)
-            illust_ids.push(illust.illustId);
+        {
+            // "isAdContainer" entries have no illustId.
+            if(illust.illustId != null)
+                illust_ids.push(illust.illustId);
+        }
 
         return illust_ids;
     }
