@@ -132,7 +132,12 @@ class view_search extends view
             label: "Hold shift to open context menu",
             setting: "invert-popup-hotkey",
         });
-       
+
+        new menu_option_toggle(settings_menu, {
+            label: "Bookmarking auto-likes",
+            setting: "auto-like",
+        });
+
         new menu_option_toggle(settings_menu, {
             label: "Disabled by default",
             setting: "disabled-by-default",
