@@ -29,6 +29,7 @@ class viewer_images extends viewer
         {
             this.images.push({
                 url: page.urls.original,
+                preview_url: page.urls.small,
                 width: page.width,
                 height: page.height,
             });
@@ -57,7 +58,9 @@ class viewer_images extends viewer
         }
 
         if(this.img.parentNode)
-            this.img.parentNode.removeChild(this.img);
+            this.img.remove();
+        if(this.preview_img)
+            this.preview_img.remove();
 
         main_context_menu.get.on_click_viewer = null;
     }
@@ -80,7 +83,7 @@ class viewer_images extends viewer
             return;
 
         // Create the new image and pass it to the viewer.
-        this._create_image(current_image.url, current_image.width, current_image.height);
+        this._create_image(current_image.url, current_image.preview_url, current_image.width, current_image.height);
         
         // Decode the next and previous image.  This reduces flicker when changing pages
         // since the image will already be decoded.
@@ -99,7 +102,7 @@ class viewer_images extends viewer
         }
     }
 
-    _create_image(url, width, height)
+    _create_image(url, preview_url, width, height)
     {
         if(this.img)
         {
@@ -107,12 +110,33 @@ class viewer_images extends viewer
             this.img = null;
         }
 
+        if(this.preview_img)
+        {
+            this.preview_img.remove();
+            this.preview_img = null;
+        }
+        
+        // If low-res previews are enabled, create it.  This loads the thumbnail underneath the
+        // main image.
+        if(!settings.get("disable-low-res-previews"))
+        {
+            this.preview_img = document.createElement("img");
+            this.preview_img.src = preview_url;
+            this.preview_img.className = "filtering";
+            if(!settings.get("no-low-res-preview-dim"))
+                this.preview_img.classList.add("low-res-preview");
+            // The secondary image holds the low-res preview image that's shown underneath the loading image.
+            // It just follows the main image around and shouldn't receive input events.
+            this.preview_img.style.pointerEvents = "none";
+            this.container.appendChild(this.preview_img);
+        }
+
         this.img = document.createElement("img");
         this.img.src = url;
         this.img.className = "filtering";
-
         this.container.appendChild(this.img);
-        this.on_click_viewer.set_new_image(this.img, width, height);
+
+        this.on_click_viewer.set_new_image(this.img, this.preview_img, width, height);
     }
 
     onkeydown(e)

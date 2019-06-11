@@ -262,8 +262,14 @@ class image_preloader
         }
 
         // Otherwise, preload the images.  Preload thumbs first, since they'll load
-        // much faster.
+        // much faster.  Only preload low-res images for image viewing if low res previews
+        // are enabled.
         var results = [];
+        if(!settings.get("disable-low-res-previews"))
+        {
+            for(var page of illust_data.mangaPages)
+                results.push(new _img_preloader(page.urls.small));
+        }
         for(var page of illust_data.mangaPages)
             results.push(new _img_preloader(page.urls.original));
 

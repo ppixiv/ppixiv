@@ -118,6 +118,10 @@ ul {
     -moz-user-select: none;
     cursor: pointer;
 }
+img.low-res-preview {
+    filter: brightness(80%);
+}
+
 [hidden] {
     display: none !important;
 }

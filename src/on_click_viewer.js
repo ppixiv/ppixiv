@@ -32,7 +32,7 @@ class on_click_viewer
         this._relative_zoom_level = helpers.get_value("zoom-level-relative") || 0;
     }
 
-    set_new_image(img, width, height)
+    set_new_image(img, secondary_img, width, height)
     {
         if(this.img != null)
         {
@@ -42,6 +42,7 @@ class on_click_viewer
         }
 
         this.img = img;
+        this.secondary_img = secondary_img;
         this.original_width = width;
         this.original_height = height;
 
@@ -443,6 +444,18 @@ class on_click_viewer
         this.img.style.top = top + "px";
         this.img.style.right = "auto";
         this.img.style.bottom = "auto";
+
+        // If we have a secondary (preview) image, put it in the same place as the main image.
+        if(this.secondary_img)
+        {
+            this.secondary_img.style.width = width + "px";
+            this.secondary_img.style.height = height + "px";
+            this.secondary_img.style.position = "absolute";
+            this.secondary_img.style.left = left + "px";
+            this.secondary_img.style.top = top + "px";
+            this.secondary_img.style.right = "auto";
+            this.secondary_img.style.bottom = "auto";
+        }
     }
 }
 
