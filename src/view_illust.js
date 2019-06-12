@@ -127,6 +127,11 @@ class view_illust extends view
         // Tell the preloader about the current image.
         image_preloader.singleton.set_current_image(illust_id);
 
+        var image_container = this.container.querySelector(".image-container");
+
+        // If possible, show the quick preview.
+        this.show_preview(illust_id);
+
         // Load info for this image if needed.
         var illust_data = await image_data.singleton().get_image_info(illust_id);
 
@@ -136,6 +141,10 @@ class view_illust extends view
             console.log("show_image: illust ID changed while async, stopping");
             return;
         }
+
+        // Remove the preview image, if any, since we're starting up the real viewer.  Note
+        // that viewer_illust will create an identical-looking preview once it starts.
+        this.hide_preview();
 
         // If manga_page is -1, we didn't know the page count when we did the navigation
         // and we want the last page.  Otherwise, just make sure the page is in range.
@@ -218,8 +227,6 @@ class view_illust extends view
         // previous image.
         this._hide_image = false;
 
-        var image_container = this.container.querySelector(".image-container");
-
         // Check if this image is muted.
         var muted_tag = muting.singleton.any_tag_muted(illust_data.tags.tags);
         var muted_user = muting.singleton.is_muted_user_id(illust_data.userId);
@@ -280,6 +287,83 @@ class view_illust extends view
         this.pending_navigation = null;
     }
 
+    // When loading an image, illust_viewer shows the search thumbnail while loading the main
+    // image.  However, we can only start illust_viewer once we have image info, which causes
+    // UI delays, even though we often already have enough info to show the preview image
+    // immediately.
+    //
+    // If we have thumbnail data for illust_id and it's a single image (we don't do this for
+    // manga), create a dummy image viewer to show it until we start the main viewer.  The
+    // image is already cached if we're coming from a search result, so this is often shown
+    // immediately.
+    //
+    // If this shows a preview image, the viewer will be removed.
+    //
+    // - this isn't generally needed for manga (if we're coming from the manga viewer then image
+    // info is already loaded and this is never visible)
+    // - if we have a way to go directly to the first page of a manga post from search, we could
+    // do this only if it's the first page (other pages won't match the thumb)
+    // - if we do that, make sure we don't if the viewer is already pointing at that image
+    show_preview(illust_id)
+    {
+        this.hide_preview();
+
+        // See if we already have thumbnail data loaded.
+        var illust_thumbnail_data = thumbnail_data.singleton().get_one_thumbnail_info(illust_id);
+        if(illust_thumbnail_data == null)
+            return;
+
+        // We only do this for single images and animations right now.
+        if(illust_thumbnail_data.pageCount != 1)
+            return;
+            
+        // Don't show the preview if this image is muted.
+        var muted_tag = muting.singleton.any_tag_muted(illust_thumbnail_data.tags);
+        var muted_user = muting.singleton.is_muted_user_id(illust_thumbnail_data.userId);
+        if(muted_tag || muted_user)
+            return;
+        
+        console.log("Show placeholder for:", illust_thumbnail_data);
+        this.preview_img = document.createElement("img");
+        this.preview_img.src = illust_thumbnail_data.url;
+        this.preview_img.classList.add("filtering");
+        this.preview_img.classList.add("low-res-preview");
+        
+        var preview_container = this.container.querySelector(".preview-container");
+        preview_container.appendChild(this.preview_img);
+        
+        this.preview_on_click_viewer = new on_click_viewer();
+        this.preview_on_click_viewer.set_new_image(this.preview_img, null, illust_thumbnail_data.width, illust_thumbnail_data.height);
+
+        // Don't actually allow zooming the preview, since it'll reset once it's replaced with the real
+        // viewer.  We just create the on_click_viewer to match the zoom with what the real image will
+        // have.
+        this.preview_on_click_viewer.disable();
+
+        // The preview is taking the place of the viewer until we create it, so remove any existing
+        // viewer.
+        if(this.viewer != null)
+        {
+            this.viewer.shutdown();
+            this.viewer = null;
+        }
+    }
+
+    // Remove our preview image.
+    hide_preview()
+    {
+        if(this.preview_on_click_viewer != null)
+        {
+            this.preview_on_click_viewer.disable();
+            this.preview_on_click_viewer = null;
+        }
+
+        if(this.preview_img != null)
+        {
+            this.preview_img.remove();
+            this.preview_img = null;
+        }
+    }
 
     // Stop displaying any image (and cancel any wanted navigation), putting us back
     // to where we were before displaying any images.
@@ -298,6 +382,8 @@ class view_illust extends view
         if(this.manga_thumbnails)
             this.manga_thumbnails.set_illust_info(null);
         
+        this.hide_preview();
+
         this.wanted_illust_id = null;
 
         // The manga page to show, or the last page if -1.

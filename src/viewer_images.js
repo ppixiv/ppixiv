@@ -116,25 +116,29 @@ class viewer_images extends viewer
             this.preview_img = null;
         }
         
-        // If low-res previews are enabled, create it.  This loads the thumbnail underneath the
-        // main image.
-        if(!settings.get("disable-low-res-previews"))
-        {
-            this.preview_img = document.createElement("img");
-            this.preview_img.src = preview_url;
-            this.preview_img.className = "filtering";
-            if(!settings.get("no-low-res-preview-dim"))
-                this.preview_img.classList.add("low-res-preview");
-            // The secondary image holds the low-res preview image that's shown underneath the loading image.
-            // It just follows the main image around and shouldn't receive input events.
-            this.preview_img.style.pointerEvents = "none";
-            this.container.appendChild(this.preview_img);
-        }
+        // Create the low-res preview.  This loads the thumbnail underneath the main image.  Don't set the
+        // "filtering" class, since using point sampling for the thumbnail doesn't make sense.
+        this.preview_img = document.createElement("img");
+        this.preview_img.src = preview_url;
+        this.preview_img.classList.add("low-res-preview");
+
+        // The secondary image holds the low-res preview image that's shown underneath the loading image.
+        // It just follows the main image around and shouldn't receive input events.
+        this.preview_img.style.pointerEvents = "none";
+        this.container.appendChild(this.preview_img);
 
         this.img = document.createElement("img");
         this.img.src = url;
         this.img.className = "filtering";
         this.container.appendChild(this.img);
+
+        // When the image finishes loading, remove the preview image, to prevent artifacts with
+        // transparent images.  Keep a reference to preview_img, so we don't need to worry about
+        // it changing.  on_click_viewer will still have a reference to it, but it won't do anything.
+        var preview_image = this.preview_img;
+        this.img.addEventListener("load", (e) => {
+            preview_image.remove();
+        });
 
         this.on_click_viewer.set_new_image(this.img, this.preview_img, width, height);
     }

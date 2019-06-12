@@ -265,11 +265,8 @@ class image_preloader
         // much faster.  Only preload low-res images for image viewing if low res previews
         // are enabled.
         var results = [];
-        if(!settings.get("disable-low-res-previews"))
-        {
-            for(var page of illust_data.mangaPages)
-                results.push(new _img_preloader(page.urls.small));
-        }
+        for(var page of illust_data.mangaPages)
+            results.push(new _img_preloader(page.urls.small));
         for(var page of illust_data.mangaPages)
             results.push(new _img_preloader(page.urls.original));
 

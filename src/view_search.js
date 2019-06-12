@@ -143,18 +143,6 @@ class view_search extends view
             setting: "disabled-by-default",
         });
 
-        new menu_option_toggle(settings_menu, {
-            label: "Load low res previews",
-            setting: "disable-low-res-previews",
-            invert_display: true,
-        });
-
-        new menu_option_toggle(settings_menu, {
-            label: "Dim low res previews",
-            setting: "no-low-res-preview-dim",
-            invert_display: true,
-        });
-         
         // Create the tag dropdown for the search page input.
         new tag_search_dropdown_widget(this.container.querySelector(".tag-search-box .search-tags"));
             

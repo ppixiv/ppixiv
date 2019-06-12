@@ -40,6 +40,11 @@ class viewer_ugoira extends viewer
         this.preview_img2.src = illust_data.urls.original;
         this.container.appendChild(this.preview_img2);
 
+        // Remove the low-res preview image when the high-res one finishes loading.
+        this.preview_img2.addEventListener("load", (e) => {
+            this.preview_img1.remove();
+        });
+        
         // Create a canvas to render into.
         this.canvas = document.createElement("canvas");
         this.canvas.hidden = true;
