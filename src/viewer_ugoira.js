@@ -19,13 +19,26 @@ class viewer_ugoira extends viewer
         this.seek_bar = seek_bar;
 
         // Create an image to display the static image while we load.
-        this.preview_img = document.createElement("img");
-        this.preview_img.className = "filtering";
-        this.preview_img.style.width = "100%";
-        this.preview_img.style.height = "100%";
-        this.preview_img.style.objectFit = "contain";
-        this.preview_img.src = illust_data.urls.original;
-        this.container.appendChild(this.preview_img);
+        //
+        // Like static image viewing, load the thumbnail, then the main image on top, since
+        // the thumbnail will often be visible immediately.
+        this.preview_img1 = document.createElement("img");
+        this.preview_img1.classList.add("low-res-preview");
+        this.preview_img1.style.position = "absolute";
+        this.preview_img1.style.width = "100%";
+        this.preview_img1.style.height = "100%";
+        this.preview_img1.style.objectFit = "contain";
+        this.preview_img1.src = illust_data.urls.small;
+        this.container.appendChild(this.preview_img1);
+
+        this.preview_img2 = document.createElement("img");
+        this.preview_img2.style.position = "absolute";
+        this.preview_img2.className = "filtering";
+        this.preview_img2.style.width = "100%";
+        this.preview_img2.style.height = "100%";
+        this.preview_img2.style.objectFit = "contain";
+        this.preview_img2.src = illust_data.urls.original;
+        this.container.appendChild(this.preview_img2);
 
         // Create a canvas to render into.
         this.canvas = document.createElement("canvas");
@@ -84,7 +97,8 @@ class viewer_ugoira extends viewer
     // flicker when the first frame is drawn.
     drew_frame()
     {
-        this.preview_img.hidden = true;
+        this.preview_img1.hidden = true;
+        this.preview_img2.hidden = true;
         this.canvas.hidden = false;
 
         if(this.seek_bar)
@@ -201,8 +215,9 @@ class viewer_ugoira extends viewer
 
         if(this.player)
             this.player.pause(); 
-        this.preview_img.parentNode.removeChild(this.preview_img);
-        this.canvas.parentNode.removeChild(this.canvas);
+        this.preview_img1.remove();
+        this.preview_img2.remove();
+        this.canvas.remove();
     }
 
     refresh_focus()
