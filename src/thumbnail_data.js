@@ -361,6 +361,13 @@ class thumbnail_data
             // Different APIs return different thumbnail URLs.
             remapped_thumb_info.url = remapped_thumb_info.url.replace(/\/240x240\//, "/540x540_70/");
             
+            // These fields are strings in some sources.  Switch them to ints.
+            for(let key of ["pageCount", "width", "height"])
+            {
+                if(remapped_thumb_info[key] != null)
+                    remapped_thumb_info[key] = parseInt(remapped_thumb_info[key]);
+            }
+
             thumb_info = remapped_thumb_info;
 
             // Store the data.
