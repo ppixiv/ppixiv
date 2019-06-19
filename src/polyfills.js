@@ -91,5 +91,14 @@ var install_polyfills = function()
             });
         }
     }
+
+    // Workaround for "Violentmonkey", which is missing exportFunction:
+    if(!("exportFunction" in window))
+    {
+        window.exportFunction = function(func)
+        {
+            return func;
+        };
+    }
 }
 

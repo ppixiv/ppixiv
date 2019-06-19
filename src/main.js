@@ -44,6 +44,10 @@ class early_controller
             window.addEventListener("DOMContentLoaded", stop_event, true);
         window.addEventListener("load", stop_event, true);
 
+        // Install polyfills.  Make sure we only do this if we're active, so we don't
+        // inject polyfills into Pixiv when we're not active.
+        install_polyfills();
+
         // Newer Pixiv pages run a bunch of stuff from deferred scripts, which install a bunch of
         // nastiness (like searching for installed polyfills--which we install--and adding wrappers
         // around them).  Break this by defining a webpackJsonp property that can't be set.  It
@@ -59,10 +63,6 @@ class early_controller
             unsafeWindow[key] = null;
             Object.defineProperty(unsafeWindow, key, { define: exportFunction(function(value) { }, unsafeWindow) });
         }
-        
-        // Install polyfills.  Make sure we only do this if we're active, so we don't
-        // inject polyfills into Pixiv when we're not active.
-        install_polyfills();
 
         // Try to prevent site scripts from running, since we don't need any of it.
         if(navigator.userAgent.indexOf("Firefox") != -1)
