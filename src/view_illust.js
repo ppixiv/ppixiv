@@ -111,7 +111,7 @@ class view_illust extends view
         this.wanted_illust_page = manga_page;
 
         // If this image is already loaded, just make sure it's not hidden.
-        if(illust_id == this.current_illust_id && this.wanted_illust_page == this.viewer.page && !this._hide_image)
+        if(illust_id == this.current_illust_id && this.viewer != null && this.wanted_illust_page == this.viewer.page && !this._hide_image)
         {
             console.log("illust_id", illust_id, "page", this.wanted_illust_page, "already displayed");
             return;
