@@ -193,7 +193,7 @@ class image_preloader
                 // again for a while.  We do this even on error, so we don't try to load
                 // failing images repeatedly.
                 this.recently_preloaded_urls.push(preload.url);
-                this.recently_preloaded_urls.splice(1000);
+                this.recently_preloaded_urls.splice(0, this.recently_preloaded_urls.length - 1000);
 
                 // When the preload finishes (successful or not), remove it from the list.
                 var idx = this.preloads.indexOf(preload);
