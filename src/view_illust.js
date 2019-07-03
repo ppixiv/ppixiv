@@ -326,6 +326,7 @@ class view_illust extends view
         console.log("Show placeholder for:", illust_thumbnail_data);
         this.preview_img = document.createElement("img");
         this.preview_img.src = illust_thumbnail_data.url;
+        this.preview_img.style.pointerEvents = "none";
         this.preview_img.classList.add("filtering");
         this.preview_img.classList.add("low-res-preview");
         
