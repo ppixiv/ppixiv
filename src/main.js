@@ -614,13 +614,16 @@ class main_controller
 
         // Search links to images always go to the member_illust page, but if they're
         // clicked in-page we want to stay on the same search and just show the image,
-        // so handle them directly.
-        if(a.dataset.illustId != null)
+        // so handle them directly.  Only do this for member_illust?illust_id links (images),
+        // not member_illust?id links (users).
+        var url = new unsafeWindow.URL(url);
+        if(url.pathname == "/member_illust.php" && url.searchParams.get("illust_id") != null)
         {
+            var illust_id = url.searchParams.get("illust_id");
             var args = helpers.get_args(a.href);
             var page = args.hash.has("page")? parseInt(args.hash.get("page"))-1: null;
             var view = args.hash.has("view")? args.hash.get("view"):"illust";
-            this.show_illust(a.dataset.illustId, {
+            this.show_illust(illust_id, {
                 view: view,
                 manga_page: page,
                 add_to_history: true

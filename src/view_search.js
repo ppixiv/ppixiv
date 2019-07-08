@@ -79,6 +79,10 @@ class view_search extends view
             if(e.button != 0)
                 return;
 
+            // Don't do this when viewing followed users, since we'll be loading the user rather than the post.
+            if(this.data_source && this.data_source.search_mode == "users")
+                return;
+
             var a = e.target.closest("a.thumbnail-link");
             if(a == null)
                 return;
@@ -245,6 +249,18 @@ class view_search extends view
             this.data_source.thumbnail_view_scroll_pos = this.container.scrollTop;
         }
 
+        // If the search mode is changing (eg. we're going from a list of illustrations to a list
+        // of users), remove thumbs so we recreate them.  Otherwise, refresh_images will reuse them
+        // and they can be left on the wrong display type.
+        var old_search_mode = this.data_source? this.data_source.search_mode:"";
+        var new_search_mode = data_source? data_source.search_mode:"";
+        if(old_search_mode != new_search_mode)
+        {
+            var ul = this.container.querySelector("ul.thumbnails");
+            while(ul.firstElementChild != null)
+                ul.firstElementChild.remove();
+        }
+
         this.data_source = data_source;
 
         if(this.data_source == null)
@@ -331,6 +347,16 @@ class view_search extends view
             var bookmarks_url = "/bookmark.php?id=" + user_info.userId + "&rest=show#ppixiv";
             bookmarks_link.href = bookmarks_url;
             bookmarks_link.dataset.popup = user_info? ("View " + user_info.name + "'s bookmarks"):"View bookmarks";
+        }
+
+        // Set the following link.
+        var following_link = this.container.querySelector(".following-link");
+        following_link.hidden = user_info == null;
+        if(user_info != null)
+        {
+            var following_url = "/bookmark.php?id=" + user_info.userId + "&type=user#ppixiv";
+            following_link.href = following_url;
+            following_link.dataset.popup = user_info? ("View " + user_info.name + "'s followed users"):"View following";
         }
 
         // Set the webpage link.
@@ -672,6 +698,7 @@ class view_search extends view
             var info = thumbnail_data.singleton().get_one_thumbnail_info(illust_id);
             if(info == null)
                 continue;
+            var search_mode = this.data_source.search_mode;
 
             // Set this thumb.
             var url = info.url;
@@ -712,21 +739,33 @@ class view_search extends view
 
             // Set the link.  Setting dataset.illustId will allow this to be handled with in-page
             // navigation, and the href will allow middle click, etc. to work normally.
+            //
+            // If we're on the followed users page, set these to the artist page instead.
             var link = element.querySelector("a.thumbnail-link");
-            link.href = "/member_illust.php?mode=medium&illust_id=" + illust_id + "#ppixiv";
-            if(info.pageCount > 1)
-                link.href += "?view=manga";
+            if(search_mode == "illusts")
+            {
+                link.href = "/member_illust.php?mode=medium&illust_id=" + illust_id + "#ppixiv";
+                if(info.pageCount > 1)
+                    link.href += "?view=manga";
+            } else if(search_mode == "users") {
+                link.href = "/member_illust.php?id=" + info.userId + "#ppixiv";
+            }
 
             link.dataset.illustId = illust_id;
             link.dataset.userId = info.userId;
 
-            if(info.illustType == 2)
-                element.querySelector(".ugoira-icon").hidden = false;
-
-            if(info.pageCount > 1)
+            // Don't show this UI when we're in the followed users view.
+            if(search_mode == "illusts")
             {
-                element.querySelector(".page-count-box").hidden = false;
-                element.querySelector(".page-count-box .page-count").textContent = info.pageCount;
+                if(info.illustType == 2)
+                    element.querySelector(".ugoira-icon").hidden = false;
+
+                if(info.pageCount > 1)
+                {
+                    element.querySelector(".page-count-box").hidden = false;
+                    element.querySelector(".page-count-box .page-count").textContent = info.pageCount;
+                }
+
             }
 
             helpers.set_class(element, "dot", helpers.tags_contain_dot(info));
@@ -734,10 +773,14 @@ class view_search extends view
 
             this.refresh_bookmark_icon(element);
 
-            // Set the label.
+            // Set the label.  This is only actually shown in following views.
             var label = element.querySelector(".thumbnail-label");
-            // label.hidden = false;
-            label.querySelector(".label").innerText = info.userName + ": " + info.title;
+            if(search_mode == "users") {
+                label.hidden = false;
+                label.querySelector(".label").innerText = info.userName;
+            } else {
+                label.hidden = true;
+            }
         }        
     }
 
@@ -757,6 +800,9 @@ class view_search extends view
     // or un-bookmarks an image.
     refresh_bookmark_icon(thumbnail_element)
     {
+        if(this.data_source && this.data_source.search_mode == "users")
+            return;
+
         var illust_id = thumbnail_element.dataset.illust_id;
         if(illust_id == null)
             return;
@@ -850,6 +896,7 @@ class view_search extends view
 
         if(illust_id != null)
             entry.dataset.illust_id = illust_id;
+
         entry.dataset.page = page;
         return entry;
     }

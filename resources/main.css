@@ -741,8 +741,14 @@ body.hide-r18g .r18g { display: none; }
     padding-bottom: 4px;
 }
 
-.view-search-container .thumbnail-ui-box .bookmarks-link {
+.view-search-container .thumbnail-ui-box .bookmarks-link,
+.view-search-container .thumbnail-ui-box .following-link {
     display: block;
+}
+
+.view-search-container .thumbnail-ui-box .following-link {
+    width: 32px;
+    height: 32px;
 }
 
 .view-search-container .thumbnail-ui-box .contact-link {
@@ -897,28 +903,26 @@ li.thumbnail-box a.thumbnail-link {
 /* The popup title below thumbs: */
 .thumbnail-inner > .thumbnail-label {
     position: absolute;
+    bottom: 3px;
     pointer-events: none;
-    visibility: hidden;
-    height: 25px;
     white-space: nowrap;
-    width: 100%;
-    padding-top: 4px;
-}
-
-.thumbnail-inner > .thumbnail-label > div {
     color: var(--frame-fg-color);
     background-color: var(--frame-bg-color);
     left: 50%;
     position: absolute;
     transform: translate(-50%, 0);
-    padding: 0 10px;
-    max-width: 400px;
+    padding: 1px 8px;
+
+    /* Max width fills the thumbnail the label is in, minus some space so we don't overlap bottom-left icons. */
+    max-width: calc(100% - 50px);
     overflow: hidden;
     border-radius: 2px;
     text-overflow: ellipsis;
 }
-.thumbnail-inner:hover .thumbnail-label {
-    visibility: visible;
+.thumbnail-inner .thumbnail-label > .label {
+    /* Specify a line-height explicitly, so vertical centering is reasonably consistent for
+     * both EN and JP text. */
+    line-height: 19px;
 }
 
 /* Hide the img while it's pending so we don't show a broken image icon. */

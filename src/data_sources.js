@@ -249,6 +249,9 @@ class data_source
     // the thumbnail view with that name.
     get name() { return null; }
     
+    // Most data sources are for illustrations.  This is set to "users" for the followed view.
+    get search_mode() { return "illusts"; }
+
     // Return a canonical URL for this data source.  If the canonical URL is the same,
     // the same instance of the data source should be used.
     //
@@ -2237,5 +2240,127 @@ class data_source_search extends data_source_from_page
             url.searchParams.set("word", tag);
         box.href = url;
      }
- };
+};
+
+class data_source_follows extends data_source
+{
+    get name() { return "following"; }
+    get search_mode() { return "users"; }
+  
+    constructor(url)
+    {
+        super(url);
+    }
+
+    get viewing_user_id()
+    {
+        var query_args = this.url.searchParams;
+        let user_id = query_args.get("id");
+        if(user_id == null)
+            return window.global_data.user_id;
+        
+        return user_id;
+    };
+
+    async load_page_internal(page)
+    {
+        // Make sure the user info is loaded.  This should normally be preloaded by globalInitData
+        // in main.js, and this won't make a request.
+        this.user_info = await image_data.singleton().get_user_info_full(this.viewing_user_id);
+
+        // Update to refresh our page title, which uses user_info.
+        this.call_update_listeners();
+
+        var query_args = this.url.searchParams;
+        var rest = query_args.get("rest") || "show";
+
+        var url = "/ajax/user/" + this.viewing_user_id + "/following";
+        var result = await helpers.get_request(url, {
+            offset: 20*(page-1),
+            limit: 20,
+            rest: rest,
+        });
+
+        // Make a list of the first illustration for each user.
+        var illusts = [];
+        for(let followed_user of result.body.users)
+        {
+            if(followed_user == null)
+                continue;
+
+            if(!followed_user.illusts.length)
+            {
+                console.log("Can't show followed user that has no posts:", followed_user.userId);
+                continue;
+            }
+
+            let illust = followed_user.illusts[0];
+            illusts.push(illust);
+
+            // We'll register this with thumbnail_data below.  These results don't have profileImageUrl
+            // and only put it in the enclosing user, so copy it over.
+            illust.profileImageUrl = followed_user.profileImageUrl;
+        }
+
+        var illust_ids = [];
+        for(let illust of illusts)
+            illust_ids.push(illust.id);
+        console.log(illust_ids);
+        
+        // This request returns all of the thumbnail data we need.  Forward it to
+        // thumbnail_data so we don't need to look it up.
+        thumbnail_data.singleton().loaded_thumbnail_info(illusts, "normal");
+
+        // Register the new page of data.
+        this.add_page(page, illust_ids);
+    }
+
+    refresh_thumbnail_ui(container, thumbnail_view)
+    {
+        if(this.user_info)
+        {
+            thumbnail_view.avatar_widget.set_from_user_data(this.user_info);
+        }
+
+        // The public/private button only makes sense when viewing your own follows.
+        var public_private_button_container = container.querySelector(".follows-public-private");
+        public_private_button_container.hidden = !this.viewing_self;
+
+        this.set_item(container, "public-follows", {rest: "show"}, {rest: "show"});
+        this.set_item(container, "private-follows", {rest: "hide"}, {rest: "show"});
+    }
+
+    get viewing_self()
+    {
+        return this.viewing_user_id == window.global_data.user_id;
+    }
+
+    get page_title()
+    {
+        if(!this.viewing_self)
+        {
+            if(this.user_info)
+                return this.user_info.name + "'s Follows";
+            return "User's follows";
+        }
+
+        var query_args = this.url.searchParams;
+        var private_follows = query_args.get("rest") == "hide";
+        return private_follows? "Private follows":"Followed users";
+    };
+
+    get_displaying_text()
+    {
+        if(!this.viewing_self)
+        {
+            if(this.user_info)
+                return this.user_info.name + "'s followed users";
+            return "User's followed users";
+        }
+
+        var query_args = this.url.searchParams;
+        var private_follows = query_args.get("rest") == "hide";
+        return private_follows? "Private follows":"Followed users";
+    };
+}
 

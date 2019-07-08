@@ -46,7 +46,7 @@
             <div style="flex: 1;"></div>
 
             <div class=thumbnail-ui-box data-context-menu-target=off>
-                <div class="data-source-specific avatar-container" data-datasource="artist illust bookmarks"></div>
+                <div class="data-source-specific avatar-container" data-datasource="artist illust bookmarks following"></div>
                 <a href=# class="data-source-specific image-for-suggestions" data-datasource=related-illusts>
                     <!-- A blank image, so we don't load anything: -->
                     <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==">
@@ -63,6 +63,7 @@
                             </svg>
                         </a>
                     </div>
+
                     <div>
                         <a href=# rel=noreferrer class="twitter-icon grey-icon popup popup-bottom" data-popup="Twitter" hidden>
                             <svg viewBox="0 0 32 32" style="fill: currentColor;">
@@ -88,6 +89,13 @@
                             </svg>
                         </a>
                     </div>
+
+                    <div>
+                        <a href=# rel=noreferrer class="following-link grey-icon popup popup-bottom" data-popup="Follows" hidden>
+                            ### inline:followed-users-eye.svg
+                        </a>
+                    </div>
+
                     <div>
                         <a class="contact-link grey-icon popup popup-bottom" href=# rel=noreferrer data-popup="Send a message" hidden>
                             <svg viewBox="0 0 114 114" stroke="currentColor">
@@ -118,6 +126,12 @@
                                     <a class="box-link small-font" href="/bookmark.php?p=1#ppixiv">all</a>
                                     <a class="box-link small-font" href="/bookmark.php?p=1#ppixiv?show-all=0">public</a>
                                     <a class="box-link small-font" href="/bookmark.php?p=1&rest=hide#ppixiv?show-all=0">private</a>
+                                </div>
+                                <div style="display: flex; flex-direction: row; align-items: baseline;">
+                                    <a class=box-link href="/bookmark.php?type=user#ppixiv">Followed users</a>
+                                    <div style="flex: 1;"></div>
+                                    <a class="box-link small-font" href="/bookmark.php?type=user#ppixiv?show-all=0">public</a>
+                                    <a class="box-link small-font" href="/bookmark.php?type=user&rest=hide#ppixiv?show-all=0">private</a>
                                 </div>
                                 <a class=box-link href="/discovery#ppixiv">Recommended works</a>
                                 <a class=box-link href="/ranking.php#ppixiv">Rankings</a>
@@ -205,6 +219,13 @@
                     </div>
                 </div>                
 
+                <div class="data-source-specific" data-datasource=following>
+                    <div class=follows-public-private>
+                        <a class="box-link popup" data-type=public-follows data-popup="Show publically followed users" href=#>Public</a>
+                        <a class="box-link popup" data-type=private-follows data-popup="Show privately followed users" href=#>Private</a>
+                    </div>
+                </div>                
+                
                 <div class="data-source-specific" data-datasource="bookmarks bookmarks_new_illust">
                     <div class=bookmark-tag-selection>
                         <span>Bookmark tags:</span>
@@ -397,9 +418,7 @@
                         <img class=thumb>
                     </a>
 
-                    <div class="thumbnail-label" hidden>
-                        <div class=label></div>
-                    </div>
+                    <div class="thumbnail-label" hidden><span class=label></span></div>
                     <div class=thumbnail-bottom-left>
                         <div class="heart button-bookmark public bookmarked" hidden>
                             ### inline:heart-icon.svg

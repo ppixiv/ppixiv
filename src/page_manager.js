@@ -81,6 +81,8 @@ class page_manager
             var both_public_and_private = viewing_own_bookmarks && hash_args.get("show-all") != "0";
             return both_public_and_private? data_source_bookmarks_merged:data_source_bookmarks;
         }
+        else if(url.pathname == "/bookmark.php" && url.searchParams.get("type") == "user")
+            return data_source_follows;
         else if(url.pathname == "/new_illust.php" || url.pathname == "/new_illust_r18.php")
             return data_source_new_illust;
         else if(url.pathname == "/bookmark_new_illust.php")
