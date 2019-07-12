@@ -1120,7 +1120,6 @@ class data_source_from_page extends data_source
             // which means we want to re-request pages when they're viewed next.  Clear original_doc,
             // or we won't actually do that for page 1.
             this.original_doc = null;
-            this.original_url = null;
         }
     }
 
