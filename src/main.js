@@ -202,7 +202,7 @@ class main_controller
         {
             // If that's not available, this should be an older page with the "pixiv" object.
             var pixiv = helpers.get_pixiv_data(document);
-            if(pixiv == null)
+            if(pixiv == null || pixiv.user == null || pixiv.user.id == null)
             {
                 // If we can't find either, either we're on a page we don't understand or we're
                 // not logged in.  Stop and let the page run normally.
