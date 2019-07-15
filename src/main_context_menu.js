@@ -9,17 +9,11 @@
 // This also handles alt-mousewheel zooming.
 class context_menu_image_info_widget extends illust_widget
 {
-    context_menu_image_info_widget(container)
-    {
-        this.container = container;
-    }
-
     set_illust_and_page(illust_id, page)
     {
         if(this._illust_id == illust_id && this._page == page)
             return;
 
-        console.log("set xxx", illust_id, page);
         this._illust_id = illust_id;
         this._page = page;
         this.refresh();
