@@ -707,8 +707,7 @@ body.hide-r18g .r18g { display: none; }
     color: #fff;
 }
 
-.view-search-container .thumbnail-ui,
-.view-manga-container .ui
+.top-ui-box
 {
     /* This places the thumbnail UI at the top, so the thumbnails sit below it when
      * scrolled all the way up, and scroll underneath it. */
@@ -719,9 +718,55 @@ body.hide-r18g .r18g { display: none; }
     flex-direction: row;
     align-items: center;
     padding-top: 1em;
-    margin-bottom: .5em;
+    padding-bottom: .5em;
     z-index: 1;
+
+    /* Prevent the empty space around the UI for centering from eating button presses. */
     pointer-events: none;
+}
+
+/* If .ui-on-hover is set, switch to showing the top UI when it's hovered instead of sticky. */
+body.ui-on-hover .top-ui-box
+{
+    position: fixed;
+    top: auto;
+    bottom: 100%;
+    transition: transform ease-out .2s;
+
+    /* Normally pointer-events is disabled above, so the sides of the UI box don't cover clicks.
+     * However, that also makes the hover not include the top padding above the UI, causing it
+     * to flicker on and off when the mouse is in that area.  This is tricky to fix nicely, so just
+     * stop disabling pointer-events when ui-on-hover is enabled. */
+    pointer-events: auto;
+}
+
+/* This is used to temporarily disable the transition when the ui-on-hover setting is
+ * changed in the options menu. */
+body.ui-on-hover .top-ui-box.disable-transition
+{
+    transition: none;
+}
+
+/* .force-open is set to lock the UI in place when a menu is open.  It has the same
+ * effect as a hover. */
+body.ui-on-hover .top-ui-box.hover,
+body.ui-on-hover .top-ui-box.force-open
+{
+    transform: translateY(100%);
+}
+
+body.ui-on-hover .top-ui-box:not(.hover):not(.force-open)
+{
+    /* This is the amount the UI pokes on-screen when not hovered. */
+    transform: translateY(40px);
+}
+
+/* When ui-on-hover is disabled we get spacing at the top of the thumbs automatically from
+ * position: sticky, but ui-on-hover is position: fixed and we don't get that, so we have
+ * to add padding manually. */
+body.ui-on-hover .top-ui-box + .top-ui-box-padding
+{
+    height: 30px;
 }
 
 .view-search-container .thumbnail-ui-box {

@@ -249,6 +249,12 @@ class dropdown_menu_opener
 
             this.box.removeEventListener("click", this.box_onclick, true);
         }
+
+        // If we're inside a .top-ui-box container (the UI that sits at the top of the screen), set
+        // .force-open on that element while we're open.
+        let top_ui_box = this.box.closest(".top-ui-box");
+        if(top_ui_box)
+            helpers.set_class(top_ui_box, "force-open", value);
     }
 
     // Return true if this popup should close when clicking inside it.  If false,

@@ -147,12 +147,28 @@ class view_search extends view
             setting: "disabled-by-default",
         });
 
+        new menu_option_toggle(settings_menu, {
+            label: "Hover to show UI",
+            setting: "ui-on-hover",
+            onchange: this.update_from_settings,
+        });
+         
         // Create the tag dropdown for the search page input.
         new tag_search_dropdown_widget(this.container.querySelector(".tag-search-box .search-tags"));
             
         // Create the tag dropdown for the search input in the menu dropdown.
         new tag_search_dropdown_widget(this.container.querySelector(".navigation-search-box .search-tags"));
 
+        /*
+         * Add a slight delay before hiding the UI.  This allows opening the UI by swiping past the top
+         * of the window, without it disappearing as soon as the mouse leaves the window.  This doesn't
+         * affect opening the UI.
+         *
+         * We're actually handling the manga UI's top-ui-box here too.
+         */
+        for(let box of document.querySelectorAll(".top-ui-box"))
+            new hover_with_delay(box, 0, 0.25);
+        
         this.update_from_settings();
         this.refresh_images();
         this.load_needed_thumb_data();
@@ -671,6 +687,15 @@ class view_search extends view
         helpers.set_class(document.body, "light", settings.get("theme") == "light");
         helpers.set_class(document.body, "disable-thumbnail-panning", settings.get("disable_thumbnail_panning"));
         helpers.set_class(document.body, "disable-thumbnail-zooming", settings.get("disable_thumbnail_zooming"));
+        helpers.set_class(document.body, "ui-on-hover", settings.get("ui-on-hover"));
+
+        // Flush the top UI transition, so it doesn't animate weirdly when toggling ui-on-hover.
+        for(let box of document.querySelectorAll(".top-ui-box"))
+        {
+            box.classList.add("disable-transition");
+            box.offsetHeight;
+            box.classList.remove("disable-transition");
+        }
     }
 
     // Set the URL for all loaded thumbnails that are onscreen.
