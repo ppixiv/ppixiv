@@ -823,6 +823,8 @@ var helpers = {
 
                 "headers": {
                     "Cache-Control": "max-age=360000",
+                    "Referer": "https://www.pixiv.net/",
+                    "Origin": "https://www.pixiv.net/",
                 },
 
                 onload: function(result) {
