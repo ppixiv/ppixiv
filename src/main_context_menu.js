@@ -85,7 +85,13 @@ class main_context_menu extends popup_context_menu
         this.menu.querySelector(".button-return-to-search").addEventListener("click", this.clicked_return_to_search.bind(this));
         this.menu.querySelector(".button-fullscreen").addEventListener("click", this.clicked_fullscreen.bind(this));
         this.menu.querySelector(".button-zoom").addEventListener("click", this.clicked_zoom_toggle.bind(this));
-        window.addEventListener("wheel", this.onwheel, true);
+        window.addEventListener("wheel", this.onwheel, {
+            capture: true,
+
+            // Work around Chrome intentionally breaking event listeners.  Remember when browsers
+            // actually made an effort to not break things?
+            passive: false,
+        });
         window.addEventListener("keydown", this.onkeydown);
 
         for(var button of this.menu.querySelectorAll(".button-zoom-level"))

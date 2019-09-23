@@ -146,7 +146,7 @@ class thumbnail_size_slider_widget extends menu_option_slider
         this.onkeydown = this.onkeydown.bind(this);
 
         var view = this.container.closest(".view");
-        view.addEventListener("wheel", this.onwheel);
+        view.addEventListener("wheel", this.onwheel, { passive: false });
         view.addEventListener("keydown", this.onkeydown);
 
         this.refresh();

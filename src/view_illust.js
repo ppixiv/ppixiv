@@ -46,7 +46,7 @@ class view_illust extends view
 
         // this.manga_thumbnails = new manga_thumbnail_widget(this.container.querySelector(".manga-thumbnail-container"));
 
-        this.container.addEventListener("wheel", this.onwheel);
+        this.container.addEventListener("wheel", this.onwheel, { passive: false });
 
         // A bar showing how far along in an image sequence we are:
         this.manga_page_bar = new progress_bar(this.container.querySelector(".ui-box")).controller();

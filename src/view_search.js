@@ -21,7 +21,7 @@ class view_search extends view
         window.addEventListener("thumbnailsLoaded", this.thumbs_loaded);
         window.addEventListener("resize", this.window_onresize);
 
-        this.container.addEventListener("wheel", this.onwheel);
+        this.container.addEventListener("wheel", this.onwheel, { passive: false });
 //        this.container.addEventListener("mousemove", this.onmousemove);
 
         this.container.addEventListener("scroll", this.onscroll);
