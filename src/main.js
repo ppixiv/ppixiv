@@ -497,7 +497,7 @@ class main_controller
         var args = helpers.get_args(document.location);
 
         this._set_active_view_in_url(args.hash, view);
-        this.data_source.set_current_illust_id(illust_id, args.query, args.hash);
+        this.data_source.set_current_illust_id(illust_id, args);
 
         // Remove any leftover page from the current illust.  We'll load the default.
         if(manga_page == null)

@@ -769,7 +769,7 @@ class view_search extends view
             var link = element.querySelector("a.thumbnail-link");
             if(search_mode == "illusts")
             {
-                link.href = "/member_illust.php?mode=medium&illust_id=" + illust_id + "#ppixiv";
+                link.href = "/artworks/" + illust_id + "#ppixiv";
                 if(info.pageCount > 1)
                     link.href += "?view=manga";
             } else if(search_mode == "users") {

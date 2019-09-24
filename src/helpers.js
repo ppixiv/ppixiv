@@ -1087,6 +1087,19 @@ var helpers = {
         }
     },
 
+    // Some of Pixiv's URLs have languages prefixed and some don't.  Ignore these and remove
+    // them to make them simpler to parse.
+    get_url_without_language: function(url)
+    {
+        if(url == null)
+            url = new URL(document.location);
+
+        if(/\/..\//.exec(url.pathname))
+            url.pathname = url.pathname.substr(3);
+        
+        return url;
+    },
+    
     set_page_title: function(title)
     {
         document.querySelector("title").textContent = title;

@@ -250,7 +250,7 @@ class view_manga extends view
         thumb.height = size[1];
         
         var link = element.querySelector("a.thumbnail-link");
-        link.href = "/member_illust.php?mode=medium&illust_id=" + this.illust_id + "#ppixiv?page=" + (page_idx+1);
+        link.href = "/artworks/" + this.illust_id + "#ppixiv?page=" + (page_idx+1);
         link.dataset.illustId = this.illust_id;
         link.dataset.pageIdx = page_idx;
 

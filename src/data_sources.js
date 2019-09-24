@@ -422,10 +422,10 @@ class data_source
     // This is called when the currently displayed illust_id changes.  The illust_id should
     // always have been loaded by this data source, so it should be in id_list.  The data
     // source should update the history state to reflect the current state.
-    set_current_illust_id(illust_id, query_args, hash_args)
+    set_current_illust_id(illust_id, args)
     {
         // By default, put the illust_id in the hash.
-        hash_args.set("illust_id", illust_id);
+        args.hash.set("illust_id", illust_id);
     }
 
     // Return the estimated number of items per page.  This is used to pad the thumbnail
@@ -766,7 +766,7 @@ class data_source_related_illusts extends data_source_fake_pagination
         source_link.hidden = this.illust_info == null;
         if(this.illust_info)
         {
-            source_link.href = "/member_illust.php?mode=medium&illust_id=" + this.illust_info.illustId + "#ppixiv";
+            source_link.href = "/artworks/" + this.illust_info.illustId + "#ppixiv";
 
             var img = source_link.querySelector(".image-for-suggestions > img");
             img.src = this.illust_info.urls.thumb;
@@ -1129,22 +1129,21 @@ class data_source_from_page extends data_source
         throw "Not implemented";
     }
 
-    set_current_illust_id(illust_id, query_args, hash_args)
+    set_current_illust_id(illust_id, args)
     {
         // Use the default behavior for illust_id.
-        super.set_current_illust_id(illust_id, query_args, hash_args);
+        super.set_current_illust_id(illust_id, args);
 
         // Update the current page.  (This can be undefined if we're on a page that isn't
         // actually loaded for some reason.)
         var original_page = this.id_list.get_page_for_illust(illust_id);
         if(original_page != null)
-            query_args.set("p", original_page);
+            args.query.set("p", original_page);
     };
 };
 
 // There are two ways we can show images for a user: from an illustration page
-// (member_illust.php?mode=medium&illust_id=1234), or from the user's works page
-// (member_illust.php?id=1234).
+// (/artworks/#), or from the user's works page (member_illust.php?id=1234).
 //
 // The illustration page is better, since it gives us the ID of every post by the
 // user, so we don't have to fetch them page by page, but we have to know the ID
@@ -1525,9 +1524,12 @@ class data_source_current_illust extends data_source_fake_pagination
     // Unlike most data_source_from_page implementations, we only have a single page.
     get_current_illust_id()
     {
-        // ?illust_id should always be an illustration ID on illustration pages.
-        var query_args = new URL(document.location).searchParams;
-        return query_args.get("illust_id");
+        // /artworks/#
+        let url = new URL(document.location);
+        url = helpers.get_url_without_language(url);
+        let parts = url.pathname.split("/");
+        var illust_id = parts[2];
+        return illust_id;
     };
 
     // data_source_current_illust is tricky.  Since it returns posts by the user
@@ -1539,23 +1541,33 @@ class data_source_current_illust extends data_source_fake_pagination
     static async get_canonical_url(url, callback)
     {
         var url = new URL(url);
-        var illust_id = url.searchParams.get("illust_id");
+        url = helpers.get_url_without_language(url);
+
+        // /artworks/#
+        let parts = url.pathname.split("/");
+        var illust_id = parts[2];
         var illust_info = await image_data.singleton().get_image_info(illust_id);
 
         var hash_args = helpers.get_hash_args(url);
         hash_args.set("user_id", illust_info.userId);
         helpers.set_hash_args(url, hash_args);
 
-        url.searchParams.delete("illust_id");
+//        url.searchParams.delete("illust_id");
         
         return await data_source.get_canonical_url(url);
     }
 
     // Unlike most data sources, data_source_current_illust puts the illust_id
-    // in the query rather than the hash.
-    set_current_illust_id(illust_id, query_args, hash_args)
+    // in the path rather than the hash.
+    set_current_illust_id(illust_id, args)
     {
-        query_args.set("illust_id", illust_id);
+        // Pixiv's inconsistent URLs are annoying.  Figure out where the ID field is.
+        // If the first field is a language, it's the third field (/en/artworks/#), otherwise
+        // it's the second (/artworks/#).
+        let parts = args.path.split("/");
+        let id_part = parts[1].length == 2? 3:2;
+        parts[id_part] = illust_id;
+        args.path = parts.join("/");
     };
 
     get page_title()

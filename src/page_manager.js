@@ -50,9 +50,13 @@ class page_manager
     {
         // url is usually document.location, which for some reason doesn't have .searchParams.
         var url = new unsafeWindow.URL(url);
+        url = helpers.get_url_without_language(url);
+
+        let parts = url.pathname.split("/");
+        let first_part = parts[1];
 
         // Note that member_illust.php is both illustration pages (mode=medium&illust_id) and author pages (id=).
-        if(url.pathname == "/member_illust.php" && url.searchParams.get("mode") == "medium")
+        if(first_part == "artworks")
             return data_source_current_illust;
         else if(url.pathname == "/member.php" && url.searchParams.get("id") != null)
             return data_source_artist;

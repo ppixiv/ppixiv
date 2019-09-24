@@ -460,7 +460,7 @@ class view_illust extends view
 
         // Update the disable UI button to point at the current image's illustration page.
         var disable_button = this.container.querySelector(".disable-ui-button");
-        disable_button.href = "/member_illust.php?mode=medium&illust_id=" + illust_id + "#no-ppixiv";
+        disable_button.href = "/artworks/" + illust_id + "#no-ppixiv";
 
         // If we're not showing an image yet, hide the UI and don't try to update it.
         helpers.set_class(this.container.querySelector(".ui"), "disabled", illust_id == -1);
