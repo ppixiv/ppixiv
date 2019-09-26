@@ -612,14 +612,14 @@ class main_controller
         e.preventDefault();
         e.stopImmediatePropagation();
 
-        // Search links to images always go to the member_illust page, but if they're
-        // clicked in-page we want to stay on the same search and just show the image,
-        // so handle them directly.  Only do this for member_illust?illust_id links (images),
-        // not member_illust?id links (users).
+        // Search links to images always go to /artworks/#, but if they're clicked in-page we
+        // want to stay on the same search and just show the image, so handle them directly.
         var url = new unsafeWindow.URL(url);
-        if(url.pathname == "/member_illust.php" && url.searchParams.get("illust_id") != null)
+        url = helpers.get_url_without_language(url);
+        if(url.pathname.startsWith("/artworks/"))
         {
-            var illust_id = url.searchParams.get("illust_id");
+            let parts = url.pathname.split("/");
+            let illust_id = parts[2];
             var args = helpers.get_args(a.href);
             var page = args.hash.has("page")? parseInt(args.hash.get("page"))-1: null;
             var view = args.hash.has("view")? args.hash.get("view"):"illust";
