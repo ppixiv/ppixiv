@@ -69,7 +69,6 @@ class early_controller
             helpers.block_all_scripts();
 
         this.temporarily_hide_document();
-        helpers.block_network_requests();
     }
 
     dom_content_loaded(e)
@@ -181,8 +180,39 @@ class main_controller
 
     setup()
     {
-        // Try to init using globalInitData if possible.
+        // Try to init using globalInitData if possible.  data.userData is null if the user is logged out.
         var data = helpers.get_global_init_data(document);
+        if(data && data.userData == null)
+            data = null;
+
+        // This is the global "pixiv" object, which is used on older pages.
+        var pixiv = helpers.get_pixiv_data(document);
+        if(pixiv && (pixiv.user == null || pixiv.user.id == null))
+            pixiv = null;
+
+        // If we don't have either of these (or we're logged out), stop and let the regular page display.
+        // It may be a page we don't support.
+        if(data == null && pixiv == null)
+        {
+            console.log("Couldn't find context data.  Are we logged in?");
+            document.documentElement.hidden = false;
+            return;
+        }
+
+        console.log("Starting");
+
+        // We know that we have enough info to continue, so we can do this now.
+        //
+        // Try to prevent the underlying page from making requests.  It would be better to do this
+        // earlier, in early_controller's constructor, but we don't know for sure whether we'll be
+        // able to continue at that point, and we don't want to do this if we aren't.  This used to
+        // matter more, but since browsers are bad and don't reliably allow user scripts to run early
+        // anymore, this wouldn't prevent all early network requests anyway.
+        //
+        // This needs to be done before calling anything else, or our internal network requests
+        // won't work.
+        helpers.block_network_requests();
+
         if(data != null)
         {
             this.init_global_data(data.token, data.userData.id, data.premium && data.premium.popularSearch, data.mute, data.userData.xRestrict);
@@ -200,20 +230,8 @@ class main_controller
         }
         else
         {
-            // If that's not available, this should be an older page with the "pixiv" object.
-            var pixiv = helpers.get_pixiv_data(document);
-            if(pixiv == null || pixiv.user == null || pixiv.user.id == null)
-            {
-                // If we can't find either, either we're on a page we don't understand or we're
-                // not logged in.  Stop and let the page run normally.
-                console.log("Couldn't find context data.  Are we logged in?");
-                document.documentElement.hidden = false;
-                return;
-            }
             this.init_global_data(pixiv.context.token, pixiv.user.id, pixiv.user.premium, pixiv.user.mutes, pixiv.user.explicit);
         }
-
-        console.log("Starting");
 
         window.addEventListener("click", this.window_onclick_capture);
         window.addEventListener("popstate", this.window_onpopstate);
