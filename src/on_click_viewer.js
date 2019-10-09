@@ -347,6 +347,12 @@ class on_click_viewer
         // Apply mouse dragging.
         var x_offset = e.movementX;
         var y_offset = e.movementY;
+
+        if(helpers.get_value("invert-scrolling"))
+        {
+            x_offset *= -1;
+            y_offset *= -1;
+        }
        
         // Scale movement by the zoom level.
         var zoom_level = this._effective_zoom_level;

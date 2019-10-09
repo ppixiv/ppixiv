@@ -60,6 +60,11 @@ class image_ui
             setting: "auto-like",
         });
 
+        new menu_option_toggle(settings_menu, {
+            label: "Invert scrolling while zoomed",
+            setting: "invert-scrolling",
+        });
+        
         // Firefox's contextmenu behavior is broken, so hide this option.
         if(navigator.userAgent.indexOf("Firefox/") == -1)
         {

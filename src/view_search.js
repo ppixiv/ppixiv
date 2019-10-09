@@ -143,6 +143,11 @@ class view_search extends view
         });
 
         new menu_option_toggle(settings_menu, {
+            label: "Invert scrolling while zoomed",
+            setting: "invert-scrolling",
+        });
+        
+        new menu_option_toggle(settings_menu, {
             label: "Disabled by default",
             setting: "disabled-by-default",
         });
