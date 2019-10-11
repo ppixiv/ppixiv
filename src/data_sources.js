@@ -1940,23 +1940,9 @@ class data_source_bookmarks_merged extends data_source_bookmarks_base
 }
 
 // new_illust.php
-class data_source_new_illust extends data_source_from_page
+class data_source_new_illust extends data_source
 {
     get name() { return "new_illust"; }
-
-    // Parse the loaded document and return the illust_ids.
-    parse_document(document)
-    {
-        var items = document.querySelectorAll("A.work[href*='member_illust.php']");
-
-        var illust_ids = [];
-        for(var item of items)
-        {
-            var url = new URL(item.href);
-            illust_ids.push(url.searchParams.get("illust_id"));
-        }
-        return illust_ids;
-    }
 
     get page_title()
     {
@@ -1968,16 +1954,74 @@ class data_source_new_illust extends data_source_from_page
         return "New Works";
     };
 
+    async load_page_internal(page)
+    {
+        var query_args = this.url.searchParams;
+        var hash_args = helpers.get_hash_args(this.url);
+
+        // new_illust.php or new_illust_r18.php:
+        let r18 = document.location.pathname == "/new_illust_r18.php";
+        var type = query_args.get("type") || "illust";
+        
+        // Everything Pixiv does has always been based on page numbers, but this one uses starting IDs.
+        // That's a better way (avoids duplicates when moving forward in the list), but it's inconsistent
+        // with everything else.  We usually load from page 1 upwards.  If we're loading the next page and
+        // we have a previous last_id, assume it starts at that ID.
+        //
+        // This makes some assumptions about how we're called: that we won't be called for the same page
+        // multiple times and we're always loaded in ascending order.  In practice this is almost always
+        // true.  If Pixiv starts using this method for more important pages it might be worth checking
+        // this more carefully.
+        if(this.last_id == null)
+        {
+            this.last_id = 0;
+            this.last_id_page = 1;
+        }
+
+        if(this.last_id_page != page)
+        {
+            console.error("Pages weren't loaded in order");
+            return;
+        }
+
+        console.log("Assuming page", page, "starts at", this.last_id);
+
+        var url = "/ajax/illust/new";
+        var result = await helpers.get_request(url, {
+            limit: 20,
+            type: type,
+            r18: r18,
+            lastId: this.last_id,
+        });
+
+        var illust_ids = [];
+        for(var illust_data of result.body.illusts)
+            illust_ids.push(illust_data.id);
+
+        if(illust_ids.length > 0)
+        {
+            this.last_id = illust_ids[illust_ids.length-1];
+            this.last_id_page++;
+        }
+        
+        // This request returns all of the thumbnail data we need.  Forward it to
+        // thumbnail_data so we don't need to look it up.
+        thumbnail_data.singleton().loaded_thumbnail_info(result.body.illusts, "illust_new");
+
+        // Register the new page of data.
+        this.add_page(page, illust_ids);
+    }
+    
     refresh_thumbnail_ui(container)
     {
-        this.set_item(container, "new-illust-type-all", {type: null});
-        this.set_item(container, "new-illust-type-illust", {type: "illust"});
+        this.set_item(container, "new-illust-type-illust", {type: null});
         this.set_item(container, "new-illust-type-manga", {type: "manga"});
-        this.set_item(container, "new-illust-type-ugoira", {type: "ugoira"});
 
         // These links are different from anything else on the site: they switch between
         // two top-level pages, even though they're just flags and everything else is the
-        // same.
+        // same.  We don't actually need to do this since we're just making API calls, but
+        // we try to keep the base URLs compatible, so we go to the equivalent page on Pixiv
+        // if we're turned off.
         var all_ages_link = container.querySelector("[data-type='new-illust-ages-all']");
         var r18_link = container.querySelector("[data-type='new-illust-ages-r18']");
 
