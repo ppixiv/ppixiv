@@ -112,15 +112,18 @@ class early_controller
         // If we're not active, stop without doing anything and leave the page alone.
         if(!page_manager.singleton().active)
         {
+            // If we're disabled and can be enabled on this page, add our button.
+            this.setup_disabled_ui();
+
             if(page_manager.singleton().available())
             {
-                // If we're disabled and can be enabled on this page, add our button.
-                this.setup_disabled_ui();
-
                 // Remember that we're disabled in this tab.  This way, clicking the "return
                 // to Pixiv" button will remember that we're disabled.  We do this on page load
                 // rather than when the button is clicked so this works when middle-clicking
                 // the button to open a regular Pixiv page in a tab.
+                //
+                // Only do this if we're available and disabled, which means the user disabled us.
+                // If we wouldn't be available on this page at all, don't store it.
                 page_manager.singleton().store_ppixiv_disabled(true);
             }
             
@@ -135,9 +138,16 @@ class early_controller
     // When we're disabled, but available on the current page, add the button to enable us.
     setup_disabled_ui()
     {
-        // Create the activation button.
+        // On most pages, we show our button in the top corner to enable us on that page.  Clicking
+        // it on a search page will switch to us on the same search.
         var disabled_ui = helpers.create_node(resources['disabled.html']);
         helpers.add_style('.ppixiv-disabled-ui > a { background-image: url("' + binary_data['activate-icon.png'] + '"); };');
+
+        // If we're on a page that we don't support, like the top page, rewrite the link to switch to
+        // a page we do support.
+        if(!page_manager.singleton().available())
+            disabled_ui.querySelector("a").href = "/ranking.php?mode=daily#ppixiv";
+
         document.body.appendChild(disabled_ui);
     };
 }
