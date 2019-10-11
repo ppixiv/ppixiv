@@ -13,6 +13,10 @@ class early_controller
         if(window.top != window.self)
             return;
 
+        // Don't activate for things like sketch.pixiv.net.
+        if(document.location.hostname != "www.pixiv.net")
+            return;
+
         console.log("ppixiv setup");
 
         // catch_bind isn't available if we're not active, so we use bind here.
