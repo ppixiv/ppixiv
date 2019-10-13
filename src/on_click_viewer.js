@@ -257,12 +257,16 @@ class on_click_viewer
 
     pointerdown(e)
     {
-        if(e.button != 0)
-            return;
-
         // We only want clicks on the image, or on the container backing the image, not other
         // elements inside the container.
         if(e.target != this.img && e.target != this.img.parentNode)
+            return;
+
+        // Middleclicking the page opens the source image in a new tab.
+        // Otherwise, non-left-clicks are not handled here.
+        if (e.button === 3) {
+            window.open(this.img.src, '_blank');
+        } else if(e.button != 0)
             return;
 
         this.event_target.style.cursor = "none";
