@@ -900,6 +900,7 @@ class data_source_rankings extends data_source
         this.set_item(container, "mode-weekly", {mode: "weekly"});
         this.set_item(container, "mode-monthly", {mode: "monthly"});
         this.set_item(container, "mode-rookie", {mode: "rookie"});
+        this.set_item(container, "mode-original", {mode: "original"});
         this.set_item(container, "mode-male", {mode: "male"});
         this.set_item(container, "mode-female", {mode: "female"});
 
@@ -938,6 +939,7 @@ class data_source_rankings extends data_source
             "all/weekly",
             "all/monthly",
             "all/rookie",
+            "all/original",
             "all/male",
             "all/female",
 
