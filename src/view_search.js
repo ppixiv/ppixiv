@@ -10,7 +10,6 @@ class view_search extends view
         this.onwheel = this.onwheel.bind(this);
         this.onscroll = this.onscroll.bind(this);
 //        this.onmousemove = this.onmousemove.bind(this);
-        this.submit_search = this.submit_search.bind(this);
         this.refresh_thumbnail = this.refresh_thumbnail.bind(this);
         this.refresh_images = this.refresh_images.bind(this);
         this.window_onresize = this.window_onresize.bind(this);
@@ -51,7 +50,7 @@ class view_search extends view
                 // The recommended tag links are already on the search page, and retain other
                 // search settings.
                 var url = new URL(window.location);
-                url.searchParams.set("word", tag.tag);
+                url.searchParams.set("word", tag);
                 url.searchParams.delete("p");
                 return url.toString();
             }.bind(this),
@@ -90,12 +89,7 @@ class view_search extends view
             image_data.singleton().get_image_info(a.dataset.illustId);
         }, true);
  
-        helpers.input_handler(this.container.querySelector(".search-page-tag-entry .search-tags"), this.submit_search);
-        helpers.input_handler(this.container.querySelector(".navigation-search-box .search-tags"), this.submit_search);
-
         this.container.querySelector(".refresh-search-button").addEventListener("click", this.refresh_search.bind(this));
-        this.container.querySelector(".search-page-tag-entry .search-submit-button").addEventListener("click", this.submit_search);
-        this.container.querySelector(".navigation-search-box .search-submit-button").addEventListener("click", this.submit_search);
 
         var settings_menu = this.container.querySelector(".settings-menu-box > .popup-menu-box");
 
@@ -165,11 +159,17 @@ class view_search extends view
             invert_display: true,
         });
 
+        new menu_option_toggle(settings_menu, {
+            label: "Show translations",
+            setting: "disable-translations",
+            invert_display: true,
+        });
+        
         // Create the tag dropdown for the search page input.
-        new tag_search_dropdown_widget(this.container.querySelector(".tag-search-box .search-tags"));
+        new tag_search_box_widget(this.container.querySelector(".tag-search-box"));
             
         // Create the tag dropdown for the search input in the menu dropdown.
-        new tag_search_dropdown_widget(this.container.querySelector(".navigation-search-box .search-tags"));
+        new tag_search_box_widget(this.container.querySelector(".navigation-search-box"));
 
         /*
          * Add a slight delay before hiding the UI.  This allows opening the UI by swiping past the top
@@ -192,30 +192,6 @@ class view_search extends view
             return;
 
         this.refresh_images();
-    }
-
-    submit_search(e)
-    {
-        // This can be sent to either the search page search box or the one in the
-        // navigation dropdown.  Figure out which one we're on.
-        var search_box = e.target.closest(".search-box");
-        var tags = search_box.querySelector(".search-tags").value.trim();
-        if(tags.length == 0)
-            return;
-
-        // Add this tag to the recent search list.
-        helpers.add_recent_search_tag(tags);
-
-        // If we're submitting by pressing enter on an input element, unfocus it and
-        // close any widgets inside it (tag dropdowns).
-        if(e.target instanceof HTMLInputElement)
-        {
-            e.target.blur();
-            view_hidden_listener.send_viewhidden(e.target);
-        }
-        
-        // Run the search.
-        helpers.set_page_url(page_manager.singleton().get_url_for_tag_search(tags), true);
     }
 
     refresh_search()

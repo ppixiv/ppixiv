@@ -255,6 +255,9 @@ class dropdown_menu_opener
         let top_ui_box = this.box.closest(".top-ui-box");
         if(top_ui_box)
             helpers.set_class(top_ui_box, "force-open", value);
+
+        // Let the widget know its visibility has changed.
+        this.box.dispatchEvent(new Event(value? "popupshown":"popuphidden"));
     }
 
     // Return true if this popup should close when clicking inside it.  If false,
@@ -546,6 +549,11 @@ class tag_widget
         this.container = this.options.parent;
         this.tag_list_container = this.options.parent.appendChild(document.createElement("div"));
         this.tag_list_container.classList.add("tag-list-widget");
+
+        // Refresh when we're opened, in case translations have been turned on or off.
+        this.container.addEventListener("popupshown", (e) => {
+            this.refresh();
+        });
     };
 
     format_tag_link(tag)
@@ -554,56 +562,51 @@ class tag_widget
             return this.options.format_link(tag);
 
         var search_url = new URL("/search.php", window.location.href);
-        search_url.search = "s_mode=s_tag_full&word=" + tag.tag;
+        search_url.search = "s_mode=s_tag_full&word=" + tag;
         search_url.hash = "#ppixiv";
         return search_url.toString();
     };
 
-    set(tags)
+    async set(tags)
     {
+        this.tags = tags;
+
+        // Register any tag translations.  Not all sources will have this.
+        tag_translations.get().add_translations(this.tags.tags);
+
+        this.refresh();
+    }
+
+    async refresh()
+    {
+        if(this.tags == null)
+            return;
+
+        // Look up tag translations.
+        let tag_list = [];
+        for(var tag of this.tags.tags)
+            tag_list.push(tag.tag);
+        let translated_tags = await tag_translations.get().get_translations(tag_list, "en");
+        
         // Remove any old tag list and create a new one.
         helpers.remove_elements(this.tag_list_container);
 
-        var tags = tags.tags;
-        for(var tag of tags)
+        for(var tag of tag_list)
         {
             var a = this.tag_list_container.appendChild(document.createElement("a"));
             a.classList.add("tag");
             a.classList.add("box-link");
 
-            // They really can't decide how to store tag translations:
             var popup = null;
-            if(tag.translation && tag.translation.en)
-                popup = tag.translation.en;
-            else if(tag.romaji != null && tag.romaji != "")
-                popup = tag.romaji;
-            else if(tag.tag_translation != null & tag.tag_translation != "")
-                popup = tag.tag_translation;
+            let translated_tag = tag;
+            if(translated_tags[tag])
+                translated_tag = translated_tags[tag];
 
-            var tag_text = tag.tag;
-
-            if(popup && false)
-            {
-                var swap = tag_text;
-                tag_text = popup;
-                popup = swap;
-            }
-
-            if(popup)
-            {
-                a.classList.add("popup");
-                a.classList.add("popup-bottom");
-                a.dataset.popup = popup;
-            }
-
-            a.dataset.tag = tag_text;
-            a.dataset.translatedTag = popup;
-
-            a.textContent = tag_text;
+            a.dataset.tag = tag;
+            a.textContent = translated_tag;
 
             a.href = this.format_tag_link(tag);
         }
-
     }
 };
 

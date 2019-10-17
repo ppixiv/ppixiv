@@ -1010,8 +1010,6 @@ class data_source_from_page extends data_source
     constructor(url, doc)
     {
         super(url);
-
-        console.log("ctor", url, doc);
         if(url == null)
             throw "url can't be null";
 
@@ -2126,34 +2124,90 @@ class data_source_search extends data_source_from_page
     {
         super(url, doc);
 
+        this.cache_search_title = this.cache_search_title.bind(this);
+
         // Add the search tags to tag history.  We only do this at the start when the
         // data source is created, not every time we navigate back to the search.
         var query_args = this.url.searchParams;
         var tag = query_args.get("word");
         if(tag)
             helpers.add_recent_search_tag(tag);
+
+        this.cache_search_title();
     }
-     
+
+    startup()
+    {
+        super.startup();
+
+        // Refresh our title when translations are toggled.
+        settings.register_change_callback("disable-translations", this.cache_search_title);
+    }
+
+    shutdown()
+    {
+        super.shutdown();
+        settings.unregister_change_callback("disable-translations", this.cache_search_title);
+    }
+
+    async cache_search_title()
+    {
+        this.title = "Search: ";
+        var tags = this.url.searchParams.get("word");
+        if(tags)
+        {
+            tags = await tag_translations.get().translate_tag_list(tags, "en");
+            this.title += tags;
+        }
+        
+        // Update our page title.
+        this.call_update_listeners();
+    }
+
     parse_document(doc)
     {
-        // The actual results are encoded in a string for some reason.
-        var result_list_json = doc.querySelector("#js-mount-point-search-result-list").dataset.items;
+        // The actual results are encoded in a string for some reason.  Note that if there
+        // are no search terms the page will redirect to tags.php, and these won't be present.
+        var result_list_text = doc.querySelector("#js-mount-point-search-result-list");
+        var result_list_json = result_list_text? result_list_text.dataset.items:"[]";
         var illusts = JSON.parse(result_list_json);
 
         // Store related tags.  Only do this the first time and don't change it when we read
         // future pages, so the tags don't keep changing as you scroll around.
         if(this.related_tags == null)
         {
-            var related_tags_json = doc.querySelector("#js-mount-point-search-result-list").dataset.relatedTags;
+            var related_tags_text = doc.querySelector("#js-mount-point-search-result-list");
+            var related_tags_json = related_tags_text? related_tags_text.dataset.relatedTags: "[]";
             var related_tags = JSON.parse(related_tags_json);
             this.related_tags = related_tags;
+
+            // relatedTags has tag translations.  Register these with our translation db so we know
+            // about them.  This is a different format than other APIs (because of course it is, Pixiv
+            // never uses the same interface twice).  Convert formats, assuming that they're in English.
+            let related_tag_translations = [];
+            for(let related_tag of related_tags)
+                related_tag_translations.push({ tag: related_tag.tag, translation: { en: related_tag.tag_translation } });
+            tag_translations.get().add_translations(related_tag_translations);
         }
 
-        if(this.tag_translation == null)
         {
             var span = doc.querySelector(".search-result-information .translation-column-title");
             if(span != null)
-                this.tag_translation = span.innerText;
+            {
+                let tag_translation = span.innerText;
+
+                // This page can have a translation for the search term if it's a single word.  Check
+                // that the search is just a single word in case this changes, and register the translation.
+                var tag = this.url.searchParams.get("word");
+                if(tag && tag.indexOf(" ") == -1)
+                {
+                    let translation = [{
+                        tag: tag,
+                        translation: { en: tag_translation },
+                    }];
+                    tag_translations.get().add_translations(translation);
+                }
+            }
         }
         
         // Populate thumbnail data with this data.  This has the same format as
@@ -2173,26 +2227,12 @@ class data_source_search extends data_source_from_page
 
     get page_title()
     {
-        var query_args = this.url.searchParams;
-
-        var displaying = "Search: ";
-        var tag = query_args.get("word");
-        if(tag)
-            displaying += tag;
-        
-        return displaying;
+        return this.title;
     }
 
     get_displaying_text()
     {
-        var displaying = this.page_title;
-
-        // Add the tag translation if there is one.  We only put this in the page and not
-        // the title to avoid cluttering the title.
-        if(this.tag_translation != null)
-            displaying += " (" + this.tag_translation + ")";
-        
-        return displaying;
+        return this.title;
     };
 
     initial_refresh_thumbnail_ui(container, view)

@@ -133,6 +133,7 @@ class image_data
                 return;
             illust_data = illust_result.body;
         }
+        tag_translations.get().add_translations(illust_data.tags.tags);
 
         // Now that we have illust data, load anything we weren't able to load before.
         start_loading(illust_data.userId, illust_data.illustType, illust_data.pageCount);

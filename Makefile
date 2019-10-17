@@ -34,6 +34,7 @@ FILES=\
     src/view_manga.js \
     src/image_ui.js \
     src/tag_search_dropdown_widget.js \
+    src/tag_translations.js \
     src/thumbnail_data.js \
     src/manga_thumbnail_widget.js \
     src/page_manager.js \

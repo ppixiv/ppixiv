@@ -1,43 +1,186 @@
-// This handles the dropdown for an <input> showing recent searches and autocompletion.
-// The dropdown will be placed as a sibling of the input, and the parent of both nodes
-// should be a position: relative so we can position the dropdown correctly.
-class tag_search_dropdown_widget
+// Handle showing the search history and tag edit dropdowns.
+class tag_search_box_widget
 {
-    constructor(input_element)
+    constructor(container)
     {
-        this.dropdown_onclick = this.dropdown_onclick.bind(this);
         this.input_onfocus = this.input_onfocus.bind(this);
         this.input_onblur = this.input_onblur.bind(this);
-        this.input_onkeydown = this.input_onkeydown.bind(this);
-        this.input_oninput = this.input_oninput.bind(this);
-        this.parent_onmouseenter = this.parent_onmouseenter.bind(this);
-        this.parent_onmouseleave = this.parent_onmouseleave.bind(this);
-        this.populate_dropdown = this.populate_dropdown.bind(this);
+        this.container_onmouseenter = this.container_onmouseenter.bind(this);
+        this.container_onmouseleave = this.container_onmouseleave.bind(this);
+        this.submit_search = this.submit_search.bind(this);
 
-        this.input_element = input_element;
-        this.parent_node = input_element.parentNode;
+        this.container = container;
+        this.input_element = this.container.querySelector(".search-tags");
 
+        this.dropdown_widget = new tag_search_dropdown_widget(container);
+        this.edit_widget = new tag_search_edit_widget(container);
+
+        this.container.addEventListener("mouseenter", this.container_onmouseenter);
+        this.container.addEventListener("mouseleave", this.container_onmouseleave);
         this.input_element.addEventListener("focus", this.input_onfocus);
         this.input_element.addEventListener("blur", this.input_onblur);
+
+        let edit_button = this.container.querySelector(".edit-search-button");
+        if(edit_button)
+        {
+            edit_button.addEventListener("click", (e) => {
+                // Toggle the edit widget, hiding the search history dropdown if it's shown.
+                if(this.dropdown_widget.shown)
+                    this.hide();
+
+                if(this.edit_widget.shown)
+                    this.hide();
+                else
+                    this.show_edit();
+            });
+        }
+        
+        // Search submission:
+        helpers.input_handler(this.input_element, this.submit_search);
+        this.container.querySelector(".search-submit-button").addEventListener("click", this.submit_search);
+
+        // Hide the dropdowns on navigation.
+        new view_hidden_listener(this.input_element, (e) => {
+            this.hide();
+        });
+    }
+
+    async show_history()
+    {
+        // Don't show history if search editing is already open.
+        if(this.edit_widget.shown)
+            return;
+
+        this.dropdown_widget.show();
+    }
+
+    show_edit()
+    {
+        // Don't show search editing if history is already open.
+        if(this.dropdown_widget.shown)
+            return;
+
+        this.edit_widget.show();
+
+        // Disable adding searches to search history while the edit dropdown is open.  Otherwise,
+        // every time a tag is toggled, that combination of tags is added to search history by
+        // data_source_search, which makes a mess.
+        helpers.disable_adding_search_tags(true);
+    }
+
+    hide()
+    {
+        helpers.disable_adding_search_tags(false);
+
+        this.dropdown_widget.hide();
+        this.edit_widget.hide();
+    }
+
+    container_onmouseenter(e)
+    {
+        this.mouse_over_parent = true;
+    }
+
+    container_onmouseleave(e)
+    {
+        this.mouse_over_parent = false;
+        if(this.dropdown_widget.shown && !this.input_focused && !this.mouse_over_parent)
+            this.hide();
+    }
+
+    // Show the dropdown when the input is focused.  Hide it when the input is both
+    // unfocused and this.container isn't being hovered.  This way, the input focus
+    // can leave the input box to manipulate the dropdown without it being hidden,
+    // but we don't rely on hovering to keep the dropdown open.
+    input_onfocus(e)
+    {
+        this.input_focused = true;
+        if(!this.dropdown_widget.shown && !this.edit_widget.shown)
+            this.show_history();
+    }
+
+    input_onblur(e)
+    {
+        this.input_focused = false;
+        if(this.dropdown_widget.shown && !this.input_focused && !this.mouse_over_parent)
+            this.hide();
+    }
+
+    submit_search(e)
+    {
+        // This can be sent to either the search page search box or the one in the
+        // navigation dropdown.  Figure out which one we're on.
+        var search_box = e.target.closest(".search-box");
+        var tags = this.input_element.value.trim();
+        if(tags.length == 0)
+            return;
+
+        // Add this tag to the recent search list.
+        helpers.add_recent_search_tag(tags);
+
+        // If we're submitting by pressing enter on an input element, unfocus it and
+        // close any widgets inside it (tag dropdowns).
+        if(e.target instanceof HTMLInputElement)
+        {
+            e.target.blur();
+            view_hidden_listener.send_viewhidden(e.target);
+        }
+        
+        // Run the search.
+        helpers.set_page_url(page_manager.singleton().get_url_for_tag_search(tags), true);
+    }
+}
+
+class tag_search_dropdown_widget
+{
+    constructor(container)
+    {
+        this.dropdown_onclick = this.dropdown_onclick.bind(this);
+        this.input_onkeydown = this.input_onkeydown.bind(this);
+        this.input_oninput = this.input_oninput.bind(this);
+        this.populate_dropdown = this.populate_dropdown.bind(this);
+
+        this.container = container;
+        this.input_element = this.container.querySelector(".search-tags");
+
         this.input_element.addEventListener("keydown", this.input_onkeydown);
         this.input_element.addEventListener("input", this.input_oninput);
-        this.parent_node.addEventListener("mouseenter", this.parent_onmouseenter);
-        this.parent_node.addEventListener("mouseleave", this.parent_onmouseleave);
 
         // Refresh the dropdown when the tag search history changes.
         window.addEventListener("recent-tag-searches-changed", this.populate_dropdown);
 
-        // Add the dropdown widget to the input's parent.
+        // Add the dropdown widget.
         this.tag_dropdown = helpers.create_from_template(".template-tag-dropdown");
         this.tag_dropdown.addEventListener("click", this.dropdown_onclick);
-        this.parent_node.appendChild(this.tag_dropdown);
+        this.container.appendChild(this.tag_dropdown);
 
         this.current_autocomplete_results = [];
 
-        this.hide();
-        this.populate_dropdown();
+        // input-dropdown is resizable.  Save the size when the user drags it.
+        this.input_dropdown = this.tag_dropdown.querySelector(".input-dropdown");
+        let observer = new MutationObserver((mutations) => {
+            // resize sets the width.  Use this instead of offsetWidth, since offsetWidth sometimes reads
+            // as 0 here.
+            settings.set("tag-dropdown-width", this.input_dropdown.style.width);
+        });
+        observer.observe(this.input_dropdown, { attributes: true });
 
-        new view_hidden_listener(this.input_element, (e) => {
+        // Restore input-dropdown's width.  Force a minimum width, in case this setting is saved incorrectly.
+        this.input_dropdown.style.width = settings.get("tag-dropdown-width", "400px");
+
+        this.shown = false;
+        this.tag_dropdown.hidden = true;
+
+        // Sometimes the popup closes when searches are clicked and sometimes they're not.  Make sure
+        // we always close on navigation.
+        this.tag_dropdown.addEventListener("click", (e) => {
+            if(e.defaultPrevented)
+                return;
+            let a = e.target.closest("A");
+            if(a == null)
+                return;
+
+            this.input_element.blur();
             this.hide();
         });
     }
@@ -61,36 +204,12 @@ class tag_search_dropdown_widget
             this.hide();
     }
 
-    // Show the dropdown when the input is focused.  Hide it when the input is both
-    // unfocused and this.parent_node isn't being hovered.  This way, the input focus
-    // can leave the input box to manipulate the dropdown without it being hidden,
-    // but we don't rely on hovering to keep the dropdown open.
-    input_onfocus(e)
-    {
-        this.input_focused = true;
-        this.show();
-    }
-
-    input_onblur(e)
-    {
-        this.input_focused = false;
-        if(!this.input_focused && !this.mouse_over_parent)
-            this.hide();
-    }
-
-    parent_onmouseenter(e)
-    {
-        this.mouse_over_parent = true;
-    }
-    parent_onmouseleave(e)
-    {
-        this.mouse_over_parent = false;
-        if(!this.input_focused && !this.mouse_over_parent)
-            this.hide();
-    }
-
     input_onkeydown(e)
     {
+        // Only handle inputs when we're open.
+        if(this.tag_dropdown.hidden)
+            return;
+
         switch(e.keyCode)
         {
         case 38: // up arrow
@@ -105,6 +224,9 @@ class tag_search_dropdown_widget
 
     input_oninput(e)
     {
+        if(this.tag_dropdown.hidden)
+            return;
+        
         // Clear the selection on input.
         this.set_selection(null);
 
@@ -112,17 +234,29 @@ class tag_search_dropdown_widget
         this.run_autocomplete();
     }
 
-    show()
+    async show()
     {
-        if(!this.tag_dropdown.hidden)
+        if(this.shown)
+            return;
+        this.shown = true;
+
+        // Fill in the dropdown before displaying it.  If hide() is called before this
+        // finishes this will return false, so stop.
+        if(!await this.populate_dropdown())
             return;
 
-        this.populate_dropdown();
         this.tag_dropdown.hidden = false;
     }
 
     hide()
     {
+        if(!this.shown)
+            return;
+        this.shown = false;
+
+        // If populate_dropdown is still running, cancel it.
+        this.cancel_populate_dropdown();
+
         this.tag_dropdown.hidden = true;
 
         // Make sure the input isn't focused.
@@ -197,15 +331,44 @@ class tag_search_dropdown_widget
             this.run_autocomplete();
         }
     }
-    
-    create_entry(tag)
+
+    // tag_search is a search, like "tag -tag2".  translated_tags is a dictionary of known translations.
+    create_entry(tag_search, translated_tags)
     {
         var entry = helpers.create_from_template(".template-tag-dropdown-entry");
-        entry.dataset.tag = tag;
-        entry.querySelector(".tag").innerText = tag;
+        entry.dataset.tag = tag_search;
 
-        var url = page_manager.singleton().get_url_for_tag_search(tag);
-        entry.querySelector("A.tag").href = url;
+        let translated_tag = translated_tags[tag_search];
+        if(translated_tag)
+            entry.dataset.translated_tag = translated_tag;
+
+        let tag_container = entry.querySelector(".search");
+        for(let tag of helpers.split_search_tags(tag_search))
+        {
+            if(tag == "")
+                continue;
+
+            let span = document.createElement("span");
+            span.dataset.tag = tag;
+            span.classList.add("word");
+            if(tag != "or")
+                span.classList.add("tag");
+
+            // Split off - prefixes to look up the translation, then add it back.
+            let prefix_and_tag = helpers.split_tag_prefixes(tag);
+            let translated_tag = translated_tags[prefix_and_tag[1]];
+            if(translated_tag)
+                translated_tag = prefix_and_tag[0] + translated_tag;
+
+            span.innerText = translated_tag || tag;
+            if(translated_tag)
+                span.dataset.translated_tag = translated_tag;
+
+            tag_container.appendChild(span);
+        }
+
+        var url = page_manager.singleton().get_url_for_tag_search(tag_search);
+        entry.querySelector("A.search").href = url;
         return entry;
     }
 
@@ -257,27 +420,302 @@ class tag_search_dropdown_widget
         this.set_selection(idx);
     }
 
-    populate_dropdown()
+    // Populate the tag dropdown.
+    //
+    // This is async, since IndexedDB is async.  (It shouldn't be.  It's an overcorrection.
+    // Network APIs should be async, but local I/O should not be forced async.)  If another
+    // call to populate_dropdown() is made before this completes or cancel_populate_dropdown
+    // cancels it, return false.  If it completes, return true.
+    async populate_dropdown()
     {
+        // If another populate_dropdown is already running, cancel it and restart.
+        this.cancel_populate_dropdown();
+
+        // Set populate_dropdown_abort to an AbortController for this call.
+        let abort_controller = this.populate_dropdown_abort = new AbortController();        
+        let abort_signal = abort_controller.signal;
+
+        var tag_searches = helpers.get_value("recent-tag-searches") || [];
+
+        // Separate tags in each search, so we can look up translations.
+        //
+        var all_tags = {};
+        for(let tag_search of tag_searches)
+        {
+            for(let tag of helpers.split_search_tags(tag_search))
+            {
+                tag = helpers.split_tag_prefixes(tag)[1];
+                all_tags[tag] = true;
+            }
+        }
+        all_tags = Object.keys(all_tags);
+        
+        let translated_tags = await tag_translations.get().get_translations(all_tags, "en");
+
+        // Check if we were aborted while we were loading tags.
+        if(abort_signal && abort_signal.aborted)
+        {
+            console.log("populate_dropdown_inner aborted");
+            return false;
+        }
+        
         var list = this.tag_dropdown.querySelector(".input-dropdown-list");
         helpers.remove_elements(list);
 
-        var tags = helpers.get_value("recent-tag-searches") || [];
         var autocompleted_tags = this.current_autocomplete_results;
-        
         for(var tag of autocompleted_tags)
         {
-            var entry = this.create_entry(tag.tag_name);
-            entry.classList.add("autocomplete");
+            var entry = this.create_entry(tag.tag_name, translated_tags);
+            entry.classList.add("autocomplete"); 
             list.appendChild(entry);
         }
 
-        for(var tag of tags)
+        for(var tag of tag_searches)
         {
-            var entry = this.create_entry(tag);
+            var entry = this.create_entry(tag, translated_tags);
             entry.classList.add("history");
             list.appendChild(entry);
         }
+
+        return true;
+    }
+
+    cancel_populate_dropdown()
+    {
+        if(this.populate_dropdown_abort == null)
+            return;
+
+        this.populate_dropdown_abort.abort();
+    }
+}
+
+class tag_search_edit_widget
+{
+    constructor(container)
+    {
+        this.dropdown_onclick = this.dropdown_onclick.bind(this);
+        this.populate_dropdown = this.populate_dropdown.bind(this);
+
+        this.container = container;
+        this.input_element = this.container.querySelector(".search-tags");
+
+        // Refresh the dropdown when the tag search history changes.
+        window.addEventListener("recent-tag-searches-changed", this.populate_dropdown);
+
+        // Add the dropdown widget.
+        this.tag_dropdown = helpers.create_from_template(".template-edit-search-dropdown");
+        this.tag_dropdown.addEventListener("click", this.dropdown_onclick);
+        this.container.appendChild(this.tag_dropdown);
+
+        // Refresh tags if the user edits the search directly.
+        this.input_element.addEventListener("input", (e) => { this.refresh_highlighted_tags(); });
+
+        // input-dropdown is resizable.  Save the size when the user drags it.
+        this.input_dropdown = this.tag_dropdown.querySelector(".input-dropdown");
+        let observer = new MutationObserver((mutations) => {
+            // resize sets the width.  Use this instead of offsetWidth, since offsetWidth sometimes reads
+            // as 0 here.
+            settings.set("search-edit-dropdown-width", this.input_dropdown.style.width);
+        });
+        observer.observe(this.input_dropdown, { attributes: true });
+
+        // Restore input-dropdown's width.  Force a minimum width, in case this setting is saved incorrectly.
+        this.input_dropdown.style.width = settings.get("search-edit-dropdown-width", "400px");
+
+        this.shown = false;
+        this.tag_dropdown.hidden = true;
+    }
+
+    dropdown_onclick(e)
+    {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+
+        // Clicking tags toggles the tag in the search box.
+        let tag = e.target.closest(".tag");
+        if(tag == null)
+            return;
+
+        this.toggle_tag(tag.dataset.tag);
+
+        // Control-clicking the tag probably caused its enclosing search link to be focused, which will
+        // cause it to activate when enter is pressed.  Switch focus to the input box, so pressing enter
+        // will submit the search.
+        this.input_element.focus();
+    }
+
+    async show()
+    {
+        if(this.shown)
+            return;
+        this.shown = true;
+
+        // Fill in the dropdown before displaying it.  If hide() is called before this
+        // finishes this will return false, so stop.
+        if(!await this.populate_dropdown())
+            return;
+
+        this.tag_dropdown.hidden = false;
+    }
+
+    hide()
+    {
+        if(!this.shown)
+            return;
+        this.shown = false;
+
+        // If populate_dropdown is still running, cancel it.
+        this.cancel_populate_dropdown();
+
+        this.tag_dropdown.hidden = true;
+
+        // Make sure the input isn't focused.
+        this.input_element.blur();
+    }
+
+    // tag_search is a search, like "tag -tag2".  translated_tags is a dictionary of known translations.
+    create_entry(tag_search, translated_tags)
+    {
+        var entry = helpers.create_from_template(".template-edit-search-dropdown-entry");
+        entry.dataset.tag = tag_search;
+
+        let translated_tag = translated_tags[tag_search];
+        if(translated_tag)
+            entry.dataset.translated_tag = translated_tag;
+
+        let tag_container = entry.querySelector(".search");
+        for(let tag of helpers.split_search_tags(tag_search))
+        {
+            if(tag == "")
+                continue;
+
+            let span = document.createElement("span");
+            span.dataset.tag = tag;
+            span.classList.add("word");
+            if(tag != "or")
+                span.classList.add("tag");
+
+            // Split off - prefixes to look up the translation, then add it back.
+            let prefix_and_tag = helpers.split_tag_prefixes(tag);
+            let translated_tag = translated_tags[prefix_and_tag[1]];
+            if(translated_tag)
+                translated_tag = prefix_and_tag[0] + translated_tag;
+
+            span.innerText = translated_tag || tag;
+            if(translated_tag)
+                span.dataset.translated_tag = translated_tag;
+
+            tag_container.appendChild(span);
+        }
+
+        var url = page_manager.singleton().get_url_for_tag_search(tag_search);
+        entry.querySelector("A.search").href = url;
+        return entry;
+    }
+
+    // Populate the tag dropdown.
+    //
+    // This is async, since IndexedDB is async.  (It shouldn't be.  It's an overcorrection.
+    // Network APIs should be async, but local I/O should not be forced async.)  If another
+    // call to populate_dropdown() is made before this completes or cancel_populate_dropdown
+    // cancels it, return false.  If it completes, return true.
+    async populate_dropdown()
+    {
+        // If another populate_dropdown is already running, cancel it and restart.
+        this.cancel_populate_dropdown();
+
+        // Set populate_dropdown_abort to an AbortController for this call.
+        let abort_controller = this.populate_dropdown_abort = new AbortController();        
+        let abort_signal = abort_controller.signal;
+
+        var tag_searches = helpers.get_value("recent-tag-searches") || [];
+
+        // Individually show all tags in search history.
+        var all_tags = {};
+        for(let tag_search of tag_searches)
+        {
+            for(let tag of helpers.split_search_tags(tag_search))
+            {
+                tag = helpers.split_tag_prefixes(tag)[1];
+
+                // Ignore "or".
+                if(tag == "" || tag == "or")
+                    continue;
+
+                all_tags[tag] = true;
+            }
+        }
+        all_tags = Object.keys(all_tags);
+        
+        let translated_tags = await tag_translations.get().get_translations(all_tags, "en");
+
+        // Sort tags by their translation.
+        all_tags.sort((lhs, rhs) => {
+            if(translated_tags[lhs]) lhs = translated_tags[lhs];
+            if(translated_tags[rhs]) rhs = translated_tags[rhs];
+            return lhs.localeCompare(rhs);
+        });
+
+        // Check if we were aborted while we were loading tags.
+        if(abort_signal && abort_signal.aborted)
+        {
+            console.log("populate_dropdown_inner aborted");
+            return false;
+        }
+        
+        var list = this.tag_dropdown.querySelector(".input-dropdown-list");
+        helpers.remove_elements(list);
+
+        for(var tag of all_tags)
+        {
+            var entry = this.create_entry(tag, translated_tags);
+            list.appendChild(entry);
+        }
+
+        this.refresh_highlighted_tags();
+
+        return true;
+    }
+
+    cancel_populate_dropdown()
+    {
+        if(this.populate_dropdown_abort == null)
+            return;
+
+        this.populate_dropdown_abort.abort();
+    }
+
+    refresh_highlighted_tags()
+    {
+        let tags = helpers.split_search_tags(this.input_element.value);
+        
+        var list = this.tag_dropdown.querySelector(".input-dropdown-list");
+        for(let tag_entry of list.querySelectorAll("[data-tag]"))
+        {
+            let tag = tag_entry.dataset.tag;
+            let tag_selected = tags.indexOf(tag) != -1;
+            helpers.set_class(tag_entry, "highlight", tag_selected);
+        }
+    }
+
+    // Add or remove tag from the tag search.  This doesn't affect -tag searches.
+    toggle_tag(tag)
+    {
+        console.log("Toggle tag:", tag);
+
+        let tags = helpers.split_search_tags(this.input_element.value);
+        let idx = tags.indexOf(tag);
+        if(idx != -1)
+            tags.splice(idx, 1);
+        else
+            tags.push(tag);
+        this.input_element.value = tags.join(" ");
+
+        this.refresh_highlighted_tags();
+
+        // Navigate to the edited search immediately.  Don't add these to history, since it
+        // spams navigation history.
+        helpers.set_page_url(page_manager.singleton().get_url_for_tag_search(this.input_element.value), false);
     }
 }
 

@@ -644,7 +644,7 @@ body.hide-r18g .r18g { display: none; }
     background-color: var(--frame-bg-color);
     border: 1px solid var(--frame-border-color);
     padding: .25em .5em;
-    z-index: 1;
+    z-index: 2;
 }
 
 .menu-button {
@@ -1157,15 +1157,41 @@ body:not(.disable-thumbnail-zooming) .view-search-container .thumbnail-box.muted
 input.search-tags {
     font-size: 1.2em;
     padding: 6px 10px;
-    padding-right: 30px; /* extra space for the submit button */
     vertical-align: middle;
 }
 
-.view-search-container .search-submit-button {
+/* Search box in the search page: */
+.tag-search-box input.search-tags {
+    padding-right: 60px; /* extra space for the submit button */
+}
+
+.search-submit-button {
+    /* Work around HTML's stupid whitespace handling */
+    font-size: 0;
     display: inline-block;
-    margin-left: -30px; /* overlap the input */
+}
+
+/* Search box in the menu: */
+.navigation-search-box .search-submit-button {
+    vertical-align: middle;
+    margin-left: -30px; /* overlap the search box */
+}
+.navigation-search-box input.search-tags {
+    padding-right: 30px; /* extra space for the submit button */
+}
+
+.view-search-container .right-side-button {
+    display: inline-block;
     vertical-align: middle;
     cursor: pointer;
+    user-select: none;
+}
+.view-search-container .edit-search-button {
+    margin-left: -58px; /* overlap the input */
+}
+.view-search-container .right-side-button > svg
+{
+    vertical-align: middle;
 }
 
 .thumbnail-ui-box .avatar-container {
@@ -1237,21 +1263,29 @@ input.search-tags {
     right: 0px;
 }
 
+/* These affect both the search edit and search history boxes. */
 .input-dropdown {
-    width: 100%;
+    width: 500px; /* overridden by script */
+    max-width: 800px;
     margin: 1px;
+    z-index: 1;
+    user-select: none;
 
     /* This is used for the search tag dropdown, which is in a fixed position at the top of the
      * screen.  Limit the height to the size of the window minus (roughly) its position. */
     max-height: 400px;
-    max-height: calc(100vh - 200px);
+    max-height: calc(100vh - 400px);
+
+    /* Always show the vertical scrollbar.  Otherwise, the resize handle falls under the buttons
+     * when it's not shown. */
     overflow-x: hidden;
-    overflow-y: auto;
+    overflow-y: scroll;
+    resize: horizontal;
     position: absolute;
     background-color: #fff;
 }
 
-.input-dropdown > .input-dropdown-list {
+.search-history > .input-dropdown > .input-dropdown-list {
     display: flex;
     flex-direction: column;
 }
@@ -1260,43 +1294,82 @@ input.search-tags {
     flex-direction: row;
     color: #000;
     align-items: center;
-}
-.input-dropdown > .input-dropdown-list > .entry.selected {
-    background-color: #ffa;
+    height: 30px;
 }
 
-.input-dropdown > .input-dropdown-list > .entry:hover {
-    background-color: #ddd;
-}
-
-/* Hide the button to remove history entries from non-history entries. */
-.input-dropdown > .input-dropdown-list > .entry:not(.history) .remove-history-entry {
-    display: none;
-}
-
-.input-dropdown > .input-dropdown-list > .entry > A.tag {
+.input-dropdown > .input-dropdown-list > .entry > A.search {
     color: #000;
     flex: 1;
     overflow: hidden;
     text-overflow: ellipsis;
-    padding: 4px;
+/*    padding: 4px;*/
     padding-left: 7px;
+    height: 100%;
 }
 
-.input-dropdown > .input-dropdown-list > .entry .suggestion-icon {
+.input-dropdown > .input-dropdown-list > .entry > A.search .word {
+    display: inline-flex;
+    align-items: center;
+    height: 100%;
+    padding: 0px 5px;
+}
+
+/* Styles specific to the search history version of the dropdown: */
+.search-history > .input-dropdown > .input-dropdown-list > .entry .suggestion-icon {
     margin: 2px -2px 0 2px;    
 }
 
-.input-dropdown > .input-dropdown-list > .entry:not(.autocomplete) .suggestion-icon {
+.search-history > .input-dropdown > .input-dropdown-list > .entry:not(.autocomplete) .suggestion-icon {
     display: none;
 }
 
-.input-dropdown > .input-dropdown-list .remove-history-entry {
-    padding: 0 8px 0px 5px;
+.search-history > .input-dropdown > .input-dropdown-list > .entry.selected {
+    background-color: #ffa;
 }
-.input-dropdown > .input-dropdown-list .remove-history-entry:hover {
-    color: #f33;
+
+.search-history > .input-dropdown > .input-dropdown-list > .entry:hover {
+    background-color: #ddd;
 }
+
+.search-history > .input-dropdown > .input-dropdown-list .remove-history-entry {
+    height: 30px;
+    width: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    visibility: hidden;
+}
+
+/* Hide the button to remove history entries from non-history entries. */
+.search-history > .input-dropdown > .input-dropdown-list > .entry:not(.history) .remove-history-entry {
+    display: none;
+}
+
+.search-history > .input-dropdown > .input-dropdown-list > .entry:hover .remove-history-entry {
+    visibility: visible;
+}
+.search-history > .input-dropdown > .input-dropdown-list .remove-history-entry:hover {
+    color: #000;
+    background-color: #c0c0c0;
+}
+
+/* Styles specific to the edit search version of the dropdown. */
+.edit-search > .input-dropdown {
+    padding: 4px 0;
+}
+/* The edit search list is shown as a wrapped list, so enable wrapping and switch items from flex to inline-flex. */
+.edit-search > .input-dropdown > .input-dropdown-list {
+    white-space: normal;
+    max-width: 100%;
+}
+
+.edit-search > .input-dropdown > .input-dropdown-list > .entry {
+    display: inline-flex;
+}
+
+.edit-search > .input-dropdown > .input-dropdown-list > .entry > A.search .tag.highlight { background-color: #eeee00; }
+.edit-search > .input-dropdown > .input-dropdown-list > .entry > A.search .tag:hover { background-color: #0099FF; }
+.edit-search > .input-dropdown > .input-dropdown-list > .entry > A.search .tag.highlight:hover { background-color: #00CCFF; }
 
 .manga-thumbnail-container
 {

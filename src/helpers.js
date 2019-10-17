@@ -921,6 +921,9 @@ var helpers = {
     // Add tag to the recent search list, or move it to the front.
     add_recent_search_tag(tag)
     {
+        if(this._disable_adding_search_tags)
+            return;
+
         var recent_tags = helpers.get_value("recent-tag-searches") || [];
         var idx = recent_tags.indexOf(tag);
         if(idx != -1)
@@ -932,6 +935,12 @@ var helpers = {
         helpers.set_value("recent-tag-searches", recent_tags);
 
         window.dispatchEvent(new Event("recent-tag-searches-changed"));
+    },
+
+    // This is a hack used by tag_search_box_widget to temporarily disable adding to history.
+    disable_adding_search_tags(value)
+    {
+        this._disable_adding_search_tags = value;
     },
 
     remove_recent_search_tag(tag)
@@ -948,6 +957,24 @@ var helpers = {
         helpers.set_value("recent-tag-searches", recent_tags);
         
         window.dispatchEvent(new Event("recent-tag-searches-changed"));
+    },
+
+    // Split a tag search into individual tags.
+    split_search_tags(search)
+    {
+        // Replace full-width spaces with regular spaces.  Pixiv treats this as a delimiter.
+        search = search.replace("　", " ");
+        return search.split(" ");
+    },
+    
+    // If a tag has a modifier, return [modifier, tag].  -tag seems to be the only one, so
+    // we return ["-", "tag"].
+    split_tag_prefixes(tag)
+    {
+        if(tag[0] == "-")
+            return ["-", tag.substr(1)];
+        else
+            return ["", tag];
     },
 
     // Find globalInitData in a document, evaluate it and return it.  If it can't be
@@ -1828,7 +1855,112 @@ class hover_with_delay
 
 
     }
+}
 
+// Originally from https://gist.github.com/wilsonpage/01d2eb139959c79e0d9a
+class key_storage
+{
+    constructor(name)
+    {
+        this.name = name;
+        this.ready = new Promise((resolve, reject) => {
+            var request = indexedDB.open("ppixiv");
 
+            request.onupgradeneeded = e => {
+                this.db = e.target.result;
+                this.db.createObjectStore(this.name);
+            };
+
+            request.onsuccess = e => {
+                this.db = e.target.result;
+                resolve();
+            };
+
+            request.onerror = e => {
+                this.db = e.target.result;
+                reject(e);
+            };
+        });
+    }
+
+    getStore()
+    {
+        let transaction = this.db.transaction(this.name, "readwrite");
+        return transaction.objectStore(this.name);
+    }
+
+    static async_store_get(store, key)
+    {
+        return new Promise((resolve, reject) => {
+            var request = store.get(key);
+            request.onsuccess = e => resolve(e.target.result);
+            request.onerror = reject;
+        });
+    }
+
+    async get(key, store)
+    {
+        await this.ready;
+        return key_storage.async_store_get(this.getStore(), key);
+    }
+
+    // Given a list of keys, return known translations.  Tags that we don't have data for are null.
+    async multi_get(keys)
+    {
+        await this.ready;
+        let store = this.getStore();
+
+        let promises = [];
+        for(let key of keys)
+            promises.push(key_storage.async_store_get(store, key));
+        return await Promise.all(promises);
+    }
+
+    static async_store_set(store, key, value)
+    {
+        return new Promise((resolve, reject) => {
+            var request = store.put(value, key);
+            request.onsuccess = resolve;
+            request.onerror = reject;
+        });
+    }
+    
+    async set(key, value)
+    {
+        await this.ready;
+        return key_storage.async_store_set(this.getStore(), key, value);
+    }
+
+    // Internal helper: batch set all keys[n] to values[n].
+    static async_store_multi_set(store, keys, values)
+    {
+        if(keys.length != values.length)
+            throw "key and value arrays have different lengths";
+
+        return new Promise((resolve, reject) => {
+            // Only wait for onsuccess on the final put, for performance.
+            for(let i = 0; i < keys.length; ++i)
+            {
+                var request = store.put(values[i], keys[i]);
+                request.onerror = reject;
+                if(i == keys.length - 1)
+                    request.onsuccess = resolve;
+            }
+        });
+    }
+
+    // Given a dictionary, set all key/value pairs.
+    async multi_set(data)
+    {
+        await this.ready;
+        let store = this.getStore();
+
+        let keys = Object.keys(data);
+        let values = [];
+        for(let key of keys)
+            values.push(data[key]);
+
+        await key_storage.async_store_multi_set(store, keys, values);
+    }
 }
 

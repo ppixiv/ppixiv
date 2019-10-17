@@ -139,7 +139,10 @@
                                 <div class="navigation-search-box" style="padding: .25em; margin: .25em;">
                                     <div class=search-box>
                                         <input class="search-tags keep-menu-open" placeholder=Search>
-                                        <span class=search-submit-button>🔍</span>
+
+                                        <span class=search-submit-button>
+                                        ### inline:search-icon.svg
+                                        </span>
                                     </div>
                                 </div>
                             </div>
@@ -249,7 +252,13 @@
                     <div class="search-page-tag-entry search-box">
                         <div class="tag-search-box hover-menu-box">
                             <input class=search-tags placeholder=Tags>
-                            <span class=search-submit-button>🔍</span>
+                            <span class="edit-search-button right-side-button">
+                            ### inline:edit-icon.svg
+                            </span>
+
+                            <span class="search-submit-button right-side-button">
+                            ### inline:search-icon.svg
+                            </span>
                         </div>
 
                         <div class=search-tags-box style="display: inline-block;">
@@ -616,7 +625,7 @@
         </template>
 
         <template class=template-tag-dropdown>
-            <div>
+            <div class=search-history>
                 <!-- This is to make sure there isn't a gap between the input and the dropdown,
                      so we don't consider the mouse out of the box when it moves from the input
                      to the autocomplete box. -->
@@ -636,11 +645,27 @@
                     ### inline:search-result-icon.svg
                 </div>
                 
-                <a class=tag></a>
+                <a class=search></a>
                 <a class="remove-history-entry keep-menu-open" href=#>X</a>
             </div>
         </template>
 
+        <template class=template-edit-search-dropdown>
+            <div class=edit-search>
+                <div class=input-dropdown>
+                    <div class=input-dropdown-list>
+                        <!-- template-edit-search-dropdown-entry instances will be added here. -->
+                    </div>
+                </div>
+            </div>
+        </template>
+
+        <template class=template-edit-search-dropdown-entry>
+            <div class=entry>
+                <a class=search></a>
+            </div>
+        </template>
+        
         <template class=template-manga-thumbnail>
             <div class=manga-thumbnail-box>
                 <img class=manga-thumb>
