@@ -15,6 +15,7 @@ class hide_mouse_cursor_on_idle
         this.element = element;
 
         this.force_hidden_until = null;
+        this.cursor_hidden = false;
 
         window.addEventListener("mousemove", this.onmousemove, true);
         window.addEventListener("blur", this.blur, true);
@@ -22,6 +23,9 @@ class hide_mouse_cursor_on_idle
 
         window.addEventListener("enable-hiding-cursor", function() { this.enable = true; }.bind(this), true);
         window.addEventListener("disable-hiding-cursor", function() { this.enable = false; }.bind(this), true);
+        settings.register_change_callback("no-hide-cursor", () => {
+            this.refresh_hide_cursor();
+        });
 
         this.enable = true;
     }
@@ -105,17 +109,23 @@ class hide_mouse_cursor_on_idle
 
     show_cursor(e)
     {
-    //    this.element.style.cursor = "";
-        this.element.classList.remove("hide-cursor");
+        this.cursor_hidden = false;
+        this.refresh_hide_cursor();
     }
 
     hide_cursor(e)
+    {
+        this.cursor_hidden = true;
+        this.refresh_hide_cursor();
+    }
+
+    refresh_hide_cursor()
     {
         // Setting style.cursor to none doesn't work in Chrome.  Doing it with a style works
         // intermittently (seems to work better in fullscreen).  Firefox doesn't have these
         // problems.
     //    this.element.style.cursor = "none";
-        this.element.classList.add("hide-cursor");
+        helpers.set_class(this.element, "hide-cursor", this.cursor_hidden && !settings.get("no-hide-cursor"));
     }
 }
 

@@ -157,7 +157,14 @@ class view_search extends view
             setting: "ui-on-hover",
             onchange: this.update_from_settings,
         });
-         
+
+        new menu_option_toggle(settings_menu, {
+            label: "Hide cursor",
+            setting: "no-hide-cursor",
+            onchange: this.update_from_settings,
+            invert_display: true,
+        });
+
         // Create the tag dropdown for the search page input.
         new tag_search_dropdown_widget(this.container.querySelector(".tag-search-box .search-tags"));
             
