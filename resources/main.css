@@ -48,7 +48,7 @@ body {
     --box-link-fg-color: var(--frame-fg-color);
     --box-link-bg-color: var(--frame-bg-color);
     --box-link-disabled-color: #888;
-    --box-link-hover-color: #222;
+    --box-link-hover-color: #443;
     --box-link-selected-color: #008;
 
     /* Color for the minor text style, eg. the bookmark and like counts.
@@ -84,7 +84,7 @@ body.light {
 
     --dropdown-menu-hover-color: #ccc;
 
-    --box-link-hover-color: #eee;
+    --box-link-hover-color: #ddc;
     --box-link-selected-color: #ffc;
 
     --minor-text-fg-color: #555; /* 555 */
