@@ -267,8 +267,8 @@ class image_preloader
         var results = [];
         for(var page of illust_data.mangaPages)
             results.push(new _img_preloader(page.urls.small));
-        for(var page of illust_data.mangaPages)
-            results.push(new _img_preloader(page.urls.original));
+//        for(var page of illust_data.mangaPages)
+//            results.push(new _img_preloader(page.urls.original));
 
         return results;
     }
