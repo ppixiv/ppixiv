@@ -378,6 +378,13 @@ body:not(.hide-ui) .view-illust-container .ui-box.hovering-over-sphere {
 .disable-ui-button:hover > .icon-button {
     color: #0096FA;
 }
+.whats-new-button.updates > svg {
+    color: #cc0;
+}
+body.light .whats-new-button.updates > svg {
+    color: #0aa; /* yellow doesn't work in a light theme */
+}
+
 .navigate-out-button {
     cursor: pointer;
 }
@@ -1811,3 +1818,67 @@ svg.heart-image .delete {
     vertical-align: bottom;
 }
 */
+
+.whats-new-box {
+    position: absolute;
+    z-index: 1000;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.whats-new-box > .content {
+    font-size: 18px;
+    width: 80%;
+    max-width: 800px;
+    height: 80%;
+    background-color: var(--ui-bg-color);
+    color: var(--ui-fg-color);
+    border-radius: 5px;
+    position: relative;
+}
+
+.whats-new-box > .content > .scroll {
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    padding: 1em;
+}
+
+.whats-new-box .close-button {
+    position: absolute;
+    top: 5px;
+    right: -40px;
+    color: var(--button-color);
+    background-color: var(--ui-bg-color);
+    padding: 4px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+.whats-new-box .close-button:hover {
+    color: var(--button-highlight-color);
+}
+.whats-new-box .close-button > svg {
+    display: block;
+}
+
+.whats-new-box .header {
+    font-size: 40px;
+    margin-bottom: 20px;
+}
+
+.whats-new-box .rev {
+    display: inline-block;
+    color: var(--box-link-fg-color);
+    background-color: var(--box-link-bg-color);
+    padding: 5px 10px;
+}
+.whats-new-box .text {
+    margin: 1em 0;
+    padding: 0 20px; /* inset horizontally a bit */
+}

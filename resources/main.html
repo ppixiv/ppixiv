@@ -155,6 +155,10 @@
                         </div>
                     </div>
 
+                    <div class="whats-new-button menu-button popup" data-popup="What's New" style="margin-right: -2px;">
+                        ### inline:whats-new.svg
+                    </div>
+
                     <div class="thumbnail-settings-menu-box settings-menu-box popup" data-popup="Preferences">
                         <div class="menu-button grey-icon icon-button">
                             ### inline:settings-icon.svg
@@ -418,9 +422,27 @@
         <div class="top-ui-box-padding"></div>
         <ul class=thumbnails></ul>
     </div>
+
+    <div class=whats-new-box hidden>
+        <div class=content>
+            <div class=scroll>
+                <div class=header>Updates</div>
+                <div class=items></div>
+            </div>
+            <div class=close-button>
+                ### inline:close-button.svg
+            </div>
+        </div>
+    </div>
     
     <!-- Templates: -->
     <div>
+        <template class=template-version-history-item>
+            <div>
+                <div class=rev></div>
+                <div class=text></span>
+            </div>
+        </template>
         <template class=template-thumbnail>
             <li class=thumbnail-box>
                 <div class=thumbnail-inner>

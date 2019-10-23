@@ -90,6 +90,7 @@ class view_search extends view
         }, true);
  
         this.container.querySelector(".refresh-search-button").addEventListener("click", this.refresh_search.bind(this));
+        this.container.querySelector(".whats-new-button").addEventListener("click", this.whats_new.bind(this));
 
         var settings_menu = this.container.querySelector(".settings-menu-box > .popup-menu-box");
 
@@ -184,6 +185,7 @@ class view_search extends view
         this.update_from_settings();
         this.refresh_images();
         this.load_needed_thumb_data();
+        this.refresh_whats_new_button();
     }
 
     window_onresize(e)
@@ -199,6 +201,21 @@ class view_search extends view
         main_controller.singleton.refresh_current_data_source();
     }
         
+    // Set or clear the updates class on the "what's new" button.
+    refresh_whats_new_button()
+    {
+        let last_viewed_version = settings.get("whats-new-last-viewed-version", 0);
+        let new_updates = last_viewed_version < GM_info.script.version;
+        helpers.set_class(this.container.querySelector(".whats-new-button"), "updates", new_updates);
+    }
+
+    whats_new()
+    {
+        settings.set("whats-new-last-viewed-version", GM_info.script.version);
+        this.refresh_whats_new_button();
+
+        new whats_new(document.body.querySelector(".whats-new-box"));
+    }
 
     /* This scrolls the thumbnail when you hover over it.  It's sort of neat, but it's pretty
      * choppy, and doesn't transition smoothly when the mouse first hovers over the thumbnail,

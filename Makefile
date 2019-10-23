@@ -40,6 +40,7 @@ FILES=\
     src/page_manager.js \
     src/remove_link_interstitial.js \
     src/image_preloading.js \
+    src/whats_new.js \
     src/main.js \
     src/footer.js
 
