@@ -1775,7 +1775,8 @@ class data_source_current_illust extends data_source_fake_pagination
         hash_args.set("user_id", illust_info.userId);
         helpers.set_hash_args(url, hash_args);
 
-//        url.searchParams.delete("illust_id");
+        // Remove the illustration ID.
+        url.pathname = "/artworks";
         
         return await data_source.get_canonical_url(url);
     }
