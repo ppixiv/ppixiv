@@ -133,7 +133,25 @@ class illust_id_list
     };
 
     // Return the next or previous illustration.  If we don't have that page, return null.
+    //
+    // This only returns illustrations, skipping over any special entries like user:12345.
     get_neighboring_illust_id(illust_id, next)
+    {
+        for(let i = 0; i < 100; ++i) // sanity limit
+        {
+            illust_id = this._get_neighboring_illust_id_internal(illust_id, next);
+            if(illust_id == null)
+                return null;
+
+            // If it's not an illustration, keep looking.
+            if(helpers.id_type(illust_id) == "illust")
+                return illust_id;
+        }
+        return null;
+    }
+
+    // The actual logic for get_neighboring_illust_id, except for skipping entries.
+    _get_neighboring_illust_id_internal(illust_id, next)
     {
         var page = this.get_page_for_illust(illust_id);
         if(page == null)
@@ -699,6 +717,211 @@ class data_source_discovery extends data_source_fake_pagination
     }
 }
 
+// Artist suggestions take a random sample of followed users, and query suggestions from them.
+// The followed user list normally comes from /discovery/users.
+//
+// This can also be used to view recommendations based on a specific user.  Note that if we're
+// doing this, we don't show things like the artist's avatar in the corner, so it doesn't look
+// like the images we're showing are by that user.
+class data_source_discovery_users extends data_source
+{
+    get name() { return "discovery_users"; }
+
+    // The constructor receives the original HTMLDocument.
+    constructor(url, doc)
+    {
+        super(url);
+
+        var hash_args = helpers.get_hash_args(this.url);
+        let user_id = hash_args.get("user_id");
+        if(user_id != null)
+        {
+            this.showing_user_id = user_id;
+            this.sample_user_ids = [user_id]
+        }
+        else
+            this.sample_user_ids = null;
+        this.original_doc = doc;
+        this.original_url = url;
+    }
+
+    // Return true if the two URLs refer to the same data.
+    is_same_page(url1, url2)
+    {
+        var cleanup_url = function(url)
+        {
+            var url = new URL(url);
+
+            // Any "x" parameter is a dummy that we set to force the iframe to load, so ignore
+            // it here.
+            url.searchParams.delete("x");
+
+            // The hash doesn't affect the page that we load.
+            url.hash = "";
+            return url.toString();
+        };
+
+        var url1 = cleanup_url(url1);
+        var url2 = cleanup_url(url2);
+        return url1 == url2;
+    }
+
+    // We can always return another page.
+    load_page_available(page)
+    {
+        return true;
+    }
+
+   async load_page_internal(page)
+    {
+        if(this.showing_user_id != null)
+        {
+            // Make sure the user info is loaded.
+            this.user_info = await image_data.singleton().get_user_info_full(this.showing_user_id);
+
+            // Update to refresh our page title, which uses user_info.
+            this.call_update_listeners();
+        }
+ 
+        // Find the sample user IDs we need to request suggestions.
+        await this.load_sample_user_ids();
+
+        var data = {
+            mode: "get_recommend_users_and_works_by_user_ids",
+            user_ids: this.sample_user_ids.join(","),
+            user_num: 30,
+            work_num: 5,
+        };
+
+        // Get suggestions.  Each entry is a user, and contains info about a small selection of
+        // images.
+        var result = await helpers.get_request("/rpc/index.php", data);
+        if(result.error)
+            throw "Error reading suggestions: " + result.message;
+
+        // Convert the images into thumbnail_info.  Like everything else, this is returned in a format
+        // slightly different from the other APIs that it's similar to.
+        let thumbnail_info = [];
+        let illust_ids = [];
+        for(let user of result.body)
+        {
+            // Register this as quick user data, for use in thumbnails.
+            thumbnail_data.singleton().add_quick_user_data(user, "recommendations");
+
+            illust_ids.push("user:" + user.user_id);
+
+            for(let illust_data of user.illusts)
+            {
+                illust_ids.push(illust_data.illust_id);
+
+                let illust = {
+                    id: illust_data.illust_id,
+                    title: illust_data.illust_title,
+                    width: illust_data.illust_width,
+                    height: illust_data.illust_height,
+                    illustType: illust_data.illust_type,
+                    pageCount: parseInt(illust_data.illust_page_count),
+                    userId: illust_data.illust_user_id,
+                    tags: illust_data.tags,
+                    url: illust_data.url["480mw"],
+
+                    userName: user.user_name,
+                    profileImageUrl: user.profile_img,
+
+                    // This data doesn't include bookmarkData.  It's a suggestions search, so maybe it never
+                    // returns bookmarked images?
+                    bookmarkData: null,
+                };
+                thumbnail_info.push(illust);
+            }
+        }
+
+        // Populate thumbnail data with this data.
+        thumbnail_data.singleton().loaded_thumbnail_info(thumbnail_info, "normal");
+
+        // Register the new page of data.
+        this.add_page(page, illust_ids);
+    }
+
+    // Read /discovery/users and set sample_user_ids from userRecommendSampleUser.
+    async load_sample_user_ids()
+    {
+        if(this.sample_user_ids)
+            return;
+
+        // Work around a browser issue: loading an iframe with the same URL as the current page doesn't
+        // work.  (This might have made sense once upon a time when it would always recurse, but today
+        // this doesn't make sense.)  Just add a dummy query to the URL to make sure it's different.
+        //
+        // This usually doesn't happen, since we'll normally use this.original_doc if we're reading
+        // the same page.  Skip it if it's not needed, so we don't throw weird URLs at the site if
+        // we don't have to.
+        var url = new unsafeWindow.URL(this.original_url);
+        if(this.is_same_page(url, this.original_url))
+            url.searchParams.set("x", 1);
+
+        // If the underlying page isn't /discovery/users, load it in an iframe to get some data.
+        let doc = this.original_doc;
+        if(this.original_doc == null || !this.is_same_page(url, this.original_url))
+        {
+            console.log("Loading:", url.toString());
+            doc = await helpers.load_data_in_iframe(url.toString());
+        }
+
+        // Look for:
+        //
+        // <script>pixiv.context.userRecommendSampleUser = "id,id,id,...";</script>
+        let sample_user_script = null;
+        for(let script of doc.querySelectorAll("script"))
+        {
+            let text = script.innerText;
+            if(!text.startsWith("pixiv.context.userRecommendSampleUser"))
+                continue;
+
+            sample_user_script = script.innerText;
+            break;
+        }
+
+        if(sample_user_script == null)
+            throw "Couldn't find userRecommendSampleUser";
+
+        // Pull out the list, and turn it into a JSON array to parse it.
+        let match = sample_user_script.match(/pixiv.context.userRecommendSampleUser = "(.*)";/);
+        if(match == null)
+            throw "Couldn't parse userRecommendSampleUser: " + sample_user_scripts;
+
+        this.sample_user_ids = JSON.parse("[" + match[1] + "]");
+        console.log("Sample user IDs:", this.sample_user_ids);
+     }
+
+    get estimated_items_per_page() { return 30; }
+    get page_title()
+    {
+        if(this.showing_user_id == null)
+            return "Recommended Users";
+
+        if(this.user_info)
+            return this.user_info.name;
+        else
+            return "Loading...";
+    }
+
+    
+    get_displaying_text()
+    {
+        if(this.showing_user_id == null)
+            return "Recommended Users";
+
+        if(this.user_info)
+            return "Similar artists to " + this.user_info.name;
+        else
+            return "Illustrations";
+    };
+
+    refresh_thumbnail_ui(container)
+    {
+    }
+};
 
 // bookmark_detail.php
 //
@@ -1241,7 +1464,7 @@ class data_source_artist extends data_source
                 limit: 48,
             });
 
-            // This data doesn't have profileImageUrl or userName.  Presumably that's because it's
+            // This data doesn't have profileImageUrl or userName.  That's presumably because it's
             // used on user pages which get that from user data, but this seems like more of an
             // inconsistency than an optimization.  Fill it in for thumbnail_data.
             for(var item of result.body.works)
@@ -2385,6 +2608,10 @@ class data_source_follows extends data_source
             if(followed_user == null)
                 continue;
 
+            // Register this as quick user data, for use in thumbnails.
+            thumbnail_data.singleton().add_quick_user_data(followed_user, "following");
+
+            // XXX: user:user_id
             if(!followed_user.illusts.length)
             {
                 console.log("Can't show followed user that has no posts:", followed_user.userId);

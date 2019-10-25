@@ -82,6 +82,12 @@
                     </div>
                     
                     <div>
+                        <a href=# class="similar-artists-link grey-icon bulb-button popup popup-bottom" data-popup="Similar artists">
+                            ### inline:related-illusts.svg
+                        </a>
+                    </div>
+
+                    <div>
                         <a class="bookmarks-link grey-icon popup popup-bottom" href=# rel=noreferrer data-popup="View bookmarks" hidden>
                             <svg viewBox="0 0 510 510" style="width: 28px; fill: currentColor;">
                                 <path d="M510,197.472l-183.37-15.734L255,12.75l-71.629,168.988L0,197.472l139.103,120.539L97.41,497.25L255,402.186 l157.59,95.064l-41.692-179.239L510,197.472z M255,354.348l-95.957,57.886l25.398-109.166l-84.736-73.389l111.69-9.588 L255,117.172l43.605,102.918l111.689,9.588l-84.711,73.389l25.398,109.166L255,354.348z"
@@ -134,6 +140,7 @@
                                     <a class="box-link small-font" href="/bookmark.php?type=user&rest=hide#ppixiv?show-all=0">private</a>
                                 </div>
                                 <a class=box-link href="/discovery#ppixiv">Recommended works</a>
+                                <a class=box-link href="/discovery/users#ppixiv">Recommended users</a>
                                 <a class=box-link href="/ranking.php#ppixiv">Rankings</a>
 
                                 <div class="navigation-search-box" style="padding: .25em; margin: .25em;">
@@ -462,7 +469,7 @@
                         <!-- I don't like having no popup here, but it's too intrusive over the thumbnail.
                              Hopefully the popup over the equivalent button in the image UI is enough to tell
                              people what this does. -->
-                        <a href=# class="similar-illusts-button grey-icon">
+                        <a href=# class="similar-illusts-button bulb-button grey-icon">
                             ### inline:related-illusts.svg
                         </a>
                     </div>
@@ -556,7 +563,13 @@
                         <div class=count></div>
                     </div>
 
-                    <a class="similar-illusts-button popup" data-popup="Similar illustrations" href=#>
+                    <a class="similar-illusts-button bulb-button popup" data-popup="Similar illustrations" href=#>
+                        <div class="grey-icon icon-button">
+                            ### inline:related-illusts.svg
+                        </div>
+                    </a>
+
+                    <a class="similar-artists-button bulb-button grey-icon popup" data-popup="Similar artists" href=#>
                         <div class="grey-icon icon-button">
                             ### inline:related-illusts.svg
                         </div>

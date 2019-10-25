@@ -86,7 +86,8 @@ class view_search extends view
             if(a == null)
                 return;
 
-            image_data.singleton().get_image_info(a.dataset.illustId);
+            if(a.dataset.illustId != null)
+                image_data.singleton().get_image_info(a.dataset.illustId);
         }, true);
  
         this.container.querySelector(".refresh-search-button").addEventListener("click", this.refresh_search.bind(this));
@@ -370,6 +371,12 @@ class view_search extends view
             bookmarks_link.dataset.popup = user_info? ("View " + user_info.name + "'s bookmarks"):"View bookmarks";
         }
 
+        // Set the similar artists link.
+        var similar_artists_link = this.container.querySelector(".similar-artists-link");
+        similar_artists_link.hidden = user_info == null;
+        if(user_info)
+            similar_artists_link.href = "/discovery/users#ppixiv?user_id=" + user_info.userId;
+
         // Set the following link.
         var following_link = this.container.querySelector(".following-link");
         following_link.hidden = user_info == null;
@@ -625,7 +632,10 @@ class view_search extends view
             }
             else
             {
-                wanted_illust_ids.push(element.dataset.illust_id);
+                // If this is an illustration, add it to wanted_illust_ids so we load its thumbnail
+                // info.  Don't do this if it's a user.
+                if(helpers.id_type(element.dataset.illust_id) == "illust")
+                    wanted_illust_ids.push(element.dataset.illust_id);
             }
         }
 
@@ -724,11 +734,64 @@ class view_search extends view
             if(illust_id == null)
                 continue;
 
-            // Get thumbnail info.
-            var info = thumbnail_data.singleton().get_one_thumbnail_info(illust_id);
-            if(info == null)
-                continue;
             var search_mode = this.data_source.search_mode;
+
+            let thumb_type = helpers.id_type(illust_id);
+            let thumb_data = {};
+
+            // For illustrations, get thumbnail info.  If we don't have it yet, skip the image (leave it pending)
+            // and we'll come back once we have it.
+            if(thumb_type == "illust")
+            {
+                // Get thumbnail info.
+                var info = thumbnail_data.singleton().get_one_thumbnail_info(illust_id);
+                if(info == null)
+                    continue;
+            }
+            
+            // Leave it alone if it's already been loaded.
+            if(!("pending" in element.dataset))
+                continue;
+
+            // Why is this not working in FF?  It works in the console, but not here.  Sandboxing
+            // issue?
+            // delete element.dataset.pending;
+            element.removeAttribute("data-pending");
+
+
+            if(thumb_type == "user")
+            {
+                // This is a user thumbnail rather than an illustration thumbnail.  It just shows a small subset
+                // of info.
+                let user_id = helpers.actual_id(illust_id);
+
+                var link = element.querySelector("a.thumbnail-link");
+                link.href = "/member_illust.php?id=" + user_id + "#ppixiv";
+
+                link.dataset.userId = user_id;
+
+                let quick_user_data = thumbnail_data.singleton().get_quick_user_data(user_id);
+                if(quick_user_data == null)
+                {
+                    // We should always have this data for users if the data source asked us to display this user.
+                    throw "Missing quick user data for user ID " + user_id;
+                }
+                
+                var thumb = element.querySelector(".thumb");
+                thumb.src = quick_user_data.profileImageUrl;
+
+                var label = element.querySelector(".thumbnail-label");
+                label.hidden = false;
+                label.querySelector(".label").innerText = quick_user_data.userName;
+
+                // Point the "similar illustrations" thumbnail button to similar users for this result, so you can
+                // chain from one set of suggested users to another.
+                element.querySelector("A.similar-illusts-button").href = "/discovery/users#ppixiv?user_id=" + user_id;
+                continue;
+            }
+
+            if(thumb_type != "illust")
+                throw "Unexpected thumb type: " + thumb_type;
 
             // Set this thumb.
             var url = info.url;
@@ -758,27 +821,19 @@ class view_search extends view
                 helpers.set_thumbnail_panning_direction(element, info.width, info.height, 1);
             }
 
-            // Leave it alone if it's already been loaded.
-            if(!("pending" in element.dataset))
-                continue;
-
-            // Why is this not working in FF?  It works in the console, but not here.  Sandboxing
-            // issue?
-            // delete element.dataset.pending;
-            element.removeAttribute("data-pending");
-
             // Set the link.  Setting dataset.illustId will allow this to be handled with in-page
             // navigation, and the href will allow middle click, etc. to work normally.
             //
             // If we're on the followed users page, set these to the artist page instead.
             var link = element.querySelector("a.thumbnail-link");
-            if(search_mode == "illusts")
+            if(search_mode == "users") {
+                link.href = "/member_illust.php?id=" + info.userId + "#ppixiv";
+            }
+            else
             {
                 link.href = "/artworks/" + illust_id + "#ppixiv";
                 if(info.pageCount > 1)
                     link.href += "?view=manga";
-            } else if(search_mode == "users") {
-                link.href = "/member_illust.php?id=" + info.userId + "#ppixiv";
             }
 
             link.dataset.illustId = illust_id;

@@ -185,7 +185,7 @@ class image_data
     // User preloads often only have the smaller set, and we want to use the preload
     // data whenever possible.
     //
-    // getuser_info requests the smaller set of data, and get_user_info_full requests
+    // get_user_info requests the smaller set of data, and get_user_info_full requests
     // the full data.
     //
     // Note that get_user_info will return the full data if we have it already.
@@ -244,6 +244,7 @@ class image_data
 
         var user_data = user_result.body;
         var user_id = user_data.userId;
+        console.log(user_data);
         // console.log("Got user", user_id);
 
         // Store the user data.

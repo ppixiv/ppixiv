@@ -256,6 +256,9 @@ class main_controller
 
         window.addEventListener("keydown", this.onkeydown);
 
+        window.addEventListener("dragstart", (e) => {
+            console.log("drag", e.target, e.target.parentNode);
+        }, true);
         this.current_view_name = null;
         this.current_history_index = helpers.current_history_state_index();
 

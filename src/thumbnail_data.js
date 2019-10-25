@@ -11,6 +11,7 @@ class thumbnail_data
 
         // Cached data:
         this.thumbnail_data = { };
+        this.quick_user_data = { };
 
         // IDs that we're currently requesting:
         this.loading_ids = {};
@@ -177,6 +178,13 @@ class thumbnail_data
     // Given a low-res thumbnail URL from thumbnail data, return a high-res thumbnail URL.
     get_high_res_thumbnail_url(url)
     {
+        // Some random results on the user recommendations page also return this:
+        //
+        // /c/540x540_70/custom-thumb/img/.../12345678_custom1200.jpg
+        //
+        // Replace /custom-thumb/' with /img-master/ first, since it makes matching below simpler.
+        url = url.replace("/custom-thumb/", "/img-master/");
+
         // path should look like
         //
         // /c/250x250_80_a2/img-master/img/.../12345678_square1200.jpg
@@ -190,7 +198,7 @@ class thumbnail_data
         // The resolution field is changed, and "square1200" is changed to "master1200".
         var url = new URL(url, document.location);
         var path = url.pathname;
-        var re = /(\/c\/)([^\/]+)(.*)(square1200|master1200).jpg/;
+        var re = /(\/c\/)([^\/]+)(.*)(square1200|master1200|custom1200).jpg/;
         var match = re.exec(path);
         if(match == null)
         {
@@ -399,6 +407,48 @@ class thumbnail_data
         if(muting.singleton.any_tag_muted(thumb_info.tags))
             return true;
         return false;
+    }
+
+    // This is a simpler form of thumbnail data for user info.  This is just the bare minimum
+    // info we need to be able to show a user thumbnail on the search page.
+    //
+    // We can get this info from two places, the following page (data_source_follows) and the
+    // user recommendations page (data_source_discovery_users).  Of course, since Pixiv never
+    // does anything the same way twice, they have different formats.
+    //
+    // The only info we need is:
+    // userId
+    // userName
+    // profileImageUrl
+    add_quick_user_data(user_data, source)
+    {
+        let data = null;
+        if(source == "following")
+        {
+            data = {
+                userId: user_data.userId,
+                userName: user_data.userName,
+                profileImageUrl: user_data.profileImageUrl,
+            };
+        }
+        else if(source == "recommendations")
+        {
+            data = {
+                userId: user_data.user_id,
+                userName: user_data.user_name,
+                profileImageUrl: user_data.profile_img,
+            };
+        }
+        else
+            throw "Unknown source: " + source;
+
+        console.log("add", data);
+        this.quick_user_data[data.userId] = data;        
+    }
+
+    get_quick_user_data(user_id)
+    {
+        return this.quick_user_data[user_id];
     }
 }
 

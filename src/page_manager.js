@@ -95,6 +95,8 @@ class page_manager
             return data_source_search;
         else if(url.pathname == "/discovery")
             return data_source_discovery;
+        else if(url.pathname == "/discovery/users")
+            return data_source_discovery_users;
         else if(url.pathname == "/bookmark_detail.php")
             return data_source_related_illusts;
         else if(url.pathname == "/ranking.php")

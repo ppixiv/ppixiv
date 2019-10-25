@@ -1642,6 +1642,33 @@ var helpers = {
         ctx.quadraticCurveTo(x, y, x + radius.tl, y);
         ctx.closePath();
     },
+
+    // Helpers for IDs in the illustration list.
+    //
+    // Most things we show in thumbs are illustration IDs, and we pass them around normally.
+    // If we need to show something else in a thumbnail, we encode it.  We can show a user
+    // thumbnail by adding "user:12345" as an ID.
+    //
+    // Return the type of the ID.  If this is just a regular illustration ID, return "illust".
+    // Otherwise, return the prefix ("user").
+    id_type(id)
+    {
+        let parts = id.split(":");
+        if(parts.length < 2)
+            return "illust";
+        else
+            return parts[0];
+    },
+
+    // Return the real ID.  For example, for "user:12345", the actual ID is 12345.
+    actual_id(id)
+    {
+        let parts = id.split(":");
+        if(parts.length < 2)
+            return id;
+        else
+            return parts[1];
+    }
 };
 
 // Handle maintaining and calling a list of callbacks.

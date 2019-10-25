@@ -213,6 +213,7 @@ class image_ui
         element_author.href = "/member_illust.php?id=" + user_data.userId + "#ppixiv";
         
         this.container.querySelector(".similar-illusts-button").href = "/bookmark_detail.php?illust_id=" + illust_id + "#ppixiv";
+        this.container.querySelector(".similar-artists-button").href = "/discovery/users#ppixiv?user_id=" + user_data.userId;
 
         // Fill in the post info text.
         this.set_post_info(this.container.querySelector(".post-info"));

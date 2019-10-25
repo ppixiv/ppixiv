@@ -580,15 +580,15 @@ body.dot canvas.filtering {
     image-rendering: crisp-edges;
     image-rendering: pixelated;
 }
-.similar-illusts-button:hover > .icon-button {
+.bulb-button:hover > .icon-button {
     color: #FF0 !important; /* override grey-icon hover color */
 }
 
-body.light .similar-illusts-button:hover > .icon-button {
+body.light .bulb-button:hover > .icon-button {
     stroke: #000;
 }
 
-.similar-illusts-button > .icon-button {
+.bulb-button > .icon-button {
     margin-top: -3px;
 }
 
