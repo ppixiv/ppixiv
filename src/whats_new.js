@@ -1,6 +1,14 @@
 // This should be inside whats_new, but Firefox is in the dark ages and doesn't support class fields.
 let _update_history = [
     {
+        version: 57,
+        text:
+            "Search for similar artists.  Click the recommendations item at the top of the artist page, " +
+            "or in the top-left when viewing an image." +
+            "<p>"+
+            "You can also now view suggested artists."
+    },
+    {
         version: 56,
         text:
             "Tag translations are now supported.  This can be turned off in preferences. " +
