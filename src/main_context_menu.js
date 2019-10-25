@@ -344,7 +344,6 @@ class main_context_menu extends popup_context_menu
         var show_sentinel = this.load_illust_sentinel = new Object();
 
         // Read illust info to see if we're following the user.
-        console.log("get", illust_id);
         var illust_info = await image_data.singleton().get_image_info(illust_id);
 
         // If the popup was closed while we were waiting, ignore the results.
