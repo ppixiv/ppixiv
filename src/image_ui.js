@@ -206,7 +206,7 @@ class image_ui
 
         var element_title = this.container.querySelector(".title");
         element_title.textContent = illust_data.illustTitle;
-        element_title.href = "/member_illust.php?mode=medium&illust_id=" + illust_id + "#ppixiv";
+        element_title.href = "/artworks/" + illust_id + "#ppixiv";
 
         var element_author = this.container.querySelector(".author");
         element_author.textContent = user_data.name;
