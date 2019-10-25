@@ -854,7 +854,13 @@ class view_search extends view
             }
 
             helpers.set_class(element, "dot", helpers.tags_contain_dot(info));
-            element.querySelector("A.similar-illusts-button").href = "/bookmark_detail.php?illust_id=" + illust_id + "#ppixiv";
+
+            // On most pages, the suggestions button in thumbnails shows similar illustrations.  On following,
+            // show similar artists instead.
+            if(search_mode == "users")
+                element.querySelector("A.similar-illusts-button").href = "/discovery/users#ppixiv?user_id=" + info.userId;
+            else
+                element.querySelector("A.similar-illusts-button").href = "/bookmark_detail.php?illust_id=" + illust_id + "#ppixiv";
 
             this.refresh_bookmark_icon(element);
 
