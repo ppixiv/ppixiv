@@ -2340,7 +2340,7 @@ class data_source_bookmarks_new_illust extends data_source_from_page
 };
 
 // search.php
-class data_source_search extends data_source_from_page
+class data_source_search extends data_source
 {
     get name() { return "search"; }
 
@@ -2388,65 +2388,54 @@ class data_source_search extends data_source_from_page
         this.call_update_listeners();
     }
 
-    parse_document(doc)
+    async load_page_internal(page)
     {
-        // The actual results are encoded in a string for some reason.  Note that if there
-        // are no search terms the page will redirect to tags.php, and these won't be present.
-        var result_list_text = doc.querySelector("#js-mount-point-search-result-list");
-        var result_list_json = result_list_text? result_list_text.dataset.items:"[]";
-        var illusts = JSON.parse(result_list_json);
+
+        var query_args = this.url.searchParams;
+        let args = {
+            page: page,
+        };
+        query_args.forEach((value, key) => { args[key] = value; });
+        var tag = query_args.get("word");
+
+        var url = "/ajax/search/artworks/" + tag;
+        var result = await helpers.get_request(url, args);
+        let body = result.body;
 
         // Store related tags.  Only do this the first time and don't change it when we read
         // future pages, so the tags don't keep changing as you scroll around.
         if(this.related_tags == null)
         {
-            var related_tags_text = doc.querySelector("#js-mount-point-search-result-list");
-            var related_tags_json = related_tags_text? related_tags_text.dataset.relatedTags: "[]";
-            var related_tags = JSON.parse(related_tags_json);
-            this.related_tags = related_tags;
-
-            // relatedTags has tag translations.  Register these with our translation db so we know
-            // about them.  This is a different format than other APIs (because of course it is, Pixiv
-            // never uses the same interface twice).  Convert formats, assuming that they're in English.
-            let related_tag_translations = [];
-            for(let related_tag of related_tags)
-                related_tag_translations.push({ tag: related_tag.tag, translation: { en: related_tag.tag_translation } });
-            tag_translations.get().add_translations(related_tag_translations);
+            this.related_tags = [];
+            for(let tag of body.relatedTags)
+                this.related_tags.push({tag: tag});
+            this.call_update_listeners();
         }
 
+        // Add translations.  This is inconsistent with their other translation APIs, because Pixiv
+        // never uses the same interface twice.  Also, this has translations only for related tags
+        // above, not for the tags used in the search, which sucks.
+        let translations = [];
+        for(let tag of Object.keys(body.tagTranslation))
         {
-            var span = doc.querySelector(".search-result-information .translation-column-title");
-            if(span != null)
-            {
-                let tag_translation = span.innerText;
-
-                // This page can have a translation for the search term if it's a single word.  Check
-                // that the search is just a single word in case this changes, and register the translation.
-                var tag = this.url.searchParams.get("word");
-                if(tag && tag.indexOf(" ") == -1)
-                {
-                    let translation = [{
-                        tag: tag,
-                        translation: { en: tag_translation },
-                    }];
-                    tag_translations.get().add_translations(translation);
-                }
-            }
+            translations.push({
+                tag: tag,
+                translation: body.tagTranslation[tag],
+            });
         }
-        
-        // Populate thumbnail data with this data.  This has the same format as
-        // bookmark_new_illust.php.
-        thumbnail_data.singleton().loaded_thumbnail_info(illusts, "following");
+        tag_translations.get().add_translations(translations);
+
+        let illusts = body.illustManga.data;
+
+        // Populate thumbnail data with this data.
+        thumbnail_data.singleton().loaded_thumbnail_info(illusts, "search");
 
         var illust_ids = [];
-        for(var illust of illusts)
-        {
-            // "isAdContainer" entries have no illustId.
-            if(illust.illustId != null)
-                illust_ids.push(illust.illustId);
-        }
+        for(let illust of illusts)
+            illust_ids.push(illust.illustId);
 
-        return illust_ids;
+        // Register the new page of data.
+        this.add_page(page, illust_ids);
     }
 
     get page_title()

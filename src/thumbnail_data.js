@@ -275,12 +275,13 @@ class thumbnail_data
                 // Switch the URL from the low-res thumbnail to a higher-res one.
                 remapped_thumb_info.url = this.get_high_res_thumbnail_url(remapped_thumb_info.url);
             }
-            else if(source == "illust_list" || source == "following" || source == "rankings" || source == "illust_new")
+            else if(source == "illust_list" || source == "following" || source == "rankings" ||
+                    source == "illust_new" || source == "search")
             {
                 // Get the mapping for this mode.
                 var thumbnail_info_map = 
                     source == "illust_list"? this.thumbnail_info_map_illust_list:
-                    source == "following" || source == "illust_new"?  this.thumbnail_info_map_following:
+                    source == "following" || source == "illust_new" || source == "search"?  this.thumbnail_info_map_following:
                     this.thumbnail_info_map_ranking;
 
                 var remapped_thumb_info = { };
@@ -351,6 +352,8 @@ class thumbnail_data
                         };
                     }
                 }
+                else if(source == "search")
+                    remapped_thumb_info.bookmarkData = thumb_info.bookmarkData;
 
                 // rankings gives a 240x480 thumbnail.  Remap it to the 540x540 one.
                 remapped_thumb_info.url = remapped_thumb_info.url.replace("/c/240x480", "/c/540x540_70");
