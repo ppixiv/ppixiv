@@ -62,7 +62,7 @@ class early_controller
         // so it doesn't send errors caused by this script.  Remove _send and _time, which
         // also send logs.  It might have already been set (TamperMonkey in Chrome doesn't
         // implement run-at: document-start correctly), so clear it if it's there.
-        for(var key of ["onerror", "_send", "_time", "webpackJsonp"])
+        for(var key of ["onerror", "onunhandledrejection", "_send", "_time", "webpackJsonp"])
         {
             unsafeWindow[key] = null;
 
