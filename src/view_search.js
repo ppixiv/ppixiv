@@ -206,13 +206,18 @@ class view_search extends view
     refresh_whats_new_button()
     {
         let last_viewed_version = settings.get("whats-new-last-viewed-version", 0);
-        let new_updates = last_viewed_version < GM_info.script.version;
+
+        // This was stored as a string before, since it came from GM_info.script.version.  Make
+        // sure it's an integer.
+        last_viewed_version = parseInt(last_viewed_version);
+
+        let new_updates = last_viewed_version < whats_new.latest_history_revision();
         helpers.set_class(this.container.querySelector(".whats-new-button"), "updates", new_updates);
     }
 
     whats_new()
     {
-        settings.set("whats-new-last-viewed-version", GM_info.script.version);
+        settings.set("whats-new-last-viewed-version", whats_new.latest_history_revision());
         this.refresh_whats_new_button();
 
         new whats_new(document.body.querySelector(".whats-new-box"));

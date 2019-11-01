@@ -38,6 +38,13 @@ let _update_history = [
 
 class whats_new
 {
+    // Return the newest revision that exists in history.  This is always the first
+    // history entry.
+    static latest_history_revision()
+    {
+        return _update_history[0].version;
+    }
+
     constructor(container)
     {
         this.container = container;
