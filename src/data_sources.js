@@ -2390,10 +2390,9 @@ class data_source_search extends data_source
 
     async load_page_internal(page)
     {
-
         var query_args = this.url.searchParams;
         let args = {
-            page: page,
+            p: page,
         };
         query_args.forEach((value, key) => { args[key] = value; });
         var tag = query_args.get("word");
