@@ -36,11 +36,20 @@ class tag_translations
             if((tag.translation == null || Object.keys(tag.translation).length == 0) && tag.romaji == null)
                 continue;
 
+            // Remove empty translation values.
+            let translation = {};
+            for(let lang of Object.keys(tag.translation))
+            {
+                let value = tag.translation[lang];
+                if(value != "")
+                    translation[lang] = value;
+            }
+
             // Store the tag data that we care about.  We don't need to store post-specific info
             // like "deletable".
             data[tag.tag] = {
                 tag: tag.tag,
-                translation: tag.translation,
+                translation: translation,
                 romaji: tag.romaji,
             };
         }
