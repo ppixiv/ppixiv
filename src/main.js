@@ -65,7 +65,12 @@ class early_controller
         for(var key of ["onerror", "_send", "_time", "webpackJsonp"])
         {
             unsafeWindow[key] = null;
-            Object.defineProperty(unsafeWindow, key, { define: exportFunction(function(value) { }, unsafeWindow) });
+
+            // Use an empty setter instead of writable: false, so errors aren't triggered all the time.
+            Object.defineProperty(unsafeWindow, key, {
+                get: exportFunction(function() { return null; }, unsafeWindow),
+                set: exportFunction(function(value) { }, unsafeWindow),
+            });
         }
 
         // Try to prevent site scripts from running, since we don't need any of it.
