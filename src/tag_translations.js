@@ -38,7 +38,7 @@ class tag_translations
 
             // Remove empty translation values.
             let translation = {};
-            for(let lang of Object.keys(tag.translation))
+            for(let lang of Object.keys(tag.translation || {}))
             {
                 let value = tag.translation[lang];
                 if(value != "")
