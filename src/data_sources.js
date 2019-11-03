@@ -48,6 +48,11 @@ class illust_id_list
     // results have changed too much for us to reconcile it.
     add_page(page, illust_ids)
     {
+        // Sanity check:
+        for(let illust_id of illust_ids)
+            if(illust_id == null)
+                console.warn("Null illust_id added");
+
         if(this.illust_ids_by_page[page] != null)
         {
             console.warn("Page", page, "was already loaded");
@@ -348,11 +353,11 @@ class data_source
         var result = this.loading_pages[page];
         if(result == null)
         {
-            console.log("started loading page", page);
+            // console.log("started loading page", page);
             var result = this._load_page_async(page);
             this.loading_pages[page] = result;
             result.finally(() => {
-            console.log("finished loading page", page);
+                // console.log("finished loading page", page);
                 delete this.loading_pages[page];
             });
         }
@@ -2111,7 +2116,7 @@ class data_source_bookmarks_merged extends data_source_bookmarks_base
         // and register it.
         var illust_ids = [];
         for(var i = 0; i < 2; ++i)
-            if(this.bookmark_illust_ids[i] != null)
+            if(this.bookmark_illust_ids[i] != null && this.bookmark_illust_ids[i][page] != null)
                 illust_ids = illust_ids.concat(this.bookmark_illust_ids[i][page]);
         
         this.add_page(page, illust_ids);
@@ -2155,7 +2160,7 @@ class data_source_bookmarks_merged extends data_source_bookmarks_base
                 this.max_page_per_type[is_private] = page;
             else
                 this.max_page_per_type[is_private] = Math.min(page, this.max_page_per_type[is_private]);
-            console.log("max page", this.max_page_per_type[is_private]);
+            // console.log("max page for", is_private? "private":"public", this.max_page_per_type[is_private]);
         }
 
         // Store the IDs.  We don't register them here.
