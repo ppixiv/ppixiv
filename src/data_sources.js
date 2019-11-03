@@ -36,7 +36,7 @@ class illust_id_list
 
     get_highest_loaded_page()
     {
-        var max_page = 1;
+        var max_page = 0;
         for(var page of Object.keys(this.illust_ids_by_page))
             max_page = Math.max(max_page, page);
         return max_page;
@@ -363,6 +363,16 @@ class data_source
         }
 
         return result;
+    }
+
+    // Return true if the given page is either loaded, or currently being loaded by a call to load_page.
+    is_page_loaded_or_loading(page)
+    {
+        if(this.id_list.is_page_loaded(page))
+            return true;
+        if(this.loading_pages[page])
+            return true;
+        return false;
     }
 
     async _load_page_async(page)

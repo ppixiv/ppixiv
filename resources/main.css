@@ -1074,13 +1074,6 @@ body:not(.disable-thumbnail-zooming) .view-search-container .thumbnail-box.muted
     transform: scale(1, 1);
 }
 
-/* Hide the fake thumbnail used to detect when we've scrolled to the bottom.
- * Note that we need to hide something inside the <li>, not the whole entry,
- * or offsetTop will be 0, which breaks get_visible_thumbnails. */
-.view-search-container .next-page-placeholder > .thumbnail-inner {
-    display: none !important;
-}
-
 .view-search-container .dot img.thumb {
     /* This doesn't work as well on thumbnails. */
     /*

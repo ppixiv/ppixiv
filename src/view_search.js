@@ -508,12 +508,6 @@ class view_search extends view
             }
         }
 
-        // Remove next-page-placeholder while we repopulate.  It's a little different from the other
-        // thumbs since it doesn't represent a real entry, so it just complicates the refresh logic.
-        var old_placeholder = ul.querySelector(".next-page-placeholder");
-        if(old_placeholder)
-            ul.removeChild(old_placeholder);
-
         // Add thumbs.
         //
         // Most of the time we're just adding thumbs to the list.  Avoid removing or recreating
@@ -571,17 +565,6 @@ class view_search extends view
             first_element_to_delete = next;
         }
 
-        if(this.data_source != null)
-        {
-            // Add one dummy thumbnail at the end to represent future images.  If we have one page and
-            // this scrolls into view, that tells us we're scrolled near the bottom and should try to
-            // load page 2.
-            var entry = this.create_thumb(null, max_page+1);
-            entry.classList.add("next-page-placeholder");
-            entry.hidden = this.disable_loading_more_pages;
-            ul.appendChild(entry);
-        }
-
         if(this.container.offsetWidth == 0)
             return;
 
@@ -622,20 +605,13 @@ class view_search extends view
 
         // Make a list of pages that we need loaded, and illustrations that we want to have
         // set.
-        var new_pages = [];
         var wanted_illust_ids = [];
         var need_thumbnail_data = false;
 
         var elements = this.get_visible_thumbnails(false);
         for(var element of elements)
         {
-            if(element.dataset.illust_id == null)
-            {
-                // This is a placeholder image for a page that isn't loaded, so load the page.
-                if(new_pages.indexOf(element.dataset.page) == -1)
-                    new_pages.push(element.dataset.page);
-            }
-            else
+            if(element.dataset.illust_id != null)
             {
                 // If this is an illustration, add it to wanted_illust_ids so we load its thumbnail
                 // info.  Don't do this if it's a user.
@@ -644,22 +620,37 @@ class view_search extends view
             }
         }
 
-        for(var page of new_pages)
+        // We load pages when the last thumbs on the previous page are loaded, but for page 1
+        // there's no previous page.  Always make sure page 1 is loaded.
+        let load_page = null;
+        if(this.data_source && !this.data_source.is_page_loaded_or_loading(1))
+            load_page = 1;
+
+        // If the last thumb in the list is being loaded, we need the next page to continue.
+        // Note that since get_visible_thumbnails returns thumbs before they actually scroll
+        // into view, this will happen before the last thumb is actually visible to the user.
+        var ul = this.container.querySelector("ul.thumbnails");
+        if(elements.length > 0 && elements[elements.length-1] == ul.lastElementChild)
         {
-            console.log("Load page", page, "for thumbnails");
+            let last_element = elements[elements.length-1];
+            load_page = parseInt(last_element.dataset.page)+1;
+        }
 
-            var result = await this.data_source.load_page(page);
+        if(load_page != null)
+        {
+            console.log("Load page", load_page, "for thumbnails");
 
-            // If this page didn't load, it probably means we've reached the end.  Hide
-            // the next-page-placeholder image so we don't keep trying to load more pages.
-            // This won't prevent us from loading earlier pages.
+            var result = await this.data_source.load_page(load_page);
+
+            // If this page didn't load, it probably means we've reached the end, so stop trying
+            // to load more pages.
             if(!result)
             {
                 this.disable_loading_more_pages = true;
 
                 // If this is the first page and there are no results, then there are no images
                 // for this search.
-                if(page == 1)
+                if(load_page == 1)
                 {
                     console.log("No results on page 1.  Showing no results");
                     message_widget.singleton.show("No results");
@@ -667,11 +658,6 @@ class view_search extends view
                     message_widget.singleton.clear_timer();
                 }
             }
-
-            // We could load more pages, but let's just load one at a time so we don't spam
-            // requests too quickly.  Once this page loads we'll come back here and load
-            // another if needed.
-            break;
         }
 
         if(!thumbnail_data.singleton().are_all_ids_loaded_or_loading(wanted_illust_ids))
