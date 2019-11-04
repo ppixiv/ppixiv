@@ -171,8 +171,8 @@ class viewer_ugoira extends viewer
             this.player.setCurrentFrame(this.player.getFrameCount() - 1);
             return;
 
-        case 39: // right arrow
-        case 37: // left arrow
+        case 81: // q
+        case 87: // w
             e.stopPropagation();
             e.preventDefault();
             if(!this.player)
@@ -181,7 +181,7 @@ class viewer_ugoira extends viewer
             this.pause();
             var total_frames = this.player.getFrameCount();
             var current_frame = this.player.getCurrentFrame();
-            var next = e.keyCode == 39;
+            var next = e.keyCode == 87;
             var new_frame = current_frame + (next?+1:-1);
             this.player.setCurrentFrame(new_frame);
             return;
