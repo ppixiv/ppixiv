@@ -445,7 +445,6 @@ class thumbnail_data
         else
             throw "Unknown source: " + source;
 
-        console.log("add", data);
         this.quick_user_data[data.userId] = data;        
     }
 

@@ -62,32 +62,23 @@ class illust_id_list
         // Make a list of all IDs we already have.
         var all_illusts = this.get_all_illust_ids();
 
-        // Special case: If there are any entries in this page which are also in the previous page,
-        // just remove them from this page.
-        //
         // For fast-moving pages like new_illust.php, we'll very often get a few entries at the
         // start of page 2 that were at the end of page 1 when we requested it, because new posts
-        // have been added to page 1 that we haven't seen.  If we don't handle this, we'll clear
-        // the page cache below on almost every page navigation.  Instead, we just remove the
-        // duplicate IDs and end up with a slightly shorter page 2.
-        var previous_page_illust_ids = this.illust_ids_by_page[page-1];
-        if(previous_page_illust_ids)
+        // have been added to page 1 that we haven't seen.  Remove any duplicate IDs.
+        var ids_to_remove = [];
+        for(var new_id of illust_ids)
         {
-            var ids_to_remove = [];
-            for(var new_id of illust_ids)
-            {
-                if(previous_page_illust_ids.indexOf(new_id) != -1)
-                    ids_to_remove.push(new_id);
-            }
+            if(all_illusts.indexOf(new_id) != -1)
+                ids_to_remove.push(new_id);
+        }
 
-            if(ids_to_remove.length > 0)
-                console.log("Removing duplicate illustration IDs:", ids_to_remove.join(", "));
-            illust_ids = illust_ids.slice();
-            for(var new_id of ids_to_remove)
-            {
-                var idx = illust_ids.indexOf(new_id);
-                illust_ids.splice(idx, 1);
-            }
+        if(ids_to_remove.length > 0)
+            console.log("Removing duplicate illustration IDs:", ids_to_remove.join(", "));
+        illust_ids = illust_ids.slice();
+        for(var new_id of ids_to_remove)
+        {
+            var idx = illust_ids.indexOf(new_id);
+            illust_ids.splice(idx, 1);
         }
 
         // If there's nothing on this page, don't add it, so this doesn't increase
@@ -96,32 +87,9 @@ class illust_id_list
         // page and we won't load any more pages, since thumbnail_view assumes that a page not
         // returning any data means we're at the end.
         if(illust_ids.length == 0)
-            return true;
-
-        // See if we already have any IDs in illust_ids.
-        var duplicated_id = false;
-        for(var new_id of illust_ids)
-        {
-            if(all_illusts.indexOf(new_id) != -1)
-            {
-                duplicated_id = true;
-                break;
-            }
-        }
-
-        var result = true;
-        if(duplicated_id)
-        {
-            console.info("Page", page, "duplicates an illustration ID.  Clearing page cache.");
-            this.illust_ids_by_page = {};
-
-            // Return false to let the caller know we've done this, and that it should clear
-            // any page caches.
-            result = false;
-        }
+            return;
 
         this.illust_ids_by_page[page] = illust_ids;
-        return result;
     };
 
     // Return the page number illust_id is on, or null if we don't know.
@@ -498,13 +466,12 @@ class data_source
     // Register a page of data.
     add_page(page, illust_ids)
     {
-        var result = this.id_list.add_page(page, illust_ids);
+        this.id_list.add_page(page, illust_ids);
 
         // Call update listeners asynchronously to let them know we have more data.
         setTimeout(function() {
             this.call_update_listeners();
         }.bind(this), 0);
-        return result;
     }
 
     call_update_listeners()
@@ -758,6 +725,7 @@ class data_source_discovery_users extends data_source
             this.sample_user_ids = null;
         this.original_doc = doc;
         this.original_url = url;
+        this.seen_user_ids = {};
     }
 
     // Return true if the two URLs refer to the same data.
@@ -787,7 +755,7 @@ class data_source_discovery_users extends data_source
         return true;
     }
 
-   async load_page_internal(page)
+    async load_page_internal(page)
     {
         if(this.showing_user_id != null)
         {
@@ -820,6 +788,14 @@ class data_source_discovery_users extends data_source
         let illust_ids = [];
         for(let user of result.body)
         {
+            // Each time we load a "page", we're actually just getting a new randomized set of recommendations
+            // for our seed, so we'll often get duplicate results.  Ignore users that we've seen already.  id_list
+            // will remove dupes, but we might get different sample illustrations for a duplicated artist, and
+            // those wouldn't be removed.
+            if(this.seen_user_ids[user.user_id])
+                continue;
+            this.seen_user_ids[user.user_id] = true;
+
             // Register this as quick user data, for use in thumbnails.
             thumbnail_data.singleton().add_quick_user_data(user, "recommendations");
 
@@ -1352,13 +1328,7 @@ class data_source_from_page extends data_source
             this.items_per_page = Math.max(illust_ids.length, this.items_per_page);
 
         // Register the new page of data.
-        if(!this.add_page(page, illust_ids))
-        {
-            // The page list was cleared because the underlying results have changed too much,
-            // which means we want to re-request pages when they're viewed next.  Clear original_doc,
-            // or we won't actually do that for page 1.
-            this.original_doc = null;
-        }
+        this.add_page(page, illust_ids);
     }
 
     // Parse the loaded document and return the illust_ids.
