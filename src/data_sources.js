@@ -1723,22 +1723,38 @@ class data_source_current_illust extends data_source_fake_pagination
         return [];
     }
 
+    get_preload_data(doc)
+    {
+        // The old illustration page used globalInitData.  Keep this around for now, in case not all
+        // users are seeing this yet.
+        var data = helpers.get_global_init_data(doc);
+        if(data != null)
+            return data.preload;
+
+        let preload = doc.querySelector("#meta-preload-data");
+        if(preload == null)
+            return null;
+
+        preload = JSON.parse(preload.getAttribute("content"));
+        return preload;
+    }
+
     parse_document(doc)
     {
-        var data = helpers.get_global_init_data(doc);
-        if(data == null)
+        let preload = this.get_preload_data(doc);
+        if(preload == null)
         {
             console.error("Couldn't find globalInitData");
             return;
         }
 
-        var illust_id = Object.keys(data.preload.illust)[0];
-        var user_id = Object.keys(data.preload.user)[0];
-        this.user_info = data.preload.user[user_id];
-        var this_illust_data = data.preload.illust[illust_id];
+        var illust_id = Object.keys(preload.illust)[0];
+        var user_id = Object.keys(preload.user)[0];
+        this.user_info = preload.user[user_id];
+        var this_illust_data = preload.illust[illust_id];
 
         // Stash the user data so we can use it in get_displaying_text.
-        this.user_info = data.preload.user[user_id];
+        this.user_info = preload.user[user_id];
 
         // Add the image list.
         var illust_ids = [];

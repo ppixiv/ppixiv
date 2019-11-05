@@ -199,6 +199,13 @@ class main_controller
 
     setup()
     {
+        // This format is used on at least /new_illust.php.
+        let global_data = document.querySelector("#meta-global-data");
+        if(global_data != null)
+            global_data = JSON.parse(global_data.getAttribute("content"));
+        if(global_data && global_data.userData == null)
+            global_data = null;
+
         // Try to init using globalInitData if possible.  data.userData is null if the user is logged out.
         var data = helpers.get_global_init_data(document);
         if(data && data.userData == null)
@@ -211,7 +218,7 @@ class main_controller
 
         // If we don't have either of these (or we're logged out), stop and let the regular page display.
         // It may be a page we don't support.
-        if(data == null && pixiv == null)
+        if(global_data == null && data == null && pixiv == null)
         {
             console.log("Couldn't find context data.  Are we logged in?");
             document.documentElement.hidden = false;
@@ -232,7 +239,23 @@ class main_controller
         // won't work.
         helpers.block_network_requests();
 
-        if(data != null)
+        if(global_data != null)
+        {
+            this.init_global_data(global_data.token, global_data.userData.id, global_data.userData.premium,
+                    global_data.mute, global_data.userData.adult);
+
+            let preload = document.querySelector("#meta-preload-data");
+            if(preload != null)
+            {
+                preload = JSON.parse(preload.getAttribute("content"));
+                
+                for(var preload_user_id in preload.user)
+                    image_data.singleton().add_user_data(preload.user[preload_user_id]);
+                for(var preload_illust_id in preload.illust)
+                    image_data.singleton().add_illust_data(preload.illust[preload_illust_id]);
+            }
+        }
+        else if(data != null)
         {
             this.init_global_data(data.token, data.userData.id, data.premium && data.premium.popularSearch, data.mute, data.userData.xRestrict);
 
