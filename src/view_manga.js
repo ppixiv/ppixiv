@@ -152,10 +152,14 @@ class view_manga extends view
 
         // Get the aspect ratio to crop images to.
         var ratio = this.get_display_aspect_ratio(this.illust_info.mangaPages);
+        // 
+        // console.log("size", size);
+        let thumbnail_size = settings.get("manga-thumbnail-size", 4);
+        thumbnail_size = thumbnail_size_slider_widget.thumbnail_size_for_value(thumbnail_size);
 
         this.thumbnail_dimensions_style.textContent = helpers.make_thumbnail_sizing_style(ul, ".view-manga-container", {
             wide: true,
-            size: this.ui.thumbnail_size_slider.thumbnail_size,
+            size: thumbnail_size,
             ratio: ratio,
 
             // We preload this page anyway since it doesn't cause a lot of API calls, so we

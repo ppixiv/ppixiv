@@ -42,37 +42,7 @@ class image_ui
         }.bind(this));
 
         var settings_menu = this.container.querySelector(".settings-menu-box > .popup-menu-box");
-        
-        // Only add the thumbnail size option in the manga page.  We don't want it in
-        // the illust page and its hotkey handling will confuse zooming.
-        if(this.container.closest(".view-manga-container"))
-        {
-            this.thumbnail_size_slider = new thumbnail_size_slider_widget(settings_menu, {
-                label: "Thumbnail size",
-                setting: "manga-thumbnail-size",
-                min: 0,
-                max: 5,
-            });
-        }
-
-        new menu_option_toggle(settings_menu, {
-            label: "Bookmarking auto-likes",
-            setting: "auto-like",
-        });
-
-        new menu_option_toggle(settings_menu, {
-            label: "Invert scrolling while zoomed",
-            setting: "invert-scrolling",
-        });
-        
-        // Firefox's contextmenu behavior is broken, so hide this option.
-        if(navigator.userAgent.indexOf("Firefox/") == -1)
-        {
-            new menu_option_toggle(settings_menu, {
-                label: "Hold shift to open context menu",
-                setting: "invert-popup-hotkey",
-            });
-        }
+        menu_option.add_settings(settings_menu);
     }
 
     set data_source(data_source)

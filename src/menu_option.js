@@ -3,6 +3,26 @@ class menu_option
 {
     static add_settings(container)
     {
+        if(container.closest(".view-manga-container"))
+        {
+            new thumbnail_size_slider_widget(container, {
+                label: "Thumbnail size",
+                setting: "manga-thumbnail-size",
+                min: 0,
+                max: 5,
+            });
+        }
+
+        if(container.closest(".view-search-container"))
+        {
+            new thumbnail_size_slider_widget(container, {
+                label: "Thumbnail size",
+                setting: "thumbnail-size",
+                min: 0,
+                max: 5,
+            });
+        }
+        
         new menu_option_toggle(container, {
             label: "Bookmarking auto-likes",
             setting: "auto-like",
@@ -19,10 +39,14 @@ class menu_option
             invert_display: true,
         });
 
-        new menu_option_toggle(container, {
-            label: "Hold shift to open context menu",
-            setting: "invert-popup-hotkey",
-        });
+        // Firefox's contextmenu behavior is broken, so hide this option.
+        if(navigator.userAgent.indexOf("Firefox/") == -1)
+        {
+            new menu_option_toggle(container, {
+                label: "Hold shift to open context menu",
+                setting: "invert-popup-hotkey",
+            });
+        }
 
         new menu_option_toggle(container, {
             label: "Hover to show UI",
@@ -62,6 +86,7 @@ class menu_option
             label: "Touchpad mode",
             setting: "touchpad-mode",
         });
+
     }
 
     constructor(container, options)
@@ -263,10 +288,14 @@ class thumbnail_size_slider_widget extends menu_option_slider
         super.value = value;
     }
 
+    static thumbnail_size_for_value(value)
+    {
+        return 100 * Math.pow(1.3, value);
+    }
+
     get thumbnail_size()
     {
-        var width = 100 * Math.pow(1.3, this.slider.value);
-        return width;
+        return thumbnail_size_slider_widget.thumbnail_size_for_value(this.slider.value);
     }
 };
 

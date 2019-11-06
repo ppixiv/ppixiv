@@ -95,20 +95,14 @@ class view_search extends view
 
         var settings_menu = this.container.querySelector(".settings-menu-box > .popup-menu-box");
 
-        this.thumbnail_size_slider = new thumbnail_size_slider_widget(settings_menu, {
-            label: "Thumbnail size",
-            setting: "thumbnail-size",
-            min: 0,
-            max: 5,
-            onchange: function() {
+        menu_option.add_settings(settings_menu);
+
+        settings.register_change_callback("thumbnail-size", () => {
                 // refresh_images first to update thumbnail_dimensions_style, then call onscroll
                 // to fill in images.
                 this.refresh_images();
                 this.onscroll();
-            }.bind(this),
         });
-
-        menu_option.add_settings(settings_menu);
 
         settings.register_change_callback("theme", this.update_from_settings);
         settings.register_change_callback("disable_thumbnail_zooming", this.update_from_settings);
@@ -517,10 +511,12 @@ class view_search extends view
         if(this.container.offsetWidth == 0)
             return;
 
+        let thumbnail_size = settings.get("thumbnail-size", 4);
+        thumbnail_size = thumbnail_size_slider_widget.thumbnail_size_for_value(thumbnail_size);
 
         this.thumbnail_dimensions_style.textContent = helpers.make_thumbnail_sizing_style(ul, ".view-search-container", {
             wide: true,
-            size: this.thumbnail_size_slider.thumbnail_size,
+            size: thumbnail_size,
             max_columns: 5,
 
             // Set a minimum padding to make sure there's room for the popup text to fit between images.
