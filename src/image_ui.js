@@ -134,7 +134,7 @@ class image_ui
             return;
         }
         
-        if(e.ctrlKey || e.altKey)
+        if(e.ctrlKey || e.altKey || e.metaKey)
             return;
 
         switch(e.keyCode)

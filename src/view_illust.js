@@ -510,7 +510,7 @@ class view_illust extends view
         if(e.defaultPrevented)
             return;
         
-        if(e.ctrlKey || e.altKey)
+        if(e.ctrlKey || e.altKey || e.metaKey)
             return;
 
         switch(e.keyCode)
