@@ -472,7 +472,7 @@ class view_illust extends view
             return;
 
         var down = e.deltaY > 0;
-        this.move(down);
+        this.move(down, e.shiftKey /* skip_manga_pages */);
     }
 
     get displayed_illust_id()
@@ -510,7 +510,7 @@ class view_illust extends view
             e.preventDefault();
             e.stopPropagation();
 
-            this.move(false);
+            this.move(false, e.shiftKey /* skip_manga_pages */);
             break;
 
         case 39: // right
@@ -519,12 +519,17 @@ class view_illust extends view
             e.preventDefault();
             e.stopPropagation();
 
-            this.move(true);
+            this.move(true, e.shiftKey /* skip_manga_pages */);
             break;
         }
     }
 
-    async move(down)
+    // Navigate to the next or previous image.
+    //
+    // If skip_manga_pages is true, jump past any manga pages in the current illustration.  If
+    // this is true and we're navigating backwards, we'll also jump to the first manga page
+    // instead of the last.
+    async move(down, skip_manga_pages)
     {
         // Remember whether we're navigating forwards or backwards, for preloading.
         this.latest_navigation_direction_down = down;
@@ -532,7 +537,7 @@ class view_illust extends view
         this.cancel_async_navigation();
 
         // See if we should change the manga page.
-        if(this.current_illust_data != null && this.current_illust_data.pageCount > 1)
+        if(!skip_manga_pages && this.current_illust_data != null && this.current_illust_data.pageCount > 1)
         {
             var old_page = this.wanted_illust_page;
             var new_page = old_page + (down? +1:-1);
@@ -558,10 +563,9 @@ class view_illust extends view
         if(new_illust_id != null)
         {
             // Show the new image.
-            let options = { };
-            options.manga_page = down? 0:-1;
-
-            main_controller.singleton.show_illust(new_illust_id, options);
+            main_controller.singleton.show_illust(new_illust_id, {
+                manga_page: down || skip_manga_pages? 0:-1,
+            });
             return true;
         }
 
