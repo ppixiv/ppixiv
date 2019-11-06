@@ -95,17 +95,6 @@ class view_illust extends view
         // If we previously set a pending navigation, this navigation overrides it.
         this.cancel_async_navigation();
 
-        // If we were already shown (we're not coming from the thumbnail view), and we're showing
-        // the previous image from the one we were already showing, start at the end instead
-        // of the beginning, so we'll start at the end when browsing backwards.
-        var show_last_page = false;
-        if(this.active && manga_page == null)
-        {
-            var next_illust_id = this.data_source.id_list.get_neighboring_illust_id(illust_id, true);
-            show_last_page = (next_illust_id == this.wanted_illust_id);
-            manga_page = show_last_page? -1:0;
-        }
-        
         // Remember that this is the image we want to be displaying.
         this.wanted_illust_id = illust_id;
         this.wanted_illust_page = manga_page;
@@ -569,7 +558,10 @@ class view_illust extends view
         if(new_illust_id != null)
         {
             // Show the new image.
-            main_controller.singleton.show_illust(new_illust_id);
+            let options = { };
+            options.manga_page = down? 0:-1;
+
+            main_controller.singleton.show_illust(new_illust_id, options);
             return true;
         }
 
