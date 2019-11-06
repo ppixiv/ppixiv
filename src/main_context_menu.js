@@ -244,6 +244,10 @@ class main_context_menu extends popup_context_menu
 
     onwheel(e)
     {
+        // RMB-wheel zooming is confusing in toggle mode.
+        if(this.toggle_mode)
+            return;
+
         // Stop if zooming isn't enabled.
         if(!this._is_zoom_ui_enabled)
             return;
