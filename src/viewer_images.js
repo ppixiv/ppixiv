@@ -145,6 +145,9 @@ class viewer_images extends viewer
 
     onkeydown(e)
     {
+        if(e.ctrlKey || e.altKey || e.metaKey)
+            return;
+        
         switch(e.keyCode)
         {
         case 36: // home
