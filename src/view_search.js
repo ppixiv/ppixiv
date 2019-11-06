@@ -108,69 +108,13 @@ class view_search extends view
             }.bind(this),
         });
 
-        new menu_option_toggle_light_theme(settings_menu, {
-            label: "Light mode",
-            setting: "theme",
-            onchange: this.update_from_settings,
-        });
+        menu_option.add_settings(settings_menu);
 
-        new menu_option_toggle(settings_menu, {
-            label: "Thumbnail zooming",
-            setting: "disable_thumbnail_zooming",
-            onchange: this.update_from_settings,
-            invert_display: true,
-        });
-
-        new menu_option_toggle(settings_menu, {
-            label: "Thumbnail panning",
-            setting: "disable_thumbnail_panning",
-            onchange: this.update_from_settings,
-            invert_display: true,
-        });
-
-        new menu_option_toggle(settings_menu, {
-            label: "Hold shift to open context menu",
-            setting: "invert-popup-hotkey",
-        });
-
-        new menu_option_toggle(settings_menu, {
-            label: "Bookmarking auto-likes",
-            setting: "auto-like",
-        });
-
-        new menu_option_toggle(settings_menu, {
-            label: "Invert scrolling while zoomed",
-            setting: "invert-scrolling",
-        });
-        
-        new menu_option_toggle(settings_menu, {
-            label: "Disabled by default",
-            setting: "disabled-by-default",
-        });
-
-        new menu_option_toggle(settings_menu, {
-            label: "Hover to show UI",
-            setting: "ui-on-hover",
-            onchange: this.update_from_settings,
-        });
-
-        new menu_option_toggle(settings_menu, {
-            label: "Hide cursor",
-            setting: "no-hide-cursor",
-            onchange: this.update_from_settings,
-            invert_display: true,
-        });
-
-        new menu_option_toggle(settings_menu, {
-            label: "Show translations",
-            setting: "disable-translations",
-            invert_display: true,
-        });
-        
-        new menu_option_toggle(settings_menu, {
-            label: "Touchpad mode",
-            setting: "touchpad-mode",
-        });
+        settings.register_change_callback("theme", this.update_from_settings);
+        settings.register_change_callback("disable_thumbnail_zooming", this.update_from_settings);
+        settings.register_change_callback("disable_thumbnail_panning", this.update_from_settings);
+        settings.register_change_callback("ui-on-hover", this.update_from_settings);
+        settings.register_change_callback("no-hide-cursor", this.update_from_settings);
          
         // Create the tag dropdown for the search page input.
         new tag_search_box_widget(this.container.querySelector(".tag-search-box"));

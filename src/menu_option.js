@@ -1,6 +1,69 @@
 // Simple menu settings widgets.
 class menu_option
 {
+    static add_settings(container)
+    {
+        new menu_option_toggle(container, {
+            label: "Bookmarking auto-likes",
+            setting: "auto-like",
+        });
+
+        new menu_option_toggle(container, {
+            label: "Disabled by default",
+            setting: "disabled-by-default",
+        });
+
+        new menu_option_toggle(container, {
+            label: "Hide cursor",
+            setting: "no-hide-cursor",
+            invert_display: true,
+        });
+
+        new menu_option_toggle(container, {
+            label: "Hold shift to open context menu",
+            setting: "invert-popup-hotkey",
+        });
+
+        new menu_option_toggle(container, {
+            label: "Hover to show UI",
+            setting: "ui-on-hover",
+            onchange: this.update_from_settings,
+        });
+
+        new menu_option_toggle(container, {
+            label: "Invert scrolling while zoomed",
+            setting: "invert-scrolling",
+        });
+ 
+        new menu_option_toggle_light_theme(container, {
+            label: "Light mode",
+            setting: "theme",
+        });
+
+        new menu_option_toggle(container, {
+            label: "Show translations",
+            setting: "disable-translations",
+            invert_display: true,
+        });
+ 
+        new menu_option_toggle(container, {
+            label: "Thumbnail panning",
+            setting: "disable_thumbnail_panning",
+            invert_display: true,
+        });
+
+        new menu_option_toggle(container, {
+            label: "Thumbnail zooming",
+            setting: "disable_thumbnail_zooming",
+            invert_display: true,
+        });
+
+        new menu_option_toggle(container, {
+            label: "Touchpad mode",
+            setting: "touchpad-mode",
+        });
+    }
+
     constructor(container, options)
     {
         this.refresh = this.refresh.bind(this);
