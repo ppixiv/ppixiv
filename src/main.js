@@ -653,8 +653,8 @@ class main_controller
     // normally).
     window_onclick_capture(e)
     {
-        // Only intercept left clicks.
-        if(e.button != 0)
+        // Only intercept regular left clicks.
+        if(e.button != 0 || e.metaKey || e.ctrlKey || e.altKey)
             return;
 
         if(!(e.target instanceof Element))
