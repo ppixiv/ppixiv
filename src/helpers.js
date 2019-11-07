@@ -580,7 +580,7 @@ var helpers = {
                 return;
             }
             
-            let XMLHttpRequest = window.RealXMLHttpRequest || window.XMLHttpRequest;
+            let XMLHttpRequest = unsafeWindow.RealXMLHttpRequest || unsafeWindow.XMLHttpRequest;
             var xhr = new XMLHttpRequest();
 
             if(options.signal)
