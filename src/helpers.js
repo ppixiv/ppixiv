@@ -580,7 +580,8 @@ var helpers = {
                 return;
             }
             
-            var xhr = new RealXMLHttpRequest();        
+            let XMLHttpRequest = window.RealXMLHttpRequest || window.XMLHttpRequest;
+            var xhr = new XMLHttpRequest();
 
             if(options.signal)
             {
@@ -660,7 +661,7 @@ var helpers = {
         // calls (not things like ugoira ZIPs), and the request will fail if we're in XHR
         // mode and set headers, since it'll trigger CORS.
         var hostname = new URL(options.url, document.location).hostname;
-        if(hostname == "www.pixiv.net")
+        if(hostname == "www.pixiv.net" && "global_data" in window)
             options.headers["x-csrf-token"] = global_data.csrf_token;
 
         return await helpers.send_request(options);

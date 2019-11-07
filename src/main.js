@@ -197,7 +197,7 @@ class main_controller
         this.setup();
     };
 
-    setup()
+    async setup()
     {
         // This format is used on at least /new_illust.php.
         let global_data = document.querySelector("#meta-global-data");
@@ -215,6 +215,26 @@ class main_controller
         var pixiv = helpers.get_pixiv_data(document);
         if(pixiv && (pixiv.user == null || pixiv.user.id == null))
             pixiv = null;
+
+        // Pixiv scripts that use meta-global-data remove the element from the page after
+        // it's parsed for some reason.  Since browsers are too broken to allow user scripts
+        // to reliably run before site scripts, it's hard for us to guarantee that we can
+        // get this data before it's removed.
+        //
+        // If we didn't get any init data, reload the page in an iframe and look for meta-global-data
+        // again.  This request doesn't allow scripts to run.  At least in Chrome, this comes out of
+        // cache, so it doesn't actually cause us to load the page twice.
+        if(global_data == null && data == null && pixiv == null)
+        {
+            console.log("Reloading page to get init data");
+
+            let url = new URL(document.location);
+            let result = await helpers.load_data_in_iframe(url.toString());
+            global_data = result.querySelector("#meta-global-data");
+            if(global_data != null)
+                global_data = JSON.parse(global_data.getAttribute("content"));
+            console.log("Finished loading init data");
+        }
 
         // If we don't have either of these (or we're logged out), stop and let the regular page display.
         // It may be a page we don't support.
