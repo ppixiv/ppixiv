@@ -82,10 +82,10 @@ class menu_option
             invert_display: true,
         });
 
-        new menu_option_toggle(container, {
+/*        new menu_option_toggle(container, {
             label: "Touchpad mode",
             setting: "touchpad-mode",
-        });
+        }); */
 
     }
 
