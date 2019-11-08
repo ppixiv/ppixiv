@@ -267,8 +267,10 @@ class image_preloader
         var results = [];
         for(var page of illust_data.mangaPages)
             results.push(new _img_preloader(page.urls.small));
-//        for(var page of illust_data.mangaPages)
-//            results.push(new _img_preloader(page.urls.original));
+
+        // Only preload the first page, which is the main page of a regular illustration.
+        if(illust_data.mangaPages.length >= 1)
+            results.push(new _img_preloader(illust_data.mangaPages[0].urls.original));
 
         return results;
     }
