@@ -79,6 +79,11 @@ class viewer_images extends viewer
     refresh()
     {
         var current_image = this.images[this.index];
+        if(current_image == null)
+        {
+            log.error("Invalid page", this.index, "in images", this.images);
+            return;
+        }
         if(this.on_click_viewer && this.img && this.img.src == current_image.url)
             return;
 
