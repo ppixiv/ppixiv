@@ -382,6 +382,14 @@ class main_controller
 
     window_onpopstate(e)
     {
+        // A special case for the bookmarks data source.  It changes its page in the URL to mark
+        // how far the user has scrolled.  We don't want this to trigger a data source change.
+        if(this.temporarily_ignore_onpopstate)
+        {
+            console.log("Not navigating for internal page change");
+            return;
+        }
+
         // Set the current data source and state.
         this.set_current_data_source(null, e.navigationCause || "history");
     }

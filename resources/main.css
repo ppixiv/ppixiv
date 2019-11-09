@@ -833,9 +833,37 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
     text-align: center;
 }
 
-.view-search-container ul {
+.view-search-container ul.thumbnails {
     margin: 0;
     margin: 0 auto; /* center */
+}
+.view-search-container ul.thumbnails > li
+{
+    list-style-type: none;
+}
+
+li.thumbnail-box.load-previous {
+    width: 100%;
+}
+
+li.thumbnail-load-previous > .load-previous-page-link {
+    margin-left: auto;
+    margin-right: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 40px;
+    width: 100%;
+    max-width: 800px;
+    background-color: #880;
+    color: var(--box-link-fg-color);
+    background-color: var(--box-link-bg-color);
+    margin-top: 10px;
+    margin-bottom: 4px;
+}
+li.thumbnail-load-previous > .load-previous-page-link:hover {
+    background-color: var(--box-link-hover-color);
 }
 
 li.thumbnail-box {

@@ -34,6 +34,14 @@ class illust_id_list
         return all_ids;
     }
 
+    get_lowest_loaded_page()
+    {
+        var min_page = 999999;
+        for(var page of Object.keys(this.illust_ids_by_page))
+            min_page = Math.min(min_page, page);
+        return min_page;
+    }
+
     get_highest_loaded_page()
     {
         var max_page = 0;
@@ -331,6 +339,11 @@ class data_source
         }
 
         return result;
+    }
+
+    get initial_page()
+    {
+        return 1;
     }
 
     // Return true if the given page is either loaded, or currently being loaded by a call to load_page.
@@ -1853,6 +1866,19 @@ class data_source_bookmarks_base extends data_source
     constructor(url)
     {
         super(url);
+
+        // If the URL has a page, start showing bookmarks from that page.
+        //
+        // We have UI to load previous pages.  If we do that, it'll be loaded as a new data source.
+        url = new URL(url);
+        this.start_page = url.searchParams.get("p");
+        if(this.start_page != null)
+            this.start_page = parseInt(this.start_page);
+        if(this.start_page == null)
+            this.start_page = 1;
+
+        console.log("Showing bookmarks from page", this.start_page);
+        
         this.bookmark_tags = [];
     }
 
@@ -1868,7 +1894,24 @@ class data_source_bookmarks_base extends data_source
         this.call_update_listeners();
 
         await this.continue_loading_page_internal(page);
+        
+        // Reduce the start page, which will update the "load more results" button if any.  It's important
+        // to do this before the await above.  If we do it before, it'll update the button before we load
+        // and cause the button to update before the thumbs.  view_search.refresh_images won't be able
+        // to optimize that and it'll cause uglier refreshes.
+        if(page < this.start_page)
+            this.start_page = page;
     };
+
+    get supports_start_page()
+    {
+        return true;
+    }
+
+    get initial_page()
+    {
+        return this.start_page;
+    }
 
     // If we haven't done so yet, load bookmark tags for this bookmark page.  This
     // happens in parallel with with page loading.

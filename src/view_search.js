@@ -14,8 +14,10 @@ class view_search extends view
         this.refresh_images = this.refresh_images.bind(this);
         this.window_onresize = this.window_onresize.bind(this);
         this.update_from_settings = this.update_from_settings.bind(this);
+        this.thumbnail_onclick = this.thumbnail_onclick.bind(this);
 
         this.active = false;
+        this.thumbnail_templates = {};
 
         window.addEventListener("thumbnailsLoaded", this.thumbs_loaded);
         window.addEventListener("resize", this.window_onresize);
@@ -92,6 +94,7 @@ class view_search extends view
  
         this.container.querySelector(".refresh-search-button").addEventListener("click", this.refresh_search.bind(this));
         this.container.querySelector(".whats-new-button").addEventListener("click", this.whats_new.bind(this));
+        this.container.querySelector(".thumbnails").addEventListener("click", this.thumbnail_onclick);
 
         var settings_menu = this.container.querySelector(".settings-menu-box > .popup-menu-box");
 
@@ -116,6 +119,33 @@ class view_search extends view
         // Create the tag dropdown for the search input in the menu dropdown.
         new tag_search_box_widget(this.container.querySelector(".navigation-search-box"));
 
+        // This IntersectionObserver is used to tell which illustrations are fully visible on screen,
+        // so we can decide which page to put in the URL for data sources that use supports_start_page.
+        this.visible_illusts = [];
+        this.topmost_illust_observer = helpers.intersection_observer((entries) => {
+            for(let entry of entries)
+            {
+                let thumb = entry.target;
+                if(thumb.dataset.illust_id == null)
+                    continue;
+                if(entry.isIntersecting)
+                    this.visible_illusts.push(thumb);
+                else
+                {
+                    let idx = this.visible_illusts.indexOf(thumb);
+                    if(idx != -1)
+                        this.visible_illusts.splice(idx, 1);
+                }
+            }
+            this.visible_thumbs_changed();
+        }, {
+            root: this.container,
+
+            // We only want to include fully visible thumbnails.  Note that for helpers.intersection_observer
+            // we need to just use "threshold" and not "thresholds".
+            threshold: 1,
+        });
+        
         /*
          * Add a slight delay before hiding the UI.  This allows opening the UI by swiping past the top
          * of the window, without it disappearing as soon as the mouse leaves the window.  This doesn't
@@ -130,6 +160,45 @@ class view_search extends view
         this.refresh_images();
         this.load_needed_thumb_data();
         this.refresh_whats_new_button();
+    }
+
+    // The thumbnails visible on screen have changed.
+    visible_thumbs_changed()
+    {
+        // visible_illusts isn't in any particular order, but should always be contiguous.
+        // Start at the first thumb in the list, and walk backwards through thumbs until
+        // we reach one that isn't in the list.  The thumbnail display can get very long,
+        // but visible_illusts is only the ones on screen.
+        // Find the earliest thumb in the list.
+        if(this.visible_illusts.length == 0)
+            return;
+
+        let first_thumb = this.visible_illusts[0];
+        while(first_thumb != null)
+        {
+            let prev_thumb = first_thumb.previousElementSibling;
+            if(prev_thumb == null)
+                break;
+
+            if(this.visible_illusts.indexOf(prev_thumb) == -1)
+                break;
+
+            first_thumb = prev_thumb;
+        }
+
+        // If the data source supports a start page, update the page number in the URL to reflect
+        // the first visible thumb.
+        if(this.data_source == null || !this.data_source.supports_start_page || first_thumb.dataset.page == null)
+            return;
+
+        main_controller.singleton.temporarily_ignore_onpopstate = true;
+        try {
+            let args = helpers.get_args(document.location);
+            args.query.set("p", first_thumb.dataset.page);
+            helpers.set_args(args, false, "viewing-page");
+        } finally {
+            main_controller.singleton.temporarily_ignore_onpopstate = false;
+        }
     }
 
     window_onresize(e)
@@ -228,7 +297,16 @@ class view_search extends view
         {
             var ul = this.container.querySelector("ul.thumbnails");
             while(ul.firstElementChild != null)
-                ul.firstElementChild.remove();
+            {
+                let node = ul.firstElementChild;
+                node.remove();
+
+                // We should be able to just remove the element and get a callback that it's no longer visible.
+                // This works in Chrome since IntersectionObserver uses a weak ref, but Firefox is stupid and leaks
+                // the node.
+                this.topmost_illust_observer.unobserve(node);
+                helpers.remove_array_element(this.visible_illusts, node);
+            }
         }
 
         this.data_source = data_source;
@@ -423,18 +501,15 @@ class view_search extends view
     // We don't need to do this when scrolling around or when new thumbnail data is available.
     refresh_images()
     {
-        // Remove all existing entries and collect them.
-        var ul = this.container.querySelector("ul.thumbnails");
-        var original_scroll_top = this.container.scrollTop;
-
         // Make a list of [illust_id, page] thumbs to add.
         var images_to_add = [];
         if(this.data_source != null)
         {
             var id_list = this.data_source.id_list;
+            var min_page = id_list.get_lowest_loaded_page();
             var max_page = id_list.get_highest_loaded_page();
             var items_per_page = this.data_source.estimated_items_per_page;
-            for(var page = 1; page <= max_page; ++page)
+            for(var page = min_page; page <= max_page; ++page)
             {
                 var illust_ids = id_list.illust_ids_by_page[page];
                 if(illust_ids == null)
@@ -447,65 +522,120 @@ class view_search extends view
 
                 // Create an image for each ID.
                 for(var illust_id of illust_ids)
-                    images_to_add.push([illust_id, page]);
+                    images_to_add.push({id: illust_id, page: page});
             }
+
+            // If this data source supports a start page and we started after page 1, add the "load more"
+            // button at the beginning.
+            //
+            // The page number for this button is the same as the thumbs that follow it, not the
+            // page it'll load if clicked, so scrolling to it doesn't make us think we're scrolled
+            // to that page.
+            if(this.data_source.initial_page > 1)
+                images_to_add.splice(0, 0, { id: "special:previous-page", page: this.data_source.initial_page });
         }
 
         // Add thumbs.
         //
         // Most of the time we're just adding thumbs to the list.  Avoid removing or recreating
-        // thumbs that aren't actually changing, which reduces flicker when adding entries and
-        // avoids resetting thumbnail animations.  Do this by looking at the next node in the
-        // list and seeing if it matches what we're adding.  When we're done, next_node will
-        // point to the first entry that wasn't reused, and we'll remove everything from there onward.
+        // thumbs that aren't actually changing, which reduces flicker.
+        //
+        // Do this by looking for a range of thumbnails that matches a range in images_to_add.
+        // If we're going to display [0,1,2,3,4,5,6,7,8,9], and the current thumbs are [4,5,6],
+        // then 4,5,6 matches and can be reused.  We'll add [0,1,2,3] to the beginning and [7,8,9]
+        // to the end.
+        //
+        // Most of the time we're just appending.  The main time that we add to the beginning is
+        // the "load previous results" button.
+        var ul = this.container.querySelector("ul.thumbnails");
         var next_node = ul.firstElementChild;
 
-        for(var pair of images_to_add)
+        // Make a dictionary of all illust IDs and pages, so we can look them up quickly.
+        let images_to_add_index = {};
+        for(let i = 0; i < images_to_add.length; ++i)
         {
-            var illust_id = pair[0];
-            var page = pair[1];
-
-            if(next_node)
-            {
-                // If the illust_id matches, reuse the entry.  This includes the case where illust_id is
-                // null for unloaded page placeholders and we're inserting an identical placeholder.
-                if(next_node.dataset.illust_id == illust_id)
-                {
-                    next_node.dataset.page = page;
-                    next_node = next_node.nextElementSibling;
-                    continue;
-                }
-
-                // If the next node has no illust_id, it's an unloaded page placeholder.  If we're refreshing
-                // and now have real entries for that page, we can reuse the placeholders for the real thumbs.
-                if(next_node.dataset.illust_id == null && next_node.dataset.page == page)
-                {
-                    next_node.dataset.illust_id = illust_id;
-                    next_node.dataset.page = page;
-                    next_node = next_node.nextElementSibling;
-                    continue;
-                }
-            }
-
-            var entry = this.create_thumb(illust_id, page);
-            
-            // If next_node is null, we've used all existing nodes, so add to the end.  Otherwise,
-            // insert before next_node.
-            if(next_node != null)
-                ul.insertBefore(entry, next_node);
-            else
-                ul.appendChild(entry);
-            
-            next_node = entry.nextElementSibling;
+            let entry = images_to_add[i];
+            let illust_id = entry.id;
+            let page = entry.page;
+            let index = illust_id + "/" + page;
+            images_to_add_index[index] = i;
         }
 
-        // Remove any images that we didn't use.
-        var first_element_to_delete = next_node;
-        while(first_element_to_delete != null)
+        let get_node_idx = function(node)
         {
-            var next = first_element_to_delete.nextElementSibling;
-            ul.removeChild(first_element_to_delete);
-            first_element_to_delete = next;
+            if(node == null)
+                return null;
+
+            let illust_id = node.dataset.illust_id;
+            let page = node.dataset.page;
+            let index = illust_id + "/" + page;
+            return images_to_add_index[index];
+        }
+
+        // Find the first match (4 in the above example).
+        let first_matching_node = next_node;
+        while(first_matching_node && get_node_idx(first_matching_node) == null)
+            first_matching_node = first_matching_node.nextElementSibling;
+
+        // If we have a first_matching_node, walk forward to find the last matching node (6 in
+        // the above example).
+        let last_matching_node = first_matching_node;
+        if(last_matching_node != null)
+        {
+            // Make sure the range is contiguous.  first_matching_node and all nodes through last_matching_node
+            // should match a range exactly.  If there are any missing entries, stop.
+            let next_expected_idx = get_node_idx(last_matching_node) + 1;
+            while(last_matching_node && get_node_idx(last_matching_node.nextElementSibling) == next_expected_idx)
+            {
+                last_matching_node = last_matching_node.nextElementSibling;
+                next_expected_idx++;
+            }
+        }
+
+        // If we have a matching range, save the scroll position relative to it, so if we add
+        // new elements at the top, we stay scrolled where we are.  Otherwise, just restore the
+        // current scroll position.
+        let save_scroll = new SaveScrollPosition(this.container);
+        if(first_matching_node)
+            save_scroll.save_relative_to(first_matching_node);
+
+        // If we have a range, delete all items outside of it.  Otherwise, just delete everything.
+        while(first_matching_node && first_matching_node.previousElementSibling)
+            first_matching_node.previousElementSibling.remove();
+
+        while(last_matching_node && last_matching_node.nextElementSibling)
+            last_matching_node.nextElementSibling.remove();
+
+        if(!first_matching_node && !last_matching_node)
+            helpers.remove_elements(ul);
+
+        // If we have a matching range, add any new elements before it.
+        if(first_matching_node)
+        {
+           let first_idx = get_node_idx(first_matching_node);
+           for(let idx = first_idx - 1; idx >= 0; --idx)
+           {
+               let entry = images_to_add[idx];
+               var illust_id = entry.id;
+               var page = entry.page;
+               var node = this.create_thumb(illust_id, page);
+               first_matching_node.insertAdjacentElement("beforebegin", node);
+               first_matching_node = node;
+           }
+        }
+
+        // Add any new elements after the range.  If we don't have a range, just add everything.
+        let last_idx = -1;
+        if(last_matching_node)
+           last_idx = get_node_idx(last_matching_node);
+
+        for(let idx = last_idx + 1; idx < images_to_add.length; ++idx)
+        {
+            let entry = images_to_add[idx];
+            var illust_id = entry.id;
+            var page = entry.page;
+            var node = this.create_thumb(illust_id, page);
+            ul.appendChild(node);
         }
 
         if(this.container.offsetWidth == 0)
@@ -523,20 +653,14 @@ class view_search extends view
             min_padding: 15,
         });
 
-
-
-
         // Restore the value of scrollTop from before we updated.  For some reason, Firefox
         // modifies scrollTop after we add a bunch of items, which causes us to scroll to
         // the wrong position, even though scrollRestoration is disabled.
-        this.container.scrollTop = original_scroll_top;
+        save_scroll.restore();
     }
 
     // Start loading data pages that we need to display visible thumbs, and start
     // loading thumbnail data for nearby thumbs.
-    //
-    // FIXME: throttle loading pages if we scroll around quickly, so if we scroll
-    // down a lot we don't load 10 pages of data
     async load_needed_thumb_data()
     {
         // elements is a list of elements that are onscreen (or close to being onscreen).
@@ -565,11 +689,14 @@ class view_search extends view
             }
         }
 
-        // We load pages when the last thumbs on the previous page are loaded, but for page 1
-        // there's no previous page.  Always make sure page 1 is loaded.
+
+        // We load pages when the last thumbs on the previous page are loaded, but the first
+        // time through there's no previous page to reach the end of.  Always make sure the
+        // first page is loaded (usually page 1).
         let load_page = null;
-        if(this.data_source && !this.data_source.is_page_loaded_or_loading(1))
-            load_page = 1;
+        let first_page = this.data_source? this.data_source.initial_page:1;
+        if(this.data_source && !this.data_source.is_page_loaded_or_loading(first_page))
+            load_page = first_page;
 
         // If the last thumb in the list is being loaded, we need the next page to continue.
         // Note that since get_visible_thumbnails returns thumbs before they actually scroll
@@ -629,6 +756,28 @@ class view_search extends view
         this.set_visible_thumbs();
     }
 
+    // Handle clicks on the "load previous results" button.
+    async thumbnail_onclick(e)
+    {
+        let thumb = e.target.closest(".thumbnail-load-previous");
+        if(thumb == null)
+            return;
+
+        e.preventDefault();
+        e.stopImmediatePropagation();
+
+        let min_page = this.data_source.id_list.get_lowest_loaded_page();
+        if(min_page == 1)
+        {
+            console.log("Already at page 1, load previous button shouldn't have been visible");
+            return;
+        }
+
+        let load_page = min_page - 1;
+        console.log("Loading previous page:", load_page);
+        await this.data_source.load_page(load_page);
+    }
+
     update_from_settings()
     {
         var thumbnail_mode = helpers.get_value("thumbnail-size");
@@ -673,6 +822,7 @@ class view_search extends view
             var search_mode = this.data_source.search_mode;
 
             let thumb_type = helpers.id_type(illust_id);
+            let thumb_id = helpers.actual_id(illust_id);
             let thumb_data = {};
 
             // For illustrations, get thumbnail info.  If we don't have it yet, skip the image (leave it pending)
@@ -693,7 +843,6 @@ class view_search extends view
             // issue?
             // delete element.dataset.pending;
             element.removeAttribute("data-pending");
-
 
             if(thumb_type == "user")
             {
@@ -723,6 +872,15 @@ class view_search extends view
                 // Point the "similar illustrations" thumbnail button to similar users for this result, so you can
                 // chain from one set of suggested users to another.
                 element.querySelector("A.similar-illusts-button").href = "/discovery/users#ppixiv?user_id=" + user_id;
+                continue;
+            }
+
+            if(illust_id == "special:previous-page")
+            {
+                // Set the link for previous-page.  Most of the time this is handled by our in-page click handler.
+                let args = helpers.get_args(document.location);
+                args.query.set("p", parseInt(element.dataset.page)-1);
+                element.querySelector("a.load-previous-page-link").href = helpers.get_url_from_args(args);
                 continue;
             }
 
@@ -911,12 +1069,16 @@ class view_search extends view
     // is on (whether it's a placeholder or not).
     create_thumb(illust_id, page)
     {
+        let template_type = ".template-thumbnail";
+        if(illust_id == "special:previous-page")
+            template_type = ".template-load-previous-results";
+
         // Cache a reference to the thumbnail template.  We can do this a lot, and this
         // query takes a lot of page setup time if we run it for each thumb.
-        if(this.thumbnail_template == null)
-            this.thumbnail_template = document.body.querySelector(".template-thumbnail");
+        if(this.thumbnail_templates[template_type] == null)
+            this.thumbnail_templates[template_type] = document.body.querySelector(template_type);
             
-        var entry = helpers.create_from_template(this.thumbnail_template);
+        let entry = helpers.create_from_template(this.thumbnail_templates[template_type]);
 
         // Mark that this thumb hasn't been filled in yet.
         entry.dataset.pending = true;
@@ -925,6 +1087,7 @@ class view_search extends view
             entry.dataset.illust_id = illust_id;
 
         entry.dataset.page = page;
+        this.topmost_illust_observer.observe(entry);
         return entry;
     }
 

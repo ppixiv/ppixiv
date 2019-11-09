@@ -88,6 +88,13 @@ var helpers = {
         return settings.set(key, value);
     },
 
+    remove_array_element: function(array, element)
+    {
+        let idx = array.indexOf(element);
+        if(idx != -1)
+            array.splice(idx, 1);
+    },
+
     // Preload an array of images.
     preload_images: function(images)
     {
@@ -341,6 +348,34 @@ var helpers = {
             window.URL.revokeObjectURL(blobUrl);
             a.parentNode.removeChild(a);
         }.bind(this), 1000);
+    },
+
+    // Work around IntersectionObserver bugs.
+    intersection_observer: function(callback, options)
+    {
+        // Chrome only supports the "threshold" option and not "thresholds".
+        //
+        // Firefox's thresholds don't work at all (it'll give partially-visible items even with
+        // threshold 1).  However, we still need to give a threshold, and call it "thresholds".
+        // If we don't give "thresholds", we'll never receive removal callbacks.  If we give
+        // "threshold" at all, we also won't receive removal callbacks.
+        //
+        // Yeah.  Awesome.
+        let firefox = navigator.userAgent.indexOf("Gecko/");
+        if(firefox)
+        {
+            let new_options = {};
+            Object.assign(new_options, options);
+            options = new_options;
+            if(options.threshold != null)
+            {
+                options.thresholds = [options.threshold];
+                delete options.threshold;
+            }
+        }
+        console.log("options", options);
+
+        return new IntersectionObserver(callback, options);
     },
 
     // Return a Uint8Array containing a blank (black) image with the given dimensions and type.
@@ -1267,12 +1302,18 @@ var helpers = {
         }
     },
 
-    set_args(args, add_to_history, cause)
+    get_url_from_args(args)
     {
         var url = new URL(document.location);
         url.pathname = args.path;
         url.search = args.query.toString();
         helpers.set_hash_args(url, args.hash);
+        return url;
+    },
+
+    set_args(args, add_to_history, cause)
+    {
+        var url = helpers.get_url_from_args(args);
         helpers.set_page_url(url, add_to_history, cause);
     },
     
@@ -1314,7 +1355,7 @@ var helpers = {
         // and not just pushState (which you should be able to call as fast as you want).
         //
         // People don't think things through.
-        console.log("Set URL to", document.location.toString(), add_to_history);
+        // console.log("Set URL to", document.location.toString(), add_to_history);
 
         if(document.location.toString() != old_url)
         {
@@ -2006,4 +2047,33 @@ class key_storage
         await key_storage.async_store_multi_set(store, keys, values);
     }
 }
+
+class SaveScrollPosition
+{
+    constructor(node)
+    {
+        this.node = node;
+        this.child = null;
+        this.original_scroll_top = this.node.scrollTop;
+    }
+
+    // Instead of saving the top-level scroll position, store the scroll position of a given child.
+    save_relative_to(child)
+    {
+        this.child = child;
+        this.original_offset_top = child.offsetTop;
+    }
+
+    restore()
+    {
+        let scroll_top = this.original_scroll_top;
+        if(this.child)
+        {
+            let offset = this.child.offsetTop - this.original_offset_top;
+            scroll_top += offset;
+        }
+        this.node.scrollTop = scroll_top;
+    }
+};
+
 
