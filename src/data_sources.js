@@ -1975,10 +1975,12 @@ class data_source_bookmarks_base extends data_source
             rest = force_rest;
         var tag = query_args.get("tag") || "";
 
+        // Load 20 results per page, so our page numbers should match the underlying page if
+        // the UI is disabled.
         return {
             tag: tag,
-            offset: (page-1)*48,
-            limit: 48,
+            offset: (page-1)*20,
+            limit: 20,
             rest: rest, // public or private (no way to get both)
         };
     }
