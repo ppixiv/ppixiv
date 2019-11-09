@@ -62,6 +62,21 @@ class settings
     }
 }
 
+// This is thrown when an XHR request fails.
+class APIError extends Error
+{
+    constructor(message, url)
+    {
+        super(message);
+        this.url = url;
+    }
+};
+
+// This is thrown when an XHR request fails with a Pixiv error message.
+class PixivError extends APIError
+{
+};
+
 var helpers = {
     get_value: function(key, default_value)
     {
@@ -685,7 +700,7 @@ var helpers = {
 
         console.log(result);
         if(result && result.error)
-            throw "Error in XHR request (" + url + "): "+ result.message;
+            throw new PixivError(result.message, url);
 
         return result;
     },
@@ -714,7 +729,7 @@ var helpers = {
         });
 
         if(result.error)
-            throw "Error in XHR request (" + url + "): "+ result.message;
+            throw new PixivError(result.message, url);
 
         return result;
     },
@@ -735,7 +750,7 @@ var helpers = {
         });        
 
         if(result.error)
-            throw "Error in XHR request (" + url + "): "+ result.message;
+            throw new PixivError(result.message, url);
 
         return result;
     },
@@ -767,7 +782,7 @@ var helpers = {
         if(result == null)
             result = { error: true, message: "Invalid response" };
         if(result.error)
-            throw "Error in XHR request (" + url + "): "+ result.message;
+            throw new PixivError(result.message, url);
 
         return result;
     },
