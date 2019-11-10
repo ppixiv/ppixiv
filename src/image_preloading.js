@@ -172,20 +172,24 @@ class image_preloader
         filtered_preloads.splice(concurrent_preloads);
         // console.log("Preloads:", filtered_preloads.length);
 
-        // Start preloads that aren't running.  Add all preloads that are now running to
-        // updated_preload_list.
+        // If any preload in the list is running, stop.  We only run one preload at a time, so just
+        // let it finish.
+        let any_preload_running = false;
+        for(let preload of filtered_preloads)
+        {
+            let active_preload = this._find_active_preload_by_url(preload.url);
+            if(active_preload != null)
+                return;
+        }
+
+        // No preloads are running, so start the highest-priority preload.
+        //
+        // updated_preload_list allows us to run multiple preloads at a time, but we currently
+        // run them in serial.
         var unwanted_preloads;
         var updated_preload_list = [];
         for(let preload of filtered_preloads)
         {
-            // If we already have a preloader running for this URL, just let it continue.
-            var active_preload = this._find_active_preload_by_url(preload.url);
-            if(active_preload != null)
-            {
-                updated_preload_list.push(active_preload);
-                continue;
-            }
-
             // Start this preload.
             // console.log("Start preload:", preload.url);
             preload.start().finally(() => {
@@ -269,6 +273,8 @@ class image_preloader
             results.push(new _img_preloader(page.urls.small));
 
         // Only preload the first page, which is the main page of a regular illustration.
+        // This also forces us to wait for the current image to load before preloading future
+        // images, so we don't slow down loading the current image by preloading too early.
         if(illust_data.mangaPages.length >= 1)
             results.push(new _img_preloader(illust_data.mangaPages[0].urls.original));
 
