@@ -619,6 +619,7 @@ class popup_context_menu
     {
         this.onmousedown = this.onmousedown.bind(this);
         this.window_onmouseup = this.window_onmouseup.bind(this);
+        this.window_onblur = this.window_onblur.bind(this);
         this.oncontextmenu = this.oncontextmenu.catch_bind(this);
         this.onmouseover = this.onmouseover.bind(this);
         this.onmouseout = this.onmouseout.bind(this);
@@ -732,6 +733,11 @@ class popup_context_menu
         }
     }
 
+    window_onblur(e)
+    {
+        this.hide();
+    }
+
     // Return the element that should be under the cursor when the menu is opened.
     get element_to_center()
     {
@@ -757,6 +763,7 @@ class popup_context_menu
         document.body.classList.add("hide-ui");
         
         window.addEventListener("mouseup", this.window_onmouseup);
+        window.addEventListener("blur", this.window_onblur);
 
         // In toggle mode, close the popup if anything outside is clicked.
         if(this.toggle_mode && this.click_outside_listener == null)
@@ -861,6 +868,7 @@ class popup_context_menu
         this.buttons_down = [false, false, false];
         document.body.classList.remove("hide-ui");
         window.removeEventListener("mouseup", this.window_onmouseup);
+        window.removeEventListener("blur", this.window_onblur);
 
         if(this.click_outside_listener)
         {
