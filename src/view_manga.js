@@ -66,12 +66,6 @@ class view_manga extends view
 
         if(active)
             this.load_illust_id();
-        else
-        {
-            // Clear the image list so it doesn't flash on screen later.
-            var ul = this.container.querySelector("ul.thumbnails");
-            helpers.remove_elements(ul);
-        }
     }
 
     get active()
@@ -88,6 +82,11 @@ class view_manga extends view
     {
         if(this.illust_id == illust_id)
             return;
+
+        // The load itself is async and might not happen immediately if we don't have page info yet.
+        // Clear any previous image list so it doesn't flash on screen while we load the new info.
+        let ul = this.container.querySelector("ul.thumbnails");
+        helpers.remove_elements(ul);
 
         this.illust_id = illust_id;
         this.illust_info = null;
