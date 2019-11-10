@@ -298,7 +298,7 @@ class main_context_menu extends popup_context_menu
             this.refresh();
         }
 
-        this._on_click_viewer.relative_zoom_level += down? -1:+1;
+        this._on_click_viewer.relative_zoom_level += down? -0.25:+0.25;
 
         // As a special case, if we're in 1x zoom from above and we return to 1x relative zoom
         // (eg. the user mousewheeled up and then back down), switch to another zoom mode.
