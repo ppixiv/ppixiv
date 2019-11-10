@@ -244,7 +244,6 @@ class image_data
 
         var user_data = user_result.body;
         var user_id = user_data.userId;
-        console.log(user_data);
         // console.log("Got user", user_id);
 
         // Store the user data.
