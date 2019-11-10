@@ -1,6 +1,13 @@
 // This should be inside whats_new, but Firefox is in the dark ages and doesn't support class fields.
 let _update_history = [
     {
+        version: 65,
+        text:
+            "Bookmark viewing now remembers which page you were on if the page is reloaded." +
+            "<p>"+
+            "Zooming is now in smaller increments, to make it easier to zoom to the level you want."
+    },
+    {
         version: 57,
         text:
             "Search for similar artists.  Click the recommendations item at the top of the artist page, " +
