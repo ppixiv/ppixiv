@@ -56,8 +56,8 @@ class on_click_viewer
         {
             this.set_initial_image_position = true;
             this.set_image_position(
-                    [this.img.parentNode.offsetWidth / 2, 0],
-                    [this.width * 0.5, 0]);
+                    [this.img.parentNode.offsetWidth * 0.5, this.img.parentNode.offsetHeight * 0.5],
+                    [this.width * 0.5, this.height * 0.5]);
         }
 
         this.reposition();
