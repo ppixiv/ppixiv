@@ -381,8 +381,8 @@ class view_search extends view
 
         var user_info = await image_data.singleton().get_user_info_full(user_id);
 
-        // Stop if the user ID changed since we started this request.
-        if(this.viewing_user_id != initial_user_id)
+        // Stop if the user ID changed since we started this request, or if we're no longer active.
+        if(this.viewing_user_id != initial_user_id || !this.active)
             return;
 
         helpers.set_icon(null, user_info);
