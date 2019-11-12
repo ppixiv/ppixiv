@@ -410,15 +410,15 @@ var helpers = {
     // much of a dependable platform.
     block_network_requests: function()
     {
-        RealXMLHttpRequest = window.XMLHttpRequest;        
-        window.Image = function() { };
+        RealXMLHttpRequest = unsafeWindow.XMLHttpRequest;        
+        unsafeWindow.Image = exportFunction(function() { }, unsafeWindow);
 
-        dummy_fetch = function() { };
+        dummy_fetch = exportFunction(function() { }, exportFunction);
         dummy_fetch.prototype.ok = true;
         dummy_fetch.prototype.sent = function() { return this; }
-        window.fetch = function() { return new dummy_fetch(); }
+        unsafeWindow.fetch = exportFunction(function() { return new dummy_fetch(); }, unsafeWindow);
 
-        window.XMLHttpRequest = function() { }
+        unsafeWindow.XMLHttpRequest = exportFunction(function() { }, exportFunction);
     },
 
     // Stop all scripts from running on the page.  This only works in Firefox.  This is a basic
