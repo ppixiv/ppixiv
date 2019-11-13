@@ -533,6 +533,11 @@ class data_source
 
         // Adjust the URL for this button.
         var url = new URL(document.location);
+
+        // Don't include the page number in search buttons, so clicking a filter goes
+        // back to page 1.
+        url.searchParams.delete("p");
+
         var hash_args = helpers.get_hash_args(url);
         for(var key of Object.keys(fields))
         {
@@ -2040,8 +2045,10 @@ class data_source_bookmarks_base extends data_source
         this.set_item(container, "public", {rest: null, "#show-all": 0}, {"#show-all": 1});
         this.set_item(container, "private", {rest: "hide", "#show-all": 0}, {"#show-all": 1});
 
-        // Refresh the bookmark tag list.
-        var current_query = new URL(document.location).searchParams.toString();
+        // Refresh the bookmark tag list.  Remove the page number from these buttons.
+        let current_url = new URL(document.location);
+        current_url.searchParams.delete("p");
+        let current_query = current_url.searchParams.toString();
 
         var tag_list = container.querySelector(".bookmark-tag-list");
         
@@ -2055,6 +2062,7 @@ class data_source_bookmarks_base extends data_source
             a.innerText = tag;
 
             var url = new URL(document.location);
+            url.searchParams.delete("p");
             if(tag == "Uncategorized")
                 url.searchParams.set("untagged", 1);
             else
