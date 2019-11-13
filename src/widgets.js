@@ -624,11 +624,15 @@ class popup_context_menu
         this.onmouseover = this.onmouseover.bind(this);
         this.onmouseout = this.onmouseout.bind(this);
         this.hide = this.hide.bind(this);
-        this.stop_preventing_context_menu_delayed = this.stop_preventing_context_menu_delayed.bind(this);
 
         this.container = container;
+        this.blocking_context_menu_until_mouseup = false;
+        this.blocking_context_menu_until_timer = false;
 
         this.container.addEventListener("mousedown", this.onmousedown);
+
+        window.addEventListener("contextmenu", this.oncontextmenu);
+        window.addEventListener("mouseup", this.window_onmouseup);
 
         // Create the menu.  The caller will attach event listeners for clicks.
         this.menu = helpers.create_from_template(".template-context-menu");
@@ -658,15 +662,40 @@ class popup_context_menu
         return false;
     }
 
-    // This is only registered when we actually want to be blocking the context menu.
+    // - Block the context menu when the popup menu is open (we're acting as the context menu).
+    // - When the context menu is closed, keep preventing the context menu until we see a right
+    // click (or loss of window focus), followed by a short delay to work around browser inconsistencies.
     oncontextmenu(e)
     {
-        e.preventDefault();
-        e.stopPropagation();
+        // If we're already visible, always block contextmenu.
+/*        if(this.visible)
+        {
+            console.log("stop context menu (already open)");
+            e.preventDefault();
+            e.stopPropagation();
+            return;
+        }
+*/
+        if(this.blocking_context_menu_until_mouseup)
+        {
+            console.log("stop context menu (waiting for mouseup)");
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        if(this.blocking_context_menu_until_timer)
+        {
+            console.log("stop context menu (waiting for timer)");
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        console.log("not preventing context menu");
     }
 
     onmousedown(e)
     {
+        console.log("visible on", e.target);
         if(!this.visible && !this.context_menu_enabled_for_element(e.target))
             return;
         
@@ -695,15 +724,14 @@ class popup_context_menu
         e.stopPropagation();
 
         if(this.toggle_mode && this.visible)
-        {
             this.hide();
-
-            // We're closing the popup on mousedown, so make sure the context menu doesn't open when
-            // the user eventually releases the button.
-            this.stop_disabling_context_menu_on_release();
-        }
         else
             this.show(e.pageX, e.pageY, e.target);
+
+        // We're either showing or hiding the context menu on click, so block the context menu until
+        // release.  It's crazy that preventDefault on mousedown doesn't prevent contextmenu and makes
+        // all of this needlessly complicated.
+        this.block_context_menu_until_mouseup();
     }
 
     // If true, RMB toggles the menu instead of displaying while held, and we'll also hide the
@@ -713,12 +741,53 @@ class popup_context_menu
         return settings.get("touchpad-mode", false);
     }
 
+    // After mouseup, we'll move into block_context_menu_until_timer.
+    block_context_menu_until_mouseup()
+    {
+        if(this.blocking_context_menu_until_mouseup)
+            return;
+        console.log("Waiting for mouseup before releasing context menu");
+        this.blocking_context_menu_until_mouseup = true;
+    }
+
+    // Keep blocking briefly after mouseup.  This works around Firefox being flaky.  Otherwise,
+    // mashing the RMB will cause the context menu to randomly appear (this doesn't happen in
+    // Chrome).
+    block_context_menu_until_timer()
+    {
+        console.log("Waiting for timer before releasing context menu");
+
+        this.blocking_context_menu_until_mouseup = false;
+        this.blocking_context_menu_until_timer = true;
+        if(this.timer != null)
+        {
+            clearTimeout(this.timer);
+            this.timer = null;
+        }
+
+        this.timer = setTimeout(() => {
+            this.timer = null;
+
+            console.log("Releasing context menu after timer");
+            this.blocking_context_menu_until_timer = false;
+        }, 50);
+    }
+
     // Releasing the left or right mouse button hides the menu if both the left
     // and right buttons are released.  Pressing right, then left, then releasing
     // right won't close the menu until left is also released.  This prevents lost
     // inputs when quickly right-left clicking.
     window_onmouseup(e)
     {
+        // If we're blocking until mouseup and this is a RMB release, switch to blocking on
+        // a timer.
+        if(e.button == 2 && this.blocking_context_menu_until_mouseup)
+            this.block_context_menu_until_timer();
+
+        if(!this.visible)
+            return;
+
+        console.log("mouseup", e.target);
         this.buttons_down[e.button] = false;
         if(this.toggle_mode)
             return;
@@ -751,10 +820,8 @@ class popup_context_menu
     {
         this.menu.hidden = false;
 
-        if(this.displayed_menu != null)
+        if(this.visible)
             return;
-
-        this.start_preventing_context_menu();
 
         this.displayed_menu = this.menu;
         this.container.appendChild(this.displayed_menu);
@@ -762,7 +829,6 @@ class popup_context_menu
         // Disable popup UI while a context menu is open.
         document.body.classList.add("hide-ui");
         
-        window.addEventListener("mouseup", this.window_onmouseup);
         window.addEventListener("blur", this.window_onblur);
 
         // In toggle mode, close the popup if anything outside is clicked.
@@ -856,7 +922,7 @@ class popup_context_menu
 
     hide()
     {
-        if(this.displayed_menu == null)
+        if(!this.visible)
             return;
 
         // Let menus inside the context menu know we're closing.
@@ -867,7 +933,6 @@ class popup_context_menu
         hide_mouse_cursor_on_idle.enable_all();
         this.buttons_down = [false, false, false];
         document.body.classList.remove("hide-ui");
-        window.removeEventListener("mouseup", this.window_onmouseup);
         window.removeEventListener("blur", this.window_onblur);
 
         if(this.click_outside_listener)
@@ -886,73 +951,8 @@ class popup_context_menu
 
         this.container.removeEventListener("mousedown", this.onmousedown);
         this.container.removeEventListener("click", this.onclick);
-        this.stop_preventing_context_menu();
-    }
-
-    // Work around bad Firefox oncontextmenu behavior (seen in 62).  In Chrome and older
-    // versions of Firefox, contextmenu is always sent to the same element as mousedown,
-    // even if you move the mouse before releasing the button.  Current versions of Firefox
-    // send contextmenu to the element the mouse is over at the time of the mouse release.
-    // This makes it impossible to tell what element was clicked on in the first place.
-    // That's bad, since you want to be able to prevent the context menu if you did something
-    // else with the right mouse button, like our popup menus.
-    //
-    // Work around this by blocking all contextmenu events until we see a corresponding mouseup
-    // event.  That blocks the context menu regardless of which element it goes to.
-    stop_disabling_context_menu_on_release()
-    {
-        this.start_preventing_context_menu();
-
-        window.addEventListener("mouseup", this.stop_preventing_context_menu_delayed, true);
-        window.addEventListener("blur", this.stop_preventing_context_menu_delayed, true);
-    }
-
-    // This is called on mouseup.  We can't immediately stop preventing contextmenu, since the
-    // contextmenu event happens after mouseup, so we need to defer it.
-    stop_preventing_context_menu_delayed()
-    {
-        // If our timer is already set, don't do anything.
-        if(this.timer)
-            return;
-
-        // We should be able to use a timer of 0, since the contextmenu event should already be
-        // queued, guaranteeing that it happens before a 0-duration timer.  This doesn't actually
-        // happen in Firefox, so we need to use a slight delay.
-        this.timer = setTimeout(() => {
-            this.timer = null;
-            this.stop_preventing_context_menu();
-        }, 50);
-    }
-
-    start_preventing_context_menu()
-    {
-        if(this.preventing_context_menu)
-            return;
-
-        // Make sure stop_disabling_context_menu_on_release isn't running.
-        this.stop_preventing_context_menu();
-
-        this.preventing_context_menu = true;
-        window.addEventListener("contextmenu", this.oncontextmenu);
-    }
-
-    stop_preventing_context_menu()
-    {
-        // If a "stop after release" timer is running, remove it.
-        if(this.timer != null)
-        {
-            clearTimeout(this.timer);
-            this.timer = null;
-        }
-
-        window.removeEventListener("mouseup", this.stop_preventing_context_menu_delayed, true);
-        window.removeEventListener("blur", this.stop_preventing_context_menu_delayed, true);
-        
-        if(!this.preventing_context_menu)
-            return;
-
-        this.preventing_context_menu = false;
         window.removeEventListener("contextmenu", this.oncontextmenu);
+        window.removeEventListener("mouseup", this.window_onmouseup);
     }
 }
 
