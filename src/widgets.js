@@ -1249,7 +1249,7 @@ class bookmark_tag_list_widget extends illust_widget
         var prompt = new text_prompt();
         try {
             var tags = await prompt.result;
-        } catch {
+        } catch(e) {
             // The user cancelled the prompt.
             return;
         }
