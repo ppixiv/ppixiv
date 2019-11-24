@@ -52,10 +52,8 @@ class page_manager
         var url = new unsafeWindow.URL(url);
         url = helpers.get_url_without_language(url);
 
-        let parts = url.pathname.split("/");
-        let first_part = parts[1];
+        let first_part = helpers.get_page_type_from_url(url);
 
-        // Note that member_illust.php is both illustration pages (mode=medium&illust_id) and author pages (id=).
         if(first_part == "artworks")
             return data_source_current_illust;
         else if(url.pathname == "/member.php" && url.searchParams.get("id") != null)
@@ -91,7 +89,7 @@ class page_manager
             return data_source_new_illust;
         else if(url.pathname == "/bookmark_new_illust.php")
             return data_source_bookmarks_new_illust;
-        else if(url.pathname == "/search.php")
+        else if(first_part == "tags")
             return data_source_search;
         else if(url.pathname == "/discovery")
             return data_source_discovery;
@@ -219,19 +217,22 @@ class page_manager
     // depending on the current page.
     get_url_for_tag_search(tags)
     {
-        var url = new URL(document.location);
+        let url = new URL(document.location);
+        url = helpers.get_url_without_language(url);
 
-        if(url.pathname == "/search.php")
+        let type = helpers.get_page_type_from_url(url);
+        if(type == "tags")
         {
-            // If we're on search already, preserve other settings so we just change the
-            // search tag.  Just remove the page number.
-            url.searchParams.delete("p");
+            // If we're on search already, just change the search tag, so we preserve other settings.
+            // /tags/tag/artworks -> /tag/new tag/artworks
+            let parts = url.pathname.split("/");
+            parts[2] = encodeURIComponent(tags);
+            url.pathname = parts.join("/");
         } else {
             // If we're not, change to search and remove the rest of the URL.
-            url = new URL("/search.php#ppixiv", document.location);
+            url = new URL("/tags/" + encodeURIComponent(tags) + "#ppixiv", document.location);
         }
         
-        url.searchParams.set("word", tags);
         return url;
     }
 }

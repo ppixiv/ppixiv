@@ -1177,6 +1177,15 @@ var helpers = {
         
         return url;
     },
+
+    // From a URL like "/en/tags/abcd", return "tags".
+    get_page_type_from_url: function(url)
+    {
+        url = new unsafeWindow.URL(url);
+        url = helpers.get_url_without_language(url);
+        let parts = url.pathname.split("/");
+        return parts[1];
+    },
     
     set_page_title: function(title)
     {
@@ -1188,6 +1197,17 @@ var helpers = {
         document.querySelector("link[rel='icon']").href = url;
     },
 
+    // Get the search tags from an "/en/tags/TAG" search URL.
+    _get_search_tags_from_url: function(url)
+    {
+        url = helpers.get_url_without_language(url);
+        let parts = url.pathname.split("/");
+
+        // ["", "tags", tag string, "search type"]
+        let tags = parts[2] || "";
+        return decodeURIComponent(tags);
+    },
+    
     // Watch for clicks on links inside node.  If a search link is clicked, add it to the
     // recent search list.
     add_clicks_to_search_history: function(node)
@@ -1198,11 +1218,16 @@ var helpers = {
             if(e.target.tagName != "A")
                 return;
 
+            // Only look at "/tags/TAG" URLs.
             var url = new URL(e.target.href);
-            if(url.pathname != "/search.php")
+            url = helpers.get_url_without_language(url);
+
+            let parts = url.pathname.split("/");
+            let first_part = parts[1];
+            if(first_part != "tags")
                 return;
 
-            var tag = url.searchParams.get("word");
+            let tag = helpers._get_search_tags_from_url(url);
             console.log("Adding to tag search history:", tag);
             helpers.add_recent_search_tag(tag);
         });

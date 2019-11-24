@@ -2393,7 +2393,34 @@ class data_source_bookmarks_new_illust extends data_source_from_page
     }
 };
 
-// search.php
+// /tags
+//
+// The new tag search UI is a bewildering mess:
+// 
+// - Searching for a tag goes to "/tags/tag/artworks".  The "top" tab is highlighted,
+// but it's not really on that section and no tab actually goes here.  The API query
+// is "/ajax/search/artworks/TAG".  "Illustrations, Manga, Ugoira" in the search options
+// also goes here.
+// 
+// - The "Illustrations" tab goes to "/tags/tag/illustrations".  The API is
+// "/ajax/search/illustrations/TAG?type=illust_and_ugoira".  This seems to give identical
+// results to "artworks".
+// 
+// This is "イラスト・うごくイラスト" in the search options and isn't translated.  This
+// page seems like a bug.
+// 
+// - Clicking "manga" goes to "/tags/tag/manga".  The API is "/ajax/search/manga" and also
+// sets type=manga.  This is "Manga" in the search options.  At least this one makes sense.
+// 
+// - You can search for just animations, but there's no button for it in the UI.  You
+// have to pick it from the dropdown in search options.  This one is "illustrations?type=ugoira".
+// Why did they keep using type just for one search mode?  Saying "type=manga" or any
+// other type fails, so it really is just used for this.
+// 
+// - Clicking "Top" goes to "/tags/tag" with no type.  This is a completely different
+// page and API, "/ajax/search/top/tag".  It doesn't actually seem to be a rankings
+// page and just shows the same thing as the others with a different layout, so we
+// ignore this and treat it like "artworks".
 class data_source_search extends data_source
 {
     get name() { return "search"; }
@@ -2406,12 +2433,31 @@ class data_source_search extends data_source
 
         // Add the search tags to tag history.  We only do this at the start when the
         // data source is created, not every time we navigate back to the search.
-        var query_args = this.url.searchParams;
-        var tag = query_args.get("word");
+        let tag = this._search_tags;
         if(tag)
             helpers.add_recent_search_tag(tag);
 
         this.cache_search_title();
+    }
+
+    get _search_tags()
+    {
+        return helpers._get_search_tags_from_url(this.url);
+    }
+
+    // Return the search type from the URL.  This is one of "artworks", "illustrations"
+    // or "novels" (not supported").  It can also be omitted, which is the "top" page,
+    // but that gives the same results as "artworks" with a different page layout, so
+    // we treat it as "artworks".
+    get _search_type()
+    {
+        // ["", "tags", tag list, type]
+        let url = helpers.get_url_without_language(this.url);
+        let parts = url.pathname.split("/");
+        if(parts.length >= 4)
+            return parts[3];
+        else
+            return "artworks";
     }
 
     startup()
@@ -2431,7 +2477,7 @@ class data_source_search extends data_source
     async cache_search_title()
     {
         this.title = "Search: ";
-        var tags = this.url.searchParams.get("word");
+        let tags = this._search_tags;
         if(tags)
         {
             tags = await tag_translations.get().translate_tag_list(tags, "en");
@@ -2448,10 +2494,35 @@ class data_source_search extends data_source
         let args = {
             p: page,
         };
-        query_args.forEach((value, key) => { args[key] = value; });
-        var tag = query_args.get("word");
 
-        var url = "/ajax/search/artworks/" + tag;
+        // "artworks" and "illustrations" are different on the search page: "artworks" uses "/tag/TAG/artworks",
+        // and "illustrations" is "/tag/TAG/illustrations?type=illust_and_ugoira".  They seem to return the
+        // same thing, so we always use "illustrations".  "artworks" doesn't use the type field.
+        let search_type = this._search_type;
+        let api_search_type = "artworks";
+        if(search_type == "artworks" || search_type == "illustrations")
+        {
+            api_search_type = "illustrations";
+            args.type = "illust_and_ugoira";
+        }
+        else if(search_type == "manga")
+        {
+            api_search_type = "manga";
+            args.type = "manga";
+        }
+
+        query_args.forEach((value, key) => { args[key] = value; });
+        let tag = this._search_tags;
+
+        // If we have no tags, we're probably on the "/tags" page, which is just a list of tags.  Don't
+        // run a search with no tags.
+        if(!tag)
+        {
+            console.log("No search tags");
+            return;
+        }
+
+        var url = "/ajax/search/" + api_search_type + "/" + tag;
         var result = await helpers.get_request(url, args);
         let body = result.body;
 
@@ -2478,7 +2549,11 @@ class data_source_search extends data_source
         }
         tag_translations.get().add_translations(translations);
 
-        let illusts = body.illustManga.data;
+        // /tag/TAG/illustrations returns results in body.illust.
+        // /tag/TAG/artworks returns results in body.illustManga.
+        // /tag/TAG/manga returns results in body.manga.
+        let illusts = body.illust || body.illustManga || body.manga;
+        illusts = illusts.data;
 
         // Populate thumbnail data with this data.
         thumbnail_data.singleton().loaded_thumbnail_info(illusts, "search");
@@ -2505,10 +2580,63 @@ class data_source_search extends data_source
     {
         // Fill the search box with the current tag.
         var query_args = this.url.searchParams;
-        var tag = query_args.get("word");
+        let tag = this._search_tags;
         container.querySelector(".search-page-tag-entry .search-tags").value = tag;
     }
-    
+
+   // Return the search mode, which is selected by the "Type" search option.  This generally
+    // corresponds to the underlying page's search modes.
+    get_url_search_mode()
+    {
+        // "/tags/tag/illustrations" has a "type" parameter with the search type.  This is used for
+        // "illust" (everything except animations) and "ugoira".
+        let search_type = this._search_type;
+        if(search_type == "illustrations")
+        {
+            let query_search_type = this.url.searchParams.get("type");
+            if(query_search_type == "ugoira") return "ugoira";
+            if(query_search_type == "illust") return "illust";
+
+            // If there's no parameter, show everything.
+            return "all";
+        }
+        
+        if(search_type == "artworks")
+            return "all";
+        if(search_type == "manga")
+            return "manga";
+
+        // Use "all" for unrecognized types.
+        return "all";
+    }
+
+    // Return URL with the search mode set to mode.
+    set_url_search_mode(url, mode)
+    {
+        url = new URL(url);
+        url = helpers.get_url_without_language(url);
+
+        // Only "ugoira" searches use type in the query.  It causes an error in other modes, so remove it.
+        if(mode == "illust")
+            url.searchParams.set("type", "illust");
+        else if(mode == "ugoira")
+            url.searchParams.set("type", "ugoira");
+        else
+            url.searchParams.delete("type");
+
+        let search_type = "artworks";
+        if(mode == "manga")
+            search_type = "manga";
+        else if(mode == "ugoira" || mode == "illust")
+            search_type = "illustrations";
+
+        // Set the type in the URL.
+        let parts = url.pathname.split("/");
+        parts[3] = search_type;
+        url.pathname = parts.join("/");
+        return url;
+    }
+ 
     refresh_thumbnail_ui(container, thumbnail_view)
     {
         if(this.related_tags)
@@ -2524,13 +2652,32 @@ class data_source_search extends data_source
 
         this.set_item(container, "order-newest", {order: null}, {order: "date_d"});
         this.set_item(container, "order-oldest", {order: "date"});
+        this.set_item(container, "order-all", {order: "popular_d"});
         this.set_item(container, "order-male", {order: "popular_male_d"});
         this.set_item(container, "order-female", {order: "popular_female_d"});
 
-        this.set_item(container, "search-type-all", {type: null});
-        this.set_item(container, "search-type-illust", {type: "illust"});
-        this.set_item(container, "search-type-manga", {type: "manga"});
-        this.set_item(container, "search-type-ugoira", {type: "ugoira"});
+        let set_search_mode = (container, type, mode) =>
+        {
+            var link = container.querySelector("[data-type='" + type + "']");
+            if(link == null)
+            {
+                console.warn("Couldn't find button with selector", type);
+                return;
+            }
+
+            let current_mode = this.get_url_search_mode();
+            let button_is_selected = current_mode == mode;
+            helpers.set_class(link, "selected", button_is_selected);
+
+            // Adjust the URL for this button.
+            let url = this.set_url_search_mode(document.location, mode);
+            link.href = url.toString();
+        };
+
+        set_search_mode(container, "search-type-all", "all");
+        set_search_mode(container, "search-type-illust", "illust");
+        set_search_mode(container, "search-type-manga", "manga");
+        set_search_mode(container, "search-type-ugoira", "ugoira");
 
         this.set_item(container, "search-all", {s_mode: null}, {s_mode: "s_tag"});
         this.set_item(container, "search-exact", {s_mode: "s_tag_full"});
@@ -2594,13 +2741,16 @@ class data_source_search extends data_source
 
         this.set_active_popup_highlight(container, [".ages-box", ".popularity-box", ".type-box", ".search-mode-box", ".size-box", ".aspect-ratio-box", ".bookmarks-box", ".time-box", ".member-tags-box"]);
 
-        // The "reset search" button removes everything in the query except search terms.
+        // The "reset search" button removes everything in the query except search terms, and resets
+        // the search type.
         var box = container.querySelector(".reset-search");
         var url = new URL(document.location);
-        var tag = url.searchParams.get("word");
+        let tag = helpers._get_search_tags_from_url(url);
         url.search = "";
-        if(tag != null)
-            url.searchParams.set("word", tag);
+        if(tag == null)
+            url.pathname = "/tags";
+        else
+            url.pathname = "/tags/" + encodeURIComponent(tag) + "/artworks";
         box.href = url;
      }
 };

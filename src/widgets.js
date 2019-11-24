@@ -561,8 +561,7 @@ class tag_widget
         if(this.options.format_link)
             return this.options.format_link(tag);
 
-        var search_url = new URL("/search.php", window.location.href);
-        search_url.search = "s_mode=s_tag_full&word=" + tag;
+        var search_url = new URL("/tags/" + encodeURIComponent(tag) + "/artworks", window.location.href);
         search_url.hash = "#ppixiv";
         return search_url.toString();
     };
