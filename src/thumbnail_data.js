@@ -271,9 +271,6 @@ class thumbnail_data
                     if(remapped_thumb_info.bookmarkData != null)
                         delete remapped_thumb_info.bookmarkData.bookmarkId;
                 }
-
-                // Switch the URL from the low-res thumbnail to a higher-res one.
-                remapped_thumb_info.url = this.get_high_res_thumbnail_url(remapped_thumb_info.url);
             }
             else if(source == "illust_list" || source == "following" || source == "rankings" ||
                     source == "illust_new" || source == "search")
@@ -355,9 +352,6 @@ class thumbnail_data
                 else if(source == "search")
                     remapped_thumb_info.bookmarkData = thumb_info.bookmarkData;
 
-                // rankings gives a 240x480 thumbnail.  Remap it to the 540x540 one.
-                remapped_thumb_info.url = remapped_thumb_info.url.replace("/c/240x480", "/c/540x540_70");
-
                 // illustType can be a string in these instead of an int, so convert it.
                 remapped_thumb_info.illustType = parseInt(remapped_thumb_info.illustType);
 
@@ -370,7 +364,7 @@ class thumbnail_data
                 throw "Unrecognized source: " + source;
 
             // Different APIs return different thumbnail URLs.
-            remapped_thumb_info.url = remapped_thumb_info.url.replace(/\/240x240\//, "/540x540_70/");
+            remapped_thumb_info.url = this.get_high_res_thumbnail_url(remapped_thumb_info.url);
             
             // These fields are strings in some sources.  Switch them to ints.
             for(let key of ["pageCount", "width", "height"])
