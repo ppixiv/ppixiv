@@ -194,7 +194,7 @@ class view_search extends view
         main_controller.singleton.temporarily_ignore_onpopstate = true;
         try {
             let args = helpers.get_args(document.location);
-            args.query.set("p", first_thumb.dataset.page);
+            this.data_source.set_start_page(args, first_thumb.dataset.page);
             helpers.set_args(args, false, "viewing-page");
         } finally {
             main_controller.singleton.temporarily_ignore_onpopstate = false;
@@ -879,7 +879,8 @@ class view_search extends view
             {
                 // Set the link for previous-page.  Most of the time this is handled by our in-page click handler.
                 let args = helpers.get_args(document.location);
-                args.query.set("p", parseInt(element.dataset.page)-1);
+                let page = this.data_source.get_start_page(args);
+                this.data_source.set_start_page(args, page-1);
                 element.querySelector("a.load-previous-page-link").href = helpers.get_url_from_args(args);
                 continue;
             }

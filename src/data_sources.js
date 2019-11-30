@@ -242,6 +242,18 @@ class data_source
         this.loading_pages = {};
         this.first_empty_page = -1;
         this.update_callbacks = [];
+
+        // If this data source supports a start page, store the page we started on.
+        // This isn't increased as we load more pages, but if we load earlier results
+        // because the user clicks "load previous results", we'll reduce it.
+        if(this.supports_start_page)
+        {
+            let args = helpers.get_args(url);
+            this.initial_page = this.get_start_page(args);
+            console.log("Starting at page", this.initial_page);
+        }
+        else
+            this.initial_page = 1;
     };
 
     // If a data source returns a name, we'll display any .data-source-specific elements in
@@ -341,11 +353,6 @@ class data_source
         return result;
     }
 
-    get initial_page()
-    {
-        return 1;
-    }
-
     // Return true if the given page is either loaded, or currently being loaded by a call to load_page.
     is_page_loaded_or_loading(page)
     {
@@ -384,6 +391,13 @@ class data_source
         
         // Start the actual load.
         var result = await this.load_page_internal(page);
+
+        // Reduce the start page, which will update the "load more results" button if any.  It's important
+        // to do this after the await above.  If we do it before, it'll update the button before we load
+        // and cause the button to update before the thumbs.  view_search.refresh_images won't be able
+        // to optimize that and it'll cause uglier refreshes.
+        if(this.supports_start_page && page < this.initial_page)
+            this.initial_page = page;
 
         // If there were no results, then we've loaded the last page.  Don't try to load
         // any pages beyond this.
@@ -438,6 +452,18 @@ class data_source
     // source should update the history state to reflect the current state.
     set_current_illust_id(illust_id, args)
     {
+        if(this.supports_start_page)
+        {
+            // Store the page the illustration is on in the hash, so if the page is reloaded while
+            // we're showing an illustration, we'll start on that page.  If we don't do this and
+            // the user clicks something that came from page 6 while the top of the search results
+            // were on page 5, we'll start the search at page 5 if the page is reloaded and not find
+            // the image, which is confusing.
+            var original_page = this.id_list.get_page_for_illust(illust_id);
+            if(original_page != null)
+                this.set_start_page(args, original_page);
+        }
+
         // By default, put the illust_id in the hash.
         args.hash.set("illust_id", illust_id);
     }
@@ -461,6 +487,23 @@ class data_source
     {
         return null;
     };
+
+    // Some data sources can restart the search at a page.
+    get supports_start_page() { return false; }
+
+    // Store the current page in the URL.
+    //
+    // This is only used if supports_start_page is true.
+    set_start_page(args, page)
+    {
+        args.query.set("p", page);
+    }
+
+    get_start_page(args)
+    {
+        let page = args.query.get("p") || "1";
+        return parseInt(page) || 1;
+    }
 
     // Add or remove an update listener.  These are called when the data source has new data,
     // or wants a UI refresh to happen.
@@ -1328,18 +1371,6 @@ class data_source_from_page extends data_source
     {
         throw "Not implemented";
     }
-
-    set_current_illust_id(illust_id, args)
-    {
-        // Use the default behavior for illust_id.
-        super.set_current_illust_id(illust_id, args);
-
-        // Update the current page.  (This can be undefined if we're on a page that isn't
-        // actually loaded for some reason.)
-        var original_page = this.id_list.get_page_for_illust(illust_id);
-        if(original_page != null)
-            args.query.set("p", original_page);
-    };
 };
 
 // There are two ways we can show images for a user: from an illustration page
@@ -1846,18 +1877,6 @@ class data_source_bookmarks_base extends data_source
     {
         super(url);
 
-        // If the URL has a page, start showing bookmarks from that page.
-        //
-        // We have UI to load previous pages.  If we do that, it'll be loaded as a new data source.
-        url = new URL(url);
-        this.start_page = url.searchParams.get("p");
-        if(this.start_page != null)
-            this.start_page = parseInt(this.start_page);
-        if(this.start_page == null)
-            this.start_page = 1;
-
-        console.log("Showing bookmarks from page", this.start_page);
-        
         this.bookmark_tags = [];
     }
 
@@ -1873,23 +1892,11 @@ class data_source_bookmarks_base extends data_source
         this.call_update_listeners();
 
         await this.continue_loading_page_internal(page);
-        
-        // Reduce the start page, which will update the "load more results" button if any.  It's important
-        // to do this before the await above.  If we do it before, it'll update the button before we load
-        // and cause the button to update before the thumbs.  view_search.refresh_images won't be able
-        // to optimize that and it'll cause uglier refreshes.
-        if(page < this.start_page)
-            this.start_page = page;
     };
 
     get supports_start_page()
     {
         return true;
-    }
-
-    get initial_page()
-    {
-        return this.start_page;
     }
 
     // If we haven't done so yet, load bookmark tags for this bookmark page.  This
