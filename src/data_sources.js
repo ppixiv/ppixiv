@@ -802,7 +802,6 @@ class data_source_discovery_users extends data_source
 
         // Convert the images into thumbnail_info.  Like everything else, this is returned in a format
         // slightly different from the other APIs that it's similar to.
-        let thumbnail_info = [];
         let illust_ids = [];
         for(let user of result.body)
         {
@@ -820,33 +819,8 @@ class data_source_discovery_users extends data_source
             illust_ids.push("user:" + user.user_id);
 
             for(let illust_data of user.illusts)
-            {
                 illust_ids.push(illust_data.illust_id);
-
-                let illust = {
-                    id: illust_data.illust_id,
-                    title: illust_data.illust_title,
-                    width: illust_data.illust_width,
-                    height: illust_data.illust_height,
-                    illustType: illust_data.illust_type,
-                    pageCount: parseInt(illust_data.illust_page_count),
-                    userId: illust_data.illust_user_id,
-                    tags: illust_data.tags,
-                    url: illust_data.url["480mw"],
-
-                    userName: user.user_name,
-                    profileImageUrl: user.profile_img,
-
-                    // This data doesn't include bookmarkData.  It's a suggestions search, so maybe it never
-                    // returns bookmarked images?
-                    bookmarkData: null,
-                };
-                thumbnail_info.push(illust);
-            }
         }
-
-        // Populate thumbnail data with this data.
-        thumbnail_data.singleton().loaded_thumbnail_info(thumbnail_info, "normal");
 
         // Register the new page of data.
         this.add_page(page, illust_ids);

@@ -58,6 +58,10 @@ class thumbnail_data
             var data = this.thumbnail_data[illust_id];
             if(data == null)
             {
+                // If this is a user:user_id instead of an illust ID, make sure we don't request it
+                // as an illust ID.
+                if(illust_id.indexOf(":") != -1)
+                    continue;
                 needed_ids.push(illust_id);
                 continue;
             }
