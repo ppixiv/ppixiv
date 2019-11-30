@@ -702,7 +702,7 @@ class view_search extends view
         // Note that since get_visible_thumbnails returns thumbs before they actually scroll
         // into view, this will happen before the last thumb is actually visible to the user.
         var ul = this.container.querySelector("ul.thumbnails");
-        if(elements.length > 0 && elements[elements.length-1] == ul.lastElementChild)
+        if(load_page == null && elements.length > 0 && elements[elements.length-1] == ul.lastElementChild)
         {
             let last_element = elements[elements.length-1];
             load_page = parseInt(last_element.dataset.page)+1;
