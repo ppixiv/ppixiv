@@ -889,7 +889,6 @@ li.thumbnail-box a.thumbnail-link {
 }
 
 .page-count-box {
-    pointer-events: none;
     position: absolute;
     right: 2px;
     bottom: 2px;
