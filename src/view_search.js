@@ -927,8 +927,6 @@ class view_search extends view
             else
             {
                 link.href = "/artworks/" + illust_id + "#ppixiv";
-                if(info.pageCount > 1)
-                    link.href += "?view=manga";
             }
 
             link.dataset.illustId = illust_id;
@@ -942,7 +940,9 @@ class view_search extends view
 
                 if(info.pageCount > 1)
                 {
-                    element.querySelector(".page-count-box").hidden = false;
+                    var pageCountBox = element.querySelector(".page-count-box");
+                    pageCountBox.hidden = false;
+                    pageCountBox.href = link.href + "?view=manga";
                     element.querySelector(".page-count-box .page-count").textContent = info.pageCount;
                 }
 
