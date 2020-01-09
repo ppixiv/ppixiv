@@ -60,6 +60,8 @@ class page_manager
             return data_source_artist;
         else if(url.pathname == "/member_illust.php" && url.searchParams.get("id") != null)
             return data_source_artist;
+        else if(first_part == "users")
+            return data_source_artist;
         else if(url.pathname == "/bookmark.php" && url.searchParams.get("type") == null)
         {
             // Handle a special case: we're called by early_controller just to find out if
