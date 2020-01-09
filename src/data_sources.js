@@ -1393,7 +1393,13 @@ class data_source_artist extends data_source
     get viewing_user_id()
     {
         var query_args = this.url.searchParams;
-        return query_args.get("id");
+        var user = query_args.get("id");
+        if (user !== null) return query_args.get("id");
+        let url = new URL(document.location);
+        url = helpers.get_url_without_language(url);
+        let parts = url.pathname.split("/");
+        user = parts[2];
+        return user;
     };
 
     startup()
