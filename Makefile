@@ -8,7 +8,6 @@ FILES=\
     src/crc32.js \
     src/helpers.js \
     src/fix_chrome_clicks.js \
-    src/tweaks.js \
     src/widgets.js \
     src/menu_option.js \
     src/main_context_menu.js \
