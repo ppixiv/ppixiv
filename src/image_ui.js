@@ -180,7 +180,7 @@ class image_ui
 
         var element_author = this.container.querySelector(".author");
         element_author.textContent = user_data.name;
-        element_author.href = "/member_illust.php?id=" + user_data.userId + "#ppixiv";
+        element_author.href = "/users/" + user_data.userId + "#ppixiv";
         
         this.container.querySelector(".similar-illusts-button").href = "/bookmark_detail.php?illust_id=" + illust_id + "#ppixiv";
         this.container.querySelector(".similar-artists-button").href = "/discovery/users#ppixiv?user_id=" + user_data.userId;

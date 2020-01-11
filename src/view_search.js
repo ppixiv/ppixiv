@@ -851,7 +851,7 @@ class view_search extends view
                 let user_id = helpers.actual_id(illust_id);
 
                 var link = element.querySelector("a.thumbnail-link");
-                link.href = "/member_illust.php?id=" + user_id + "#ppixiv";
+                link.href = "/users/" + user_id + "#ppixiv";
 
                 link.dataset.userId = user_id;
 
@@ -922,7 +922,7 @@ class view_search extends view
             // If we're on the followed users page, set these to the artist page instead.
             var link = element.querySelector("a.thumbnail-link");
             if(search_mode == "users") {
-                link.href = "/member_illust.php?id=" + info.userId + "#ppixiv";
+                link.href = "/users/" + info.userId + "#ppixiv";
             }
             else
             {

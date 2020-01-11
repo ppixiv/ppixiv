@@ -1374,7 +1374,7 @@ class data_source_from_page extends data_source
 };
 
 // There are two ways we can show images for a user: from an illustration page
-// (/artworks/#), or from the user's works page (member_illust.php?id=1234).
+// (/artworks/#), or from the user's works page (/users/#).
 //
 // The illustration page is better, since it gives us the ID of every post by the
 // user, so we don't have to fetch them page by page, but we have to know the ID

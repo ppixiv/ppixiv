@@ -446,7 +446,7 @@ class avatar_widget
         // We can't tell if we're followed privately or not, only that we're following.
         helpers.set_class(this.root, "followed", this.user_data.isFollowed);
 
-        this.root.querySelector(".avatar-link").href = "/member_illust.php?id=" + user_data.userId + "#ppixiv";
+        this.root.querySelector(".avatar-link").href = "/users/" + user_data.userId + "#ppixiv";
         this.root.querySelector(".avatar").dataset.popup = "View " + user_data.name + "'s posts";
 
         // Hide the popup in dropdown mode, since it covers the dropdown.
