@@ -1967,7 +1967,7 @@ class data_source_bookmarks_base extends data_source
         var rest = query_args.get("rest") || "show";
         if(force_rest != null)
             rest = force_rest;
-        var tag = query_args.get("tag") || "";
+        var tag = query_args.get("untagged") != null ? "未分類" : query_args.get("tag") || "";
 
         // Load 20 results per page, so our page numbers should match the underlying page if
         // the UI is disabled.
