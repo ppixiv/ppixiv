@@ -4,7 +4,10 @@ let _update_history = [
         version: 68,
         text:
             "You can now go to either the first manga page or the page list from search results. " +
-            "Click the image to go to the first page, or the page count to go to the page list."
+            "Click the image to go to the first page, or the page count to go to the page list." +
+            "<p>" +
+            "Our button is now in the bottom-left when we're disabled, since Pixiv now puts a menu " +
+            "button in the top-left and we were covering it up."
     },
     {
         version: 65,
