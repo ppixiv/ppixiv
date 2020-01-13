@@ -908,7 +908,7 @@ li.thumbnail-box a.thumbnail-link {
     transition: opacity .5s;
 }
 .thumbnail-inner:hover .page-count-box {
-    opacity: 0.5;
+/*    opacity: 0.5;*/
 }
 
 .page-count-box .page-count {
