@@ -1088,6 +1088,17 @@ class bookmark_tag_list_widget extends illust_widget
         return tag_list;
     }
 
+    // Override setting illust_id to save tags when we're closed.  Otherwise, illust_id will already
+    // be cleared when we close and we won't be able to save.
+    set illust_id(value)
+    {
+        if(value == null)
+            this.save_current_tags();
+
+        super.illust_id = value;
+        console.log("done", value);
+    }
+    
     get visible()
     {
         return !this.container.hidden;
