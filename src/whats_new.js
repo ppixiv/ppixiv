@@ -69,6 +69,14 @@ class whats_new
 
         this.container.querySelector(".close-button").addEventListener("click", (e) => { this.hide(); });
 
+        // Close if the container is clicked, but not if something inside the container is clicked.
+        this.container.addEventListener("click", (e) => {
+            if(e.target != this.container)
+                return;
+
+            this.hide();
+        });
+
         // Hide on any state change.
         window.addEventListener("popstate", (e) => {
             this.hide();
