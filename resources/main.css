@@ -118,6 +118,18 @@ ul {
     -moz-user-select: none;
     cursor: pointer;
 }
+
+.background-image {
+    z-index: -1000;
+    width: 100%;
+    height: 100%;
+    left: 0;
+    top: 0;
+    position: absolute;
+    object-fit: cover;
+    filter: blur(50px);
+}
+
 img.low-res-preview {
     filter: brightness(80%);
 }
@@ -1706,7 +1718,7 @@ body.light .popup-context-menu .button-strip .button .tag-dropdown-arrow {
 .ui-box .button.button-like .count
 {
     top: calc(100% - 11px);
-    left: calc(-50px + 50%)
+    left: calc(-50px + 50%);
     width: 100px;
     pointer-events: none;
 }

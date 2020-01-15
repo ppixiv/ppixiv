@@ -61,6 +61,8 @@ class viewer_images extends viewer
             this.img.remove();
         if(this.preview_img)
             this.preview_img.remove();
+        if(this.background_image)
+            this.background_image.remove();
 
         main_context_menu.get.on_click_viewer = null;
     }
@@ -120,6 +122,13 @@ class viewer_images extends viewer
             this.preview_img.remove();
             this.preview_img = null;
         }
+        if (this.background_image == null)
+        {
+            this.background_image = document.createElement("img");
+            this.background_image.classList.add("background-image");
+            this.background_image.style.pointerEvents = "none";
+            this.container.appendChild(this.background_image);
+        }
         
         // Create the low-res preview.  This loads the thumbnail underneath the main image.  Don't set the
         // "filtering" class, since using point sampling for the thumbnail doesn't make sense.
@@ -131,6 +140,8 @@ class viewer_images extends viewer
         // It just follows the main image around and shouldn't receive input events.
         this.preview_img.style.pointerEvents = "none";
         this.container.appendChild(this.preview_img);
+
+        this.background_image.src = preview_url;
 
         this.img = document.createElement("img");
         this.img.src = url;
