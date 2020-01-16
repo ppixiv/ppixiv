@@ -448,13 +448,19 @@ class on_click_viewer
         this.img.style.position = "absolute";
 
         // We can either use CSS positioning or transforms.  Transforms used to be a lot
-        // faster, but today it doesn't matter.  However, with CSS positioning we run into
-        // weird Firefox compositing bugs that cause the image to disappear after zooming
-        // and opening the context menu.  That's hard to pin down, but since it doesn't happen
-        // with translate, let's just use that.
-        // this.img.style.left = left + "px";
-        // this.img.style.top = top + "px";
-        this.img.style.transform = "translate(" + left + "px, " + top + "px)";
+        // faster, but today it doesn't matter.
+        if (navigator.userAgent.indexOf("Firefox/") == -1){
+            // For unknown reason, after the blurred background is introduce, and the image is zoomed
+            // transform takes significant amount of time to compute
+            this.img.style.left = left + "px";
+            this.img.style.top = top + "px";
+        } else {
+            // With CSS positioning we run into
+            // weird Firefox compositing bugs that cause the image to disappear after zooming
+            // and opening the context menu.  That's hard to pin down, but since it doesn't happen
+            // with translate, let's just use that.
+            this.img.style.transform = "translate(" + left + "px, " + top + "px)";
+        }
         this.img.style.right = "auto";
         this.img.style.bottom = "auto";
 

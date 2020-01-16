@@ -1916,6 +1916,7 @@ class image_canvas_filter
         // Use destination-over to draw the image underneath the overlay we just drew.
         this.ctx.globalCompositeOperation = "destination-over";
         this.ctx.drawImage(this.img, 0, 0);
+        this.observer.disconnect();
     }
 }
 
