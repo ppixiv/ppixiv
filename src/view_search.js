@@ -52,7 +52,7 @@ class view_search extends view
                 // The recommended tag links are already on the search page, and retain other
                 // search settings.
                 var url = new URL(window.location);
-                url.searchParams.set("word", tag);
+                url.pathname = "/tags/" + encodeURIComponent(tag);
                 url.searchParams.delete("p");
                 return url.toString();
             }.bind(this),
