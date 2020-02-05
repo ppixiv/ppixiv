@@ -67,13 +67,6 @@ class view_search extends view
         // Set up hover popups.
         dropdown_menu_opener.create_handlers(this.container, [".navigation-menu-box", ".thumbnail-settings-menu-box", ".ages-box", ".popularity-box", ".type-box", ".search-mode-box", ".size-box", ".aspect-ratio-box", ".bookmarks-box", ".time-box", ".member-tags-box", ".search-tags-box"]);
 
-        // Fill in the default value for the search page.  We don't do this in refresh_thumbnail_ui
-        // since we don't want to clobber the user's edits later.  Only do this with the search box
-        // on the search page, not the one in the navigation dropdown.
-        var tag = new URL(document.location).searchParams.get("word");
-        if(tag != null)
-            this.container.querySelector(".search-page-tag-entry .search-tags").value = tag;
-
         // As an optimization, start loading image info on mousedown.  We don't navigate until click,
         // but this lets us start loading image info a bit earlier.
         this.container.querySelector(".thumbnails").addEventListener("mousedown", (e) => {
