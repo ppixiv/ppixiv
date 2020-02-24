@@ -330,9 +330,17 @@ class actions
         }
 
         // Download all images.
+        //
+        // Pixiv's host for images changed from i.pximg.net to i-cf.pximg.net.  This will fail currently for that
+        // host, since it's not in @connect, and adding that will prompt everyone for permission.  Work around that
+        // by replacing i-cf.pixiv.net with i.pixiv.net, since that host still works fine.  This only affects downloads.
         var images = [];
         for(var page of illust_data.mangaPages)
-            images.push(page.urls.original);
+        {
+            let url = page.urls.original;
+            url = url.replace(/:\/\/i-cf.pximg.net/, "://i.pximg.net");
+            images.push(url);
+        }
 
         var user_data = illust_data.userInfo;
         helpers.download_urls(images, function(results) {
