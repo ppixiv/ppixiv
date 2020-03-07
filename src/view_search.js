@@ -411,7 +411,10 @@ class view_search extends view
         var webpage_link = this.container.querySelector(".webpage-link");
         webpage_link.hidden = webpage_url == null;
         if(webpage_url != null)
+        {
             webpage_link.href = webpage_url;
+            webpage_link.dataset.popup = webpage_url;
+        }
 
         // Set the twitter link.
         var twitter_url = user_info && user_info.social && user_info.social.twitter && user_info.social.twitter.url;
