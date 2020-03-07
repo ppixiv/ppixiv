@@ -441,6 +441,36 @@ class view_search extends view
         if(user_info != null)
             contact_link.href = "/messages.php?receiver_id=" + user_info.userId;
 
+        // Remove any extra buttons that we added earlier.
+        let row = this.container.querySelector(".button-row");
+        for(let div of row.querySelectorAll(".extra-profile-link-button"))
+            div.remove();
+        
+        // Find any other links in the user's profile text.
+        if(user_info != null)
+        {
+            let div = document.createElement("div");
+            div.innerHTML = user_info.commentHtml;
+            let count = 0;
+            for(let link of div.querySelectorAll("a"))
+            {
+                let entry = helpers.create_from_template(".template-extra-profile-link-button");
+                let a = entry.querySelector(".extra-link");
+                a.dataset.popup = helpers.fix_pixiv_link(link.href);
+                a.href = link.href;
+
+                // Put these at the beginning, so they don't change the positioning of the other
+                // icons.
+                row.insertBefore(entry, row.querySelector(".first-icon"));
+                count++;
+
+                // Limit this in case people are putting a million links in their profiles.
+                if(count == 4)
+                    break;
+            }
+        }
+
+
         // Tell the context menu which user is being viewed (if we're viewing a user-specific
         // search).
         main_context_menu.get.user_info = user_info;

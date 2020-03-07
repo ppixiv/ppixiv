@@ -1134,6 +1134,23 @@ var helpers = {
         }
     },
 
+    // Find the real link inside Pixiv's silly jump.php links.
+    fix_pixiv_link: function(link)
+    {
+        // These can either be /jump.php?url or /jump.php?url=url.
+        url = new URL(link);
+        if(url.pathname != "/jump.php")
+            return link;
+        if(url.searchParams.has("url"))
+            return url.searchParams.get("url");
+        else
+        {
+            var target = url.search.substr(1); // remove "?"
+            target = decodeURIComponent(target);
+            return target;
+        }
+    },
+
     fix_pixiv_links: function(root)
     {
         for(var a of root.querySelectorAll("A[target='_blank']"))
@@ -1151,18 +1168,7 @@ var helpers = {
         }
 
         for(var a of root.querySelectorAll("A[href*='jump.php']"))
-        {
-            // These can either be /jump.php?url or /jump.php?url=url.
-            var url = new URL(a.href);
-            if(url.searchParams.has("url"))
-                a.href = url.searchParams.get("url");
-            else
-            {
-                var target = url.search.substr(1); // remove "?"
-                target = decodeURIComponent(target);
-                a.href = target;
-            }
-        }
+            a.href = helpers.fix_pixiv_link(a.href);
     },
 
     // Some of Pixiv's URLs have languages prefixed and some don't.  Ignore these and remove
