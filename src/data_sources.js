@@ -2292,8 +2292,6 @@ class data_source_new_illust extends data_source
         var all_ages_link = container.querySelector("[data-type='new-illust-ages-all']");
         var r18_link = container.querySelector("[data-type='new-illust-ages-r18']");
 
-        var button_is_selected = true;
-
         var url = new URL(document.location);
         url.pathname = "/new_illust.php";
         all_ages_link.href = url;
@@ -2304,7 +2302,8 @@ class data_source_new_illust extends data_source
 
         var url = new URL(document.location);
         var currently_all_ages = url.pathname == "/new_illust.php";
-        helpers.set_class(currently_all_ages? all_ages_link:r18_link, "selected", button_is_selected);
+        helpers.set_class(all_ages_link, "selected", currently_all_ages);
+        helpers.set_class(r18_link, "selected", !currently_all_ages);
     }
 }
 
