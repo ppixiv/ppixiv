@@ -456,8 +456,8 @@ class view_search extends view
             {
                 let entry = helpers.create_from_template(".template-extra-profile-link-button");
                 let a = entry.querySelector(".extra-link");
-                a.dataset.popup = helpers.fix_pixiv_link(link.href);
-                a.href = link.href;
+                a.href = helpers.fix_pixiv_link(link.href);
+                a.dataset.popup = a.href;
 
                 // Put these at the beginning, so they don't change the positioning of the other
                 // icons.
