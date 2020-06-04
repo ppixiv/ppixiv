@@ -677,24 +677,23 @@ class popup_context_menu
 */
         if(this.blocking_context_menu_until_mouseup)
         {
-            console.log("stop context menu (waiting for mouseup)");
+            // console.log("stop context menu (waiting for mouseup)");
             e.preventDefault();
             e.stopPropagation();
         }
 
         if(this.blocking_context_menu_until_timer)
         {
-            console.log("stop context menu (waiting for timer)");
+            // console.log("stop context menu (waiting for timer)");
             e.preventDefault();
             e.stopPropagation();
         }
 
-        console.log("not preventing context menu");
+        // console.log("not preventing context menu");
     }
 
     onmousedown(e)
     {
-        console.log("visible on", e.target);
         if(!this.visible && !this.context_menu_enabled_for_element(e.target))
             return;
         
@@ -786,7 +785,6 @@ class popup_context_menu
         if(!this.visible)
             return;
 
-        console.log("mouseup", e.target);
         this.buttons_down[e.button] = false;
         if(this.toggle_mode)
             return;
