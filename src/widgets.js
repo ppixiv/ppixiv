@@ -1048,6 +1048,7 @@ class bookmark_tag_list_widget extends illust_widget
         super(container);
 
         this.container.hidden = true;
+        this.displaying_illust_id = null;
 
         this.container.appendChild(helpers.create_from_template(".template-popup-bookmark-tag-dropdown"));
 
@@ -1090,11 +1091,12 @@ class bookmark_tag_list_widget extends illust_widget
     // be cleared when we close and we won't be able to save.
     set illust_id(value)
     {
+        // If we're hiding and were previously visible, save changes.
         if(value == null)
             this.save_current_tags();
 
         super.illust_id = value;
-        console.log("done", value);
+        console.log("Tag list illust_id:", value);
     }
     
     get visible()
@@ -1141,8 +1143,14 @@ class bookmark_tag_list_widget extends illust_widget
 
     async refresh_internal(illust_data)
     {
-        // Store which tags were selected, before we clear the list.
-        var old_selected_tags = this.selected_tags;
+        let illust_id = illust_data? illust_data.illustId:null;
+
+        // If we're refreshing the same illust that's already refreshed, store which tags were selected
+        // before we clear the list.
+        var old_selected_tags = this.displaying_illust_id == illust_id? this.selected_tags:[];
+        console.log("old sel", old_selected_tags);
+
+        this.displaying_illust_id = null;
 
         var bookmark_tags = this.container.querySelector(".tag-list");
         helpers.remove_elements(bookmark_tags);
@@ -1166,6 +1174,9 @@ class bookmark_tag_list_widget extends illust_widget
         // If the tag list is open, populate bookmark details to get bookmark tags.
         // If the image isn't bookmarked this won't do anything.
         await image_data.singleton().load_bookmark_details(illust_data);
+
+        // Remember which illustration's bookmark tags are actually loaded.
+        this.displaying_illust_id = illust_id;
 
         // Remove elements again, in case another refresh happened while we were async
         // and to remove the loading entry.
@@ -1210,14 +1221,19 @@ class bookmark_tag_list_widget extends illust_widget
     // Save the selected bookmark tags to the current illust.
     async save_current_tags()
     {
-        if(this._illust_id == null)
+        // Store the ID and tag list we're saving, since they can change when we await.
+        let illust_id = this._illust_id;
+        let new_tags = this.selected_tags;
+        if(illust_id == null)
             return;
 
-        // Read new_tags before going async, since our caller will clear the list.
-        var new_tags = this.selected_tags;
+        // Only save tags if we're refreshed to the current illust ID, to make sure we don't save
+        // incorrectly if we're currently waiting for the async refresh.
+        if(illust_id != this.displaying_illust_id)
+            return;
 
         // Get the tags currently on the bookmark to compare.
-        var illust_data = await image_data.singleton().get_image_info(this._illust_id);
+        var illust_data = await image_data.singleton().get_image_info(illust_id);
         await image_data.singleton().load_bookmark_details(illust_data);
         var old_tags = illust_data.bookmarkData? illust_data.bookmarkData.tags:[];
 
