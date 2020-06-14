@@ -2753,6 +2753,11 @@ class data_source_follows extends data_source
         super(url);
     }
 
+    get supports_start_page()
+    {
+        return true;
+    }
+
     get viewing_user_id()
     {
         var query_args = this.url.searchParams;
