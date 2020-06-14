@@ -415,6 +415,11 @@ class main_controller
     // the first page to load like any other page.
     async set_current_data_source(html, cause)
     {
+        // Remember what we were displaying before we start changing things.
+        var old_view = this.views[this.current_view_name];
+        var old_illust_id = old_view? old_view.displayed_illust_id:null;
+        var old_illust_page = old_view? old_view.displayed_illust_page:null;
+
         // Get the current data source.  If we've already created it, this will just return
         // the same object and not create a new one.
         var data_source = await page_manager.singleton().create_data_source_for_url(document.location, html);
@@ -447,11 +452,10 @@ class main_controller
         var new_view_name;
         var args = helpers.get_args(document.location);
         if(!args.hash.has("view"))
-            new_view_name = this.data_source.default_view;
+            new_view_name = data_source.default_view;
         else
             new_view_name = args.hash.get("view");
 
-        var args = helpers.get_args(document.location);
         var illust_id = data_source.get_current_illust_id();
         var manga_page = args.hash.has("page")? parseInt(args.hash.get("page"))-1:null;
 
@@ -460,10 +464,7 @@ class main_controller
         if(new_view_name == "search")
             illust_id = null;
 
-        // if illust_id is set, need the image data to know whether to show manga pages
-        // or the illust
         console.log("Loading data source.  View:", new_view_name, "Cause:", cause, "URL:", document.location.href);
-        // Get the manga page in this illust to show, if any.
         console.log("  Show image", illust_id, "page", manga_page);
 
         // Mark the current view.  Other code can watch for this to tell which view is
@@ -479,9 +480,6 @@ class main_controller
             this.manga_view.shown_illust_id = illust_id;
  
         var new_view = this.views[new_view_name];
-        var old_view = this.views[this.current_view_name];
-        var old_illust_id = old_view? old_view.displayed_illust_id:null;
-        var old_illust_page = old_view? old_view.displayed_illust_page:null;
 
         // main_context_menu uses this to see which view is active.
         document.body.dataset.currentView = new_view_name;
@@ -502,12 +500,12 @@ class main_controller
        
             // Dismiss any message when toggling between views.
             message_widget.singleton.hide();
-
-            // If we're enabling the thumbnail, pulse the image that was just being viewed (or
-            // loading to be viewed), to make it easier to find your place.
-            if(new_view_name == "search" && old_illust_id != null)
-                this.thumbnail_view.pulse_thumbnail(old_illust_id);
         }
+
+        // If we're enabling the thumbnail, pulse the image that was just being viewed (or
+        // loading to be viewed), to make it easier to find your place.
+        if(new_view_name == "search" && old_illust_id != null)
+            this.thumbnail_view.pulse_thumbnail(old_illust_id);
         
         // Are we navigating forwards or back?
         var new_history_index = helpers.current_history_state_index();

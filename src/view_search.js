@@ -364,6 +364,21 @@ class view_search extends view
         return this.data_source.viewing_user_id;
     }
 
+    // If the data source has an associated artist, return the "user:ID" for the user, so
+    // when we navigate back to an earlier search, pulse_thumbnail will know which user to
+    // flash.
+    get displayed_illust_id()
+    {
+        if(this.data_source == null)
+            return super.displayed_illust_id;
+
+        let user_id = this.data_source.viewing_user_id;
+        if(user_id != null)
+            return "user:" + user_id;
+
+        return super.displayed_illust_id;
+    }
+
     // Call refresh_ui_for_user_info with the user_info for the user we're viewing,
     // if the user ID has changed.
     async refresh_ui_for_user_id()

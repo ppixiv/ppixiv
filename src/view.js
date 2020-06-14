@@ -15,7 +15,9 @@ class view
     {
     }
 
-    // If this view is displaying an image, return its ID.  Otherwise, return null.
+    // If this view is displaying an image, return its ID.
+    // If this view is displaying a user's posts, return "user:ID".
+    // Otherwise, return null.
     get displayed_illust_id()
     {
         return null;

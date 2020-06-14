@@ -1402,7 +1402,7 @@ class data_source_artist extends data_source
         if(user_id != null)
             return query_args.get("id");
 
-        let url = new URL(document.location);
+        let url = new URL(this.url);
         url = helpers.get_url_without_language(url);
         let parts = url.pathname.split("/");
         user_id = parts[2];
@@ -2809,7 +2809,7 @@ class data_source_follows extends data_source
 
         var illust_ids = [];
         for(let illust of illusts)
-            illust_ids.push(illust.id);
+            illust_ids.push("user:" + illust.userId);
         console.log(illust_ids);
         
         // This request returns all of the thumbnail data we need.  Forward it to
