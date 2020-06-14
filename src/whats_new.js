@@ -1,6 +1,18 @@
 // This should be inside whats_new, but Firefox is in the dark ages and doesn't support class fields.
 let _update_history = [
     {
+        version: 72,
+        text:
+            "The followed users page now remembers which page you were on if you reload the page, to make " +
+            "it easier to browse your follows if you have a lot of them." +
+            "<p>" +
+            "Returning to followed users now flashes who you were viewing like illustrations do," +
+            "to make it easier to pick up where you left off." +
+            "<p>" +
+            "Added a browser back button to the context menu, to make navigation easier in fullscreen " +
+            "when the browser back button isn't available."
+    },
+    {
         version: 68,
         text:
             "You can now go to either the first manga page or the page list from search results. " +
