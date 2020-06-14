@@ -85,6 +85,9 @@ class main_context_menu extends popup_context_menu
         this.menu.querySelector(".button-return-to-search").addEventListener("click", this.clicked_return_to_search.bind(this));
         this.menu.querySelector(".button-fullscreen").addEventListener("click", this.clicked_fullscreen.bind(this));
         this.menu.querySelector(".button-zoom").addEventListener("click", this.clicked_zoom_toggle.bind(this));
+        this.menu.querySelector(".button-browser-back").addEventListener("click", (e) => {
+            history.back();
+        });
         window.addEventListener("wheel", this.onwheel, {
             capture: true,
 
@@ -414,7 +417,7 @@ class main_context_menu extends popup_context_menu
         this.refresh_tooltip();
 
         // Enable the zoom buttons if we're in the image view and we have an on_click_viewer.
-        for(var element of this.menu.querySelectorAll(".zoom-strip .button"))
+        for(var element of this.menu.querySelectorAll(".button.requires-zoom"))
             helpers.set_class(element, "enabled", this._is_zoom_ui_enabled);
 
         // Set the avatar button.

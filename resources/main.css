@@ -1578,6 +1578,12 @@ body.light .manga-thumbnail-arrow:hover > svg
     color: var(--toggle-button-fg-dim-color);
 }
 
+/* This nudges the zoom strip to the left by the width of one button, to add the browser
+ * back button to the left of other buttons. */
+.popup-context-menu .button-strip > .button-block.shift-left {
+    margin-left: -56px;
+}
+
 /* Grey out the buttons if this strip isn't enabled. */
 .popup-context-menu .button-strip .button:not(.enabled)
 {
@@ -1769,6 +1775,13 @@ svg.heart-image .delete {
     color: var(--like-button-hover-color);
 }
 
+.button.button-browser-back .arrow {
+    transition: transform ease-in-out .15s;
+    transform: translate(-2px, 0px);
+}
+.button.button-browser-back:hover .arrow {
+    transform: translate(1px, 0px);
+}
 .button.button-like               > svg > * {
     transition: transform ease-in-out .15s;
     transform: translate(0, 0px);
