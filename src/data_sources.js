@@ -2777,8 +2777,8 @@ class data_source_follows extends data_source
 
         var url = "/ajax/user/" + this.viewing_user_id + "/following";
         var result = await helpers.get_request(url, {
-            offset: 20*(page-1),
-            limit: 20,
+            offset: 48*(page-1),
+            limit: 48,
             rest: rest,
         });
 
