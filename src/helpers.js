@@ -140,7 +140,8 @@ var helpers = {
 
     create_style: function(css)
     {
-        var style = document.createElement("style");
+        var style = document.createElement("style", {pp: true});
+        style.type = "text/css";
         style.textContent = css;
         return style;
     },
@@ -421,6 +422,29 @@ var helpers = {
         unsafeWindow.XMLHttpRequest = exportFunction(function() { }, exportFunction);
     },
 
+    // Similarly, prevent it from creating script and style elements.  Sometimes site scripts that
+    // we can't disable keep running and do things like loading more scripts or adding stylesheets.
+    // We mark any scripts and styles we load with createElement("style", {pp: true}) so we can bypass
+    // this for our own elements.
+    block_elements: function()
+    {
+        let origCreateElement = unsafeWindow.HTMLDocument.prototype.createElement;
+        unsafeWindow.HTMLDocument.prototype.createElement = function(type, options)
+        {
+            // Prevent the underlying site from creating new script and style elements.  We override
+            // this ourself using the "pp: true" option.
+            if(type == "script" || type == "style")
+            {
+                if(options == null || !options.pp)
+                {
+                    console.warn("Disabling createElement " + type);
+                    throw "Element disabled";
+                }
+            }
+            return origCreateElement.apply(this, arguments);
+        };
+    },
+
     // Stop all scripts from running on the page.  This only works in Firefox.  This is a basic
     // thing for a userscript to want to do, why can't you do it in Chrome?
     block_all_scripts: function()
@@ -435,9 +459,7 @@ var helpers = {
     {
         var head = document.getElementsByTagName('head')[0];
 
-        var style = document.createElement('style');
-        style.type = 'text/css';
-        style.innerHTML = css;
+        let style = helpers.create_style(css);
         head.appendChild(style);
     },
 

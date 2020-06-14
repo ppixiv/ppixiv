@@ -24,7 +24,7 @@ class view_manga extends view
         settings.register_change_callback("manga-thumbnail-size", this.refresh_images);
         
         // Create a style for our thumbnail style.
-        this.thumbnail_dimensions_style = document.createElement("style");
+        this.thumbnail_dimensions_style = helpers.create_style("");
         document.body.appendChild(this.thumbnail_dimensions_style);
 
         this.active = false;

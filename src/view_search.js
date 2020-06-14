@@ -33,7 +33,7 @@ class view_search extends view
         // When a bookmark is modified, refresh the heart icon.
         image_data.singleton().illust_modified_callbacks.register(this.refresh_thumbnail);
 
-        this.thumbnail_dimensions_style = document.createElement("style");
+        this.thumbnail_dimensions_style = helpers.create_style("");
         document.body.appendChild(this.thumbnail_dimensions_style);
         
         // Create the avatar widget shown on the artist data source.

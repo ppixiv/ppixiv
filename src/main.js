@@ -259,6 +259,9 @@ class main_controller
         // won't work.
         helpers.block_network_requests();
 
+        // Also block creating script and style elements.
+        helpers.block_elements();
+
         if(global_data != null)
         {
             this.init_global_data(global_data.token, global_data.userData.id, global_data.userData.premium,
