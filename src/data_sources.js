@@ -1509,7 +1509,6 @@ class data_source_artist extends data_source
         var query_args = this.url.searchParams;
         var type = query_args.get("type");
 
-        console.error("loading");
         var result = await helpers.get_request("/ajax/user/" + this.viewing_user_id + "/profile/all", {});
 
         var illust_ids = [];
@@ -2815,7 +2814,6 @@ class data_source_follows extends data_source
         var illust_ids = [];
         for(let illust of illusts)
             illust_ids.push("user:" + illust.userId);
-        console.log(illust_ids);
         
         // This request returns all of the thumbnail data we need.  Forward it to
         // thumbnail_data so we don't need to look it up.

@@ -1148,7 +1148,6 @@ class bookmark_tag_list_widget extends illust_widget
         // If we're refreshing the same illust that's already refreshed, store which tags were selected
         // before we clear the list.
         var old_selected_tags = this.displaying_illust_id == illust_id? this.selected_tags:[];
-        console.log("old sel", old_selected_tags);
 
         this.displaying_illust_id = null;
 
