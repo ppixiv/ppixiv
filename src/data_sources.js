@@ -2509,7 +2509,8 @@ class data_source_search extends data_source
             return;
         }
 
-        var url = "/ajax/search/" + api_search_type + "/" + tag;
+        var url = "/ajax/search/" + api_search_type + "/" + encodeURIComponent(tag);
+
         var result = await helpers.get_request(url, args);
         let body = result.body;
 
