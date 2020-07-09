@@ -318,7 +318,14 @@ class on_click_viewer
 
         if(this.captured_pointer_id != null)
         {
-            this.img.releasePointerCapture(this.captured_pointer_id);
+            // Firefox has broken pointer capture, and will throw an exception when we call releasePointerCapture
+            // on a valid captured pointer ID.  There doesn't seem to be much we can do about this, so just swallow
+            // the exception.
+            try {
+                this.img.releasePointerCapture(this.captured_pointer_id);
+            } catch(e) {
+                console.error("releasePointerCapture", e);
+            }
             this.captured_pointer_id = null;
         }
         
