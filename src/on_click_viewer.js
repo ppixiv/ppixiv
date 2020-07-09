@@ -81,6 +81,7 @@ class on_click_viewer
         window.addEventListener("resize", this.onresize, true);
         target.addEventListener("pointerdown", this.pointerdown);
         target.addEventListener("pointerup", this.pointerup);
+        target.addEventListener("pointercancel", this.pointerup);
         target.addEventListener("dragstart", this.block_event);
         target.addEventListener("selectstart", this.block_event);
 
@@ -96,6 +97,7 @@ class on_click_viewer
             this.event_target = null;
             target.removeEventListener("pointerdown", this.pointerdown);
             target.removeEventListener("pointerup", this.pointerup);
+            target.removeEventListener("pointercancel", this.pointerup);
             target.removeEventListener("dragstart", this.block_event);
             target.removeEventListener("selectstart", this.block_event);
             target.style.userSelect = "none";
@@ -292,7 +294,7 @@ class on_click_viewer
 
     pointerup(e)
     {
-        if(e.button != 0)
+        if(this.captured_pointer_id == null || e.pointerId != this.captured_pointer_id)
             return;
 
         if(!this.zoomed)
