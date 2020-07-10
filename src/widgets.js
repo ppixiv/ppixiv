@@ -93,12 +93,6 @@ class message_widget
         }.bind(this), 3000);
     }
 
-    // Center the current message instead of showing it at the bottom.
-    center()
-    {
-        this.container.classList.add("centered");
-    }
-
     clear_timer()
     {
         if(this.timer != null)

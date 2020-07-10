@@ -206,15 +206,19 @@ textarea:focus, input:focus, a:focus {
     font-size: 0.8em;
 }
 
-.hover-message {
+.hover-message,
+.view-search-container > .no-results {
     width: 100%;
     position: absolute;
     bottom: 0px;
     display: flex;
     justify-content: center;    
-    pointer-events: none;
-    opacity: 0;
+}
+
+.hover-message {
     transition: opacity .25s;
+    opacity: 0;
+    pointer-events: none;
     z-index: 100;
 }
 
@@ -222,11 +226,13 @@ textarea:focus, input:focus, a:focus {
     opacity: 1;
 }
 
-.hover-message.centered {
+/* The version in the search container is always centered. */
+.view-search-container > .no-results {
     bottom: 50%;
 }
 
-.hover-message > .message {
+.hover-message > .message,
+.view-search-container > .no-results > .message {
     background-color: var(--frame-bg-color);
     color: var(--frame-fg-color);
     font-size: 1.4em;

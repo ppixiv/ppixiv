@@ -749,28 +749,27 @@ class view_search extends view
             load_page = parseInt(last_element.dataset.page)+1;
         }
 
+        // Hide "no results" if it's shown while we load data.
+        this.container.querySelector(".no-results").hidden = true;
+
         if(load_page != null)
         {
             console.log("Load page", load_page, "for thumbnails");
+            this.container.querySelector(".no-results").hidden = true;
 
             var result = await this.data_source.load_page(load_page);
 
             // If this page didn't load, it probably means we've reached the end, so stop trying
             // to load more pages.
             if(!result)
-            {
                 this.disable_loading_more_pages = true;
+        }
 
-                // If this is the first page and there are no results, then there are no images
-                // for this search.
-                if(load_page == 1)
-                {
-                    console.log("No results on page 1.  Showing no results");
-                    message_widget.singleton.show("No results");
-                    message_widget.singleton.center();
-                    message_widget.singleton.clear_timer();
-                }
-            }
+        // If we have no IDs and nothing is loading, the data source is empty (no results).
+        if(this.data_source && this.data_source.id_list.get_first_id() == null && !this.data_source.any_page_loading)
+        {
+            console.log("Showing no results");
+            this.container.querySelector(".no-results").hidden = false;
         }
 
         if(!thumbnail_data.singleton().are_all_ids_loaded_or_loading(wanted_illust_ids))

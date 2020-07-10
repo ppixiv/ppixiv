@@ -363,6 +363,16 @@ class data_source
         return false;
     }
 
+    // Return true if any page is currently loading.
+    get any_page_loading()
+    {
+        for(let page in this.loading_pages)
+            if(this.loading_pages[page])
+                return true;
+
+        return false;
+    }
+
     async _load_page_async(page)
     {
         // Check if we're trying to load backwards too far.
