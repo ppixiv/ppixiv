@@ -98,7 +98,14 @@ class page_manager
         else if(url.pathname == "/discovery/users")
             return data_source_discovery_users;
         else if(url.pathname == "/bookmark_detail.php")
-            return data_source_related_illusts;
+        {
+            // If we've added "recommendations" to the hash info, this was a recommendations link.
+            var hash_args = helpers.get_hash_args(url);
+            if(hash_args.get("recommendations"))
+                return data_source_related_illusts;
+            else
+                return data_source_related_favorites;
+        }
         else if(url.pathname == "/ranking.php")
             return data_source_rankings;
         else

@@ -432,7 +432,7 @@ class thumbnail_data
                 profileImageUrl: user_data.profileImageUrl,
             };
         }
-        else if(source == "recommendations")
+        else if(source == "recommendations" || source == "users_bookmarking_illust")
         {
             data = {
                 userId: user_data.user_id,

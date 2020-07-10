@@ -182,8 +182,9 @@ class image_ui
         element_author.textContent = user_data.name;
         element_author.href = "/users/" + user_data.userId + "#ppixiv";
         
-        this.container.querySelector(".similar-illusts-button").href = "/bookmark_detail.php?illust_id=" + illust_id + "#ppixiv";
+        this.container.querySelector(".similar-illusts-button").href = "/bookmark_detail.php?illust_id=" + illust_id + "#ppixiv?recommendations=1";
         this.container.querySelector(".similar-artists-button").href = "/discovery/users#ppixiv?user_id=" + user_data.userId;
+        this.container.querySelector(".similar-bookmarks-button").href = "/bookmark_detail.php?illust_id=" + illust_id + "#ppixiv";
 
         // Fill in the post info text.
         this.set_post_info(this.container.querySelector(".post-info"));

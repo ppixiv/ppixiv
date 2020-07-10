@@ -885,14 +885,17 @@ class view_search extends view
             // delete element.dataset.pending;
             element.removeAttribute("data-pending");
 
-            if(thumb_type == "user")
+            if(thumb_type == "user" || thumb_type == "bookmarks")
             {
                 // This is a user thumbnail rather than an illustration thumbnail.  It just shows a small subset
                 // of info.
                 let user_id = helpers.actual_id(illust_id);
 
                 var link = element.querySelector("a.thumbnail-link");
-                link.href = "/users/" + user_id + "#ppixiv";
+                if(thumb_type == "user")
+                    link.href = "/users/" + user_id + "#ppixiv";
+                else
+                    link.href = "/bookmark.php?id=" + user_id + "&rest=show#ppixiv#ppixiv";
 
                 link.dataset.userId = user_id;
 
@@ -996,7 +999,7 @@ class view_search extends view
             if(search_mode == "users")
                 element.querySelector("A.similar-illusts-button").href = "/discovery/users#ppixiv?user_id=" + info.userId;
             else
-                element.querySelector("A.similar-illusts-button").href = "/bookmark_detail.php?illust_id=" + illust_id + "#ppixiv";
+                element.querySelector("A.similar-illusts-button").href = "/bookmark_detail.php?illust_id=" + illust_id + "#ppixiv?recommendations=1";
 
             this.refresh_bookmark_icon(element);
 

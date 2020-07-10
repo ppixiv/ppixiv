@@ -1,6 +1,12 @@
 // This should be inside whats_new, but Firefox is in the dark ages and doesn't support class fields.
 let _update_history = [
     {
+        version: 74,
+        text:
+        "You can now view other people who bookmarked an image, to see what else they've bookmarked. " +
+        "This is available from the top-left hover menu."
+    },
+    {
         version: 72,
         text:
             "The followed users page now remembers which page you were on if you reload the page, to make " +
