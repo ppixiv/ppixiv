@@ -2761,6 +2761,8 @@ class data_source_follows extends data_source
     constructor(url)
     {
         super(url);
+
+        this.follow_tags = null;
     }
 
     get supports_start_page()
@@ -2791,11 +2793,17 @@ class data_source_follows extends data_source
         var rest = query_args.get("rest") || "show";
 
         var url = "/ajax/user/" + this.viewing_user_id + "/following";
-        var result = await helpers.get_request(url, {
+        let args = {
             offset: 48*(page-1),
             limit: 48,
             rest: rest,
-        });
+        };
+        if(query_args.get("tag"))
+            args.tag = query_args.get("tag");
+        let result = await helpers.get_request(url, args);
+
+        // Store following tags.
+        this.follow_tags = result.body.followUserTags;
 
         // Make a list of the first illustration for each user.
         var illusts = [];
@@ -2847,6 +2855,47 @@ class data_source_follows extends data_source
 
         this.set_item(container, "public-follows", {rest: "show"}, {rest: "show"});
         this.set_item(container, "private-follows", {rest: "hide"}, {rest: "show"});
+
+        var tag_list = container.querySelector(".follow-tag-list");
+        
+        helpers.remove_elements(tag_list);
+
+        // Refresh the bookmark tag list.  Remove the page number from these buttons.
+        let current_url = new URL(document.location);
+        current_url.searchParams.delete("p");
+        let current_query = current_url.searchParams.toString();
+
+        var add_tag_link = function(tag)
+        {
+            var a = document.createElement("a");
+            a.classList.add("box-link");
+            a.classList.add("following-tag");
+            a.innerText = tag;
+
+            var url = new URL(document.location);
+            url.searchParams.delete("p");
+            if(tag == "Uncategorized")
+                url.searchParams.set("untagged", 1);
+            else
+                url.searchParams.delete("untagged", 1);
+
+            if(tag != "All")
+                url.searchParams.set("tag", tag);
+            else
+                url.searchParams.delete("tag");
+
+            a.href = url.toString();
+            if(url.searchParams.toString() == current_query)
+                a.classList.add("selected");
+            tag_list.appendChild(a);
+        };
+
+        add_tag_link("All");
+        for(var tag of this.follow_tags || [])
+            add_tag_link(tag);
+
+        if(this.user_info)
+            thumbnail_view.avatar_widget.set_from_user_data(this.user_info);
     }
 
     get viewing_self()
