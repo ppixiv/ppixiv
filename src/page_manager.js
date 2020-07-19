@@ -53,7 +53,6 @@ class page_manager
         url = helpers.get_url_without_language(url);
 
         let first_part = helpers.get_page_type_from_url(url);
-
         if(first_part == "artworks")
             return data_source_current_illust;
         else if(url.pathname == "/member.php" && url.searchParams.get("id") != null)
@@ -61,9 +60,51 @@ class page_manager
         else if(url.pathname == "/member_illust.php" && url.searchParams.get("id") != null)
             return data_source_artist;
         else if(first_part == "users")
-            return data_source_artist;
+        {
+            // This is one of:
+            //
+            // /users/12345
+            // /users/12345/artworks
+            // /users/12345/illustrations
+            // /users/12345/manga
+            // /users/12345/bookmarks
+            // /users/12345/following
+            //
+            // All of these except for bookmarks are handled by data_source_artist.
+            let mode = helpers.get_path_part(url, 2);
+            if(mode == "following")
+                return data_source_follows;
+
+            if(mode != "bookmarks")
+                return data_source_artist;
+
+            // Handle a special case: we're called by early_controller just to find out if
+            // the current page is supported or not.  This happens before window.global_data
+            // exists, so we can't check if we're viewing our own bookmarks or someone else's.
+            // In this case we don't need to, since the caller just wants to see if we return
+            // a data source or not.
+            if(window.global_data == null)
+                return data_source_bookmarks;
+
+            // If show-all=0 isn't in the hash, and we're not viewing someone else's bookmarks,
+            // we're viewing all bookmarks, so use data_source_bookmarks_merged.  Otherwise,
+            // use data_source_bookmarks.
+            var hash_args = helpers.get_hash_args(url);
+            var user_id = helpers.get_path_part(url, 1);
+            if(user_id == null)
+                user_id = window.global_data.user_id;
+            var viewing_own_bookmarks = user_id == window.global_data.user_id;
+            console.log("own bookmarks", user_id, viewing_own_bookmarks);
+            
+            var both_public_and_private = viewing_own_bookmarks && hash_args.get("show-all") != "0";
+            return both_public_and_private? data_source_bookmarks_merged:data_source_bookmarks;
+
+        }
         else if(url.pathname == "/bookmark.php" && url.searchParams.get("type") == null)
         {
+            // Note: This code is copied and pasted from the above.  There's no point in combining this
+            // code, it'll be removed soon once we're sure bookmark.php is rolled out to all users.
+            //
             // Handle a special case: we're called by early_controller just to find out if
             // the current page is supported or not.  This happens before window.global_data
             // exists, so we can't check if we're viewing our own bookmarks or someone else's.

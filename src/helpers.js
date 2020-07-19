@@ -1326,6 +1326,53 @@ var helpers = {
             url.hash += "?" + hash_string;
     },
 
+    // Replace the given field in the URL path.
+    //
+    // If the path is "/a/b/c/d", "a" is 0 and "d" is 4.
+    set_path_part: function(url, index, value)
+    {
+        url = new URL(url);
+
+        // Split the path, and extend it if needed.
+        let parts = url.pathname.split("/");
+
+        // The path always begins with a slash, so the first entry in parts is always empty.
+        // Skip it.
+        index++;
+        
+        // Hack: If this URL has a language prefixed, like "/en/users", add 1 to the index.  This way
+        // the caller doesn't need to check, since URLs can have these or omit them.
+        if(parts.length > 1 && parts[1].length == 2)
+            index++;
+        
+        // Extend the path if needed.
+        while(parts.length < index)
+            parts.push("");
+
+        parts[index] = value;
+
+        // If the value is empty and this was the last path component, remove it.  This way, we
+        // remove the trailing slash from "/users/12345/".
+        if(value == "" && parts.length == index+1)
+            parts = parts.slice(0, index);
+
+        url.pathname = parts.join("/");
+        return url;
+    },
+
+    get_path_part: function(url, index, value)
+    {
+        // The path always begins with a slash, so the first entry in parts is always empty.
+        // Skip it.
+        index++;
+
+        let parts = url.pathname.split("/");
+        if(parts.length > 1 && parts[1].length == 2)
+            index++;
+        
+        return parts[index] || "";
+    },
+
     // Given a URLSearchParams, return a new URLSearchParams with keys sorted alphabetically.
     sort_query_parameters(search)
     {

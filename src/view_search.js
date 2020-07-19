@@ -400,7 +400,7 @@ class view_search extends view
         bookmarks_link.hidden = user_info == null;
         if(user_info != null)
         {
-            var bookmarks_url = "/bookmark.php?id=" + user_info.userId + "&rest=show#ppixiv";
+            var bookmarks_url = "/users/" + user_info.userId + "/bookmarks/artworks#ppixiv";
             bookmarks_link.href = bookmarks_url;
             bookmarks_link.dataset.popup = user_info? ("View " + user_info.name + "'s bookmarks"):"View bookmarks";
         }
@@ -416,7 +416,7 @@ class view_search extends view
         following_link.hidden = user_info == null;
         if(user_info != null)
         {
-            var following_url = "/bookmark.php?id=" + user_info.userId + "&type=user#ppixiv";
+            let following_url = "/users/" + user_info.userId + "/following#ppixiv";
             following_link.href = following_url;
             following_link.dataset.popup = user_info? ("View " + user_info.name + "'s followed users"):"View following";
         }
@@ -894,7 +894,7 @@ class view_search extends view
                 if(thumb_type == "user")
                     link.href = "/users/" + user_id + "#ppixiv";
                 else
-                    link.href = "/bookmark.php?id=" + user_id + "&rest=show#ppixiv#ppixiv";
+                    link.href = "/users/" + user_id + "/bookmarks/artworks#ppixiv";
 
                 link.dataset.userId = user_id;
 

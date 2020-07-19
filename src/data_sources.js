@@ -634,6 +634,48 @@ class data_source
         link.href = url.toString();
     };
 
+    // Like set_item for query and hash parameters, this sets parameters in the URL.
+    //
+    // Pixiv used to have clean, consistent URLs with page parameters in the query where
+    // they belong, but recently they've started encoding them in an ad hoc way into the
+    // path.  For example, what used to look like "/users/12345?type=illust" is now
+    // "/users/12345/illustrations", so they can't be accessed in a generic way.
+    //
+    // index is the index into the path to replace.  In "/users/12345/abcd", "users" is
+    // 0 and "abcd" is 2.  If the index doesn't exist, the path will be extended, so
+    // replacing index 2 in "/users/12345" will become "/users/12345/abcd".  This only
+    // makes sense when adding a single entry.
+    //
+    // Pixiv URLs can optionally have the language prefixed (which doesn't make sense).
+    // This is handled automatically by get_path_part and set_path_part, and index should
+    // always be for URLs without the language.
+    set_path_item(container, type, index, value)
+    {
+        let link = container.querySelector("[data-type='" + type + "']");
+        if(link == null)
+        {
+            console.warn("Couldn't find button with selector", type);
+            return;
+        }
+
+        // Adjust the URL for this button.
+        let url = new URL(this.url);
+
+        // Don't include the page number in search buttons, so clicking a filter goes
+        // back to page 1.
+        url.searchParams.delete("p");
+
+        // This button is selected if the given value was already set.
+        let button_is_selected = helpers.get_path_part(url, index) == value;
+
+        // Replace the path part.
+        url = helpers.set_path_part(url, index, value);
+
+        helpers.set_class(link, "selected", button_is_selected);
+
+        link.href = url.toString();
+    };
+    
     // Highlight search menu popups if any entry other than the default in them is
     // selected.
     //
@@ -1407,16 +1449,14 @@ class data_source_artist extends data_source
 
     get viewing_user_id()
     {
-        var query_args = this.url.searchParams;
-        let user_id = query_args.get("id");
-        if(user_id != null)
-            return query_args.get("id");
+        if(helpers.get_path_part(this.url, 0) == "users")
+        {
+            // New URLs (/users/13245)
+            return helpers.get_path_part(this.url, 1);
+        }
 
-        let url = new URL(this.url);
-        url = helpers.get_url_without_language(url);
-        let parts = url.pathname.split("/");
-        user_id = parts[2];
-        return user_id;
+        var query_args = this.url.searchParams;
+        return query_args.get("id");
     };
 
     startup()
@@ -1442,8 +1482,32 @@ class data_source_artist extends data_source
         this.src_observer = null;
     }
     
+    // Return "artworks" (all), "illustrations" or "manga".
+    get viewing_type()
+    {
+        // The URL is one of:
+        //
+        // /users/12345
+        // /users/12345/artworks
+        // /users/12345/illustrations
+        // /users/12345/manga
+        //
+        // The top /users/12345 page is the user's profile page, which has the first page of images, but
+        // instead of having a link to page 2, it only has "See all", which goes to /artworks and shows you
+        // page 1 again.  That's pointless, so we treat the top page as /artworks the same.  /illustrations
+        // and /manga filter those types.
+        let url = helpers.get_url_without_language(this.url);
+        let parts = url.pathname.split("/");
+        let type = parts[3] || "artworks";
+        
+        console.log("-> mode", type);
+        return type;
+    }
+
     async load_page_internal(page)
     {
+        let viewing_type = this.type;
+        
         // Make sure the user info is loaded.  This should normally be preloaded by globalInitData
         // in main.js, and this won't make a request.
         this.user_info = await image_data.singleton().get_user_info_full(this.viewing_user_id);
@@ -1483,8 +1547,8 @@ class data_source_artist extends data_source
                 type == "illust"?"illusts":
                 "manga";
 
-            var url = "/ajax/user/" + this.viewing_user_id + "/" + type_for_url + "/tag";
-            var result = await helpers.get_request(url, {
+            var request_url = "/ajax/user/" + this.viewing_user_id + "/" + type_for_url + "/tag";
+            var result = await helpers.get_request(request_url, {
                 tag: tag,
                 offset: (page-1)*48,
                 limit: 48,
@@ -1517,15 +1581,16 @@ class data_source_artist extends data_source
         this.call_update_listeners();
 
         var query_args = this.url.searchParams;
-        var type = query_args.get("type");
+        let type = this.viewing_type;
 
         var result = await helpers.get_request("/ajax/user/" + this.viewing_user_id + "/profile/all", {});
+        console.log(type, "got", result);
 
         var illust_ids = [];
-        if(type == null || type == "illust")
+        if(type == "artworks" || type == "illustrations")
             for(var illust_id in result.body.illusts)
                 illust_ids.push(illust_id);
-        if(type == null || type == "manga")
+        if(type == "artworks" || type == "manga")
             for(var illust_id in result.body.manga)
                 illust_ids.push(illust_id);
 
@@ -1545,10 +1610,13 @@ class data_source_artist extends data_source
             thumbnail_view.avatar_widget.set_from_user_data(this.user_info);
         }
 
-        this.set_item(container, "artist-works", {type: null});
-        this.set_item(container, "artist-illust", {type: "illust"});
-        this.set_item(container, "artist-manga", {type: "manga"});
-        
+        let viewing_type = this.viewing_type;
+        let url = new URL(this.url);
+
+        this.set_path_item(container, "artist-works", 2, "");
+        this.set_path_item(container, "artist-illust", 2, "illustrations");
+        this.set_path_item(container, "artist-manga", 2, "manga");
+
         // Refresh the post tag list.
         var query_args = this.url.searchParams;
         var current_query = query_args.toString();
@@ -1876,6 +1944,7 @@ class data_source_current_illust extends data_source_fake_pagination
 };
 
 // bookmark.php
+// /users/12345/bookmarks
 //
 // If id is in the query, we're viewing another user's bookmarks.  Otherwise, we're
 // viewing our own.
@@ -2088,13 +2157,25 @@ class data_source_bookmarks_base extends data_source
 
     get viewing_user_id()
     {
-        // If there's no user ID in the URL, view our own bookmarks.
-        var query_args = this.url.searchParams;
-        var user_id = query_args.get("id");
-        if(user_id == null)
-            return window.global_data.user_id;
-        
-        return query_args.get("id");
+        if(helpers.get_path_part(this.url, 0) == "users")
+        {
+            // New URLs (/users/13245/bookmarks)
+            //
+            // This is currently only used for viewing other people's bookmarks.  Your own bookmarks are still
+            // viewed with /bookmark.php with no ID.
+            return helpers.get_path_part(this.url, 1);
+        }
+        else
+        {
+            // Old URLs (/bookmark.php?id=12345)
+            // If there's no user ID in the URL, view our own bookmarks.
+            var query_args = this.url.searchParams;
+            var user_id = query_args.get("id");
+            if(user_id == null)
+                return window.global_data.user_id;
+            
+            return query_args.get("id");
+        }
     };
 
     // Return true if we're viewing our own bookmarks.
@@ -2772,9 +2853,16 @@ class data_source_follows extends data_source
 
     get viewing_user_id()
     {
+        if(helpers.get_path_part(this.url, 0) == "users")
+        {
+            // New URLs (/users/13245/follows)
+            return helpers.get_path_part(this.url, 1);
+        }
+        
         var query_args = this.url.searchParams;
         let user_id = query_args.get("id");
         if(user_id == null)
+
             return window.global_data.user_id;
         
         return user_id;
