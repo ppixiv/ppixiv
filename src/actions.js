@@ -417,15 +417,17 @@ class actions
 
     static async load_recent_bookmark_tags()
     {
-        var doc = await helpers.load_data_in_iframe("/bookmark.php");
-
-        var bookmark_tags = [];
-        for(var element of doc.querySelectorAll("#bookmark_list a[href*='bookmark.php']"))
-        {
-            var tag = new URL(element.href).searchParams.get("tag");
-            if(tag != null)
-                bookmark_tags.push(tag);
-        }
+        let url = "https://www.pixiv.net/ajax/user/" + window.global_data.user_id + "/illusts/bookmark/tags";
+        let result = await helpers.get_request(url, {});
+        let bookmark_tags = [];
+        console.log(result);
+        for(let tag of result.body.public)
+            if(bookmark_tags.indexOf(tag.tag) == -1)
+                bookmark_tags.push(tag.tag);
+        for(let tag of result.body.private)
+            if(bookmark_tags.indexOf(tag.tag) == -1)
+                bookmark_tags.push(tag.tag);
+        
         return bookmark_tags;
     }
 }
