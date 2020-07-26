@@ -280,7 +280,7 @@ class page_manager
             url.pathname = parts.join("/");
         } else {
             // If we're not, change to search and remove the rest of the URL.
-            url = new URL("/tags/" + encodeURIComponent(tags) + "#ppixiv", document.location);
+            url = new URL("/tags/" + encodeURIComponent(tags) + "/artworks#ppixiv", document.location);
         }
         
         return url;

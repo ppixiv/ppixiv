@@ -51,8 +51,7 @@ class view_search extends view
             {
                 // The recommended tag links are already on the search page, and retain other
                 // search settings.
-                var url = new URL(window.location);
-                url.pathname = "/tags/" + encodeURIComponent(tag);
+                let url = page_manager.singleton().get_url_for_tag_search(tag);
                 url.searchParams.delete("p");
                 return url.toString();
             }.bind(this),
