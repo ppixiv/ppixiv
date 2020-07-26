@@ -414,9 +414,11 @@ var helpers = {
         RealXMLHttpRequest = unsafeWindow.XMLHttpRequest;        
         unsafeWindow.Image = exportFunction(function() { }, unsafeWindow);
 
-        dummy_fetch = exportFunction(function() { }, exportFunction);
-        dummy_fetch.prototype.ok = true;
-        dummy_fetch.prototype.sent = function() { return this; }
+        class dummy_fetch
+        {
+            sent() { return this; }
+            ok = true;
+        };
         unsafeWindow.fetch = exportFunction(function() { return new dummy_fetch(); }, unsafeWindow);
 
         unsafeWindow.XMLHttpRequest = exportFunction(function() { }, exportFunction);
