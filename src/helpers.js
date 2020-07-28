@@ -417,8 +417,8 @@ var helpers = {
         class dummy_fetch
         {
             sent() { return this; }
-            ok = true;
         };
+        dummy_fetch.prototype.ok = true;
         unsafeWindow.fetch = exportFunction(function() { return new dummy_fetch(); }, unsafeWindow);
 
         unsafeWindow.XMLHttpRequest = exportFunction(function() { }, exportFunction);
