@@ -1321,21 +1321,21 @@ input.search-tags {
 .search-history > .input-dropdown > .input-dropdown-list {
     display: flex;
     flex-direction: column;
+    white-space: normal;
 }
 .input-dropdown > .input-dropdown-list > .entry {
     display: flex;
     flex-direction: row;
     color: #000;
     align-items: center;
-    height: 30px;
+
+    /* This 6px vertical padding should match the remove-history-entry padding. */
+    padding: 6px 0;
 }
 
 .input-dropdown > .input-dropdown-list > .entry > A.search {
     color: #000;
     flex: 1;
-    overflow: hidden;
-    text-overflow: ellipsis;
-/*    padding: 4px;*/
     padding-left: 7px;
     height: 100%;
 }
@@ -1367,6 +1367,12 @@ input.search-tags {
 .search-history > .input-dropdown > .input-dropdown-list .remove-history-entry {
     height: 30px;
     width: 30px;
+
+    /* Set an arbitrarily low negative margin.  This makes it so the button extends into the
+     * into the surrounding row's padding instead of pushing the whole row out.  See
+     * .input-dropdown-list > .entry padding. */
+    margin: -6px 0;
+
     display: inline-flex;
     align-items: center;
     justify-content: center;
