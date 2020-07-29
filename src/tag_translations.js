@@ -120,7 +120,7 @@ class tag_translations
                 tag = translated_tags[tag];
             result.push(prefix + tag);
         }
-        return result.join(" ");
+        return result;
     }
 }
 

@@ -2559,7 +2559,26 @@ class data_source_search extends data_source
         if(tags)
         {
             tags = await tag_translations.get().translate_tag_list(tags, "en");
-            this.title += tags;
+            var tag_list = document.createElement("span");
+            for(let tag of tags)
+            {
+                // Force "or" lowercase.
+                if(tag.toLowerCase() == "or")
+                    tag = "or";
+                
+                var span = document.createElement("span");
+                span.innerText = tag;
+                span.classList.add("word");
+                if(tag == "or")
+                    span.classList.add("or");
+                else
+                    span.classList.add("tag");
+                
+                tag_list.appendChild(span);
+            }
+
+            this.title += tags.join(" ");
+            this.displaying_tags = tag_list;
         }
         
         // Update our page title.
@@ -2652,7 +2671,7 @@ class data_source_search extends data_source
 
     get_displaying_text()
     {
-        return this.title;
+        return this.displaying_tags;
     };
 
     initial_refresh_thumbnail_ui(container, view)

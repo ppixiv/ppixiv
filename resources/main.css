@@ -799,6 +799,17 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
     padding-bottom: 4px;
 }
 
+
+.view-search-container .thumbnail-ui-box .displaying .word {
+    padding: 0px 5px;
+}
+
+.view-search-container .thumbnail-ui-box .displaying .word.or {
+    font-size: 12px;
+    padding: 0;
+    color: #bbb;
+}
+
 .view-search-container .thumbnail-ui-box .bookmarks-link,
 .view-search-container .thumbnail-ui-box .following-link {
     display: block;
