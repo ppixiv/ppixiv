@@ -348,10 +348,16 @@ class tag_search_dropdown_widget
             if(tag == "")
                 continue;
 
+            // Force "or" lowercase.
+            if(tag.toLowerCase() == "or")
+                tag = "or";
+
             let span = document.createElement("span");
             span.dataset.tag = tag;
             span.classList.add("word");
-            if(tag != "or")
+            if(tag == "or")
+                span.classList.add("or");
+            else
                 span.classList.add("tag");
 
             // Split off - prefixes to look up the translation, then add it back.

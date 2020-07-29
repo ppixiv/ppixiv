@@ -1347,6 +1347,12 @@ input.search-tags {
     padding: 0px 5px;
 }
 
+.input-dropdown > .input-dropdown-list > .entry > A.search .word.or {
+    font-size: 12px;
+    padding: 0;
+    color: #333;
+}
+
 /* Styles specific to the search history version of the dropdown: */
 .search-history > .input-dropdown > .input-dropdown-list > .entry .suggestion-icon {
     margin: 2px -2px 0 2px;    
