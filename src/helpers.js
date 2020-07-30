@@ -1202,7 +1202,7 @@ var helpers = {
         if(url == null)
             url = new URL(document.location);
 
-        if(/\/..\//.exec(url.pathname))
+        if(/^\/..\//.exec(url.pathname))
             url.pathname = url.pathname.substr(3);
         
         return url;
