@@ -1344,21 +1344,21 @@ input.search-tags {
     padding: 6px 0;
 }
 
-.input-dropdown > .input-dropdown-list > .entry > A.search {
+.input-dropdown > .input-dropdown-list > .entry > .search {
     color: #000;
     flex: 1;
     padding-left: 7px;
     height: 100%;
 }
 
-.input-dropdown > .input-dropdown-list > .entry > A.search .word {
+.input-dropdown > .input-dropdown-list > .entry > .search .word {
     display: inline-flex;
     align-items: center;
     height: 100%;
     padding: 0px 5px;
 }
 
-.input-dropdown > .input-dropdown-list > .entry > A.search .word.or {
+.input-dropdown > .input-dropdown-list > .entry > .search .word.or {
     font-size: 12px;
     padding: 0;
     color: #333;

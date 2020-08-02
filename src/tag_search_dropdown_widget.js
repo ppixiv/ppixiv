@@ -374,7 +374,7 @@ class tag_search_dropdown_widget
         }
 
         var url = page_manager.singleton().get_url_for_tag_search(tag_search);
-        entry.querySelector("A.search").href = url;
+        entry.href = url;
         return entry;
     }
 
