@@ -430,10 +430,10 @@ class avatar_widget
         this.user_data = user_data;
         if(this.user_data == null)
         {
-            this.root.hidden = true;
+            this.root.classList.add("loading");
             return;
         }
-        this.root.hidden = false;
+        this.root.classList.remove("loading");
 
         helpers.set_class(this.root, "self", user_data.userId == global_data.user_id);
 

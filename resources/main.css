@@ -448,6 +448,13 @@ body.light .whats-new-button.updates > svg {
     height: 170px;
 }
 
+/* Hide the avatar while we're waiting for user data to load, since the follow icons aren't
+ * updated until then. */
+.follow-container.loading {
+    visibility: hidden;
+    pointer-events: none;
+}
+
 /* The API doesn't tell us whether a follow is private or not, so we can't show
  * it.  The lock is only used to distinguish the "follow" and "follow privately"
  * buttons. */
