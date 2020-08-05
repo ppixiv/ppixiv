@@ -15,6 +15,7 @@ class view_search extends view
         this.window_onresize = this.window_onresize.bind(this);
         this.update_from_settings = this.update_from_settings.bind(this);
         this.thumbnail_onclick = this.thumbnail_onclick.bind(this);
+        this.submit_user_search = this.submit_user_search.bind(this);
 
         this.active = false;
         this.thumbnail_templates = {};
@@ -110,6 +111,10 @@ class view_search extends view
             
         // Create the tag dropdown for the search input in the menu dropdown.
         new tag_search_box_widget(this.container.querySelector(".navigation-search-box"));
+
+        // Handle submitting searches on the user search page.
+        this.container.querySelector(".user-search-box .search-submit-button").addEventListener("click", this.submit_user_search);
+        helpers.input_handler(this.container.querySelector(".user-search-box input.search-users"), this.submit_user_search);
 
         // This IntersectionObserver is used to tell which illustrations are fully visible on screen,
         // so we can decide which page to put in the URL for data sources that use supports_start_page.
@@ -1189,5 +1194,15 @@ class view_search extends view
         this.flashing_image.classList.remove("flash");
         this.flashing_image = null;
     };
+
+    // Handle submitting searches on the user search page.
+    submit_user_search(e)
+    {
+        let search = this.container.querySelector(".user-search-box input.search-users").value;
+        let url = new URL("/search_user.php#ppixiv", document.location);
+        url.searchParams.append("nick", search);
+        url.searchParams.append("s_mode", "s_usr");
+        helpers.set_page_url(url, true);
+    }
 };
 

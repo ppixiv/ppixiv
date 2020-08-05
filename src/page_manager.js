@@ -149,6 +149,8 @@ class page_manager
         }
         else if(url.pathname == "/ranking.php")
             return data_source_rankings;
+        else if(url.pathname == "/search_user.php")
+            return data_source_search_users;
         else
             return null;
     };

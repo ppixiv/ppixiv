@@ -1,6 +1,11 @@
 // This should be inside whats_new, but Firefox is in the dark ages and doesn't support class fields.
 let _update_history = [
     {
+        version: 77,
+        text:
+            "Added user searching."
+    },
+    {
         version: 74,
         text:
         "Viewing your followed users by tag is now supported." +

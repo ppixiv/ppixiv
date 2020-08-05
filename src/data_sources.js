@@ -3117,3 +3117,67 @@ class data_source_related_favorites extends data_source_from_page
     };
 }
 
+class data_source_search_users extends data_source_from_page
+{
+    get name() { return "search-users"; }
+    get search_mode() { return "users"; }
+  
+    parse_document(doc)
+    {
+        var illust_ids = [];
+        for(let item of doc.querySelectorAll(".user-recommendation-items .user-recommendation-item"))
+        {
+            let username = item.querySelector(".title").innerText;
+            let user_id = item.querySelector(".follow").dataset.id;
+            let profile_image = item.querySelector("._user-icon").dataset.src;
+
+            thumbnail_data.singleton().add_quick_user_data({
+                user_id: user_id,
+                user_name: username,
+                profile_img: profile_image,
+            }, "user_search");
+
+            illust_ids.push("user:" + user_id);
+        }
+        return illust_ids;
+    }
+
+    initial_refresh_thumbnail_ui(container, view)
+    {
+        let search = this.url.searchParams.get("nick");
+        container.querySelector(".search-users").value = search;
+    }
+
+    
+/*
+    refresh_thumbnail_ui(container, thumbnail_view)
+    {
+        this.set_item(container, "public-follows", {rest: "show"}, {rest: "show"});
+        this.set_item(container, "private-follows", {rest: "hide"}, {rest: "show"});
+
+        var tag_list = container.querySelector(".follow-tag-list");
+        
+        helpers.remove_elements(tag_list);
+
+        // Refresh the bookmark tag list.  Remove the page number from these buttons.
+        let current_url = new URL(document.location);
+        current_url.searchParams.delete("p");
+        let current_query = current_url.searchParams.toString();
+    }
+*/
+
+    get page_title()
+    {
+        let search = this.url.searchParams.get("nick");
+        if(search)
+            return "Search users: " + search;
+        else
+            return "Search users";
+    };
+
+    get_displaying_text()
+    {
+        return this.page_title;
+    };
+}
+

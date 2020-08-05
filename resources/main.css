@@ -1198,6 +1198,15 @@ body:not(.disable-thumbnail-zooming) .view-search-container .thumbnail-box.muted
     position: relative;
 }
 
+input.search-users {
+    font-size: 1.2em;
+    padding: 6px 10px;
+    vertical-align: middle;
+    padding-right: 30px; /* extra space for the submit button */
+}
+.user-search-box .search-submit-button {
+    margin-left: -30px; /* overlap the input */
+}
 input.search-tags {
     font-size: 1.2em;
     padding: 6px 10px;
