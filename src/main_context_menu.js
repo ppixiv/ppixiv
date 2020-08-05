@@ -279,7 +279,7 @@ class main_context_menu extends popup_context_menu
 
         if(!this.hide_temporarily)
         {
-            // Hide the poopup menu.  It remains open, so hide() will still be called when
+            // Hide the popup menu.  It remains open, so hide() will still be called when
             // the right mouse button is released and the overall flow remains unchanged, but
             // the popup itself will be hidden.
             this.hide_temporarily = true;
