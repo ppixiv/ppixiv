@@ -1498,10 +1498,7 @@ class data_source_artist extends data_source
         // and /manga filter those types.
         let url = helpers.get_url_without_language(this.url);
         let parts = url.pathname.split("/");
-        let type = parts[3] || "artworks";
-        
-        console.log("-> mode", type);
-        return type;
+        return parts[3] || "artworks";
     }
 
     async load_page_internal(page)
