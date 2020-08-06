@@ -436,8 +436,19 @@ class view_search extends view
             following_link.dataset.popup = user_info? ("View " + user_info.name + "'s followed users"):"View following";
         }
 
+        let extra_links = [];
+
         // Set the webpage link.
+        //
+        // If the webpage link is on a known site, disable the webpage link and add this to the
+        // generic links list, so it'll use the specialized icon.
         var webpage_url = user_info && user_info.webpage;
+        if(webpage_url != null && this.find_link_image_type(webpage_url))
+        {
+            extra_links.push(webpage_url);
+            webpage_url = null;
+        }
+
         var webpage_link = this.container.querySelector(".webpage-link");
         webpage_link.hidden = webpage_url == null;
         if(webpage_url != null)
@@ -481,30 +492,78 @@ class view_search extends view
         {
             let div = document.createElement("div");
             div.innerHTML = user_info.commentHtml;
-            let count = 0;
+
             for(let link of div.querySelectorAll("a"))
-            {
-                let entry = helpers.create_from_template(".template-extra-profile-link-button");
-                let a = entry.querySelector(".extra-link");
-                a.href = helpers.fix_pixiv_link(link.href);
-                a.dataset.popup = a.href;
-
-                // Put these at the beginning, so they don't change the positioning of the other
-                // icons.
-                row.insertBefore(entry, row.querySelector(".first-icon"));
-                count++;
-
-                // Limit this in case people are putting a million links in their profiles.
-                if(count == 4)
-                    break;
-            }
+                extra_links.push(helpers.fix_pixiv_link(link.href));
         }
 
+        let count = 0;
+        for(let url of extra_links)
+        {
+            url = new URL(url);
+            let entry = helpers.create_from_template(".template-extra-profile-link-button");
+            let a = entry.querySelector(".extra-link");
+            a.href = url;
+            a.dataset.popup = a.href;
+
+            let link_type = this.find_link_image_type(url);
+            if(link_type != null)
+            {
+                entry.querySelector(".default-icon").hidden = true;
+                entry.querySelector(link_type).hidden = false;
+            }
+
+            // Put these at the beginning, so they don't change the positioning of the other
+            // icons.
+            row.insertBefore(entry, row.querySelector(".first-icon"));
+            count++;
+
+            // Limit this in case people are putting a million links in their profiles.
+            if(count == 4)
+                break;
+        }
 
         // Tell the context menu which user is being viewed (if we're viewing a user-specific
         // search).
         main_context_menu.get.user_info = user_info;
     }
+
+    // Use different icons for sites where you can give the artist money.  This helps make
+    // the string of icons more meaningful (some artists have a lot of them).
+    find_link_image_type(url)
+    {
+        url = new URL(url);
+
+        let alt_icons = {
+            ".shopping-cart": [
+                "dlsite.com",
+                "fanbox.cc",
+                "fantia.jp",
+                "skeb.jp",
+                "ko-fi.com",
+                "dmm.co.jp",
+            ]
+        };
+
+        // Special case for old Fanbox URLs that were under the Pixiv domain.
+        if((url.hostname == "pixiv.net" || url.hostname == "www.pixiv.net") && url.pathname.startsWith("/fanbox/"))
+            return ".shopping-cart";
+
+        for(let alt in alt_icons)
+        {
+            // "domain.com" matches domain.com and *.domain.com.
+            for(let domain of alt_icons[alt])
+            {
+                if(url.hostname == domain)
+                    return alt;
+
+                if(url.hostname.endsWith("." + domain))
+                    return alt;
+            }
+        }
+        return null;
+    };
+
 
     set active(active)
     {

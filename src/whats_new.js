@@ -3,7 +3,9 @@ let _update_history = [
     {
         version: 77,
         text:
-            "Added user searching."
+            "Added user searching." +
+            "<p>" +
+            "Commercial/subscription links in user profiles (Fanbox, etc.) now use a different icon."
     },
     {
         version: 74,
