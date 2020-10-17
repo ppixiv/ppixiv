@@ -277,12 +277,12 @@ class thumbnail_data
                 }
             }
             else if(source == "illust_list" || source == "following" || source == "rankings" ||
-                    source == "illust_new" || source == "search")
+                    source == "illust_new")
             {
                 // Get the mapping for this mode.
                 var thumbnail_info_map = 
                     source == "illust_list"? this.thumbnail_info_map_illust_list:
-                    source == "following" || source == "illust_new" || source == "search"?  this.thumbnail_info_map_following:
+                    source == "following" || source == "illust_new"?  this.thumbnail_info_map_following:
                     this.thumbnail_info_map_ranking;
 
                 var remapped_thumb_info = { };
@@ -353,8 +353,6 @@ class thumbnail_data
                         };
                     }
                 }
-                else if(source == "search")
-                    remapped_thumb_info.bookmarkData = thumb_info.bookmarkData;
 
                 // illustType can be a string in these instead of an int, so convert it.
                 remapped_thumb_info.illustType = parseInt(remapped_thumb_info.illustType);

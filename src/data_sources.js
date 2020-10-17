@@ -2651,11 +2651,11 @@ class data_source_search extends data_source
         illusts = illusts.data;
 
         // Populate thumbnail data with this data.
-        thumbnail_data.singleton().loaded_thumbnail_info(illusts, "search");
+        thumbnail_data.singleton().loaded_thumbnail_info(illusts, "normal");
 
         var illust_ids = [];
         for(let illust of illusts)
-            illust_ids.push(illust.illustId);
+            illust_ids.push(illust.id);
 
         // Register the new page of data.
         this.add_page(page, illust_ids);
