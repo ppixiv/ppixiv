@@ -141,7 +141,6 @@ class early_controller
 
         // Create the main controller.
         main_controller.create_singleton();
-
     }
 
     // When we're disabled, but available on the current page, add the button to enable us.
@@ -310,6 +309,19 @@ class main_controller
         this.current_view_name = null;
         this.current_history_index = helpers.current_history_state_index();
 
+        // If the URL hash doesn't start with #ppixiv, the page was loaded with the base Pixiv
+        // URL, and we're active by default.  Add #ppixiv to the URL.  If we don't do this, we'll
+        // still work, but none of the URLs we create will have #ppixiv, so we won't handle navigation
+        // directly and the page will reload on every click.  Do this before we create any of our
+        // UI, so our links inherit the hash.
+        if(helpers.parse_hash(document.location) == null)
+        {
+            // Don't create a new history state.
+            let newURL = new URL(document.location);
+            newURL.hash = "#ppixiv";
+            history.replaceState(null, "", newURL.toString());
+        }
+        
         // Don't restore the scroll position.
         //
         // If we browser back to a search page and we were scrolled ten pages down, scroll
