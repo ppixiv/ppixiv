@@ -2394,7 +2394,7 @@ class data_source_new_illust extends data_source
     }
 }
 
-// bookmark_new_illust.php
+// bookmark_new_illust.php, bookmark_new_illust_r18.php
 class data_source_bookmarks_new_illust extends data_source_from_page
 {
     get name() { return "bookmarks_new_illust"; }
@@ -2465,6 +2465,22 @@ class data_source_bookmarks_new_illust extends data_source_from_page
         add_tag_link("All");
         for(var tag of this.bookmark_tags)
             add_tag_link(tag);
+
+        var all_ages_link = container.querySelector("[data-type='bookmarks-new-illust-ages-all']");
+        var r18_link = container.querySelector("[data-type='bookmarks-new-illust-ages-r18']");
+
+        var url = new URL(document.location);
+        url.pathname = "/bookmark_new_illust.php";
+        all_ages_link.href = url;
+
+        var url = new URL(document.location);
+        url.pathname = "/bookmark_new_illust_r18.php";
+        r18_link.href = url;
+
+        var url = new URL(document.location);
+        var currently_all_ages = url.pathname == "/bookmark_new_illust.php";
+        helpers.set_class(all_ages_link, "selected", currently_all_ages);
+        helpers.set_class(r18_link, "selected", !currently_all_ages);
     }
 };
 

@@ -130,7 +130,7 @@ class page_manager
             return data_source_follows;
         else if(url.pathname == "/new_illust.php" || url.pathname == "/new_illust_r18.php")
             return data_source_new_illust;
-        else if(url.pathname == "/bookmark_new_illust.php")
+        else if(url.pathname == "/bookmark_new_illust.php" || url.pathname == "/bookmark_new_illust_r18.php")
             return data_source_bookmarks_new_illust;
         else if(first_part == "tags")
             return data_source_search;

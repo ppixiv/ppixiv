@@ -1,6 +1,11 @@
 // This should be inside whats_new, but Firefox is in the dark ages and doesn't support class fields.
 let _update_history = [
     {
+        version: 79,
+        text:
+            "Added support for viewing new R-18 works by followed users."
+    },
+    {
         version: 77,
         text:
             "Added user searching." +
@@ -10,10 +15,10 @@ let _update_history = [
     {
         version: 74,
         text:
-        "Viewing your followed users by tag is now supported." +
-        "<p>" +
-        "You can now view other people who bookmarked an image, to see what else they've bookmarked. " +
-        "This is available from the top-left hover menu."
+            "Viewing your followed users by tag is now supported." +
+            "<p>" +
+            "You can now view other people who bookmarked an image, to see what else they've bookmarked. " +
+            "This is available from the top-left hover menu."
     },
     {
         version: 72,
