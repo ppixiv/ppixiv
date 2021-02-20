@@ -2466,7 +2466,7 @@ class data_source_bookmarks_new_illust extends data_source_from_page
         for(var tag of this.bookmark_tags)
             add_tag_link(tag);
 
-        var all_ages_link = container.querySelector("[data-type='bookmarks-new-illust-ages-all']");
+        var all_ages_link = container.querySelector("[data-type='bookmarks-new-illust-all']");
         var r18_link = container.querySelector("[data-type='bookmarks-new-illust-ages-r18']");
 
         var url = new URL(document.location);
