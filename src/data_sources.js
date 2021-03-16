@@ -2187,6 +2187,25 @@ class data_source_bookmarks_base extends data_source
     {
         return !this.viewing_own_bookmarks();
     }
+
+    // Bookmark results include deleted images.  These are weird and a bit broken:
+    // the post ID is an integer instead of a string (which makes more sense but is
+    // inconsistent with other results) and the data is mostly empty or garbage.
+    // Check isBookmarkable to filter these out.
+    static filter_deleted_images(images)
+    {
+        let result = [];
+        for(let image of images)
+        {
+            if(!image.isBookmarkable)
+            {
+                console.log("Discarded deleted bookmark " + image.id);
+                continue;
+            }
+            result.push(image);
+        }
+        return result;
+    }
 }
 
 // Normal bookmark querying.  This can only retrieve public or private bookmarks,
@@ -2199,6 +2218,7 @@ class data_source_bookmarks extends data_source_bookmarks_base
 
         var url = "/ajax/user/" + this.viewing_user_id + "/illusts/bookmarks";
         var result = await helpers.get_request(url, data);
+        result.body.works = data_source_bookmarks_base.filter_deleted_images(result.body.works);
 
         var illust_ids = [];
         for(var illust_data of result.body.works)
@@ -2262,6 +2282,7 @@ class data_source_bookmarks_merged extends data_source_bookmarks_base
 
         var url = "/ajax/user/" + this.viewing_user_id + "/illusts/bookmarks";
         var result = await helpers.get_request(url, data);
+        result.body.works = data_source_bookmarks_base.filter_deleted_images(result.body.works);
 
         // Put higher (newer) bookmarks first.
         result.body.works.sort(function(lhs, rhs)
