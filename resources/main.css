@@ -1179,6 +1179,7 @@ body:not(.disable-thumbnail-zooming) .view-search-container .thumbnail-box.muted
 .view-search-container .search-options-row {
     display: flex;
     flex-direction: row;
+    flex-wrap: wrap;
 }
 
 .view-search-container .search-options-row .hover-area {

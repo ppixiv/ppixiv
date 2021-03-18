@@ -703,6 +703,30 @@ class data_source
 
             var selected_default = selected_item.dataset["default"];
             helpers.set_class(box, "active", !selected_default);
+
+            // Find the dropdown menu button.
+            let menu_button = box.querySelector(".menu-button");
+            if(menu_button == null)
+            {
+                console.warn("Couldn't find menu button for " + box);
+                continue;
+            }
+
+            // Store the original text, so we can restore it when the default is selected.
+            if(menu_button.dataset.originalText == null)
+                menu_button.dataset.originalText = menu_button.innerText;
+
+            // If an option is selected, replace the menu button text with the selection's label.
+            if(selected_default)
+                menu_button.innerText = menu_button.dataset.originalText;
+            else
+            {
+                // The short label is used to try to keep these labels from causing the menu buttons to
+                // overflow the container, and for labels like "2 years ago" where the menu text doesn't
+                // make sense.
+                let label = selected_item.dataset.shortLabel;
+                menu_button.innerText = label? label:selected_item.innerText;
+            }
         }
     }
 
