@@ -107,6 +107,12 @@ class image_ui
             if(illust_data == null)
                 return;
 
+            if(e.altKey)
+            {
+                actions.add_new_tag(this._illust_id);
+                return;
+            }
+
             if(e.ctrlKey)
             {
                 // Remove the bookmark.

@@ -1,6 +1,11 @@
 // This should be inside whats_new, but Firefox is in the dark ages and doesn't support class fields.
 let _update_history = [
     {
+        version: 82,
+        text:
+            "Press Alt-B to bookmark an image with a new tag."
+    },
+    {
         version: 79,
         text:
             "Added support for viewing new R-18 works by followed users."

@@ -1048,8 +1048,8 @@ class bookmark_tag_list_widget extends illust_widget
 
         this.container.addEventListener("click", this.clicked_bookmark_tag.bind(this), true);
 
-        this.container.querySelector(".add-tag").addEventListener("click", (e) => {
-            this.add_new_tag();
+        this.container.querySelector(".add-tag").addEventListener("click", async (e) => {
+            await actions.add_new_tag(this._illust_id);
         });
 
         this.container.querySelector(".sync-tags").addEventListener("click", async (e) => {
@@ -1248,57 +1248,6 @@ class bookmark_tag_list_widget extends illust_widget
 
         await actions.bookmark_edit(illust_data, {
             tags: new_tags,
-        });
-    }
-
-    // Show a prompt to enter tags, so the user can add tags that aren't already in the
-    // list.  Add the bookmarks to recents, and bookmark the image with the entered tags.
-    async add_new_tag()
-    {
-        var illust_id = this._illust_id;
-        var illust_data = await image_data.singleton().get_image_info(this._illust_id);
-
-        console.log("Show tag prompt");
-
-        // Hide the popup when we show the prompt.
-        this.hide_temporarily = true;
-
-        var prompt = new text_prompt();
-        try {
-            var tags = await prompt.result;
-        } catch(e) {
-            // The user cancelled the prompt.
-            return;
-        }
-
-        // Split the new tags.
-        var tags = tags.split(" ");
-        tags = tags.filter((value) => { return value != ""; });
-        console.log("New tags:", tags);
-
-        // This should already be loaded, since the only way to open this prompt is
-        // in the tag dropdown.
-        await image_data.singleton().load_bookmark_details(illust_data);
-
-        // Add each tag the user entered to the tag list to update it.
-        var active_tags = illust_data.bookmarkData? Array.from(illust_data.bookmarkData.tags):[];
-
-        for(var tag of tags)
-        {
-            if(active_tags.indexOf(tag) != -1)
-                continue;
-
-            // Add this tag to recents.  bookmark_edit will add recents too, but this makes sure
-            // that we add all explicitly entered tags to recents, since bookmark_edit will only
-            // add tags that are new to the image.
-            helpers.update_recent_bookmark_tags([tag]);
-            active_tags.push(tag);
-        }
-        console.log("All tags:", active_tags);
-        
-        // Edit the bookmark.
-        await actions.bookmark_edit(illust_data, {
-            tags: active_tags,
         });
     }
 
