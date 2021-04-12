@@ -1132,6 +1132,7 @@ class bookmark_tag_list_widget extends illust_widget
             // Clear the tag list when the menu closes, so it's clean on the next refresh.
             var bookmark_tags = this.container.querySelector(".tag-list");
             helpers.remove_elements(bookmark_tags);
+            this.displaying_illust_id = null;
         }
     }
 
