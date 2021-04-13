@@ -35,7 +35,12 @@ class context_menu_image_info_widget extends illust_widget
         // Add the page count for manga.
         var page_text = "";
         if(illust_data.pageCount > 1)
-            page_text = "Page " + (this._page+1) + "/" + illust_data.pageCount;
+        {
+            if(this._page == -1)
+                page_text = illust_data.pageCount + " pages";
+            else
+                page_text = "Page " + (this._page+1) + "/" + illust_data.pageCount;
+        }
         set_info(".page-count", page_text);
 
         var info = "";
@@ -65,7 +70,7 @@ class main_context_menu extends popup_context_menu
         this.onkeydown = this.onkeydown.bind(this);
 
         this._on_click_viewer = null;
-        this._page = 0;
+        this._page = -1;
 
         // Refresh the menu when the view changes.
         this.mode_observer = new MutationObserver(function(mutationsList, observer) {

@@ -410,8 +410,9 @@ class view_illust extends view
             if(this.viewer != null)
                 this._hide_image = true;
 
-            // Stop showing the user in the context menu.
+            // Stop showing the user in the context menu, and stop showing the current page.
             main_context_menu.get.user_info = null;
+            main_context_menu.get.page = -1;
             
             return;
         }
