@@ -43,8 +43,14 @@ class context_menu_image_info_widget extends illust_widget
         }
         set_info(".page-count", page_text);
 
+        // Show info for the current page.  If _page is -1 then we're on the search view and don't have
+        // a specific page, so show info for the first page.
+        let page = this._page;
+        if(page == -1)
+            page = 0;
+
         var info = "";
-        var page_info = illust_data.mangaPages[this._page];
+        var page_info = illust_data.mangaPages[page];
         info += page_info.width + "x" + page_info.height;
         set_info(".image-info", info);
     }
@@ -349,6 +355,8 @@ class main_context_menu extends popup_context_menu
     }
 
     // Set an alternative illust ID to show.  This is effective until the context menu is hidden.
+    // This is used to remember what the cursor was over when the context menu was opened when in
+    // the search view.
     async _set_temporary_illust(illust_id, page)
     {
         // If this object is null or changed, we know we've been hidden since we
