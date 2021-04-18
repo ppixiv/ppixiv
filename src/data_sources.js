@@ -2485,7 +2485,7 @@ class data_source_bookmarks_new_illust extends data_source_from_page
         // Refresh the bookmark tag list.
         var current_tag = new URL(document.location).searchParams.get("tag") || "All";
 
-        var tag_list = container.querySelector(".bookmark-tag-list");
+        var tag_list = container.querySelector(".follow-new-post-tag-list");
         helpers.remove_elements(tag_list);
 
         var add_tag_link = function(tag)
