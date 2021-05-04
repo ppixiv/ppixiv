@@ -818,6 +818,9 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
 .view-search-container .thumbnail-ui-box .displaying .word {
     padding: 0px 5px;
 }
+.view-search-container .thumbnail-ui-box .displaying .word:first-child {
+    padding-left: 0px; /* remove left padding from the first item */
+}
 
 .view-search-container .thumbnail-ui-box .displaying .word.or {
     font-size: 12px;
