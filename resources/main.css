@@ -366,8 +366,16 @@ body:not(.hide-ui) .view-illust-container .ui-box.hovering-over-sphere {
     margin-top: 5px;
     margin-bottom: 4px;
 }
-.ui-box > .button-row .button.enabled {
+.button-row .button.enabled {
     cursor: pointer;
+}
+
+/* The row with the search title, with buttons aligned to the right.  The buttons
+ * are always aligned to the top if the title is long. */
+.title-with-button-row {
+    display: flex;
+    flex-direction: row;
+    align-items: start;
 }
 
 /* An icon in a button strip. */
