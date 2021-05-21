@@ -1984,12 +1984,15 @@ class data_source_bookmarks_base extends data_source
     {
         super(url);
 
-        this.bookmark_tags = [];
+        this.bookmark_tag_counts = [];
     }
+
+    // Return the bookmark types we're showing: "public", "private" or "both".
+    get public_search_mode() { throw "Not implemented"; }
 
     async load_page_internal(page)
     {
-        this.fetch_bookmark_tags();
+        this.fetch_bookmark_tag_counts();
         
         // Make sure the user info is loaded.  This should normally be preloaded by globalInitData
         // in main.js, and this won't make a request.
@@ -2008,49 +2011,63 @@ class data_source_bookmarks_base extends data_source
 
     // If we haven't done so yet, load bookmark tags for this bookmark page.  This
     // happens in parallel with with page loading.
-    async fetch_bookmark_tags()
+    async fetch_bookmark_tag_counts()
     {
-        if(this.fetched_bookmark_tags)
+        if(this.fetched_bookmark_tag_counts)
             return;
-        this.fetched_bookmark_tags = true;
+        this.fetched_bookmark_tag_counts = true;
 
         // Fetch bookmark tags.  We can do this in parallel with everything else.
         var url = "https://www.pixiv.net/ajax/user/" + this.viewing_user_id + "/illusts/bookmark/tags";
         var result = await helpers.get_request(url, {});
 
-        var tag_counts = {};
+        let search_mode = this.public_search_mode;
+        
+        // Reformat the tag list into a format that's easier to work with.
+        let tags = { };
+        let add_tag = function(tag, public_tag)
+        {
+            // Rename "未分類" (uncategorized) to "".
+            if(tag.tag == "未分類")
+                tag.tag = "";
+
+
+            if(tags[tag.tag] == null)
+                tags[tag.tag] = 0;
+
+            // Add to the tag count.
+            let tag_count = parseInt(bookmark_tag.cnt);
+            if(search_mode == "public" && public_tag)
+                tags[tag.tag] += tag_count;
+            if(search_mode == "private" && !public_tag)
+                tags[tag.tag] += tag_count;
+            if(search_mode == "both")
+                tags[tag.tag] += tag_count;
+        };
+
         for(var bookmark_tag of result.body.public)
-        {
-            // Skip "uncategorized".  This is always the first entry.  There's no clear
-            // marker for it, so just check the tag name.  We don't assume it'll always
-            // be the first entry in case this changes.
-            if(bookmark_tag.tag == "未分類")
-                continue;
-            tag_counts[bookmark_tag.tag] = parseInt(bookmark_tag.cnt);
-        }
-
+            add_tag(bookmark_tag, true);
         for(var bookmark_tag of result.body.private)
-        {
-            if(bookmark_tag.tag == "未分類")
-                continue;
-            if(!(bookmark_tag.tag in tag_counts))
-                tag_counts[bookmark_tag.tag] = 0;
-            tag_counts[bookmark_tag.tag] += parseInt(bookmark_tag.cnt);
-        }
+            add_tag(bookmark_tag, false);
 
-        var all_tags = [];
-        for(var tag in tag_counts)
-            all_tags.push(tag);
+        console.log(tags);
 
-        // Sort tags by count, so we can trim just the most used tags.
+        // Sort tags by count, so we can trim just the most used tags.  Use the count for the
+        // display mode we're in.
+        var all_tags = Object.keys(tags);
         all_tags.sort(function(lhs, rhs) {
-            return tag_counts[rhs] - tag_counts[lhs];
+            return tags[lhs].count - tags[lhs].count;
         });
 
         // Trim the list.  Some users will return thousands of tags.
         all_tags.splice(20);
         all_tags.sort();
-        this.bookmark_tags = all_tags;
+        this.bookmark_tag_counts = {};
+        for(let tag of all_tags)
+        {
+            console.log(tag);
+            this.bookmark_tag_counts[tag] = tags[tag];
+        }
 
         // Update the UI with the tag list.
         this.call_update_listeners();
@@ -2142,21 +2159,34 @@ class data_source_bookmarks_base extends data_source
         
         helpers.remove_elements(tag_list);
 
-        var add_tag_link = function(tag)
+        var add_tag_link = (tag) =>
         {
+            let tag_count = this.bookmark_tag_counts[tag];
+
             var a = document.createElement("a");
             a.classList.add("box-link");
             a.classList.add("following-tag");
-            a.innerText = tag;
+
+            let tag_name = tag;
+            if(tag_name == "")
+                tag_name = "Uncategorized";
+            a.innerText = tag_name;
+
+            // Show the bookmark count in the popup.
+            if(tag != "All")
+            {
+                a.classList.add("popup");
+                a.dataset.popup = tag_count + (tag_count == 1? " bookmark":" bookmarks");
+            }
 
             var url = new URL(document.location);
             url.searchParams.delete("p");
-            if(tag == "Uncategorized")
+            if(tag == "") // Uncategorized
                 url.searchParams.set("untagged", 1);
             else
                 url.searchParams.delete("untagged", 1);
 
-            if(tag != "All" && tag != "Uncategorized")
+            if(tag != "All" && tag != "")
                 url.searchParams.set("tag", tag);
             else
                 url.searchParams.delete("tag");
@@ -2168,9 +2198,18 @@ class data_source_bookmarks_base extends data_source
         };
 
         add_tag_link("All");
-        add_tag_link("Uncategorized");
-        for(var tag of this.bookmark_tags || [])
+        add_tag_link(""); // Uncategorized
+        for(var tag of Object.keys(this.bookmark_tag_counts))
+        {
+            // Skip uncategorized, which is always placed at the beginning.
+            if(tag == "")
+                continue;
+
+            if(this.bookmark_tag_counts[tag] == 0)
+                continue;
+
             add_tag_link(tag);
+        }
 
         if(this.user_info)
             thumbnail_view.avatar_widget.set_from_user_data(this.user_info);
@@ -2236,6 +2275,13 @@ class data_source_bookmarks_base extends data_source
 // and not both.
 class data_source_bookmarks extends data_source_bookmarks_base
 {
+    get public_search_mode()
+    {
+        var query_args = this.url.searchParams;
+        var rest = query_args.get("rest") || "show";
+        return rest == "show"? "public":"private";
+    }
+
     async continue_loading_page_internal(page)
     {
         var data = this.get_bookmark_query_params(page);
@@ -2262,6 +2308,7 @@ class data_source_bookmarks extends data_source_bookmarks_base
 class data_source_bookmarks_merged extends data_source_bookmarks_base
 {
     get viewing_all_bookmarks() { return true; }
+    get public_search_mode() { return "both"; }
 
     constructor(url)
     {
