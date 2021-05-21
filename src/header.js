@@ -12,7 +12,7 @@
 // @connect     pixiv.net
 // @connect     i.pximg.net
 // @connect     self
-// @version     85
+// @version     86
 // @namespace   ppixiv
 // ==/UserScript==
 
