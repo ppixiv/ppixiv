@@ -2050,8 +2050,6 @@ class data_source_bookmarks_base extends data_source
         for(var bookmark_tag of result.body.private)
             add_tag(bookmark_tag, false);
 
-        console.log(tags);
-
         // Sort tags by count, so we can trim just the most used tags.  Use the count for the
         // display mode we're in.
         var all_tags = Object.keys(tags);
@@ -2064,10 +2062,7 @@ class data_source_bookmarks_base extends data_source
         all_tags.sort();
         this.bookmark_tag_counts = {};
         for(let tag of all_tags)
-        {
-            console.log(tag);
             this.bookmark_tag_counts[tag] = tags[tag];
-        }
 
         // Update the UI with the tag list.
         this.call_update_listeners();
