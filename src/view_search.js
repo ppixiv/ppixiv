@@ -871,25 +871,40 @@ class view_search extends view
     }
 
     // Handle clicks on the "load previous results" button.
+    //
+    // If we let the regular click handling in main_controller.set_current_data_source do this,
+    // it'll notice that the requested page isn't loaded and create a new data source.  We know
+    // we can view the previous page, so special case this so we don't lose the pages that are
+    // already loaded.
+    //
+    // This can also trigger for the "return to start" button if we happen to be on page 2.
     async thumbnail_onclick(e)
     {
-        let thumb = e.target.closest(".thumbnail-load-previous");
-        if(thumb == null)
+        // This only matters if the data source supports start pages.
+        if(!this.data_source.supports_start_page)
+            return;
+
+        let a = e.target.closest("A");
+        if(a == null)
+            return;
+
+        // See if this link is for this data source, one page before the current start page.
+        let args = helpers.get_args(document.location);
+        let page = this.data_source.get_start_page(args);
+        this.data_source.set_start_page(args, page-1);
+        let previous_page_url = helpers.get_url_from_args(args).toString();
+        let clicked_url = new URL(e.target.href, document.location).toString();
+
+        // console.log("Previous page:", previous_page_url);
+        // console.log("Clicked:", clicked_url);
+        if(clicked_url.toString() != previous_page_url.toString())
             return;
 
         e.preventDefault();
         e.stopImmediatePropagation();
 
-        let min_page = this.data_source.id_list.get_lowest_loaded_page();
-        if(min_page == 1)
-        {
-            console.log("Already at page 1, load previous button shouldn't have been visible");
-            return;
-        }
-
-        let load_page = min_page - 1;
-        console.log("Loading previous page:", load_page);
-        await this.data_source.load_page(load_page);
+        console.log("Loading previous page:", page-1);
+        await this.data_source.load_page(page-1);
     }
 
     update_from_settings()
@@ -994,11 +1009,16 @@ class view_search extends view
 
             if(illust_id == "special:previous-page")
             {
-                // Set the link for previous-page.  Most of the time this is handled by our in-page click handler.
+                // Set the link for the first page and previous page buttons.  Most of the time this is handled
+                // by our in-page click handler.
                 let args = helpers.get_args(document.location);
                 let page = this.data_source.get_start_page(args);
                 this.data_source.set_start_page(args, page-1);
                 element.querySelector("a.load-previous-page-link").href = helpers.get_url_from_args(args);
+
+                this.data_source.set_start_page(args, 1);
+                element.querySelector("a.load-first-page-link").href = helpers.get_url_from_args(args);
+
                 continue;
             }
 

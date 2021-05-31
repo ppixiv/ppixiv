@@ -439,6 +439,29 @@ class main_controller
         // the same object and not create a new one.
         var data_source = await page_manager.singleton().create_data_source_for_url(document.location, html);
 
+        // If the data source supports_start_page, and a link was clicked on a page that isn't currently
+        // loaded, create a new data source.  If we're on page 5 of bookmarks and the user clicks a link
+        // for page 1 (the main bookmarks navigation button) or page 10, the current data source can't
+        // display that since we'd need to load every page in-between to keep pages contiguous, so we
+        // just create a new data source.
+        //
+        // This doesn't work great for jumping to arbitrary pages (we don't handle scrolling to that page
+        // very well), but it at least makes rewinding to the first page work.
+        if(data_source == this.data_source && data_source.supports_start_page)
+        {
+            let args = helpers.get_args(document.location);
+            let wanted_page = this.data_source.get_start_page(args);
+
+            let lowest_page = data_source.id_list.get_lowest_loaded_page();
+            let highest_page = data_source.id_list.get_highest_loaded_page();
+            if(wanted_page < lowest_page || wanted_page > highest_page)
+            {
+                // This works the same as refresh_current_data_source above.
+                console.log("Resetting data source to an unavailable page:", lowest_page, wanted_page, highest_page);
+                data_source = await page_manager.singleton().create_data_source_for_url(document.location, null, true);
+            }
+        }
+
         // If the data source is changing, set it.
         if(this.data_source != data_source)
         {

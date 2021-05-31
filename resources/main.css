@@ -881,23 +881,31 @@ li.thumbnail-box.load-previous {
     width: 100%;
 }
 
-li.thumbnail-load-previous > .load-previous-page-link {
+li.thumbnail-load-previous > .load-previous-buttons {
     margin-left: auto;
     margin-right: auto;
+    display: flex;
+    flex-direction: row;
+    margin-top: 10px;
+    margin-bottom: 4px;
+    justify-content: center;
+    height: 40px;
+    max-width: 800px;
+}
+li.thumbnail-load-previous > .load-previous-buttons > .load-previous-button {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    height: 40px;
-    width: 100%;
-    max-width: 800px;
+    flex-grow: 1;
+    margin: 0 10px;
     background-color: #880;
+    border-radius: 4px;
+    padding: 0 10px;
     color: var(--box-link-fg-color);
     background-color: var(--box-link-bg-color);
-    margin-top: 10px;
-    margin-bottom: 4px;
 }
-li.thumbnail-load-previous > .load-previous-page-link:hover {
+li.thumbnail-load-previous > .load-previous-buttons > .load-previous-button:hover {
     background-color: var(--box-link-hover-color);
 }
 
