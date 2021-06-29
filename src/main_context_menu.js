@@ -404,6 +404,10 @@ class main_context_menu extends popup_context_menu
 
     hide()
     {
+        // For debugging, this can be set to temporarily force the context menu to stay open.
+        if(unsafeWindow.keep_context_menu_open)
+            return;
+
         this.load_illust_sentinel = null;
         this.load_user_sentinel = null;
         this._clicked_user_info = null;
