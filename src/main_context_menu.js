@@ -306,22 +306,25 @@ class main_context_menu extends popup_context_menu
         // a 1x zoom factor, so we zoom relative to the previously unzoomed image.
         if(!this._on_click_viewer.zoom_active)
         {
-            this._on_click_viewer.zoom_level = 4; // level 4 is 1x
+            this._on_click_viewer.zoom_level = 0;
             this._on_click_viewer.locked_zoom = true;
-            this._on_click_viewer.relative_zoom_level = 0;
             this.refresh();
         }
 
-        this._on_click_viewer.relative_zoom_level += down? -0.25:+0.25;
+        this._on_click_viewer.change_zoom(down);
 
-        // As a special case, if we're in 1x zoom from above and we return to 1x relative zoom
-        // (eg. the user mousewheeled up and then back down), switch to another zoom mode.
-        // Otherwise, if you zoom up and then back down, the zoom level is left at 1x, so click
-        // zooming seems to be broken.  We don't know what the old zoom setting was to restore it,
-        // so we just switch to fill zoom.
-        if(this._on_click_viewer.relative_zoom_level == 0 && this._on_click_viewer.zoom_level == 4)
+        // As a special case, 
+        // If that put us in 0x zoom, we're now showing the image identically to not being zoomed
+        // at all.  That's confusing, since toggling zoom does nothing since it toggles between
+        // unzoomed and an identical zoom.  When this happens, switch zoom off and change the zoom
+        // level to "cover".  The display will be identical, but clicking will zoom.
+        //
+        // This works with the test above: if you zoom again after this happens, we'll turn locked_zoom
+        // back on.
+        if(this._on_click_viewer.zoom_level == 0)
         {
-            this._on_click_viewer.zoom_level = 0;
+            // but this should leave locked_zoom false, which we don't want
+            this._on_click_viewer.zoom_level = "cover";
             this._on_click_viewer.locked_zoom = false;
         }
 
@@ -446,7 +449,7 @@ class main_context_menu extends popup_context_menu
 
             var zoom_level = this._on_click_viewer.zoom_level;
             for(var button of this.menu.querySelectorAll(".button-zoom-level"))
-                helpers.set_class(button, "selected", parseInt(button.dataset.level) == zoom_level);
+                helpers.set_class(button, "selected", this._on_click_viewer.locked_zoom && button.dataset.level == zoom_level);
         }
     }
 
@@ -463,6 +466,7 @@ class main_context_menu extends popup_context_menu
             document.exitFullscreen(); 
     }
 
+    // "Zoom lock", zoom as if we're holding the button constantly
     clicked_zoom_toggle(e)
     {
         if(!this._is_zoom_ui_enabled)
@@ -480,17 +484,16 @@ class main_context_menu extends popup_context_menu
         if(!this._is_zoom_ui_enabled)
             return;
 
-        var level = parseInt(e.currentTarget.dataset.level);
+        let level = e.currentTarget.dataset.level;
 
         // If the zoom level that's already selected is clicked and we're already zoomed,
         // just toggle zoom as if the toggle zoom button was pressed.
-        if(this._on_click_viewer.zoom_level == level && this._on_click_viewer.relative_zoom_level == 0 && this._on_click_viewer.locked_zoom)
+        if(this._on_click_viewer.zoom_level == level && this._on_click_viewer.locked_zoom)
         {
             this.on_click_viewer.locked_zoom = false;
             this.refresh();
             return;
         }
-
 
         let center = this._on_click_viewer.get_image_position([e.pageX, e.pageY]);
         
@@ -498,7 +501,6 @@ class main_context_menu extends popup_context_menu
         // only have an effect when click-dragging, so it looks like the buttons don't do anything.
         this._on_click_viewer.zoom_level = level;
         this._on_click_viewer.locked_zoom = true;
-        this._on_click_viewer.relative_zoom_level = 0;
 
         this._on_click_viewer.set_image_position([e.pageX, e.pageY], center);
         

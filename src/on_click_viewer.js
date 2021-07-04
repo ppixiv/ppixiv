@@ -14,8 +14,7 @@ class on_click_viewer
         this.block_event = this.block_event.bind(this);
         this.window_blur = this.window_blur.bind(this);
 
-        this._zoom_levels = [null, 2, 4, 8, 1];
-        this._relative_zoom_level = 0;
+        this._zoom_level = 0;
 
         // The caller can set this to a function to be called if the user clicks the image without
         // dragging.
@@ -25,11 +24,10 @@ class on_click_viewer
         this.original_height = 1;
 
         this.zoom_pos = [0, 0];
-        this._zoom_level = helpers.get_value("zoom-level", 1);
 
         // Restore the most recent zoom mode.  We assume that there's only one of these on screen.
-        this.locked_zoom = helpers.get_value("zoom-mode") != "normal";
-        this._relative_zoom_level = helpers.get_value("zoom-level-relative") || 0;
+        this.locked_zoom = helpers.get_value("zoom-mode") == "locked";
+        this._zoom_level = helpers.get_value("zoom-level", "cover");
     }
 
     set_new_image(img, secondary_img, width, height)
@@ -54,10 +52,19 @@ class on_click_viewer
         // If we've never set an image position, do it now.
         if(!this.set_initial_image_position)
         {
+            // Similar to how we display thumbnails for portrait images starting at the top, default to the top
+            // if we'll be panning vertically when in cover mode.  This is based on how the image fits into the
+            // browser window instead of the actual aspect ratio.
+            // let aspect_ratio = this.original_width / this.original_height;
+            // let portrait = aspect_ratio < 0.9;
+            let screen_width = Math.max(this.container_width, 1); // might be 0 if we're hidden
+            let screen_height = Math.max(this.container_height, 1);
+            let portrait = (screen_width/this.original_width) > (screen_height/this.original_height);
+            
             this.set_initial_image_position = true;
             this.set_image_position(
-                    [this.img.parentNode.offsetWidth * 0.5, this.img.parentNode.offsetHeight * 0.5],
-                    [this.width * 0.5, this.height * 0.5]);
+                    [this.container_width * 0.5, this.container_height * 0.5],
+                    [this.width * 0.5, this.height * (portrait? 0:0.5)]);
         }
 
         this.reposition();
@@ -138,67 +145,122 @@ class on_click_viewer
         this.reposition();
     }
 
+    // Relative zoom is applied on top of the main zoom.  At 0, no adjustment is applied.
+    // Positive values zoom in and negative values zoom out.
     get zoom_level()
     {
         return this._zoom_level;
     }
 
-    // Set the main zoom level.
     set zoom_level(value)
     {
-        if(this._zoom_level == value)
-            return;
-        this._zoom_level = helpers.clamp(value, 0, this._zoom_levels.length - 1);
-
-        // Save the new zoom level.
+        this._zoom_level = value;
         helpers.set_value("zoom-level", this._zoom_level);
-        
+        console.log("set", value);
         this.reposition();
     }
 
-    // Relative zoom is applied on top of the main zoom.  At 0, no adjustment is applied.
-    // Positive values zoom in and negative values zoom out.
-    get relative_zoom_level()
+    // Get the effective zoom level, translating "cover" and "fill" to actual values.
+    get _zoom_level_value()
     {
-        return this._relative_zoom_level;
-    }
-
-    set relative_zoom_level(value)
-    {
-        value = helpers.clamp(value, -8, +8);
-
-        this._relative_zoom_level = value;
-        helpers.set_value("zoom-level-relative", this._relative_zoom_level);
-        this.reposition();
+        let level = this._zoom_level;
+        if(level == "cover")
+            return this._zoom_level_cover;
+        else if(level == "actual")
+            return this._zoom_level_actual;
+        else
+            return level;
     }
     
     // Return the zoom factor applied by relative zoom.
     get relative_zoom_factor()
     {
-        return Math.pow(1.5, this._relative_zoom_level);
+        return Math.pow(1.5, this._zoom_level_value);
+    }
+
+    // The zoom level for cover mode:
+    get _zoom_level_cover()
+    {
+        let screen_width = this.container_width;
+        let screen_height = this.container_height;
+        let cover_zoom_ratio = Math.max(screen_width/this.width, screen_height/this.height);
+
+        // Convert from a linear zoom ratio to the exponential zoom ratio.
+        return Math.log2(cover_zoom_ratio) / Math.log2(1.5);
+    }
+
+    // The zoom level for "actual" mode:
+    get _zoom_level_actual()
+    {
+        let actual_zoom_ratio = 1 / this._image_to_screen_ratio;
+
+        // Convert from a linear zoom ratio to the exponential zoom ratio.
+        return Math.log2(actual_zoom_ratio) / Math.log2(1.5);
+    }
+
+    // Zoom in or out.  If zoom_in is true, zoom in by one level, otherwise zoom out by one level.
+    change_zoom(zoom_out)
+    {
+        // zoom_level can be a number.  At 0 (default), we zoom to fit the image in the screen.
+        // Higher numbers zoom in, lower numbers zoom out.  Zoom levels are logarithmic.
+        //
+        // zoom_level can be "cover", which zooms to fill the screen completely, so we only zoom on
+        // one axis.
+        //
+        // zoom_level can also be "actual", which zooms the image to its natural size.
+        //
+        // These zoom levels have a natural ordering, which we use for incremental zooming.  Figure
+        // out the zoom levels that correspond to "cover" and "actual".  This changes depending on the
+        // image and screen size.
+
+        let cover_zoom_level = this._zoom_level_cover;
+        let actual_zoom_level = this._zoom_level_actual;
+
+        // Increase or decrease relative_zoom_level by snapping to the next or previous increment.
+        // We're usually on a multiple of increment, moving from eg. 0.5 to 0.75, but if we're on
+        // a non-increment value from a special zoom level, this puts us back on the zoom increment.
+        let old_level = this._zoom_level_value;
+        let new_level = old_level;
+
+        let increment = 0.25;
+        if(zoom_out)
+            new_level = Math.floor((new_level - 0.001) / increment) * increment;
+        else
+            new_level = Math.ceil((new_level + 0.001) / increment) * increment;
+
+        // If the amount crosses over one of the special zoom levels above, we select that instead.
+        let crossed = function(old_value, new_value, threshold)
+        {
+            return (old_value < threshold && new_value > threshold) ||
+                   (new_value < threshold && old_value > threshold);
+        };
+        if(crossed(old_level, new_level, cover_zoom_level))
+        {
+            console.log("Selected cover zoom");
+            new_level = "cover";
+        }
+        else if(crossed(old_level, new_level, actual_zoom_level))
+        {
+            console.log("Selected actual zoom");
+            new_level = "actual";
+        }
+        else
+        {
+            // Clamp relative zooming.  Do this here to make sure we can always select cover and actual
+            // which aren't clamped, even if the image is very large or small.
+            new_level = helpers.clamp(new_level, -8, +8);
+        }
+
+        this.zoom_level = new_level;
     }
 
     // Return the active zoom ratio.
-    //
-    // This is the main and relative zooms combined.
     get _effective_zoom_level()
     {
         if(!this.zoom_active)
             return 1;
 
-        var ratio = this._zoom_levels[this._zoom_level];
-
-        // The null entry is for screen fill zooming.
-        if(ratio == null)
-        {
-            var screen_width = this.img.parentNode.offsetWidth;
-            var screen_height = this.img.parentNode.offsetHeight;
-            ratio = Math.max(screen_width/this.width, screen_height/this.height);
-        }
-
-        ratio *= this.relative_zoom_factor;
-
-        return ratio;
+        return this.relative_zoom_factor;
     }
 
     // Given a screen position, return the normalized position relative to the image.
@@ -216,8 +278,8 @@ class on_click_viewer
         zoom_center[1] += screen_pos[1];
 
         // Offset by the base screen position we're in when not zoomed (centered).
-        var screen_width = this.img.parentNode.offsetWidth;
-        var screen_height = this.img.parentNode.offsetHeight;
+        let screen_width = this.container_width;
+        let screen_height = this.container_height;
         zoom_center[0] -= (screen_width - this.width) / 2;
         zoom_center[1] -= (screen_height - this.height) / 2;
 
@@ -244,8 +306,8 @@ class on_click_viewer
         zoom_center[1] *= zoom_level;
 
         // make this relative to zoom_pos, since that's what we need to set it back to below
-        var screen_width = this.img.parentNode.offsetWidth;
-        var screen_height = this.img.parentNode.offsetHeight;
+        let screen_width = this.container_width;
+        let screen_height = this.container_height;
         zoom_center[0] += (screen_width - this.width) / 2;
         zoom_center[1] += (screen_height - this.height) / 2;
 
@@ -275,7 +337,7 @@ class on_click_viewer
         if(!this._locked_zoom)
             var zoom_center_percent = this.get_image_position([e.pageX, e.pageY]);
 
-        this.zoomed = true;
+        this._mouse_pressed = true;
         this.dragged_while_zoomed = false;
 
         this.captured_pointer_id = e.pointerId;
@@ -297,7 +359,7 @@ class on_click_viewer
         if(this.captured_pointer_id == null || e.pointerId != this.captured_pointer_id)
             return;
 
-        if(!this.zoomed)
+        if(!this._mouse_pressed)
             return;
 
         // Tell hide_mouse_cursor_on_idle that the mouse cursor should be hidden, even though the
@@ -331,7 +393,7 @@ class on_click_viewer
         
         document.body.classList.remove("hide-ui");
         
-        this.zoomed = false;
+        this._mouse_pressed = false;
         this.reposition();
         
         if(!this.dragged_while_zoomed && this.clicked_without_scrolling)
@@ -340,7 +402,7 @@ class on_click_viewer
 
     pointermove(e)
     {
-        if(!this.zoomed)
+        if(!this._mouse_pressed)
             return;
 
         // If button 1 isn't pressed, treat this as a pointerup.  (The pointer events API
@@ -374,13 +436,13 @@ class on_click_viewer
     // Return true if zooming is active.
     get zoom_active()
     {
-        return this.zoomed || this._locked_zoom;
+        return this._mouse_pressed || this._locked_zoom;
     }
 
     get _image_to_screen_ratio()
     {
-        var screen_width = this.img.parentNode.offsetWidth;
-        var screen_height = this.img.parentNode.offsetHeight;
+        let screen_width = this.container_width;
+        let screen_height = this.container_height;
 
         // In case we're hidden and have no width, make sure we don't return an invalid value.
         if(screen_width == 0 || screen_height == 0)
@@ -393,6 +455,10 @@ class on_click_viewer
     get width() { return this.original_width * this._image_to_screen_ratio; }
     get height() { return this.original_height * this._image_to_screen_ratio; }
 
+    // The dimensions of the image viewport.  This can be 0 if the view is hidden.
+    get container_width() { return this.img.parentNode.offsetWidth; }
+    get container_height() { return this.img.parentNode.offsetHeight; }
+
     reposition()
     {
         if(this.img == null)
@@ -402,21 +468,22 @@ class on_click_viewer
         if(this.img.parentNode == null)
             return;
 
-        var screen_width = this.img.parentNode.offsetWidth;
-        var screen_height = this.img.parentNode.offsetHeight;
+        let screen_width = this.container_width;
+        let screen_height = this.container_height;
         var width = this.width;
         var height = this.height;
 
         // If the dimensions are empty then we aren't loaded.  Stop now, so the math
         // below doesn't break.
-        if(width == 0 || height == 0 || this.img.parentNode.offsetWidth == 0 || this.img.parentNode.offsetHeight == 0)
+        if(width == 0 || height == 0 || screen_width == 0 || screen_height == 0)
             return;
 
         // Normally (when unzoomed), the image is centered.
         var left = (screen_width - width) / 2;
         var top = (screen_height - height) / 2;
 
-        if(this.zoom_active) {
+        if(this.zoom_active)
+        {
             // Shift by the zoom position.
             left += this.zoom_pos[0];
             top += this.zoom_pos[1];
@@ -426,15 +493,17 @@ class on_click_viewer
             height *= zoom_level;
             width *= zoom_level;
 
-            if(this._zoom_levels[this._zoom_level] == null)
+            if(!helpers.get_value("pan-past-edge"))
             {
                 // When we're zooming to fill the screen, clamp panning to the screen, so we always fill the
                 // screen and don't pan past the edge.  If we're narrower than the screen, lock to center.
-                var orig_top = top, orig_left = left;
+                let orig_top = top;
                 if(screen_height < height)
                     top  = helpers.clamp(top, -(height - screen_height), 0); // clamp to the top and bottom
                 else
                     top  = -(height - screen_height) / 2; // center vertically
+
+                let orig_left = left;
                 if(screen_width < width)
                     left = helpers.clamp(left, -(width - screen_width), 0); // clamp to the left and right
                 else
