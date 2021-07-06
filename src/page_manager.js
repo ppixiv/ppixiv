@@ -94,8 +94,6 @@ class page_manager
             if(user_id == null)
                 user_id = window.global_data.user_id;
             var viewing_own_bookmarks = user_id == window.global_data.user_id;
-            console.log("own bookmarks", user_id, viewing_own_bookmarks);
-            
             var both_public_and_private = viewing_own_bookmarks && hash_args.get("show-all") != "0";
             return both_public_and_private? data_source_bookmarks_merged:data_source_bookmarks;
 
