@@ -276,13 +276,12 @@ class thumbnail_data
                         delete remapped_thumb_info.bookmarkData.bookmarkId;
                 }
             }
-            else if(source == "illust_list" || source == "following" || source == "rankings" ||
-                    source == "illust_new")
+            else if(source == "illust_list" || source == "following" || source == "rankings")
             {
                 // Get the mapping for this mode.
                 var thumbnail_info_map = 
                     source == "illust_list"? this.thumbnail_info_map_illust_list:
-                    source == "following" || source == "illust_new"?  this.thumbnail_info_map_following:
+                    source == "following"?  this.thumbnail_info_map_following:
                     this.thumbnail_info_map_ranking;
 
                 var remapped_thumb_info = { };

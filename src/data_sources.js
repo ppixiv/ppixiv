@@ -2447,7 +2447,7 @@ class data_source_new_illust extends data_source
         
         // This request returns all of the thumbnail data we need.  Forward it to
         // thumbnail_data so we don't need to look it up.
-        thumbnail_data.singleton().loaded_thumbnail_info(result.body.illusts, "illust_new");
+        thumbnail_data.singleton().loaded_thumbnail_info(result.body.illusts, "normal");
 
         // Register the new page of data.
         this.add_page(page, illust_ids);
