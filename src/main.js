@@ -202,13 +202,9 @@ class main_controller
         let global_data = document.querySelector("#meta-global-data");
         if(global_data != null)
             global_data = JSON.parse(global_data.getAttribute("content"));
-        if(global_data && global_data.userData == null)
-            global_data = null;
 
         // This is the global "pixiv" object, which is used on older pages.
         var pixiv = helpers.get_pixiv_data(document);
-        if(pixiv && (pixiv.user == null || pixiv.user.id == null))
-            pixiv = null;
 
         // Pixiv scripts that use meta-global-data remove the element from the page after
         // it's parsed for some reason.  Since browsers are too broken to allow user scripts
@@ -229,6 +225,12 @@ class main_controller
                 global_data = JSON.parse(global_data.getAttribute("content"));
             console.log("Finished loading init data");
         }
+
+        // Discard any of these that have no login info.
+        if(global_data && global_data.userData == null)
+            global_data = null;
+        if(pixiv && (pixiv.user == null || pixiv.user.id == null))
+            pixiv = null;
 
         // If we don't have either of these (or we're logged out), stop and let the regular page display.
         // It may be a page we don't support.
