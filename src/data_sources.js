@@ -1818,12 +1818,6 @@ class data_source_current_illust extends data_source_fake_pagination
 
     get_preload_data(doc)
     {
-        // The old illustration page used globalInitData.  Keep this around for now, in case not all
-        // users are seeing this yet.
-        var data = helpers.get_global_init_data(doc);
-        if(data != null)
-            return data.preload;
-
         let preload = doc.querySelector("#meta-preload-data");
         if(preload == null)
             return null;

@@ -1052,37 +1052,6 @@ var helpers = {
             return ["", tag];
     },
 
-    // Find globalInitData in a document, evaluate it and return it.  If it can't be
-    // found, return null.
-    get_global_init_data(doc)
-    {
-        // Find a script element that sets globalInitData.  This is the only thing in
-        // the page that we use.
-        var init_element;
-        for(var element of doc.querySelectorAll("script"))
-        {
-            if(element.innerText == null || element.innerText.indexOf("globalInitData") == -1)
-                continue;
-
-            init_element = element
-            break;
-        }
-
-        if(init_element == null)
-            return null;
-       
-        // This script assigns globalInitData.  Wrap it in a function to return it.
-        init_script = init_element.innerText;
-        init_script = "(function() { " + init_script + "; return globalInitData; })();";
-
-        var data = eval(init_script);
-
-        // globalInitData is frozen, which we don't want.  Deep copy the object to undo this.
-        data = JSON.parse(JSON.stringify(data))
-        
-        return data;
-    },
-
     // If this is an older page (currently everything except illustrations), the CSRF token,
     // etc. are stored on an object called "pixiv".  We aren't actually executing scripts, so
     // find the script block.

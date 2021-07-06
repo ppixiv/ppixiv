@@ -205,11 +205,6 @@ class main_controller
         if(global_data && global_data.userData == null)
             global_data = null;
 
-        // Try to init using globalInitData if possible.  data.userData is null if the user is logged out.
-        var data = helpers.get_global_init_data(document);
-        if(data && data.userData == null)
-            data = null;
-
         // This is the global "pixiv" object, which is used on older pages.
         var pixiv = helpers.get_pixiv_data(document);
         if(pixiv && (pixiv.user == null || pixiv.user.id == null))
@@ -223,7 +218,7 @@ class main_controller
         // If we didn't get any init data, reload the page in an iframe and look for meta-global-data
         // again.  This request doesn't allow scripts to run.  At least in Chrome, this comes out of
         // cache, so it doesn't actually cause us to load the page twice.
-        if(global_data == null && data == null && pixiv == null)
+        if(global_data == null && pixiv == null)
         {
             console.log("Reloading page to get init data");
 
@@ -237,7 +232,7 @@ class main_controller
 
         // If we don't have either of these (or we're logged out), stop and let the regular page display.
         // It may be a page we don't support.
-        if(global_data == null && data == null && pixiv == null)
+        if(global_data == null && pixiv == null)
         {
             console.log("Couldn't find context data.  Are we logged in?");
             document.documentElement.hidden = false;
@@ -276,21 +271,6 @@ class main_controller
                 for(var preload_illust_id in preload.illust)
                     image_data.singleton().add_illust_data(preload.illust[preload_illust_id]);
             }
-        }
-        else if(data != null)
-        {
-            this.init_global_data(data.token, data.userData.id, data.premium && data.premium.popularSearch, data.mute, data.userData.xRestrict);
-
-            // If data is available, this is a newer page with globalInitData.
-            // This can have one or more user and/or illust data, which we'll preload
-            // so we don't need to fetch it later.
-            //
-            // Preload users before illusts.  Otherwise, adding the illust will cause image_data
-            // to fetch user info to fill it in.
-            for(var preload_user_id in data.preload.user)
-                image_data.singleton().add_user_data(data.preload.user[preload_user_id]);
-            for(var preload_illust_id in data.preload.illust)
-                image_data.singleton().add_illust_data(data.preload.illust[preload_illust_id]);
         }
         else
         {
