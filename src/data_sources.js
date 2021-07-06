@@ -1473,14 +1473,8 @@ class data_source_artist extends data_source
 
     get viewing_user_id()
     {
-        if(helpers.get_path_part(this.url, 0) == "users")
-        {
-            // New URLs (/users/13245)
-            return helpers.get_path_part(this.url, 1);
-        }
-
-        var query_args = this.url.searchParams;
-        return query_args.get("id");
+        // /users/13245
+        return helpers.get_path_part(this.url, 1);
     };
 
     startup()

@@ -55,10 +55,6 @@ class page_manager
         let first_part = helpers.get_page_type_from_url(url);
         if(first_part == "artworks")
             return data_source_current_illust;
-        else if(url.pathname == "/member.php" && url.searchParams.get("id") != null)
-            return data_source_artist;
-        else if(url.pathname == "/member_illust.php" && url.searchParams.get("id") != null)
-            return data_source_artist;
         else if(first_part == "users")
         {
             // This is one of:
