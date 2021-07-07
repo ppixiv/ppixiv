@@ -25,6 +25,9 @@ class on_click_viewer
 
         this.zoom_pos = [0, 0];
 
+        settings.set_per_session("zoom-mode");
+        settings.set_per_session("zoom-level");
+
         // Restore the most recent zoom mode.  We assume that there's only one of these on screen.
         this.locked_zoom = settings.get("zoom-mode") == "locked";
         this._zoom_level = settings.get("zoom-level", "cover");
