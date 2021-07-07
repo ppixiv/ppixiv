@@ -441,7 +441,7 @@ class tag_search_dropdown_widget
         let abort_controller = this.populate_dropdown_abort = new AbortController();        
         let abort_signal = abort_controller.signal;
 
-        var tag_searches = helpers.get_value("recent-tag-searches") || [];
+        var tag_searches = settings.get("recent-tag-searches") || [];
 
         // Separate tags in each search, so we can look up translations.
         //
@@ -634,7 +634,7 @@ class tag_search_edit_widget
         let abort_controller = this.populate_dropdown_abort = new AbortController();        
         let abort_signal = abort_controller.signal;
 
-        var tag_searches = helpers.get_value("recent-tag-searches") || [];
+        var tag_searches = settings.get("recent-tag-searches") || [];
 
         // Individually show all tags in search history.
         var all_tags = {};

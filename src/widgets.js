@@ -707,7 +707,7 @@ class popup_context_menu
         // menu behavior and probably making it impossible for games to have sane keyboard
         // behavior at all.
         this.shift_was_pressed = e.shiftKey;
-        if(navigator.userAgent.indexOf("Firefox/") == -1 && helpers.get_value("invert-popup-hotkey"))
+        if(navigator.userAgent.indexOf("Firefox/") == -1 && settings.get("invert-popup-hotkey"))
             this.shift_was_pressed = !this.shift_was_pressed;
         if(this.shift_was_pressed)
             return;

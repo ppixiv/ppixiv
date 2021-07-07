@@ -26,8 +26,8 @@ class on_click_viewer
         this.zoom_pos = [0, 0];
 
         // Restore the most recent zoom mode.  We assume that there's only one of these on screen.
-        this.locked_zoom = helpers.get_value("zoom-mode") == "locked";
-        this._zoom_level = helpers.get_value("zoom-level", "cover");
+        this.locked_zoom = settings.get("zoom-mode") == "locked";
+        this._zoom_level = settings.get("zoom-level", "cover");
     }
 
     set_new_image(img, secondary_img, width, height)
@@ -141,7 +141,7 @@ class on_click_viewer
     set locked_zoom(enable)
     {
         this._locked_zoom = enable;
-        helpers.set_value("zoom-mode", enable? "locked":"normal");
+        settings.set("zoom-mode", enable? "locked":"normal");
         this.reposition();
     }
 
@@ -155,7 +155,7 @@ class on_click_viewer
     set zoom_level(value)
     {
         this._zoom_level = value;
-        helpers.set_value("zoom-level", this._zoom_level);
+        settings.set("zoom-level", this._zoom_level);
         console.log("set", value);
         this.reposition();
     }
@@ -419,7 +419,7 @@ class on_click_viewer
         var x_offset = e.movementX;
         var y_offset = e.movementY;
 
-        if(helpers.get_value("invert-scrolling"))
+        if(settings.get("invert-scrolling"))
         {
             x_offset *= -1;
             y_offset *= -1;
@@ -493,7 +493,7 @@ class on_click_viewer
             height *= zoom_level;
             width *= zoom_level;
 
-            if(!helpers.get_value("pan-past-edge"))
+            if(!settings.get("pan-past-edge"))
             {
                 // When we're zooming to fill the screen, clamp panning to the screen, so we always fill the
                 // screen and don't pan past the edge.  If we're narrower than the screen, lock to center.
