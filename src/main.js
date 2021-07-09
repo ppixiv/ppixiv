@@ -477,7 +477,7 @@ class main_controller
             new_view_name = args.hash.get("view");
 
         var illust_id = data_source.get_current_illust_id();
-        var manga_page = args.hash.has("page")? parseInt(args.hash.get("page"))-1:null;
+        var manga_page = args.hash.has("page")? parseInt(args.hash.get("page"))-1:0;
 
         // If we're on search, we don't care what image is current.  Clear illust_id so we
         // tell context_menu that we're not viewing anything, so it disables bookmarking.
