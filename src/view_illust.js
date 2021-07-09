@@ -124,8 +124,8 @@ class view_illust extends view
         // Load info for this image if needed.
         var illust_data = await image_data.singleton().get_image_info(illust_id);
 
-        // If this is no longer the image we want to be showing, stop.
-        if(this.wanted_illust_id != illust_id)
+        // If we were deactivated while waiting for image info or the image we want to show has changed, stop.
+        if(!this.active || this.wanted_illust_id != illust_id)
         {
             console.log("show_image: illust ID changed while async, stopping");
             return;
