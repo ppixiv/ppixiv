@@ -110,6 +110,11 @@ class PixivError extends APIError
 {
 };
 
+// This is thrown when we disable creating blocked elements.
+class ElementDisabled extends Error
+{
+};
+
 var helpers = {
     remove_array_element: function(array, element)
     {
@@ -463,11 +468,23 @@ var helpers = {
                 if(options == null || !options.pp)
                 {
                     console.warn("Disabling createElement " + type);
-                    throw "Element disabled";
+                    throw new ElementDisabled("Element disabled");
                 }
             }
             return origCreateElement.apply(this, arguments);
         };
+
+        // Catch and discard ElementDisabled.
+        //
+        // This is crazy: the error event doesn't actually receive the unhandled exception.
+        // We have to examine the message to guess whether an error is ours.
+        unsafeWindow.addEventListener("error", (e) => {
+            if(e.message.indexOf("Element disabled") == -1)
+                return;
+
+            e.preventDefault();
+            e.stopPropagation();
+        });
     },
 
     // Stop all scripts from running on the page.  This only works in Firefox.  This is a basic
