@@ -402,7 +402,6 @@ var helpers = {
                 delete options.threshold;
             }
         }
-        console.log("options", options);
 
         return new IntersectionObserver(callback, options);
     },
