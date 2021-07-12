@@ -67,7 +67,7 @@ class hide_mouse_cursor_on_idle
         if(!this.timer)
             return;
 
-        clearInterval(this.timer);
+        clearTimeout(this.timer);
         this.timer = null;
     }
 
