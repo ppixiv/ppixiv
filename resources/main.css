@@ -1201,6 +1201,14 @@ body:not(.disable-thumbnail-zooming) .view-search-container .thumbnail-box.muted
     background-color: var(--box-link-selected-color);
 }
 
+.box-link.tag {
+    /* Some tags are way too long, since translations don't put any sanity limit on length.
+     * Cut these off so they don't break the layout. */
+    max-width: 100%;
+    text-overflow: ellipsis;
+    overflow: hidden;
+}
+
 .view-search-container .following-tag {
     text-decoration: none;
 }
