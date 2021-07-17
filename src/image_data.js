@@ -199,6 +199,14 @@ class image_data
         return await this._get_user_info(user_id, false);
     }
 
+    // Load user_id if needed.
+    //
+    // If load_full_data is false, it means the caller only needs partial data, and we
+    // won't send a request if we already have that, but if we do end up loading the
+    // user we'll always load full data.
+    //
+    // Some sources only give us partial data, which only has a subset of keys.  See
+    // _check_user_data for the keys available with partial and full data.
     _get_user_info(user_id, load_full_data)
     {
         if(user_id == null)
@@ -237,12 +245,59 @@ class image_data
         return this.loaded_user_info(result);
     }
 
+    _check_user_data(user_data)
+    {
+        // Make sure that the data contains all of the keys we expect, so we catch any unexpected
+        // missing data early.  Discard keys that we don't use, to make sure we update this if we
+        // make use of new keys.  This makes sure that the user data keys are always consistent.
+        let full_keys = [
+            'userId',
+            // 'background',
+            // 'image',
+            'imageBig',
+            // 'isBlocking',
+            'isFollowed',
+            'isMypixiv',
+            'name',
+            'partial',
+            // 'premium',
+            // 'sketchLiveId',
+            // 'sketchLives',
+        ];
+
+        let partial_keys = [
+            'userId',
+            'isFollowed',
+            'name',
+            'imageBig',
+            'partial',
+        ];
+
+        // partial is 0 if this is partial user data and 1 if it's full data (this is backwards).
+        let expected_keys = user_data.partial? full_keys:partial_keys;
+
+        var thumbnail_info_map = this.thumbnail_info_map_illust_list;
+        var remapped_user_data = { };
+        for(let key of expected_keys)
+        {
+            if(!(key in user_data))
+            {
+                console.warn("User info is missing key:", key);
+                continue;
+            }
+            remapped_user_data[key] = user_data[key];
+        }
+        return remapped_user_data;
+    }
+
     loaded_user_info(user_result)
     {
         if(user_result.error)
             return;
 
         var user_data = user_result.body;
+        user_data = this._check_user_data(user_data);
+
         var user_id = user_data.userId;
         // console.log("Got user", user_id);
 
