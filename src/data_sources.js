@@ -2563,28 +2563,30 @@ class data_source_bookmarks_new_illust extends data_source_from_page
 //
 // The new tag search UI is a bewildering mess:
 // 
-// - Searching for a tag goes to "/tags/tag/artworks".  The "top" tab is highlighted,
-// but it's not really on that section and no tab actually goes here.  The API query
-// is "/ajax/search/artworks/TAG".  "Illustrations, Manga, Ugoira" in the search options
-// also goes here.
+// - Searching for a tag goes to "/tags/TAG/artworks".  This searches all posts with the
+// tag.  The API query is "/ajax/search/artworks/TAG".  The "top" tab is highlighted, but
+// it's not actually on that tab and no tab button goes back here.  "Illustrations, Manga,
+// Ugoira" in search options also goes here.
 // 
-// - The "Illustrations" tab goes to "/tags/tag/illustrations".  The API is
-// "/ajax/search/illustrations/TAG?type=illust_and_ugoira".  This seems to give identical
-// results to "artworks".
+// - The "Illustrations" tab goes to "/tags/TAG/illustrations".  The API is
+// "/ajax/search/illustrations/TAG?type=illust_and_ugoira".  This is almost identical to
+// "artworks", but excludes posts marked as manga.  "Illustrations, Ugoira"  in search
+// options also goes here.
 // 
-// This is "イラスト・うごくイラスト" in the search options and isn't translated.  This
-// page seems like a bug.
-// 
-// - Clicking "manga" goes to "/tags/tag/manga".  The API is "/ajax/search/manga" and also
-// sets type=manga.  This is "Manga" in the search options.  At least this one makes sense.
+// - Clicking "manga" goes to "/tags/TAG/manga".  The API is "/ajax/search/manga" and also
+// sets type=manga.  This is "Manga" in the search options.  This page is also useless.
+//
+// The "manga only" and "exclude manga" pages are useless, since Pixiv doesn't make any
+// useful distinction between "manga" and "illustrations with more than one page".  We
+// only include them for completeness.
 // 
 // - You can search for just animations, but there's no button for it in the UI.  You
 // have to pick it from the dropdown in search options.  This one is "illustrations?type=ugoira".
 // Why did they keep using type just for one search mode?  Saying "type=manga" or any
 // other type fails, so it really is just used for this.
 // 
-// - Clicking "Top" goes to "/tags/tag" with no type.  This is a completely different
-// page and API, "/ajax/search/top/tag".  It doesn't actually seem to be a rankings
+// - Clicking "Top" goes to "/tags/TAG" with no type.  This is a completely different
+// page and API, "/ajax/search/top/TAG".  It doesn't actually seem to be a rankings
 // page and just shows the same thing as the others with a different layout, so we
 // ignore this and treat it like "artworks".
 class data_source_search extends data_source
@@ -2681,11 +2683,18 @@ class data_source_search extends data_source
         };
 
         // "artworks" and "illustrations" are different on the search page: "artworks" uses "/tag/TAG/artworks",
-        // and "illustrations" is "/tag/TAG/illustrations?type=illust_and_ugoira".  They seem to return the
-        // same thing, so we always use "illustrations".  "artworks" doesn't use the type field.
+        // and "illustrations" is "/tag/TAG/illustrations?type=illust_and_ugoira".  "artworks" doesn't include
+        // posts flagged as manga, but it does include multi-page posts, which have no difference from manga.
+        // There's no reason for the manga search to exist, but it's included for completeness.
         let search_type = this._search_type;
         let api_search_type = "artworks";
-        if(search_type == "artworks" || search_type == "illustrations")
+        if(search_type == "artworks")
+        {
+            // "artworks" doesn't use the type field.
+            api_search_type = "artworks";
+        }
+        else
+        if(search_type == "illustrations")
         {
             api_search_type = "illustrations";
             args.type = "illust_and_ugoira";
