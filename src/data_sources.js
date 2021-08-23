@@ -1599,7 +1599,6 @@ class data_source_artist extends data_source
         let type = this.viewing_type;
 
         var result = await helpers.get_request("/ajax/user/" + this.viewing_user_id + "/profile/all", {});
-        console.log(type, "got", result);
 
         var illust_ids = [];
         if(type == "artworks" || type == "illustrations")
@@ -2683,9 +2682,7 @@ class data_source_search extends data_source
         };
 
         // "artworks" and "illustrations" are different on the search page: "artworks" uses "/tag/TAG/artworks",
-        // and "illustrations" is "/tag/TAG/illustrations?type=illust_and_ugoira".  "artworks" doesn't include
-        // posts flagged as manga, but it does include multi-page posts, which have no difference from manga.
-        // There's no reason for the manga search to exist, but it's included for completeness.
+        // and "illustrations" is "/tag/TAG/illustrations?type=illust_and_ugoira".
         let search_type = this._search_type;
         let api_search_type = "artworks";
         if(search_type == "artworks")
