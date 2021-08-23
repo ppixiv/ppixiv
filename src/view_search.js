@@ -457,6 +457,14 @@ class view_search extends view
             webpage_link.dataset.popup = webpage_url;
         }
 
+        // Set the circle.ms link.
+        console.log(user_info.social);
+        var circlems_url = user_info && user_info.social && user_info.social.circlems && user_info.social.circlems.url;
+        var circlems_link = this.container.querySelector(".circlems-icon");
+        circlems_link.hidden = circlems_url == null;
+        if(circlems_url != null)
+            circlems_link.href = circlems_url;
+
         // Set the twitter link.
         var twitter_url = user_info && user_info.social && user_info.social.twitter && user_info.social.twitter.url;
         var twitter_link = this.container.querySelector(".twitter-icon");

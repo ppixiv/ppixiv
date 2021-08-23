@@ -863,11 +863,18 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
 }
 
 .view-search-container .thumbnail-ui-box .twitter-icon,
-.view-search-container .thumbnail-ui-box .pawoo-icon {
+.view-search-container .thumbnail-ui-box .pawoo-icon
+{
     display: block;
     width: 32px;
     height: 32px;
-    margin: 0 1px;
+    margin: 0 0px;
+}
+
+.view-search-container .thumbnail-ui-box .circlems-icon
+{
+    display: block;
+    margin: 4px 0 0 0;
 }
 
 /* .thumbnails is the actual thumbnail list. */
