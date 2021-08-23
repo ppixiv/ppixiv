@@ -260,6 +260,8 @@ class image_data
             'isMypixiv',
             'name',
             'partial',
+            'social',
+            'commentHtml',
             // 'premium',
             // 'sketchLiveId',
             // 'sketchLives',
