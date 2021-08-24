@@ -504,6 +504,10 @@ class view_search extends view
                 extra_links.push(helpers.fix_pixiv_link(link.href));
         }
 
+        // Let the data source add more links.
+        if(this.data_source != null)
+            this.data_source.add_extra_links(extra_links);
+
         let count = 0;
         for(let url of extra_links)
         {

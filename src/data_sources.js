@@ -735,6 +735,11 @@ class data_source
     {
         return true;
     }
+
+    // URLs added to links will be included in the links at the top of the page when viewing an artist.
+    add_extra_links(links)
+    {
+    }
 };
 
 // Load a list of illust IDs, and allow retriving them by page.
@@ -1469,6 +1474,8 @@ class data_source_artist extends data_source
     constructor(url)
     {
         super(url);
+
+        this.fanbox_url = null;
     }
 
     get viewing_user_id()
@@ -1481,7 +1488,7 @@ class data_source_artist extends data_source
     {
         super.startup();
 
-        // While we're active, watch for the tags box to open.  We only poopulate the tags
+        // While we're active, watch for the tags box to open.  We only populate the tags
         // dropdown if it's opened, so we don't load user tags for every user page.
         var popup = document.body.querySelector(".member-tags-box > .popup-menu-box");
         this.src_observer = new MutationObserver((mutation_list) => {
@@ -1591,6 +1598,13 @@ class data_source_artist extends data_source
         }
     }
     
+    add_extra_links(links)
+    {
+        // Add the Fanbox link to the list if we have one.
+        if(this.fanbox_url)
+            links.push(this.fanbox_url);
+    }
+
     async load_all_results()
     {
         this.call_update_listeners();
@@ -1599,6 +1613,22 @@ class data_source_artist extends data_source
         let type = this.viewing_type;
 
         var result = await helpers.get_request("/ajax/user/" + this.viewing_user_id + "/profile/all", {});
+
+        // See if there's a Fanbox link.
+        //
+        // For some reason Pixiv supports links to Twitter and Pawoo natively in the profile, but Fanbox
+        // can only be linked in this weird way outside the regular user profile info.
+        for(let pickup of result.body.pickup)
+        {
+            if(pickup.type != "fanbox")
+                continue;
+
+            // Remove the Google analytics junk from the URL.
+            let url = new URL(pickup.contentUrl);
+            url.search = "";
+            this.fanbox_url = url.toString();
+            this.call_update_listeners();
+        }
 
         var illust_ids = [];
         if(type == "artworks" || type == "illustrations")
