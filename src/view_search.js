@@ -458,7 +458,6 @@ class view_search extends view
         }
 
         // Set the circle.ms link.
-        console.log(user_info.social);
         var circlems_url = user_info && user_info.social && user_info.social.circlems && user_info.social.circlems.url;
         var circlems_link = this.container.querySelector(".circlems-icon");
         circlems_link.hidden = circlems_url == null;
