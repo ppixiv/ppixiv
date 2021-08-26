@@ -39,7 +39,7 @@ class seek_bar
         if(this.dragging)
             return;
 
-        console.log("down");
+        e.preventDefault();
         this.dragging = true;
         helpers.set_class(this.bar, "dragging", this.dragging);
         this.refresh_visibility();
