@@ -617,6 +617,7 @@ class popup_context_menu
         this.onmouseover = this.onmouseover.bind(this);
         this.onmouseout = this.onmouseout.bind(this);
         this.hide = this.hide.bind(this);
+        this.cancel_event = this.cancel_event.bind(this);
 
         this.container = container;
         this.blocking_context_menu_until_mouseup = false;
@@ -822,6 +823,11 @@ class popup_context_menu
         
         window.addEventListener("blur", this.window_onblur);
 
+        // Disable all dragging while the context menu is open, since drags cause browsers to
+        // forget to send mouseup events, which throws things out of whack.  We don't use
+        // drag and drop and there's no real reason to use it while the context menu is open.
+        window.addEventListener("dragstart", this.cancel_event, true);
+
         // In toggle mode, close the popup if anything outside is clicked.
         if(this.toggle_mode && this.click_outside_listener == null)
         {
@@ -925,6 +931,7 @@ class popup_context_menu
         this.buttons_down = [false, false, false];
         document.body.classList.remove("hide-ui");
         window.removeEventListener("blur", this.window_onblur);
+        window.removeEventListener("dragstart", this.cancel_event, true);
 
         if(this.click_outside_listener)
         {
@@ -944,6 +951,12 @@ class popup_context_menu
         this.container.removeEventListener("click", this.onclick);
         window.removeEventListener("contextmenu", this.oncontextmenu);
         window.removeEventListener("mouseup", this.window_onmouseup);
+    }
+
+    cancel_event(e)
+    {
+        e.preventDefault();
+        e.stopPropagation();
     }
 }
 
