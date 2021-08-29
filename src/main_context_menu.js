@@ -246,17 +246,19 @@ class main_context_menu extends popup_context_menu
         if(e.type != "keydown")
             return false;
 
-        if(!this._is_zoom_ui_enabled)
-            return false;
+        if(this._is_zoom_ui_enabled)
+        {
+            var zoom = helpers.is_zoom_hotkey(e);
+            if(zoom != null)
+            {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                this.handle_zoom_event(e, zoom < 0);
+                return true;
+            }
+        }
 
-        var zoom = helpers.is_zoom_hotkey(e);
-        if(zoom == null)
-            return false;
-
-        e.preventDefault();
-        e.stopImmediatePropagation();
-        this.handle_zoom_event(e, zoom < 0);
-        return true;
+        return false;
     }
 
     onwheel(e)

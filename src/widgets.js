@@ -608,6 +608,9 @@ class tag_widget
 // The menu opens on right click and closes when the button is released.
 class popup_context_menu
 {
+    // Names for buttons, for storing in this.buttons_down.
+    buttons = ["lmb", "mmb", "rmb"];
+
     constructor(container)
     {
         this.onmousedown = this.onmousedown.bind(this);
@@ -647,7 +650,7 @@ class popup_context_menu
         this.menu.addEventListener("mouseout", this.onmouseout, true);
 
         // Whether the left and right mouse buttons are pressed:
-        this.buttons_down = [false, false, false];
+        this.buttons_down = {};
     }
 
     context_menu_enabled_for_element(element)
@@ -704,7 +707,9 @@ class popup_context_menu
         if(!this.visible && e.button != 2)
             return;
 
-        this.buttons_down[e.button] = true;
+        let button_name = this.buttons[e.button];
+        if(button_name != null)
+            this.buttons_down[button_name] = true;
         if(e.button != 2)
             return;
 
@@ -760,8 +765,8 @@ class popup_context_menu
             return;
 
         // Don't handle inputs into text fields.
-        if(e.target.nodeName instanceof HTMLInputElement ||
-           e.target.nodeName instanceof HTMLTextAreaElement)
+        if(e.target instanceof HTMLInputElement ||
+           e.target instanceof HTMLTextAreaElement)
             return;
 
         // Let the subclass handle events.
@@ -769,13 +774,15 @@ class popup_context_menu
             return;
 
         // Keyboard access to the context menu, to try to make things easier for touchpad
-        // users.  Allow both A and L, so people who use the touchpad right-handed can use A
-        // and left-handed can use L.
+        // users.
         let down = e.type == "keydown";
-        if(e.key == "a" || e.key == "A" || e.key == "l" || e.key == "L")
+        let key = e.key.toUpperCase();
+        if(e.key == "Control")
         {
             e.preventDefault();
             e.stopPropagation();
+
+            this.buttons_down[e.key] = down;
 
             if(down)
             {
@@ -784,7 +791,7 @@ class popup_context_menu
                 let node = document.elementFromPoint(x, y);
                 this.show(x, y, node);
             } else {
-                this.hide();
+                this.hide_if_all_buttons_released();
             }
         }
     }
@@ -835,11 +842,21 @@ class popup_context_menu
         if(!this.visible)
             return;
 
-        this.buttons_down[e.button] = false;
+        let button_name = this.buttons[e.button];
+        if(button_name != null)
+            this.buttons_down[button_name] = false;
+
+        this.hide_if_all_buttons_released();
+    }
+
+    // This is called on mouseup, and when keyboard shortcuts are released.  Hide the menu if all buttons
+    // that can open the menu have been released.
+    hide_if_all_buttons_released()
+    {
         if(this.toggle_mode)
             return;
 
-        if(!this.buttons_down[0] && !this.buttons_down[2])
+        if(!this.buttons_down["lmb"] && !this.buttons_down["rmb"] && !this.buttons_down["Control"])
         {
             // Run the hide asynchronously.  If we close it immediately and this
             // release would have triggered a click event, the click won't happen.
@@ -983,7 +1000,7 @@ class popup_context_menu
         this.displayed_menu.parentNode.removeChild(this.displayed_menu);
         this.displayed_menu = null;
         hide_mouse_cursor_on_idle.enable_all();
-        this.buttons_down = [false, false, false];
+        this.buttons_down = {};
         document.body.classList.remove("hide-ui");
         window.removeEventListener("blur", this.window_onblur);
         window.removeEventListener("dragstart", this.cancel_event, true);
