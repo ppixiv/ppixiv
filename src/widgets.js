@@ -491,44 +491,6 @@ class avatar_widget
         // Follow the user.
         this.follow(follow_privately);
     }
-
-    handle_onkeydown(e)
-    {
-        if(this.user_data == null)
-            return;
-        
-        if(e.keyCode == 70) // f
-        {
-            // f to follow publically, F to follow privately, ^F to unfollow.
-            e.stopPropagation();
-            e.preventDefault();
-
-            if(this.user_data == null)
-                return;
-
-            if(e.ctrlKey)
-            {
-                // Remove the bookmark.
-                if(!this.user_data.isFollowed)
-                {
-                    message_widget.singleton.show("Not following this user");
-                    return;
-                }
-
-                this.unfollow();
-                return;
-            }
-
-            if(this.user_data.isFollowed)
-            {
-                message_widget.singleton.show("Already following (^F to unfollow)");
-                return;
-            }
-            
-            this.follow(e.shiftKey);
-            return;
-        }
-    }
 };
 
 // A list of tags, with translations in popups where available.
@@ -771,7 +733,11 @@ class popup_context_menu
 
         // Let the subclass handle events.
         if(this.handle_key_event(e))
+        {
+            e.preventDefault();
+            e.stopPropagation();
             return;
+        }
 
         // Keyboard access to the context menu, to try to make things easier for touchpad
         // users.

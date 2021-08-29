@@ -135,10 +135,28 @@ class main_context_menu extends popup_context_menu
     // info.  Otherwise, we'll show the info for the illust we're on, if any.
     get effective_illust_id()
     {
-        if(this._clicked_illust_info != null)
-            return this._clicked_illust_info.illustId;
+        if(this._clicked_illust_id != null)
+            return this._clicked_illust_id;
         else
             return this._illust_id;
+    }
+
+    get effective_user_id()
+    {
+        if(this._clicked_user_id != null)
+            return this._clicked_user_id;
+        else if(this._user_info)
+            return this._user_info.userId;
+        else
+            return null;
+    }
+
+    get effective_user_info()
+    {
+        if(this._clicked_user_info != null)
+            return this._clicked_user_info;
+        else
+            return this._user_info;
     }
 
     get effective_page()
@@ -240,7 +258,138 @@ class main_context_menu extends popup_context_menu
         this.refresh();
     }
 
-    // Note that this event is listening on window at all times, not just when the menu is open.
+    // Handle key events.  This is called whether the context menu is open or closed, and handles
+    // global hotkeys.  This is handled here because it has a lot of overlapping functionality with
+    // the context menu.
+    //
+    // The actual actions may happen async, but this always returns synchronously since the keydown/keyup
+    // event needs to be defaultPrevented synchronously.
+    //
+    // We always return true for handled hotkeys even if we aren't able to perform them currently, so
+    // keys don't randomly revert to default actions.
+    _handle_key_event_for_image(e)
+    {
+        // These hotkeys require an image, which we have if we're viewing an image or if the user
+        // was hovering over an image in search results.  We might not have the illust info yet,
+        // but we at least need an illust ID.
+        let illust_id = this.effective_illust_id;
+
+        if(e.key.toUpperCase() == "V")
+        {
+            (async() => {
+                if(illust_id == null)
+                    return;
+
+                let illust_data = await image_data.singleton().get_image_info(illust_id);
+                actions.like_image(illust_data);
+            })();
+
+            return true;
+        }
+
+        if(e.key.toUpperCase() == "B")
+        {
+            (async() => {
+                if(illust_id == null)
+                    return;
+
+                let illust_data = await image_data.singleton().get_image_info(illust_id);
+
+                // Ctrl-Shift-Alt-B: add a bookmark tag
+                if(e.altKey && e.ctrlKey)
+                {
+                    actions.add_new_tag(illust_id);
+
+                    // This opens an input field, which will prevent the context menu from seeing the
+                    // ctrl key release.  Work around this by hiding the context menu now.
+                    this.hide();
+                    return;
+                }
+
+                // Ctrl-Shift-B: unbookmark
+                if(e.shiftKey)
+                {
+                    if(illust_data.bookmarkData == null)
+                    {
+                        message_widget.singleton.show("Image isn't bookmarked");
+                        return;
+                    }
+
+                    actions.bookmark_remove(illust_data);
+                    return;
+                }
+
+                // Ctrl-B: bookmark
+                // Ctrl-Alt-B: bookmark privately
+                let bookmark_privately = e.altKey;
+                if(illust_data.bookmarkData != null)
+                {
+                    message_widget.singleton.show("Already bookmarked (^B to remove bookmark)");
+                    return;
+                }
+
+                actions.bookmark_add(illust_data, {
+                    private: bookmark_privately
+                });
+            })();
+            
+            return true;
+        }
+
+        return false;
+    }
+
+    _handle_key_event_for_user(e)
+    {
+        // These hotkeys require a user, which we have if we're viewing an image, if the user
+        // was hovering over an image in search results, or if we're viewing a user's posts.
+        // We might not have the user info yet, but we at least need a user ID.
+        let user_id = this.effective_user_id;
+
+        if(e.key.toUpperCase() == "F")
+        {
+            (async() => {
+                if(user_id == null)
+                    return;
+
+                var user_info = await image_data.singleton().get_user_info_full(user_id);
+                if(user_info == null)
+                    return;
+
+                // Ctrl-Shift-F: unfollow
+                if(e.shiftKey)
+                {
+                    if(!user_info.isFollowed)
+                    {
+                        message_widget.singleton.show("Not following this user");
+                        return;
+                    }
+
+                    await actions.unfollow(user_info);
+                    return;
+                }
+            
+                // Ctrl-F: follow
+                // Ctrl-Alt-F: follow privately
+                //
+                // It would be better to check if we're following publically or privately to match the hotkey, but
+                // Pixiv doesn't include that information.
+                let follow_privately = e.altKey;
+                if(user_info.isFollowed)
+                {
+                    message_widget.singleton.show("Already following this user");
+                    return;
+                }
+            
+                await actions.follow(user_info, follow_privately, []);
+            })();
+
+            return true;
+        }
+
+        return false;
+    }
+
     handle_key_event(e)
     {
         if(e.type != "keydown")
@@ -258,6 +407,13 @@ class main_context_menu extends popup_context_menu
             }
         }
 
+        // Check image and user hotkeys.
+        if(this._handle_key_event_for_image(e))
+            return true;
+
+        if(this._handle_key_event_for_user(e))
+            return true;
+        
         return false;
     }
 
@@ -371,6 +527,10 @@ class main_context_menu extends popup_context_menu
         // started this request.
         var show_sentinel = this.load_illust_sentinel = new Object();
 
+        // Store the illust_id immediately, so it's available without waiting for image
+        // info to load.
+        this._clicked_illust_id = illust_id;
+
         // Read illust info to see if we're following the user.
         var illust_info = await image_data.singleton().get_image_info(illust_id);
 
@@ -398,6 +558,10 @@ class main_context_menu extends popup_context_menu
         // started this request.
         var show_sentinel = this.load_user_sentinel = new Object();
 
+        // Store the user_id immediately, so it's available without waiting for user
+        // info to load.
+        this._clicked_user_id = user_id;
+
         // Read user info to see if we're following the user.
         var user_info = await image_data.singleton().get_user_info(user_id);
 
@@ -418,7 +582,9 @@ class main_context_menu extends popup_context_menu
 
         this.load_illust_sentinel = null;
         this.load_user_sentinel = null;
+        this._clicked_user_id = null;
         this._clicked_user_info = null;
+        this._clicked_illust_id = null;
         this._clicked_illust_info = null;
         this._clicked_page = null;
 
@@ -446,7 +612,7 @@ class main_context_menu extends popup_context_menu
             helpers.set_class(element, "enabled", this._is_zoom_ui_enabled);
 
         // Set the avatar button.
-        this.avatar_widget.set_from_user_data(this._clicked_user_info || this._user_info);
+        this.avatar_widget.set_from_user_data(this.effective_user_info);
 
         if(this._is_zoom_ui_enabled)
         {

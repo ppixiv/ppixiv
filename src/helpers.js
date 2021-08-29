@@ -796,7 +796,6 @@ var helpers = {
             },
         });
 
-        console.log(result);
         if(result && result.error)
             throw new PixivError(result.message, url);
 

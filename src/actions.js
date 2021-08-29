@@ -170,7 +170,7 @@ class actions
         var illust_id = illust_info.illustId;
         var bookmark_id = illust_info.bookmarkData.id;
         
-        console.log("Remove bookmark", bookmark_id, illust_info);
+        console.log("Remove bookmark", bookmark_id);
         
         var result = await helpers.rpc_post_request("/rpc/index.php", {
             mode: "delete_illust_bookmark",
@@ -402,8 +402,6 @@ class actions
 
             // There are multiple images, and since browsers are stuck in their own little world, there's
             // still no way in 2018 to save a batch of files to disk, so ZIP the images.
-            console.log(results);
-       
             var filenames = [];
             for(var i = 0; i < images.length; ++i)
             {
@@ -464,7 +462,6 @@ class actions
         let url = "https://www.pixiv.net/ajax/user/" + window.global_data.user_id + "/illusts/bookmark/tags";
         let result = await helpers.get_request(url, {});
         let bookmark_tags = [];
-        console.log(result);
         for(let tag of result.body.public)
             if(bookmark_tags.indexOf(tag.tag) == -1)
                 bookmark_tags.push(tag.tag);
