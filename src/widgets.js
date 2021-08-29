@@ -726,11 +726,6 @@ class popup_context_menu
         if(e.repeat)
             return;
 
-        // Don't handle inputs into text fields.
-        if(e.target instanceof HTMLInputElement ||
-           e.target instanceof HTMLTextAreaElement)
-            return;
-
         // Let the subclass handle events.
         if(this.handle_key_event(e))
         {

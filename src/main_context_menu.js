@@ -299,10 +299,6 @@ class main_context_menu extends popup_context_menu
                 if(e.altKey && e.ctrlKey)
                 {
                     actions.add_new_tag(illust_id);
-
-                    // This opens an input field, which will prevent the context menu from seeing the
-                    // ctrl key release.  Work around this by hiding the context menu now.
-                    this.hide();
                     return;
                 }
 
