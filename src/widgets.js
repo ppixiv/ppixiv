@@ -1330,9 +1330,8 @@ class bookmark_tag_list_widget extends illust_widget
         console.log("Tag list closing and tags have changed");
         console.log("Old tags:", old_tags);
         console.log("New tags:", new_tags);
-        var is_bookmarked = illust_data.bookmarkData != null;
 
-        await actions.bookmark_edit(illust_data, {
+        await actions.bookmark_add(illust_data, {
             tags: new_tags,
         });
     }
@@ -1468,7 +1467,7 @@ class bookmark_button_widget extends illust_widget
         }
 
         // Add or edit the bookmark.
-        await actions.bookmark_edit(illust_data, {
+        await actions.bookmark_add(illust_data, {
             private: this.private_bookmark,
             tags: tag_list,
         });

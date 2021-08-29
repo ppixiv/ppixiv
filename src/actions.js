@@ -73,11 +73,6 @@ class actions
         image_data.singleton().call_illust_modified_callbacks(illust_id);
     }
 
-    static bookmark_edit(illust_info, options)
-    {
-        return actions.bookmark_add(illust_info, options);
-    }
-
     // Create or edit a bookmark.
     //
     // Create or edit a bookmark.  options can contain any of the fields tags, comment
@@ -93,11 +88,11 @@ class actions
         if(options == null)
             options = {};
 
-        console.log("Edit bookmark options:", options);
+        console.log("Add bookmark for", illust_info.illustId, "options:", options);
 
         // This is a mess, since Pixiv's APIs are all over the place.
         //
-        // If the image isn't bookmarked, just use bookmark_add.
+        // If the image isn't already bookmarked, just use bookmark_add.
         if(illust_info.bookmarkData == null)
         {
             console.log("Initial bookmark");
@@ -156,7 +151,6 @@ class actions
             for(var tag of options.tags)
             {
                 var is_new_tag = illust_info.bookmarkData.tags.indexOf(tag) == -1;
-                console.log("new tag:", is_new_tag, tag);
                 if(is_new_tag)
                     helpers.update_recent_bookmark_tags([tag]);
             }
@@ -278,8 +272,8 @@ class actions
             if(active_tags.indexOf(tag) != -1)
                 continue;
 
-            // Add this tag to recents.  bookmark_edit will add recents too, but this makes sure
-            // that we add all explicitly entered tags to recents, since bookmark_edit will only
+            // Add this tag to recents.  bookmark_add will add recents too, but this makes sure
+            // that we add all explicitly entered tags to recents, since bookmark_add will only
             // add tags that are new to the image.
             helpers.update_recent_bookmark_tags([tag]);
             active_tags.push(tag);
@@ -287,7 +281,7 @@ class actions
         console.log("All tags:", active_tags);
         
         // Edit the bookmark.
-        await actions.bookmark_edit(illust_data, {
+        await actions.bookmark_add(illust_data, {
             tags: active_tags,
         });
     }
