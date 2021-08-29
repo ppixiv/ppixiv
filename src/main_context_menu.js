@@ -73,7 +73,6 @@ class main_context_menu extends popup_context_menu
         main_context_menu._singleton = this;
 
         this.onwheel = this.onwheel.bind(this);
-        this.onkeydown = this.onkeydown.bind(this);
 
         this._on_click_viewer = null;
         this._page = -1;
@@ -106,7 +105,6 @@ class main_context_menu extends popup_context_menu
             // actually made an effort to not break things?
             passive: false,
         });
-        window.addEventListener("keydown", this.onkeydown);
 
         for(var button of this.menu.querySelectorAll(".button-zoom-level"))
             button.addEventListener("click", this.clicked_zoom_level.bind(this));
@@ -242,18 +240,23 @@ class main_context_menu extends popup_context_menu
         this.refresh();
     }
 
-    onkeydown(e)
+    // Note that this event is listening on window at all times, not just when the menu is open.
+    handle_key_event(e)
     {
-        if(this._is_zoom_ui_enabled)
-        {
-            var zoom = helpers.is_zoom_hotkey(e);
-            if(zoom != null)
-            {
-                e.preventDefault();
-                e.stopImmediatePropagation();
-                this.handle_zoom_event(e, zoom < 0);
-            }
-        }
+        if(e.type != "keydown")
+            return false;
+
+        if(!this._is_zoom_ui_enabled)
+            return false;
+
+        var zoom = helpers.is_zoom_hotkey(e);
+        if(zoom == null)
+            return false;
+
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        this.handle_zoom_event(e, zoom < 0);
+        return true;
     }
 
     onwheel(e)
