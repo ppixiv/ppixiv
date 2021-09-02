@@ -9,7 +9,7 @@ class menu_option
                 label: "Thumbnail size",
                 setting: "manga-thumbnail-size",
                 min: 0,
-                max: 5,
+                max: 7,
             });
         }
 
@@ -19,7 +19,7 @@ class menu_option
                 label: "Thumbnail size",
                 setting: "thumbnail-size",
                 min: 0,
-                max: 5,
+                max: 7,
             });
         }
         
