@@ -140,8 +140,8 @@ textarea:focus, input:focus, a:focus {
     outline: none;
 }
 
-.hide-cursor { cursor: none !important; }
-.hide-cursor * { cursor: inherit !important; }
+body.enable-cursor-hiding .hide-cursor { cursor: none !important; }
+body.enable-cursor-hiding .hide-cursor * { cursor: inherit !important; }
 
 .main-container {
     position: fixed;
@@ -198,9 +198,14 @@ textarea:focus, input:focus, a:focus {
     transform: translate(0, 12px);
 }
 
-.seek-bar.visible .seek-empty {
+/* Hide the seek bar by default (move down by 12px).  Show it when the mouse is visible
+ * or .visible is set (move down by 6px).  Expand it while dragging (0px). */
+.mouse-hidden-box.show-cursor .seek-bar         .seek-empty,
+                              .seek-bar.visible .seek-empty
+{
     transform: translate(0, 6px);
 }
+
 .seek-bar.dragging .seek-empty {
     transform: translate(0, 0);
 }

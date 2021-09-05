@@ -1,8 +1,5 @@
 // Hide the mouse cursor when it hasn't moved briefly, to get it out of the way.
 // This only hides the cursor over element.
-//
-// Chrome's cursor handling is buggy and doesn't update the cursor when it's not
-// moving, so this only works in Firefox.
 class hide_mouse_cursor_on_idle
 {
     constructor(element)
@@ -25,22 +22,35 @@ class hide_mouse_cursor_on_idle
 
         window.addEventListener("enable-hiding-cursor", function() { this.enable = true; }.bind(this), true);
         window.addEventListener("disable-hiding-cursor", function() { this.enable = false; }.bind(this), true);
-        settings.register_change_callback("no-hide-cursor", () => {
-            this.refresh_hide_cursor();
-        });
+
+        settings.register_change_callback("no-hide-cursor", hide_mouse_cursor_on_idle.update_from_settings);
+        hide_mouse_cursor_on_idle.update_from_settings();
 
         this.enable = true;
+    }
+
+    static update_from_settings()
+    {
+        // If no-hide-cursor is false, set enable-cursor-hiding on body, which enables
+        // the style that hides the cursor.  We track cursor hiding and set the local
+        // hide-cursor style even if cursor hiding is disabled, so other UI can use it,
+        // like video seek bars.
+        helpers.set_class(document.body, "enable-cursor-hiding", !settings.get("no-hide-cursor"));
     }
 
     // Temporarily disable hiding all mouse cursors.
     static enable_all()
     {
-        window.dispatchEvent(new Event("enable-hiding-cursor"));
+        // Just let update_from_settings readding the enable-cursor-hiding class if needed.
+        this.update_from_settings();
     }
 
     static disable_all()
     {
-        window.dispatchEvent(new Event("disable-hiding-cursor"));
+        // Just remove the enable-cursor-hiding class, so we stop hiding the mouse.  We
+        // don't just unset the hide-cursor class, so this only stops hiding the mouse
+        // cursor and doesn't cause other UI like seek bars to be displayed.
+        helpers.set_class(document.body, "enable-cursor-hiding", false);
     }
 
     set enable(value)
@@ -173,11 +183,7 @@ class hide_mouse_cursor_on_idle
 
     refresh_hide_cursor()
     {
-        // Setting style.cursor to none doesn't work in Chrome.  Doing it with a style works
-        // intermittently (seems to work better in fullscreen).  Firefox doesn't have these
-        // problems.
-    //    this.element.style.cursor = "none";
-        let  hidden = this.cursor_hidden && !settings.get("no-hide-cursor");
+        let hidden = this.cursor_hidden;
         helpers.set_class(this.element, "hide-cursor", hidden);
         helpers.set_class(this.element, "show-cursor", !hidden);
     }
