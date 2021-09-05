@@ -42,7 +42,7 @@ class view_illust extends view
         image_data.singleton().illust_modified_callbacks.register(this.refresh_ui);
         settings.register_change_callback("recent-bookmark-tags", this.refresh_ui);
 
-        new hide_mouse_cursor_on_idle(this.container.querySelector(".image-container"));
+        new hide_mouse_cursor_on_idle(this.container.querySelector(".mouse-hidden-box"));
 
         // this.manga_thumbnails = new manga_thumbnail_widget(this.container.querySelector(".manga-thumbnail-container"));
 

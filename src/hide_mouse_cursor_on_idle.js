@@ -16,6 +16,8 @@ class hide_mouse_cursor_on_idle
 
         this.force_hidden_until = null;
         this.cursor_hidden = false;
+        this.set_mouse_anchor_timeout = -1;
+        this.last_mouse_pos = null;
 
         window.addEventListener("mousemove", this.onmousemove, true);
         window.addEventListener("blur", this.blur, true);
@@ -95,10 +97,54 @@ class hide_mouse_cursor_on_idle
 
     onmousemove(e)
     {
+        let mouse_pos = [e.screenX, e.screenY];
+        this.last_mouse_pos = mouse_pos;
+        if(!this.anchor_pos)
+            this.anchor_pos = this.last_mouse_pos;
+
+        // Cleare the anchor_pos timeout when the mouse moves.
+        this.clear_mouse_anchor_timeout();
+
         if(this.force_hidden_until && this.force_hidden_until > Date.now())
             return;
 
-        this.reset_timer();
+        let distance = function(p1, p2)
+        {
+            let distance = Math.pow(p1[0]-p2[0], 2) + Math.pow(p1[1]-p2[1], 2);
+            return Math.pow(distance, 0.5);
+        }
+
+        if(!this.cursor_hidden)
+        {
+            this.reset_timer();
+            return;
+        }
+
+        // Show the cursor if the mouse has moved far enough from the current anchor_pos.
+        let distance_moved = distance(this.anchor_pos, mouse_pos);
+        if(distance_moved > 10)
+        {
+            this.reset_timer();
+            return;
+        }
+
+        // If we see mouse movement that isn't enough to cause us to display the cursor
+        // and we don't see more movement for a while, reset anchor_pos so we discard
+        // the movement we saw.
+        this.set_mouse_anchor_timeout = setTimeout(() => {
+            this.set_mouse_anchor_timeout = -1;
+            this.anchor_pos = this.last_mouse_pos;
+        }, 500);
+    }
+
+    // Remove the set_mouse_anchor_timeout timeout, if any.
+    clear_mouse_anchor_timeout()
+    {
+        if(this.set_mouse_anchor_timeout == -1)
+            return;
+
+        clearTimeout(this.set_mouse_anchor_timeout);
+        this.set_mouse_anchor_timeout = -1;
     }
 
     onblur(e)
@@ -110,6 +156,12 @@ class hide_mouse_cursor_on_idle
     show_cursor(e)
     {
         this.cursor_hidden = false;
+
+        // When showing the cursor, snap the mouse movement anchor to the last seen position
+        // and remove any anchor_pos timeout.
+        this.anchor_pos = this.last_mouse_pos;
+        this.clear_mouse_anchor_timeout();
+
         this.refresh_hide_cursor();
     }
 
@@ -125,7 +177,9 @@ class hide_mouse_cursor_on_idle
         // intermittently (seems to work better in fullscreen).  Firefox doesn't have these
         // problems.
     //    this.element.style.cursor = "none";
-        helpers.set_class(this.element, "hide-cursor", this.cursor_hidden && !settings.get("no-hide-cursor"));
+        let  hidden = this.cursor_hidden && !settings.get("no-hide-cursor");
+        helpers.set_class(this.element, "hide-cursor", hidden);
+        helpers.set_class(this.element, "show-cursor", !hidden);
     }
 }
 

@@ -7,10 +7,14 @@
 
     <!-- main_ui: -->
     <div class="view view-illust-container">
-        <div class=preview-container data-context-menu-target></div>
-        <div class=image-container data-context-menu-target></div>
+        <!-- Mouse movement is detected inside this box.  Anything outside of it will
+             be unaffected by mouse hiding. -->
+        <div class=mouse-hidden-box>
+            <div class=preview-container data-context-menu-target></div>
+            <div class=image-container data-context-menu-target></div>
 
-        <div class=ugoira-seek-bar></div>
+            <div class=ugoira-seek-bar></div>
+        </div>
 
         <!-- This covers the progress bar. -->
         <div class=manga-thumbnail-container hidden>
