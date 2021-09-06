@@ -11,8 +11,6 @@ class viewer_images extends viewer
         this.manga_page_bar = options.manga_page_bar;
         this.onkeydown = this.onkeydown.bind(this);
 
-        this.blank_image = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
-
         this.index = options.manga_page || 0;
 
         // Create a click and drag viewer for the image.

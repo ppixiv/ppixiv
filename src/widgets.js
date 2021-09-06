@@ -431,6 +431,11 @@ class avatar_widget
         if(this.user_data == null)
         {
             this.root.classList.add("loading");
+
+            // Set the avatar image to a blank image, so it doesn't flash the previous image
+            // the next time we display it.  It should never do this, since we set a new image
+            // before displaying it, but Chrome doesn't do this correctly at least with Canvas.
+            this.img.src = helpers.blank_image;
             return;
         }
         this.root.classList.remove("loading");
@@ -452,6 +457,8 @@ class avatar_widget
         var key = "imageBig";
         if(user_data[key])
             this.img.src = user_data[key];
+        else
+            this.img.src = helpers.blank_image;
     }
     
     async follow(follow_privately)
