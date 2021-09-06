@@ -140,6 +140,12 @@ textarea:focus, input:focus, a:focus {
     outline: none;
 }
 
+/* Pixiv sometimes displays a random Recaptcha icon in the corner.  It's hard to prevent this since it
+ * sometimes loads before we have a chance to stop it.  Try to hide it. */
+.grecaptcha-badge {
+    display: none !important;
+}
+
 body.enable-cursor-hiding .hide-cursor { cursor: none !important; }
 body.enable-cursor-hiding .hide-cursor * { cursor: inherit !important; }
 
