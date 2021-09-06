@@ -170,12 +170,13 @@ class main_context_menu extends popup_context_menu
     // When the effective illust ID changes, let our widgets know.
     _effective_illust_id_changed()
     {
-        // If we're not visible, don't refresh until we are, so we don't trigger
-        // data loads.
-        if(!this.visible)
+        // If we're not visible, don't refresh an illust until we are, so we don't trigger
+        // data loads.  Do refresh even if we're hidden if we have no illust to clear
+        // the previous illust's display even if we're not visible, so it's not visible the
+        // next time we're displayed.
+        let illust_id = this.effective_illust_id;
+        if(!this.visible && illust_id != null)
             return;
-
-        var illust_id = this.effective_illust_id;
 
         this.like_button.illust_id = illust_id;
         this.bookmark_tag_widget.illust_id = illust_id;
