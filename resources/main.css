@@ -1622,6 +1622,24 @@ body.light .manga-thumbnail-arrow:hover > svg
     flex-direction: column;
     user-select: none;
     -moz-user-select: none;
+    will-change: opacity, transform;
+    transition:
+        opacity ease 0.15s,
+        transform ease 0.15s;
+}
+
+.popup-context-menu.visible {
+    opacity: 1;
+}
+
+.popup-context-menu:not(.visible) {
+    opacity: 0;
+    pointer-events: none;
+    transform: scale(.85);
+}
+
+.popup-context-menu > * {
+    transform-origin: unset;
 }
 
 /* Hide the normal tooltips.  The context menu shows them differently. */

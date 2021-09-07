@@ -596,6 +596,7 @@ class popup_context_menu
         this.container = container;
         this.blocking_context_menu_until_mouseup = false;
         this.blocking_context_menu_until_timer = false;
+        this.hidden = true;
 
         // We can't tell where the mouse is until it moves due to half-baked web APIs, so pretend
         // the mouse is in the center of the window.
@@ -611,6 +612,8 @@ class popup_context_menu
 
         // Create the menu.  The caller will attach event listeners for clicks.
         this.menu = helpers.create_from_template(".template-context-menu");
+
+        this.container.appendChild(this.menu);
 
         // Work around glitchiness in Chrome's click behavior (if we're in Chrome).
         new fix_chrome_clicks(this.menu);
@@ -844,19 +847,15 @@ class popup_context_menu
     {
         return null;
     }
-    get visible()
-    {
-        return this.displayed_menu != null;
-    }
+
     show(x, y, target)
     {
-        this.menu.hidden = false;
-
         if(this.visible)
             return;
 
         this.displayed_menu = this.menu;
-        this.container.appendChild(this.displayed_menu);
+        this.hidden = false;
+        this.refresh_visibility();
 
         // Disable popup UI while a context menu is open.
         document.body.classList.add("hide-ui");
@@ -881,13 +880,19 @@ class popup_context_menu
         var centered_element = this.element_to_center;
         if(centered_element == null)
             centered_element = this.displayed_menu;
+
+        // The center of the centered element, relative to the menu.  Shift the center
+        // down a bit in the button.
         var pos = helpers.get_relative_pos(centered_element, this.displayed_menu);
+        pos[0] += centered_element.offsetWidth / 2;
+        pos[1] += centered_element.offsetHeight * 3 / 4;
         x -= pos[0];
         y -= pos[1];
-        x -= centered_element.offsetWidth / 2;
-        y -= centered_element.offsetHeight * 3 / 4;
         this.displayed_menu.style.left = x + "px";
         this.displayed_menu.style.top = y + "px";
+
+        // Adjust the fade-in so it's centered around the centered element.
+        this.displayed_menu.style.transformOrigin = (pos[0]) + "px " + (pos[1]) + "px";
 
         hide_mouse_cursor_on_idle.disable_all();
     }
@@ -947,14 +952,27 @@ class popup_context_menu
         this.show_tooltip_for_element(e.relatedTarget);
     }
 
+    // Return true if we're visible, ignoring hidden_temporarily.
+    get visible()
+    {
+        return !this.hidden;
+    }
+
     get hide_temporarily()
     {
-        return this.menu.hidden;
+        return this.hidden_temporarily;
     }
 
     set hide_temporarily(value)
     {
-        this.menu.hidden = value;
+        this.hidden_temporarily = value;
+        this.refresh_visibility();
+    }
+
+    refresh_visibility()
+    {
+        let visible = !this.hidden_temporarily && !this.hidden;
+        helpers.set_class(this.menu, "visible", visible);
     }
 
     hide()
@@ -962,10 +980,13 @@ class popup_context_menu
         if(!this.visible)
             return;
 
+        this.hidden = true;
+        this.hidden_temporarily = false;
+        this.refresh_visibility();
+
         // Let menus inside the context menu know we're closing.
         view_hidden_listener.send_viewhidden(this.menu);
         
-        this.displayed_menu.parentNode.removeChild(this.displayed_menu);
         this.displayed_menu = null;
         hide_mouse_cursor_on_idle.enable_all();
         this.buttons_down = {};

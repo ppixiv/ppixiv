@@ -492,6 +492,11 @@ class main_context_menu extends popup_context_menu
 
     show(x, y, target)
     {
+        // When we hide, we clear which ID we want to display, but we don't refresh the
+        // display so it doesn't flicker while it fades out.  Refresh now instead, so
+        // we don't flash the previous ID if we need to wait for a load.
+        this._effective_illust_id_changed();
+
         // If RMB is pressed while dragging LMB, stop dragging the window when we
         // show the popup.
         if(this.on_click_viewer != null)
@@ -585,9 +590,9 @@ class main_context_menu extends popup_context_menu
         this._clicked_illust_info = null;
         this._clicked_page = null;
 
-        // Even though we're hiding, update widgets so they don't show the last image's
-        // bookmark count, etc. the next time we're displayed.
-        this._effective_illust_id_changed();
+        // Don't refresh yet, so we try to not change the display while it fades out.
+        // We'll do the refresh the next time we're displayed.
+        // this._effective_illust_id_changed();
 
         super.hide();
     }
