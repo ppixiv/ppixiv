@@ -828,13 +828,7 @@ class popup_context_menu
             return;
 
         if(!this.buttons_down["lmb"] && !this.buttons_down["rmb"] && !this.buttons_down["Control"])
-        {
-            // Run the hide asynchronously.  If we close it immediately and this
-            // release would have triggered a click event, the click won't happen.
-            setTimeout(() => {
-                this.hide();
-            }, 0);
-        }
+            this.hide();
     }
 
     window_onblur(e)
