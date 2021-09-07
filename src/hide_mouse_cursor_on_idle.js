@@ -4,6 +4,8 @@ class hide_mouse_cursor_on_idle
 {
     constructor(element)
     {
+        hide_mouse_cursor_on_idle.add_style();
+
         this.onmousemove = this.onmousemove.bind(this);
         this.onblur = this.onblur.bind(this);
         this.idle = this.idle.bind(this);
@@ -29,13 +31,42 @@ class hide_mouse_cursor_on_idle
         this.enable = true;
     }
 
+    static add_style()
+    {
+        if(hide_mouse_cursor_on_idle.global_style)
+            return;
+
+        // Create the style to hide the mouse cursor.  This hides the mouse cursor on .hide-cursor,
+        // and forces everything underneath it to inherit it.  This prevents things further down
+        // that set their own cursors from unhiding it.
+        //
+        // This also works around a Chrome bug: if the cursor is hidden, and we show the cursor while
+        // simultaneously animating an element to be visible over it, it doesn't recognize
+        // hovers over the element until the animation completes or the mouse moves.  It
+        // seems to be incorrectly optimizing out hover checks when the mouse is hidden.
+        // Work around this by hiding the cursor with an empty image instead of cursor: none,
+        // so it doesn't know that the cursor isn't visible.
+        //
+        // This is set as a separate style, so we can disable it selectively.  This allows us to
+        // globally disable mouse hiding.  This used to be done by setting a class on body, but
+        // that's slower and can cause animation hitches.
+        let style = 
+            '.hide-cursor {\n' +
+            '    cursor: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="), none !important;\n' +
+            '}\n' +
+            '.hide-cursor * { cursor: inherit !important; }\n';
+
+        style = helpers.create_style(style);
+        hide_mouse_cursor_on_idle.global_style = style;
+        document.head.appendChild(style);
+    }
+
     static update_from_settings()
     {
-        // If no-hide-cursor is false, set enable-cursor-hiding on body, which enables
-        // the style that hides the cursor.  We track cursor hiding and set the local
-        // hide-cursor style even if cursor hiding is disabled, so other UI can use it,
-        // like video seek bars.
-        helpers.set_class(document.body, "enable-cursor-hiding", !settings.get("no-hide-cursor"));
+        // If no-hide-cursor is true, disable the style that hides the cursor.  We track cursor
+        // hiding and set the local hide-cursor style even if cursor hiding is disabled, so
+        // other UI can use it, like video seek bars.
+        hide_mouse_cursor_on_idle.global_style.disabled = settings.get("no-hide-cursor");
     }
 
     // Temporarily disable hiding all mouse cursors.
@@ -47,10 +78,10 @@ class hide_mouse_cursor_on_idle
 
     static disable_all()
     {
-        // Just remove the enable-cursor-hiding class, so we stop hiding the mouse.  We
-        // don't just unset the hide-cursor class, so this only stops hiding the mouse
-        // cursor and doesn't cause other UI like seek bars to be displayed.
-        helpers.set_class(document.body, "enable-cursor-hiding", false);
+        // Just disable the style, so we stop hiding the mouse.  We don't just unset the hide-cursor
+        // class, so this only stops hiding the mouse cursor and doesn't cause other UI like seek
+        // bars to be displayed.
+        hide_mouse_cursor_on_idle.global_style.disabled = true;
     }
 
     set enable(value)
