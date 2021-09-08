@@ -119,7 +119,7 @@ class view_illust extends view
         var image_container = this.container.querySelector(".image-container");
 
         // If possible, show the quick preview.
-        this.show_preview(illust_id);
+        this.show_fast_preview(illust_id, manga_page);
 
         // Load info for this image if needed.
         var illust_data = await image_data.singleton().get_image_info(illust_id);
@@ -281,19 +281,12 @@ class view_illust extends view
     // UI delays, even though we often already have enough info to show the preview image
     // immediately.
     //
-    // If we have thumbnail data for illust_id and it's a single image (we don't do this for
-    // manga), create a dummy image viewer to show it until we start the main viewer.  The
-    // image is already cached if we're coming from a search result, so this is often shown
-    // immediately.
+    // If we have thumbnail data for illust_id, create a dummy image viewer to show it until
+    // we start the main viewer.  The image is already cached if we're coming from a search
+    // result, so this is often shown immediately.
     //
     // If this shows a preview image, the viewer will be removed.
-    //
-    // - this isn't generally needed for manga (if we're coming from the manga viewer then image
-    // info is already loaded and this is never visible)
-    // - if we have a way to go directly to the first page of a manga post from search, we could
-    // do this only if it's the first page (other pages won't match the thumb)
-    // - if we do that, make sure we don't if the viewer is already pointing at that image
-    show_preview(illust_id)
+    show_fast_preview(illust_id, manga_page)
     {
         this.hide_preview();
 
@@ -302,8 +295,8 @@ class view_illust extends view
         if(illust_thumbnail_data == null)
             return;
 
-        // We only do this for single images and animations right now.
-        if(illust_thumbnail_data.pageCount != 1)
+        // Don't do this if we're viewing a multi-page post past the first page.
+        if(manga_page != 0)
             return;
             
         // Don't show the preview if this image is muted.
