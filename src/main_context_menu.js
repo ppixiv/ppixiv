@@ -275,6 +275,10 @@ class main_context_menu extends popup_context_menu
         // but we at least need an illust ID.
         let illust_id = this.effective_illust_id;
 
+        // All of these hotkeys require Ctrl.
+        if(!e.ctrlKey)
+            return;
+
         if(e.key.toUpperCase() == "V")
         {
             (async() => {
@@ -297,7 +301,7 @@ class main_context_menu extends popup_context_menu
                 let illust_data = await image_data.singleton().get_image_info(illust_id);
 
                 // Ctrl-Shift-Alt-B: add a bookmark tag
-                if(e.altKey && e.ctrlKey)
+                if(e.altKey && e.shiftKey)
                 {
                     actions.add_new_tag(illust_id);
                     return;
@@ -342,6 +346,10 @@ class main_context_menu extends popup_context_menu
         // was hovering over an image in search results, or if we're viewing a user's posts.
         // We might not have the user info yet, but we at least need a user ID.
         let user_id = this.effective_user_id;
+
+        // All of these hotkeys require Ctrl.
+        if(!e.ctrlKey)
+            return;
 
         if(e.key.toUpperCase() == "F")
         {
