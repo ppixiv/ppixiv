@@ -1,6 +1,23 @@
 // This should be inside whats_new, but Firefox is in the dark ages and doesn't support class fields.
 let _update_history = [
     {
+        version: 97,
+        text:
+            "Holding Ctrl now displays the popup menu, to make it easier to use for people on touchpads.<p>" +
+            "<p>" + 
+            "Keyboard hotkeys reworked, and can now be used while hovering over search results.<p>" +
+            "<pre>" +
+	    "Ctrl-V           - like image\n" +
+	    "Ctrl-B           - bookmark\n" +
+	    "Ctrl-Alt-B       - bookmark privately\n" +
+	    "Ctrl-Shift-B     - remove bookmark\n" +
+	    "Ctrl-Alt-Shift-M - add bookmark tag\n" +
+	    "Ctrl-F           - follow\n" +
+	    "Ctrl-Alt-F       - follow privately\n" +
+	    "Ctrl-Shift-F     - unfollow\n" +
+	    "</pre>"
+    },
+    {
         version: 89,
         text:
             "Reworked zooming to make it more consistent and easier to use.<p>" +
@@ -10,7 +27,7 @@ let _update_history = [
     {
         version: 82,
         text:
-            "Press Alt-B to bookmark an image with a new tag."
+            "Press Ctrl-Alt-Shift-B to bookmark an image with a new tag."
     },
     {
         version: 79,
