@@ -73,6 +73,7 @@ class main_context_menu extends popup_context_menu
         main_context_menu._singleton = this;
 
         this.onwheel = this.onwheel.bind(this);
+        this.handle_link_click = this.handle_link_click.bind(this);
 
         this._on_click_viewer = null;
         this._page = -1;
@@ -106,6 +107,8 @@ class main_context_menu extends popup_context_menu
             passive: false,
         });
 
+        this.menu.addEventListener("click", this.handle_link_click);
+
         for(var button of this.menu.querySelectorAll(".button-zoom-level"))
             button.addEventListener("click", this.clicked_zoom_level.bind(this));
 
@@ -127,6 +130,39 @@ class main_context_menu extends popup_context_menu
         this.element_bookmark_tag_list = this.menu.querySelector(".bookmark-tag-list");
 
         this.refresh();
+    }
+
+    // Override ctrl-clicks inside the context menu.
+    //
+    // This is a bit annoying.  Ctrl-clicking a link opens it in a tab, but we allow opening the
+    // context menu by holding ctrl, which means all clicks are ctrl-clicks if you use the popup
+    // that way.  We work around this by preventing ctrl-click from opening links in a tab and just
+    // navigate normally.  This is annoying since some people might like opening tabs that way, but
+    // there's no other obvious solution other than changing the popup menu hotkey.  That's not a
+    // great solution since it needs to be on Ctrl or Alt, and Alt causes other problems, like showing
+    // the popup menu every time you press alt-left.
+    //
+    // This only affects links inside the context menu, which is currently only the author link, and
+    // most people probably use middle-click anyway, so this will have to do.
+    handle_link_click(e)
+    {
+        let a = e.target.closest("A");
+        if(a == null)
+            return;
+
+        // If a previous event handler called preventDefault on this click, ignore it.
+        if(e.defaultPrevented)
+            return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        // Only change ctrl-clicks.
+        if(e.altKey || e.shiftKey || !e.ctrlKey)
+            return;
+
+        let url = new URL(a.href, document.location);
+        helpers.set_page_url(url, true, "Clicked link in context menu");
     }
 
     // Return the illust ID active in the context menu, or null if none.
