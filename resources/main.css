@@ -157,7 +157,7 @@ textarea:focus, input:focus, a:focus {
 .progress-bar {
     position: absolute;
     pointer-events: none;
-    background-color: #00F;
+    background-color: #88F;
     bottom: 0px;
     left: 0px;
     width: 100%;
