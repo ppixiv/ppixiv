@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg"
-    class="menu-button grey-icon icon-button" width="32" height="32" viewbox="0 0 32 32" style="fill: currentColor; transform-origin: 16px 16px;">
+    width="32" height="32" viewbox="0 0 32 32" style="fill: currentColor; transform-origin: 16px 16px;">
     <path d="
     m 27,17.88
     l 0,-4.112
