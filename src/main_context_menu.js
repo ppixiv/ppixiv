@@ -154,12 +154,12 @@ class main_context_menu extends popup_context_menu
         if(e.defaultPrevented)
             return;
 
-        e.preventDefault();
-        e.stopPropagation();
-
         // Only change ctrl-clicks.
         if(e.altKey || e.shiftKey || !e.ctrlKey)
             return;
+
+        e.preventDefault();
+        e.stopPropagation();
 
         let url = new URL(a.href, document.location);
         helpers.set_page_url(url, true, "Clicked link in context menu");
