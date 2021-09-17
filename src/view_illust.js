@@ -305,6 +305,15 @@ class view_illust extends view
         if(muted_tag || muted_user)
             return;
         
+        // Hack: If we were already showing a page on the same image, that means we're
+        // changing manga pages within the same post.  Don't show the preview in this
+        // case, so we don't remove the viewer and reset the zoom/pan position.
+        if(illust_id == this.current_illust_id && this.viewer != null)
+        {
+            console.log("Not showing preview because we're changing manga pages");
+            return;
+        }
+
         console.log("Show placeholder for:", illust_thumbnail_data);
         this.preview_img = document.createElement("img");
         this.preview_img.src = illust_thumbnail_data.url;
