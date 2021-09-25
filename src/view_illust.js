@@ -540,17 +540,38 @@ class view_illust extends view
         this.cancel_async_navigation();
 
         // See if we should change the manga page.
-        if(!skip_manga_pages && this.current_illust_data != null && this.current_illust_data.pageCount > 1)
+        if(!skip_manga_pages && this.wanted_illust_id != null)
         {
-            var old_page = this.wanted_illust_page;
-            var new_page = old_page + (down? +1:-1);
-            new_page = Math.max(0, Math.min(this.current_illust_data.pageCount - 1, new_page));
-            if(new_page != old_page)
+            // Figure out the number of pages in the image.
+            //
+            // Normally we'd just look at current_illust_data.  However, we can be navigated while
+            // we're still waiting for that to load, immediately after the user clicks a manga page
+            // in search results, and we don't want to eat those inputs.  Check both thumbnail info
+            // and illust info for the page count, so we can get the page count earlier.
+            let num_pages = -1;
+            let illust_thumbnail_data = thumbnail_data.singleton().get_one_thumbnail_info(this.wanted_illust_id);
+            if(illust_thumbnail_data)
+                num_pages = illust_thumbnail_data.pageCount;
+
+            if(num_pages == -1)
             {
-                main_controller.singleton.show_illust(this.current_illust_id, {
-                    manga_page: new_page,
-                });
-                return;
+                let image_info = image_data.singleton().get_image_info_sync(this.wanted_illust_id);
+                if(image_info != null)
+                    num_pages = image_info.pageCount;
+            }
+
+            if(num_pages > 1)
+            {
+                var old_page = this.wanted_illust_page;
+                var new_page = old_page + (down? +1:-1);
+                new_page = Math.max(0, Math.min(num_pages - 1, new_page));
+                if(new_page != old_page)
+                {
+                    main_controller.singleton.show_illust(this.wanted_illust_id, {
+                        manga_page: new_page,
+                    });
+                    return;
+                }
             }
         }
 

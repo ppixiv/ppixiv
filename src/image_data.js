@@ -40,9 +40,9 @@ class image_data
         this.illust_modified_callbacks.call(illust_id);
     }
 
-    // Get image data.  Call callback when it's available:
+    // Get image data asynchronously.
     //
-    // callback(image_data, user_data);
+    // await get_image_info(12345);
     //
     // User data for the illustration will be fetched, and returned as image_data.userInfo.
     // Note that user data can change (eg. when following a user), and all images for the
