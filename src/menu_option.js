@@ -24,8 +24,9 @@ class menu_option
         }
         
         new menu_option_toggle(container, {
-            label: "Bookmarking auto-likes",
-            setting: "auto-like",
+            label: "Bookmarking also likes",
+            setting: "disable-auto-like",
+            invert_display: true,
         });
 
         new menu_option_toggle(container, {

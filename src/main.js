@@ -198,6 +198,9 @@ class main_controller
 
     async setup()
     {
+        // Run any one-time settings migrations.
+        settings.migrate();
+
         // This format is used on at least /new_illust.php.
         let global_data = document.querySelector("#meta-global-data");
         if(global_data != null)

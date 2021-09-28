@@ -1,6 +1,13 @@
 // This should be inside whats_new, but Firefox is in the dark ages and doesn't support class fields.
 let _update_history = [
     {
+        version: 100,
+        text:
+            "Enabled auto-liking images on bookmark by default, to match the Pixiv mobile apps.<p>" + 
+            "<p>" +
+            "If you've previously changed this in preferences, your setting should stay the same."
+    },
+    {
         version: 97,
         text:
             "Holding Ctrl now displays the popup menu, to make it easier to use for people on touchpads.<p>" +
