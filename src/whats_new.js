@@ -3,9 +3,10 @@ let _update_history = [
     {
         version: 100,
         text:
-            "Enabled auto-liking images on bookmark by default, to match the Pixiv mobile apps.<p>" + 
+            "Enabled auto-liking images on bookmark by default, to match the Pixiv mobile apps. " + 
+            "If you've previously changed this in preferences, your setting should stay the same." +
             "<p>" +
-            "If you've previously changed this in preferences, your setting should stay the same."
+            "Added a download button for the current page when viewing manga posts."
     },
     {
         version: 97,

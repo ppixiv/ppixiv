@@ -350,15 +350,8 @@ class actions
     // Image downloading
     //
     // Download illust_data.
-    static download_illust(illust_data, progress_bar_controller)
+    static download_illust(illust_data, progress_bar_controller, download_type, manga_page)
     {
-        var download_type = actions.get_download_type_for_image(illust_data);
-        if(download_type == null)
-        {
-            console.error("No download types are available");
-            return;
-        }
-
         console.log("Download", illust_data.illustId, "with type", download_type);
 
         if(download_type == "MKV")
@@ -373,7 +366,7 @@ class actions
             return;
         }
 
-        // Download all images.
+        // If we're in ZIP mode, download all images in the post.
         //
         // Pixiv's host for images changed from i.pximg.net to i-cf.pximg.net.  This will fail currently for that
         // host, since it's not in @connect, and adding that will prompt everyone for permission.  Work around that
@@ -386,6 +379,10 @@ class actions
             images.push(url);
         }
 
+        // If we're in image mode for a manga post, only download the requested page.
+        if(download_type == "image")
+            images = [images[manga_page]];
+
         var user_data = illust_data.userInfo;
         helpers.download_urls(images, function(results) {
             // If there's just one image, save it directly.
@@ -395,7 +392,13 @@ class actions
                 var buf = results[0];
                 var blob = new Blob([results[0]]);
                 var ext = helpers.get_extension(url);
-                var filename = user_data.name + " - " + illust_data.illustId + " - " + illust_data.illustTitle + "." + ext;
+                var filename = user_data.name + " - " + illust_data.illustId;
+
+                // If this is a single page of a manga post, include the page number.
+                if(download_type == "image" && illust_data.mangaPages.length > 1)
+                    filename += " #" + (manga_page + 1);
+
+                filename += " - " + illust_data.illustTitle + "." + ext;
                 helpers.save_blob(blob, filename);
                 return;
             }
@@ -422,9 +425,9 @@ class actions
 
     static is_download_type_available(download_type, illust_data)
     {
-        // Single image downloading only works for single images.
+        // Single image downloading works for single images and manga pages.
         if(download_type == "image")
-            return illust_data.illustType != 2 && illust_data.pageCount == 1;
+            return illust_data.illustType != 2;
 
         // ZIP downloading only makes sense for image sequences.
         if(download_type == "ZIP")

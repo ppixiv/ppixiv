@@ -36,7 +36,9 @@ class image_ui
         for(var a of this.container.querySelectorAll(".button-bookmark"))
             this.bookmark_buttons.push(new bookmark_button_widget(a, a.classList.contains("private"), this.bookmark_tag_widget));
 
-        this.container.querySelector(".download-button").addEventListener("click", this.clicked_download);
+        for(let button of this.container.querySelectorAll(".download-button"))
+            button.addEventListener("click", this.clicked_download);
+        this.container.querySelector(".download-manga-button").addEventListener("click", this.clicked_download);
         this.container.querySelector(".navigate-out-button").addEventListener("click", function(e) {
             main_controller.singleton.navigate_out();
         }.bind(this));
@@ -142,12 +144,14 @@ class image_ui
         // Set the download button popup text.
         if(this.illust_data != null)
         {
-            var download_type = actions.get_download_type_for_image(this.illust_data);
-            
-            var download_button = this.container.querySelector(".download-button");
-            download_button.hidden = download_type == null;
-            if(download_type != null)
-                download_button.dataset.popup = "Download " + download_type;
+            let download_image_button = this.container.querySelector(".download-image-button");
+            download_image_button.hidden = !actions.is_download_type_available("image", this.illust_data);
+
+            let download_manga_button = this.container.querySelector(".download-manga-button");
+            download_manga_button.hidden = !actions.is_download_type_available("ZIP", this.illust_data);
+
+            let download_video_button = this.container.querySelector(".download-video-button");
+            download_video_button.hidden = !actions.is_download_type_available("MKV", this.illust_data);
         }
 
         // Set the popup for the thumbnails button.
@@ -228,7 +232,8 @@ class image_ui
         e.preventDefault();
         e.stopPropagation();
 
-        actions.download_illust(this.illust_data, this.progress_bar.controller());
+        let download_type = clicked_button.dataset.download;
+        actions.download_illust(this.illust_data, this.progress_bar.controller(), download_type, this.displayed_page);
     }
  }
 
