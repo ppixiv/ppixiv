@@ -1,6 +1,8 @@
+"use strict";
+
 // This is the viewer for static images.  We take an illust_data and show
 // either a single image or navigate between an image sequence.
-class viewer_images extends viewer
+this.viewer_images = class extends viewer
 {
     constructor(container, illust_data, options)
     {

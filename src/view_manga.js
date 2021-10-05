@@ -1,8 +1,10 @@
+"use strict";
+
 // A full page viewer for manga thumbnails.
 //
 // This is similar to the main search view.  It doesn't share code, since it
 // works differently enough that it would complicate things too much.
-class view_manga extends view
+this.view_manga = class extends view
 {
     constructor(container)
     {

@@ -1,10 +1,12 @@
+"use strict";
+
 // Get and set values in localStorage.
 //
 // We don't use GM_setValue/GM_getValue since GreaseMonkey is inconsistent and changed
 // these functions unnecessarily.  We could polyfill those with this, but that would cause
 // the storage to change if those functions are restored.  Doing it this way also allows
 // us to share settings if a user switches from GM to TM.
-class settings
+this.settings = class
 {
     static session_settings = { };
 
@@ -108,7 +110,7 @@ class settings
 }
 
 // This is thrown when an XHR request fails.
-class APIError extends Error
+this.APIError = class extends Error
 {
     constructor(message, url)
     {
@@ -118,16 +120,16 @@ class APIError extends Error
 };
 
 // This is thrown when an XHR request fails with a Pixiv error message.
-class PixivError extends APIError
+this.PixivError = class extends APIError
 {
 };
 
 // This is thrown when we disable creating blocked elements.
-class ElementDisabled extends Error
+this.ElementDisabled = class extends Error
 {
 };
 
-var helpers = {
+this.helpers = {
     blank_image: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
     
     remove_array_element: function(array, element)
@@ -452,7 +454,7 @@ var helpers = {
     // much of a dependable platform.
     block_network_requests: function()
     {
-        RealXMLHttpRequest = unsafeWindow.XMLHttpRequest;        
+        unsafeWindow.RealXMLHttpRequest = unsafeWindow.XMLHttpRequest;        
         unsafeWindow.Image = exportFunction(function() { }, unsafeWindow);
 
         class dummy_fetch
@@ -1852,7 +1854,7 @@ var helpers = {
 };
 
 // Handle maintaining and calling a list of callbacks.
-class callback_list
+this.callback_list = class
 {
     constructor()
     {
@@ -1900,7 +1902,7 @@ class callback_list
 //
 // When a view is hidden (eg. a top-level view or a UI popup), we send
 // viewhidden to it so dropdowns, etc. inside it can close.
-class view_hidden_listener
+this.view_hidden_listener = class
 {
     static send_viewhidden(element)
     {
@@ -1949,7 +1951,7 @@ class view_hidden_listener
 // If base_filter is supplied, it's a filter to apply to the top copy of the image.
 // If overlay(ctx, img) is supplied, it's a function to draw to the canvas.  This can
 // be used to mask the top copy.
-class image_canvas_filter
+this.image_canvas_filter = class
 {
     constructor(img, canvas, base_filter, overlay)
     {
@@ -2024,7 +2026,7 @@ class image_canvas_filter
 // This is used when hovering the top bar when in ui-on-hover mode, to delay the transition
 // before the UI disappears.  transition-delay isn't useful for this, since it causes weird
 // hitches when the mouse enters and leaves the area quickly.
-class hover_with_delay
+this.hover_with_delay = class
 {
     constructor(element, delay_enter, delay_exit)
     {
@@ -2065,7 +2067,7 @@ class hover_with_delay
 }
 
 // Originally from https://gist.github.com/wilsonpage/01d2eb139959c79e0d9a
-class key_storage
+this.key_storage = class
 {
     constructor(name)
     {
@@ -2171,7 +2173,7 @@ class key_storage
     }
 }
 
-class SaveScrollPosition
+this.SaveScrollPosition = class
 {
     constructor(node)
     {

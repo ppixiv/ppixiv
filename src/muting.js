@@ -1,6 +1,8 @@
+"use strict";
+
 // This handles querying whether a tag or a user is muted.  We don't handle
 // editing this list currently.
-class muting
+this.muting = class
 {
     static get singleton()
     {

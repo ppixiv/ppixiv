@@ -1,5 +1,7 @@
+"use strict";
+
 // Simple menu settings widgets.
-class menu_option
+this.menu_option = class
 {
     static add_settings(container)
     {
@@ -225,7 +227,7 @@ class menu_option_slider extends menu_option
 
 
 // A widget to control the thumbnail size slider.
-class thumbnail_size_slider_widget extends menu_option_slider
+this.thumbnail_size_slider_widget = class extends menu_option_slider
 {
     constructor(container, options)
     {

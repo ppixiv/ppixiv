@@ -1,9 +1,11 @@
+"use strict";
+
 // View img fullscreen.  Clicking the image will zoom it to its original size and scroll
 // it around.
 //
 // The image is always zoomed a fixed amount from its fullscreen size.  This is generally
 // more usable than doing things like zooming based on the native resolution.
-class on_click_viewer
+this.on_click_viewer = class
 {
     constructor()
     {

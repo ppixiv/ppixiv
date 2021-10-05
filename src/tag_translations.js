@@ -1,4 +1,6 @@
-class tag_translations
+"use strict";
+
+this.tag_translations = class
 {
     // Return the singleton, creating it if needed.
     static get()

@@ -1,4 +1,6 @@
-class seek_bar
+"use strict";
+
+this.seek_bar = class
 {
     constructor(container)
     {

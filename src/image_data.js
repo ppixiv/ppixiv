@@ -1,9 +1,11 @@
+"use strict";
+
 // This handles fetching and caching image data and associated user data.
 //
 // We always load the user data for an illustration if it's not already loaded.  We also
 // load ugoira_metadata.  This way, we can access all the info we need for an image in
 // one place, without doing multi-phase loads elsewhere.
-class image_data
+this.image_data = class
 {
     constructor()
     {

@@ -1,6 +1,7 @@
+"use strict";
 
 // Create an uncompressed ZIP from a list of files and filenames.
-create_zip = function(filenames, files)
+this.create_zip = function(filenames, files)
 {
     if(filenames.length != files.length)
         throw "Mismatched array lengths";

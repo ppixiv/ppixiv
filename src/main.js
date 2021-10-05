@@ -1,4 +1,4 @@
-var debug_show_ui = false;
+"use strict";
 
 // This runs first and sets everything else up.
 class early_controller
@@ -161,7 +161,7 @@ class early_controller
 }
 
 // This handles high-level navigation and controlling the different views.
-class main_controller
+this.main_controller = class
 {
     // We explicitly create this singleton rather than doing it on the first call to
     // singleton(), so it's explicit when it's created.

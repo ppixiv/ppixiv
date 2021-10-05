@@ -1,3 +1,5 @@
+"use strict";
+
 /*
  * The MIT License (MIT)
  * 
@@ -459,3 +461,4 @@ ZipImagePlayer.prototype = {
     }
 }
 
+this.ZipImagePlayer = ZipImagePlayer;

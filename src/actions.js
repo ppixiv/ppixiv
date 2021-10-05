@@ -1,5 +1,7 @@
+"use strict";
+
 // Global actions.
-class actions
+this.actions = class
 {
     // Set a bookmark.  Any existing bookmark will be overwritten.
     static async _bookmark_add_internal(illust_info, options)
@@ -475,4 +477,3 @@ class actions
         return bookmark_tags;
     }
 }
-

@@ -110,7 +110,7 @@ def go():
 
     # Output a JavaScript file containing the data.
     output = StringIO()
-    output.write('var resources = \n')
+    output.write('this.resources = \n')
     output.write(json.dumps(all_data, indent=4))
     output.write(';\n')
     
@@ -129,7 +129,7 @@ def go():
         encoded_data = 'data:%s;base64,%s' % (mime_type, base64.b64encode(data).decode('ascii'))
         binary_data[os.path.basename(fn)] = encoded_data
 
-    output.write('var binary_data = \n')
+    output.write('this.binary_data = \n')
     output.write(json.dumps(binary_data, indent=4))
     output.write(';\n')
 

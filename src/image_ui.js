@@ -1,5 +1,7 @@
+"use strict";
+
 // This handles the overlay UI on the illustration page.
-class image_ui
+this.image_ui = class
 {
     constructor(container, progress_bar)
     {

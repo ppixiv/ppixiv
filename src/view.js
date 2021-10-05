@@ -1,5 +1,7 @@
+"use strict";
+
 // The base class for our main views.
-class view
+this.view = class
 {
     constructor(container)
     {

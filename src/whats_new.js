@@ -1,3 +1,5 @@
+"use strict";
+
 // This should be inside whats_new, but Firefox is in the dark ages and doesn't support class fields.
 let _update_history = [
     {
@@ -121,7 +123,7 @@ let _update_history = [
     },
 ];
 
-class whats_new
+this.whats_new = class
 {
     // Return the newest revision that exists in history.  This is always the first
     // history entry.

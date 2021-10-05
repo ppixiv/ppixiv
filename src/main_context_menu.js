@@ -1,3 +1,5 @@
+"use strict";
+
 // A global right-click popup menu.
 //
 // This is only active when right clicking over items with the context-menu-target
@@ -7,7 +9,7 @@
 // for different parts of the UI to tell us when they're active.
 //
 // This also handles alt-mousewheel zooming.
-class context_menu_image_info_widget extends illust_widget
+this.context_menu_image_info_widget = class extends illust_widget
 {
     set_illust_and_page(illust_id, page)
     {
@@ -56,7 +58,7 @@ class context_menu_image_info_widget extends illust_widget
     }
 }
 
-class main_context_menu extends popup_context_menu
+this.main_context_menu = class extends popup_context_menu
 {
     // Return the singleton.
     static get get()

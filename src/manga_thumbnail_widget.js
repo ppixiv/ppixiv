@@ -1,3 +1,5 @@
+"use strict";
+
 class scroll_handler
 {
     constructor(container)
@@ -68,7 +70,7 @@ class scroll_handler
     }
 };
 
-class manga_thumbnail_widget
+this.manga_thumbnail_widget = class
 {
     constructor(container)
     {

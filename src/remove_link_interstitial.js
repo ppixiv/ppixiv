@@ -1,3 +1,5 @@
+"use strict";
+
 // Fix Pixiv's annoying link interstitials.
 //
 // External links on Pixiv go through a pointless extra page.  This seems like

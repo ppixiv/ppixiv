@@ -1,3 +1,5 @@
+"use strict";
+
 // https://github.com/lyngklip/structjs/blob/master/struct.js
 // The MIT License (MIT)
 // Copyright (c) 2016 Aksel Jensen (TheRealAksel at github)
@@ -5,7 +7,7 @@
 // This is completely unreadable.  Why would anyone write JS like this?
 
 /*eslint-env es6, node*/
-struct = (function() {
+this.struct = (function() {
     const rechk = /^([<>])?(([1-9]\d*)?([xcbB?hHiIfdsp]))*$/
     const refmt = /([1-9]\d*)?([xcbB?hHiIfdsp])/g
     const str = (v,o,c) => String.fromCharCode(

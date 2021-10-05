@@ -1,5 +1,7 @@
+"use strict";
+
 // A basic widget base class.
-class widget
+this.widget = class
 {
     constructor(container)
     {
@@ -19,7 +21,7 @@ class widget
 // A widget that shows info for a particular illust_id.
 //
 // An illust_id can be set, and we'll refresh when it changes.
-class illust_widget extends widget
+this.illust_widget = class extends widget
 {
     constructor(container)
     {
@@ -65,7 +67,7 @@ class illust_widget extends widget
 }
 
 // Display messages in the popup widget.  This is a singleton.
-class message_widget
+this.message_widget = class
 {
     static get singleton()
     {
@@ -112,7 +114,7 @@ class message_widget
 // Call a callback on any click not inside a list of nodes.
 //
 // This is used to close dropdown menus.
-class click_outside_listener
+this.click_outside_listener = class
 {
     constructor(node_list, callback)
     {
@@ -153,7 +155,7 @@ class click_outside_listener
 }
 
 // Show popup menus when a button is clicked.
-class dropdown_menu_opener
+this.dropdown_menu_opener = class
 {
     static create_handlers(container, selectors)
     {
@@ -280,7 +282,7 @@ class dropdown_menu_opener
 
 // A pointless creepy eye.  Looks away from the mouse cursor when hovering over
 // the unfollow button.
-class creepy_eye_widget
+this.creepy_eye_widget = class
 {
     constructor(eye)
     {
@@ -341,7 +343,7 @@ class creepy_eye_widget
     }
 }
 
-class avatar_widget
+this.avatar_widget = class
 {
     // options:
     // parent: node to add ourself to (required)
@@ -501,7 +503,7 @@ class avatar_widget
 };
 
 // A list of tags, with translations in popups where available.
-class tag_widget
+this.tag_widget = class
 {
     // options:
     // parent: node to add ourself to (required)
@@ -575,7 +577,7 @@ class tag_widget
 // A helper for a simple right-click context menu.
 //
 // The menu opens on right click and closes when the button is released.
-class popup_context_menu
+this.popup_context_menu = class
 {
     // Names for buttons, for storing in this.buttons_down.
     buttons = ["lmb", "mmb", "rmb"];
@@ -1018,7 +1020,7 @@ class popup_context_menu
 // A popup for inputting text.
 //
 // This is currently special purpose for the add tag prompt.
-class text_prompt
+this.text_prompt = class
 {
     constructor()
     {
@@ -1103,7 +1105,7 @@ class text_prompt
 }
 
 // Widget for editing bookmark tags.
-class bookmark_tag_list_widget extends illust_widget
+this.bookmark_tag_list_widget = class extends illust_widget
 {
     constructor(container)
     {
@@ -1337,7 +1339,7 @@ class bookmark_tag_list_widget extends illust_widget
 }
 
 // The button that shows and hides the tag list.
-class toggle_bookmark_tag_list_widget extends illust_widget
+this.toggle_bookmark_tag_list_widget = class extends illust_widget
 {
     constructor(container, bookmark_tag_widget)
     {
@@ -1365,7 +1367,7 @@ class toggle_bookmark_tag_list_widget extends illust_widget
     }
 }
 
-class bookmark_button_widget extends illust_widget
+this.bookmark_button_widget = class extends illust_widget
 {
     constructor(container, private_bookmark, bookmark_tag_widget)
     {
@@ -1461,7 +1463,7 @@ class bookmark_button_widget extends illust_widget
     }
 }
 
-class like_button_widget extends illust_widget
+this.like_button_widget = class extends illust_widget
 {
     constructor(container, private_bookmark)
     {

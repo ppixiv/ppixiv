@@ -1,3 +1,5 @@
+"use strict";
+
 // Fix Chrome's click behavior.
 //
 // Work around odd, obscure click behavior in Chrome: releasing the right mouse
@@ -11,7 +13,7 @@
 // We mimic Chrome's click detection behavior: an element is counted as a click if
 // the mouseup event is an ancestor of the element that was clicked, or vice versa.
 // This is different from Firefox which uses the distance the mouse has moved.
-class fix_chrome_clicks
+this.fix_chrome_clicks = class 
 {
     constructor(container)
     {

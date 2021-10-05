@@ -1,5 +1,7 @@
+"use strict";
+
 // This is used to display a muted image.
-class viewer_muted extends viewer
+this.viewer_muted = class extends viewer
 {
     constructor(container, illust_data)
     {

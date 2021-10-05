@@ -1,12 +1,12 @@
+"use strict";
+
 // The main UI.  This handles creating the viewers and the global UI.
-class view_illust extends view
+this.view_illust = class extends view
 {
     constructor(container)
     {
         super(container);
         
-        if(debug_show_ui) document.body.classList.add("force-ui");
-
         this.onwheel = this.onwheel.bind(this);
         this.refresh_ui = this.refresh_ui.bind(this);
         this.data_source_updated = this.data_source_updated.bind(this);
@@ -100,6 +100,8 @@ class view_illust extends view
     // If manga_page is -1, show the last page.
     async show_image(illust_id, manga_page)
     {
+        helpers.set_class(document.body,  "force-ui", unsafeWindow.debug_show_ui);
+
         // Reset the manga page change indicator when we change images.
         this.flashed_page_change = false;
 

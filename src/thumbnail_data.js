@@ -1,9 +1,11 @@
+"use strict";
+
 // This handles batch fetching data for thumbnails.
 //
 // We can load a bunch of images at once with illust_list.php.  This isn't enough to
 // display the illustration, since it's missing a lot of data, but it's enough for
 // displaying thumbnails (which is what the page normally uses it for).
-class thumbnail_data
+this.thumbnail_data = class
 {
     constructor()
     {

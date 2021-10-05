@@ -1,5 +1,7 @@
+"use strict";
+
 /* pako/lib/zlib/crc32.js, MIT license: https://github.com/nodeca/pako/ */
-var crc32 = (function() {
+this.crc32 = (function() {
     // Use ordinary array, since untyped makes no boost here
     function makeTable() {
         var c, table = [];

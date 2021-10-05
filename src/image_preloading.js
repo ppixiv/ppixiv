@@ -1,3 +1,5 @@
+"use strict";
+
 // Handle preloading images.
 //
 // If we have a reasonably fast connection and the site is keeping up, we can just preload
@@ -66,7 +68,7 @@ class _xhr_preloader extends _preloader
 }
 
 // The image preloader singleton.
-class image_preloader
+this.image_preloader = class
 {
     // Return the singleton, creating it if needed.
     static get singleton()

@@ -1,4 +1,6 @@
-class viewer_ugoira extends viewer
+"use strict";
+
+this.viewer_ugoira = class extends viewer
 {
     constructor(container, illust_data, seek_bar, options)
     {

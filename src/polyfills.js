@@ -1,4 +1,6 @@
-var install_polyfills = function()
+"use strict";
+
+this.install_polyfills = function()
 {
     // Return true if name exists, eg. GM_xmlhttpRequest.
     var script_global_exists = function(name)

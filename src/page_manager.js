@@ -1,3 +1,5 @@
+"use strict";
+
 // This handles:
 //
 // - Keeping track of whether we're active or not.  If we're inactive, we turn off
@@ -26,7 +28,7 @@
 // store state that exists in the underlying page, and hash args to store state that
 // doesn't, so the URL remains valid for the actual Pixiv page if our UI is turned off.
 
-class page_manager
+this.page_manager = class
 {
     constructor()
     {

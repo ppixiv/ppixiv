@@ -1,5 +1,7 @@
+"use strict";
+
 // Handle showing the search history and tag edit dropdowns.
-class tag_search_box_widget
+this.tag_search_box_widget = class
 {
     constructor(container)
     {
@@ -131,7 +133,7 @@ class tag_search_box_widget
     }
 }
 
-class tag_search_dropdown_widget
+this.tag_search_dropdown_widget = class
 {
     constructor(container)
     {
@@ -496,7 +498,7 @@ class tag_search_dropdown_widget
     }
 }
 
-class tag_search_edit_widget
+this.tag_search_edit_widget = class
 {
     constructor(container)
     {

@@ -1,10 +1,12 @@
+"use strict";
+
 // Encode a Pixiv video to MJPEG, using an MKV container.
 //
 // Other than having to wrangle the MKV format, this is easy: the source files appear to always
 // be JPEGs, so we don't need to do any conversions and the encoding is completely lossless (other
 // than the loss Pixiv forces by reencoding everything to JPEG).  The result is standard and plays
 // in eg. VLC, but it's not a WebM file and browsers don't support it.
-var ugoira_downloader_mjpeg = function(illust_data, progress)
+this.ugoira_downloader_mjpeg = function(illust_data, progress)
 {
     this.illust_data = illust_data;
     this.progress = progress;
@@ -22,7 +24,7 @@ var ugoira_downloader_mjpeg = function(illust_data, progress)
     });            
 }
 
-ugoira_downloader_mjpeg.prototype.zip_finished_loading = function(progress)
+this.ugoira_downloader_mjpeg.prototype.zip_finished_loading = function(progress)
 {
     if(this.progress)
     {
@@ -52,7 +54,7 @@ ugoira_downloader_mjpeg.prototype.zip_finished_loading = function(progress)
     };
 }
 
-ugoira_downloader_mjpeg.prototype.continue_saving = function(width, height)
+this.ugoira_downloader_mjpeg.prototype.continue_saving = function(width, height)
 {
     try {
         var encoder = new encode_mkv(width, height);
