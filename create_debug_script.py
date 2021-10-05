@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 import os, subprocess, sys
 
 # This builds a user script that imports each filename directly from the build
@@ -19,7 +19,7 @@ def go():
 
     def add_requires():
         # Get the list of files in the order the build script appends them.
-        all_files = subprocess.check_output(['make', '--no-print-directory', 'get_all_files'])
+        all_files = subprocess.check_output(['make', '--no-print-directory', 'get_all_files']).decode()
         files = [f.strip() for f in all_files.split(' ')]
 
         # Don't add the header, since we add it to this script below.
