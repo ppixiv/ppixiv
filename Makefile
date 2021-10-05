@@ -2,7 +2,6 @@
 
 FILES=\
     src/header.js \
-    build/resources.js \
     src/actions.js \
     src/muting.js \
     src/crc32.js \
@@ -41,6 +40,7 @@ FILES=\
     src/image_preloading.js \
     src/whats_new.js \
     src/main.js \
+    build/resources.js \
     src/footer.js
 
 all: build
