@@ -1,5 +1,5 @@
 import base64, collections, glob, json, os, re, sys
-from StringIO import StringIO
+from io import StringIO
 
 def do_replacement(line):
     m = re.match(r'^(\s*)### *inline:([^\s]+)\s*$', line)
@@ -55,7 +55,7 @@ def go():
         ext = os.path.splitext(fn)[1]
         mime_type = mime_types.get(ext, 'application/octet-stream')
 
-        encoded_data = 'data:%s;base64,%s' % (mime_type, base64.b64encode(data))
+        encoded_data = 'data:%s;base64,%s' % (mime_type, base64.b64encode(data).decode('ascii'))
         binary_data[os.path.basename(fn)] = encoded_data
 
     output.write('var binary_data = \n')
@@ -67,7 +67,7 @@ def go():
     # output has matching newlines to the rest of the source, or else the final output
     # file will have mixed newlines.
     output.seek(0)
-    data = output.buf.replace('\n', '\r\n')
+    data = output.getvalue().replace('\n', '\r\n')
     open(output_file, 'w+').write(data)
 
 go()

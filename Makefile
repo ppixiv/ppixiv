@@ -56,7 +56,7 @@ build/ppixiv-debug.user.js: Makefile
 	./create_debug_script.py $@
 
 build/resources.js: resources/* inline-resources/*
-	python create_resources.py $@
+	python3 create_resources.py $@
 
 build: build/ppixiv.user.js build/ppixiv-debug.user.js
 
