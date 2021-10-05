@@ -2136,11 +2136,11 @@ svg.heart-image .delete {
             opacity: 0;
         }
         &.flash svg {
-            animation: flash-page-change-opacity 400ms ease-in-out 1 forwards;
+            animation: flash-page-change-opacity 400ms ease-out 1 forwards;
         }
 
         &.flash svg .animated {
-            animation: flash-page-change-part 300ms ease-in-out 1 forwards;
+            animation: flash-page-change-part 300ms ease-out 1 forwards;
         }
     }
 
