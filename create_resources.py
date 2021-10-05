@@ -1,4 +1,6 @@
-import base64, collections, glob, json, os, re, sys
+import base64, collections, glob, json, os, re, sys, subprocess, random
+import sass
+from pprint import pprint
 from io import StringIO
 
 def do_replacement(line):
@@ -24,16 +26,85 @@ def replace_placeholders(data):
 
     return '\n'.join(data)
 
+def get_release_version():
+    """
+    Find "@version 1234" in src/header.js.
+    """
+    for line in open('src/header.js').readlines():
+        m = re.match(r'// @version\s*(\d+)', line)
+        if not m:
+            continue
+
+        return m.group(1)
+
+    raise Exception('Couldn\'t find @version in src/header.js')
+
+def is_git_dirty():
+    """
+    Return true if the working copy is dirty.
+    """
+    result = subprocess.run(['git', 'diff', '--quiet'])
+    return result.returncode != 0
+
+def get_git_tag():
+    """
+    Return the current git tag.
+    """
+    result = subprocess.run(['git', 'describe', '--tags', '--dirty'], capture_output=True)
+    return result.stdout.strip().decode()
+
+def get_release_version():
+    """
+    Figure out if the working copy is a release version.  If it is, return its release tag, eg. "r100".
+    Otherwise, return None.
+    """
+    # The working copy is always clean for releases.
+    if is_git_dirty():
+        return None
+
+    # The version in src/header.js (prefixed with 'r', eg. r100) will match the release tag for releases.
+    release_version = 'r' + get_release_version()
+    git_tag = get_git_tag()
+
+    if release_version == git_Tag:
+        return release_version
+
+    return None
+
 def go():
+    # Check if this is a release build.
+    release_version = get_release_version()
+
     output_file = sys.argv[1]
+
+    # When we're building for development, the source map root is the local directory containing source
+    # files.
+    #
+    # For releases, use the raw GitHub URL where the file will be on GitHub once the current tag is pushed.
+    if release_version is None:
+        # Handle Cygwin and Windows paths.
+        cwd = os.getcwd()
+        if cwd.startswith('/cygdrive/'):
+            parts = cwd.split('/')
+            cwd = '%s:/%s' % (parts[2], '/'.join(parts[3:]))
+
+        source_map_root = 'file:///' + cwd
+    else:
+        source_map_root = 'https://raw.githubusercontent.com/ppixiv/ppixiv/' + release_version
 
     # Collect resources into an OrderedDict, so we always output data in the same order.
     # This prevents the output from changing.
     all_data = collections.OrderedDict()
+
     for fn in glob.glob('resources/*'):
-        data = open(fn).read()
-        if fn == 'resources/main.html':
-            data = replace_placeholders(data)
+        _, ext = os.path.splitext(fn)
+
+        if ext in ('.css', '.scss'):
+            data = sass.compile(filename=fn, source_comments=True, source_map_embed=True, source_map_root=source_map_root)
+        else:
+            data = open(fn).read()
+            if fn == 'resources/main.html':
+                data = replace_placeholders(data)
 
         all_data[os.path.basename(fn)] = data
 
