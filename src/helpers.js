@@ -1185,7 +1185,7 @@ this.helpers = {
     fix_pixiv_link: function(link)
     {
         // These can either be /jump.php?url or /jump.php?url=url.
-        url = new URL(link);
+        let url = new URL(link);
         if(url.pathname != "/jump.php")
             return link;
         if(url.searchParams.has("url"))
