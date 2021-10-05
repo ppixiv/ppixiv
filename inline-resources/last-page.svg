@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 32" width="64" height="128"
+    class="last-page"
+>
+    <defs>
+        <g id="foo">
+            <g id="last-page-p1" fill="none" >
+                <path d="M2 6 l 0 20" />
+            </g>
+            <g id="last-page-p2" fill="none" >
+                <path d="M14 8 l -8 +8 l +8 +8" />
+            </g>
+        </g>
+    </defs>
+    
+    <style>
+    .last-page .outline {
+        stroke: #000;
+        stroke-width: 3;
+    }
+    .last-page .fill {
+        stroke: #fff;
+        stroke-width: 2;
+    }
+    </style>
+
+    <g
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        transform="scale(1 1)"
+        transform-origin="center center"
+    >
+        <!-- | -->
+        <g class="bar">
+            <use href="#last-page-p1" class="outline" />
+            <use href="#last-page-p1" class="fill" />
+        </g>
+
+        <!-- < -->
+        <g class="animated" transform="translate(0 0)">
+            <use href="#last-page-p2" class="outline" />
+            <use href="#last-page-p2" class="fill" />
+        </g>
+    </g>
+</svg>

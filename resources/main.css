@@ -2032,3 +2032,55 @@ svg.heart-image .delete {
     margin: 1em 0;
     padding: 0 20px; /* inset horizontally a bit */
 }
+
+.view-illust-container .page-change-indicator {
+    position: absolute;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    pointer-events: none;
+}
+
+.view-illust-container .page-change-indicator[data-side="left"] {
+    margin-left: 20px;
+    left: 0;
+}
+
+.view-illust-container .page-change-indicator[data-side="right"] {
+    margin-right: 20px;
+    right: 0;
+}
+
+.view-illust-container .page-change-indicator[data-side="right"] svg {
+    transform-origin: center center;
+    transform: scale(-1, 1);
+}
+
+.view-illust-container .page-change-indicator svg {
+    opacity: 0;
+}
+.view-illust-container .page-change-indicator.flash svg {
+    animation: flash-page-change-opacity 400ms ease-in-out 1 forwards;
+}
+
+.view-illust-container .page-change-indicator.flash svg .animated {
+    animation: flash-page-change-part 300ms ease-in-out 1 forwards;
+}
+
+@keyframes flash-page-change-opacity {
+    0%   { opacity: 1; }
+    40%  { opacity: 1; }
+    80%  { opacity: 0; }
+}
+
+@keyframes flash-page-change-part {
+    0%   { transform: translate( 0, 0px); }
+    20%  { transform: translate(-4px, 0px); }
+    100% { transform: translate( 0, 0px); }
+}
+
+/* Hide the | portion of >| when showing last page rather than end of results. */
+.page-change-indicator[data-icon="last-page"] svg .bar {
+    display: none;
+}
+

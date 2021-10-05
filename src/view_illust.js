@@ -42,6 +42,13 @@ class view_illust extends view
         image_data.singleton().illust_modified_callbacks.register(this.refresh_ui);
         settings.register_change_callback("recent-bookmark-tags", this.refresh_ui);
 
+        // Remove the "flash" class when the page change indicator's animation finishes.
+        let page_change_indicator = this.container.querySelector(".page-change-indicator");
+        page_change_indicator.addEventListener("animationend", (e) => {
+            console.log("done", e.target);
+            page_change_indicator.classList.remove("flash");
+        });
+
         new hide_mouse_cursor_on_idle(this.container.querySelector(".mouse-hidden-box"));
 
         // this.manga_thumbnails = new manga_thumbnail_widget(this.container.querySelector(".manga-thumbnail-container"));
@@ -53,6 +60,7 @@ class view_illust extends view
         this.seek_bar = new seek_bar(this.container.querySelector(".ugoira-seek-bar"));
 
         this.active = false;
+        this.flashed_page_change = false;
     }
 
     set_data_source(data_source)
@@ -92,6 +100,9 @@ class view_illust extends view
     // If manga_page is -1, show the last page.
     async show_image(illust_id, manga_page)
     {
+        // Reset the manga page change indicator when we change images.
+        this.flashed_page_change = false;
+
         // If we previously set a pending navigation, this navigation overrides it.
         this.cancel_async_navigation();
 
@@ -166,7 +177,7 @@ class view_illust extends view
         // If the illust ID isn't changing, just update the viewed page.
         if(illust_id == this.current_illust_id && this.viewer != null)
         {
-            console.log("Image ID not changed, setting page", this.wanted_illust_page);
+            console.log("Image ID not changed, setting page", this.wanted_illust_page, "of image", this.current_illust_id);
             this._hide_image = false;
             this.viewer.page = this.wanted_illust_page;
             if(this.manga_thumbnails)
@@ -416,6 +427,8 @@ class view_illust extends view
             main_context_menu.get.user_info = null;
             main_context_menu.get.page = -1;
             
+            this.flashed_page_change = false;
+
             return;
         }
 
@@ -540,6 +553,7 @@ class view_illust extends view
         this.cancel_async_navigation();
 
         // See if we should change the manga page.
+        let show_leaving_manga_post = false;
         if(!skip_manga_pages && this.wanted_illust_id != null)
         {
             // Figure out the number of pages in the image.
@@ -572,6 +586,11 @@ class view_illust extends view
                     });
                     return;
                 }
+
+                // If the page didn't change, we reached the end of the manga post.  If we haven't
+                // flashed the page change indicator yet, do it now.
+                if(!this.flashed_page_change)
+                    show_leaving_manga_post = true;
             }
         }
 
@@ -582,71 +601,109 @@ class view_illust extends view
         if(navigate_from_illust_id == null)
             navigate_from_illust_id = this.current_illust_id;
 
-        // Get the next (or previous) illustration after the current one.
+        // Get the next (or previous) illustration after the current one.  This will be null if we've
+        // reached the end of the list, or if it requires loading the next page of search results.
         var new_illust_id = this.data_source.id_list.get_neighboring_illust_id(navigate_from_illust_id, down);
+        if(new_illust_id == null)
+        {
+            // We didn't have the new illustration, so we may need to load another page of search results.
+            // Find the page the current illustration is on.
+            let next_page = this.data_source.id_list.get_page_for_neighboring_illust(navigate_from_illust_id, down);
+
+            // If we can't find the next page, then the current image isn't actually loaded in
+            // the current search results.  This can happen if the page is reloaded: we'll show
+            // the previous image, but we won't have the results loaded (and the results may have
+            // changed).  Just jump to the first image in the results so we get back to a place
+            // we can navigate from.
+            //
+            // Note that we use id_list.get_first_id rather than get_current_illust_id, which is
+            // just the image we're already on.
+            if(next_page == null)
+            {
+                // We should normally know which page the illustration we're currently viewing is on.
+                console.warn("Don't know the next page for illust", navigate_from_illust_id);
+                new_illust_id = this.data_source.id_list.get_first_id();
+                main_controller.singleton.show_illust(new_illust_id);
+                return true;
+            }
+
+            console.log("Loading the next page of results:", next_page);
+
+            // The page shouldn't already be loaded.  Double-check to help prevent bugs that might
+            // spam the server requesting the same page over and over.
+            if(this.data_source.id_list.is_page_loaded(next_page))
+            {
+                console.error("Page", next_page, "is already loaded");
+                return;
+            }
+
+            // Ask the data source to load it.
+            var pending_navigation = this.pending_navigation = new Object();
+            let new_page_loaded = await this.data_source.load_page(next_page);
+
+            // If this.pending_navigation is no longer the same as pending_navigation, we navigated since
+            // we requested this load and this navigation is stale, so stop.
+            if(this.pending_navigation != pending_navigation)
+            {
+                console.error("Aborting stale navigation");
+                return;
+            }
+
+            this.pending_navigation = null;
+
+            if(new_page_loaded)
+            {
+                // Now that we've loaded data, try to find the new image again.
+                new_illust_id = this.data_source.id_list.get_neighboring_illust_id(navigate_from_illust_id, down);
+            }
+
+            console.log("Retrying navigation after data load");
+        }
+
+        // If we didn't get a page, we're at the end of the search results.  Flash the
+        // indicator to show we've reached the end and stop.
+        if(new_illust_id == null)
+        {
+            console.log("Reached the end of the list");
+            this.flash_end_indicator(down, "last-image");
+            return;
+        }
+
+        // If we're confirming leaving a manga post, do that now.  This is done after we load the
+        // new page of search results if needed, so we know whether we've actually reached the end
+        // and should show the end indicator above instead.
+        if(show_leaving_manga_post)
+        {
+            this.flashed_page_change = true;
+            this.flash_end_indicator(down, "last-page");
+
+            // Start preloading the next image, so we load faster if the user scrolls again to go
+            // to the next image.
+            if(new_illust_id != null)
+                image_data.singleton().get_image_info(new_illust_id);
+            return;
+        }
+
+        // Go to the new illustration if we have one.
         if(new_illust_id != null)
         {
-            // Show the new image.
             main_controller.singleton.show_illust(new_illust_id, {
                 manga_page: down || skip_manga_pages? 0:-1,
             });
-            return true;
         }
+    }
 
-        // That page isn't loaded.  Try to load it.
-        var next_page = this.data_source.id_list.get_page_for_neighboring_illust(navigate_from_illust_id, down);
+    flash_end_indicator(down, icon)
+    {
+        let indicator = this.container.querySelector(".page-change-indicator");
+        indicator.dataset.icon = icon;
+        indicator.dataset.side = down? "right":"left";
+        indicator.classList.remove("flash");
 
-        // If we can't find the next page, then the current image isn't actually loaded in
-        // the current search results.  This can happen if the page is reloaded: we'll show
-        // the previous image, but we won't have the results loaded (and the results may have
-        // changed).  Just jump to the first image in the results so we get back to a place
-        // we can navigate from.
-        //
-        // Note that we use id_list.get_first_id rather than get_current_illust_id, which is
-        // just the image we're already on.
-        if(next_page == null)
-        {
-            // We should normally know which page the illustration we're currently viewing is on.
-            console.warn("Don't know the next page for illust", navigate_from_illust_id);
-            new_illust_id = this.data_source.id_list.get_first_id();
-            main_controller.singleton.show_illust(new_illust_id);
-            return true;
-        }
+        // Call getAnimations() so the animation is removed immediately:
+        indicator.getAnimations();
 
-        console.log("Loading the next page of results:", next_page);
-
-        // The page shouldn't already be loaded.  Double-check to help prevent bugs that might
-        // spam the server requesting the same page over and over.
-        if(this.data_source.id_list.is_page_loaded(next_page))
-        {
-            console.error("Page", next_page, "is already loaded");
-            return;
-        }
-
-        // Ask the data source to load it.
-        var pending_navigation = this.pending_navigation = new Object();
-        if(!await this.data_source.load_page(next_page))
-        {
-            console.log("Reached the end of the list");
-            return false;
-        }
-
-        // If this.pending_navigation is no longer set to this function, we navigated since
-        // we requested this load and this navigation is stale, so stop.
-        if(this.pending_navigation != pending_navigation)
-        {
-            console.error("Aborting stale navigation");
-            return;
-        }
-
-        this.pending_navigation = null;
-
-        // If we do have an image displayed, navigate up or down based on our most recent navigation
-        // direction.  This simply retries the navigation now that we have data.
-        console.log("Retrying navigation after data load");
-        await this.move(down);
-
-        return true;
+        indicator.classList.add("flash");
     }
 }
 
