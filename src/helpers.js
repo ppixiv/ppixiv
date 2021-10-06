@@ -204,6 +204,9 @@ this.helpers = {
 
         var node = document.importNode(template.content, true).firstElementChild;
 
+        // Replace any <ppixiv-inline> inlines.
+        helpers.replace_inlines(node);
+        
         // Make all IDs in the template we just cloned unique.
         for(var svg of node.querySelectorAll("svg"))
             helpers.make_svg_ids_unique(svg);
@@ -211,6 +214,63 @@ this.helpers = {
         return node;
     },
 
+    // Find <ppixiv-inline> elements inside root, and replace them with elements
+    // from resources.
+    //
+    // <ppixiv-inline src=image.svg></ppixiv-inline>
+    _resource_cache: {},
+    replace_inlines(root)
+    {
+        for(let element of root.querySelectorAll("ppixiv-inline"))
+        {
+            let src = element.getAttribute("src");
+
+            // Find the resource.
+            let resource = resources[src];
+            if(resource == null)
+            {
+                console.error("Unknown resource \"" + src + "\" in", element);
+                continue;
+            }
+
+            // Parse this element if we haven't done so yet.
+            // If we haven't parsed this 
+            if(!helpers._resource_cache[src])
+            {
+                // resource is HTML.  Parse it by adding it to a <div>.
+                let div = document.createElement("div");
+                div.innerHTML = resource;
+                let node = div.firstElementChild;
+                node.remove();
+
+                // Cache the result, so we don't re-parse the node every time we create one.
+                helpers._resource_cache[src] = node;
+            }
+
+            // Import the cached node to make a copy, then replace the <ppixiv-inline> element
+            // with it.
+            let node = helpers._resource_cache[src];
+            node = document.importNode(node, true);
+            element.replaceWith(node);
+
+            // Copy attributes from the <ppixiv-inline> node to the newly created node which
+            // is replacing it.  This can be used for simple things, like setting the id.
+            for(let attr of element.attributes)
+            {
+                if(attr.name == "src")
+                    continue;
+
+                if(node.hasAttribute(attr.name))
+                {
+                    console.error("Node", node, "already has attribute", attr);
+                    continue;
+                }
+
+                node.setAttribute(attr.name, attr.value);
+            }
+        }
+    },
+    
     // SVG has a big problem: it uses IDs to reference its internal assets, and that
     // breaks if you inline the same SVG more than once in a while.  Making them unique
     // at build time doesn't help, since they break again as soon as you clone a template.

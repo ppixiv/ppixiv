@@ -343,6 +343,7 @@ this.main_controller = class
        
         // Create the page from our HTML resource.
         document.body.insertAdjacentHTML("beforeend", resources['resources/main.html']);
+        helpers.replace_inlines(document.body);
 
         // Create the shared title and page icon.
         document.head.appendChild(document.createElement("title"));

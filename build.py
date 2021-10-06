@@ -51,29 +51,6 @@ source_files = [
     'src/main.js',
 ]
 
-def do_replacement(line):
-    m = re.match(r'^(\s*)### *inline:([^\s]+)\s*$', line)
-    if m is None:
-        return None
-    resource_filename = m.group(2)
-    inline_data = open('inline-resources/%s' % resource_filename, 'r').read()
-    return inline_data
-
-def replace_placeholders(data):
-    # Expand inline placeholders to the contents of files in inline-resources:
-    #
-    # <!-- #inline:filename -->
-    #
-    # These must be on a line by themselves.
-    data = data.split('\n')
-
-    for idx, line in enumerate(data):
-        replaced_data = do_replacement(line)
-        if replaced_data is not None:
-            data[idx] = replaced_data
-
-    return '\n'.join(data)
-
 def get_git_tag():
     """
     Return the current git tag.
@@ -184,8 +161,6 @@ class Build(object):
 
             else:
                 data = open(fn).read()
-                if fn == 'resources/main.html':
-                    data = replace_placeholders(data)
 
             # JSON makes these text resources hard to read.  Instead, put them in backticks, escaping
             # the contents.
