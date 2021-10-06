@@ -560,7 +560,7 @@ this.helpers = {
             {
                 if(options == null || !options.pp)
                 {
-                    console.warn("Disabling createElement " + type);
+                    // console.warn("Disabling createElement " + type);
                     throw new ElementDisabled("Element disabled");
                 }
             }
@@ -572,7 +572,15 @@ this.helpers = {
         // This is crazy: the error event doesn't actually receive the unhandled exception.
         // We have to examine the message to guess whether an error is ours.
         unsafeWindow.addEventListener("error", (e) => {
-            if(e.message.indexOf("Element disabled") == -1)
+            if(e.message && e.message.indexOf("Element disabled") == -1)
+                return;
+
+            e.preventDefault();
+            e.stopPropagation();
+        }, true);
+
+        window.addEventListener("unhandledrejection", (e) => {
+            if(e.reason.message != "Element disabled")
                 return;
 
             e.preventDefault();
