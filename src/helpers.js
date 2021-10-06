@@ -215,12 +215,30 @@ this.helpers = {
     },
 
     // Find <ppixiv-inline> elements inside root, and replace them with elements
-    // from resources.
+    // from resources:
     //
     // <ppixiv-inline src=image.svg></ppixiv-inline>
+    //
+    // Also replace <img src="ppixiv:name"> with resource text.  This is used for images.
     _resource_cache: {},
     replace_inlines(root)
     {
+        for(let element of root.querySelectorAll("img"))
+        {
+            let src = element.getAttribute("src");
+            if(!src || !src.startsWith("ppixiv:"))
+                continue;
+
+            let name = src.substr(7);
+            let resource = resources[name];
+            if(resource == null)
+            {
+                console.error("Unknown resource \"" + name + "\" in", element);
+                continue;
+            }
+            element.setAttribute("src", resource);
+        }
+
         for(let element of root.querySelectorAll("ppixiv-inline"))
         {
             let src = element.getAttribute("src");
@@ -1831,7 +1849,7 @@ this.helpers = {
         if(user_data == null && illust_data != null)
             user_data = illust_data.userInfo;
 
-        helpers.set_page_icon(user_data && user_data.isFollowed? resources['binary/favorited_icon.png']:resources['binary/regular_pixiv_icon.png']);
+        helpers.set_page_icon(user_data && user_data.isFollowed? resources['resources/favorited-icon.png']:resources['resources/regular-pixiv-icon.png']);
     },
 
     set_title_and_icon(illust_data, user_data)

@@ -158,7 +158,17 @@ class Build(object):
                     # url = 'data:application/json;base64,%s' % encoded_source_map
                     url = self.get_source_root_url() + '/' + source_map_filename
                     data += "\n/*# sourceMappingURL=%s */" % url
+            elif ext in ('.png', ):
+                mime_types = {
+                    '.png': 'image/png',
+                }
 
+                data = open(fn, 'rb').read()
+
+                ext = os.path.splitext(fn)[1]
+                mime_type = mime_types.get(ext, 'application/octet-stream')
+
+                data = 'data:%s;base64,%s' % (mime_type, base64.b64encode(data).decode('ascii'))
             else:
                 data = open(fn).read()
 
@@ -167,20 +177,6 @@ class Build(object):
             escaped_data = re.sub(r'''(['"`$])''', r'\\\1', data)
             encoded_data = "`" + escaped_data + "`"
             resources[fn] = encoded_data
-
-        # Encode binary resources to data URLs.
-        mime_types = {
-            '.png': 'image/png',
-            '.svg': 'image/svg+xml',
-        }
-        for fn in glob.glob('binary/*'):
-            data = open(fn, 'rb').read()
-
-            ext = os.path.splitext(fn)[1]
-            mime_type = mime_types.get(ext, 'application/octet-stream')
-
-            encoded_data = 'data:%s;base64,%s' % (mime_type, base64.b64encode(data).decode('ascii'))
-            resources[fn] = json.dumps(encoded_data, indent=4)
 
         # In release builds, resources are added to this.resources in the same way as source.
         #

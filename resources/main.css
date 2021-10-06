@@ -1021,6 +1021,13 @@ li.thumbnail-box {
         vertical-align: middle;
     }
 
+    &:hover .regular {
+        display: none;
+    }
+    &:not(:hover) .hover {
+        display: none;
+    }
+
     .page-count {
         vertical-align: middle;
         margin-left: -4px;

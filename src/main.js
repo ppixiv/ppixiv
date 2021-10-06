@@ -82,12 +82,7 @@ class early_controller
 
     dom_content_loaded(e)
     {
-        try {
-            this.setup();
-        } catch(e) {
-            // GM error logs don't make it to the console for some reason.
-            console.log(e);
-        }
+        this.setup();
     }
 
     temporarily_hide_document()
@@ -149,7 +144,7 @@ class early_controller
         // On most pages, we show our button in the top corner to enable us on that page.  Clicking
         // it on a search page will switch to us on the same search.
         var disabled_ui = helpers.create_node(resources['resources/disabled.html']);
-        helpers.add_style('.ppixiv-disabled-ui > a { background-image: url("' + resources['binary/activate-icon.png'] + '"); };');
+        helpers.replace_inlines(disabled_ui);
 
         // If we're on a page that we don't support, like the top page, rewrite the link to switch to
         // a page we do support.
@@ -332,11 +327,8 @@ this.main_controller = class
         document.documentElement.hidden = false;
 
         // Add binary resources as CSS styles.
-        helpers.add_style('body .noise-background { background-image: url("' + resources['binary/noise.png'] + '"); };');
-        helpers.add_style('body.light .noise-background { background-image: url("' + resources['binary/noise-light.png'] + '"); };');
-        helpers.add_style('.ugoira-icon { background-image: url("' + resources['binary/play-button.svg'] + '"); };');
-        helpers.add_style('.page-icon { background-image: url("' + resources['binary/page-icon.png'] + '"); };');
-        helpers.add_style('.page-count-box:hover .page-icon { background-image: url("' + resources['binary/page-icon-hover.png'] + '"); };');
+        helpers.add_style('body .noise-background { background-image: url("' + resources['resources/noise.png'] + '"); };');
+        helpers.add_style('body.light .noise-background { background-image: url("' + resources['resources/noise-light.png'] + '"); };');
         
         // Add the main CSS style.
         helpers.add_style(resources['resources/main.css']);
