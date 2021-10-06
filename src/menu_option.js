@@ -119,7 +119,7 @@ this.menu_option = class
     }            
 }
 
-class menu_option_toggle extends menu_option
+class menu_option_toggle extends this.menu_option
 {
     constructor(container, options)
     {
@@ -172,7 +172,7 @@ class menu_option_toggle_light_theme extends menu_option_toggle
     }
 }
 
-class menu_option_slider extends menu_option
+class menu_option_slider extends this.menu_option
 {
     constructor(container, options)
     {

@@ -1,7 +1,7 @@
 "use strict";
 
 // The main UI.  This handles creating the viewers and the global UI.
-this.view_illust = class extends view
+this.view_illust = class extends this.view
 {
     constructor(container)
     {

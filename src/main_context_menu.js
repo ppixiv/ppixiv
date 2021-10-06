@@ -9,7 +9,7 @@
 // for different parts of the UI to tell us when they're active.
 //
 // This also handles alt-mousewheel zooming.
-this.context_menu_image_info_widget = class extends illust_widget
+this.context_menu_image_info_widget = class extends this.illust_widget
 {
     set_illust_and_page(illust_id, page)
     {
@@ -58,7 +58,7 @@ this.context_menu_image_info_widget = class extends illust_widget
     }
 }
 
-this.main_context_menu = class extends popup_context_menu
+this.main_context_menu = class extends this.popup_context_menu
 {
     // Return the singleton.
     static get get()

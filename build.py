@@ -11,7 +11,6 @@ from io import StringIO
 
 # Source files will be loaded in the order they're listed.
 source_files = [
-    'build/resources.js',
     'src/actions.js',
     'src/muting.js',
     'src/crc32.js',
@@ -84,18 +83,25 @@ def get_git_tag():
 
 class Build(object):
     github_root = 'https://raw.githubusercontent.com/ppixiv/ppixiv/'
-    environment_filename = 'build/environment.js'
+    setup_filename = 'build/setup.js'
+    debug_resources_path = 'build/resources.js'
 
     def build(self):
         # If the working copy isn't clean, this isn't a release.
-        result = subprocess.run(['git', 'diff', '--quiet'])
-        self.is_release = result.returncode == 0
+        result = subprocess.run(['git', 'status', '--porcelain', '--untracked-files=no'], capture_output=True)
+        is_clean = len(result.stdout) == 0
+        self.is_release = is_clean
+
+        if len(sys.argv) > 1 and sys.argv[1] == '--release':
+            self.is_release = True
+
         if self.is_release:
             self.git_tag = get_git_tag()
 
-        self.build_resources()
-        self.build_dist()
-        self.create_debug_script()
+        self.create_environment()
+        self.resources = self.build_resources()
+        self.build_release()
+        self.build_debug()
 
     def get_source_root_url(self):
         """
@@ -116,6 +122,22 @@ class Build(object):
 
         return 'file:///' + cwd
 
+    def create_environment(self):
+        print('Building: %s' % self.setup_filename)
+
+        # Output the environment file for bootstrap.js.
+        environment = {
+            'source_files': source_files,
+        }
+
+        # The debug bootstrap code wants to know the local source path so it can add sourceURL.
+        # This doesn't need to be included in release builds.
+        if not self.is_release:
+            environment['source_root'] = self.get_source_root_url()
+
+        with open(self.setup_filename, 'w+t') as f:
+            f.write(json.dumps(environment, indent=4) + '\n')
+
     def build_resources(self):
         """
         Compile files in resource/ and inline-resource/ into build/resource.js that we can include as
@@ -124,34 +146,54 @@ class Build(object):
         These are base64-encoded and not easily read in the output file.  We should only use this for
         markup and images and not scripts, since we don't want to obfuscate code in the output.
         """
-        output_file = 'build/resources.js'
+        print('Building: %s' % self.debug_resources_path)
 
         source_map_root = self.get_source_root_url()
 
         # Collect resources into an OrderedDict, so we always output data in the same order.
         # This prevents the output from changing.
-        all_data = collections.OrderedDict()
+        resources = collections.OrderedDict()
 
         for fn in glob.glob('resources/*'):
             _, ext = os.path.splitext(fn)
 
             if ext in ('.css', '.scss'):
-                data = sass.compile(filename=fn, source_comments=True, source_map_embed=True, source_map_root=source_map_root)
+                data, source_map = sass.compile(filename=fn,
+                        source_comments=True,
+                        source_map_embed=False,
+                        source_map_filename='dummy', # or else it doesn't give us a source map
+                        omit_source_map_url=True)
+
+                # We could include source maps in release builds, but we'd need to figure out
+                # somewhere to put them, like a secondary GH repo.  It might be worth doing for
+                # source files, so we can get more useful bug reports, but TamperMonkey doesn't
+                # make that easy...
+                if not self.is_release:
+                    # Write out the source map.  Chrome does allow us to reference file:/// URLs in
+                    # source map URLs.
+                    source_map_filename = 'build/%s.map' % os.path.basename(fn)
+                    with open(source_map_filename, 'w+t') as f:
+                        f.write(source_map)
+
+                    # We can embed the source map, but the stylesheet one is pretty big (larger than the
+                    # stylesheet itself).
+                    # encoded_source_map = base64.b64encode(source_map.encode()).decode('ascii')
+                    # url = 'data:application/json;base64,%s' % encoded_source_map
+                    url = self.get_source_root_url() + '/' + source_map_filename
+                    data += "\n/*# sourceMappingURL=%s */" % url
+
             else:
                 data = open(fn).read()
                 if fn == 'resources/main.html':
                     data = replace_placeholders(data)
 
-            all_data[os.path.basename(fn)] = data
+            # JSON makes these text resources hard to read.  Instead, put them in backticks, escaping
+            # the contents.
+            escaped_data = re.sub(r'''(['"`$])''', r'\\\1', data)
+            encoded_data = "`" + escaped_data + "`"
+            resources[fn] = encoded_data
 
-        # Output a JavaScript file containing the data.
-        output = StringIO()
-        output.write('this.resources = \n')
-        output.write(json.dumps(all_data, indent=4))
-        output.write(';\n')
-        
         # Encode binary resources to data URLs.
-        binary_data = collections.OrderedDict()
         mime_types = {
             '.png': 'image/png',
             '.svg': 'image/svg+xml',
@@ -163,21 +205,31 @@ class Build(object):
             mime_type = mime_types.get(ext, 'application/octet-stream')
 
             encoded_data = 'data:%s;base64,%s' % (mime_type, base64.b64encode(data).decode('ascii'))
-            binary_data[os.path.basename(fn)] = encoded_data
+            resources[fn] = json.dumps(encoded_data, indent=4)
 
-        output.write('this.binary_data = \n')
-        output.write(json.dumps(binary_data, indent=4))
-        output.write(';\n')
+        # In release builds, resources are added to this.resources in the same way as source.
+        #
+        # In debug builds, we write them to a file that we can include with @resources, so we
+        # can update them without having to change the debug script.  Write build/resources.js
+        # for when we're in debug mode.
+        with open(self.debug_resources_path, 'w+t') as f:
+            for fn, data in resources.items():
+                f.write('this.resources["%s"] = %s;\n' % (fn, data))
 
-        # I build this in Cygwin, which means all of the text files are CRLF, but Python
-        # thinks it's on a LF system.  Manually convert newlines to CRLF, so the file we
-        # output has matching newlines to the rest of the source, or else the final output
-        # file will have mixed newlines.
-        output.seek(0)
-        data = output.getvalue().replace('\n', '\r\n')
-        open(output_file, 'w+').write(data)
+        return resources
 
-    def get_header(self, for_debug, files=[]):
+    def build_output(self, for_debug):
+        # All resources that we include in the script.
+        all_resources = list(source_files)
+
+        # Include setup.js in resources.  It's JSON data and not a source file, so it's not
+        # included in source_files.
+        all_resources = [self.setup_filename] + all_resources
+
+        # In debug builds, add resources.js to the resource list.
+        if for_debug:
+            all_resources.append(self.debug_resources_path)
+
         result = []
         with open('src/header.js', 'rt') as input_file:
             for line in input_file.readlines():
@@ -189,23 +241,6 @@ class Build(object):
 
                 result.append(line)
 
-        if for_debug:
-            # Add the GM_getResourceText permission.  Only the debug build uses this.  It
-            # isn't added to the base permissions since it might prompt people for permission.
-            # (There's no reason at all for this to even be a special permission.)
-            result.append('// @grant       GM_getResourceText')
-
-            root = self.get_source_root_url()
-
-            if files:
-                result.append('//')
-
-            result.append('// @require   %s/src/bootstrap.js' % root)
-
-            for fn in files:
-                include_line = '// @resource  %s   %s/%s' % (fn, root, fn)
-                result.append(include_line)
-
         # Add @version.
         if for_debug:
             version = 'testing'
@@ -215,38 +250,76 @@ class Build(object):
             # Version tags look like "r100".  Remove the "r" from the @version.
             assert version.startswith('r')
             version = version[1:]
-
         result.append('// @version     %s' % version)
+
+        if for_debug:
+            # Add the GM_getResourceText permission.  Only the debug build uses this.  It
+            # isn't added to the base permissions since it might prompt people for permission.
+            # (There's no reason at all for this to even be a special permission.)
+            result.append('// @grant       GM_getResourceText')
+
+            root = self.get_source_root_url()
+
+            result.append('//')
+            result.append('// @require   %s/src/bootstrap.js' % root)
+
+            for fn in all_resources:
+                include_line = '// @resource  %s   %s/%s' % (fn, root, fn)
+                result.append(include_line)
 
         result.append('// ==/UserScript==')
 
-        return '\n'.join(result)
+        if not for_debug:
+            # Encapsulate the script.
+            result.append('(function() {\n')
 
-    def build_dist(self):
+            result.append('with(this) {\n')
+            result.append('this.resources = {};\n')
+
+            output_resources = collections.OrderedDict()
+
+            # Add resources.  These are already encoded as JavaScript strings, including quotes
+            # around the string), so just add them directly.
+            for fn, data in self.resources.items():
+                output_resources[fn] = data
+
+            for fn in all_resources:
+                with open(fn, 'rt') as input_file:
+                    script = input_file.read()
+
+                    # Wrap source files in a function, so we can load them when we're ready in bootstrap.js.
+                    if fn in source_files:
+                        script = '''() => {\n%s\n};\n''' % script
+
+                    output_resources[fn] = script
+
+            for fn, data in output_resources.items():
+                data = '''this.resources["%s"] = %s;''' % (fn, data)
+                result.append(data)
+
+            # Add the bootstrap code directly.
+            bootstrap = open('src/bootstrap.js', 'rt').read()
+            result.append(bootstrap)
+
+            result.append('}\n')
+            result.append('}).call({});\n')
+
+        return '\n'.join(result) + '\n'
+
+    def build_release(self):
         """
         Build the final build/ppixiv.user.js script.
-
-        # XXX: can we load the distributed script in a similar way, is it too messy to
-        # include source in strings
-        # - would mean loading is identical in production as testing, which is useful
-        # - means we'd have correct filenames in logs
-        # - could link to github pages in sourceURL
         """
-        with open('build/ppixiv.user.js', 'w+t') as output_file:
-            header = self.get_header(for_debug=False)
+        output_file = 'build/ppixiv.user.js'
+        print('Building: %s' % output_file)
+        with open(output_file, 'w+t') as output_file:
+            header = self.build_output(for_debug=False)
             output_file.write(header)
 
-            # Encapsulate the script.
-            output_file.write('(function() {\n')
+    def build_debug(self):
+        output_file = 'build/ppixiv-debug.user.js'
+        print('Building: %s' % output_file)
 
-            for fn in source_files:
-                with open(fn, 'rt') as input_file:
-                    data = input_file.read()
-                    output_file.write(data)
-
-            output_file.write('})();')
-
-    def create_debug_script(self):
         cwd = os.getcwd()
 
         # I only run this in Cygwin.  This would need adjustment for native Python.
@@ -256,44 +329,9 @@ class Build(object):
         assert cwd[1] == '/'
         cwd = 'file:///' + cwd[0] + ':' + cwd[1:] + '/'
 
-        # Include build/environment.js in @resources.  Don't include it in source_files.
-        lines = []
-        files = [self.environment_filename] + source_files
+        lines = self.build_output(for_debug=True)
 
-        header = self.get_header(for_debug=True, files=files)
-        lines.append(header)
+        with open(output_file, 'w+t') as f:
+            f.write(lines)
 
-        # Output the environment file for bootstrap.js.
-        environment = {
-            'source_files': source_files,
-            'source_root': self.get_source_root_url(),
-        }
-
-        with open(self.environment_filename, 'w+t') as f:
-            f.write(json.dumps(environment, indent=4) + '\n')
-
-        output = []
-        for line in lines:
-            line = line.strip()
-
-            if line == '### permissions':
-                # Add the GM_getResourceText permission.  We don't need this for the production
-                # build, but the debug build uses it.
-                output.append('// @grant       GM_getResourceText')
-
-                output.append('// @require   %s/src/bootstrap.js' % cwd)
-
-                for fn in files:
-                    include_line = '// @resource  %s   %s' % (fn, cwd + fn)
-                    output.append(include_line)
-
-            output.append(line)
-
-        output = '\r\n'.join(output)
-        output_file = 'build/ppixiv-debug.user.js'
-        open(output_file, 'w+').write(output)
-
-def go():
-    Build().build()
-
-go()
+Build().build()

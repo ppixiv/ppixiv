@@ -120,7 +120,7 @@ this.APIError = class extends Error
 };
 
 // This is thrown when an XHR request fails with a Pixiv error message.
-this.PixivError = class extends APIError
+this.PixivError = class extends this.APIError
 {
 };
 
@@ -1771,7 +1771,7 @@ this.helpers = {
         if(user_data == null && illust_data != null)
             user_data = illust_data.userInfo;
 
-        helpers.set_page_icon(user_data && user_data.isFollowed? binary_data['favorited_icon.png']:binary_data['regular_pixiv_icon.png']);
+        helpers.set_page_icon(user_data && user_data.isFollowed? resources['binary/favorited_icon.png']:resources['binary/regular_pixiv_icon.png']);
     },
 
     set_title_and_icon(illust_data, user_data)

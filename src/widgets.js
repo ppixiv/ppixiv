@@ -21,7 +21,7 @@ this.widget = class
 // A widget that shows info for a particular illust_id.
 //
 // An illust_id can be set, and we'll refresh when it changes.
-this.illust_widget = class extends widget
+this.illust_widget = class extends this.widget
 {
     constructor(container)
     {
@@ -1105,7 +1105,7 @@ this.text_prompt = class
 }
 
 // Widget for editing bookmark tags.
-this.bookmark_tag_list_widget = class extends illust_widget
+this.bookmark_tag_list_widget = class extends this.illust_widget
 {
     constructor(container)
     {
@@ -1339,7 +1339,7 @@ this.bookmark_tag_list_widget = class extends illust_widget
 }
 
 // The button that shows and hides the tag list.
-this.toggle_bookmark_tag_list_widget = class extends illust_widget
+this.toggle_bookmark_tag_list_widget = class extends this.illust_widget
 {
     constructor(container, bookmark_tag_widget)
     {
@@ -1367,7 +1367,7 @@ this.toggle_bookmark_tag_list_widget = class extends illust_widget
     }
 }
 
-this.bookmark_button_widget = class extends illust_widget
+this.bookmark_button_widget = class extends this.illust_widget
 {
     constructor(container, private_bookmark, bookmark_tag_widget)
     {
@@ -1463,7 +1463,7 @@ this.bookmark_button_widget = class extends illust_widget
     }
 }
 
-this.like_button_widget = class extends illust_widget
+this.like_button_widget = class extends this.illust_widget
 {
     constructor(container, private_bookmark)
     {

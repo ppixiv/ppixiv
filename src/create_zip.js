@@ -68,7 +68,7 @@ this.create_zip = function(filenames, files)
     });
 };
 
-create_zip.prototype.create_local_file_header = function(filename, file, crc)
+this.create_zip.prototype.create_local_file_header = function(filename, file, crc)
 {
     var data = struct("<IHHHHHIIIHH").pack(
         0x04034b50, // local file header signature
@@ -87,7 +87,7 @@ create_zip.prototype.create_local_file_header = function(filename, file, crc)
     return new Blob([data, filename]);
 };
 
-create_zip.prototype.create_central_directory_entry = function(filename, file, file_offset, crc)
+this.create_zip.prototype.create_central_directory_entry = function(filename, file, file_offset, crc)
 {
     var data = struct("<IHHHHHHIIIHHHHHII").pack(
         0x02014b50, // central file header signature
@@ -112,7 +112,7 @@ create_zip.prototype.create_central_directory_entry = function(filename, file, f
     return new Blob([data, filename]);
 }
 
-create_zip.prototype.create_end_central = function(num_files, central_directory_pos, central_directory_size)
+this.create_zip.prototype.create_end_central = function(num_files, central_directory_pos, central_directory_size)
 {
     var data = struct("<IHHHHIIH").pack(
         0x06054b50, // end of central dir signature

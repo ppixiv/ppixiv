@@ -764,12 +764,12 @@ function paginate_illust_ids(illust_ids, items_per_page)
     return pages;
 }
 
-// This extends data_source with local pagination.
+// This extends this.data_source with local pagination.
 //
 // A few API calls just return all results as a big list of IDs.  We can handle loading
 // them all at once, but it results in a very long scroll box, which makes scrolling
 // awkward.  This artificially paginates the results.
-this.data_source_fake_pagination = class extends data_source
+this.data_source_fake_pagination = class extends this.data_source
 {
     get estimated_items_per_page() { return 30; }
 
@@ -800,7 +800,7 @@ this.data_source_fake_pagination = class extends data_source
 //
 // The API call returns 1000 entries.  We don't do pagination, we just show the 1000 entries
 // and then stop.  I haven't checked to see if the API supports returning further pages.
-this.data_source_discovery = class extends data_source_fake_pagination
+this.data_source_discovery = class extends this.data_source_fake_pagination
 {
     get name() { return "discovery"; }
 
@@ -849,7 +849,7 @@ this.data_source_discovery = class extends data_source_fake_pagination
 // This can also be used to view recommendations based on a specific user.  Note that if we're
 // doing this, we don't show things like the artist's avatar in the corner, so it doesn't look
 // like the images we're showing are by that user.
-this.data_source_discovery_users = class extends data_source
+this.data_source_discovery_users = class extends this.data_source
 {
     get name() { return "discovery_users"; }
 
@@ -1039,7 +1039,7 @@ this.data_source_discovery_users = class extends data_source
 //
 // This returns a big chunk of results in one call, so we use data_source_fake_pagination
 // to break it up.
-this.data_source_related_illusts = class extends data_source_fake_pagination
+this.data_source_related_illusts = class extends this.data_source_fake_pagination
 {
     get name() { return "related-illusts"; }
    
@@ -1115,7 +1115,7 @@ this.data_source_related_illusts = class extends data_source_fake_pagination
 // An exception is that we load the previous and next days from the page.  This is better
 // than using our current date, since it makes sure we have the same view of time as
 // the search results.
-this.data_source_rankings = class extends data_source
+this.data_source_rankings = class extends this.data_source
 {
     constructor(url)
     {
@@ -1336,7 +1336,7 @@ this.data_source_rankings = class extends data_source
 // All of these work the same way.  We keep the current URL (ignoring the hash) synced up
 // as a valid page URL that we can load.  If we change pages or other search options, we
 // modify the URL appropriately.
-this.data_source_from_page = class extends data_source
+this.data_source_from_page = class extends this.data_source
 {
     // The constructor receives the original HTMLDocument.
     constructor(url, doc)
@@ -1469,7 +1469,7 @@ this.data_source_from_page = class extends data_source
 //
 // However, we can only do searching and filtering on the user page, and that's
 // where we land when we load a link to the user.
-this.data_source_artist = class extends data_source
+this.data_source_artist = class extends this.data_source
 {
     get name() { return "artist"; }
   
@@ -1792,7 +1792,7 @@ this.data_source_artist = class extends data_source
 //
 // This reads data from a page, but we don't use data_source_from_page here.  We
 // don't need its pagination logic, and we do want to have pagination from data_source_fake_pagination.
-this.data_source_current_illust = class extends data_source_fake_pagination
+this.data_source_current_illust = class extends this.data_source_fake_pagination
 {
     get name() { return "illust"; }
 
@@ -1995,7 +1995,7 @@ this.data_source_current_illust = class extends data_source_fake_pagination
 //
 // For some reason, Pixiv only allows viewing either public or private bookmarks,
 // and has no way to just view all bookmarks.
-this.data_source_bookmarks_base = class extends data_source
+this.data_source_bookmarks_base = class extends this.data_source
 {
     get name() { return "bookmarks"; }
   
@@ -2287,7 +2287,7 @@ this.data_source_bookmarks_base = class extends data_source
 
 // Normal bookmark querying.  This can only retrieve public or private bookmarks,
 // and not both.
-this.data_source_bookmarks = class extends data_source_bookmarks_base
+this.data_source_bookmarks = class extends this.data_source_bookmarks_base
 {
     get public_search_mode()
     {
@@ -2319,7 +2319,7 @@ this.data_source_bookmarks = class extends data_source_bookmarks_base
 
 // Merged bookmark querying.  This makes queries for both public and private bookmarks,
 // and merges them together.
-this.data_source_bookmarks_merged = class extends data_source_bookmarks_base
+this.data_source_bookmarks_merged = class extends this.data_source_bookmarks_base
 {
     get viewing_all_bookmarks() { return true; }
     get public_search_mode() { return "both"; }
@@ -2400,7 +2400,7 @@ this.data_source_bookmarks_merged = class extends data_source_bookmarks_base
 }
 
 // new_illust.php
-this.data_source_new_illust = class extends data_source
+this.data_source_new_illust = class extends this.data_source
 {
     get name() { return "new_illust"; }
 
@@ -2501,7 +2501,7 @@ this.data_source_new_illust = class extends data_source
 }
 
 // bookmark_new_illust.php, bookmark_new_illust_r18.php
-this.data_source_bookmarks_new_illust = class extends data_source_from_page
+this.data_source_bookmarks_new_illust = class extends this.data_source_from_page
 {
     get name() { return "bookmarks_new_illust"; }
 
@@ -2620,7 +2620,7 @@ this.data_source_bookmarks_new_illust = class extends data_source_from_page
 // page and API, "/ajax/search/top/TAG".  It doesn't actually seem to be a rankings
 // page and just shows the same thing as the others with a different layout, so we
 // ignore this and treat it like "artworks".
-this.data_source_search = class extends data_source
+this.data_source_search = class extends this.data_source
 {
     get name() { return "search"; }
 
@@ -2979,7 +2979,7 @@ this.data_source_search = class extends data_source
      }
 };
 
-this.data_source_follows = class extends data_source
+this.data_source_follows = class extends this.data_source
 {
     get name() { return "following"; }
     get search_mode() { return "users"; }
@@ -3168,7 +3168,7 @@ this.data_source_follows = class extends data_source
 // bookmark_detail.php
 //
 // This lists the users who publically bookmarked an illustration, linking to each users' bookmarks.
-this.data_source_related_favorites = class extends data_source_from_page
+this.data_source_related_favorites = class extends this.data_source_from_page
 {
     get name() { return "illust-bookmarks"; }
     get search_mode() { return "users"; }
@@ -3243,7 +3243,7 @@ this.data_source_related_favorites = class extends data_source_from_page
     };
 }
 
-this.data_source_search_users = class extends data_source_from_page
+this.data_source_search_users = class extends this.data_source_from_page
 {
     get name() { return "search-users"; }
     get search_mode() { return "users"; }

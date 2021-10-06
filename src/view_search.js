@@ -1,7 +1,7 @@
 "use strict";
 
 // The search UI.
-this.view_search = class extends view
+this.view_search = class extends this.view
 {
     constructor(container)
     {

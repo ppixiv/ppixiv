@@ -1,40 +1,102 @@
-"use strict";
+// Note that this file doesn't use strict, because JS language developers remove
+// useful features without a second thought.  "with" may not be used often, but
+// it's an important part of the language.
 
-// Bootstrap in debug mode.  This loads each script separately as a @resource
-// directly from the local filesystem.  This lets us read the scripts directly
-// so we can edit and refresh and not need to build anything most of the time.
-(function() {
+(() => {
+    // If we're in a release build, we're inside
+    // (function () {
+    //     with(this)
+    //     {
+    //         ...
+    //     }
+    // }.exec({});
+    //
+    // The empty {} object is our environment.  It can be assigned to as "this" at the
+    // top level of scripts, and it's included in scope using with(this) so it's searched
+    // as a global scope.
+    //
+    // If we're in a debug build, this script runs standalone, and we set up the environment
+    // here.
     console.log("ppixiv bootstrap");
     
-    // Some really grotesque libraries that Pixiv uses intercept console.log, which
-    // is completely broken: it results in every log written to the console coming
-    // from "vendors~pixiv~spa", so you can't tell where any logs come from.  This
-    // doesn't affect unsafeWindow.
-
-    // This contains the initial info we need to load.
-    let environment = JSON.parse(GM_getResourceText("build/environment.js"));
-    let source_list = environment.source_files;
-
-    // Load each source file.
-    for(let path of source_list)
-    {
-        let source = GM_getResourceText(path);
-        if(source == null)
+    // When we're loading in development mode, we get our source files as text instead
+    // of functions.  _make_load_source_file converts the source file into a function
+    // that's like the one we'd get in a release build.  Note that any locals we declare
+    // here will be visible to code, since this is executed in our scope.
+    //
+    // We can't do this inside the class, because we need with to do this.
+    let _make_load_source_file = function(__source) {
+        with(this)
         {
-            console.log("Source file missing:", path);
-            return;
+            return eval(__source);
+        }
+    };
+
+    new class
+    {
+        constructor(env)
+        {
+            // If env is the window, this script was run directly, which means this is a
+            // development build and we need to do some extra setup.  If this is a release build,
+            // the environment will be set up already.
+            if(env === window)
+                this.devel_setup();
+            else
+                this.env = env;
+
+            this.launch();
         }
 
-        // Add sourceURL to each file, so they show meaningful filenames in logs.
-        // Since we're loading the files as-is and line numbers don't change, we
-        // don't need a source map.
-        source += "\n";
-        source += "//# sourceURL=" + environment.source_root + path + "\n";
+        devel_setup()
+        {
+            // In a development build, our source and binary assets are in @resources, and we need
+            // to pull them out into an environment manually.
+            let env = {};
+            env.resources = {};
+        
+            env.resources["build/setup.js"] = JSON.parse(GM_getResourceText("build/setup.js"));
+            let setup = env.resources["build/setup.js"];
+            let source_list = setup.source_files;
 
-        // Run the source file with "this" set to unsafeWindow, so it runs the same way
-        // as a regular user script.
-        function load_source_file() { eval(source); }
-        load_source_file.call(unsafeWindow);
-    }
+            // Add the file containing binary resources to the list.
+            source_list.unshift("build/resources.js");
+
+            for(let path of source_list)
+            {
+                // Load the source file.
+                let source = GM_getResourceText(path);
+                if(source == null)
+                {
+                    console.log("Source file missing:", path);
+                    return;
+                }
+
+                // Add sourceURL to each file, so they show meaningful filenames in logs.
+                // Since we're loading the files as-is and line numbers don't change, we
+                // don't need a source map.
+                source += "\n";
+                source += "//# sourceURL=" + setup.source_root + path + "\n";
+
+                env.resources[path] = _make_load_source_file.bind(env, source);
+            }
+
+            this.env = env;
+        }
+
+        launch()
+        {
+            let setup = this.env.resources["build/setup.js"];
+            let source_list = setup.source_files;
+            unsafeWindow.ppixiv = this.env;
+
+            // Each resources["src.js"] is a function to call when we're ready for that
+            // script to load.  Set "this" to the environment.
+            for(let path of source_list)
+            {
+                let func = this.env.resources[path];
+                func.call(this.env);
+            }
+        }
+    }(this);
 })();
 

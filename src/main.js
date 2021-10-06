@@ -148,8 +148,8 @@ class early_controller
     {
         // On most pages, we show our button in the top corner to enable us on that page.  Clicking
         // it on a search page will switch to us on the same search.
-        var disabled_ui = helpers.create_node(resources['disabled.html']);
-        helpers.add_style('.ppixiv-disabled-ui > a { background-image: url("' + binary_data['activate-icon.png'] + '"); };');
+        var disabled_ui = helpers.create_node(resources['resources/disabled.html']);
+        helpers.add_style('.ppixiv-disabled-ui > a { background-image: url("' + resources['binary/activate-icon.png'] + '"); };');
 
         // If we're on a page that we don't support, like the top page, rewrite the link to switch to
         // a page we do support.
@@ -332,17 +332,17 @@ this.main_controller = class
         document.documentElement.hidden = false;
 
         // Add binary resources as CSS styles.
-        helpers.add_style('body .noise-background { background-image: url("' + binary_data['noise.png'] + '"); };');
-        helpers.add_style('body.light .noise-background { background-image: url("' + binary_data['noise-light.png'] + '"); };');
-        helpers.add_style('.ugoira-icon { background-image: url("' + binary_data['play-button.svg'] + '"); };');
-        helpers.add_style('.page-icon { background-image: url("' + binary_data['page-icon.png'] + '"); };');
-        helpers.add_style('.page-count-box:hover .page-icon { background-image: url("' + binary_data['page-icon-hover.png'] + '"); };');
+        helpers.add_style('body .noise-background { background-image: url("' + resources['binary/noise.png'] + '"); };');
+        helpers.add_style('body.light .noise-background { background-image: url("' + resources['binary/noise-light.png'] + '"); };');
+        helpers.add_style('.ugoira-icon { background-image: url("' + resources['binary/play-button.svg'] + '"); };');
+        helpers.add_style('.page-icon { background-image: url("' + resources['binary/page-icon.png'] + '"); };');
+        helpers.add_style('.page-count-box:hover .page-icon { background-image: url("' + resources['binary/page-icon-hover.png'] + '"); };');
         
         // Add the main CSS style.
-        helpers.add_style(resources['main.css']);
+        helpers.add_style(resources['resources/main.css']);
        
         // Create the page from our HTML resource.
-        document.body.insertAdjacentHTML("beforeend", resources['main.html']);
+        document.body.insertAdjacentHTML("beforeend", resources['resources/main.html']);
 
         // Create the shared title and page icon.
         document.head.appendChild(document.createElement("title"));
