@@ -174,7 +174,7 @@ class Build(object):
 
             # JSON makes these text resources hard to read.  Instead, put them in backticks, escaping
             # the contents.
-            escaped_data = re.sub(r'''(['"`$])''', r'\\\1', data)
+            escaped_data = re.sub(r'''([`$])''', r'\\\1', data)
             encoded_data = "`" + escaped_data + "`"
             resources[fn] = encoded_data
 
