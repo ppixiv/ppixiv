@@ -532,7 +532,7 @@ this.helpers = {
     // much of a dependable platform.
     block_network_requests: function()
     {
-        unsafeWindow.RealXMLHttpRequest = unsafeWindow.XMLHttpRequest;        
+        helpers.RealXMLHttpRequest = unsafeWindow.XMLHttpRequest;        
         unsafeWindow.Image = exportFunction(function() { }, unsafeWindow);
 
         class dummy_fetch
@@ -787,7 +787,7 @@ this.helpers = {
                 return;
             }
             
-            let XMLHttpRequest = unsafeWindow.RealXMLHttpRequest || unsafeWindow.XMLHttpRequest;
+            let XMLHttpRequest = helpers.RealXMLHttpRequest || unsafeWindow.XMLHttpRequest;
             var xhr = new XMLHttpRequest();
 
             if(options.signal)
