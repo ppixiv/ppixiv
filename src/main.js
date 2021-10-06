@@ -73,6 +73,22 @@ class early_controller
             });
         }
 
+        window.addEventListener("unhandledrejection", (e) => {
+            // We have to hit things with a hammer to get Pixiv's scripts to stop
+            // running, which causes a lot of errors.  Silence all errors that have
+            // a stack within Pixiv's sources.
+            let silence_error = false;
+            if(e.reason.stack && e.reason.stack.indexOf("s.pximg.net") != -1)
+                silence_error = true;
+
+            if(silence_error)
+            {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                return;
+            }
+        }, true);
+
         // Try to prevent site scripts from running, since we don't need any of it.
         if(navigator.userAgent.indexOf("Firefox") != -1)
             helpers.block_all_scripts();
