@@ -73,6 +73,14 @@ class early_controller
             });
         }
 
+        // Repair some damage one of Pixiv's libraries may have done.  It wraps all calls
+        // to console.log, etc. with its own.  This is horrible, since it breaks the file/line
+        // number display in the console.  Replace them with the originals from window, and
+        // freeze console so if this runs later it can't change them.
+        for(let func in window.console)
+            unsafeWindow.console[func] = window.console[func];
+        Object.freeze(console);
+        
         window.addEventListener("unhandledrejection", (e) => {
             // We have to hit things with a hammer to get Pixiv's scripts to stop
             // running, which causes a lot of errors.  Silence all errors that have
