@@ -588,6 +588,52 @@ this.helpers = {
         });
     },
 
+    unwrap_environment()
+    {
+        function unwrap_func(obj, name)
+        {
+            // Both prototypes and instances might be wrapped.  If this is an instance, look
+            // at the prototype to find the original.
+            let orig_func = obj.__proto__[name]? obj.__proto__[name]:obj[name];
+
+            if(!orig_func.__sentry_original__)
+                return;
+
+            while(orig_func.__sentry_original__)
+                orig_func = orig_func.__sentry_original__;
+            obj[name] = orig_func;
+        }        
+
+        try {
+            unwrap_func(document, "addEventListener");
+            unwrap_func(document, "removeEventListener");
+            unwrap_func(EventTarget.prototype, "addEventListener");
+            unwrap_func(EventTarget.prototype, "removeEventListener");
+            unwrap_func(XMLHttpRequest.prototype, "send");
+
+            // We might get here before the mangling happens, which means it might happen
+            // in the future.  Freeze the objects to prevent this.
+            Object.freeze(EventTarget.prototype);
+
+            // Some other library is doing something similarly evil, wrapping all calls to
+            // console.log, etc. with its own.  This is horrible, since it breaks the file/line
+            // number display in the console.  Replace them with the originals from window, and
+            // freeze console so if this runs later it can't change them.
+            for(let func in window.console)
+                unsafeWindow.console[func] = window.console[func];
+            Object.freeze(console);
+        } catch(e) {
+            console.error("Error unwrapping environment", e);
+        }
+
+        // Try to freeze the document.  This works in Chrome but not Firefox.
+        try {
+            Object.freeze(document);
+        } catch(e) {
+            console.error("Error unwrapping environment", e);
+        }
+    },
+    
     add_style: function(css)
     {
         var head = document.getElementsByTagName('head')[0];
