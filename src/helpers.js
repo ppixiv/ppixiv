@@ -588,16 +588,6 @@ this.helpers = {
         });
     },
 
-    // Stop all scripts from running on the page.  This only works in Firefox.  This is a basic
-    // thing for a userscript to want to do, why can't you do it in Chrome?
-    block_all_scripts: function()
-    {
-        window.addEventListener("beforescriptexecute", function(e) {
-            e.stopPropagation();
-            e.preventDefault();
-        }, true);
-    },
-
     add_style: function(css)
     {
         var head = document.getElementsByTagName('head')[0];

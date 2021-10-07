@@ -97,10 +97,6 @@ class early_controller
             }
         }, true);
 
-        // Try to prevent site scripts from running, since we don't need any of it.
-        if(navigator.userAgent.indexOf("Firefox") != -1)
-            helpers.block_all_scripts();
-
         this.temporarily_hide_document();
     }
 
