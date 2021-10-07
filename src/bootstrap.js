@@ -67,8 +67,8 @@
                 let source = GM_getResourceText(path);
                 if(source == null)
                 {
-                    console.log("Source file missing:", path);
-                    return;
+                    // launch() will show an error for this, so don't do it here too.
+                    continue;
                 }
 
                 // Add sourceURL to each file, so they show meaningful filenames in logs.
@@ -94,6 +94,12 @@
             for(let path of source_list)
             {
                 let func = this.env.resources[path];
+                if(!func)
+                {
+                    console.error("Source file missing:", path);
+                    continue;
+                }
+
                 func.call(this.env);
             }
         }
