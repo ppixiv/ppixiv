@@ -1892,13 +1892,37 @@ input.search-tags {
             cursor: pointer;
         }
     }
+
+    /* Recent bookmark tags in the popup menu: */
+    .popup-bookmark-tag-entry {
+        padding: 2px 8px;
+        display: flex;
+        cursor: pointer;
+        > .tag-name {
+            flex: 1;
+        }
+                   &.active {
+            background-color: #004;
+        }
+        body.light &.active {
+            background-color: #00c;
+            color: #fff;
+        }
+                   &.active:hover {
+            background-color: #00a;
+        }
+        body.light &.active:hover {
+            background-color: #00a;
+        }
+                   &:not(.active):hover {
+            background-color: #222;
+        }
+        body.light &:not(.active):hover {
+            background-color: #ccc;
+        }
+    }
 }
 
-.button.button-bookmark,
-.button.button-like
-{
-    /* Center the count text. */
-}
 .button.button-bookmark .count,
 .button.button-like .count
 {

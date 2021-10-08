@@ -908,37 +908,6 @@
             </div>
         </template>
 
-        <!-- Recent bookmark tags in the popup menu: -->
-        <style>
-        .popup-bookmark-tag-entry {
-            padding: 2px 8px;
-            display: flex;
-            cursor: pointer;
-        }
-                   .popup-bookmark-tag-entry.active {
-            background-color: #004;
-        }
-        body.light .popup-bookmark-tag-entry.active {
-            background-color: #00c;
-            color: #fff;
-        }
-                   .popup-bookmark-tag-entry.active:hover {
-            background-color: #00a;
-        }
-        body.light .popup-bookmark-tag-entry.active:hover {
-            background-color: #00a;
-        }
-                   .popup-bookmark-tag-entry:not(.active):hover {
-            background-color: #222;
-        }
-        body.light .popup-bookmark-tag-entry:not(.active):hover {
-            background-color: #ccc;
-        }
-
-        .popup-bookmark-tag-entry > .tag-name {
-            flex: 1;
-        }
-        </style>
         <template class=template-popup-bookmark-tag-entry>
             <div class=popup-bookmark-tag-entry style="display: flex; flex-direction: row; align-items: center; ">
                 <span class=tag-name></span>
