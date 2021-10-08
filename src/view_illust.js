@@ -435,7 +435,7 @@ this.view_illust = class extends this.view
         }
 
         // If show_image was called while we were inactive, load it now.
-        if(this.wanted_illust_id != this.current_illust_id || this.wanted_illust_page != this.viewer.page || this._hide_image)
+        if(this.wanted_illust_id != this.current_illust_id || this.viewer == null || this.wanted_illust_page != this.viewer.page || this._hide_image)
         {
             // Show the image.
             console.log("Showing illust_id", this.wanted_illust_id, "that was set while hidden");
