@@ -1777,7 +1777,34 @@ ppixiv.helpers = {
             return id;
         else
             return parts[1];
-    }
+    },
+
+    // Generate a UUID.
+    create_uuid()
+    {
+        let data = new Uint8Array(32);
+        crypto.getRandomValues(data);
+
+        // variant 1
+        data[8] &= 0b00111111;
+        data[8] |= 0b10000000;
+
+        // version 4
+        data[6] &= 0b00001111;
+        data[6] |= 4 << 4;
+
+        let result = "";
+        for(let i = 0; i < 4; ++i) result += data[i].toString(16).padStart(2, "0");
+        result += "-";
+        for(let i = 4; i < 6; ++i) result += data[i].toString(16).padStart(2, "0");
+        result += "-";
+        for(let i = 6; i < 8; ++i) result += data[i].toString(16).padStart(2, "0");
+        result += "-";
+        for(let i = 8; i < 10; ++i) result += data[i].toString(16).padStart(2, "0");
+        result += "-";
+        for(let i = 10; i < 16; ++i) result += data[i].toString(16).padStart(2, "0");
+        return result;
+    },
 };
 
 // Handle maintaining and calling a list of callbacks.

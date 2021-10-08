@@ -562,10 +562,20 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         for(var button of this.menu.querySelectorAll(".button-zoom-level"))
             button.addEventListener("click", this.clicked_zoom_level.bind(this));
 
+        this.send_button = this.menu.querySelector(".button-send-image");
+        this.send_button.addEventListener("click", (e) => {
+            let illust_id = this.effective_illust_id;
+            if(!illust_id)
+                return;
+
+            this.send_image_widget.visible = !this.send_image_widget.visible;
+        });
+
         this.bookmark_tag_widget = new bookmark_tag_list_widget(this.menu.querySelector(".popup-bookmark-tag-dropdown-container"));
         this.toggle_tag_widget = new toggle_bookmark_tag_list_widget(this.menu.querySelector(".button-bookmark-tags"), this.bookmark_tag_widget);
         this.like_button = new like_button_widget(this.menu.querySelector(".button-like"));
         this.image_info_widget = new context_menu_image_info_widget(this.menu.querySelector(".context-menu-image-info"));
+        this.send_image_widget = new send_image_widget(this.menu.querySelector(".popup-send-to-tab-container"));
 
         this.avatar_widget = new avatar_widget({
             parent: this.menu.querySelector(".avatar-widget-container"),
@@ -664,13 +674,15 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         if(!this.visible && illust_id != null)
             return;
 
-        this.like_button.illust_id = illust_id;
-        this.bookmark_tag_widget.illust_id = illust_id;
-        this.toggle_tag_widget.illust_id = illust_id;
+        this.like_button.set_illust_id(illust_id, this.effective_page);
+        this.bookmark_tag_widget.set_illust_id(illust_id, this.effective_page);
+        this.send_image_widget.set_illust_id(illust_id, this.effective_page);
+        this.toggle_tag_widget.set_illust_id(illust_id, this.effective_page);
         for(var button of this.bookmark_buttons)
-            button.illust_id = illust_id;
+            button.set_illust_id(illust_id, this.effective_page);
 
         this.image_info_widget.set_illust_and_page(this.effective_illust_id, this.effective_page);
+        helpers.set_class(this.send_button, "enabled", illust_id != null);
     }
 
     set illust_id(value)

@@ -286,6 +286,8 @@ ppixiv.main_controller = class
         // Create the illustration viewer.
         this.illust_view = new view_illust(this.container.querySelector(".view-illust-container"));
 
+        SendImage.init();
+
         this.views = {
             search: this.thumbnail_view,
             illust: this.illust_view,

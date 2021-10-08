@@ -31,13 +31,21 @@ ppixiv.illust_widget = class extends ppixiv.widget
         image_data.singleton().illust_modified_callbacks.register(this.refresh.bind(this));
     }
 
-    set illust_id(value)
+    set_illust_id(illust_id, page=-1)
     {
-        if(this._illust_id == value)
+        if(this._illust_id == illust_id && this._page == page)
             return;
-        this._illust_id = value;
+
+        this._illust_id = illust_id;
+        this._page = page;
         this.refresh();
     }
+
+    set illust_id(illust_id)
+    {
+        this.set_illust_id(illust_id);
+    }
+
     get illust_id() { return this._illust_id; }
 
     get visible()
@@ -705,14 +713,14 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
 
     // Override setting illust_id to save tags when we're closed.  Otherwise, illust_id will already
     // be cleared when we close and we won't be able to save.
-    set illust_id(value)
+    set_illust_id(illust_id, page=-1)
     {
         // If we're hiding and were previously visible, save changes.
-        if(value == null)
+        if(illust_id == null)
             this.save_current_tags();
 
-        super.illust_id = value;
-        console.log("Tag list illust_id:", value);
+        super.set_illust_id(illust_id, page);
+        console.log("Tag list illust_id:", illust_id);
     }
     
     get visible()
@@ -1047,6 +1055,383 @@ ppixiv.like_button_widget = class extends ppixiv.illust_widget
 
         var illust_data = await image_data.singleton().get_image_info(this._illust_id);
         actions.like_image(illust_data);
+    }
+}
+
+// This handles sending images from one tab to another.
+ppixiv.SendImage = class
+{
+    // This is a singleton, so we never close this channel.
+    static send_image_channel = new BroadcastChannel("ppixiv:send-image");
+
+    // A UUID we use to identify ourself to other tabs:
+    static session_uuid = helpers.create_uuid();
+
+    static known_tabs = {};
+    
+    static initialized = false;
+    static init()
+    {
+        if(this.initialized)
+            return;
+        this.initialized = true;
+
+        this.broadcast_tab_info = this.broadcast_tab_info.bind(this);
+
+        window.addEventListener("unload", this.window_onunload.bind(this));
+
+        // Let other tabs know when the info we send in tab info changes.  For resize, delay this
+        // a bit so we don't spam broadcasts while the user is resizing the window.
+        window.addEventListener("resize", (e) => {
+            if(this.broadcast_info_after_resize_timer != -1)
+                clearTimeout(this.broadcast_info_after_resize_timer);
+            this.broadcast_info_after_resize_timer = setTimeout(this.broadcast_tab_info, 250);
+        });
+        window.addEventListener("visibilitychange", this.broadcast_tab_info);
+        document.addEventListener("windowtitlechanged", this.broadcast_tab_info);
+
+        SendImage.send_image_channel.addEventListener("message", this.received_message.bind(this));
+        this.broadcast_tab_info();
+
+        this.query_tabs();
+    }
+
+    // If we're sending an image and the page is unloaded, try to cancel it.  This is
+    // only registered when we're sending an image.
+    static window_onunload(e)
+    {
+        // Tell other tabs that this tab has closed.
+        SendImage.send_message({ message: "tab-closed" });
+    }
+
+    static query_tabs()
+    {
+        SendImage.send_message({ message: "list-tabs" });
+    }
+
+    // Send an image to another tab.  action is either "preview", to show the image temporarily,
+    // or "display", to navigate to it.
+    static async send_image(illust_id, page, tab_id, action)
+    {
+        // Send everything we know about the image, so the receiver doesn't have to
+        // do a lookup.
+        let thumbnail_info = thumbnail_data.singleton().get_one_thumbnail_info(illust_id);
+        let illust_data = image_data.singleton().get_image_info_sync(illust_id);
+        let info = {
+            illust_id: illust_id,
+            thumbnail_info: thumbnail_info,
+            illust_data: illust_data,
+        };
+
+        this.send_message({
+            message: "send-image",
+            from: SendImage.session_uuid,
+            to: tab_id,
+            illust_id: illust_id,
+            page: page,
+            info: info,
+            action: action, // "preview" or "display"
+        });
+    }
+
+    static received_message(e)
+    {
+        let data = e.data;
+        if(data.message == "tab-info")
+        {
+            // Info about a new tab, or a change in visibility.
+            this.known_tabs[data.from] = {
+                visible: data.visible,
+                title: data.title,
+                windowHeight: data.windowHeight,
+                windowWidth: data.windowWidth,
+            };
+        }
+        else if(data.message == "tab-closed")
+        {
+            delete this.known_tabs[data.from];
+        }
+        else if(data.message == "list-tabs")
+        {
+            // A new tab is populating its tab list.
+            this.broadcast_tab_info();
+        }
+        else if(data.message == "send-image")
+        {
+            if(data.to != SendImage.session_uuid)
+                return;
+
+            // Register the illust info from this image.  It can have thumbnail info, image
+            // info or both, depending on what the sending page had.
+            let thumbnail_info = data.info.thumbnail_info;
+            if(thumbnail_info != null)
+                thumbnail_data.singleton().loaded_thumbnail_info([thumbnail_info], "normal");
+
+            let illust_data = data.info.illust_data;
+            if(illust_data != null)
+            {
+                // If it also has user info, add that too.  Do this before registering illust data,
+                // or image_data will request the data.  This is the only place we get user info
+                // along with illust info.
+                if(illust_data.userInfo)
+                    image_data.singleton().add_user_data(illust_data.userInfo);
+
+                image_data.singleton().add_illust_data(illust_data);
+            }
+            
+            let old_hash_args = helpers.get_hash_args(document.location);
+            let was_in_preview = old_hash_args.get("preview");
+            let do_preview = data.action == "preview";
+
+            // Show the image.
+            let url = new URL("https://www.pixiv.net/en/artworks/" + data.info.illust_id);
+            let hash_args = new unsafeWindow.URLSearchParams();
+            if(do_preview)
+                hash_args.set("preview", "1")
+            if(data.page != -1)
+                hash_args.set("page", data.page+1);
+
+            helpers.set_hash_args(url, hash_args);
+            
+            // When we first show a preview, add it to history.  If we show another image
+            // or finalize the previewed image while we're showing a preview, replace the
+            // preview history entry.
+            helpers.set_page_url(url, !was_in_preview, "sent-image");
+        }
+        else if(data.message == "hide-preview-image")
+        {
+            this.hide_preview_image();
+        }
+    }
+
+    static broadcast_tab_info()
+    {
+        this.send_message({
+            message: "tab-info",
+            visible: !document.hidden,
+            title: document.title,
+            windowWidth: window.innerWidth,
+            windowHeight: window.innerHeight,
+        });
+    }
+
+    static send_message(data, send_to_self)
+    {
+        // Include the tab ID in all messages.
+        data.from = this.session_uuid;
+        this.send_image_channel.postMessage(data);
+
+        if(send_to_self)
+        {
+            // Make a copy of data, so we don't modify the caller's copy.
+            data = JSON.parse(JSON.stringify(data));
+
+            // Set self to true to let us know that this is our own message.
+            data.self = true;
+            this.send_image_channel.dispatchEvent(new MessageEvent("message", { data: data }));
+        }
+    }
+
+    // If we're currently showing a preview image sent from another tab, back out to
+    // where we were before.
+    static hide_preview_image()
+    {
+        let old_hash_args = helpers.get_hash_args(document.location);
+        let was_in_preview = old_hash_args.get("preview");
+        if(!was_in_preview)
+            return;
+
+        // Why is history.back async and history.pushState sync?!
+        //
+        // Make sure we don't history.back() a second time before we see document.location update
+        // from this one, or we might browser back through the user's history.  This might mean that
+        // we miss a preview message, but the history API just seems to be fundamentally broken.
+        if(this.waiting_for_back)
+        {
+            console.info("Suppressing sent image preview browser back because we're waiting for a previous one");
+            return;
+        }
+
+        window.addEventListener("popstate", (e) => {
+            this.waiting_for_back = false;
+        }, { once: true });
+        this.waiting_for_back = true;
+        
+        history.back();
+    }
+};
+
+ppixiv.send_image_widget = class extends ppixiv.illust_widget
+{
+    constructor(container)
+    {
+        let contents = helpers.create_from_template(".template-popup-send-image");
+        container.appendChild(contents);
+
+        super(contents);
+
+        this.dropdown_list = this.container.querySelector(".list");
+
+        // Close the dropdown if the popup menu is closed.
+        new view_hidden_listener(this.container, (e) => { this.visible = false; });
+
+        // Refresh when the image data changes.
+        image_data.singleton().illust_modified_callbacks.register(this.refresh.bind(this));
+    }
+
+    set_illust_id(illust_id, page=-1)
+    {
+        if(this._illust_id == illust_id && this._page == page)
+            return;
+
+        this._illust_id = illust_id;
+        this._page = page;
+        this.refresh();
+    }
+
+    get visible()
+    {
+        return this.container.classList.contains("visible");
+    }
+    
+    set visible(value)
+    {
+        if(this.container.classList.contains("visible") == value)
+            return;
+
+        helpers.set_class(this.container, "visible", value);
+
+        if(value)
+        {
+            // Refresh when we're displayed.
+            this.refresh();
+        }
+        else
+        {
+            // Make sure we don't leave a tab highlighted if we're hidden.
+            this.unhighlight_tab();
+        }
+    }
+
+    // Stop highlighting a tab.
+    unhighlight_tab()
+    {
+        if(!this.previewing_image)
+            return;
+
+        this.previewing_image = false;
+        SendImage.send_message({ message: "hide-preview-image" });
+    }
+
+    refresh()
+    {
+        // Clean out the old tab list.
+        var old_tab_entries = this.container.querySelectorAll(".tab-entry");
+        for(let entry of old_tab_entries)
+            entry.remove();
+
+        // Make sure the dropdown is hidden if we have no image.
+        if(this._illust_id == null)
+            this.visible = false;
+
+        if(!this.visible)
+            return;
+
+        // Start preloading the image and image data, so it gives it a head start to be cached
+        // when the other tab displays it.  We don't need to wait for this to display our UI.
+        image_data.singleton().get_image_info(this._illust_id).then((illust_data) => {
+            helpers.preload_images([illust_data.urls.original]);
+        });
+
+        let tab_ids = Object.keys(SendImage.known_tabs);
+
+        // We'll create icons representing the aspect ratio of each tab.  This is a quick way
+        // to identify tabs when they have different sizes.  Find the max width and height of
+        // any tab, so we can scale relative to it.
+        let max_width = 1, max_height = 1;
+        for(let tab_id of tab_ids)
+        {
+            let info = SendImage.known_tabs[tab_id];
+            max_width = Math.max(max_width, info.windowWidth);
+            max_height = Math.max(max_height, info.windowHeight);
+        }
+
+        // Scale the maximum dimension of the largest tab to a fixed size, and the other
+        // tabs relative to it, so we show the relative shape and dimensions of each tab.
+        let maxDimension = 100;
+        let tabSizeRatio = maxDimension / Math.max(max_width, max_height);
+
+        // Add an entry for each tab we know about.
+        let found_any = false;
+        for(let tab_id of tab_ids)
+        {
+            let info = SendImage.known_tabs[tab_id];
+
+            // For now, only show visible tabs.
+            if(!info.visible)
+                continue;
+
+            let entry = helpers.create_from_template(".template-send-image-tab");
+            entry.dataset.tab_id = tab_id;
+
+            let width = info.windowWidth * tabSizeRatio;
+            let height = info.windowHeight * tabSizeRatio;
+            /*
+            let ratio = width / height;
+            console.log(width, height, ratio);
+            if(width > height)
+            {
+                width = 100;
+                height = width / ratio;
+            }
+            else
+            {
+                height = 100;
+                width = height * ratio;
+            }
+            */
+
+            entry.style.width = width + "px";
+            entry.style.height = height + "px";
+            entry.style.display = "block";
+
+            if(info.visible)
+                entry.classList.add("tab-visible");
+
+            // entry.querySelector(".title").innerText = info.title;
+            this.dropdown_list.appendChild(entry);
+            found_any = true;
+
+            entry.addEventListener("click", (e) => {
+                let entry = e.target.closest(".tab-entry");
+                if(!entry)
+                    return;
+
+                // On click, send the image for display, and close the dropdown.
+                SendImage.send_image(this._illust_id, this._page, entry.dataset.tab_id, "display");
+                this.visible = false;
+                this.previewing_image = false;
+            });
+
+            entry.addEventListener("mouseenter", (e) => {
+                let entry = e.target.closest(".tab-entry");
+                if(!entry)
+                    return;
+
+                SendImage.send_image(this._illust_id, this._page, entry.dataset.tab_id, "preview");
+                this.previewing_image = true;
+            });
+
+            entry.addEventListener("mouseleave", (e) => {
+                let entry = e.target.closest(".tab-entry");
+                if(!entry)
+                    return;
+
+                this.unhighlight_tab();
+            });
+        }
+
+        this.container.querySelector(".no-other-tabs").hidden = found_any;
     }
 }
 

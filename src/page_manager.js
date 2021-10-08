@@ -56,7 +56,9 @@ ppixiv.page_manager = class
 
         let first_part = helpers.get_page_type_from_url(url);
         if(first_part == "artworks")
+        {
             return data_sources.current_illust;
+        }
         else if(first_part == "users")
         {
             // This is one of:

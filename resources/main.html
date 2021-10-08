@@ -747,6 +747,23 @@
             </div>
         </template>
 
+        <!-- send_image_widget -->
+        <template class=template-popup-send-image>
+            <div class=popup-send-image-dropdown>
+                <div class=list>
+                    <div class="entry no-other-tabs" hidden>
+                        No other tabs are open
+                    </div>
+                </div>
+            </div>
+        </template>
+       
+        <template class=template-send-image-tab>
+            <div class="entry tab-entry">
+                <span class=title></span>
+            </div>
+        </template>
+        
         <template class=template-tag-dropdown>
             <div class=search-history>
                 <!-- This is to make sure there isn't a gap between the input and the dropdown,
@@ -848,6 +865,14 @@
                         <div class="button requires-zoom button-zoom-level" data-level="actual" data-popup="Zoom to actual size">
                             <ppixiv-inline src="resources/zoom-actual.svg"></ppixiv-inline>
                         </div>
+                    </div>
+                    <!-- position: relative positions the popup menu. -->
+                    <div class=button-block style="position: relative;">
+                        <div class="button button-send-image" data-level="actual" data-popup="Send to tab">
+                            <ppixiv-inline src="resources/send-to-tab.svg"></ppixiv-inline>
+                        </div>
+
+                        <div class=popup-send-to-tab-container></div>
                     </div>
                 </div>
                 <div class=button-strip>

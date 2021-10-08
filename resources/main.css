@@ -1818,6 +1818,16 @@ input.search-tags {
         & > .button-block.shift-left {
             margin-left: -56px;
         }
+
+        .button-send-image {
+            svg .arrow {
+                transition: transform ease-in-out .15s;
+            }
+
+            &.enabled:hover svg .arrow {
+                transform: translate(2px, -2px);
+            }
+        }
     }
 
     .context-menu-image-info {
@@ -2157,6 +2167,82 @@ svg.heart-image .delete {
         0%   { transform: translate( 0, 0px); }
         20%  { transform: translate(-4px, 0px); }
         100% { transform: translate( 0, 0px); }
+    }
+}
+
+.popup-send-image-dropdown {
+    position: absolute;
+    top: calc(100%);
+
+    /* Center this to the center of the button.  The list below will shift itself left by
+     * 50% of its width to center relative to this. */
+    left: 50%;
+
+    /* Put this on top of other elements, like the image-ui tag list. */
+    z-index: 1;
+
+    /* In the context menu version, nudge the tag dropdown up slightly to cover
+     * the rounded corners. */
+    top: calc(100% - 4px);
+
+    transition: transform .15s, opacity .15s;
+    transform: scale(0.85);
+    transform-origin: 0 0;
+    opacity: 0;
+
+    &.visible {
+        display: block;
+        transform: scale(1);
+        opacity: 1;
+    }
+    &:not(.visible) {
+        pointer-events: none;
+    }
+
+    .list {
+        background-color: var(--frame-bg-color);
+        color: var(--frame-fg-color);
+        padding: 10px;
+        border-radius: 15px;
+        border: 1px solid var(--minor-text-fg-color);
+
+        position: relative;
+        left: -50%;
+
+        display: inline-flex;
+        flex-direction: row;
+        gap: 10px;
+        max-height: 400px;
+        max-width: 400px;
+        /*
+        overflow-x: hidden;
+        overflow-y: auto;*/
+   
+        .tab-entry {
+            background-color: #880;
+        }
+
+        .entry {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            border-radius: 3px;
+            padding: 2px 8px;
+            display: flex;
+            cursor: pointer;
+            &:hover {
+                background-color: #222;
+            }
+            body.light &:hover {
+                background-color: #ccc;
+            }
+            &.tab-visible {
+                background-color: #0aa;
+            }
+            &.tab-visible:hover {
+                background-color: #0ff;
+            }
+        }
     }
 }
 
