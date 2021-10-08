@@ -1,0 +1,26 @@
+<svg
+    xmlns="http://www.w3.org/2000/svg"
+    xmlns:xlink="http://www.w3.org/1999/xlink"
+    width="580px" height="250px" viewBox="0 0 580 250" fill="#ff0;">
+    <defs>
+        <g id="monitors" fill="#fff" stroke-linejoin="round">
+            <g transform="translate(20 65)">
+                <path d="M 0 -5 L 160 0 L 160 90 L 0 95 L 0 0 z" />
+            </g>
+            <g transform="translate(210 65)">
+                <path d="M 0 0 H 160 V 90 H 0 V 0 z" />
+            </g>
+            <g transform="translate(400 65)">
+                <g class="rotating-monitor" transform-origin="50 50">
+                    <path d="M 0 0 L 160 -5 L 160 95 L 0 90 L 0 0 z" />
+                </g>
+            </g>
+        </g>
+    </defs>
+    <g stroke-width="18" stroke="#ccc">
+        <use xlink:href="#monitors" />
+    </g>
+    <g stroke-width="10" stroke="#000">
+        <use xlink:href="#monitors" />
+    </g>
+</svg>

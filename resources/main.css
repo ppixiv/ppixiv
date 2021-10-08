@@ -2199,6 +2199,28 @@ svg.heart-image .delete {
         pointer-events: none;
     }
 
+    .tutorial-monitor {
+        width: 290px;
+        height: 125px;
+
+        // This SVG has padding on the bottom so the rotating monitor doesn't get clipped as
+        // it turns.  Remove some of that for layout.
+        margin-bottom: -20px;
+
+        .rotating-monitor {
+            transform-origin: 75px 30px;
+            // transform: rotate(90deg);
+            animation: rotate-monitor 4500ms linear infinite;
+        }
+    }
+
+    @keyframes rotate-monitor {
+        0% { transform: rotate(0deg); }
+        10% { transform: rotate(90deg); }
+        50% { transform: rotate(90deg); }
+        60% { transform: rotate(0deg); }
+    }
+
     .list {
         background-color: var(--frame-bg-color);
         color: var(--frame-fg-color);
@@ -2214,9 +2236,6 @@ svg.heart-image .delete {
         gap: 10px;
         max-height: 400px;
         max-width: 400px;
-        /*
-        overflow-x: hidden;
-        overflow-y: auto;*/
    
         .tab-entry {
             background-color: #880;

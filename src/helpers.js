@@ -325,7 +325,20 @@ ppixiv.helpers = {
                 let value = node.getAttribute(attr);
                 
                 // See if this is an ID reference.  We don't try to parse all valid URLs
-                // here.
+                // here.  Handle url(#abcd) inside strings, and things like xlink:xref="#abcd".
+                if(attr == "xlink:href" && value.startsWith("#"))
+                {
+                    let old_id = value.substr(1);
+                    let new_id = id_map[old_id];
+                    if(new_id == null)
+                    {
+                        console.warn("Unmatched SVG ID:", old_id);
+                        continue;
+                    }
+
+                    value = "#" + new_id;
+                }
+
                 var re = /url\(#.*?\)/;
                 var new_value = value.replace(re, (str) => {
                     var re = /url\(#(.*)\)/;
