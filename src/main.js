@@ -52,20 +52,6 @@ class early_controller
         // inject polyfills into Pixiv when we're not active.
         install_polyfills();
 
-        function unwrap_func(obj, name)
-        {
-            // Both prototypes and instances might be wrapped.  If this is an instance, look
-            // at the prototype to find the original.
-            let orig_func = obj.__proto__[name]? obj.__proto__[name]:obj[name];
-
-            if(!orig_func.__sentry_original__)
-                return;
-
-            while(orig_func.__sentry_original__)
-                orig_func = orig_func.__sentry_original__;
-            obj[name] = orig_func;
-        }
-
         // Newer Pixiv pages run a bunch of stuff from deferred scripts, which install a bunch of
         // nastiness (like searching for installed polyfills--which we install--and adding wrappers
         // around them).  Break this by defining a webpackJsonp property that can't be set.  It
@@ -90,6 +76,19 @@ class early_controller
         // Try to undo any damage that's already happened.
         helpers.unwrap_environment();
         
+        window.addEventListener("error", (e) => {
+            let silence_error = false;
+            if(e.filename && e.filename.indexOf("s.pximg.net") != -1)
+                silence_error = true;
+
+            if(silence_error)
+            {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                return;
+            }
+        }, true);
+
         window.addEventListener("unhandledrejection", (e) => {
             // We have to hit things with a hammer to get Pixiv's scripts to stop
             // running, which causes a lot of errors.  Silence all errors that have

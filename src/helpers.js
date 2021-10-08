@@ -622,6 +622,13 @@ this.helpers = {
             for(let func in window.console)
                 unsafeWindow.console[func] = window.console[func];
             Object.freeze(console);
+
+            // Some Pixiv pages load jQuery and spam a bunch of error due to us stopping
+            // their scripts.  Try to replace jQuery's exception hook with an empty one to
+            // silence these.  This won't work if jQuery finishes loading after we do, but
+            // that's not currently happening, so this is all we do for now.
+            if("jQuery" in unsafeWindow)
+                jQuery.Deferred.exceptionHook = () => { };
         } catch(e) {
             console.error("Error unwrapping environment", e);
         }
