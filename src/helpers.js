@@ -1371,7 +1371,12 @@ this.helpers = {
     
     set_page_title: function(title)
     {
-        document.querySelector("title").textContent = title;
+        let title_element = document.querySelector("title");
+        if(title_element.textContent == title)
+            return;
+
+        title_element.textContent = title;
+        document.dispatchEvent(new Event("windowtitlechanged"));
     },
 
     set_page_icon: function(url)
