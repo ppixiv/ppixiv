@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-import base64, collections, glob, json, os, re, sys, subprocess, random
+import base64, collections, errno, glob, json, os, re, sys, subprocess, random
 import sass
 from pprint import pprint
 from io import StringIO
@@ -60,8 +60,8 @@ def get_git_tag():
 
 class Build(object):
     github_root = 'https://raw.githubusercontent.com/ppixiv/ppixiv/'
-    setup_filename = 'build/setup.js'
-    debug_resources_path = 'build/resources.js'
+    setup_filename = 'output/setup.js'
+    debug_resources_path = 'output/resources.js'
 
     def build(self):
         # If the working copy isn't clean, this isn't a release.
@@ -74,6 +74,14 @@ class Build(object):
 
         if self.is_release:
             self.git_tag = get_git_tag()
+
+        try:
+            os.makedirs('output')
+        except OSError as e:
+            # Why is os.makedirs "create all directories, but explode if the last one already
+            # exists"?
+            if e.errno != errno.EEXIST:
+                raise
 
         self.create_environment()
         self.resources = self.build_resources()
@@ -125,7 +133,7 @@ class Build(object):
 
     def build_resources(self):
         """
-        Compile files in resource/ and inline-resource/ into build/resource.js that we can include as
+        Compile files in resource/ and inline-resource/ into output/resource.js that we can include as
         a source file.
 
         These are base64-encoded and not easily read in the output file.  We should only use this for
@@ -156,7 +164,7 @@ class Build(object):
                 if not self.is_release:
                     # Write out the source map.  Chrome does allow us to reference file:/// URLs in
                     # source map URLs.
-                    source_map_filename = 'build/%s.map' % os.path.basename(fn)
+                    source_map_filename = 'output/%s.map' % os.path.basename(fn)
                     with open(source_map_filename, 'w+t') as f:
                         f.write(source_map)
 
@@ -189,7 +197,7 @@ class Build(object):
         # In release builds, resources are added to this.resources in the same way as source.
         #
         # In debug builds, we write them to a file that we can include with @resources, so we
-        # can update them without having to change the debug script.  Write build/resources.js
+        # can update them without having to change the debug script.  Write output/resources.js
         # for when we're in debug mode.
         with open(self.debug_resources_path, 'w+t') as f:
             for fn, data in resources.items():
@@ -287,16 +295,16 @@ class Build(object):
 
     def build_release(self):
         """
-        Build the final build/ppixiv.user.js script.
+        Build the final output/ppixiv.user.js script.
         """
-        output_file = 'build/ppixiv.user.js'
+        output_file = 'output/ppixiv.user.js'
         print('Building: %s' % output_file)
         with open(output_file, 'w+t') as output_file:
             header = self.build_output(for_debug=False)
             output_file.write(header)
 
     def build_debug(self):
-        output_file = 'build/ppixiv-debug.user.js'
+        output_file = 'output/ppixiv-debug.user.js'
         print('Building: %s' % output_file)
 
         cwd = os.getcwd()

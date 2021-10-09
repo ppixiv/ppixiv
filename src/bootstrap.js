@@ -54,12 +54,12 @@
             let env = {};
             env.resources = {};
         
-            env.resources["build/setup.js"] = JSON.parse(GM_getResourceText("build/setup.js"));
-            let setup = env.resources["build/setup.js"];
+            env.resources["output/setup.js"] = JSON.parse(GM_getResourceText("output/setup.js"));
+            let setup = env.resources["output/setup.js"];
             let source_list = setup.source_files;
 
             // Add the file containing binary resources to the list.
-            source_list.unshift("build/resources.js");
+            source_list.unshift("output/resources.js");
 
             for(let path of source_list)
             {
@@ -85,7 +85,7 @@
 
         launch()
         {
-            let setup = this.env.resources["build/setup.js"];
+            let setup = this.env.resources["output/setup.js"];
             let source_list = setup.source_files;
             unsafeWindow.ppixiv = this.env;
 
