@@ -2501,36 +2501,58 @@ this.data_source_new_illust = class extends this.data_source
 }
 
 // bookmark_new_illust.php, bookmark_new_illust_r18.php
-this.data_source_bookmarks_new_illust = class extends this.data_source_from_page
+this.data_source_bookmarks_new_illust = class extends this.data_source
 {
     get name() { return "bookmarks_new_illust"; }
 
-    constructor(url, doc)
+    constructor(url)
     {
-        super(url, doc);
+        super(url);
         this.bookmark_tags = [];
     }
 
-    // Parse the loaded document and return the illust_ids.
-    parse_document(doc)
+    async load_page_internal(page)
     {
-        this.bookmark_tags = [];
-        for(var element of doc.querySelectorAll(".menu-items a[href*='bookmark_new_illust.php?tag'] span.icon-text"))
-            this.bookmark_tags.push(element.innerText);
-        
-        var element = doc.querySelector("#js-mount-point-latest-following");
-        var items = JSON.parse(element.dataset.items);
+        let current_tag = this.url.searchParams.get("tag") || "";
+        let r18 = this.url.pathname == "/bookmark_new_illust_r18.php";
+        let result = await helpers.get_request("/ajax/follow_latest/illust", {
+            p: page,
+            tag: current_tag,
+            mode: r18? "r18":"all",
+        });
+
+        let data = result.body;
+
+        // Add translations.  This is inconsistent with their other translation APIs, because Pixiv
+        // never uses the same interface twice.  Also, this has translations only for related tags
+        // above, not for the tags used in the search, which sucks.
+        let translations = [];
+        for(let tag of Object.keys(data.tagTranslation))
+        {
+            let en = data.tagTranslation[tag].en;
+            if(en == "")
+                continue;
+            translations.push({
+                tag: tag,
+                translation: en,
+            });
+        }
+        tag_translations.get().add_translations(translations);
+
+        // Store bookmark tags.
+        this.bookmark_tags = data.page.tags;
 
         // Populate thumbnail data with this data.
-        thumbnail_data.singleton().loaded_thumbnail_info(items, "following");
+        thumbnail_data.singleton().loaded_thumbnail_info(data.thumbnails.illust, "normal");
 
-        var illust_ids = [];
-        for(var illust of items)
-            illust_ids.push(illust.illustId);
+        let illust_ids = [];
+        for(let illust of data.thumbnails.illust)
+            illust_ids.push(illust.id);
 
-        return illust_ids;
+        // Register the new page of data.
+        this.add_page(page, illust_ids);
     }
-
+    
     get page_title()
     {
         return "Following";
@@ -2544,19 +2566,19 @@ this.data_source_bookmarks_new_illust = class extends this.data_source_from_page
     refresh_thumbnail_ui(container)
     {
         // Refresh the bookmark tag list.
-        var current_tag = new URL(document.location).searchParams.get("tag") || "All";
+        let current_tag = this.url.searchParams.get("tag") || "All";
 
         var tag_list = container.querySelector(".follow-new-post-tag-list");
         helpers.remove_elements(tag_list);
 
-        var add_tag_link = function(tag)
+        let add_tag_link = (tag) =>
         {
             var a = document.createElement("a");
             a.classList.add("box-link");
             a.classList.add("following-tag");
             a.innerText = tag;
 
-            var url = new URL(document.location);
+            var url = new URL(this.url);
             if(tag != "All")
                 url.searchParams.set("tag", tag);
             else
@@ -2575,15 +2597,15 @@ this.data_source_bookmarks_new_illust = class extends this.data_source_from_page
         var all_ages_link = container.querySelector("[data-type='bookmarks-new-illust-all']");
         var r18_link = container.querySelector("[data-type='bookmarks-new-illust-ages-r18']");
 
-        var url = new URL(document.location);
+        var url = new URL(this.url);
         url.pathname = "/bookmark_new_illust.php";
         all_ages_link.href = url;
 
-        var url = new URL(document.location);
+        var url = new URL(this.url);
         url.pathname = "/bookmark_new_illust_r18.php";
         r18_link.href = url;
 
-        var url = new URL(document.location);
+        var url = new URL(this.url);
         var currently_all_ages = url.pathname == "/bookmark_new_illust.php";
         helpers.set_class(all_ages_link, "selected", currently_all_ages);
         helpers.set_class(r18_link, "selected", !currently_all_ages);
