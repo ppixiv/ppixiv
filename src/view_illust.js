@@ -674,7 +674,7 @@ this.view_illust = class extends this.view
         // If we're confirming leaving a manga post, do that now.  This is done after we load the
         // new page of search results if needed, so we know whether we've actually reached the end
         // and should show the end indicator above instead.
-        if(show_leaving_manga_post)
+        if(show_leaving_manga_post && 0)
         {
             this.flashed_page_change = true;
             this.flash_end_indicator(down, "last-page");
