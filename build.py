@@ -80,6 +80,20 @@ class Build(object):
         self.build_release()
         self.build_debug()
 
+    def get_local_root_url(self):
+        """
+        Return the file:/// path containing local source.
+
+        This is only used for development builds.
+        """
+        # Handle Cygwin and Windows paths.
+        cwd = os.getcwd()
+        if cwd.startswith('/cygdrive/'):
+            parts = cwd.split('/')
+            cwd = '%s:/%s' % (parts[2], '/'.join(parts[3:]))
+
+        return 'file:///' + cwd
+
     def get_source_root_url(self):
         """
         Return the URL used in sourceURL and source map URLs.
@@ -90,14 +104,8 @@ class Build(object):
         # For releases, use the raw GitHub URL where the file will be on GitHub once the current tag is pushed.
         if self.is_release:
             return self.github_root + self.git_tag
-
-        # Handle Cygwin and Windows paths.
-        cwd = os.getcwd()
-        if cwd.startswith('/cygdrive/'):
-            parts = cwd.split('/')
-            cwd = '%s:/%s' % (parts[2], '/'.join(parts[3:]))
-
-        return 'file:///' + cwd
+        else:
+            return self.get_local_root_url()
 
     def create_environment(self):
         print('Building: %s' % self.setup_filename)
@@ -229,7 +237,7 @@ class Build(object):
             # (There's no reason at all for this to even be a special permission.)
             result.append('// @grant       GM_getResourceText')
 
-            root = self.get_source_root_url()
+            root = self.get_local_root_url()
 
             result.append('//')
             result.append('// @require   %s/src/bootstrap.js' % root)
