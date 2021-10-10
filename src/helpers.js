@@ -532,7 +532,10 @@ this.helpers = {
     // much of a dependable platform.
     block_network_requests: function()
     {
-        helpers.RealXMLHttpRequest = unsafeWindow.XMLHttpRequest;        
+        // We have to use unsafeWindow.fetch in Firefox, since window.fetch is from a different
+        // context and won't send requests with the site's origin, which breaks everything.  In
+        // Chrome it doesn't matter.
+        helpers.fetch = unsafeWindow.fetch;
         unsafeWindow.Image = exportFunction(function() { }, unsafeWindow);
 
         class dummy_fetch
@@ -722,191 +725,37 @@ this.helpers = {
         return str.join("&");
     },
 
-    // Sending requests in user scripts is a nightmare:
-    // - In TamperMonkey you can simply use unsafeWindow.XMLHttpRequest.  However, in newer versions
-    // of GreaseMonkey, the request will be sent, but event handlers (eg. load) will fail with a
-    // permissions error.  (That doesn't make sense, since you can assign DOM events that way.)
-    // - window.XMLHttpRequest will work, but won't make the request as the window, so it will
-    // act like a cross-origin request.  We have to use GM_xmlHttpRequest/GM.XMLHttpRequest instead.
-    // - But, we can't use that in TamperMonkey (at least in Chrome), since ArrayBuffer is incredibly
-    // slow.  It seems to do its own slow buffer decoding: a 2 MB ArrayBuffer can take over half a
-    // second to decode.  We need to use regular XHR with TamperMonkey.
-    // - GM_xmlhttpRequest in GreaseMonkey doesn't send a referer by default, and we need to set it
-    // manually.  (TamperMonkey does send a referer by default.)
-
-    // send_request_gm: Send a request with GM_xmlhttpRequest.
-    //
-    // The returned object will have an abort method that might abort the request.
-    // (TamperMonkey provides abort, but GreaseMonkey doesn't.)
-    //
-    // Only the following options are supported:
-    //
-    // - headers
-    // - method
-    // - data
-    // - responseType
-    // - onload
-    // - onprogress
-    //
-    // The returned object will only have abort, which is a no-op in GM.
-    //
-    // onload will always be called (unless the request is aborted), so there's always just
-    // one place to put cleanup handlers when a request finishes.
-    //
-    // onload will be called with only resp.response and not the full response object.  On
-    // error, onload(null) will be called rather than onerror.
-    //
-    // We use a limited interface since we have two implementations of this, one using XHR (for TM)
-    // and one using GM_xmlhttpRequest (for GM), and this prevents us from accidentally
-    // using a field that's only implemented with GM_xmlhttpRequest and breaking TM.
-    send_request_gm: function(options)
+    send_request: function(options)
     {
         if(options == null)
             options = {};
 
-        return new Promise((resolve, reject) => {
-            if(options.signal && options.signal.aborted)
-            {
-                reject("Aborted by signal");
-                return;
-            }
-            
-            var req_options = {};
-            for(var key of ["url", "headers", "method", "data", "responseType", "onload", "onprogress"])
-            {
-                if(!(key in options))
-                    continue;
+        // Usually we'll use helpers.fetch, but fall back on window.fetch in case we haven't
+        // called block_network_requests yet.  This happens if main_controller.setup needs
+        // to fetch the page.
+        let fetch = helpers.fetch || window.fetch;
 
-                // We'll override onload.
-                if(key == "onload")
-                {
-                    req_options.real_onload = options.onload;
-                    continue;
-                }
-                req_options[key] = options[key];
-            }
+        let data = { };
 
-            // Set the referer, or some requests will fail.
-            var url = new URL(document.location);
-            url.hash = "";
-            req_options.headers["Referer"] = url.toString();
+        // For Firefox, we need to clone data into the page context.  In Chrome this do nothing.
+        data = cloneInto(data, window);
 
-            req_options.onload = function(response)
-            {
-                resolve(response.response);
-            };
+        data.method = options.method || "GET";
+        data.signal = options.signal;
+        if(options.data)
+            data.body = cloneInto(options.data, window); 
 
-            // When is this ever called?
-            req_options.onerror = function(response)
-            {
-                console.log("Request failed:", response);
-                reject(e);
-            }        
-
-            var actual_request = GM_xmlhttpRequest(req_options);
-
-            if(options.signal)
-            {
-                options.signal.addEventListener("abort", (e) => {
-                    console.log("Aborting XHR");
-
-                    // actual_request is null with newer, broken versions of GM, in which case
-                    // we only pretend to cancel the request.
-                    if(actual_request != null)
-                        actual_request.abort();
-
-                    // Remove real_onload, so if we can't actually cancel the request, we still
-                    // won't call onload, since the caller is no longer expecting it.
-                    delete req_options.real_onload;
-
-                    reject("Aborted by signal");
-                });        
-            }
-        });        
-    },
-
-    // The same as send_request_gm, but with XHR.
-    send_request_xhr: function(options)
-    {
-        if(options == null)
-            options = {};
-
-        return new Promise((resolve, reject) => {
-            if(options.signal && options.signal.aborted)
-            {
-                reject("Aborted by signal");
-                return;
-            }
-            
-            let XMLHttpRequest = helpers.RealXMLHttpRequest || unsafeWindow.XMLHttpRequest;
-            var xhr = new XMLHttpRequest();
-
-            if(options.signal)
-            {
-                options.signal.addEventListener("abort", (e) => {
-                    console.log("Aborting XHR");
-                    xhr.abort();
-                    reject("Aborted by signal");
-                });        
-            }
-
-            xhr.open(options.method || "GET", options.url);
-
-            if(options.headers)
-            {
-                for(var key in options.headers)
-                    xhr.setRequestHeader(key, options.headers[key]);
-            }
-            
-            if(options.responseType)
-                xhr.responseType = options.responseType;
-
-            xhr.addEventListener("load", (e) => {
-                resolve(xhr.response);
-            });
-            xhr.addEventListener("error", (e) => {
-                reject(e);
-            });
-
-            xhr.addEventListener("progress", function(e) {
-                if(options.onprogress)
-                {
-                    try {
-                        options.onprogress(e);
-                    } catch(exc) {
-                        console.error(exc);
-                    }
-                }
-            });
-            
-            if(options.method == "POST")
-                xhr.send(options.data);
-            else
-                xhr.send();
-        });
-    },
-
-    async send_request(options)
-    {
-        // In GreaseMonkey, use send_request_gm.  Otherwise, use send_request_xhr.  If
-        // GM_info.scriptHandler doesn't exist, assume we're in GreaseMonkey, since 
-        // TamperMonkey always defines it.
-        //
-        // We also assume that if GM_info doesn't exist we're in GreaseMonkey, since it's
-        // GM that has a nasty habit of removing APIs that people are using, so if that
-        // happens we're probably in GM.
-        var greasemonkey = true;
-        try
+        // Convert options.headers to a Headers object.  For Firefox, this has to be
+        // unsafeWindow.Headers.
+        if(options.headers)
         {
-            greasemonkey = GM_info.scriptHandler == null || GM_info.scriptHandler == "Greasemonkey";
-        } catch(e) {
-            greasemonkey = true;
+            let headers = new unsafeWindow.Headers();
+            for(let key in options.headers)
+                headers.append(key, options.headers[key]);
+            data.headers = headers;
         }
 
-        if(greasemonkey)
-            return await helpers.send_request_gm(options);
-        else
-            return await helpers.send_request_xhr(options);
+        return fetch(options.url, data);
     },
 
     // Send a request with the referer, cookie and CSRF token filled in.
@@ -922,7 +771,32 @@ this.helpers = {
         if(hostname == "www.pixiv.net" && "global_data" in window)
             options.headers["x-csrf-token"] = global_data.csrf_token;
 
-        return await helpers.send_request(options);
+        let result = await helpers.send_request(options);
+
+        // Return the requested type.  If we don't know the type, just return the
+        // request promise itself.
+        if(options.responseType == "json")
+        {
+            let json = await result.json();
+
+            // In Firefox we need to use unsafeWindow.fetch, since window.fetch won't run
+            // as the page to get the correct referer.  Work around secondary brain damage:
+            // since it comes from the apge it's in a wrapper object that we need to remove.
+            // We shouldn't be seeing Firefox wrapper behavior at all.  It's there to
+            // protect the user from us, not us from the page.
+            if(json.wrappedJSObject)
+                json = json.wrappedJSObject;
+
+            return json;
+        }
+
+        if(options.responseType == "document")
+        {
+            let text = await result.text();
+            return new DOMParser().parseFromString(text, 'text/html');
+        }
+
+        return result;
     },
 
     // Why does Pixiv have 300 APIs?
@@ -1099,48 +973,16 @@ this.helpers = {
     // Remove the iframe when the callback returns.
     async load_data_in_iframe(url)
     {
-        if(GM_info.scriptHandler == "Tampermonkey")
-        {
-            // If we're in Tampermonkey, we don't need any of the iframe hijinks and we can
-            // simply make a request with responseType: document.  This is much cleaner than
-            // the Greasemonkey workaround below.
-            var result = await helpers.send_pixiv_request({
-                "method": "GET",
-                "url": url,
-                "responseType": "document",
-            });
-            return result;
-        }
-
-        // The above won't work with Greasemonkey.  It returns a document we can't access,
-        // raising exceptions if we try to access it.  Greasemonkey's sandboxing needs to
-        // be shot into the sun.
-        //
-        // Instead, we load the document in a sandboxed iframe.  It'll still load resources
-        // that we don't need (though they'll mostly load from cache), but it won't run
-        // scripts.
-        return new Promise((resolve, reject) => {
-            var iframe = document.createElement("iframe");
-
-            // Enable sandboxing, so scripts won't run in the iframe.  Set allow-same-origin, or
-            // we won't be able to access it in contentDocument (which doesn't really make sense,
-            // sandbox is for sandboxing the iframe, not us).
-            iframe.sandbox = "allow-same-origin";
-            iframe.src = url;
-            iframe.hidden = true;
-            document.body.appendChild(iframe);
-
-            iframe.addEventListener("load", function(e) {
-                try {
-                    resolve(iframe.contentDocument);
-                } finally {
-                    // Remove the iframe.  For some reason, we have to do this after processing it.
-                    setTimeout(() => {
-                        document.body.removeChild(iframe);
-                    }, 0);
-                }
-            });
+        // If we're in Tampermonkey, we don't need any of the iframe hijinks and we can
+        // simply make a request with responseType: document.  This is much cleaner than
+        // the Greasemonkey workaround below.
+        let result = await helpers.send_pixiv_request({
+            "method": "GET",
+            "url": url,
+            "responseType": "document",
         });
+
+        return await result;
     },
 
     set_recent_bookmark_tags(tags)

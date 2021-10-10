@@ -55,6 +55,7 @@ this.ZipImagePlayer = class
             }
         });
         response = await response;
+        response = await response.arrayBuffer();
         
         if(this.dead)
             return;
