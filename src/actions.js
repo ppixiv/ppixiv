@@ -169,9 +169,8 @@ this.actions = class
         
         console.log("Remove bookmark", bookmark_id);
         
-        var result = await helpers.rpc_post_request("/rpc/index.php", {
-            mode: "delete_illust_bookmark",
-            bookmark_id: bookmark_id,
+        var result = await helpers.post_request("/ajax/illusts/bookmarks/remove", {
+            bookmarkIds: [bookmark_id],
         });
 
         console.log("Removing bookmark finished");
