@@ -2030,6 +2030,20 @@ class data_source_bookmarks_base extends data_source
         return true;
     }
 
+    get displaying_tag()
+    {
+        let url = helpers.get_url_without_language(this.url);
+        let parts = url.pathname.split("/");
+        if(parts.length < 6)
+            return null;
+
+        // Replace 未分類 with "" for uncategorized.
+        let tag = decodeURIComponent(parts[5]);
+        if(tag == "未分類")
+            return "";
+        return tag;
+    }
+
     // If we haven't done so yet, load bookmark tags for this bookmark page.  This
     // happens in parallel with with page loading.
     async fetch_bookmark_tag_counts()
@@ -2051,7 +2065,6 @@ class data_source_bookmarks_base extends data_source
             // Rename "未分類" (uncategorized) to "".
             if(tag.tag == "未分類")
                 tag.tag = "";
-
 
             if(tags[tag.tag] == null)
                 tags[tag.tag] = 0;
@@ -2099,7 +2112,12 @@ class data_source_bookmarks_base extends data_source
         var rest = query_args.get("rest") || "show";
         if(force_rest != null)
             rest = force_rest;
-        var tag = query_args.get("untagged") != null ? "未分類" : query_args.get("tag") || "";
+
+        let tag = this.displaying_tag;
+        if(tag == "")
+            tag = "未分類"; // Uncategorized
+        else if(tag == null)
+            tag = "";
 
         // Load 20 results per page, so our page numbers should match the underlying page if
         // the UI is disabled.
@@ -2146,7 +2164,7 @@ class data_source_bookmarks_base extends data_source
         var displaying = this.viewing_all_bookmarks? "All Bookmarks":
             private_bookmarks? "Private Bookmarks":"Public Bookmarks";
 
-        var tag = query_args.get("tag");
+        var tag = this.displaying_tag;
         if(tag)
             displaying += " with tag \"" + tag + "\"";
 
@@ -2169,9 +2187,9 @@ class data_source_bookmarks_base extends data_source
         // Refresh the bookmark tag list.  Remove the page number from these buttons.
         let current_url = new URL(this.url);
         current_url.searchParams.delete("p");
-        let current_query = current_url.searchParams.toString();
 
         var tag_list = container.querySelector(".bookmark-tag-list");
+        let current_tag = this.displaying_tag;
         
         helpers.remove_elements(tag_list);
 
@@ -2184,7 +2202,9 @@ class data_source_bookmarks_base extends data_source
             a.classList.add("following-tag");
 
             let tag_name = tag;
-            if(tag_name == "")
+            if(tag_name == null)
+                tag_name = "All";
+            else if(tag_name == "")
                 tag_name = "Uncategorized";
             a.innerText = tag_name;
 
@@ -2197,23 +2217,36 @@ class data_source_bookmarks_base extends data_source
 
             let url = new URL(this.url);
             url.searchParams.delete("p");
-            if(tag == "") // Uncategorized
-                url.searchParams.set("untagged", 1);
-            else
-                url.searchParams.delete("untagged", 1);
 
-            if(tag != "All" && tag != "")
-                url.searchParams.set("tag", tag);
+            if(tag == current_tag)
+                a.classList.add("selected");
+
+            // Pixiv used to put the tag in a nice, clean query parameter, but recently got
+            // a bit worse and put it in the query.  That's a much worse way to do things:
+            // it's harder to parse, and means you bake one particular feature into your
+            // URLs.
+            let old_pathname = helpers.get_url_without_language(url).pathname;
+            let parts = old_pathname.split("/");
+            if(tag == "")
+                tag = "未分類"; // Uncategorized
+            if(tag == null) // All
+            {
+                if(parts.length == 6)
+                    parts = parts.splice(0,5);
+            }
             else
-                url.searchParams.delete("tag");
+            {
+                if(parts.length < 6)
+                    parts.push("");
+                parts[5] = tag;
+            }
+            url.pathname = parts.join("/");
 
             a.href = url.toString();
-            if(url.searchParams.toString() == current_query)
-                a.classList.add("selected");
             tag_list.appendChild(a);
         };
 
-        add_tag_link("All");
+        add_tag_link(null); // All
         add_tag_link(""); // Uncategorized
         for(var tag of Object.keys(this.bookmark_tag_counts))
         {

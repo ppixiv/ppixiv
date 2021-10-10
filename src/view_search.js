@@ -365,6 +365,14 @@ this.view_search = class extends this.view
             }
         }
 
+        // Set up bookmark search links.
+        let all_bookmarks = this.container.querySelector('.bookmarks-link[data-which="all"]');
+        all_bookmarks.href = `/users/${window.global_data.user_id}/bookmarks/artworks#ppixiv`;
+        let public_bookmarks = this.container.querySelector('.bookmarks-link[data-which="public"]');
+        public_bookmarks.href = `/users/${window.global_data.user_id}/bookmarks/artworks#ppixiv?show-all=0`;
+        let private_bookmarks = this.container.querySelector('.bookmarks-link[data-which="private"]');
+        private_bookmarks.href = `/users/${window.global_data.user_id}/bookmarks/artworks?rest=hide#ppixiv?show-all=0`;
+
         helpers.set_page_title(this.data_source.page_title || "Loading...");
         
         var ui_box = this.container.querySelector(".thumbnail-ui-box");
