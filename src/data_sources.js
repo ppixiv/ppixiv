@@ -588,7 +588,7 @@ class data_source
         var button_is_selected = true;
 
         // Adjust the URL for this button.
-        var url = new URL(document.location);
+        let url = new URL(this.url);
 
         // Don't include the page number in search buttons, so clicking a filter goes
         // back to page 1.
@@ -838,7 +838,7 @@ this.data_sources.discovery = class extends data_source_fake_pagination
     refresh_thumbnail_ui(container)
     {
         // Set .selected on the current mode.
-        var current_mode = new URL(document.location).searchParams.get("mode") || "all";
+        let current_mode = this.url.searchParams.get("mode") || "all";
         helpers.set_class(container.querySelector(".box-link[data-type=all]"), "selected", current_mode == "all");
         helpers.set_class(container.querySelector(".box-link[data-type=safe]"), "selected", current_mode == "safe");
         helpers.set_class(container.querySelector(".box-link[data-type=r18]"), "selected", current_mode == "r18");
@@ -1299,7 +1299,7 @@ this.data_sources.rankings = class extends data_source
         // Check each link in both checked-links sections.
         for(var a of container.querySelectorAll(".checked-links a"))
         {
-            var url = new URL(a.href, document.location);
+            let url = new URL(a.href, this.url);
             var link_content = url.searchParams.get("content") || "all";
             var link_mode = url.searchParams.get("mode") || "daily";
             var name = link_content + "/" + link_mode;
@@ -1679,7 +1679,7 @@ this.data_sources.artist = class extends data_source
             a.classList.add("following-tag");
             a.innerText = tag;
 
-            var url = new URL(document.location);
+            let url = new URL(this.url);
             url.hash = "#ppixiv";
 
             if(tag != "All")
@@ -2167,7 +2167,7 @@ class data_source_bookmarks_base extends data_source
         this.set_item(container, "private", {rest: "hide", "#show-all": 0}, {"#show-all": 1});
 
         // Refresh the bookmark tag list.  Remove the page number from these buttons.
-        let current_url = new URL(document.location);
+        let current_url = new URL(this.url);
         current_url.searchParams.delete("p");
         let current_query = current_url.searchParams.toString();
 
@@ -2195,7 +2195,7 @@ class data_source_bookmarks_base extends data_source
                 a.dataset.popup = tag_count + (tag_count == 1? " bookmark":" bookmarks");
             }
 
-            var url = new URL(document.location);
+            let url = new URL(this.url);
             url.searchParams.delete("p");
             if(tag == "") // Uncategorized
                 url.searchParams.set("untagged", 1);
@@ -2422,7 +2422,7 @@ this.data_sources.new_illust = class extends data_source
         var hash_args = helpers.get_hash_args(this.url);
 
         // new_illust.php or new_illust_r18.php:
-        let r18 = document.location.pathname == "/new_illust_r18.php";
+        let r18 = this.url.pathname == "/new_illust_r18.php";
         var type = query_args.get("type") || "illust";
         
         // Everything Pixiv does has always been based on page numbers, but this one uses starting IDs.
@@ -2487,15 +2487,15 @@ this.data_sources.new_illust = class extends data_source
         var all_ages_link = container.querySelector("[data-type='new-illust-ages-all']");
         var r18_link = container.querySelector("[data-type='new-illust-ages-r18']");
 
-        var url = new URL(document.location);
+        let url = new URL(this.url);
         url.pathname = "/new_illust.php";
         all_ages_link.href = url;
 
-        var url = new URL(document.location);
+        url = new URL(this.url);
         url.pathname = "/new_illust_r18.php";
         r18_link.href = url;
 
-        var url = new URL(document.location);
+        url = new URL(this.url);
         var currently_all_ages = url.pathname == "/new_illust.php";
         helpers.set_class(all_ages_link, "selected", currently_all_ages);
         helpers.set_class(r18_link, "selected", !currently_all_ages);
@@ -2832,7 +2832,7 @@ this.data_sources.search = class extends data_source
         container.querySelector(".search-page-tag-entry .search-tags").value = tag;
     }
 
-   // Return the search mode, which is selected by the "Type" search option.  This generally
+    // Return the search mode, which is selected by the "Type" search option.  This generally
     // corresponds to the underlying page's search modes.
     get_url_search_mode()
     {
@@ -2918,7 +2918,7 @@ this.data_sources.search = class extends data_source
             helpers.set_class(link, "selected", button_is_selected);
 
             // Adjust the URL for this button.
-            let url = this.set_url_search_mode(document.location, mode);
+            let url = this.set_url_search_mode(this.url, mode);
             link.href = url.toString();
         };
 
@@ -2992,7 +2992,7 @@ this.data_sources.search = class extends data_source
         // The "reset search" button removes everything in the query except search terms, and resets
         // the search type.
         var box = container.querySelector(".reset-search");
-        var url = new URL(document.location);
+        let url = new URL(this.url);
         let tag = helpers._get_search_tags_from_url(url);
         url.search = "";
         if(tag == null)
@@ -3118,7 +3118,7 @@ this.data_sources.follows = class extends data_source
         helpers.remove_elements(tag_list);
 
         // Refresh the bookmark tag list.  Remove the page number from these buttons.
-        let current_url = new URL(document.location);
+        let current_url = new URL(this.url);
         current_url.searchParams.delete("p");
         let current_query = current_url.searchParams.toString();
 
@@ -3129,7 +3129,7 @@ this.data_sources.follows = class extends data_source
             a.classList.add("following-tag");
             a.innerText = tag;
 
-            var url = new URL(document.location);
+            let url = new URL(this.url);
             url.searchParams.delete("p");
             if(tag == "Uncategorized")
                 url.searchParams.set("untagged", 1);
@@ -3310,7 +3310,7 @@ this.data_sources.search_users = class extends data_source_from_page
         helpers.remove_elements(tag_list);
 
         // Refresh the bookmark tag list.  Remove the page number from these buttons.
-        let current_url = new URL(document.location);
+        let current_url = new URL(this.url);
         current_url.searchParams.delete("p");
         let current_query = current_url.searchParams.toString();
     }
