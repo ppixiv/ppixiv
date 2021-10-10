@@ -339,7 +339,7 @@ this.image_data = class
         });
     }
 
-    // Load bookmark tags and comments.
+    // Load bookmark tags.
     //
     // There's no visible API to do this, so we have to scrape the bookmark_add page.  I wish
     // they'd just include this in bookmarkData.  Since this takes an extra request, we should
@@ -371,12 +371,10 @@ this.image_data = class
             return;
 
         var tags = bookmark_page.querySelector(".bookmark-detail-unit form input[name='tag']").value;
-        var comment = bookmark_page.querySelector(".bookmark-detail-unit form input[name='comment']").value;
         tags = tags.split(" ");
         tags = tags.filter((value) => { return value != ""; });
 
         illust_info.bookmarkData.tags = tags;
-        illust_info.bookmarkData.comment = comment;
      }
 }
 

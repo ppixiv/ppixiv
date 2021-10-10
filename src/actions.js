@@ -26,7 +26,6 @@ this.actions = class
         var request = {
             "illust_id": illust_id,
             "tags": options.tags || [],
-            "comment": options.comment || "",
             "restrict": options.private? 1:0,
         }
         var result = await helpers.post_request("/ajax/illusts/bookmarks/add", request);
@@ -45,12 +44,11 @@ this.actions = class
         //
         // Update bookmark info in image data.
         //
-        // Even if we weren't given tags or a comment, we still know that they're unset,
-        // so set comment and tags so we won't need to request bookmark details later.
+        // Even if we weren't given tags, we still know that they're unset, so set tags so
+        // we won't need to request bookmark details later.
         illust_info.bookmarkData = {
             id: new_bookmark_id,
             private: !!request.restrict,
-            comment: request.comment,
             tags: request.tags,
         }
         console.log("Updated bookmark data:", illust_info.bookmarkData);
@@ -77,14 +75,13 @@ this.actions = class
 
     // Create or edit a bookmark.
     //
-    // Create or edit a bookmark.  options can contain any of the fields tags, comment
-    // or private.  Fields that aren't specified will be left unchanged on an existing
-    // bookmark.
+    // Create or edit a bookmark.  options can contain any of the fields tags or private.
+    // Fields that aren't specified will be left unchanged on an existing bookmark.
     //
     // This is a headache.  Pixiv only has APIs to create a new bookmark (overwriting all
     // existing data), except for public/private which can be changed in-place, and we need
-    // to do an extra request to retrieve the tag list and comment if we need them.  We
-    // try to avoid making the extra bookmark details request if possible.
+    // to do an extra request to retrieve the tag list if we need it.  We try to avoid
+    // making the extra bookmark details request if possible.
     static async bookmark_add(illust_info, options)
     {
         if(options == null)
@@ -106,7 +103,7 @@ this.actions = class
         
         // Special case: If we're not setting anything, then we just want this image to
         // be bookmarked.  Since it is, just stop.
-        if(options.tags == null && options.comment == null && options.private == null)
+        if(options.tags == null && options.private == null)
         {
             console.log("Already bookmarked");
             return;
@@ -114,7 +111,7 @@ this.actions = class
 
         // Special case: If all we're changing is the private flag, use bookmark_set_private
         // so we don't fetch bookmark details.
-        if(options.tags == null && options.comment == null && options.private != null)
+        if(options.tags == null && options.private != null)
         {
             // If the image is already bookmarked, use bookmark_set_private to edit the
             // existing bookmark.  This won't auto-like.
@@ -122,10 +119,8 @@ this.actions = class
             return await actions.bookmark_set_private(illust_info, options.private);
         }
 
-        // If we're modifying tags or comments, we need bookmark details loaded.
-        // This will insert the info into illust_info.bookmarkData.  We could skip
-        // this if we're setting both tags and comments, but we don't currently do
-        // that.
+        // If we're modifying tags, we need bookmark details loaded, so we can preserve
+        // the current privacy status.  This will insert the info into illust_info.bookmarkData.
         await image_data.singleton().load_bookmark_details(illust_info);
 
         var bookmark_params = {
@@ -135,7 +130,7 @@ this.actions = class
 
         // Copy any of these keys that are in options to our bookmark_add arguments.
         // Copy any fields that aren't being set from the current value.
-        for(var key of ["private", "comment", "tags"])
+        for(let key of ["private", "tags"])
         {
             var value = options[key];
             if(value == null)
