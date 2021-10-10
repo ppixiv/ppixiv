@@ -96,6 +96,11 @@ ppixiv.image_data = class
     // it can be supplied with illust_data.
     async load_image_info(illust_id, illust_data)
     {
+        // See if we already have data for this image.  If we do, stop.  We always load
+        // everything we need if we load anything at all.
+        if(this.image_data[illust_id] != null)
+            return;
+
         // We need the illust data, user data, and ugoira metadata (for illustType 2).  (We could
         // load manga data too, but we currently let the manga view do that.)  We need to know the
         // user ID and illust type to start those loads.
@@ -113,9 +118,9 @@ ppixiv.image_data = class
                 user_info_promise = this.get_user_info(user_id);
             
             // If we know the illust type and haven't started loading other data yet, start them.
-            if(page_count != null && page_count > 1 && manga_promise == null)
+            if(page_count != null && page_count > 1 && manga_promise == null && (illust_data == null || illust_data.mangaPages == null))
                 manga_promise = helpers.get_request("/ajax/illust/" + illust_id + "/pages", {});
-            if(illust_type == 2 && ugoira_promise == null)
+            if(illust_type == 2 && ugoira_promise == null && (illust_data == null || illust_data.ugoiraMetadata == null))
                 ugoira_promise = helpers.get_request("/ajax/illust/" + illust_id + "/ugoira_meta");
         };
 
