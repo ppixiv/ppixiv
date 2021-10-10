@@ -153,7 +153,7 @@ this.thumbnail_data = class
             ["title", "title"],
             ["user_name", "userName"],
             ["illust_type", "illustType"],
-//            ["profile_img", "profileImageUrl"],
+            ["profile_img", "profileImageUrl"],
         ];
         return this._thumbnail_info_map_ranking;
     };
@@ -317,11 +317,6 @@ this.thumbnail_data = class
 
                 // illustType can be a string in these instead of an int, so convert it.
                 remapped_thumb_info.illustType = parseInt(remapped_thumb_info.illustType);
-
-                // Some of these APIs don't provide the user's avatar URL.  We only use it in a blurred-
-                // out thumbnail for muted images, so just drop in the "no avatar" image.
-                if(remapped_thumb_info.profileImageUrl == null)
-                    remapped_thumb_info.profileImageUrl = "https://s.pximg.net/common/images/no_profile_s.png";
             }
             else
                 throw "Unrecognized source: " + source;
