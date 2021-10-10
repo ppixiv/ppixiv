@@ -137,28 +137,6 @@ this.thumbnail_data = class
         return this._thumbnail_info_map_illust_list;
     };
 
-    // Get the mapping from search.php and bookmark_new_illust.php to illust_list.php's keys.
-    get thumbnail_info_map_following()
-    {
-        if(this._thumbnail_info_map_following != null)
-            return this._thumbnail_info_map_following;
-
-        this._thumbnail_info_map_following = [
-            ["illustId", "id"],
-            ["url", "url"],
-            ["tags", "tags"],
-            ["userId", "userId"],
-            ["width", "width"],
-            ["height", "height"],
-            ["pageCount", "pageCount"],
-            ["illustTitle", "title"],
-            ["userName", "userName"],
-            ["illustType", "illustType"],
-//            ["user_profile_img", "profileImageUrl"],
-        ];
-        return this._thumbnail_info_map_following;
-    };
-
     get thumbnail_info_map_ranking()
     {
         if(this._thumbnail_info_map_ranking != null)
@@ -278,12 +256,11 @@ this.thumbnail_data = class
                         delete remapped_thumb_info.bookmarkData.bookmarkId;
                 }
             }
-            else if(source == "illust_list" || source == "following" || source == "rankings")
+            else if(source == "illust_list" || source == "rankings")
             {
                 // Get the mapping for this mode.
                 var thumbnail_info_map = 
                     source == "illust_list"? this.thumbnail_info_map_illust_list:
-                    source == "following"?  this.thumbnail_info_map_following:
                     this.thumbnail_info_map_ranking;
 
                 var remapped_thumb_info = { };
@@ -337,20 +314,6 @@ this.thumbnail_data = class
                             // See above.
                             // bookmarkId: thumb_info.bookmark_id,
                             private: thumb_info.bookmark_illust_restrict == 1,
-                        };
-                    }
-                }
-                else if(source == "following")
-                {
-                    // Why are there fifteen API variants for everything?  It's as if they
-                    // hire a contractor for every feature and nobody ever talks to each other,
-                    // so every feature has its own new API layout.
-                    if(!('isBookmarked' in thumb_info))
-                        console.warn("Thumbnail info is missing key: isBookmarked");
-                    if(thumb_info.isBookmarked)
-                    {
-                        remapped_thumb_info.bookmarkData = {
-                            private: thumb_info.isPrivateBookmark,
                         };
                     }
                 }
@@ -410,7 +373,8 @@ this.thumbnail_data = class
     }
 
     // This is a simpler form of thumbnail data for user info.  This is just the bare minimum
-    // info we need to be able to show a user thumbnail on the search page.
+    // info we need to be able to show a user thumbnail on the search page.  This is used when
+    // we're displaying lots of users in search results.
     //
     // We can get this info from two places, the following page (data_source_follows) and the
     // user recommendations page (data_source_discovery_users).  Of course, since Pixiv never
