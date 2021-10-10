@@ -55,6 +55,11 @@ this.context_menu_image_info_widget = class extends this.illust_widget
         var page_info = illust_data.mangaPages[page];
         info += page_info.width + "x" + page_info.height;
         set_info(".image-info", info);
+
+        let seconds_old = (new Date() - new Date(illust_data.createDate)) / 1000;
+        let age = helpers.age_to_string(seconds_old) + " ago";
+        this.container.querySelector(".post-age").dataset.popup = helpers.date_to_string(illust_data.createDate);
+        set_info(".post-age", age);
     }
 }
 
