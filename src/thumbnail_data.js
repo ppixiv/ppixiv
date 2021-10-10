@@ -304,18 +304,15 @@ this.thumbnail_data = class
                 // but private is always false, so we can't tell if it's a private bookmark.  This is
                 // a site bug that we can't do anything about (it affects the site too).
                 remapped_thumb_info.bookmarkData = null;
-                if(source == "illust_list" || source == "rankings")
+                if(!('is_bookmarked' in thumb_info))
+                    console.warn("Thumbnail info is missing key: is_bookmarked");
+                if(thumb_info.is_bookmarked)
                 {
-                    if(!('is_bookmarked' in thumb_info))
-                        console.warn("Thumbnail info is missing key: is_bookmarked");
-                    if(thumb_info.is_bookmarked)
-                    {
-                        remapped_thumb_info.bookmarkData = {
-                            // See above.
-                            // bookmarkId: thumb_info.bookmark_id,
-                            private: thumb_info.bookmark_illust_restrict == 1,
-                        };
-                    }
+                    remapped_thumb_info.bookmarkData = {
+                        // See above.
+                        // bookmarkId: thumb_info.bookmark_id,
+                        private: thumb_info.bookmark_illust_restrict == 1,
+                    };
                 }
 
                 // illustType can be a string in these instead of an int, so convert it.
