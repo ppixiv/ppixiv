@@ -56,7 +56,7 @@ this.page_manager = class
 
         let first_part = helpers.get_page_type_from_url(url);
         if(first_part == "artworks")
-            return data_source_current_illust;
+            return data_sources.current_illust;
         else if(first_part == "users")
         {
             // This is one of:
@@ -68,13 +68,13 @@ this.page_manager = class
             // /users/12345/bookmarks
             // /users/12345/following
             //
-            // All of these except for bookmarks are handled by data_source_artist.
+            // All of these except for bookmarks are handled by data_sources.artist.
             let mode = helpers.get_path_part(url, 2);
             if(mode == "following")
-                return data_source_follows;
+                return data_sources.follows;
 
             if(mode != "bookmarks")
-                return data_source_artist;
+                return data_sources.artist;
 
             // Handle a special case: we're called by early_controller just to find out if
             // the current page is supported or not.  This happens before window.global_data
@@ -82,18 +82,18 @@ this.page_manager = class
             // In this case we don't need to, since the caller just wants to see if we return
             // a data source or not.
             if(window.global_data == null)
-                return data_source_bookmarks;
+                return data_sources.bookmarks;
 
             // If show-all=0 isn't in the hash, and we're not viewing someone else's bookmarks,
-            // we're viewing all bookmarks, so use data_source_bookmarks_merged.  Otherwise,
-            // use data_source_bookmarks.
+            // we're viewing all bookmarks, so use data_sources.bookmarks_merged.  Otherwise,
+            // use data_sources.bookmarks.
             var hash_args = helpers.get_hash_args(url);
             var user_id = helpers.get_path_part(url, 1);
             if(user_id == null)
                 user_id = window.global_data.user_id;
             var viewing_own_bookmarks = user_id == window.global_data.user_id;
             var both_public_and_private = viewing_own_bookmarks && hash_args.get("show-all") != "0";
-            return both_public_and_private? data_source_bookmarks_merged:data_source_bookmarks;
+            return both_public_and_private? data_sources.bookmarks_merged:data_sources.bookmarks;
 
         }
         else if(url.pathname == "/bookmark.php" && url.searchParams.get("type") == null)
@@ -107,11 +107,11 @@ this.page_manager = class
             // In this case we don't need to, since the caller just wants to see if we return
             // a data source or not.
             if(window.global_data == null)
-                return data_source_bookmarks;
+                return data_sources.bookmarks;
 
             // If show-all=0 isn't in the hash, and we're not viewing someone else's bookmarks,
-            // we're viewing all bookmarks, so use data_source_bookmarks_merged.  Otherwise,
-            // use data_source_bookmarks.
+            // we're viewing all bookmarks, so use data_sources.bookmarks_merged.  Otherwise,
+            // use data_sources.bookmarks.
             var hash_args = helpers.get_hash_args(url);
             var query_args = url.searchParams;
             var user_id = query_args.get("id");
@@ -120,33 +120,33 @@ this.page_manager = class
             var viewing_own_bookmarks = user_id == window.global_data.user_id;
             
             var both_public_and_private = viewing_own_bookmarks && hash_args.get("show-all") != "0";
-            return both_public_and_private? data_source_bookmarks_merged:data_source_bookmarks;
+            return both_public_and_private? data_sources.bookmarks_merged:data_sources.bookmarks;
         }
         else if(url.pathname == "/bookmark.php" && url.searchParams.get("type") == "user")
-            return data_source_follows;
+            return data_sources.follows;
         else if(url.pathname == "/new_illust.php" || url.pathname == "/new_illust_r18.php")
-            return data_source_new_illust;
+            return data_sources.new_illust;
         else if(url.pathname == "/bookmark_new_illust.php" || url.pathname == "/bookmark_new_illust_r18.php")
-            return data_source_bookmarks_new_illust;
+            return data_sources.bookmarks_new_illust;
         else if(first_part == "tags")
-            return data_source_search;
+            return data_sources.search;
         else if(url.pathname == "/discovery")
-            return data_source_discovery;
+            return data_sources.discovery;
         else if(url.pathname == "/discovery/users")
-            return data_source_discovery_users;
+            return data_sources.discovery_users;
         else if(url.pathname == "/bookmark_detail.php")
         {
             // If we've added "recommendations" to the hash info, this was a recommendations link.
             var hash_args = helpers.get_hash_args(url);
             if(hash_args.get("recommendations"))
-                return data_source_related_illusts;
+                return data_sources.related_illusts;
             else
-                return data_source_related_favorites;
+                return data_sources.related_favorites;
         }
         else if(url.pathname == "/ranking.php")
-            return data_source_rankings;
+            return data_sources.rankings;
         else if(url.pathname == "/search_user.php")
-            return data_source_search_users;
+            return data_sources.search_users;
         else
             return null;
     };
