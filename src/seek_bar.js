@@ -1,6 +1,6 @@
 "use strict";
 
-this.seek_bar = class
+ppixiv.seek_bar = class
 {
     constructor(container)
     {

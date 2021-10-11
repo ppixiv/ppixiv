@@ -9,7 +9,7 @@
 // for different parts of the UI to tell us when they're active.
 //
 // This also handles alt-mousewheel zooming.
-this.context_menu_image_info_widget = class extends this.illust_widget
+ppixiv.context_menu_image_info_widget = class extends ppixiv.illust_widget
 {
     set_illust_and_page(illust_id, page)
     {
@@ -66,7 +66,7 @@ this.context_menu_image_info_widget = class extends this.illust_widget
 // A helper for a simple right-click context menu.
 //
 // The menu opens on right click and closes when the button is released.
-this.popup_context_menu = class
+ppixiv.popup_context_menu = class
 {
     // Names for buttons, for storing in this.buttons_down.
     buttons = ["lmb", "mmb", "rmb"];
@@ -506,7 +506,7 @@ this.popup_context_menu = class
     }
 }
 
-this.main_context_menu = class extends this.popup_context_menu
+ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
 {
     // Return the singleton.
     static get get()

@@ -1,6 +1,6 @@
 "use strict";
 
-this.viewer_ugoira = class extends this.viewer
+ppixiv.viewer_ugoira = class extends ppixiv.viewer
 {
     constructor(container, illust_data, seek_bar, options)
     {

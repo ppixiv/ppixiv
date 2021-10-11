@@ -2,7 +2,7 @@
 
 // Hide the mouse cursor when it hasn't moved briefly, to get it out of the way.
 // This only hides the cursor over element.
-this.hide_mouse_cursor_on_idle = class
+ppixiv.hide_mouse_cursor_on_idle = class
 {
     constructor(element)
     {

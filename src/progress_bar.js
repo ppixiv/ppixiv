@@ -3,7 +3,7 @@
 // A simple progress bar.
 //
 // Call bar.controller() to create a controller to update the progress bar.
-this.progress_bar = class
+ppixiv.progress_bar = class
 {
     constructor(container)
     {
@@ -42,7 +42,7 @@ this.progress_bar = class
 // the user then navigates to another video, we detach the first controller.  This way,
 // the new load will take over the progress bar (whether or not we actually cancel the
 // earlier load) and progress bar users won't fight with each other.
-this.progress_bar_controller = class
+ppixiv.progress_bar_controller = class
 {
     constructor(bar)
     {

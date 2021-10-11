@@ -1,7 +1,7 @@
 "use strict";
 
 // Create an uncompressed ZIP from a list of files and filenames.
-this.create_zip = function(filenames, files)
+ppixiv.create_zip = function(filenames, files)
 {
     if(filenames.length != files.length)
         throw "Mismatched array lengths";
@@ -68,7 +68,7 @@ this.create_zip = function(filenames, files)
     });
 };
 
-this.create_zip.prototype.create_local_file_header = function(filename, file, crc)
+ppixiv.create_zip.prototype.create_local_file_header = function(filename, file, crc)
 {
     var data = struct("<IHHHHHIIIHH").pack(
         0x04034b50, // local file header signature
@@ -87,7 +87,7 @@ this.create_zip.prototype.create_local_file_header = function(filename, file, cr
     return new Blob([data, filename]);
 };
 
-this.create_zip.prototype.create_central_directory_entry = function(filename, file, file_offset, crc)
+ppixiv.create_zip.prototype.create_central_directory_entry = function(filename, file, file_offset, crc)
 {
     var data = struct("<IHHHHHHIIIHHHHHII").pack(
         0x02014b50, // central file header signature
@@ -112,7 +112,7 @@ this.create_zip.prototype.create_central_directory_entry = function(filename, fi
     return new Blob([data, filename]);
 }
 
-this.create_zip.prototype.create_end_central = function(num_files, central_directory_pos, central_directory_size)
+ppixiv.create_zip.prototype.create_end_central = function(num_files, central_directory_pos, central_directory_size)
 {
     var data = struct("<IHHHHIIH").pack(
         0x06054b50, // end of central dir signature

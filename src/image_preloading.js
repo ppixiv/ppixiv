@@ -78,7 +78,7 @@ class _fetch_preloader extends _preloader
 }
 
 // The image preloader singleton.
-this.image_preloader = class
+ppixiv.image_preloader = class
 {
     // Return the singleton, creating it if needed.
     static get singleton()

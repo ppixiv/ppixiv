@@ -6,7 +6,7 @@
 // these functions unnecessarily.  We could polyfill those with this, but that would cause
 // the storage to change if those functions are restored.  Doing it this way also allows
 // us to share settings if a user switches from GM to TM.
-this.settings = class
+ppixiv.settings = class
 {
     static session_settings = { };
 
@@ -110,7 +110,7 @@ this.settings = class
 }
 
 // This is thrown when an XHR request fails.
-this.APIError = class extends Error
+ppixiv.APIError = class extends Error
 {
     constructor(message, url)
     {
@@ -120,16 +120,16 @@ this.APIError = class extends Error
 };
 
 // This is thrown when an XHR request fails with a Pixiv error message.
-this.PixivError = class extends this.APIError
+ppixiv.PixivError = class extends ppixiv.APIError
 {
 };
 
 // This is thrown when we disable creating blocked elements.
-this.ElementDisabled = class extends Error
+ppixiv.ElementDisabled = class extends Error
 {
 };
 
-this.helpers = {
+ppixiv.helpers = {
     blank_image: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
     
     remove_array_element: function(array, element)
@@ -1716,7 +1716,7 @@ this.helpers = {
 };
 
 // Handle maintaining and calling a list of callbacks.
-this.callback_list = class
+ppixiv.callback_list = class
 {
     constructor()
     {
@@ -1764,7 +1764,7 @@ this.callback_list = class
 //
 // When a view is hidden (eg. a top-level view or a UI popup), we send
 // viewhidden to it so dropdowns, etc. inside it can close.
-this.view_hidden_listener = class
+ppixiv.view_hidden_listener = class
 {
     static send_viewhidden(element)
     {
@@ -1813,7 +1813,7 @@ this.view_hidden_listener = class
 // If base_filter is supplied, it's a filter to apply to the top copy of the image.
 // If overlay(ctx, img) is supplied, it's a function to draw to the canvas.  This can
 // be used to mask the top copy.
-this.image_canvas_filter = class
+ppixiv.image_canvas_filter = class
 {
     constructor(img, canvas, base_filter, overlay)
     {
@@ -1888,7 +1888,7 @@ this.image_canvas_filter = class
 // This is used when hovering the top bar when in ui-on-hover mode, to delay the transition
 // before the UI disappears.  transition-delay isn't useful for this, since it causes weird
 // hitches when the mouse enters and leaves the area quickly.
-this.hover_with_delay = class
+ppixiv.hover_with_delay = class
 {
     constructor(element, delay_enter, delay_exit)
     {
@@ -1929,7 +1929,7 @@ this.hover_with_delay = class
 }
 
 // Originally from https://gist.github.com/wilsonpage/01d2eb139959c79e0d9a
-this.key_storage = class
+ppixiv.key_storage = class
 {
     constructor(name)
     {
@@ -2035,7 +2035,7 @@ this.key_storage = class
     }
 }
 
-this.SaveScrollPosition = class
+ppixiv.SaveScrollPosition = class
 {
     constructor(node)
     {

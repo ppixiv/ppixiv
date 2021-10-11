@@ -1,7 +1,7 @@
 "use strict";
 
 // Handle showing the search history and tag edit dropdowns.
-this.tag_search_box_widget = class
+ppixiv.tag_search_box_widget = class
 {
     constructor(container)
     {
@@ -133,7 +133,7 @@ this.tag_search_box_widget = class
     }
 }
 
-this.tag_search_dropdown_widget = class
+ppixiv.tag_search_dropdown_widget = class
 {
     constructor(container)
     {
@@ -498,7 +498,7 @@ this.tag_search_dropdown_widget = class
     }
 }
 
-this.tag_search_edit_widget = class
+ppixiv.tag_search_edit_widget = class
 {
     constructor(container)
     {

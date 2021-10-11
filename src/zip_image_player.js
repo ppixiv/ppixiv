@@ -2,7 +2,7 @@
 
 // A wrapper for the clunky ReadableStream API that lets us do at basic
 // thing that API forgot about: read a given number of bytes at a time.
-this.IncrementalReader = class
+ppixiv.IncrementalReader = class
 {
     constructor(reader, options={})
     {
@@ -74,7 +74,7 @@ this.IncrementalReader = class
 
 // Download a ZIP, returning files as they download in the order they're stored
 // in the ZIP.
-this.ZipImageDownloader = class
+ppixiv.ZipImageDownloader = class
 {
     constructor(url, options={})
     {
@@ -157,7 +157,7 @@ this.ZipImageDownloader = class
     }
 };
 
-this.ZipImagePlayer = class
+ppixiv.ZipImagePlayer = class
 {
     constructor(options)
     {

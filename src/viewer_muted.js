@@ -1,7 +1,7 @@
 "use strict";
 
 // This is used to display a muted image.
-this.viewer_muted = class extends this.viewer
+ppixiv.viewer_muted = class extends ppixiv.viewer
 {
     constructor(container, illust_data)
     {

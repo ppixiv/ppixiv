@@ -1,7 +1,7 @@
 "use strict";
 
 // This handles the overlay UI on the illustration page.
-this.image_ui = class
+ppixiv.image_ui = class
 {
     constructor(container, progress_bar)
     {

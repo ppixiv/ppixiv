@@ -2,7 +2,7 @@
 
 // This is a simple hack to piece together an MJPEG MKV from a bunch of JPEGs.
 
-this.encode_mkv = (function() {
+ppixiv.encode_mkv = (function() {
     var encode_length = function(value)
     {
         // Encode a 40-bit EBML int.  This lets us encode 32-bit ints with no extra logic.

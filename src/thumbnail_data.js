@@ -5,7 +5,7 @@
 // We can load a bunch of images at once with illust_list.php.  This isn't enough to
 // display the illustration, since it's missing a lot of data, but it's enough for
 // displaying thumbnails (which is what the page normally uses it for).
-this.thumbnail_data = class
+ppixiv.thumbnail_data = class
 {
     constructor()
     {

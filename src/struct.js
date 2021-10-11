@@ -7,7 +7,7 @@
 // This is completely unreadable.  Why would anyone write JS like this?
 
 /*eslint-env es6, node*/
-this.struct = (function() {
+ppixiv.struct = (function() {
     const rechk = /^([<>])?(([1-9]\d*)?([xcbB?hHiIfdsp]))*$/
     const refmt = /([1-9]\d*)?([xcbB?hHiIfdsp])/g
     const str = (v,o,c) => String.fromCharCode(

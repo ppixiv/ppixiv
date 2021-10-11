@@ -5,7 +5,7 @@
 //
 // The image is always zoomed a fixed amount from its fullscreen size.  This is generally
 // more usable than doing things like zooming based on the native resolution.
-this.on_click_viewer = class
+ppixiv.on_click_viewer = class
 {
     constructor()
     {

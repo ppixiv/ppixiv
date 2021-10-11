@@ -182,7 +182,7 @@ class early_controller
 }
 
 // This handles high-level navigation and controlling the different views.
-this.main_controller = class
+ppixiv.main_controller = class
 {
     // We explicitly create this singleton rather than doing it on the first call to
     // singleton(), so it's explicit when it's created.

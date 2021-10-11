@@ -1,7 +1,7 @@
 "use strict";
 
 // Global actions.
-this.actions = class
+ppixiv.actions = class
 {
     // Set a bookmark.  Any existing bookmark will be overwritten.
     static async _bookmark_add_internal(illust_info, options)

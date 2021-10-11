@@ -13,7 +13,7 @@
 // We mimic Chrome's click detection behavior: an element is counted as a click if
 // the mouseup event is an ancestor of the element that was clicked, or vice versa.
 // This is different from Firefox which uses the distance the mouse has moved.
-this.fix_chrome_clicks = class 
+ppixiv.fix_chrome_clicks = class 
 {
     constructor(container)
     {

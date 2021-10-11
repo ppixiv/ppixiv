@@ -1,7 +1,7 @@
 "use strict";
 
 // The base class for our main views.
-this.view = class
+ppixiv.view = class
 {
     constructor(container)
     {

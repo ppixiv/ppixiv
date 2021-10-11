@@ -25,8 +25,9 @@
     // here will be visible to code, since this is executed in our scope.
     //
     // We can't do this inside the class, because we need with to do this.
-    let _make_load_source_file = function(__source) {
-        with(this)
+    let _make_load_source_file = function(__pixiv, __source) {
+        const ppixiv = __pixiv;
+        with(ppixiv)
         {
             return eval(__source);
         }
@@ -77,7 +78,7 @@
                 source += "\n";
                 source += "//# sourceURL=" + setup.source_root + path + "\n";
 
-                env.resources[path] = _make_load_source_file.bind(env, source);
+                env.resources[path] = _make_load_source_file.bind(null, env, source);
             }
 
             this.env = env;

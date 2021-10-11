@@ -1,7 +1,7 @@
 "use strict";
 
 // A basic widget base class.
-this.widget = class
+ppixiv.widget = class
 {
     constructor(container)
     {
@@ -21,7 +21,7 @@ this.widget = class
 // A widget that shows info for a particular illust_id.
 //
 // An illust_id can be set, and we'll refresh when it changes.
-this.illust_widget = class extends this.widget
+ppixiv.illust_widget = class extends ppixiv.widget
 {
     constructor(container)
     {
@@ -67,7 +67,7 @@ this.illust_widget = class extends this.widget
 }
 
 // Display messages in the popup widget.  This is a singleton.
-this.message_widget = class
+ppixiv.message_widget = class
 {
     static get singleton()
     {
@@ -114,7 +114,7 @@ this.message_widget = class
 // Call a callback on any click not inside a list of nodes.
 //
 // This is used to close dropdown menus.
-this.click_outside_listener = class
+ppixiv.click_outside_listener = class
 {
     constructor(node_list, callback)
     {
@@ -155,7 +155,7 @@ this.click_outside_listener = class
 }
 
 // Show popup menus when a button is clicked.
-this.dropdown_menu_opener = class
+ppixiv.dropdown_menu_opener = class
 {
     static create_handlers(container, selectors)
     {
@@ -282,7 +282,7 @@ this.dropdown_menu_opener = class
 
 // A pointless creepy eye.  Looks away from the mouse cursor when hovering over
 // the unfollow button.
-this.creepy_eye_widget = class
+ppixiv.creepy_eye_widget = class
 {
     constructor(eye)
     {
@@ -343,7 +343,7 @@ this.creepy_eye_widget = class
     }
 }
 
-this.avatar_widget = class
+ppixiv.avatar_widget = class
 {
     // options:
     // parent: node to add ourself to (required)
@@ -503,7 +503,7 @@ this.avatar_widget = class
 };
 
 // A list of tags, with translations in popups where available.
-this.tag_widget = class
+ppixiv.tag_widget = class
 {
     // options:
     // parent: node to add ourself to (required)
@@ -577,7 +577,7 @@ this.tag_widget = class
 // A popup for inputting text.
 //
 // This is currently special purpose for the add tag prompt.
-this.text_prompt = class
+ppixiv.text_prompt = class
 {
     constructor()
     {
@@ -662,7 +662,7 @@ this.text_prompt = class
 }
 
 // Widget for editing bookmark tags.
-this.bookmark_tag_list_widget = class extends this.illust_widget
+ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
 {
     constructor(container)
     {
@@ -896,7 +896,7 @@ this.bookmark_tag_list_widget = class extends this.illust_widget
 }
 
 // The button that shows and hides the tag list.
-this.toggle_bookmark_tag_list_widget = class extends this.illust_widget
+ppixiv.toggle_bookmark_tag_list_widget = class extends ppixiv.illust_widget
 {
     constructor(container, bookmark_tag_widget)
     {
@@ -924,7 +924,7 @@ this.toggle_bookmark_tag_list_widget = class extends this.illust_widget
     }
 }
 
-this.bookmark_button_widget = class extends this.illust_widget
+ppixiv.bookmark_button_widget = class extends ppixiv.illust_widget
 {
     constructor(container, private_bookmark, bookmark_tag_widget)
     {
@@ -1020,7 +1020,7 @@ this.bookmark_button_widget = class extends this.illust_widget
     }
 }
 
-this.like_button_widget = class extends this.illust_widget
+ppixiv.like_button_widget = class extends ppixiv.illust_widget
 {
     constructor(container, private_bookmark)
     {

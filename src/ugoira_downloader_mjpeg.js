@@ -6,7 +6,7 @@
 // be JPEGs, so we don't need to do any conversions and the encoding is completely lossless (other
 // than the loss Pixiv forces by reencoding everything to JPEG).  The result is standard and plays
 // in eg. VLC, but it's not a WebM file and browsers don't support it.
-this.ugoira_downloader_mjpeg = class
+ppixiv.ugoira_downloader_mjpeg = class
 {
     constructor(illust_data, progress)
     {

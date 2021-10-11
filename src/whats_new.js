@@ -123,7 +123,7 @@ let _update_history = [
     },
 ];
 
-this.whats_new = class
+ppixiv.whats_new = class
 {
     // Return the newest revision that exists in history.  This is always the first
     // history entry.

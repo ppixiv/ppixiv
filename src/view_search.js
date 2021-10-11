@@ -1,7 +1,7 @@
 "use strict";
 
 // The search UI.
-this.view_search = class extends this.view
+ppixiv.view_search = class extends ppixiv.view
 {
     constructor(container)
     {

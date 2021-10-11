@@ -28,7 +28,7 @@
 // store state that exists in the underlying page, and hash args to store state that
 // doesn't, so the URL remains valid for the actual Pixiv page if our UI is turned off.
 
-this.page_manager = class
+ppixiv.page_manager = class
 {
     constructor()
     {

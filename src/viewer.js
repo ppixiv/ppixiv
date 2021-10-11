@@ -2,7 +2,7 @@
 
 // This is the base class for viewer classes, which are used to view a particular
 // type of content in the main display.
-this.viewer = class
+ppixiv.viewer = class
 {
     constructor(container, illust_data)
     {

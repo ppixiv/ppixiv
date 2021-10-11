@@ -70,7 +70,7 @@ class scroll_handler
     }
 };
 
-this.manga_thumbnail_widget = class
+ppixiv.manga_thumbnail_widget = class
 {
     constructor(container)
     {

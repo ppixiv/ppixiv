@@ -1,6 +1,6 @@
 "use strict";
 
-this.tag_translations = class
+ppixiv.tag_translations = class
 {
     // Return the singleton, creating it if needed.
     static get()

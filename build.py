@@ -195,14 +195,14 @@ class Build(object):
             encoded_data = "`" + escaped_data + "`"
             resources[fn] = encoded_data
 
-        # In release builds, resources are added to this.resources in the same way as source.
+        # In release builds, resources are added to ppixiv.resources in the same way as source.
         #
         # In debug builds, we write them to a file that we can include with @resources, so we
         # can update them without having to change the debug script.  Write output/resources.js
         # for when we're in debug mode.
         with open(self.debug_resources_path, 'w+t') as f:
             for fn, data in resources.items():
-                f.write('this.resources["%s"] = %s;\n' % (fn, data))
+                f.write('ppixiv.resources["%s"] = %s;\n' % (fn, data))
 
         return resources
 
@@ -260,9 +260,10 @@ class Build(object):
         if not for_debug:
             # Encapsulate the script.
             result.append('(function() {\n')
+            result.append('const ppixiv = this;\n')
 
             result.append('with(this) {\n')
-            result.append('this.resources = {};\n')
+            result.append('ppixiv.resources = {};\n')
 
             output_resources = collections.OrderedDict()
 
@@ -282,7 +283,7 @@ class Build(object):
                     output_resources[fn] = script
 
             for fn, data in output_resources.items():
-                data = '''this.resources["%s"] = %s;''' % (fn, data)
+                data = '''ppixiv.resources["%s"] = %s;''' % (fn, data)
                 result.append(data)
 
             # Add the bootstrap code directly.

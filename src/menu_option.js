@@ -1,7 +1,7 @@
 "use strict";
 
 // Simple menu settings widgets.
-this.menu_option = class
+ppixiv.menu_option = class
 {
     static add_settings(container)
     {
@@ -119,7 +119,7 @@ this.menu_option = class
     }            
 }
 
-class menu_option_toggle extends this.menu_option
+class menu_option_toggle extends ppixiv.menu_option
 {
     constructor(container, options)
     {
@@ -172,7 +172,7 @@ class menu_option_toggle_light_theme extends menu_option_toggle
     }
 }
 
-class menu_option_slider extends this.menu_option
+class menu_option_slider extends ppixiv.menu_option
 {
     constructor(container, options)
     {
@@ -227,7 +227,7 @@ class menu_option_slider extends this.menu_option
 
 
 // A widget to control the thumbnail size slider.
-this.thumbnail_size_slider_widget = class extends menu_option_slider
+ppixiv.thumbnail_size_slider_widget = class extends menu_option_slider
 {
     constructor(container, options)
     {
