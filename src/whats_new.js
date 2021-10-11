@@ -3,6 +3,12 @@
 // This should be inside whats_new, but Firefox is in the dark ages and doesn't support class fields.
 let _update_history = [
     {
+        version: 102,
+        boring: true,
+        text:
+            "Animations now start playing much faster."
+    },
+    {
         version: 100,
         text:
             "Enabled auto-liking images on bookmark by default, to match the Pixiv mobile apps. " + 
