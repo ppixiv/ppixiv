@@ -193,29 +193,10 @@ this.actions = class
         var illust_id = illust_info.illustId;
         var bookmark_id = illust_info.bookmarkData.id;
         
-        // We're mimicing a form submission here, since there doesn't seem to be any
-        // API call for it.
-        var params = new URLSearchParams();
-        params.set("book_id[]", bookmark_id);
-        params.set("type", "");
-        params.set("untagged", 0);
-
-        // "rest" is actually the bookmark page the user is viewing, not the new state.
-        // We just mimic the value in the form (it probably only affects the redirect that
-        // we don't use).
-        params.set("rest", private_bookmark? "show":"hide");
-        if(private_bookmark)
-            params.set("hide", "Private");
-        else
-            params.set("show", "Public");
-        params.set("tag", "");
-        params.set("p", "1");
-        params.set("order", "");
-        params.set("add_tag", "");
-        params.toString();
-
-        // This returns an HTML page that we don't care about.
-        var result = await helpers.post_form_request("/bookmark_setting.php", params);
+        let result = await helpers.post_request("/ajax/illusts/bookmarks/edit_restrict", {
+            bookmarkIds: [bookmark_id],
+            bookmarkRestrict: private_bookmark? "private":"public",
+        });
 
         // If this image's info is loaded, update its bookmark info.  Leave fields other
         // than private_bookmark alone.

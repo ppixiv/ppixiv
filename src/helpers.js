@@ -807,24 +807,6 @@ this.helpers = {
         return result;
     },
 
-    async post_form_request(url, params)
-    {
-        params.set("tt", global_data.csrf_token);
-        
-        var result = await helpers.send_pixiv_request({
-            "method": "POST",
-            "url": url,
-
-            "data": params.toString(),
-
-            "headers": {
-                "Content-Type": "application/x-www-form-urlencoded",
-            },
-        });
-
-        return result;
-    },
-    
     // Download all URLs in the list.  Call callback with an array containing one ArrayData for each URL.  If
     // any URL fails to download, call callback with null.
     //
