@@ -20,6 +20,11 @@
 // A base class for fetching a single resource:
 class _preloader
 {
+    constructor()
+    {
+        this.abort_controller = new AbortController();
+    }
+
     // Cancel the fetch.
     cancel()
     {
@@ -43,14 +48,12 @@ class _img_preloader extends _preloader
     // Start the fetch.  This should only be called once.
     async start()
     {
-        this.abort_controller = new AbortController();
         await helpers.decode_image(this.url, this.abort_controller.signal);
     }
 }
 
-// Load a resource with XHR.  We rely on helpers.fetch_resource to make concurrent
-// loads with zip_image_player work cleanly.
-class _xhr_preloader extends _preloader
+// Load a resource with fetch.
+class _fetch_preloader extends _preloader
 {
     constructor(url)
     {
@@ -60,10 +63,17 @@ class _xhr_preloader extends _preloader
 
     async start()
     {
-        this.abort_controller = new AbortController();
-        await helpers.fetch_resource(this.url, {
+        let request = await helpers.send_pixiv_request({
+            url: this.url,
+            method: "GET",
             signal: this.abort_controller.signal,
         });
+
+        // Wait for the body to download before completing.  Ignore errors here (they'll
+        // usually be cancellations).
+        try {
+            await request.text();
+        } catch(e) { }
     }
 }
 
@@ -258,7 +268,7 @@ this.image_preloader = class
         if(illust_data.illustType == 2)
         {
             var results = [];
-            results.push(new _xhr_preloader(illust_data.ugoiraMetadata.originalSrc));
+            results.push(new _fetch_preloader(illust_data.ugoiraMetadata.originalSrc));
 
             // Preload the original image too, which viewer_ugoira displays if the ZIP isn't
             // ready yet.
