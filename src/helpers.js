@@ -1545,7 +1545,7 @@ this.helpers = {
 
             var onerror = (e) => {
                 remove_listeners();
-                reject("Load error");
+                reject("Error loading image");
             };
 
             var onload = (e) => {

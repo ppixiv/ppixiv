@@ -19,6 +19,8 @@ this.viewer_ugoira = class extends this.viewer
         this.options = options;
 
         this.seek_bar = seek_bar;
+        this.seek_bar.set_current_time(0);
+        this.seek_bar.set_callback(this.seek_callback);
 
         // Create an image to display the static image while we load.
         //
@@ -67,17 +69,21 @@ this.viewer_ugoira = class extends this.viewer
 
         window.addEventListener("visibilitychange", this.refresh_focus);
 
+        // This can be used to abort ZipImagePlayer's download.
+        this.abort_controller = new AbortController;
+
         // Create the player.
         this.player = new ZipImagePlayer({
-            "metadata": illust_data.ugoiraMetadata,
-            "autoStart": false,
-            "source": illust_data.ugoiraMetadata.originalSrc,
-            "mime_type": illust_data.ugoiraMetadata.mime_type,
-            "autosize": true,
-            "canvas": this.canvas,
-            "loop": true,
-            "debug": false,
-            "progress": this.progress,
+            metadata: illust_data.ugoiraMetadata,
+            autoStart: false,
+            source: illust_data.ugoiraMetadata.originalSrc,
+            mime_type: illust_data.ugoiraMetadata.mime_type,
+            signal: this.abort_controller.signal,
+            autosize: true,
+            canvas: this.canvas,
+            loop: true,
+            debug: false,
+            progress: this.progress,
             drew_frame: this.drew_frame,
         });            
 
@@ -93,10 +99,6 @@ this.viewer_ugoira = class extends this.viewer
         {
             // Once we send "finished", don't make any more progress calls.
             this.options.progress_bar = null;
-
-            // Enable the seek bar once loading finishes.
-            if(this.seek_bar)
-                this.seek_bar.set_callback(this.seek_callback);
         }
     }
 
@@ -206,6 +208,9 @@ this.viewer_ugoira = class extends this.viewer
     {
         console.log("shutdown player:", this.illust_data.illustId);
         this.finished = true;
+
+        // Cancel the player's download.
+        this.abort_controller.abort();
 
         if(this.seek_bar)
         {
