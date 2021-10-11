@@ -132,6 +132,23 @@ ppixiv.whats_new = class
         return _update_history[0].version;
     }
 
+    // Return the latest interesting history entry.
+    //
+    // We won't highlight the "what's new" icon for boring history entries.
+    static latest_interesting_history_revision()
+    {
+        for(let history of _update_history)
+        {
+            if(history.boring)
+                continue;
+
+            return history.version;
+        }
+
+        // We shouldn't get here.
+        throw Error("Couldn't find anything interesting");
+    }
+
     constructor(container)
     {
         this.container = container;

@@ -222,7 +222,7 @@ ppixiv.view_search = class extends ppixiv.view
         // sure it's an integer.
         last_viewed_version = parseInt(last_viewed_version);
 
-        let new_updates = last_viewed_version < whats_new.latest_history_revision();
+        let new_updates = last_viewed_version < whats_new.latest_interesting_history_revision();
         helpers.set_class(this.container.querySelector(".whats-new-button"), "updates", new_updates);
     }
 
