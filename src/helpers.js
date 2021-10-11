@@ -768,8 +768,12 @@ this.helpers = {
         // calls (not things like ugoira ZIPs), and the request will fail if we're in XHR
         // mode and set headers, since it'll trigger CORS.
         var hostname = new URL(options.url, document.location).hostname;
+        if("global_data" in window)
         if(hostname == "www.pixiv.net" && "global_data" in window)
+        {
             options.headers["x-csrf-token"] = global_data.csrf_token;
+            options.headers["x-user-id"] = global_data.user_id;
+        }
 
         let result = await helpers.send_request(options);
 
