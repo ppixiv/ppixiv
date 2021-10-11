@@ -1174,15 +1174,17 @@ ppixiv.SendImage = class
                 image_data.singleton().add_illust_data(illust_data);
             }
             
-            let old_hash_args = helpers.get_hash_args(document.location);
-            let was_in_preview = old_hash_args.get("preview");
+            let was_in_preview = ppixiv.location.virtual;
             let do_preview = data.action == "preview";
 
             // Show the image.
             let url = new URL("https://www.pixiv.net/en/artworks/" + data.info.illust_id);
             let hash_args = new unsafeWindow.URLSearchParams();
             if(do_preview)
-                hash_args.set("preview", "1")
+            {
+                hash_args.set("virtual", "1");
+                hash_args.set("preview", "1");
+            }
             if(data.page != -1)
                 hash_args.set("page", data.page+1);
 
@@ -1237,28 +1239,11 @@ ppixiv.SendImage = class
     // where we were before.
     static hide_preview_image()
     {
-        let old_hash_args = helpers.get_hash_args(document.location);
-        let was_in_preview = old_hash_args.get("preview");
+        let was_in_preview = ppixiv.history.virtual;
         if(!was_in_preview)
             return;
 
-        // Why is history.back async and history.pushState sync?!
-        //
-        // Make sure we don't history.back() a second time before we see document.location update
-        // from this one, or we might browser back through the user's history.  This might mean that
-        // we miss a preview message, but the history API just seems to be fundamentally broken.
-        if(this.waiting_for_back)
-        {
-            console.info("Suppressing sent image preview browser back because we're waiting for a previous one");
-            return;
-        }
-
-        window.addEventListener("popstate", (e) => {
-            this.waiting_for_back = false;
-        }, { once: true });
-        this.waiting_for_back = true;
-        
-        history.back();
+        ppixiv.history.back();        
     }
 };
 

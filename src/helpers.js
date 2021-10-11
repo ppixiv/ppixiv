@@ -743,7 +743,7 @@ ppixiv.helpers = {
         // Only set x-csrf-token for requests to www.pixiv.net.  It's only needed for API
         // calls (not things like ugoira ZIPs), and the request will fail if we're in XHR
         // mode and set headers, since it'll trigger CORS.
-        var hostname = new URL(options.url, document.location).hostname;
+        var hostname = new URL(options.url, ppixiv.location).hostname;
         if("global_data" in window)
         if(hostname == "www.pixiv.net" && "global_data" in window)
         {
@@ -1104,7 +1104,7 @@ ppixiv.helpers = {
     {
         for(var a of root.querySelectorAll("A"))
         {
-            var url = new URL(a.href, document.location);
+            var url = new URL(a.href, ppixiv.location);
             if(url.hostname != "pixiv.net" && url.hostname != "www.pixiv.net" || url.hash != "")
                 continue;
 
@@ -1154,9 +1154,6 @@ ppixiv.helpers = {
     // them to make them simpler to parse.
     get_url_without_language: function(url)
     {
-        if(url == null)
-            url = new URL(document.location);
-
         if(/^\/..\//.exec(url.pathname))
             url.pathname = url.pathname.substr(3);
         
@@ -1356,7 +1353,7 @@ ppixiv.helpers = {
 
     get_args: function(url)
     {
-        var url = new URL(url, document.location);
+        var url = new URL(url, ppixiv.location);
         return {
             path: url.pathname,
             query: url.searchParams,
@@ -1366,7 +1363,7 @@ ppixiv.helpers = {
 
     get_url_from_args(args)
     {
-        var url = new URL(document.location);
+        var url = new URL(ppixiv.location);
         url.pathname = args.path;
         url.search = args.query.toString();
         helpers.set_hash_args(url, args.hash);
@@ -1388,7 +1385,7 @@ ppixiv.helpers = {
     // For browser forwards/back, this won't be present.
     set_page_url(url, add_to_history, cause)
     {
-        var old_url = document.location.toString();
+        var old_url = ppixiv.location.toString();
         if(url.toString() == old_url)
             return;
 
@@ -1406,9 +1403,9 @@ ppixiv.helpers = {
 
         // console.log("Changing state to", url.toString());
         if(add_to_history)
-            history.pushState(history_data, "", url.toString());
+            ppixiv.history.pushState(history_data, "", url.toString());
         else
-            history.replaceState(history_data, "", url.toString());
+            ppixiv.history.replaceState(history_data, "", url.toString());
 
         // Chrome is broken.  After replacing state for a while, it starts logging
         //
@@ -1419,13 +1416,13 @@ ppixiv.helpers = {
         // and not just pushState (which you should be able to call as fast as you want).
         //
         // People don't think things through.
-        // console.log("Set URL to", document.location.toString(), add_to_history);
+        // console.log("Set URL to", ppixiv.location.toString(), add_to_history);
 
-        if(document.location.toString() != old_url)
+        if(ppixiv.location.toString() != old_url)
         {
             // Browsers don't send onpopstate for history changes, but we want them, so
             // send a synthetic one.
-            // console.log("Dispatching popstate:", document.location.toString());
+            // console.log("Dispatching popstate:", ppixiv.location.toString());
             var event = new PopStateEvent("popstate");
 
             // Set initialNavigation to true.  This indicates that this event is for a new
@@ -2179,4 +2176,136 @@ ppixiv.SaveScrollPosition = class
     }
 };
 
+// VirtualHistory is a wrapper for document.location and window.history to allow
+// setting a virtual, temporary document location.  These are ppixiv.location and
+// ppixiv.history, and have roughly the same interface.
+//
+// This can be used to preview another page without changing browser history, and
+// works around a really painful problem with the history API: while history.pushState
+// and replaceState are sync, history.back() is async.  That makes it very hard to
+// work with reliably.
+ppixiv.VirtualHistory = class
+{
+    constructor()
+    {
+        this.virtual_url = null;
+
+        // ppixiv.location can be accessed like document.location.
+        Object.defineProperty(ppixiv, "location", {
+            get: () => {
+                // If we're not using a virtual location, return document.location.
+                // Otherwise, return virtual_url.  Always return a copy of virtual_url,
+                // since the caller can modify it and it should only change through
+                // explicit history changes.
+                if(this.virtual_url == null)
+                    return new URL(document.location);
+                else
+                    return new URL(this.virtual_url);
+            },
+            set: (value) => {
+                // We could support assigning ppixiv.location, but we always explicitly
+                // pushState.  Just throw an exception if we get here accidentally.
+                throw Error("Can't assign to ppixiv.location");
+
+                /*
+                if(!this.virtual)
+                {
+                    document.location = value;
+                    return;
+                }
+
+                // If we're virtual, replace the virtual URL.
+                this.virtual_url = new URL(value, this.virtual_url);
+                this.broadcastPopstate();
+                */
+            },
+        });
+    }
+
+    get virtual()
+    {
+        return this.virtual_url != null;
+    }
+
+    url_is_virtual(url)
+    {
+        // Push a virtual URL by putting #virtual=1 in the hash.
+        let args = helpers.get_hash_args(url);
+        return args.get("virtual");
+    }
+
+    pushState(data, title, url)
+    {
+        url = new URL(url, document.location);
+        let virtual = this.url_is_virtual(url);
+        
+        // We don't support a history of virtual locations.  Once we're virtual, we
+        // can only replaceState or back out to the real location.
+        if(virtual && this.virtual_url)
+            throw Error("Can't push a second virtual location");
+
+        // If we're not pushing a virtual location, just use a real one.
+        if(!virtual)
+        {
+            this.virtual_url = null; // no longer virtual
+            return window.history.pushState(data, title, url);
+        }
+        
+        // Note that browsers don't dispatch popstate on pushState (which makes no sense at all),
+        // so we don't here either to match.
+        this.virtual_data = data;
+        this.virtual_title = title;
+        this.virtual_url = url;
+    }
+
+    replaceState(data, title, url)
+    {
+        url = new URL(url, document.location);
+        let virtual = this.url_is_virtual(url);
+        
+        if(!virtual)
+        {
+            // If we're replacing a virtual location with a real one, pop the virtual location
+            // and push the new state instead of replacing.  Otherwise, replace normally.
+            if(this.virtual_url != null)
+            {
+                this.virtual_url = null;
+                return window.history.pushState(data, title, url);
+            }
+            else
+            {
+                return window.history.replaceState(data, title, url);
+            }
+        }
+
+        // We can only replace a virtual location with a virtual location.  
+        // We can't replace a real one with a virtual one, since we can't edit
+        // history like that.
+        if(this.virtual_url == null)
+            throw Error("Can't replace a real history entry with a virtual one");
+
+        this.virtual_url = url;
+    }
+
+    back()
+    {
+        // If we're backing out of a virtual URL, clear it to return to the real one.
+        if(this.virtual_url)
+        {
+            this.virtual_url = null;
+            this.broadcastPopstate();
+        }
+        else
+        {
+            window.history.back();
+        }
+    }
+
+    broadcastPopstate()
+    {
+        window.dispatchEvent(new PopStateEvent("popstate"));
+    }
+};
+
+ppixiv.history = new VirtualHistory;
 

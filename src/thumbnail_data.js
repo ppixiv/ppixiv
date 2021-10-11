@@ -180,7 +180,7 @@ ppixiv.thumbnail_data = class
         // /c/540x540_70/img-master/img/.../12345678_master1200.jpg
         //
         // The resolution field is changed, and "square1200" is changed to "master1200".
-        var url = new URL(url, document.location);
+        var url = new URL(url, ppixiv.location);
         var path = url.pathname;
         var re = /(\/c\/)([^\/]+)(.*)(square1200|master1200|custom1200).jpg/;
         var match = re.exec(path);

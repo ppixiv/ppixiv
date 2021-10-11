@@ -54,7 +54,7 @@ ppixiv.view_search = class extends ppixiv.view
             {
                 // The recommended tag links are already on the search page, and retain other
                 // search settings.
-                let url = page_manager.singleton().get_url_for_tag_search(tag);
+                let url = page_manager.singleton().get_url_for_tag_search(tag, ppixiv.location);
                 url.searchParams.delete("p");
                 return url.toString();
             }.bind(this),
@@ -187,7 +187,7 @@ ppixiv.view_search = class extends ppixiv.view
 
         main_controller.singleton.temporarily_ignore_onpopstate = true;
         try {
-            let args = helpers.get_args(document.location);
+            let args = helpers.get_args(ppixiv.location);
             this.data_source.set_start_page(args, first_thumb.dataset.page);
             helpers.set_args(args, false, "viewing-page");
         } finally {
@@ -907,11 +907,11 @@ ppixiv.view_search = class extends ppixiv.view
             return;
 
         // See if this link is for this data source, one page before the current start page.
-        let args = helpers.get_args(document.location);
+        let args = helpers.get_args(ppixiv.location);
         let page = this.data_source.get_start_page(args);
         this.data_source.set_start_page(args, page-1);
         let previous_page_url = helpers.get_url_from_args(args).toString();
-        let clicked_url = new URL(e.target.href, document.location).toString();
+        let clicked_url = new URL(e.target.href, ppixiv.location).toString();
 
         // console.log("Previous page:", previous_page_url);
         // console.log("Clicked:", clicked_url);
@@ -1029,7 +1029,7 @@ ppixiv.view_search = class extends ppixiv.view
             {
                 // Set the link for the first page and previous page buttons.  Most of the time this is handled
                 // by our in-page click handler.
-                let args = helpers.get_args(document.location);
+                let args = helpers.get_args(ppixiv.location);
                 let page = this.data_source.get_start_page(args);
                 this.data_source.set_start_page(args, page-1);
                 element.querySelector("a.load-previous-page-link").href = helpers.get_url_from_args(args);
@@ -1254,7 +1254,7 @@ ppixiv.view_search = class extends ppixiv.view
     submit_user_search(e)
     {
         let search = this.container.querySelector(".user-search-box input.search-users").value;
-        let url = new URL("/search_user.php#ppixiv", document.location);
+        let url = new URL("/search_user.php#ppixiv", ppixiv.location);
         url.searchParams.append("nick", search);
         url.searchParams.append("s_mode", "s_usr");
         helpers.set_page_url(url, true);

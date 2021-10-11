@@ -621,7 +621,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         e.preventDefault();
         e.stopPropagation();
 
-        let url = new URL(a.href, document.location);
+        let url = new URL(a.href, ppixiv.location);
         helpers.set_page_url(url, true, "Clicked link in context menu");
     }
 

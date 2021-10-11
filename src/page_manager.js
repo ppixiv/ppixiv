@@ -186,10 +186,10 @@ ppixiv.page_manager = class
     }
 
     // Return true if it's possible for us to be active on this page.
-    available()
+    available_for_url(url)
     {
         // We support the page if it has a data source.
-        return this.get_data_source_for_url(document.location) != null;
+        return this.get_data_source_for_url(url) != null;
     };
 
     window_popstate(e)
@@ -242,7 +242,7 @@ ppixiv.page_manager = class
         if(window.sessionStorage.ppixiv_disabled)
             return false;
 
-        return this.available();
+        return this.available_for_url(ppixiv.location);
     };
 
     // Return true if we're currently active.
@@ -251,7 +251,7 @@ ppixiv.page_manager = class
     _active_internal()
     {
         // If the hash is empty, use the default.
-        if(document.location.hash == "")
+        if(ppixiv.location.hash == "")
             return this.active_by_default();
 
         // If we have a hash and it's not #ppixiv, then we're explicitly disabled.  If we
@@ -260,14 +260,13 @@ ppixiv.page_manager = class
         // If we're explicitly enabled but aren't actually available, we're disabled.  This
         // makes sure we don't break pages if we accidentally load them with a #ppixiv hash,
         // or if we remove support for a page that people have in their browser session.
-        return helpers.parse_hash(document.location) != null && this.available();
+        return helpers.parse_hash(ppixiv.location) != null && this.available_for_url(ppixiv.location);
     };
 
     // Given a list of tags, return the URL to use to search for them.  This differs
     // depending on the current page.
-    get_url_for_tag_search(tags)
+    get_url_for_tag_search(tags, url)
     {
-        let url = new URL(document.location);
         url = helpers.get_url_without_language(url);
 
         let type = helpers.get_page_type_from_url(url);
@@ -280,7 +279,7 @@ ppixiv.page_manager = class
             url.pathname = parts.join("/");
         } else {
             // If we're not, change to search and remove the rest of the URL.
-            url = new URL("/tags/" + encodeURIComponent(tags) + "/artworks#ppixiv", document.location);
+            url = new URL("/tags/" + encodeURIComponent(tags) + "/artworks#ppixiv", url);
         }
         
         return url;

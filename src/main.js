@@ -29,7 +29,7 @@ ppixiv.main_controller = class
             return;
 
         // Don't activate for things like sketch.pixiv.net.
-        if(document.location.hostname != "www.pixiv.net")
+        if(ppixiv.location.hostname != "www.pixiv.net")
             return;
 
         // If we're not active, just see if we need to add our button, and stop without messing
@@ -96,12 +96,12 @@ ppixiv.main_controller = class
 
         // If we're on a page that we don't support, like the top page, rewrite the link to switch to
         // a page we do support.
-        if(!page_manager.singleton().available())
+        if(!page_manager.singleton().available_for_url(ppixiv.location))
             disabled_ui.querySelector("a").href = "/ranking.php?mode=daily#ppixiv";
 
         document.body.appendChild(disabled_ui);
 
-        if(page_manager.singleton().available_for_url(document.location))
+        if(page_manager.singleton().available_for_url(ppixiv.location))
         {
             // Remember that we're disabled in this tab.  This way, clicking the "return
             // to Pixiv" button will remember that we're disabled.  We do this on page load
@@ -219,10 +219,10 @@ ppixiv.main_controller = class
         // still work, but none of the URLs we create will have #ppixiv, so we won't handle navigation
         // directly and the page will reload on every click.  Do this before we create any of our
         // UI, so our links inherit the hash.
-        if(helpers.parse_hash(document.location) == null)
+        if(helpers.parse_hash(ppixiv.location) == null)
         {
             // Don't create a new history state.
-            let newURL = new URL(document.location);
+            let newURL = new URL(ppixiv.location);
             newURL.hash = "#ppixiv";
             history.replaceState(null, "", newURL.toString());
         }
@@ -246,7 +246,7 @@ ppixiv.main_controller = class
 
         // Copy the location to the document copy, so the data source can tell where
         // it came from.
-        html.location = document.location;
+        html.location = ppixiv.location;
 
         // Now that we've cleared the document, we can unhide it.
         document.documentElement.hidden = false;
@@ -320,8 +320,8 @@ ppixiv.main_controller = class
         // Create a new data source for the same URL, replacing the previous one.
         // This returns the data source, but just call set_current_data_source so
         // we load the new one.
-        console.log("Refreshing data source for", document.location.toString());
-        await page_manager.singleton().create_data_source_for_url(document.location, null, true);
+        console.log("Refreshing data source for", ppixiv.location.toString());
+        await page_manager.singleton().create_data_source_for_url(ppixiv.location, null, true);
         await this.set_current_data_source(null, "refresh");
     }
 
@@ -342,7 +342,7 @@ ppixiv.main_controller = class
 
         // Get the current data source.  If we've already created it, this will just return
         // the same object and not create a new one.
-        var data_source = await page_manager.singleton().create_data_source_for_url(document.location, html);
+        var data_source = await page_manager.singleton().create_data_source_for_url(ppixiv.location, html);
 
         // If the data source supports_start_page, and a link was clicked on a page that isn't currently
         // loaded, create a new data source.  If we're on page 5 of bookmarks and the user clicks a link
@@ -354,7 +354,7 @@ ppixiv.main_controller = class
         // very well), but it at least makes rewinding to the first page work.
         if(data_source == this.data_source && data_source.supports_start_page)
         {
-            let args = helpers.get_args(document.location);
+            let args = helpers.get_args(ppixiv.location);
             let wanted_page = this.data_source.get_start_page(args);
 
             let lowest_page = data_source.id_list.get_lowest_loaded_page();
@@ -363,7 +363,7 @@ ppixiv.main_controller = class
             {
                 // This works the same as refresh_current_data_source above.
                 console.log("Resetting data source to an unavailable page:", lowest_page, wanted_page, highest_page);
-                data_source = await page_manager.singleton().create_data_source_for_url(document.location, null, true);
+                data_source = await page_manager.singleton().create_data_source_for_url(ppixiv.location, null, true);
             }
         }
 
@@ -389,7 +389,7 @@ ppixiv.main_controller = class
 
         // Figure out which view to display.
         var new_view_name;
-        var args = helpers.get_args(document.location);
+        var args = helpers.get_args(ppixiv.location);
         if(!args.hash.has("view"))
             new_view_name = data_source.default_view;
         else
@@ -403,7 +403,7 @@ ppixiv.main_controller = class
         if(new_view_name == "search")
             illust_id = null;
 
-        console.log("Loading data source.  View:", new_view_name, "Cause:", cause, "URL:", document.location.href);
+        console.log("Loading data source.  View:", new_view_name, "Cause:", cause, "URL:", ppixiv.location.href);
         console.log("  Show image", illust_id, "page", manga_page);
 
         // Mark the current view.  Other code can watch for this to tell which view is
@@ -518,7 +518,7 @@ ppixiv.main_controller = class
         // Set the wanted illust_id in the URL, and disable the thumb view so we show
         // the image.  Do this in a single URL update, so we don't add multiple history
         // entries.
-        var args = helpers.get_args(document.location);
+        var args = helpers.get_args(ppixiv.location);
 
         this._set_active_view_in_url(args.hash, view);
         this.data_source.set_current_illust_id(illust_id, args);
@@ -553,7 +553,7 @@ ppixiv.main_controller = class
     set_displayed_view_by_name(view, add_to_history, cause)
     {
         // Update the URL to mark whether thumbs are displayed.
-        var args = helpers.get_args(document.location);
+        var args = helpers.get_args(ppixiv.location);
         this._set_active_view_in_url(args.hash, view);
         helpers.set_args(args, add_to_history, cause);
     }

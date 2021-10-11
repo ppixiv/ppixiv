@@ -129,7 +129,7 @@ ppixiv.tag_search_box_widget = class
         }
         
         // Run the search.
-        helpers.set_page_url(page_manager.singleton().get_url_for_tag_search(tags), true);
+        helpers.set_page_url(page_manager.singleton().get_url_for_tag_search(tags, ppixiv.location), true);
     }
 }
 
@@ -375,7 +375,7 @@ ppixiv.tag_search_dropdown_widget = class
             tag_container.appendChild(span);
         }
 
-        var url = page_manager.singleton().get_url_for_tag_search(tag_search);
+        var url = page_manager.singleton().get_url_for_tag_search(tag_search, ppixiv.location);
         entry.href = url;
         return entry;
     }
@@ -617,7 +617,7 @@ ppixiv.tag_search_edit_widget = class
             tag_container.appendChild(span);
         }
 
-        var url = page_manager.singleton().get_url_for_tag_search(tag_search);
+        var url = page_manager.singleton().get_url_for_tag_search(tag_search, ppixiv.location);
         entry.querySelector("A.search").href = url;
         return entry;
     }
@@ -724,7 +724,7 @@ ppixiv.tag_search_edit_widget = class
 
         // Navigate to the edited search immediately.  Don't add these to history, since it
         // spams navigation history.
-        helpers.set_page_url(page_manager.singleton().get_url_for_tag_search(this.input_element.value), false);
+        helpers.set_page_url(page_manager.singleton().get_url_for_tag_search(this.input_element.value, ppixiv.location), false);
     }
 }
 

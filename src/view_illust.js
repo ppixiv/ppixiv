@@ -159,7 +159,7 @@ ppixiv.view_illust = class extends ppixiv.view
 
         // If we adjusted the page, update the URL.  For single-page posts, there should be
         // no page field.
-        var args = helpers.get_args(document.location);
+        var args = helpers.get_args(ppixiv.location);
         var wanted_page_arg = illust_data.pageCount > 1? (manga_page + 1).toString():null;
         if(args.hash.get("page") != wanted_page_arg)
         {

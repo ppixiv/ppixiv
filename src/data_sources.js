@@ -429,7 +429,7 @@ class data_source
         // If we have an explicit illust_id in the hash, use it.  Note that some pages (in
         // particular illustration pages) put this in the query, which is handled in the particular
         // data source.
-        var hash_args = helpers.get_hash_args(document.location);
+        var hash_args = helpers.get_hash_args(ppixiv.location);
         if(hash_args.has("illust_id"))
             return hash_args.get("illust_id");
         
@@ -1873,7 +1873,7 @@ ppixiv.data_sources.current_illust = class extends data_source_fake_pagination
     get_current_illust_id()
     {
         // /artworks/#
-        let url = new URL(document.location);
+        let url = new URL(ppixiv.location);
         url = helpers.get_url_without_language(url);
         let parts = url.pathname.split("/");
         var illust_id = parts[2];
@@ -3122,7 +3122,7 @@ ppixiv.data_sources.follows = class extends data_source
         current_url.searchParams.delete("p");
         let current_query = current_url.searchParams.toString();
 
-        var add_tag_link = function(tag)
+        var add_tag_link = (tag) =>
         {
             var a = document.createElement("a");
             a.classList.add("box-link");
