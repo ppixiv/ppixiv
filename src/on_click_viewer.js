@@ -10,7 +10,7 @@ this.on_click_viewer = class
     constructor()
     {
         this.onresize = this.onresize.bind(this);
-        this.pointerdown = this.pointerdown.catch_bind(this);
+        this.pointerdown = this.pointerdown.bind(this);
         this.pointerup = this.pointerup.bind(this);
         this.pointermove = this.pointermove.bind(this);
         this.block_event = this.block_event.bind(this);

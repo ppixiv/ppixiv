@@ -5,8 +5,7 @@ class early_controller
 {
     constructor()
     {
-        // Early initialization.  This happens before anything on the page is loaded, since
-        // this script runs at document-start.
+        // Early initialization.
         //
         // If this is an iframe, don't do anything.  This may be a helper iframe loaded by
         // load_data_in_iframe, in which case the main page will do the work.
@@ -19,7 +18,6 @@ class early_controller
 
         console.log("ppixiv setup");
 
-        // catch_bind isn't available if we're not active, so we use bind here.
         this.dom_content_loaded = this.dom_content_loaded.bind(this);
         if(document.readyState == "loading")
             window.addEventListener("DOMContentLoaded", this.dom_content_loaded, true);
@@ -208,10 +206,10 @@ this.main_controller = class
     {
         main_controller._singleton = this;
 
-        this.onkeydown = this.onkeydown.catch_bind(this);
-        this.redirect_event_to_view = this.redirect_event_to_view.catch_bind(this);
-        this.window_onclick_capture = this.window_onclick_capture.catch_bind(this);
-        this.window_onpopstate = this.window_onpopstate.catch_bind(this);
+        this.onkeydown = this.onkeydown.bind(this);
+        this.redirect_event_to_view = this.redirect_event_to_view.bind(this);
+        this.window_onclick_capture = this.window_onclick_capture.bind(this);
+        this.window_onpopstate = this.window_onpopstate.bind(this);
 
         // Create the page manager.
         page_manager.singleton();
