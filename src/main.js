@@ -242,8 +242,13 @@ ppixiv.main_controller = class
         {
             console.log("Reloading page to get init data");
 
-            let url = new URL(document.location);
-            let result = await helpers.load_data_in_iframe(url.toString());
+            // Some Pixiv pages try to force cache expiry.  We really don't want that to happen
+            // here, since we just want to grab the page we're on quickly.  Setting cache: force_cache
+            // tells Chrome to give us the cached page even if it's expired.
+            let url = document.location;
+            let result = await helpers.load_data_in_iframe(url.toString(), {
+                cache: "force-cache",
+            });
             global_data = result.querySelector("#meta-global-data");
             if(global_data != null)
                 global_data = JSON.parse(global_data.getAttribute("content"));

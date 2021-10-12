@@ -642,6 +642,7 @@ ppixiv.helpers = {
 
         data.method = options.method || "GET";
         data.signal = options.signal;
+        data.cache = options.cache;
         if(options.data)
             data.body = cloneInto(options.data, window); 
 
@@ -857,18 +858,17 @@ ppixiv.helpers = {
 
     // Load a page in an iframe, and call callback on the resulting document.
     // Remove the iframe when the callback returns.
-    async load_data_in_iframe(url)
+    async load_data_in_iframe(url, options={})
     {
         // If we're in Tampermonkey, we don't need any of the iframe hijinks and we can
         // simply make a request with responseType: document.  This is much cleaner than
         // the Greasemonkey workaround below.
-        let result = await helpers.send_pixiv_request({
-            "method": "GET",
-            "url": url,
-            "responseType": "document",
+        return await helpers.send_pixiv_request({
+            method: "GET",
+            url: url,
+            responseType: "document",
+            cache: options.cache,
         });
-
-        return await result;
     },
 
     set_recent_bookmark_tags(tags)
