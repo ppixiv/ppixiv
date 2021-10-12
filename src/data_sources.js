@@ -2558,18 +2558,13 @@ ppixiv.data_sources.bookmarks_new_illust = class extends data_source
 
         let data = result.body;
 
-        // Add translations.  This is inconsistent with their other translation APIs, because Pixiv
-        // never uses the same interface twice.  Also, this has translations only for related tags
-        // above, not for the tags used in the search, which sucks.
+        // Add translations.
         let translations = [];
         for(let tag of Object.keys(data.tagTranslation))
         {
-            let en = data.tagTranslation[tag].en;
-            if(en == "")
-                continue;
             translations.push({
                 tag: tag,
-                translation: en,
+                translation: data.tagTranslation[tag],
             });
         }
         tag_translations.get().add_translations(translations);
@@ -2817,9 +2812,7 @@ ppixiv.data_sources.search = class extends data_source
             this.call_update_listeners();
         }
 
-        // Add translations.  This is inconsistent with their other translation APIs, because Pixiv
-        // never uses the same interface twice.  Also, this has translations only for related tags
-        // above, not for the tags used in the search, which sucks.
+        // Add translations.
         let translations = [];
         for(let tag of Object.keys(body.tagTranslation))
         {
