@@ -74,7 +74,7 @@
                 // Since we're loading the files as-is and line numbers don't change, we
                 // don't need a source map.
                 source += "\n";
-                source += "//# sourceURL=" + setup.source_root + path + "\n";
+                source += "//# sourceURL=" + setup.build_path + path + "\n";
 
                 env.resources[path] = source;
             }

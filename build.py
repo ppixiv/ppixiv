@@ -132,7 +132,7 @@ class Build(object):
             # The debug bootstrap code wants to know the local source path so it can add sourceURL.
             # This is only used by bootstrap.js when we're launched from debug.user.js which loads
             # from local files.  The release build doesn't use it (it points to a local path).
-            'source_root': self.get_source_root_url(),
+            'build_path': self.get_local_root_url(),
         }
 
 
