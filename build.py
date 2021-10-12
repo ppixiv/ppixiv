@@ -58,6 +58,13 @@ def get_git_tag():
     result = subprocess.run(['git', 'describe', '--tags', '--dirty'], capture_output=True)
     return result.stdout.strip().decode()
 
+def to_javascript_string(s):
+    """
+    Return s as a JavaScript string.
+    """
+    escaped = re.sub(r'''([`$\\])''', r'\\\1', s)
+    return '`%s`' % escaped
+
 class Build(object):
     github_root = 'https://raw.githubusercontent.com/ppixiv/ppixiv/'
     setup_filename = 'output/setup.js'
@@ -191,9 +198,7 @@ class Build(object):
 
             # JSON makes these text resources hard to read.  Instead, put them in backticks, escaping
             # the contents.
-            escaped_data = re.sub(r'''([`$])''', r'\\\1', data)
-            encoded_data = "`" + escaped_data + "`"
-            resources[fn] = encoded_data
+            resources[fn] = to_javascript_string(data)
 
         # In release builds, resources are added to ppixiv.resources in the same way as source.
         #
@@ -278,7 +283,8 @@ class Build(object):
 
                     # Wrap source files in a function, so we can load them when we're ready in bootstrap.js.
                     if fn in source_files:
-                        script = '''() => {\n%s\n};\n''' % script
+                        script += '\n//# sourceURL=%s/%s\n' % (self.get_source_root_url(), fn)
+                        script = to_javascript_string(script)
 
                     output_resources[fn] = script
 

@@ -19,13 +19,11 @@
     // here.
     console.log("ppixiv bootstrap");
     
-    // When we're loading in development mode, we get our source files as text instead
-    // of functions.  _make_load_source_file converts the source file into a function
-    // that's like the one we'd get in a release build.  Note that any locals we declare
-    // here will be visible to code, since this is executed in our scope.
-    //
-    // We can't do this inside the class, because we need with to do this.
-    let _make_load_source_file = function(__pixiv, __source) {
+    // Our source files are stored as text, so we can attach sourceURL to them to give them
+    // useful filenames.  "this" is set to the ppixiv context, and we load them out here so
+    // we don't have many locals being exposed as globals during the eval.  We also need to
+    // do this out here in order ot use with.
+    let _load_source_file = function(__pixiv, __source) {
         const ppixiv = __pixiv;
         with(ppixiv)
         {
@@ -78,7 +76,7 @@
                 source += "\n";
                 source += "//# sourceURL=" + setup.source_root + path + "\n";
 
-                env.resources[path] = _make_load_source_file.bind(null, env, source);
+                env.resources[path] = source;
             }
 
             this.env = env;
@@ -90,18 +88,17 @@
             let source_list = setup.source_files;
             unsafeWindow.ppixiv = this.env;
 
-            // Each resources["src.js"] is a function to call when we're ready for that
-            // script to load.  Set "this" to the environment.
+            // Load each source file.
             for(let path of source_list)
             {
-                let func = this.env.resources[path];
-                if(!func)
+                let source = this.env.resources[path];
+                if(!source)
                 {
                     console.error("Source file missing:", path);
                     continue;
                 }
 
-                func.call(this.env);
+                _load_source_file(this.env, source);
             }
         }
     }(this);
