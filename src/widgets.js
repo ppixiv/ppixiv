@@ -1140,12 +1140,7 @@ ppixiv.SendImage = class
         if(data.message == "tab-info")
         {
             // Info about a new tab, or a change in visibility.
-            this.known_tabs[data.from] = {
-                visible: data.visible,
-                title: data.title,
-                windowHeight: data.windowHeight,
-                windowWidth: data.windowWidth,
-            };
+            this.known_tabs[data.from] = data;
         }
         else if(data.message == "tab-closed")
         {
@@ -1206,13 +1201,19 @@ ppixiv.SendImage = class
 
     static broadcast_tab_info()
     {
-        this.send_message({
+        let our_tab_info = {
             message: "tab-info",
             visible: !document.hidden,
             title: document.title,
             windowWidth: window.innerWidth,
             windowHeight: window.innerHeight,
-        });
+            screenX: window.screenX,
+            screenY: window.screenY,
+        };
+        this.send_message(our_tab_info);
+
+        // Add us to our own known_tabs.
+        this.known_tabs[SendImage.session_uuid] = our_tab_info;
     }
 
     static send_message(data, send_to_self)
@@ -1349,18 +1350,41 @@ ppixiv.send_image_widget = class extends ppixiv.illust_widget
         // to identify tabs when they have different sizes.  Find the max width and height of
         // any tab, so we can scale relative to it.
         let max_width = 1, max_height = 1;
+        let desktop_min_x = 999999, desktop_max_x = -999999;
+        let desktop_min_y = 999999, desktop_max_y = -999999;
         for(let tab_id of tab_ids)
         {
             let info = SendImage.known_tabs[tab_id];
+            if(!info.visible)
+                continue;
+
+            desktop_min_x = Math.min(desktop_min_x, info.screenX);
+            desktop_min_y = Math.min(desktop_min_y, info.screenY);
+            desktop_max_x = Math.max(desktop_max_x, info.screenX + info.windowWidth);
+            desktop_max_y = Math.max(desktop_max_y, info.screenY + info.windowHeight);
+
             max_width = Math.max(max_width, info.windowWidth);
             max_height = Math.max(max_height, info.windowHeight);
         }
 
+        let desktop_width = desktop_max_x - desktop_min_x;
+        let desktop_height = desktop_max_y - desktop_min_y;
+
         // Scale the maximum dimension of the largest tab to a fixed size, and the other
         // tabs relative to it, so we show the relative shape and dimensions of each tab.
-        let maxDimension = 100;
-        let tabSizeRatio = maxDimension / Math.max(max_width, max_height);
+        let max_dimension = 400;
+        let scale_by = max_dimension / Math.max(desktop_width, desktop_height);
+        let offset_x_by = -desktop_min_x * scale_by;
+        let offset_y_by = -desktop_min_y * scale_by;
 
+        desktop_width *= scale_by;
+        desktop_height *= scale_by;
+        console.log("desktop:", desktop_width, desktop_height);
+
+        // Set the size of the containing box.
+        this.dropdown_list.style.width = `${desktop_width}px`;
+        this.dropdown_list.style.height = `${desktop_height}px`;
+        
         // Add an entry for each tab we know about.
         let found_any = false;
         for(let tab_id of tab_ids)
@@ -1374,25 +1398,19 @@ ppixiv.send_image_widget = class extends ppixiv.illust_widget
             let entry = helpers.create_from_template(".template-send-image-tab");
             entry.dataset.tab_id = tab_id;
 
-            let width = info.windowWidth * tabSizeRatio;
-            let height = info.windowHeight * tabSizeRatio;
-            /*
-            let ratio = width / height;
-            console.log(width, height, ratio);
-            if(width > height)
-            {
-                width = 100;
-                height = width / ratio;
-            }
-            else
-            {
-                height = 100;
-                width = height * ratio;
-            }
-            */
+            // If this tab is our own window:
+            if(tab_id == SendImage.session_uuid)
+                entry.classList.add("self");
 
-            entry.style.width = width + "px";
-            entry.style.height = height + "px";
+            // Position the box.
+            let left = info.screenX * scale_by + offset_x_by;
+            let top = info.screenY * scale_by + offset_y_by;
+            let width = info.windowWidth * scale_by;
+            let height = info.windowHeight * scale_by;
+            entry.style.left = `${left}px`;
+            entry.style.top = `${top}px`;
+            entry.style.width = `${width}px`;
+            entry.style.height =`${height}px`;
             entry.style.display = "block";
 
             if(info.visible)
@@ -1402,33 +1420,36 @@ ppixiv.send_image_widget = class extends ppixiv.illust_widget
             this.dropdown_list.appendChild(entry);
             found_any = true;
 
-            entry.addEventListener("click", (e) => {
-                let entry = e.target.closest(".tab-entry");
-                if(!entry)
-                    return;
+            if(tab_id != SendImage.session_uuid)
+            {
+                entry.addEventListener("click", (e) => {
+                    let entry = e.target.closest(".tab-entry");
+                    if(!entry)
+                        return;
 
-                // On click, send the image for display, and close the dropdown.
-                SendImage.send_image(this._illust_id, this._page, entry.dataset.tab_id, "display");
-                this.visible = false;
-                this.previewing_image = false;
-            });
+                    // On click, send the image for display, and close the dropdown.
+                    SendImage.send_image(this._illust_id, this._page, entry.dataset.tab_id, "display");
+                    this.visible = false;
+                    this.previewing_image = false;
+                });
 
-            entry.addEventListener("mouseenter", (e) => {
-                let entry = e.target.closest(".tab-entry");
-                if(!entry)
-                    return;
+                entry.addEventListener("mouseenter", (e) => {
+                    let entry = e.target.closest(".tab-entry");
+                    if(!entry)
+                        return;
 
-                SendImage.send_image(this._illust_id, this._page, entry.dataset.tab_id, "preview");
-                this.previewing_image = true;
-            });
+                    SendImage.send_image(this._illust_id, this._page, entry.dataset.tab_id, "preview");
+                    this.previewing_image = true;
+                });
 
-            entry.addEventListener("mouseleave", (e) => {
-                let entry = e.target.closest(".tab-entry");
-                if(!entry)
-                    return;
+                entry.addEventListener("mouseleave", (e) => {
+                    let entry = e.target.closest(".tab-entry");
+                    if(!entry)
+                        return;
 
-                this.unhighlight_tab();
-            });
+                    this.unhighlight_tab();
+                });
+            }
         }
 
         this.container.querySelector(".no-other-tabs").hidden = found_any;

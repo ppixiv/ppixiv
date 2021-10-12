@@ -2221,45 +2221,49 @@ svg.heart-image .delete {
         60% { transform: rotate(0deg); }
     }
 
-    .list {
+    .list-box {
         background-color: var(--frame-bg-color);
         color: var(--frame-fg-color);
-        padding: 10px;
+        padding: 15px;
         border-radius: 15px;
         border: 1px solid var(--minor-text-fg-color);
-
         position: relative;
         left: -50%;
 
-        display: inline-flex;
-        flex-direction: row;
-        gap: 10px;
-        max-height: 400px;
-        max-width: 400px;
-   
-        .tab-entry {
-            background-color: #880;
-        }
+        .list {
+            position: relative;
 
-        .entry {
-            display: flex;
-            flex-direction: row;
-            align-items: center;
-            border-radius: 3px;
-            padding: 2px 8px;
-            display: flex;
-            cursor: pointer;
-            &:hover {
-                background-color: #222;
+            .tab-entry {
+                background-color: #880;
+                position: absolute;
             }
-            body.light &:hover {
-                background-color: #ccc;
-            }
-            &.tab-visible {
-                background-color: #0aa;
-            }
-            &.tab-visible:hover {
-                background-color: #0ff;
+
+            .entry {
+                display: flex;
+                flex-direction: row;
+                align-items: center;
+                border-radius: 3px;
+                border: 2px solid black;
+                padding: 2px 8px;
+                display: flex;
+                cursor: pointer;
+                &:hover {
+                    background-color: #222;
+                    z-index: 1;
+                }
+                body.light &:hover {
+                    background-color: #ccc;
+                }
+                &.tab-visible {
+                    background-color: #0aa;
+                }
+                &.tab-visible:hover {
+                    background-color: #0ff;
+                }
+                &.self {
+                    background-color: #044 !important;
+                    cursor: inherit;
+                };
             }
         }
     }

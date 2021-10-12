@@ -71,7 +71,7 @@ ppixiv.view_search = class extends ppixiv.view
 
         // As an optimization, start loading image info on mousedown.  We don't navigate until click,
         // but this lets us start loading image info a bit earlier.
-        this.container.querySelector(".thumbnails").addEventListener("mousedown", (e) => {
+        this.container.querySelector(".thumbnails").addEventListener("mousedown", async (e) => {
             if(e.button != 0)
                 return;
 
@@ -83,8 +83,13 @@ ppixiv.view_search = class extends ppixiv.view
             if(a == null)
                 return;
 
-            if(a.dataset.illustId != null)
-                image_data.singleton().get_image_info(a.dataset.illustId);
+            if(a.dataset.illustId == null)
+                return;
+            let illust_data = await image_data.singleton().get_image_info(a.dataset.illustId);
+
+            // This is a bit optimistic, but if we get a result before the user releases the mouse, start
+            // preloading the image.  This would be more effective if we had the image URL in thumbnail data.
+            helpers.preload_images([illust_data.urls.original]);
         }, true);
  
         this.container.querySelector(".refresh-search-button").addEventListener("click", this.refresh_search.bind(this));
