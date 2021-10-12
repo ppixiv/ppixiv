@@ -55,7 +55,7 @@ def get_git_tag():
     """
     Return the current git tag.
     """
-    result = subprocess.run(['git', 'describe', '--tags', '--dirty'], capture_output=True)
+    result = subprocess.run(['git', 'describe', '--tags', '--dirty', '--match=r*'], capture_output=True)
     return result.stdout.strip().decode()
 
 def to_javascript_string(s):
@@ -71,16 +71,30 @@ class Build(object):
     debug_resources_path = 'output/resources.js'
 
     def build(self):
-        # If the working copy isn't clean, this isn't a release.
+        # This is a release if it has a tag and the working copy is clean.
+        result = subprocess.run(['git', 'describe', '--tags', '--match=r*', '--exact-match'], capture_output=True)
+        is_tagged = result.returncode == 0
+
         result = subprocess.run(['git', 'status', '--porcelain', '--untracked-files=no'], capture_output=True)
         is_clean = len(result.stdout) == 0
-        self.is_release = is_clean
+
+        self.is_release = is_tagged and is_clean
 
         if len(sys.argv) > 1 and sys.argv[1] == '--release':
             self.is_release = True
 
         if self.is_release:
             self.git_tag = get_git_tag()
+
+        if self.is_release:
+            print('Release build: %s' % self.git_tag)
+        else:
+            reason = []
+            if not is_clean:
+                reason.append('working copy dirty')
+            if not is_tagged:
+                reason.append('no tag')
+            print('Development build: %s' % ', '.join(reason))
 
         try:
             os.makedirs('output')
