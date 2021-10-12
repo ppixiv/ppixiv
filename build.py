@@ -162,26 +162,22 @@ class Build(object):
                 data, source_map = sass.compile(filename=fn,
                         source_comments=True,
                         source_map_embed=False,
+                        source_map_root=source_map_root,
                         source_map_filename='dummy', # or else it doesn't give us a source map
                         omit_source_map_url=True)
 
-                # We could include source maps in release builds, but we'd need to figure out
-                # somewhere to put them, like a secondary GH repo.  It might be worth doing for
-                # source files, so we can get more useful bug reports, but TamperMonkey doesn't
-                # make that easy...
-                if not self.is_release:
-                    # Write out the source map.  Chrome does allow us to reference file:/// URLs in
-                    # source map URLs.
-                    source_map_filename = 'output/%s.map' % os.path.basename(fn)
-                    with open(source_map_filename, 'w+t') as f:
-                        f.write(source_map)
+                # Write out the source map.  Chrome does allow us to reference file:/// URLs in
+                # source map URLs.
+                source_map_filename = 'output/%s.map' % os.path.basename(fn)
+                with open(source_map_filename, 'w+t') as f:
+                    f.write(source_map)
 
-                    # We can embed the source map, but the stylesheet one is pretty big (larger than the
-                    # stylesheet itself).
-                    # encoded_source_map = base64.b64encode(source_map.encode()).decode('ascii')
-                    # url = 'data:application/json;base64,%s' % encoded_source_map
-                    url = self.get_source_root_url() + source_map_filename
-                    data += "\n/*# sourceMappingURL=%s */" % url
+                # We can embed the source map, but the stylesheet one is pretty big (larger than the
+                # stylesheet itself).
+                # encoded_source_map = base64.b64encode(source_map.encode()).decode('ascii')
+                # url = 'data:application/json;base64,%s' % encoded_source_map
+                url = self.get_source_root_url() + source_map_filename
+                data += "\n/*# sourceMappingURL=%s */" % url
             elif ext in ('.png', ):
                 mime_types = {
                     '.png': 'image/png',
