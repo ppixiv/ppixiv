@@ -877,7 +877,7 @@ ppixiv.data_sources.discovery_users = class extends data_source
     // Return true if the two URLs refer to the same data.
     is_same_page(url1, url2)
     {
-        var cleanup_url = function(url)
+        var cleanup_url = (url) =>
         {
             var url = new URL(url);
 
@@ -1357,7 +1357,7 @@ class data_source_from_page extends data_source
     // Return true if the two URLs refer to the same data.
     is_same_page(url1, url2)
     {
-        var cleanup_url = function(url)
+        var cleanup_url = (url) =>
         {
             var url = new URL(url);
 
@@ -1672,7 +1672,7 @@ ppixiv.data_sources.artist = class extends data_source
         var tag_list = container.querySelector(".post-tag-list");
         helpers.remove_elements(tag_list);
         
-        var add_tag_link = function(tag)
+        var add_tag_link = (tag) =>
         {
             var a = document.createElement("a");
             a.classList.add("box-link");
@@ -2060,7 +2060,7 @@ class data_source_bookmarks_base extends data_source
         
         // Reformat the tag list into a format that's easier to work with.
         let tags = { };
-        let add_tag = function(tag, public_tag)
+        let add_tag = (tag, public_tag) =>
         {
             // Rename "未分類" (uncategorized) to "".
             if(tag.tag == "未分類")
@@ -2991,7 +2991,7 @@ ppixiv.data_sources.search = class extends data_source
         // don't filter out posts today.
         this.set_item(container, "time-all", {scd: null, ecd: null});
 
-        var format_date = function(date)
+        var format_date = (date) =>
         {
             var f = (date.getYear() + 1900).toFixed();
             return (date.getYear() + 1900).toFixed().padStart(2, "0") + "-" +
@@ -2999,12 +2999,12 @@ ppixiv.data_sources.search = class extends data_source
                     date.getDate().toFixed().padStart(2, "0");
         };
 
-        var set_date_filter = function(name, start, end)
+        var set_date_filter = (name, start, end) =>
         {
             var start_date = format_date(start);
             var end_date = format_date(end);
             this.set_item(container, name, {scd: start_date, ecd: end_date});
-        }.bind(this);
+        };
 
         var tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
         var last_week = new Date(); last_week.setDate(last_week.getDate() - 7);
