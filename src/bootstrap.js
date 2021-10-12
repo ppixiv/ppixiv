@@ -100,6 +100,9 @@
 
                 _load_source_file(this.env, source);
             }
+
+            // Create the main controller.
+            this.env.main_controller.launch();
         }
     }(this);
 })();

@@ -1,14 +1,30 @@
 "use strict";
 
-// This runs first and sets everything else up.
-class early_controller
+// This handles high-level navigation and controlling the different views.
+ppixiv.main_controller = class
 {
+    // This is called by bootstrap at startup.  Just create ourself.
+    static launch() { new this; }
+
+    static get singleton()
+    {
+        if(main_controller._singleton == null)
+            throw "main_controller isn't created";
+
+        return main_controller._singleton;
+    }
+
     constructor()
     {
-        // Early initialization.
-        //
-        // If this is an iframe, don't do anything.  This may be a helper iframe loaded by
-        // load_data_in_iframe, in which case the main page will do the work.
+        if(main_controller._singleton != null)
+            throw "main_controller is already created";
+        main_controller._singleton = this;
+        this.initial_setup();
+    }
+
+    async initial_setup()
+    {
+        // If this is an iframe, don't do anything.
         if(window.top != window.self)
             return;
 
@@ -16,99 +32,34 @@ class early_controller
         if(document.location.hostname != "www.pixiv.net")
             return;
 
-        console.log("ppixiv setup");
-
-        this.dom_content_loaded = this.dom_content_loaded.bind(this);
-        if(document.readyState == "loading")
-            window.addEventListener("DOMContentLoaded", this.dom_content_loaded, true);
-        else
-            setTimeout(this.dom_content_loaded, 0);
-
+        // If we're not active, just see if we need to add our button, and stop without messing
+        // around with the page more than we need to.
         if(!page_manager.singleton().active)
+        {
+            console.log("ppixiv is currently disabled");
+            await helpers.wait_for_content_loaded();
+            this.setup_disabled_ui();
             return;
+        }
 
-        // Do early setup.  This happens early in page loading, without waiting for DOMContentLoaded.
-        // Unfortunately TamperMonkey doesn't correctly call us at the very start of the page in
-        // Chrome, so this doesn't happen until some site scripts have had a chance to run.
-
-        // Pixiv scripts run on DOMContentLoaded and load, whichever it sees first.  Add capturing
-        // listeners on both of these and block propagation, so those won't be run.  This keeps most
-        // of the site scripts from running underneath us.  Make sure this is registered after our
-        // own DOMContentLoaded listener above, or it'll block ours too.
-        //
-        // This doesn't always work in Chrome.  TamperMonkey often runs user scripts very late,
-        // even after DOMContentLoaded has already been sent, even in run-at: document-start.
-        var stop_event = function(e) {
-            e.preventDefault();
-            e.stopImmediatePropagation();
-        };
-        if(document.readyState == "loading")
-            window.addEventListener("DOMContentLoaded", stop_event, true);
-        window.addEventListener("load", stop_event, true);
+        console.log("ppixiv setup");
 
         // Install polyfills.  Make sure we only do this if we're active, so we don't
         // inject polyfills into Pixiv when we're not active.
         install_polyfills();
 
-        // Newer Pixiv pages run a bunch of stuff from deferred scripts, which install a bunch of
-        // nastiness (like searching for installed polyfills--which we install--and adding wrappers
-        // around them).  Break this by defining a webpackJsonp property that can't be set.  It
-        // won't stop the page from running everything, but it keeps it from getting far enough
-        // for the weirder scripts to run.
-        //
-        // Also, some Pixiv pages set an onerror to report errors.  Disable it if it's there,
-        // so it doesn't send errors caused by this script.  Remove _send and _time, which
-        // also send logs.  It might have already been set (TamperMonkey in Chrome doesn't
-        // implement run-at: document-start correctly), so clear it if it's there.
-        for(var key of ["onerror", "onunhandledrejection", "_send", "_time", "webpackJsonp"])
-        {
-            unsafeWindow[key] = null;
-
-            // Use an empty setter instead of writable: false, so errors aren't triggered all the time.
-            Object.defineProperty(unsafeWindow, key, {
-                get: exportFunction(function() { return null; }, unsafeWindow),
-                set: exportFunction(function(value) { }, unsafeWindow),
-            });
-        }
-
-        // Try to undo any damage that's already happened.
-        helpers.unwrap_environment();
-        
-        window.addEventListener("error", (e) => {
-            let silence_error = false;
-            if(e.filename && e.filename.indexOf("s.pximg.net") != -1)
-                silence_error = true;
-
-            if(silence_error)
-            {
-                e.preventDefault();
-                e.stopImmediatePropagation();
-                return;
-            }
-        }, true);
-
-        window.addEventListener("unhandledrejection", (e) => {
-            // We have to hit things with a hammer to get Pixiv's scripts to stop
-            // running, which causes a lot of errors.  Silence all errors that have
-            // a stack within Pixiv's sources.
-            let silence_error = false;
-            if(e.reason.stack && e.reason.stack.indexOf("s.pximg.net") != -1)
-                silence_error = true;
-
-            if(silence_error)
-            {
-                e.preventDefault();
-                e.stopImmediatePropagation();
-                return;
-            }
-        }, true);
+        // Run cleanup_environment.  This will try to prevent the underlying page scripts from
+        // making network requests or creating elements, and apply other irreversible cleanups
+        // that we don't want to do before we know we're going to proceed.
+        helpers.cleanup_environment();
 
         this.temporarily_hide_document();
-    }
 
-    dom_content_loaded(e)
-    {
-        this.setup();
+        // Wait for DOMContentLoaded to continue.
+        await helpers.wait_for_content_loaded();
+
+        // Continue with full initialization.
+        await this.setup();
     }
 
     temporarily_hide_document()
@@ -124,7 +75,7 @@ class early_controller
         // we want to hide the document as soon as it's added, so we don't flash
         // the original page before we have a chance to replace it.  Use a mutationObserver
         // to detect the document being created.
-        var observer = new MutationObserver(function(mutation_list) {
+        var observer = new MutationObserver((mutation_list) => {
             if(document.documentElement == null)
                 return;
             observer.disconnect();
@@ -134,35 +85,6 @@ class early_controller
 
         observer.observe(document, { attributes: false, childList: true, subtree: true });
     };
- 
-
-    // This is called on DOMContentLoaded (whether we're active or not).
-    setup()
-    {
-        // If we're not active, stop without doing anything and leave the page alone.
-        if(!page_manager.singleton().active)
-        {
-            // If we're disabled and can be enabled on this page, add our button.
-            this.setup_disabled_ui();
-
-            if(page_manager.singleton().available())
-            {
-                // Remember that we're disabled in this tab.  This way, clicking the "return
-                // to Pixiv" button will remember that we're disabled.  We do this on page load
-                // rather than when the button is clicked so this works when middle-clicking
-                // the button to open a regular Pixiv page in a tab.
-                //
-                // Only do this if we're available and disabled, which means the user disabled us.
-                // If we wouldn't be available on this page at all, don't store it.
-                page_manager.singleton().store_ppixiv_disabled(true);
-            }
-            
-            return;
-        }
-
-        // Create the main controller.
-        main_controller.create_singleton();
-    }
 
     // When we're disabled, but available on the current page, add the button to enable us.
     setup_disabled_ui()
@@ -178,33 +100,59 @@ class early_controller
             disabled_ui.querySelector("a").href = "/ranking.php?mode=daily#ppixiv";
 
         document.body.appendChild(disabled_ui);
+
+        if(page_manager.singleton().available_for_url(document.location))
+        {
+            // Remember that we're disabled in this tab.  This way, clicking the "return
+            // to Pixiv" button will remember that we're disabled.  We do this on page load
+            // rather than when the button is clicked so this works when middle-clicking
+            // the button to open a regular Pixiv page in a tab.
+            //
+            // Only do this if we're available and disabled, which means the user disabled us.
+            // If we wouldn't be available on this page at all, don't store it.
+            page_manager.singleton().store_ppixiv_disabled(true);
+        }
     };
-}
 
-// This handles high-level navigation and controlling the different views.
-ppixiv.main_controller = class
-{
-    // We explicitly create this singleton rather than doing it on the first call to
-    // singleton(), so it's explicit when it's created.
-    static create_singleton()
+    // Load Pixiv's global info from doc.  This can be the document, or a copy of the
+    // document that we fetched separately.  Return true on success.
+    load_global_info_from_document(doc)
     {
-        if(main_controller._singleton != null)
-            throw "main_controller is already created";
+        // This format is used on at least /new_illust.php.
+        let global_data = doc.querySelector("#meta-global-data");
+        if(global_data != null)
+            global_data = JSON.parse(global_data.getAttribute("content"));
 
-        new main_controller();
+        // This is the global "pixiv" object, which is used on older pages.
+        let pixiv = helpers.get_pixiv_data(doc);
+
+        // Discard any of these that have no login info.
+        if(global_data && global_data.userData == null)
+            global_data = null;
+        if(pixiv && (pixiv.user == null || pixiv.user.id == null))
+            pixiv = null;
+
+        if(global_data == null && pixiv == null)
+            return false;
+
+        if(global_data != null)
+        {
+            this.init_global_data(global_data.token, global_data.userData.id, global_data.userData.premium,
+                    global_data.mute, global_data.userData.adult);
+        }
+        else
+        {
+            this.init_global_data(pixiv.context.token, pixiv.user.id, pixiv.user.premium,
+                    pixiv.user.mutes, pixiv.user.explicit);
+        }
+
+        return true;
     }
 
-    static get singleton()
+    // This is where the actual UI starts.
+    async setup()
     {
-        if(main_controller._singleton == null)
-            throw "main_controller isn't created";
-
-        return main_controller._singleton;
-    }
-
-    constructor()
-    {
-        main_controller._singleton = this;
+        console.log("Controller setup");
 
         this.onkeydown = this.onkeydown.bind(this);
         this.redirect_event_to_view = this.redirect_event_to_view.bind(this);
@@ -214,98 +162,44 @@ ppixiv.main_controller = class
         // Create the page manager.
         page_manager.singleton();
 
-        this.setup();
-    };
-
-    async setup()
-    {
         // Run any one-time settings migrations.
         settings.migrate();
 
-        // This format is used on at least /new_illust.php.
-        let global_data = document.querySelector("#meta-global-data");
-        if(global_data != null)
-            global_data = JSON.parse(global_data.getAttribute("content"));
-
-        // This is the global "pixiv" object, which is used on older pages.
-        var pixiv = helpers.get_pixiv_data(document);
-
         // Pixiv scripts that use meta-global-data remove the element from the page after
-        // it's parsed for some reason.  Since browsers are too broken to allow user scripts
-        // to reliably run before site scripts, it's hard for us to guarantee that we can
-        // get this data before it's removed.
-        //
-        // If we didn't get any init data, reload the page in an iframe and look for meta-global-data
-        // again.  This request doesn't allow scripts to run.  At least in Chrome, this comes out of
-        // cache, so it doesn't actually cause us to load the page twice.
-        if(global_data == null && pixiv == null)
+        // it's parsed for some reason.  Try to get global info from document, and if it's
+        // not there, re-fetch the page to get it.
+        if(!this.load_global_info_from_document(document))
         {
             console.log("Reloading page to get init data");
 
             // Some Pixiv pages try to force cache expiry.  We really don't want that to happen
             // here, since we just want to grab the page we're on quickly.  Setting cache: force_cache
             // tells Chrome to give us the cached page even if it's expired.
-            let url = document.location;
-            let result = await helpers.load_data_in_iframe(url.toString(), {
+            let result = await helpers.load_data_in_iframe(document.location.toString(), {
                 cache: "force-cache",
             });
-            global_data = result.querySelector("#meta-global-data");
-            if(global_data != null)
-                global_data = JSON.parse(global_data.getAttribute("content"));
+
             console.log("Finished loading init data");
-        }
-
-        // Discard any of these that have no login info.
-        if(global_data && global_data.userData == null)
-            global_data = null;
-        if(pixiv && (pixiv.user == null || pixiv.user.id == null))
-            pixiv = null;
-
-        // If we don't have either of these (or we're logged out), stop and let the regular page display.
-        // It may be a page we don't support.
-        if(global_data == null && pixiv == null)
-        {
-            console.log("Couldn't find context data.  Are we logged in?");
-            document.documentElement.hidden = false;
-            return;
-        }
-
-        console.log("Starting");
-
-        // We know that we have enough info to continue, so we can do this now.
-        //
-        // Try to prevent the underlying page from making requests.  It would be better to do this
-        // earlier, in early_controller's constructor, but we don't know for sure whether we'll be
-        // able to continue at that point, and we don't want to do this if we aren't.  This used to
-        // matter more, but since browsers are bad and don't reliably allow user scripts to run early
-        // anymore, this wouldn't prevent all early network requests anyway.
-        //
-        // This needs to be done before calling anything else, or our internal network requests
-        // won't work.
-        helpers.block_network_requests();
-
-        // Also block creating script and style elements.
-        helpers.block_elements();
-
-        if(global_data != null)
-        {
-            this.init_global_data(global_data.token, global_data.userData.id, global_data.userData.premium,
-                    global_data.mute, global_data.userData.adult);
-
-            let preload = document.querySelector("#meta-preload-data");
-            if(preload != null)
+            if(!this.load_global_info_from_document(result))
             {
-                preload = JSON.parse(preload.getAttribute("content"));
-                
-                for(var preload_user_id in preload.user)
-                    image_data.singleton().add_user_data(preload.user[preload_user_id]);
-                for(var preload_illust_id in preload.illust)
-                    image_data.singleton().add_illust_data(preload.illust[preload_illust_id]);
+                // Stop if we don't have anything.  This can happen if we're not logged in.
+                console.log("Couldn't find context data.  Are we logged in?");
+                document.documentElement.hidden = false;
+                return;
             }
         }
-        else
+
+        // See if the page has preload data.  This sometimes contains illust and user info
+        // that the page will display, which lets us avoid making a separate API call for it.
+        let preload = document.querySelector("#meta-preload-data");
+        if(preload != null)
         {
-            this.init_global_data(pixiv.context.token, pixiv.user.id, pixiv.user.premium, pixiv.user.mutes, pixiv.user.explicit);
+            preload = JSON.parse(preload.getAttribute("content"));
+            
+            for(var preload_user_id in preload.user)
+                image_data.singleton().add_user_data(preload.user[preload_user_id]);
+            for(var preload_illust_id in preload.illust)
+                image_data.singleton().add_illust_data(preload.illust[preload_illust_id]);
         }
 
         window.addEventListener("click", this.window_onclick_capture);
@@ -790,11 +684,12 @@ ppixiv.main_controller = class
             user_id: user_id,
             include_r18: content_mode >= 1,
             include_r18g: content_mode >= 2,
+            premium: premium,
         };
 
         // Set the .premium class on body if this is a premium account, to display features
         // that only work with premium.
-        helpers.set_class(document.body, "premium", premium);
+        helpers.set_class(document.body, "premium", window.global_data.premium);
 
         // These are used to hide buttons that the user has disabled.
         helpers.set_class(document.body, "hide-r18", !window.global_data.include_r18);
@@ -854,6 +749,4 @@ ppixiv.main_controller = class
         view.handle_onkeydown(e);
     }
 };
-
-new early_controller();
 

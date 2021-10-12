@@ -423,82 +423,57 @@ ppixiv.helpers = {
         return array;
     },
 
-    // Stop the underlying page from sending XHR requests, since we're not going to display any
-    // of it and it's just unneeded traffic.  For some dumb reason, Pixiv sends error reports by
-    // creating an image, instead of using a normal API.  Override window.Image too to stop it
-    // from sending error messages for this script.
-    //
-    // Firefox is now also bad and seems to have removed beforescriptexecute.  The Web is not
-    // much of a dependable platform.
-    block_network_requests: function()
+    // Block until DOMContentLoaded.
+    wait_for_content_loaded: function()
     {
-        // We have to use unsafeWindow.fetch in Firefox, since window.fetch is from a different
-        // context and won't send requests with the site's origin, which breaks everything.  In
-        // Chrome it doesn't matter.
-        helpers.fetch = unsafeWindow.fetch;
-        unsafeWindow.Image = exportFunction(function() { }, unsafeWindow);
-
-        class dummy_fetch
-        {
-            sent() { return this; }
-        };
-        dummy_fetch.prototype.ok = true;
-        unsafeWindow.fetch = exportFunction(function() { return new dummy_fetch(); }, unsafeWindow);
-
-        unsafeWindow.XMLHttpRequest = exportFunction(function() { }, exportFunction);
-    },
-
-    // Similarly, prevent it from creating script and style elements.  Sometimes site scripts that
-    // we can't disable keep running and do things like loading more scripts or adding stylesheets.
-    // We mark any scripts and styles we load with createElement("style", {pp: true}) so we can bypass
-    // this for our own elements.
-    block_elements: function()
-    {
-        let origCreateElement = unsafeWindow.HTMLDocument.prototype.createElement;
-        unsafeWindow.HTMLDocument.prototype.createElement = function(type, options)
-        {
-            // Prevent the underlying site from creating new script and style elements.  We override
-            // this ourself using the "pp: true" option.
-            if(type == "script" || type == "style")
+        return new Promise((accept, reject) => {
+            if(document.readyState != "loading")
             {
-                if(options == null || !options.pp)
-                {
-                    // console.warn("Disabling createElement " + type);
-                    throw new ElementDisabled("Element disabled");
-                }
+                accept();
+                return;
             }
-            return origCreateElement.apply(this, arguments);
-        };
 
-        // Catch and discard ElementDisabled.
-        //
-        // This is crazy: the error event doesn't actually receive the unhandled exception.
-        // We have to examine the message to guess whether an error is ours.
-        unsafeWindow.addEventListener("error", (e) => {
-            if(e.message && e.message.indexOf("Element disabled") == -1)
-                return;
-
-            e.preventDefault();
-            e.stopPropagation();
-        }, true);
-
-        window.addEventListener("unhandledrejection", (e) => {
-            if(e.reason.message != "Element disabled")
-                return;
-
-            e.preventDefault();
-            e.stopPropagation();
+            window.addEventListener("DOMContentLoaded", (e) => {
+                accept();
+            }, {
+                capture: true,
+                once: true,
+            });
         });
     },
 
-    unwrap_environment()
+    // Try to stop the underlying page from doing things (it just creates unnecessary network
+    // requests and spams errors to the console), and undo damage to the environment that it
+    // might have done before we were able to start.
+    cleanup_environment: function()
     {
+        // Newer Pixiv pages run a bunch of stuff from deferred scripts, which install a bunch of
+        // nastiness (like searching for installed polyfills--which we install--and adding wrappers
+        // around them).  Break this by defining a webpackJsonp property that can't be set.  It
+        // won't stop the page from running everything, but it keeps it from getting far enough
+        // for the weirder scripts to run.
+        //
+        // Also, some Pixiv pages set an onerror to report errors.  Disable it if it's there,
+        // so it doesn't send errors caused by this script.  Remove _send and _time, which
+        // also send logs.  It might have already been set (TamperMonkey in Chrome doesn't
+        // implement run-at: document-start correctly), so clear it if it's there.
+        for(let key of ["onerror", "onunhandledrejection", "_send", "_time", "webpackJsonp"])
+        {
+            unsafeWindow[key] = null;
+
+            // Use an empty setter instead of writable: false, so errors aren't triggered all the time.
+            Object.defineProperty(unsafeWindow, key, {
+                get: exportFunction(function() { return null; }, unsafeWindow),
+                set: exportFunction(function(value) { }, unsafeWindow),
+            });
+        }
+
+        // Try to unwrap functions that might have been wrapped by page scripts.
         function unwrap_func(obj, name)
         {
             // Both prototypes and instances might be wrapped.  If this is an instance, look
             // at the prototype to find the original.
             let orig_func = obj.__proto__[name]? obj.__proto__[name]:obj[name];
-
             if(!orig_func.__sentry_original__)
                 return;
 
@@ -510,6 +485,7 @@ ppixiv.helpers = {
         try {
             unwrap_func(document, "addEventListener");
             unwrap_func(document, "removeEventListener");
+            unwrap_func(unsafeWindow, "fetch");
             unwrap_func(EventTarget.prototype, "addEventListener");
             unwrap_func(EventTarget.prototype, "removeEventListener");
             unwrap_func(XMLHttpRequest.prototype, "send");
@@ -518,13 +494,25 @@ ppixiv.helpers = {
             // in the future.  Freeze the objects to prevent this.
             Object.freeze(EventTarget.prototype);
 
-            // Some other library is doing something similarly evil, wrapping all calls to
-            // console.log, etc. with its own.  This is horrible, since it breaks the file/line
-            // number display in the console.  Replace them with the originals from window, and
-            // freeze console so if this runs later it can't change them.
+            // Remove Pixiv's wrappers from console.log, etc., and then apply our own to console.error
+            // to silence its error spam.  This will cause all error messages out of console.error
+            // to come from this line, which is usually terrible, but our logs come from window.console
+            // and not unsafeWindow.console, so this doesn't affect us.
             for(let func in window.console)
                 unsafeWindow.console[func] = window.console[func];
-            Object.freeze(console);
+
+            let error = unsafeWindow.console.error.bind(unsafeWindow.console);
+            unsafeWindow.console.error = function() {
+                // Throw an exception to get our current stack.
+                try {
+                    fail();
+                } catch(e) {
+                    if(e.stack.indexOf('vendors~pixiv') != -1)
+                        return;
+                }
+                error.apply(null, arguments);
+            };
+            Object.freeze(unsafeWindow.console);
 
             // Some Pixiv pages load jQuery and spam a bunch of error due to us stopping
             // their scripts.  Try to replace jQuery's exception hook with an empty one to
@@ -554,6 +542,85 @@ ppixiv.helpers = {
         } catch(e) {
             console.error("Error unwrapping environment", e);
         }
+
+        // We have to use unsafeWindow.fetch in Firefox, since window.fetch is from a different
+        // context and won't send requests with the site's origin, which breaks everything.  In
+        // Chrome it doesn't matter.
+        helpers.fetch = unsafeWindow.fetch;
+        unsafeWindow.Image = exportFunction(function() { }, unsafeWindow);
+
+        // Replace window.fetch with a dummy to prevent some requests from happening.
+        class dummy_fetch
+        {
+            sent() { return this; }
+        };
+        dummy_fetch.prototype.ok = true;
+        unsafeWindow.fetch = exportFunction(function() { return new dummy_fetch(); }, unsafeWindow);
+
+        unsafeWindow.XMLHttpRequest = exportFunction(function() { }, exportFunction);
+
+        // Similarly, prevent it from creating script and style elements.  Sometimes site scripts that
+        // we can't disable keep running and do things like loading more scripts or adding stylesheets.
+        // We mark any scripts and styles we load with createElement("style", {pp: true}) so we can bypass
+        // this for our own elements.
+        let origCreateElement = unsafeWindow.HTMLDocument.prototype.createElement;
+        unsafeWindow.HTMLDocument.prototype.createElement = function(type, options)
+        {
+            // Prevent the underlying site from creating new script and style elements.  We override
+            // this ourself using the "pp: true" option.
+            if(type == "script" || type == "style")
+            {
+                if(options == null || !options.pp)
+                {
+                    // console.warn("Disabling createElement " + type);
+                    throw new ElementDisabled("Element disabled");
+                }
+            }
+            return origCreateElement.apply(this, arguments);
+        };
+
+        // Catch and discard ElementDisabled.
+        //
+        // This is crazy: the error event doesn't actually receive the unhandled exception.
+        // We have to examine the message to guess whether an error is ours.
+        unsafeWindow.addEventListener("error", (e) => {
+            if(e.message && e.message.indexOf("Element disabled") == -1)
+                return;
+
+            e.preventDefault();
+            e.stopPropagation();
+        }, true);
+
+        // We have to hit things with a hammer to get Pixiv's scripts to stop running, which
+        // causes a lot of errors.  Silence all errors that have a stack within Pixiv's sources,
+        // as well as any errors from ElementDisabled.
+        window.addEventListener("error", (e) => {
+            let silence_error = false;
+            if(e.filename && e.filename.indexOf("s.pximg.net") != -1)
+                silence_error = true;
+
+            if(silence_error)
+            {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                return;
+            }
+        }, true);
+
+        window.addEventListener("unhandledrejection", (e) => {
+            let silence_error = false;
+            if(e.reason.stack && e.reason.stack.indexOf("s.pximg.net") != -1)
+                silence_error = true;
+            if(e.reason.message == "Element disabled")
+                silence_error = true;
+
+            if(silence_error)
+            {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                return;
+            }
+        }, true);
     },
     
     add_style: function(css)
