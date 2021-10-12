@@ -107,7 +107,7 @@ class Build(object):
             parts = cwd.split('/')
             cwd = '%s:/%s' % (parts[2], '/'.join(parts[3:]))
 
-        return 'file:///' + cwd
+        return 'file:///%s/' % cwd
 
     def get_source_root_url(self):
         """
@@ -118,7 +118,7 @@ class Build(object):
         #
         # For releases, use the raw GitHub URL where the file will be on GitHub once the current tag is pushed.
         if self.is_release:
-            return self.github_root + self.git_tag
+            return self.github_root + self.git_tag + '/'
         else:
             return self.get_local_root_url()
 
@@ -180,7 +180,7 @@ class Build(object):
                     # stylesheet itself).
                     # encoded_source_map = base64.b64encode(source_map.encode()).decode('ascii')
                     # url = 'data:application/json;base64,%s' % encoded_source_map
-                    url = self.get_source_root_url() + '/' + source_map_filename
+                    url = self.get_source_root_url() + source_map_filename
                     data += "\n/*# sourceMappingURL=%s */" % url
             elif ext in ('.png', ):
                 mime_types = {
@@ -283,7 +283,7 @@ class Build(object):
 
                     # Wrap source files in a function, so we can load them when we're ready in bootstrap.js.
                     if fn in source_files:
-                        script += '\n//# sourceURL=%s/%s\n' % (self.get_source_root_url(), fn)
+                        script += '\n//# sourceURL=%s%s\n' % (self.get_source_root_url(), fn)
                         script = to_javascript_string(script)
 
                     output_resources[fn] = script
