@@ -327,7 +327,7 @@ ppixiv.view_illust = class extends ppixiv.view
             return;
         }
 
-        console.log("Show placeholder for:", illust_thumbnail_data);
+        console.log("Show fast preview for", illust_thumbnail_data.id);
         this.preview_img = document.createElement("img");
         this.preview_img.src = illust_thumbnail_data.url;
         this.preview_img.style.pointerEvents = "none";
