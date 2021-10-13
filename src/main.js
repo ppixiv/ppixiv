@@ -422,9 +422,6 @@ ppixiv.main_controller = class
  
         var new_view = this.views[new_view_name];
 
-        // main_context_menu uses this to see which view is active.
-        document.body.dataset.currentView = new_view_name;
-
         this.context_menu.illust_id = illust_id;
         
         // If we're changing between views, update the active view.
