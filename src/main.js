@@ -283,12 +283,12 @@ ppixiv.main_controller = class
         // Create the manga page viewer.
         this.manga_view = new view_manga(this.container.querySelector(".view-manga-container"));
         
-        // Create the main UI.
-        this.ui = new view_illust(this.container.querySelector(".view-illust-container"));
+        // Create the illustration viewer.
+        this.illust_view = new view_illust(this.container.querySelector(".view-illust-container"));
 
         this.views = {
             search: this.thumbnail_view,
-            illust: this.ui,
+            illust: this.illust_view,
             manga: this.manga_view,
         };
 
@@ -378,7 +378,7 @@ ppixiv.main_controller = class
             
             this.data_source = data_source;
             this.show_data_source_specific_elements();
-            this.ui.set_data_source(data_source);
+            this.illust_view.set_data_source(data_source);
             this.thumbnail_view.set_data_source(data_source);
             this.context_menu.set_data_source(data_source);
             
@@ -416,7 +416,7 @@ ppixiv.main_controller = class
         // it'll start loading any previous image it was pointed at.  Don't do this in
         // search mode, or we'll start loading the default image.
         if(new_view_name == "illust")
-            this.ui.show_image(illust_id, manga_page);
+            this.illust_view.show_image(illust_id, manga_page);
         else if(new_view_name == "manga")
             this.manga_view.shown_illust_id = illust_id;
  
