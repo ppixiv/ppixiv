@@ -1627,14 +1627,14 @@ ppixiv.helpers = {
         // Clamp the width of the container to the number of columns we expect.
         var container_width = max_columns * (max_width+padding*2);
 
-        var css = 
-            top_selector + " .thumbnail-link { " +
-                "width: " + max_width + "px; " +
-                "height: " + max_height + "px; " +
-            "} " + 
-            top_selector + " li.thumbnail-box { padding: " + padding + "px; }";
+        var css = `
+            ${top_selector} .thumbnail-link { 
+                width: ${max_width}px;
+                height: ${max_height}px;
+            }
+            ${top_selector} li.thumbnail-box { padding: ${padding}px; }`;
         if(container_width != null)
-            css += top_selector + " > .thumbnails { max-width: " + container_width + "px; }";
+            css += `${top_selector} > .thumbnails { max-width: ${container_width}px; }`;
         return css;
     },
     
