@@ -121,7 +121,7 @@ ppixiv.view_search = class extends ppixiv.view
         // This IntersectionObserver is used to tell which illustrations are fully visible on screen,
         // so we can decide which page to put in the URL for data sources that use supports_start_page.
         this.visible_illusts = [];
-        this.topmost_illust_observer = helpers.intersection_observer((entries) => {
+        this.topmost_illust_observer = new IntersectionObserver((entries) => {
             for(let entry of entries)
             {
                 let thumb = entry.target;
@@ -139,9 +139,6 @@ ppixiv.view_search = class extends ppixiv.view
             this.visible_thumbs_changed();
         }, {
             root: this.container,
-
-            // We only want to include fully visible thumbnails.  Note that for helpers.intersection_observer
-            // we need to just use "threshold" and not "thresholds".
             threshold: 1,
         });
         

@@ -373,33 +373,6 @@ ppixiv.helpers = {
         }.bind(this), 1000);
     },
 
-    // Work around IntersectionObserver bugs.
-    intersection_observer: function(callback, options)
-    {
-        // Chrome only supports the "threshold" option and not "thresholds".
-        //
-        // Firefox's thresholds don't work at all (it'll give partially-visible items even with
-        // threshold 1).  However, we still need to give a threshold, and call it "thresholds".
-        // If we don't give "thresholds", we'll never receive removal callbacks.  If we give
-        // "threshold" at all, we also won't receive removal callbacks.
-        //
-        // Yeah.  Awesome.
-        let firefox = navigator.userAgent.indexOf("Gecko/");
-        if(firefox)
-        {
-            let new_options = {};
-            Object.assign(new_options, options);
-            options = new_options;
-            if(options.threshold != null)
-            {
-                options.thresholds = [options.threshold];
-                delete options.threshold;
-            }
-        }
-
-        return new IntersectionObserver(callback, options);
-    },
-
     // Return a Uint8Array containing a blank (black) image with the given dimensions and type.
     create_blank_image: function(image_type, width, height)
     {
