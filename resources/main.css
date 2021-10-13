@@ -218,12 +218,24 @@ textarea:focus, input:focus, a:focus {
 }
 
 .hover-message,
-.view-search-container > .no-results {
+.search-results > .no-results {
     width: 100%;
     position: absolute;
     bottom: 0px;
     display: flex;
     justify-content: center;    
+
+    & > .message {
+        background-color: var(--frame-bg-color);
+        color: var(--frame-fg-color);
+        font-size: 1.4em;
+        padding: 6px 15px;
+        margin: 4px;
+        max-width: 600px;
+        text-align: center;
+        border-radius: 5px;
+        box-shadow: 0 0 10px 5px #aaa;
+    }
 }
 
 .hover-message {
@@ -238,21 +250,8 @@ textarea:focus, input:focus, a:focus {
 }
 
 /* The version in the search container is always centered. */
-.view-search-container > .no-results {
+.search-results > .no-results {
     bottom: 50%;
-}
-
-.hover-message > .message,
-.view-search-container > .no-results > .message {
-    background-color: var(--frame-bg-color);
-    color: var(--frame-fg-color);
-    font-size: 1.4em;
-    padding: 6px 15px;
-    margin: 4px;
-    max-width: 600px;
-    text-align: center;
-    border-radius: 5px;
-    box-shadow: 0 0 10px 5px #aaa;
 }
 
 .view-illust-container {
@@ -783,18 +782,6 @@ body.hide-r18g .r18g { display: none; }
     background-color: var(--dropdown-menu-hover-color);
 }
 
-.view-search-container {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    top: 0;
-    left: 0;
-    overflow-x: hidden;
-    /* Always show the vertical scrollbar, so we don't relayout as images load. */
-    overflow-y: scroll;
-    color: #fff;
-}
-
 .top-ui-box
 {
     /* This places the thumbnail UI at the top, so the thumbnails sit below it when
@@ -857,7 +844,18 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
     height: 30px;
 }
 
-.view-search-container {
+/* Search result views.  This is used for both the search view and the manga page list. */
+.search-results {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    overflow-x: hidden;
+    /* Always show the vertical scrollbar, so we don't relayout as images load. */
+    overflow-y: scroll;
+    color: #fff;
+
     .thumbnail-ui-box {
         width: 50%;
         /* Make sure this doesn't get too narrow, or it'll overlap too much of the thumbnail area. */
@@ -941,6 +939,19 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
         justify-content: center;
         margin: 0 auto; /* center */
     }
+
+    .flash a {
+        animation-name: flash-thumbnail;
+        animation-duration: 300ms;
+        animation-timing-function: ease-out;
+        animation-iteration-count: 1;
+    }    
+
+    @keyframes flash-thumbnail {
+        0% {
+            filter: brightness(200%);
+        }
+    }
 }
 
 .thumbnail-box.load-previous {
@@ -988,8 +999,22 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
         position: relative;
     }
 
+    /*
+     * thumbnail-box[data-nearby] is set on thumbs that are close to being onscreen.
+     * If they don't have data-nearby, tell the browser they're not visible.  This
+     * significantly improves performance when we have a lot of thumbs loaded, making
+     * offscreen thumbs essentially free.
+     *
+     * Note that content-intrinsic-size is set programmatically.
+     */
+    &:not([data-nearby]) .thumbnail-inner {
+        content-visibility: hidden;
+    }
+
     a.thumbnail-link {
         display: block;
+        width: 100%;
+        height: 100%;
 
         border-radius: 4px;
         overflow: hidden;
@@ -1089,13 +1114,6 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
     .thumbnail-inner:hover .ugoira-icon {
         opacity: 0.5;
     }
-}
-
-.view-search-container .thumbnail-box[data-pending] a {
-    /* Don't show a grey box while an image is pending.  It just causes extra
-     * flicker. */
-/*    opacity: 0.5;
-    background-color: #444;*/
 }
 
 /* The popup title below thumbs: */
@@ -1234,30 +1252,6 @@ body:not(.disable-thumbnail-zooming) {
 }
 
 .view-search-container {
-    .dot img.thumb {
-        /* This doesn't work as well on thumbnails. */
-        /*
-        image-rendering: -moz-crisp-edges;
-        image-rendering: crisp-edges;
-        image-rendering: pixelated;
-        */
-    }
-}
-
-.view-search-container {
-    .flash a {
-        animation-name: flash-thumbnail;
-        animation-duration: 300ms;
-        animation-timing-function: ease-out;
-        animation-iteration-count: 1;
-    }    
-
-    @keyframes flash-thumbnail {
-        0% {
-            filter: brightness(200%);
-        }
-    }
-
     .following-tag {
         text-decoration: none;
     }
@@ -2048,22 +2042,6 @@ svg.heart-image .delete {
 }
 .button-bookmark svg.heart-image .lock {
     stroke: #888;
-}
-.view-manga-container {
-    width: 100%;
-    height: 100%;
-    overflow-x: hidden;
-    overflow-y: scroll;
-}
-
-.view-manga-container > .thumbnails {
-    width: 100%;
-    text-align: center;
-
-    /* If we don't fill the screen, center. */
-    margin: 0 auto;
-
-    width: 100%;
 }
 
 .whats-new-box {

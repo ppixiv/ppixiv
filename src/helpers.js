@@ -1640,9 +1640,10 @@ ppixiv.helpers = {
         var container_width = max_columns * (max_width+padding*2);
 
         var css = `
-            ${top_selector} .thumbnail-link { 
+            ${top_selector} .thumbnail-inner { 
                 width: ${max_width}px;
                 height: ${max_height}px;
+                contain-intrinsic-size: ${max_width}px ${max_height}px;
             }
             ${top_selector} .thumbnails { gap: ${padding}px; }`;
         if(container_width != null)

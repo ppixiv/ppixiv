@@ -87,7 +87,7 @@ ppixiv.view_manga = class extends ppixiv.view
 
         // The load itself is async and might not happen immediately if we don't have page info yet.
         // Clear any previous image list so it doesn't flash on screen while we load the new info.
-        let ul = this.container.querySelector("ul.thumbnails");
+        let ul = this.container.querySelector(".thumbnails");
         helpers.remove_elements(ul);
 
         this.illust_id = illust_id;
@@ -145,7 +145,7 @@ ppixiv.view_manga = class extends ppixiv.view
         var original_scroll_top = this.container.scrollTop;
 
         // Remove all existing entries and collect them.
-        var ul = this.container.querySelector("ul.thumbnails");
+        var ul = this.container.querySelector(".thumbnails");
         helpers.remove_elements(ul);
 
         if(this.illust_info == null)
@@ -258,6 +258,12 @@ ppixiv.view_manga = class extends ppixiv.view
         link.href = "/artworks/" + this.illust_id + "#ppixiv?page=" + (page_idx+1);
         link.dataset.illustId = this.illust_id;
         link.dataset.pageIdx = page_idx;
+
+        // We don't use intersection checking for the manga view right now.  Mark entries
+        // with all of the "image onscreen" tags.
+        element.dataset.nearby = true;
+        element.dataset.fartherAway = true;
+        element.dataset.fullyOnScreen = true;
 
         element.dataset.pageIdx = page_idx;
         return element;
