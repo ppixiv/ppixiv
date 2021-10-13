@@ -424,11 +424,6 @@ ppixiv.avatar_widget = class
 
     set_from_user_data(user_data)
     {
-        // Clear the previous image.  Do this even if we're going to set it below, so we show
-        // black while loading a new image rather than showing the previous image.
-        this.base_filter.clear();
-        this.highlight_filter.clear();
-
         this.user_data = user_data;
         if(this.user_data == null)
         {

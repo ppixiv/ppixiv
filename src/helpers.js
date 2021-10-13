@@ -1900,17 +1900,28 @@ ppixiv.image_canvas_filter = class
     clear()
     {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        this.current_url = helpers.blank_image;
     }
 
     update_canvas()
     {
+        // The URL for the image we're rendering.  If the image isn't complete, use the blank image
+        // URL instead, since we're just going to clear.
+        let current_url = this.img.src;
+        if(!this.img.complete)
+            current_url = helpers.blank_image;
+
+        if(current_url == this.current_url)
+            return;
+        
         this.canvas.width = this.img.naturalWidth;
         this.canvas.height = this.img.naturalHeight;
-
         this.clear();
 
-        // If the image is still loading, just clear any previous image from the canvas.
-        if(!this.img.complete)
+        this.current_url = current_url;
+
+        // If we're rendering the blank image (or an incomplete image), stop.
+        if(current_url == helpers.blank_image)
             return;
 
         // Draw the image onto the canvas.
