@@ -29,7 +29,7 @@ ppixiv.view_manga = class extends ppixiv.view
         this.thumbnail_dimensions_style = helpers.create_style("");
         document.body.appendChild(this.thumbnail_dimensions_style);
 
-        this.active = false;
+        this.set_active(false, null);
     }
 
     window_onresize(e)
@@ -41,7 +41,7 @@ ppixiv.view_manga = class extends ppixiv.view
         this.refresh_images();
     }
 
-    set active(active)
+    set_active(active, data_source)
     {
         if(this.active == active)
             return;
@@ -64,7 +64,7 @@ ppixiv.view_manga = class extends ppixiv.view
             main_context_menu.get.user_info = null;
         }
 
-        super.active = active;
+        super.set_active(active, data_source);
 
         if(active)
             this.load_illust_id();

@@ -59,7 +59,7 @@ ppixiv.view_illust = class extends ppixiv.view
         this.manga_page_bar = new progress_bar(this.container.querySelector(".ui-box")).controller();
         this.seek_bar = new seek_bar(this.container.querySelector(".ugoira-seek-bar"));
 
-        this.active = false;
+        this.set_active(false, null);
         this.flashed_page_change = false;
     }
 
@@ -407,13 +407,13 @@ ppixiv.view_illust = class extends ppixiv.view
         return this._active;
     }
 
-    set active(active)
+    set_active(active, data_source)
     {
         if(this._active == active)
             return;
 
         this._active = active;
-        super.active = active;
+        super.set_active(active, data_source);
 
         if(!active)
         {
@@ -433,6 +433,8 @@ ppixiv.view_illust = class extends ppixiv.view
 
             return;
         }
+
+        this.set_data_source(data_source);
 
         // If show_image was called while we were inactive, load it now.
         if(this.wanted_illust_id != this.current_illust_id || this.viewer == null || this.wanted_illust_page != this.viewer.page || this._hide_image)

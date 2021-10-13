@@ -19,7 +19,7 @@ ppixiv.view_search = class extends ppixiv.view
         this.thumbnail_onclick = this.thumbnail_onclick.bind(this);
         this.submit_user_search = this.submit_user_search.bind(this);
 
-        this.active = false;
+        this.set_active(false, null);
         this.thumbnail_templates = {};
 
         window.addEventListener("thumbnailsLoaded", this.thumbs_loaded);
@@ -576,17 +576,19 @@ ppixiv.view_search = class extends ppixiv.view
     };
 
 
-    set active(active)
+    set_active(active, data_source)
     {
         if(this._active == active)
             return;
 
         this._active = active;
 
-        super.active = active;
+        super.set_active(active, data_source);
         
         if(active)
         {
+            this.set_data_source(data_source);
+
             this.initial_refresh_ui();
             this.refresh_ui();
 

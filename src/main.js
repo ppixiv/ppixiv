@@ -366,7 +366,8 @@ ppixiv.main_controller = class
         }
 
         // If the data source is changing, set it.
-        if(this.data_source != data_source)
+        let data_source_changing = this.data_source != data_source;
+        if(data_source_changing)
         {
             // Shut down the old data source.
             if(this.data_source != null)
@@ -378,16 +379,11 @@ ppixiv.main_controller = class
             
             this.data_source = data_source;
             this.show_data_source_specific_elements();
-            this.illust_view.set_data_source(data_source);
-            this.thumbnail_view.set_data_source(data_source);
             this.context_menu.set_data_source(data_source);
             
             if(this.data_source != null)
                 this.data_source.startup();
         }
-
-        if(data_source == null)
-            return;
 
         // Figure out which view to display.
         var new_view_name;
@@ -426,19 +422,20 @@ ppixiv.main_controller = class
         
         // If we're changing between views, update the active view.
         var view_changing = new_view != old_view;
-        if(view_changing)
+        if(view_changing || data_source_changing)
         {
             this.current_view_name = new_view_name;
 
             // Make sure we deactivate the old view before activating the new one.
             if(old_view != null)
-                old_view.active = false;
+                old_view.set_active(false, null);
             if(new_view != null)
-                new_view.active = true;
-       
-            // Dismiss any message when toggling between views.
-            message_widget.singleton.hide();
+                new_view.set_active(true, data_source);
         }
+
+        // Dismiss any message when toggling between views.
+        if(view_changing)
+            message_widget.singleton.hide();
 
         // If we're enabling the thumbnail, pulse the image that was just being viewed (or
         // loading to be viewed), to make it easier to find your place.
