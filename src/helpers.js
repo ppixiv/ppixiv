@@ -624,6 +624,16 @@ ppixiv.helpers = {
             element.classList.remove(className);
     },
 
+    // dataset is another web API with nasty traps: if you assign false or null to
+    // it, it assigns "false" or "null", which are true values.
+    set_dataset: function(dataset, name, enable)
+    {
+        if(enable)
+            dataset[name] = 1;
+        else
+            delete dataset[name];
+    },
+
     date_to_string: function(date)
     {
         var date = new Date(date);

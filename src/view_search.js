@@ -118,30 +118,39 @@ ppixiv.view_search = class extends ppixiv.view
         this.container.querySelector(".user-search-box .search-submit-button").addEventListener("click", this.submit_user_search);
         helpers.input_handler(this.container.querySelector(".user-search-box input.search-users"), this.submit_user_search);
 
-        // This IntersectionObserver is used to tell which illustrations are fully visible on screen,
-        // so we can decide which page to put in the URL for data sources that use supports_start_page.
-        this.visible_illusts = [];
-        this.topmost_illust_observer = new IntersectionObserver((entries) => {
+        // Create IntersectionObservers for thumbs that are completely onscreen, nearly onscreen (should
+        // be preloaded), and farther off (but not so far they should be unloaded).
+        this.intersection_observers = [];
+        this.intersection_observers.push(new IntersectionObserver((entries) => {
             for(let entry of entries)
-            {
-                let thumb = entry.target;
-                if(thumb.dataset.illust_id == null)
-                    continue;
-                if(entry.isIntersecting)
-                    this.visible_illusts.push(thumb);
-                else
-                {
-                    let idx = this.visible_illusts.indexOf(thumb);
-                    if(idx != -1)
-                        this.visible_illusts.splice(idx, 1);
-                }
-            }
+                helpers.set_dataset(entry.target.dataset, "fullyOnScreen", entry.isIntersecting);
+
             this.visible_thumbs_changed();
         }, {
             root: this.container,
             threshold: 1,
-        });
+        }));
         
+        this.intersection_observers.push(new IntersectionObserver((entries) => {
+            for(let entry of entries)
+                helpers.set_dataset(entry.target.dataset, "nearby", entry.isIntersecting);
+
+            this.load_needed_thumb_data();
+        }, {
+            root: this.container,
+            rootMargin: "50%",
+        }));
+
+        this.intersection_observers.push(new IntersectionObserver((entries) => {
+            for(let entry of entries)
+                helpers.set_dataset(entry.target.dataset, "fartherAway", entry.isIntersecting);
+
+            this.load_needed_thumb_data();
+        }, {
+            root: this.container,
+            rootMargin: "150%",
+        }));
+
         /*
          * Add a slight delay before hiding the UI.  This allows opening the UI by swiping past the top
          * of the window, without it disappearing as soon as the mouse leaves the window.  This doesn't
@@ -161,26 +170,10 @@ ppixiv.view_search = class extends ppixiv.view
     // The thumbnails visible on screen have changed.
     visible_thumbs_changed()
     {
-        // visible_illusts isn't in any particular order, but should always be contiguous.
-        // Start at the first thumb in the list, and walk backwards through thumbs until
-        // we reach one that isn't in the list.  The thumbnail display can get very long,
-        // but visible_illusts is only the ones on screen.
-        // Find the earliest thumb in the list.
-        if(this.visible_illusts.length == 0)
+        // Find the first thumb that's fully onscreen.
+        let first_thumb = this.container.querySelector(`.thumbnails > [data-illust_id][data-fully-on-screen]`);
+        if(!first_thumb)
             return;
-
-        let first_thumb = this.visible_illusts[0];
-        while(first_thumb != null)
-        {
-            let prev_thumb = first_thumb.previousElementSibling;
-            if(prev_thumb == null)
-                break;
-
-            if(this.visible_illusts.indexOf(prev_thumb) == -1)
-                break;
-
-            first_thumb = prev_thumb;
-        }
 
         // If the data source supports a start page, update the page number in the URL to reflect
         // the first visible thumb.
@@ -300,8 +293,8 @@ ppixiv.view_search = class extends ppixiv.view
                 // We should be able to just remove the element and get a callback that it's no longer visible.
                 // This works in Chrome since IntersectionObserver uses a weak ref, but Firefox is stupid and leaks
                 // the node.
-                this.topmost_illust_observer.unobserve(node);
-                helpers.remove_array_element(this.visible_illusts, node);
+                for(let observer of this.intersection_observers)
+                    observer.unobserve(node);
             }
         }
 
@@ -1172,50 +1165,7 @@ ppixiv.view_search = class extends ppixiv.view
         if(this.container.offsetHeight == 0)
             return [];
 
-        // We'll load thumbnails when they're within this number of pixels from being onscreen.
-        var threshold = 450;
-
-        var ul = this.container.querySelector(".thumbnails");
-        var elements = [];
-        var bounds_top = this.container.scrollTop - threshold;
-        var bounds_bottom = this.container.scrollTop + this.container.offsetHeight + threshold;
-        for(var element = ul.firstElementChild; element != null; element = element.nextElementSibling)
-        {
-            if(element.offsetTop + element.offsetHeight < bounds_top)
-                continue;
-            if(element.offsetTop > bounds_bottom)
-                continue;
-            elements.push(element);
-        }
-
-        if(extra)
-        {
-            // Expand the list outwards to include more thumbs.
-            var expand_by = 20;
-            var expand_upwards = true;
-            while(expand_by > 0)
-            {
-                if(!elements[0].previousElementSibling && !elements[elements.length-1].nextElementSibling)
-                {
-                    // Stop if there's nothing above or below our results to add.
-                    break;
-                }
-
-                if(!expand_upwards && elements[0].previousElementSibling)
-                {
-                    elements.unshift(elements[0].previousElementSibling);
-                    expand_by--;
-                }
-                else if(expand_upwards && elements[elements.length-1].nextElementSibling)
-                {
-                    elements.push(elements[elements.length-1].nextElementSibling);
-                    expand_by--;
-                }
-
-                expand_upwards = !expand_upwards;
-            }
-        }
-        return elements;
+        return this.container.querySelectorAll(`.thumbnails > [data-illust_id][data-${extra? "farther-away":"nearby"}]`);
     }
 
     // Create a thumb placeholder.  This doesn't load the image yet.
@@ -1243,7 +1193,8 @@ ppixiv.view_search = class extends ppixiv.view
             entry.dataset.illust_id = illust_id;
 
         entry.dataset.page = page;
-        this.topmost_illust_observer.observe(entry);
+        for(let observer of this.intersection_observers)
+            observer.observe(entry);
         return entry;
     }
 
