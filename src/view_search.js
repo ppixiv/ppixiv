@@ -291,7 +291,7 @@ ppixiv.view_search = class extends ppixiv.view
         var new_search_mode = data_source? data_source.search_mode:"";
         if(old_search_mode != new_search_mode)
         {
-            var ul = this.container.querySelector("ul.thumbnails");
+            var ul = this.container.querySelector(".thumbnails");
             while(ul.firstElementChild != null)
             {
                 let node = ul.firstElementChild;
@@ -680,7 +680,7 @@ ppixiv.view_search = class extends ppixiv.view
         //
         // Most of the time we're just appending.  The main time that we add to the beginning is
         // the "load previous results" button.
-        var ul = this.container.querySelector("ul.thumbnails");
+        var ul = this.container.querySelector(".thumbnails");
         var next_node = ul.firstElementChild;
 
         // Make a dictionary of all illust IDs and pages, so we can look them up quickly.
@@ -834,7 +834,7 @@ ppixiv.view_search = class extends ppixiv.view
         // If the last thumb in the list is being loaded, we need the next page to continue.
         // Note that since get_visible_thumbnails returns thumbs before they actually scroll
         // into view, this will happen before the last thumb is actually visible to the user.
-        var ul = this.container.querySelector("ul.thumbnails");
+        var ul = this.container.querySelector(".thumbnails");
         if(load_page == null && elements.length > 0 && elements[elements.length-1] == ul.lastElementChild)
         {
             let last_element = elements[elements.length-1];
@@ -1130,7 +1130,7 @@ ppixiv.view_search = class extends ppixiv.view
     // This is used to refresh the bookmark icon when changing a bookmark.
     refresh_thumbnail(illust_id)
     {
-        var ul = this.container.querySelector("ul.thumbnails");
+        var ul = this.container.querySelector(".thumbnails");
         var thumbnail_element = ul.querySelector("[data-illust_id=\"" + illust_id + "\"]");
         if(thumbnail_element == null)
             return;
@@ -1175,7 +1175,7 @@ ppixiv.view_search = class extends ppixiv.view
         // We'll load thumbnails when they're within this number of pixels from being onscreen.
         var threshold = 450;
 
-        var ul = this.container.querySelector("ul.thumbnails");
+        var ul = this.container.querySelector(".thumbnails");
         var elements = [];
         var bounds_top = this.container.scrollTop - threshold;
         var bounds_bottom = this.container.scrollTop + this.container.offsetHeight + threshold;
@@ -1257,7 +1257,7 @@ ppixiv.view_search = class extends ppixiv.view
     // after coming from an illustration.
     scroll_to_illust_id(illust_id)
     {
-        var thumb = this.container.querySelector("li[data-illust_id='" + illust_id + "']");
+        var thumb = this.container.querySelector("[data-illust_id='" + illust_id + "']");
         if(thumb == null)
             return;
 
@@ -1269,7 +1269,7 @@ ppixiv.view_search = class extends ppixiv.view
 
     pulse_thumbnail(illust_id)
     {
-        var thumb = this.container.querySelector("li[data-illust_id='" + illust_id + "']");
+        var thumb = this.container.querySelector("[data-illust_id='" + illust_id + "']");
         if(thumb == null)
             return;
 

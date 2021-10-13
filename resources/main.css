@@ -935,21 +935,19 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
         text-align: center;
     }
 
-    ul.thumbnails {
-        margin: 0;
+    .thumbnails {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
         margin: 0 auto; /* center */
-    }
-    ul.thumbnails > li
-    {
-        list-style-type: none;
     }
 }
 
-li.thumbnail-box.load-previous {
+.thumbnail-box.load-previous {
     width: 100%;
 }
 
-li.thumbnail-load-previous {
+.thumbnail-load-previous {
     & > .load-previous-buttons {
         margin-left: auto;
         margin-right: auto;
@@ -981,10 +979,7 @@ li.thumbnail-load-previous {
     }
 }
 
-li.thumbnail-box {
-    display: inline-block;
-    padding: 1em;
-
+.thumbnail-box {
     /* Hide pending images (they haven't been set up yet). */
     &[data-pending] {
         visibility: hidden;
@@ -1035,7 +1030,7 @@ li.thumbnail-box {
 
 /* The similar illusts button on top of thumbnails. */
 .view-search-container {
-    li.thumbnail-box {
+    .thumbnail-box {
         .similar-illusts-button {
             display: block;
             width: 32px;
@@ -1096,7 +1091,7 @@ li.thumbnail-box {
     }
 }
 
-.view-search-container li.thumbnail-box[data-pending] a {
+.view-search-container .thumbnail-box[data-pending] a {
     /* Don't show a grey box while an image is pending.  It just causes extra
      * flicker. */
 /*    opacity: 0.5;
@@ -1132,7 +1127,7 @@ li.thumbnail-box {
 }
 
 /* Hide the img while it's pending so we don't show a broken image icon. */
-li.thumbnail-box[data-pending] a img.thumb {
+.thumbnail-box[data-pending] a img.thumb {
     display: none;
 }
 

@@ -1634,7 +1634,7 @@ ppixiv.helpers = {
                 width: ${max_width}px;
                 height: ${max_height}px;
             }
-            ${top_selector} li.thumbnail-box { padding: ${padding}px; }`;
+            ${top_selector} .thumbnails { gap: ${padding}px; }`;
         if(container_width != null)
             css += `${top_selector} > .thumbnails { max-width: ${container_width}px; }`;
         return css;
