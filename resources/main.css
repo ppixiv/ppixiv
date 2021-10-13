@@ -12,13 +12,6 @@ a {
     color: inherit;
 }
 
-/* Work around a bad Firefox browser style.  It sets transform-origin to 0 0
- * on :not(svg), which is wrong because it includes things *inside* svgs, breaking
- * our <line transform-origin>s. */
-:not(svg), :not(foreignObject) > svg {
-    transform-origin: inherit;
-}
-
 /* Theme colors: */
 body {
     --button-color: #888;
