@@ -273,6 +273,8 @@ ppixiv.view_illust = class extends ppixiv.view
             });
         }
 
+        this.viewer.active = this._active;
+
         // Refresh the UI now that we have a new viewer.
         this.refresh_ui();
     }
@@ -414,6 +416,10 @@ ppixiv.view_illust = class extends ppixiv.view
 
         this._active = active;
         super.set_active(active, data_source);
+
+        // If we have a viewer, tell it if we're active.
+        if(this.viewer != null)
+            this.viewer.active = this._active;
 
         if(!active)
         {

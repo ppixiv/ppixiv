@@ -7,6 +7,7 @@ ppixiv.viewer = class
     constructor(container, illust_data)
     {
         this.illust_data = illust_data;
+        this.active = false;
     }
 
     // Remove any event listeners, nodes, etc. and shut down so a different viewer can
@@ -15,6 +16,9 @@ ppixiv.viewer = class
 
     set page(page) { }
     get page() { return 0; }
+
+    set active(value) { this._active = value; }
+    get active() { return this._active; }
 
     // Return the file type for display in the UI, eg. "PNG".
     get current_image_type() { return null; }

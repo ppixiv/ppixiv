@@ -95,6 +95,18 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
         this.refresh_focus();
     }
 
+    set active(active)
+    {
+        super.active = active;
+
+        // Rewind the video when we're not visible.
+        if(!active && this.player != null)
+            this.player.rewind();
+
+        // Refresh playback, since we pause while the viewer isn't visible.
+        this.refresh_focus();
+    }
+
     progress(value)
     {
         if(this.options.progress_bar)
@@ -213,7 +225,6 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
 
     shutdown()
     {
-        console.log("shutdown player:", this.illust_data.illustId);
         this.finished = true;
 
         // Cancel the player's download.
@@ -244,7 +255,7 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
         if(this.player == null)
             return;
 
-        var active = this.want_playing && !this.seeking && !window.document.hidden && !this._hidden;
+        let active = this.want_playing && !this.seeking && !window.document.hidden && this._active;
         if(active)
             this.player.play(); 
         else
