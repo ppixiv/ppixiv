@@ -179,12 +179,19 @@ ppixiv.ZipImagePlayer = class
         // Make a list of timestamps for each frame.
         this.frameTimestamps = [];
         let milliseconds = 0;
+        let last_frame_time = 0;
         for(let frame of this.op.metadata.frames)
         {
             this.frameTimestamps.push(milliseconds);
             milliseconds += frame.delay;
+            last_frame_time = frame.delay;
         }
         this.total_length = milliseconds;
+
+        // The duration to display on the seek bar.  This doesn't include the duration of the
+        // final frame.  We can't seek to the actual end of the video past the end of the last
+        // frame, and the end of the seek bar represents the beginning of the last frame.
+        this.seekable_length = milliseconds - last_frame_time;
 
         this.frame_data = [];
         this.frame_images = [];
@@ -484,6 +491,11 @@ ppixiv.ZipImagePlayer = class
     get_total_duration()
     {
         return this.total_length / 1000;
+    }
+
+    get_seekable_duration()
+    {
+        return this.seekable_length / 1000;
     }
 
     get_current_frame_time()

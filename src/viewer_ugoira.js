@@ -120,7 +120,7 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
             // Update the seek bar.
             var frame_time = this.player.get_current_frame_time();
             this.seek_bar.set_current_time(this.player.get_current_frame_time());
-            this.seek_bar.set_duration(this.player.get_total_duration());
+            this.seek_bar.set_duration(this.player.get_seekable_duration());
         }
     }
 
