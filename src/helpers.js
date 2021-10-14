@@ -486,18 +486,6 @@ ppixiv.helpers = {
             // and not unsafeWindow.console, so this doesn't affect us.
             for(let func in window.console)
                 unsafeWindow.console[func] = window.console[func];
-
-            let error = unsafeWindow.console.error.bind(unsafeWindow.console);
-            unsafeWindow.console.error = function() {
-                // Throw an exception to get our current stack.
-                try {
-                    fail();
-                } catch(e) {
-                    if(e.stack.indexOf('vendors~pixiv') != -1)
-                        return;
-                }
-                error.apply(null, arguments);
-            };
             Object.freeze(unsafeWindow.console);
 
             // Some Pixiv pages load jQuery and spam a bunch of error due to us stopping
