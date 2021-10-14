@@ -184,7 +184,7 @@ ppixiv.helpers = {
 
     create_style: function(css)
     {
-        var style = document.createElement("style", {pp: true});
+        var style = document.realCreateElement("style");
         style.type = "text/css";
         style.textContent = css;
         return style;
@@ -535,20 +535,16 @@ ppixiv.helpers = {
 
         // Similarly, prevent it from creating script and style elements.  Sometimes site scripts that
         // we can't disable keep running and do things like loading more scripts or adding stylesheets.
-        // We mark any scripts and styles we load with createElement("style", {pp: true}) so we can bypass
-        // this for our own elements.
+        // Use realCreateElement to bypass this.
         let origCreateElement = unsafeWindow.HTMLDocument.prototype.createElement;
+        unsafeWindow.HTMLDocument.prototype.realCreateElement = unsafeWindow.HTMLDocument.prototype.createElement;
         unsafeWindow.HTMLDocument.prototype.createElement = function(type, options)
         {
-            // Prevent the underlying site from creating new script and style elements.  We override
-            // this ourself using the "pp: true" option.
+            // Prevent the underlying site from creating new script and style elements.
             if(type == "script" || type == "style")
             {
-                if(options == null || !options.pp)
-                {
-                    // console.warn("Disabling createElement " + type);
-                    throw new ElementDisabled("Element disabled");
-                }
+                // console.warn("Disabling createElement " + type);
+                throw new ElementDisabled("Element disabled");
             }
             return origCreateElement.apply(this, arguments);
         };
