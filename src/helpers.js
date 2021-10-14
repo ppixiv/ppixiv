@@ -536,6 +536,18 @@ ppixiv.helpers = {
             console.error("Error unwrapping environment", e);
         }
 
+        // Try to kill the React scheduler that Pixiv uses.  It uses a MessageChannel to run itself,
+        // so we can disable it by disabling MessagePort.postmessage.  This seems to happen early
+        // enough to prevent the first scheduler post from happening.
+        //
+        // Store the real postMessage, so we can still use it ourself.
+        try {
+            unsafeWindow.MessagePort.prototype.realPostMessage = unsafeWindow.MessagePort.prototype.postMessage;
+            unsafeWindow.MessagePort.prototype.postMessage = (msg) => { };
+        } catch(e) {
+            console.error("Error disabling postMessage", e);
+        }
+
         // Try to freeze the document.  This works in Chrome but not Firefox.
         try {
             Object.freeze(document);
