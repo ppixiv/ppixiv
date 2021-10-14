@@ -423,7 +423,6 @@ ppixiv.view_illust = class extends ppixiv.view
 
         if(!active)
         {
-            console.log("Hide illust,", this.viewer != null);
             this.cancel_async_navigation();
 
             // Remove any image we're displaying, so if we show another image later, we

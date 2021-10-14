@@ -263,7 +263,7 @@ ppixiv.popup_context_menu = class
     {
         if(this.blocking_context_menu_until_mouseup)
             return;
-        console.log("Waiting for mouseup before releasing context menu");
+        // console.log("Waiting for mouseup before releasing context menu");
         this.blocking_context_menu_until_mouseup = true;
     }
 
@@ -272,7 +272,7 @@ ppixiv.popup_context_menu = class
     // Chrome).
     block_context_menu_until_timer()
     {
-        console.log("Waiting for timer before releasing context menu");
+        // console.log("Waiting for timer before releasing context menu");
 
         this.blocking_context_menu_until_mouseup = false;
         this.blocking_context_menu_until_timer = true;
@@ -285,7 +285,7 @@ ppixiv.popup_context_menu = class
         this.timer = setTimeout(() => {
             this.timer = null;
 
-            console.log("Releasing context menu after timer");
+            // console.log("Releasing context menu after timer");
             this.blocking_context_menu_until_timer = false;
         }, 50);
     }

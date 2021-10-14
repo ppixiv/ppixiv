@@ -720,7 +720,6 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
             this.save_current_tags();
 
         super.set_illust_id(illust_id, page);
-        console.log("Tag list illust_id:", illust_id);
     }
     
     get visible()

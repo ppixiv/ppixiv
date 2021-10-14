@@ -183,8 +183,6 @@ ppixiv.image_ui = class
         if(this.displayed_page != null && this.illust_data != null)
         {
             var page_info = this.illust_data.mangaPages[this.displayed_page];
-            page_info.width;
-        
             info += page_info.width + "x" + page_info.height;
         }
 
