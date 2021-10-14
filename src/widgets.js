@@ -1206,10 +1206,10 @@ ppixiv.SendImage = class
             message: "tab-info",
             visible: !document.hidden,
             title: document.title,
-            windowWidth: window.innerWidth,
-            windowHeight: window.innerHeight,
-            screenX: window.screenX,
-            screenY: window.screenY,
+            window_width: window.innerWidth,
+            window_height: window.innerHeight,
+            screen_x: window.screenX,
+            screen_y: window.screenY,
         };
 
         // Add any extra data we've been given.
@@ -1357,13 +1357,13 @@ ppixiv.send_image_widget = class extends ppixiv.illust_widget
             if(!info.visible)
                 continue;
 
-            desktop_min_x = Math.min(desktop_min_x, info.screenX);
-            desktop_min_y = Math.min(desktop_min_y, info.screenY);
-            desktop_max_x = Math.max(desktop_max_x, info.screenX + info.windowWidth);
-            desktop_max_y = Math.max(desktop_max_y, info.screenY + info.windowHeight);
+            desktop_min_x = Math.min(desktop_min_x, info.screen_x);
+            desktop_min_y = Math.min(desktop_min_y, info.screen_y);
+            desktop_max_x = Math.max(desktop_max_x, info.screen_x + info.window_width);
+            desktop_max_y = Math.max(desktop_max_y, info.screen_y + info.window_height);
 
-            max_width = Math.max(max_width, info.windowWidth);
-            max_height = Math.max(max_height, info.windowHeight);
+            max_width = Math.max(max_width, info.window_width);
+            max_height = Math.max(max_height, info.window_height);
         }
 
         let desktop_width = desktop_max_x - desktop_min_x;
@@ -1401,11 +1401,11 @@ ppixiv.send_image_widget = class extends ppixiv.illust_widget
             if(tab_id == SendImage.session_uuid)
                 entry.classList.add("self");
 
-            // Position the box.
-            let left = info.screenX * scale_by + offset_x_by;
-            let top = info.screenY * scale_by + offset_y_by;
-            let width = info.windowWidth * scale_by;
-            let height = info.windowHeight * scale_by;
+            // Position this entry.
+            let left = info.screen_x * scale_by + offset_x_by;
+            let top = info.screen_y * scale_by + offset_y_by;
+            let width = info.window_width * scale_by;
+            let height = info.window_height * scale_by;
             entry.style.left = `${left}px`;
             entry.style.top = `${top}px`;
             entry.style.width = `${width}px`;
