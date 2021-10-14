@@ -1089,6 +1089,12 @@ ppixiv.SendImage = class
         window.addEventListener("visibilitychange", this.broadcast_tab_info);
         document.addEventListener("windowtitlechanged", this.broadcast_tab_info);
 
+        // Send on window focus change, so we update things like screenX/screenY that we can't
+        // monitor.
+        window.addEventListener("focus", this.broadcast_tab_info);
+        window.addEventListener("blur", this.broadcast_tab_info);
+        window.addEventListener("popstate", this.broadcast_tab_info);
+
         SendImage.send_image_channel.addEventListener("message", this.received_message.bind(this));
         this.broadcast_tab_info();
 
