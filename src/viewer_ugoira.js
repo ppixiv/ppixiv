@@ -60,6 +60,11 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
 
         this.canvas.addEventListener("click", this.clicked_canvas, false);
 
+        // Allow clicking the previews too, so if you click to pause the video before it has enough
+        // data to start playing, it'll still toggle to paused.
+        this.preview_img1.addEventListener("click", this.clicked_canvas, false);
+        this.preview_img2.addEventListener("click", this.clicked_canvas, false);
+
         // True if we want to play if the window has focus.  We always pause when backgrounded.
         this.want_playing = true;
 
@@ -113,9 +118,9 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
         if(this.seek_bar)
         {
             // Update the seek bar.
-            var frame_time = this.player.getCurrentFrameTime();
-            this.seek_bar.set_current_time(this.player.getCurrentFrameTime());
-            this.seek_bar.set_duration(this.player.getTotalDuration());
+            var frame_time = this.player.get_current_frame_time();
+            this.seek_bar.set_current_time(this.player.get_current_frame_time());
+            this.seek_bar.set_duration(this.player.get_total_duration());
         }
     }
 
@@ -144,7 +149,7 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
             case 57: speed = 2.00; break; // 9
             }
 
-            this.player.setSpeed(speed);
+            this.player.set_speed(speed);
             return;
         }
 
@@ -153,8 +158,10 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
         case 32: // space
             e.stopPropagation();
             e.preventDefault();
-            if(this.player)
-                this.player.togglePause();
+
+            this.want_playing = !this.want_playing;
+            this.refresh_focus();
+
             return;
         case 36: // home
             e.stopPropagation();
@@ -172,7 +179,7 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
                 return;
 
             this.pause();
-            this.player.setCurrentFrame(this.player.getFrameCount() - 1);
+            this.player.set_current_frame(this.player.get_frame_count() - 1);
             return;
 
         case 81: // q
@@ -183,11 +190,11 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
                 return;
 
             this.pause();
-            var total_frames = this.player.getFrameCount();
-            var current_frame = this.player.getCurrentFrame();
+            var total_frames = this.player.get_frame_count();
+            var current_frame = this.player.get_current_frame();
             var next = e.keyCode == 87;
             var new_frame = current_frame + (next?+1:-1);
-            this.player.setCurrentFrame(new_frame);
+            this.player.set_current_frame(new_frame);
             return;
         }
     }
@@ -257,7 +264,7 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
         this.refresh_focus();
 
         if(seconds != null)
-            this.player.setCurrentFrameTime(seconds);
+            this.player.set_current_frame_time(seconds);
     };
 }
 

@@ -161,7 +161,7 @@ ppixiv.ZipImagePlayer = class
 {
     constructor(options)
     {
-        this.nextFrame = this.nextFrame.bind(this);
+        this.next_frame = this.next_frame.bind(this);
 
         this.op = options;
 
@@ -186,6 +186,7 @@ ppixiv.ZipImagePlayer = class
         }
         this.total_length = milliseconds;
 
+        this.frame_data = [];
         this.frame_images = [];
         this.speed = 1;
         this.paused = !this.op.autoStart;
@@ -220,10 +221,15 @@ ppixiv.ZipImagePlayer = class
             if(file == null)
                 break;
 
-            // Decode the frame.
+            // Read the frame data into a blob and store it.
+            //
+            // Don't decode it just yet.  We'll decode it the first time it's displayed.  This way,
+            // we read the file as it comes in, but we won't burst decode every frame right at the
+            // start.  This is important if the video ZIP is coming out of cache, since the browser
+            // can't cache the image decodes and we'll cause a big burst of CPU load.
             let mime_type = this.op.metadata.mime_type || "image/png";
             let blob = new Blob([file], {type: mime_type});
-            await this.loadNextFrame(frame, blob);
+            this.frame_data.push(blob);
 
             // Call progress.  This is relative to frame timestamps, so load progress lines up
             // with the seek bar.
@@ -234,6 +240,9 @@ ppixiv.ZipImagePlayer = class
             }
 
             frame++;
+
+            // We have more data to potentially decode, so start decode_frames if it's not already running.
+            this.decode_frames();
         }
 
         // Call completion.
@@ -246,44 +255,87 @@ ppixiv.ZipImagePlayer = class
     }
 
     // Load the next frame into this.frame_images.
-    async loadNextFrame(frame, blob)
+    async decode_frames()
     {
-        if(this.dead)
+        // If this is already running, don't start another.
+        if(this.loading_frames)
             return;
 
-        let url = URL.createObjectURL(blob);
-        let image = document.createElement("img");
-        image.src = url;
-
-        await helpers.wait_for_image_load(image);
-
-        URL.revokeObjectURL(url);
-
-        if(this.dead)
-            return;
-
-        this.frame_images.push(image);
-
-        // If we were stalled waiting for data, display the frame.
-        if(this.waiting_for_frame) 
-        {
-            this.waiting_for_frame = false;
-            this.displayFrame();
+        try {
+            this.loading_frames = true;
+            while(await this.decode_one_frame())
+            {
+            }
+        } finally {
+            this.loading_frames = false;
         }
     }
 
-    displayFrame()
+    // Decode up to one frame ahead of this.frame, so we don't wait until we need a
+    // frame to start decoding it.  Return true if we decoded a frame and should be
+    // called again to see if we can decode another.
+    async decode_one_frame()
+    {
+        let ahead = 0;
+        for(ahead = 0; ahead < 2; ++ahead)
+        {
+            let frame = this.frame + ahead;
+
+            // Stop if we don't have data for this frame.  If we don't have this frame, we won't
+            // have any after either.
+            let blob = this.frame_data[frame];
+            if(blob == null)
+                return;
+
+            // Skip this frame if it's already decoded.
+            if(this.frame_images[frame])
+                continue;
+
+            let url = URL.createObjectURL(blob);
+            let image = document.createElement("img");
+            image.src = url;
+
+            await helpers.wait_for_image_load(image);
+
+            URL.revokeObjectURL(url);
+
+            this.frame_images[frame] = image;
+
+            // If we were stalled waiting for data, display the frame.  It's possible the frame
+            // changed while we were blocking and we won't actually have the new frame, but we'll
+            // just notice and turn waiting_for_frame back on.
+            if(this.waiting_for_frame) 
+            {
+                this.waiting_for_frame = false;
+                this.display_frame();
+            }
+
+            if(this.dead)
+                return false;
+
+            return true;
+        }
+
+        return false;
+    }
+
+    async display_frame()
     {
         if(this.dead)
             return;
 
-        let meta = this.op.metadata.frames[this.frame];
-        let image = this.frame_images[this.frame];
-        if(!image) {
+        this.decode_frames();
+
+        // If we don't have the frame yet, just record that we want to be called when the
+        // frame is decoded and stop.  decode_frames will call us when there's a frame to display.
+        if(!this.frame_images[this.frame])
+        {
             // We haven't downloaded this far yet.  Show the frame when we get it.
             this.waiting_for_frame = true;
             return;
         }
+
+        let image = this.frame_images[this.frame];
 
         if(this.op.autosize) {
             if(this.context.canvas.width != image.width || this.context.canvas.height != image.height) {
@@ -312,11 +364,13 @@ ppixiv.ZipImagePlayer = class
         
         if(this.paused)
             return;
+
+        let meta = this.op.metadata.frames[this.frame];
         this.pending_frame_metadata = meta;
-        this.refreshTimer();
+        this.refresh_timer();
     }
 
-    unsetTimer()
+    unset_timer()
     {
         if(!this.timer)
             return;
@@ -325,22 +379,22 @@ ppixiv.ZipImagePlayer = class
         this.timer = null;
     }
 
-    refreshTimer()
+    refresh_timer()
     {
         if(this.paused)
             return;
 
-        this.unsetTimer();
-        this.timer = setTimeout(this.nextFrame, this.pending_frame_metadata.delay / this.speed);
+        this.unset_timer();
+        this.timer = setTimeout(this.next_frame, this.pending_frame_metadata.delay / this.speed);
     }
 
-    getFrameDuration()
+    get_frame_duration()
     {
         let meta = this.op.metadata.frames[this.frame];
         return meta.delay;
     }
 
-    nextFrame(frame)
+    next_frame(frame)
     {
         this.timer = null;
 
@@ -354,7 +408,7 @@ ppixiv.ZipImagePlayer = class
         } else {
             this.frame += 1;
         }
-        this.displayFrame();
+        this.display_frame();
     }
 
     play()
@@ -364,7 +418,7 @@ ppixiv.ZipImagePlayer = class
 
         if(this.paused) {
             this.paused = false;
-            this.displayFrame();
+            this.display_frame();
         }
     }
 
@@ -374,12 +428,12 @@ ppixiv.ZipImagePlayer = class
             return;
 
         if(!this.paused) {
-            this.unsetTimer();
+            this.unset_timer();
             this.paused = true;
         }
     }
 
-    togglePause()
+    toggle_pause()
     {
         if(this.paused)
             this.play();
@@ -393,52 +447,52 @@ ppixiv.ZipImagePlayer = class
             return;
 
         this.frame = 0;
-        this.unsetTimer();
-        this.displayFrame();
+        this.unset_timer();
+        this.display_frame();
     }
 
-    setSpeed(value)
+    set_speed(value)
     {
         this.speed = value;
 
         // Refresh the timer, so we don't wait a long time if we're changing from a very slow
         // playback speed.
-        this.refreshTimer();
+        this.refresh_timer();
     }
 
     stop()
     {
         this.dead = true;
-        this.unsetTimer();
+        this.unset_timer();
         this.frame_images = null;
     }
 
-    getCurrentFrame()
+    get_current_frame()
     {
         return this.frame;
     }
 
-    setCurrentFrame(frame)
+    set_current_frame(frame)
     {
         frame %= this.frame_count;
         if(frame < 0)
             frame += this.frame_count;
         this.frame = frame;
-        this.displayFrame();
+        this.display_frame();
     }
 
-    getTotalDuration()
+    get_total_duration()
     {
         return this.total_length / 1000;
     }
 
-    getCurrentFrameTime()
+    get_current_frame_time()
     {
         return this.frameTimestamps[this.frame] / 1000;
     }
 
     // Set the video to the closest frame to the given time.
-    setCurrentFrameTime(seconds)
+    set_current_frame_time(seconds)
     {
         // We don't actually need to check all frames, but there's no need to optimize this.
         let closest_frame = null;
@@ -447,7 +501,7 @@ ppixiv.ZipImagePlayer = class
         {
             // Only seek to images that we've downloaded.  If we reach a frame we don't have
             // yet, stop.
-            if(!this.frame_images[frame])
+            if(!this.frame_data[frame])
                 break;
 
             let error = Math.abs(seconds - this.frameTimestamps[frame]/1000);
@@ -459,11 +513,10 @@ ppixiv.ZipImagePlayer = class
         }
 
         this.frame = closest_frame;
-        this.displayFrame();
+        this.display_frame();
     }
-    getLoadedFrames() { return this.frame_images.length; }
-    getFrameCount() { return this.frame_count; }
-    hasError() { return this.failed; }
+
+    get_frame_count() { return this.frame_count; }
 }
 
 /*
