@@ -2233,20 +2233,31 @@ svg.heart-image .delete {
         .list {
             position: relative;
 
-            .tab-entry {
-                background-color: #880;
-                position: absolute;
-            }
-
             .entry {
                 display: flex;
                 flex-direction: row;
                 align-items: center;
                 border-radius: 3px;
                 border: 2px solid black;
-                padding: 2px 8px;
                 display: flex;
                 cursor: pointer;
+                &.tab-entry {
+                    background-color: #880;
+                    position: absolute;
+
+                    // This just crops the image to the size of tab-entry.
+                    .shown-image-container {
+                        width: 100%;
+                        height: 100%;
+                        position: relative;
+                        overflow: hidden;
+                        img.shown-image {
+                            position: absolute;
+                            filter: brightness(75%);
+                        }
+                    }
+                }
+
                 &:hover {
                     background-color: #222;
                     z-index: 1;
@@ -2255,13 +2266,17 @@ svg.heart-image .delete {
                     background-color: #ccc;
                 }
                 &.tab-visible {
-                    background-color: #0aa;
+                    background-color: #383838;
                 }
                 &.tab-visible:hover {
-                    background-color: #0ff;
+                    img.shown-image {
+                        filter: brightness(100%);
+                    }
+                    
+                    background-color: #555;
                 }
                 &.self {
-                    background-color: #044 !important;
+                    background-color: #222 !important;
                     cursor: inherit;
                 };
             }

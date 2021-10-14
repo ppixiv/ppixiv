@@ -1376,10 +1376,11 @@ ppixiv.send_image_widget = class extends ppixiv.illust_widget
     // Stop highlighting a tab.
     unhighlight_tab()
     {
-        if(!this.previewing_image)
+        if(this.previewing_on_tab == null)
             return;
+        this.previewing_on_tab = null;
 
-        this.previewing_image = false;
+        // Stop previewing the tab.
         SendImage.send_message({ message: "hide-preview-image" });
     }
 
@@ -1411,6 +1412,7 @@ ppixiv.send_image_widget = class extends ppixiv.illust_widget
         let max_width = 1, max_height = 1;
         let desktop_min_x = 999999, desktop_max_x = -999999;
         let desktop_min_y = 999999, desktop_max_y = -999999;
+        let found_any = false;
         for(let tab_id of tab_ids)
         {
             let info = SendImage.known_tabs[tab_id];
@@ -1424,6 +1426,17 @@ ppixiv.send_image_widget = class extends ppixiv.illust_widget
 
             max_width = Math.max(max_width, info.window_width);
             max_height = Math.max(max_height, info.window_height);
+
+            if(tab_id != SendImage.session_uuid)
+                found_any = true;
+        }
+
+        // If there are no tabs other than ourself, show the intro.
+        this.container.querySelector(".no-other-tabs").hidden = found_any;
+        if(!found_any)
+        {
+            this.dropdown_list.style.width = this.dropdown_list.style.height = "";
+            return;
         }
 
         let desktop_width = desktop_max_x - desktop_min_x;
@@ -1460,7 +1473,6 @@ ppixiv.send_image_widget = class extends ppixiv.illust_widget
         }
         
         // Add an entry for each tab we know about.
-        let found_any = false;
         for(let tab_id of tab_ids)
         {
             let info = SendImage.known_tabs[tab_id];
@@ -1469,12 +1481,8 @@ ppixiv.send_image_widget = class extends ppixiv.illust_widget
             if(!info.visible)
                 continue;
 
-            let entry = helpers.create_from_template(".template-send-image-tab");
-            entry.dataset.tab_id = tab_id;
-
-            // If this tab is our own window:
-            if(tab_id == SendImage.session_uuid)
-                entry.classList.add("self");
+            let entry = this.create_tab_entry(tab_id);
+            this.dropdown_list.appendChild(entry);
 
             // Position this entry.
             let left = info.screen_x * scale_by + offset_x_by;
@@ -1487,46 +1495,85 @@ ppixiv.send_image_widget = class extends ppixiv.illust_widget
             entry.style.height =`${height}px`;
             entry.style.display = "block";
 
-            if(info.visible)
-                entry.classList.add("tab-visible");
+        }
+    }
 
-            // entry.querySelector(".title").innerText = info.title;
-            this.dropdown_list.appendChild(entry);
-            found_any = true;
+    create_tab_entry(tab_id)
+    {
+        let info = SendImage.known_tabs[tab_id];
 
-            if(tab_id != SendImage.session_uuid)
+        let entry = helpers.create_from_template(".template-send-image-tab");
+        entry.dataset.tab_id = tab_id;
+
+        if(info.visible)
+            entry.classList.add("tab-visible");
+
+        // If this tab is our own window:
+        if(tab_id == SendImage.session_uuid)
+            entry.classList.add("self");
+
+        // Set the image.
+        let img = entry.querySelector(".shown-image");
+        img.hidden = true;
+        if(info.illust_id != null && info.illust_screen_pos != null)
+        {
+            let image_url = null;
+            if(info.illust_data)
             {
-                entry.addEventListener("click", (e) => {
-                    let entry = e.target.closest(".tab-entry");
-                    if(!entry)
-                        return;
-
-                    // On click, send the image for display, and close the dropdown.
-                    SendImage.send_image(this._illust_id, this._page, entry.dataset.tab_id, "display");
-                    this.visible = false;
-                    this.previewing_image = false;
-                });
-
-                entry.addEventListener("mouseenter", (e) => {
-                    let entry = e.target.closest(".tab-entry");
-                    if(!entry)
-                        return;
-
-                    SendImage.send_image(this._illust_id, this._page, entry.dataset.tab_id, "preview");
-                    this.previewing_image = true;
-                });
-
-                entry.addEventListener("mouseleave", (e) => {
-                    let entry = e.target.closest(".tab-entry");
-                    if(!entry)
-                        return;
-
-                    this.unhighlight_tab();
-                });
+                image_url = info.illust_data.urls.small;
+                if(info.page > 0)
+                    image_url = info.illust_data.mangaPages[info.page].urls.small;
             }
+            else if(info.thumbnail_info)
+            {
+                image_url = info.thumbnail_info.url;
+            }
+            if(image_url)
+            {
+                img.hidden = false;
+                img.src = image_url;
+            }
+
+            // Position the image in the same way it is in the tab.  The container is the same
+            // dimensions as the window, so we can just copy the final percentages.
+            img.style.top = `${info.illust_screen_pos.top*100}%`;
+            img.style.left = `${info.illust_screen_pos.left*100}%`;
+            img.style.width = `${info.illust_screen_pos.width*100}%`;
+            img.style.height = `${info.illust_screen_pos.height*100}%`;
         }
 
-        this.container.querySelector(".no-other-tabs").hidden = found_any;
+        // We don't need mouse event listeners for ourself.
+        if(tab_id == SendImage.session_uuid)
+            return entry;
+
+        entry.addEventListener("click", (e) => {
+            if(tab_id == SendImage.session_uuid)
+                return;            
+
+            // On click, send the image for display, and close the dropdown.
+            SendImage.send_image(this._illust_id, this._page, tab_id, "display");
+            this.visible = false;
+            this.previewing_on_tab = null;
+        });
+
+        entry.addEventListener("mouseenter", (e) => {
+            let entry = e.target.closest(".tab-entry");
+            if(!entry)
+                return;
+
+            SendImage.send_image(this._illust_id, this._page, tab_id, "preview");
+            this.previewing_on_tab = tab_id;
+        });
+
+        entry.addEventListener("mouseleave", (e) => {
+            let entry = e.target.closest(".tab-entry");
+            if(!entry)
+                return;
+
+            this.unhighlight_tab();
+        });
+
+        return entry;
     }
 }
 
