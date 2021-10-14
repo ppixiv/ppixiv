@@ -1433,16 +1433,31 @@ ppixiv.send_image_widget = class extends ppixiv.illust_widget
         // tabs relative to it, so we show the relative shape and dimensions of each tab.
         let max_dimension = 400;
         let scale_by = max_dimension / Math.max(desktop_width, desktop_height);
-        let offset_x_by = -desktop_min_x * scale_by;
-        let offset_y_by = -desktop_min_y * scale_by;
 
+        // Scale the overall size to fit.
         desktop_width *= scale_by;
         desktop_height *= scale_by;
-        console.log("desktop:", desktop_width, desktop_height);
+
+        let offset_x_by = -desktop_min_x * scale_by;
+        let offset_y_by = -desktop_min_y * scale_by;
 
         // Set the size of the containing box.
         this.dropdown_list.style.width = `${desktop_width}px`;
         this.dropdown_list.style.height = `${desktop_height}px`;
+
+        // If the popup is off the screen, shift it in.  We don't do this with the popup
+        // menu to keep buttons in the same relative positions all the time, but this popup
+        // tends to overflow.
+        {
+            this.container.style.margin = "0"; // reset
+            let [actual_pos_x, actual_pos_y] = helpers.get_relative_pos(this.dropdown_list, document.body);
+            let wanted_pos_x = helpers.clamp(actual_pos_x, 20, window.innerWidth-desktop_width-20);
+            let wanted_pos_y = helpers.clamp(actual_pos_y, 20, window.innerHeight-desktop_height-20);
+            let shift_window_x = wanted_pos_x - actual_pos_x;
+            let shift_window_y = wanted_pos_y - actual_pos_y;
+            this.container.style.marginLeft = `${shift_window_x}px`;
+            this.container.style.marginTop = `${shift_window_y}px`;
+        }
         
         // Add an entry for each tab we know about.
         let found_any = false;
