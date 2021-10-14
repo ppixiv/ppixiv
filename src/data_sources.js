@@ -301,9 +301,6 @@ class data_source
 
         var hash_args = helpers.get_hash_args(url);
 
-        // #x=1 is a workaround for iframe loading.
-        hash_args.delete("x");
-
         // The manga page doesn't affect the data source.
         hash_args.delete("page");
 
@@ -881,10 +878,6 @@ ppixiv.data_sources.discovery_users = class extends data_source
         {
             var url = new URL(url);
 
-            // Any "x" parameter is a dummy that we set to force the iframe to load, so ignore
-            // it here.
-            url.searchParams.delete("x");
-
             // The hash doesn't affect the page that we load.
             url.hash = "";
             return url.toString();
@@ -968,8 +961,6 @@ ppixiv.data_sources.discovery_users = class extends data_source
         // the same page.  Skip it if it's not needed, so we don't throw weird URLs at the site if
         // we don't have to.
         var url = new unsafeWindow.URL(this.original_url);
-        if(this.is_same_page(url, this.original_url))
-            url.searchParams.set("x", 1);
 
         // If the underlying page isn't /discovery/users, load it in an iframe to get some data.
         let doc = this.original_doc;
@@ -1365,10 +1356,6 @@ class data_source_from_page extends data_source
             if(url.searchParams.get("p") == "1")
                 url.searchParams.delete("p");
 
-            // Any "x" parameter is a dummy that we set to force the iframe to load, so ignore
-            // it here.
-            url.searchParams.delete("x");
-
             // The hash doesn't affect the page that we load.
             url.hash = "";
             return url.toString();
@@ -1403,16 +1390,6 @@ class data_source_from_page extends data_source
             return true;
         }
 
-        // Work around a browser issue: loading an iframe with the same URL as the current page doesn't
-        // work.  (This might have made sense once upon a time when it would always recurse, but today
-        // this doesn't make sense.)  Just add a dummy query to the URL to make sure it's different.
-        //
-        // This usually doesn't happen, since we'll normally use this.original_doc if we're reading
-        // the same page.  Skip it if it's not needed, so we don't throw weird URLs at the site if
-        // we don't have to.
-        if(this.is_same_page(url, this.original_url))
-            params.set("x", 1);
-                
         url.search = params.toString();
 
         console.log("Loading:", url.toString());
@@ -1821,9 +1798,6 @@ ppixiv.data_sources.current_illust = class extends data_source_fake_pagination
 
         var url = new unsafeWindow.URL(this.original_url);
 
-        // Work around browsers not loading the iframe properly when it has the same URL.
-        url.searchParams.set("x", 1);
-        
         console.log("Loading:", url.toString());
 
         var doc = await helpers.load_data_in_iframe(url.toString());
