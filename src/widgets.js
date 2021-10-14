@@ -1064,7 +1064,20 @@ ppixiv.SendImage = class
     static send_image_channel = new BroadcastChannel("ppixiv:send-image");
 
     // A UUID we use to identify ourself to other tabs:
-    static session_uuid = helpers.create_uuid();
+    static session_uuid = this.create_session_uuid();
+    static session_uuid_tiebreaker = Date.now()
+    
+    static create_session_uuid(recreate=false)
+    {
+        // If we have a saved tab ID, use it.
+        if(!recreate && sessionStorage.ppixivTabId)
+            return sessionStorage.ppixivTabId;
+
+        // Make a new ID, and save it to the session.  This helps us keep the same ID
+        // when we're reloaded.
+        sessionStorage.ppixivTabId = helpers.create_uuid();
+        return sessionStorage.ppixivTabId;helpers.create_uuid();
+    }
 
     static known_tabs = {};
     
@@ -1145,6 +1158,33 @@ ppixiv.SendImage = class
         if(data.message == "tab-info")
         {
             // Info about a new tab, or a change in visibility.
+            //
+            // This may contain thumbnail and illust info.  We don't register it here.  It
+            // can be used explicitly when we're displaying a tab thumbnail, but each tab
+            // might have newer or older image info, and propagating them back and forth
+            // could be confusing.
+            if(data.from == SendImage.session_uuid)
+            {
+                // The other tab has the same ID we do.  The only way this normally happens
+                // is if a tab is duplicated, which will duplicate its sessionStorage with it.
+                // If this happens, use session_uuid_tiebreaker to decide who wins.  The tab with
+                // the higher value will recreate its tab ID.  This is set to the time when
+                // we're loaded, so this will usually cause new tabs to be the one to create
+                // a new ID.
+                console.log(SendImage.session_uuid_tiebreaker, data.session_uuid_tiebreaker);
+                if(SendImage.session_uuid_tiebreaker >= data.session_uuid_tiebreaker)
+                {
+                    console.log("Creating a new tab ID due to ID conflict");
+                    session_uuid = SendImage.create_session_uuid(true /* recreate */ );
+                }
+                else
+                    console.log("Tab ID conflict (other tab will create a new ID)");
+
+                // Broadcast info.  If we recreated our ID then we want to broadcast it on the
+                // new ID.  If we didn't, we still want to broadcast it to replace the info
+                // the other tab just sent on our ID.
+                this.broadcast_tab_info();
+            }
             this.known_tabs[data.from] = data;
         }
         else if(data.message == "tab-closed")
@@ -1210,6 +1250,7 @@ ppixiv.SendImage = class
     {
         let our_tab_info = {
             message: "tab-info",
+            session_uuid_tiebreaker: SendImage.session_uuid_tiebreaker,
             visible: !document.hidden,
             title: document.title,
             window_width: window.innerWidth,
