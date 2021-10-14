@@ -671,6 +671,12 @@ body.light .bulb-button:hover > .icon-button {
     margin-top: -3px;
 }
 
+.extra-profile-link-button {
+    .default-icon svg {
+        transform: translate(0, 2px);
+    }
+}
+
 .post-info > * {
     display: inline-block;
     background-color: var(--box-link-bg-color);
