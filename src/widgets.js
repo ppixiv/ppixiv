@@ -1211,10 +1211,25 @@ ppixiv.SendImage = class
             screenX: window.screenX,
             screenY: window.screenY,
         };
+
+        // Add any extra data we've been given.
+        for(let key in this.extra_data)
+            our_tab_info[key] = this.extra_data[key];
+
         this.send_message(our_tab_info);
 
         // Add us to our own known_tabs.
         this.known_tabs[SendImage.session_uuid] = our_tab_info;
+    }
+
+    // Allow adding extra data to tab info.  This lets us include things like the image
+    // zoom position without having to propagate it around.
+    static extra_data = {};
+    static set_extra_data(key, data, send_immediately)
+    {
+        this.extra_data[key] = data;
+        if(send_immediately)
+            this.broadcast_tab_info();
     }
 
     static send_message(data, send_to_self)

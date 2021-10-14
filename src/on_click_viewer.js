@@ -552,6 +552,18 @@ ppixiv.on_click_viewer = class
             this.secondary_img.style.right = "auto";
             this.secondary_img.style.bottom = "auto";
         }
+
+        // Store the effective zoom in our tab info.  This is in a format that makes it easy
+        // to replicate the zoom in other UIs.  Send this as extra data in the tab info.  This
+        // data isn't sent in realtime, since it would spam broadcasts as we zoom.  It's just
+        // sent when we lose focus.
+        let current_zoom_desc = {
+            left: left / screen_width,
+            top: top / screen_height,
+            width: width / screen_width,
+            height: height / screen_height,
+        };
+        SendImage.set_extra_data("illust_screen_pos", current_zoom_desc, false);
     }
 }
 
