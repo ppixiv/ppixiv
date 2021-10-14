@@ -1494,32 +1494,26 @@ ppixiv.helpers = {
                 return;
             }
 
-            var onabort = (e) => {
-                remove_listeners();
-                reject("Aborted");
-            };
+            // Cancelling this controller will remove all of our event listeners.
+            let remove_listeners_signal = new AbortController();
 
-            var onerror = (e) => {
-                remove_listeners();
+            img.addEventListener("error", (e) => {
+                remove_listeners_signal.abort();
                 reject("Error loading image");
-            };
+            }, { signal: remove_listeners_signal.signal });
 
-            var onload = (e) => {
-                remove_listeners();
+            img.addEventListener("load", (e) => {
+                remove_listeners_signal.abort();
                 resolve();
-            };
+            }, { signal: remove_listeners_signal.signal });
 
-            var remove_listeners = () => {
-                img.removeEventListener("error", onerror);
-                img.removeEventListener("load", onload);
-                if(abort_signal)
-                    abort_signal.addEventListener("abort", onabort);
-            };
-
-            img.addEventListener("error", onerror);
-            img.addEventListener("load", onload);
             if(abort_signal)
-                abort_signal.addEventListener("abort", onabort);
+            {
+                abort_signal.addEventListener("abort",(e) => {
+                    remove_listeners_signal.abort();
+                    reject("Aborted");
+                }, { signal: remove_listeners_signal.signal });
+            }
         });
     },
 
