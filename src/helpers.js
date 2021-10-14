@@ -1366,6 +1366,8 @@ ppixiv.helpers = {
     set_page_url(url, add_to_history, cause)
     {
         var old_url = document.location.toString();
+        if(url.toString() == old_url)
+            return;
 
         // history.state.index is incremented whenever we navigate forwards, so we can
         // tell in onpopstate whether we're navigating forwards or backwards.
