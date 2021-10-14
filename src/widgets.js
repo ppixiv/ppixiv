@@ -1248,6 +1248,12 @@ ppixiv.SendImage = class
 
     static broadcast_tab_info()
     {
+        let view = main_controller.singleton.displayed_view;
+        let illust_id = view? view.displayed_illust_id:null;
+        let page = view? view.displayed_illust_page:null;
+        let thumbnail_info = illust_id? thumbnail_data.singleton().get_one_thumbnail_info(illust_id):null;
+        let illust_data = illust_id? image_data.singleton().get_image_info_sync(illust_id):null;
+
         let our_tab_info = {
             message: "tab-info",
             session_uuid_tiebreaker: SendImage.session_uuid_tiebreaker,
@@ -1257,6 +1263,13 @@ ppixiv.SendImage = class
             window_height: window.innerHeight,
             screen_x: window.screenX,
             screen_y: window.screenY,
+            illust_id: illust_id,
+            page: page,
+
+            // Include whatever we know about this image, so if we want to display this in
+            // another tab, we don't have to look it up again.
+            thumbnail_info: thumbnail_info,
+            illust_data: illust_data,
         };
 
         // Add any extra data we've been given.
