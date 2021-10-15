@@ -370,7 +370,7 @@ ppixiv.on_click_viewer = class
         // Tell hide_mouse_cursor_on_idle that the mouse cursor should be hidden, even though the
         // cursor may have just been moved.  This prevents the cursor from appearing briefly and
         // disappearing every time a zoom is released.
-        window.dispatchEvent(new Event("hide-cursor-immediately"));
+        track_mouse_movement.singleton.simulate_inactivity();
         
         this.stop_dragging();
     }

@@ -1,5 +1,123 @@
 "use strict";
 
+// A singleton that keeps track of whether the mouse has moved recently.
+//
+// Dispatch "mouseactive" on window when the mouse has moved recently and
+// "mouseinactive" when it hasn't.
+ppixiv.track_mouse_movement = class
+{
+    constructor()
+    {
+        track_mouse_movement._singleton = this;
+
+        this.idle = this.idle.bind(this);
+        this.onmousemove = this.onmousemove.bind(this);
+
+        this.force_hidden_until = null;
+        this.set_mouse_anchor_timeout = -1;
+        this.last_mouse_pos = null;
+
+        window.addEventListener("mousemove", this.onmousemove, { capture: true });
+    }
+
+    static _singleton = null;
+    static get singleton() { return track_mouse_movement._singleton; }
+
+    // True if the mouse is active.  This corresponds to the mouseactive and mouseinactive
+    // events.
+    get active() { return _this; }
+
+    // Briefly pretend that the mouse is inactive.
+    //
+    // This is done when releasing a zoom to prevent spuriously showing the mouse cursor.
+    simulate_inactivity()
+    {
+        this.force_hidden_until = Date.now() + 150;
+        this.idle();
+    }
+
+    onmousemove(e)
+    {
+        let mouse_pos = [e.screenX, e.screenY];
+        this.last_mouse_pos = mouse_pos;
+        if(!this.anchor_pos)
+            this.anchor_pos = this.last_mouse_pos;
+
+        // Cleare the anchor_pos timeout when the mouse moves.
+        this.clear_mouse_anchor_timeout();
+
+        // If we're forcing the cursor inactive for a while, stop.
+        if(this.force_hidden_until && this.force_hidden_until > Date.now())
+            return;
+
+        // Show the cursor if the mouse has moved far enough from the current anchor_pos.
+        let distance_moved = helpers.distance(this.anchor_pos, mouse_pos);
+        if(distance_moved > 10)
+        {
+            this.mark_mouse_active();
+            return;
+        }
+
+        // If we see mouse movement that isn't enough to cause us to display the cursor
+        // and we don't see more movement for a while, reset anchor_pos so we discard
+        // the movement we saw.
+        this.set_mouse_anchor_timeout = setTimeout(() => {
+            this.set_mouse_anchor_timeout = -1;
+            this.anchor_pos = this.last_mouse_pos;
+        }, 500);
+    }
+
+    // Remove the set_mouse_anchor_timeout timeout, if any.
+    clear_mouse_anchor_timeout()
+    {
+        if(this.set_mouse_anchor_timeout == -1)
+            return;
+
+        clearTimeout(this.set_mouse_anchor_timeout);
+        this.set_mouse_anchor_timeout = -1;
+    }
+
+    remove_timer()
+    {
+        if(!this.timer)
+            return;
+
+        clearTimeout(this.timer);
+        this.timer = null;
+    }
+
+    // The mouse has been active recently.  Send mouseactive if the state is changing,
+    // and schedule the next time it'll become inactive.
+    mark_mouse_active()
+    {
+        // When showing the cursor, snap the mouse movement anchor to the last seen position
+        // and remove any anchor_pos timeout.
+        this.anchor_pos = this.last_mouse_pos;
+        this.clear_mouse_anchor_timeout();
+
+        this.remove_timer();
+        this.timer = setTimeout(this.idle, 500);
+
+        if(!this._active)
+        {
+            this._active = true;
+            window.dispatchEvent(new Event("mouseactive"));
+        }
+    }
+
+    // The timer has expired (or was forced to expire).
+    idle()
+    {
+        this.remove_timer();
+
+        if(this._active)
+        {
+            window.dispatchEvent(new Event("mouseinactive"));
+            this._active = false;
+        }
+    }
+}
+
 // Hide the mouse cursor when it hasn't moved briefly, to get it out of the way.
 // This only hides the cursor over element.
 ppixiv.hide_mouse_cursor_on_idle = class
@@ -8,29 +126,19 @@ ppixiv.hide_mouse_cursor_on_idle = class
     {
         hide_mouse_cursor_on_idle.add_style();
 
-        this.onmousemove = this.onmousemove.bind(this);
-        this.onblur = this.onblur.bind(this);
-        this.idle = this.idle.bind(this);
-        this.hide_immediately = this.hide_immediately.bind(this);
+        this.track = new track_mouse_movement();
+        
+        this.show_cursor = this.show_cursor.bind(this);
+        this.hide_cursor = this.hide_cursor.bind(this);
 
         this.element = element;
-
-        this.force_hidden_until = null;
         this.cursor_hidden = false;
-        this.set_mouse_anchor_timeout = -1;
-        this.last_mouse_pos = null;
 
-        window.addEventListener("mousemove", this.onmousemove, true);
-        window.addEventListener("blur", this.blur, true);
-        window.addEventListener("hide-cursor-immediately", this.hide_immediately, true);
-
-        window.addEventListener("enable-hiding-cursor", function() { this.enable = true; }.bind(this), true);
-        window.addEventListener("disable-hiding-cursor", function() { this.enable = false; }.bind(this), true);
+        window.addEventListener("mouseactive", this.show_cursor);
+        window.addEventListener("mouseinactive", this.hide_cursor);
 
         settings.register_change_callback("no-hide-cursor", hide_mouse_cursor_on_idle.update_from_settings);
         hide_mouse_cursor_on_idle.update_from_settings();
-
-        this.enable = true;
     }
 
     static add_style()
@@ -87,119 +195,9 @@ ppixiv.hide_mouse_cursor_on_idle = class
         hide_mouse_cursor_on_idle.global_style.disabled = true;
     }
 
-    set enable(value)
-    {
-        if(this._enabled == value)
-            return;
-
-        this._enabled = value;
-
-        if(this._enabled)
-            this.reset_timer();
-        else
-        {
-            this.remove_timer();
-            this.show_cursor();
-        }
-    }
-
-    get enable()
-    {
-        return this._enabled;
-    };
-
-    remove_timer()
-    {
-        if(!this.timer)
-            return;
-
-        clearTimeout(this.timer);
-        this.timer = null;
-    }
-
-    // Hide the cursor now, and keep it hidden very briefly even if it moves.  This is done
-    // when releasing a zoom to prevent spuriously showing the mouse cursor.
-    hide_immediately(e)
-    {
-        this.force_hidden_until = Date.now() + 150;
-        this.idle();
-    }
-
-    reset_timer()
-    {
-        this.show_cursor();
-
-        this.remove_timer();
-        this.timer = setTimeout(this.idle, 500);
-    }
-
-    idle()
-    {
-        this.remove_timer();
-        this.hide_cursor();
-    }
-
-    onmousemove(e)
-    {
-        let mouse_pos = [e.screenX, e.screenY];
-        this.last_mouse_pos = mouse_pos;
-        if(!this.anchor_pos)
-            this.anchor_pos = this.last_mouse_pos;
-
-        // Cleare the anchor_pos timeout when the mouse moves.
-        this.clear_mouse_anchor_timeout();
-
-        if(this.force_hidden_until && this.force_hidden_until > Date.now())
-            return;
-
-        if(!this.cursor_hidden)
-        {
-            this.reset_timer();
-            return;
-        }
-
-        // Show the cursor if the mouse has moved far enough from the current anchor_pos.
-        let distance_moved = helpers.distance(this.anchor_pos, mouse_pos);
-        if(distance_moved > 10)
-        {
-            this.reset_timer();
-            return;
-        }
-
-        // If we see mouse movement that isn't enough to cause us to display the cursor
-        // and we don't see more movement for a while, reset anchor_pos so we discard
-        // the movement we saw.
-        this.set_mouse_anchor_timeout = setTimeout(() => {
-            this.set_mouse_anchor_timeout = -1;
-            this.anchor_pos = this.last_mouse_pos;
-        }, 500);
-    }
-
-    // Remove the set_mouse_anchor_timeout timeout, if any.
-    clear_mouse_anchor_timeout()
-    {
-        if(this.set_mouse_anchor_timeout == -1)
-            return;
-
-        clearTimeout(this.set_mouse_anchor_timeout);
-        this.set_mouse_anchor_timeout = -1;
-    }
-
-    onblur(e)
-    {
-        this.remove_timer();
-        this.show_cursor();
-    }
-
     show_cursor(e)
     {
         this.cursor_hidden = false;
-
-        // When showing the cursor, snap the mouse movement anchor to the last seen position
-        // and remove any anchor_pos timeout.
-        this.anchor_pos = this.last_mouse_pos;
-        this.clear_mouse_anchor_timeout();
-
         this.refresh_hide_cursor();
     }
 
