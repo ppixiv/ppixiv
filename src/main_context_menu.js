@@ -1011,13 +1011,12 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         // See if an element representing a user and/or an illust was under the cursor.
         if(target != null)
         {
-            var user_target = target.closest("[data-user-id]");
-            if(user_target != null)
-                this._set_temporary_user(user_target.dataset.userId);
+            let { user_id, illust_id, page } = main_controller.singleton.get_illust_at_element(target);
+            if(user_id != null)
+                this._set_temporary_user(user_id);
 
-            var illust_target = target.closest("[data-illust-id]");
-            if(illust_target != null)
-                this._set_temporary_illust(illust_target.dataset.illustId, illust_target.dataset.pageIdx);
+            if(illust_id != null)
+                this._set_temporary_illust(illust_id, page);
         }
 
         super.show(x, y, target);

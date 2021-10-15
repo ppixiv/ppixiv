@@ -742,5 +742,49 @@ ppixiv.main_controller = class
         // Let the view handle the input.
         view.handle_onkeydown(e);
     }
+
+    // Return the illust_id and page or user_id of the image under element.  This can
+    // be an image in the search view, or a page in the manga view.
+    //
+    // If element is an illustration and also has the user ID attached, both the user ID
+    // and illust ID will be returned.
+    get_illust_at_element(element)
+    {
+        let result = { };
+        if(element == null)
+            return result;
+
+        // Illustration search results have both the illust ID and the user ID on it.
+        let illust_element = element.closest("[data-illust-id]");
+        if(illust_element)
+        {
+            // data-illust-id can contain a user ID.  This should be renamed.
+            let id = illust_element.dataset.illustId;
+            if(id != null)
+            {
+                let type = helpers.id_type(id);
+                let actual_id = helpers.actual_id(id);
+                console.log(id, type, actual_id);
+                switch(helpers.id_type(id))
+                {
+                case "illust":
+                    result.illust_id = parseInt(actual_id);
+                    result.page = parseInt(illust_element.dataset.pageIdx || "0");
+                    console.log("illust", result);
+                    break;
+                case "user":
+                    result.user_id = parseInt(actual_id);
+                    console.log("user", result);
+                    break;
+                }
+            }
+        }
+
+        let user_element = element.closest("[data-user-id]");
+        if(user_element)
+            result.user_id = parseInt(user_element.dataset.userId);
+
+        return result;
+    }
 };
 
