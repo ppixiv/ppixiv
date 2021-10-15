@@ -550,14 +550,6 @@ ppixiv.main_controller = class
         hash_args.set("view", view);
     }
 
-    set_displayed_view_by_name(view, add_to_history, cause)
-    {
-        // Update the URL to mark whether thumbs are displayed.
-        var args = helpers.get_args(ppixiv.location);
-        this._set_active_view_in_url(args.hash, view);
-        helpers.set_args(args, add_to_history, cause);
-    }
-
     // Navigate out.
     //
     // This navigates from the illust page to the manga page (for multi-page posts) or search, and
@@ -596,12 +588,18 @@ ppixiv.main_controller = class
         var target = this._get_navigate_out_target();
         return target[1];
     }
+
     navigate_out()
     {
         var target = this._get_navigate_out_target();
         var new_page = target[0];
-        if(new_page != null)
-            this.set_displayed_view_by_name(new_page, true /*add_to_history*/, "out");
+        if(new_page == null)
+            return;
+
+        // Update the URL to mark whether thumbs are displayed.
+        let args = helpers.get_args(ppixiv.location);
+        this._set_active_view_in_url(args.hash, new_page);
+        helpers.set_args(args, true /* add_to_history */, "out");
     }
 
     // This captures clicks at the window level, allowing us to override them.
