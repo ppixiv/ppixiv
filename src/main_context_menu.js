@@ -1038,6 +1038,8 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         // Store the illust_id immediately, so it's available without waiting for image
         // info to load.
         this._clicked_illust_id = illust_id;
+        this._clicked_page = page;
+        this._clicked_illust_info = null;
 
         // Read illust info to see if we're following the user.
         var illust_info = await image_data.singleton().get_image_info(illust_id);
@@ -1051,7 +1053,6 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
             page = parseInt(page);
 
         this._clicked_illust_info = illust_info;
-        this._clicked_page = page;
         this._effective_illust_id_changed();
     }
 
