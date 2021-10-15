@@ -211,6 +211,24 @@ ppixiv.SendImage = class
             
             this.hide_preview_image();
         }
+        else if(data.message == "preview-mouse-movement")
+        {
+            // Ignore this message if we're not displaying a quick view image.
+            if(!ppixiv.history.virtual)
+            {
+                console.log("stop");
+                return;
+            }
+            
+            // The mouse moved in the tab that's sending quick view.  Broadcast an event
+            // like pointermove.
+            let event = new PointerEvent("quickviewpointermove", {
+                movementX: data.x,
+                movementY: data.y,
+            });
+
+            window.dispatchEvent(event);
+        }
     }
 
     static broadcast_tab_info()
@@ -325,9 +343,16 @@ ppixiv.SendImage = class
             e.preventDefault();
             e.stopImmediatePropagation();
 
+            // This should never happen, but make sure we don't register duplicate pointermove events.
+            if(this.previewing_image)
+                return;
+
             // Quick view this image.
             this.previewing_image = { illust_id: illust_id, page: page };
             SendImage.send_image(illust_id, page, null, "preview");
+
+            // Listen to pointer movement during quick view.
+            window.addEventListener("pointermove", this.quick_view_window_onpointermove);
         }
 
         // Right-clicking while quick viewing an image locks the image, so it doesn't go away
@@ -359,6 +384,8 @@ ppixiv.SendImage = class
         e.preventDefault();
         e.stopImmediatePropagation();
 
+        window.removeEventListener("pointermove", this.quick_view_window_onpointermove);
+
         SendImage.send_message({ message: "hide-preview-image", to: null }, true);
     }
 
@@ -376,6 +403,17 @@ ppixiv.SendImage = class
 
         e.preventDefault();
         e.stopImmediatePropagation();
+    }
+
+    // This is only registered while we're quick viewing, to send mouse movements to
+    // anything displaying the image.
+    static quick_view_window_onpointermove = (e) =>
+    {
+        SendImage.send_message({
+            message: "preview-mouse-movement",
+            x: e.movementX,
+            y: e.movementY,
+        }, true);
     }
 };
 

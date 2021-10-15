@@ -94,6 +94,9 @@ ppixiv.on_click_viewer = class
         target.addEventListener("dragstart", this.block_event);
         target.addEventListener("selectstart", this.block_event);
 
+        // This is like pointermove, but received XXX
+        window.addEventListener("quickviewpointermove", this.quick_view_pointermove);
+
         target.style.userSelect = "none";
         target.style.MozUserSelect = "none";
     }
@@ -115,6 +118,7 @@ ppixiv.on_click_viewer = class
 
         window.removeEventListener("blur", this.window_blur);
         window.removeEventListener("resize", this.onresize, true);
+        window.removeEventListener("quickviewpointermove", this.quick_view_pointermove);
     }
 
     disable()
@@ -417,9 +421,19 @@ ppixiv.on_click_viewer = class
 
         this.dragged_while_zoomed = true;
 
+        this.apply_pointer_movement({movementX: e.movementX, movementY: e.movementY});
+    }
+
+    quick_view_pointermove = (e) =>
+    {
+        this.apply_pointer_movement({movementX: e.movementX, movementY: e.movementY});
+    }
+
+    apply_pointer_movement({movementX, movementY})
+    {
         // Apply mouse dragging.
-        var x_offset = e.movementX;
-        var y_offset = e.movementY;
+        let x_offset = movementX;
+        let y_offset = movementY;
 
         if(settings.get("invert-scrolling"))
         {
