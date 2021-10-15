@@ -87,13 +87,6 @@ ppixiv.settings = class
     // Handle migrating settings that have changed.
     static migrate()
     {
-        // Change auto-like to !disable-auto-like.
-        let value = settings.get("auto-like", null);
-        if(value != null)
-        {
-            this.set("disable-auto-like", !value);
-            delete localStorage["_ppixiv_auto-like"];
-        }
     }
 
     static set(key, value)

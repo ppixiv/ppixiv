@@ -12,9 +12,9 @@ ppixiv.actions = class
         console.log("Add bookmark:", options);
 
         // If auto-like is enabled, like an image when we bookmark it.
-        if(!options.disable_auto_like && !settings.get("disable-auto-like"))
+        if(!options.disable_auto_like)
         {
-            console.log("Automatically liking image as well as bookmarking it due to auto-like preference");
+            console.log("Automatically liking image with bookmark");
             actions.like_image(illust_info, true /* quiet */);
         }
          

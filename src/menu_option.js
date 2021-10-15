@@ -26,12 +26,6 @@ ppixiv.menu_option = class
         }
         
         new menu_option_toggle(container, {
-            label: "Bookmarking also likes",
-            setting: "disable-auto-like",
-            invert_display: true,
-        });
-
-        new menu_option_toggle(container, {
             label: "Disabled by default",
             setting: "disabled-by-default",
         });
