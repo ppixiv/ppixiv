@@ -1460,6 +1460,12 @@ ppixiv.helpers = {
         return Math.min(Math.max(value, min), max);
     },
 
+    distance([x1,y1], [x2,y2])
+    {
+        let distance = Math.pow(x1-x2, 2) + Math.pow(y1-y2, 2);
+        return Math.pow(distance, 0.5);
+    },
+    
     // Return a promise that resolves when img finishes loading, or rejects if it
     // fails to load.
     wait_for_image_load(img, abort_signal)

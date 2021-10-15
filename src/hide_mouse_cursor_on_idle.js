@@ -151,12 +151,6 @@ ppixiv.hide_mouse_cursor_on_idle = class
         if(this.force_hidden_until && this.force_hidden_until > Date.now())
             return;
 
-        let distance = function(p1, p2)
-        {
-            let distance = Math.pow(p1[0]-p2[0], 2) + Math.pow(p1[1]-p2[1], 2);
-            return Math.pow(distance, 0.5);
-        }
-
         if(!this.cursor_hidden)
         {
             this.reset_timer();
@@ -164,7 +158,7 @@ ppixiv.hide_mouse_cursor_on_idle = class
         }
 
         // Show the cursor if the mouse has moved far enough from the current anchor_pos.
-        let distance_moved = distance(this.anchor_pos, mouse_pos);
+        let distance_moved = helpers.distance(this.anchor_pos, mouse_pos);
         if(distance_moved > 10)
         {
             this.reset_timer();
