@@ -49,6 +49,7 @@ source_files = [
     'src/remove_link_interstitial.js',
     'src/image_preloading.js',
     'src/whats_new.js',
+    'src/send_image.js',
     'src/main.js',
 ]
 
