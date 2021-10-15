@@ -15,6 +15,7 @@ source_files = [
     'src/muting.js',
     'src/crc32.js',
     'src/helpers.js',
+    'src/settings.js',
     'src/fix_chrome_clicks.js',
     'src/widgets.js',
     'src/menu_option.js',
