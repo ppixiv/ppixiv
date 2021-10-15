@@ -95,8 +95,6 @@ ppixiv.view_illust = class extends ppixiv.view
     }
     
     // Show an image.
-    //
-    // If manga_page isn't null, it's the page to display.
     // If manga_page is -1, show the last page.
     async show_image(illust_id, manga_page)
     {
@@ -157,11 +155,12 @@ ppixiv.view_illust = class extends ppixiv.view
 
         console.log("Showing image", illust_id, "page", manga_page);
 
-        // If we adjusted the page, update the URL.  For single-page posts, there should be
-        // no page field.
+        // If we adjusted the page, update the URL.  Allow "page" to be 1 or not present for
+        // page 1.
         var args = helpers.get_args(ppixiv.location);
-        var wanted_page_arg = illust_data.pageCount > 1? (manga_page + 1).toString():null;
-        if(args.hash.get("page") != wanted_page_arg)
+        var wanted_page_arg = illust_data.pageCount > 1? (manga_page + 1).toString():1;
+        let current_page_arg = args.hash.get("page") || "1";
+        if(current_page_arg != wanted_page_arg)
         {
             if(wanted_page_arg != null)
                 args.hash.set("page", wanted_page_arg);
