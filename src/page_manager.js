@@ -160,7 +160,7 @@ ppixiv.page_manager = class
     //
     // If force is true, we'll always create a new data source, replacing any
     // previously created one.
-    async create_data_source_for_url(url, doc, force)
+    create_data_source_for_url(url, doc, force)
     {
         var data_source_class = this.get_data_source_for_url(url);
         if(data_source_class == null)
@@ -170,7 +170,7 @@ ppixiv.page_manager = class
         }
 
         // Canonicalize the URL to see if we already have a data source for this URL.
-        var canonical_url = await data_source_class.get_canonical_url(url);
+        let canonical_url = data_source_class.get_canonical_url(url);
 
         // console.log("url", url.toString(), "becomes", canonical_url);
         if(!force && canonical_url in this.data_sources_by_canonical_url)

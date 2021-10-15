@@ -274,9 +274,7 @@ class data_source
     // However, some parts of the URL don't cause a new data source to be used.  Return
     // a URL with all unrelated parts removed, and with query and hash parameters sorted
     // alphabetically.
-    //
-    // Due to some quirkiness in data_source_current_illust, this is async.
-    static async get_canonical_url(url)
+    static get_canonical_url(url)
     {
         // Make a copy of the URL.
         var url = new URL(url);
@@ -1771,7 +1769,7 @@ ppixiv.data_sources.artist = class extends data_source
 //
 // This reads data from a page, but we don't use data_source_from_page here.  We
 // don't need its pagination logic, and we do want to have pagination from data_source_fake_pagination.
-ppixiv.data_sources.current_illust = class extends data_source_fake_pagination
+ppixiv.data_sources.current_illust = class extends data_source
 {
     get name() { return "illust"; }
 
@@ -1782,6 +1780,14 @@ ppixiv.data_sources.current_illust = class extends data_source_fake_pagination
 
         this.original_doc = doc;
         this.original_url = url;
+
+        // /artworks/#
+        url = new URL(url);
+        url = helpers.get_url_without_language(url);
+        let parts = url.pathname.split("/");
+        this.illust_id = parts[2];
+
+        this.check_illust();
     }
 
     // Show the illustration by default.
@@ -1790,134 +1796,47 @@ ppixiv.data_sources.current_illust = class extends data_source_fake_pagination
         return "illust";
     }
 
-    // Implement data_source_fake_pagination:
-    async load_all_results()
+    // This data source just views a single image and doesn't return any posts.
+    async load_page_internal(page) { }
+
+    check_illust()
     {
-        if(this.original_doc != null)
-            return this.load_all_results_from(this.original_doc);
-
-        var url = new unsafeWindow.URL(this.original_url);
-
-        console.log("Loading:", url.toString());
-
-        var doc = await helpers.load_data_in_iframe(url.toString());
-        return this.load_all_results_from(doc);
-    };
-
-    load_all_results_from(doc)
-    {
-        var illust_ids = this.parse_document(doc);
-        if(illust_ids != null)
-            return illust_ids;
+        if(this.original_doc == null)
+            return;
+    
+        // Check that this is actually an illust page.
+        let preload = this.original_doc.querySelector("#meta-preload-data");
+        if(preload != null)
+            return;
 
         // The most common case of there being no data in the document is loading
         // a deleted illustration.  See if we can find an error message.
+        console.error("Couldn't find globalInitData");
+
         console.error("No data on page");
-        var error = doc.querySelector(".error-message");
+        var error = this.original_doc.querySelector(".error-message");
         var error_message = "Error loading page";
         if(error != null)
             error_message = error.textContent;
-        message_widget.singleton.show(error_message);
-        message_widget.singleton.clear_timer();
 
-        return [];
+        // Hack: show this async instead of immediately.  main.set_current_data_source will hide
+        // the error message if the data source is changing and it's tricky to fix the ordering.
+        setTimeout(() => {
+            message_widget.singleton.show(error_message);
+            message_widget.singleton.clear_timer();
+        }, 0);
     }
 
-    get_preload_data(doc)
-    {
-        let preload = doc.querySelector("#meta-preload-data");
-        if(preload == null)
-            return null;
+    // We're always viewing our illust_id.
+    get_current_illust_id() { return this.illust_id; }
 
-        preload = JSON.parse(preload.getAttribute("content"));
-        return preload;
-    }
-
-    parse_document(doc)
-    {
-        let preload = this.get_preload_data(doc);
-        if(preload == null)
-        {
-            console.error("Couldn't find globalInitData");
-            return;
-        }
-
-        var illust_id = Object.keys(preload.illust)[0];
-        var user_id = Object.keys(preload.user)[0];
-        this.user_info = preload.user[user_id];
-        var this_illust_data = preload.illust[illust_id];
-
-        // Stash the user data so we can use it in get_displaying_text.
-        this.user_info = preload.user[user_id];
-
-        // Add the image list.
-        var illust_ids = [];
-        for(var related_illust_id in this_illust_data.userIllusts)
-        {
-            if(related_illust_id == illust_id)
-                continue;
-            illust_ids.push(related_illust_id);
-        }
-
-        // Make sure our illustration is in the list.
-        if(illust_ids.indexOf(illust_id) == -1)
-            illust_ids.push(illust_id);
-
-        // Sort newest first.
-        illust_ids.sort(function(a,b) { return b-a; });
-        
-        return illust_ids;
-    };
-
-    // Unlike most data_source_from_page implementations, we only have a single page.
-    get_current_illust_id()
-    {
-        // /artworks/#
-        let url = new URL(ppixiv.location);
-        url = helpers.get_url_without_language(url);
-        let parts = url.pathname.split("/");
-        var illust_id = parts[2];
-        return illust_id;
-    };
-
-    // data_source_current_illust is tricky.  Since it returns posts by the user
-    // of an image, we remove the illust_id (since two images with the same user
-    // can use the same data source), and add the user ID.
-    //
-    // This requires that get_canonical_url be asynchronous, since we might need
-    // to load the image info.
-    static async get_canonical_url(url, callback)
-    {
-        var url = new URL(url);
-        url = helpers.get_url_without_language(url);
-
-        // /artworks/#
-        let parts = url.pathname.split("/");
-        var illust_id = parts[2];
-        var illust_info = await image_data.singleton().get_image_info(illust_id);
-
-        var hash_args = helpers.get_hash_args(url);
-        hash_args.set("user_id", illust_info.userId);
-        helpers.set_hash_args(url, hash_args);
-
-        // Remove the illustration ID.
-        url.pathname = "/artworks";
-        
-        return await data_source.get_canonical_url(url);
-    }
-
-    // Unlike most data sources, data_source_current_illust puts the illust_id
-    // in the path rather than the hash.
+    // This data source never returns any posts, so it should never be possible to
+    // navigate to another illustration while staying in this data source.
     set_current_illust_id(illust_id, args)
     {
-        // Pixiv's inconsistent URLs are annoying.  Figure out where the ID field is.
-        // If the first field is a language, it's the third field (/en/artworks/#), otherwise
-        // it's the second (/artworks/#).
-        let parts = args.path.split("/");
-        let id_part = parts[1].length == 2? 3:2;
-        parts[id_part] = illust_id;
-        args.path = parts.join("/");
-    };
+        if(illust_id != this.illust_id)
+            throw "Not implemented";
+    }
 
     get page_title()
     {
