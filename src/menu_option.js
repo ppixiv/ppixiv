@@ -85,6 +85,15 @@ ppixiv.menu_option = class
             invert_display: true,
         });
 
+        new menu_option_toggle(container, {
+            label: "Quick view (experimental)",
+            setting: "quick_view",
+        });
+        new menu_option_toggle(container, {
+            label: "Link to quick view (experimental)",
+            setting: "receive_quick_view",
+        });
+
 /*        new menu_option_toggle(container, {
             label: "Touchpad mode",
             setting: "touchpad-mode",

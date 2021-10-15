@@ -132,4 +132,5 @@ ppixiv.settings = class
 // Register settings.
 ppixiv.settings.configure("zoom-mode", { sticky: true });
 ppixiv.settings.configure("zoom-level", { sticky: true });
+ppixiv.settings.configure("receive_quick_view", { session: true });
 

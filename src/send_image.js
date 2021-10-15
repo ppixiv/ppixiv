@@ -55,6 +55,8 @@ ppixiv.SendImage = class
         this.broadcast_tab_info();
 
         this.query_tabs();
+
+        this.install_quick_view();
     }
 
     // If we're sending an image and the page is unloaded, try to cancel it.  This is
@@ -92,7 +94,7 @@ ppixiv.SendImage = class
             page: page,
             info: info,
             action: action, // "preview" or "display"
-        });
+        }, true);
     }
 
     static received_message(e)
@@ -140,7 +142,18 @@ ppixiv.SendImage = class
         }
         else if(data.message == "send-image")
         {
-            if(data.to != SendImage.session_uuid)
+            // If to is null, a tab is sending a quick view preview.  Show this preview if
+            // this tab is a quick view target.  Otherwise, to is a tab ID, so only preview
+            // if it's us.
+            if(data.to == null)
+            {
+                if(!settings.get("receive_quick_view"))
+                {
+                    console.log("Not receiving quick view");
+                    return;
+                }
+            }
+            else if(data.to != SendImage.session_uuid)
                 return;
 
             // Register the illust info from this image.  It can have thumbnail info, image
@@ -184,6 +197,18 @@ ppixiv.SendImage = class
         }
         else if(data.message == "hide-preview-image")
         {
+            // This is the same as send-image.
+            if(data.to == null)
+            {
+                if(!settings.get("receive_quick_view"))
+                {
+                    console.log("Not receiving quick view");
+                    return;
+                }
+            }
+            else if(data.to != SendImage.session_uuid)
+                return;
+            
             this.hide_preview_image();
         }
     }
@@ -261,6 +286,97 @@ ppixiv.SendImage = class
 
         ppixiv.history.back();        
     }
+
+    static install_quick_view()
+    {
+        let setup = () => {
+            // Remove old event handlers.
+            if(this.quick_view_active)
+            {
+                this.quick_view_active.abort();
+                this.quick_view_active = null;
+            }
+
+       
+            // Stop if quick view isn't enabled.
+            if(!settings.get("quick_view"))
+                return;
+            
+            this.quick_view_active = new AbortController();
+            window.addEventListener("mousedown", this.quick_view_window_onmousedown, { signal: this.quick_view_active.signal, capture: true });
+            window.addEventListener("mouseup", this.quick_view_window_onmouseup, { signal: this.quick_view_active.signal, capture: true });
+            window.addEventListener("click", this.quick_view_window_onclick, { signal: this.quick_view_active.signal, capture: true });
+        };
+
+        // Set up listeners, and update them when the quick view setting changes.
+        setup();
+        settings.register_change_callback("quick_view", setup);
+    }
+
+    static quick_view_window_onmousedown = (e) =>
+    {
+        if(e.button == 0)
+        {
+            // See if the click is on an image search result.
+            let { illust_id, page } = main_controller.singleton.get_illust_at_element(e.target);
+            if(illust_id == null)
+                return;
+
+            e.preventDefault();
+            e.stopImmediatePropagation();
+
+            // Quick view this image.
+            this.previewing_image = { illust_id: illust_id, page: page };
+            SendImage.send_image(illust_id, page, null, "preview");
+        }
+
+        // Right-clicking while quick viewing an image locks the image, so it doesn't go away
+        // when the LMB is released.
+        if(e.button == 2)
+        {
+            if(!this.previewing_image)
+                return;
+
+            SendImage.send_image(this.previewing_image.illust_id, this.previewing_image.page, null, "display");
+
+            // Don't prevent the mouseup event.  We do want the popup menu to appear, if only
+            // to handle preventing the default context menu from opening.
+            // e.preventDefault();
+            // e.stopImmediatePropagation();
+        }
+    }
+
+    static quick_view_window_onmouseup = (e) =>
+    {
+        // Releasing LMB while previewing an image stops previewing.
+        if(e.button != 0)
+            return;
+
+        if(!this.previewing_image)
+            return;
+        this.previewing_image = false;
+        
+        e.preventDefault();
+        e.stopImmediatePropagation();
+
+        SendImage.send_message({ message: "hide-preview-image", to: null }, true);
+    }
+
+    static quick_view_window_onclick = (e) =>
+    {
+        if(e.button != 0)
+            return;
+
+        // Work around one of the oldest design mistakes: cancelling mouseup doesn't prevent
+        // the resulting click.  Check if this click was on an element that was handled by
+        // quick view, and cancel it if it was.
+        let { illust_id, page } = main_controller.singleton.get_illust_at_element(e.target);
+        if(illust_id == null)
+            return;
+
+        e.preventDefault();
+        e.stopImmediatePropagation();
+    }
 };
 
 ppixiv.send_image_widget = class extends ppixiv.illust_widget
@@ -320,10 +436,11 @@ ppixiv.send_image_widget = class extends ppixiv.illust_widget
     {
         if(this.previewing_on_tab == null)
             return;
-        this.previewing_on_tab = null;
 
         // Stop previewing the tab.
-        SendImage.send_message({ message: "hide-preview-image" });
+        SendImage.send_message({ message: "hide-preview-image", to: this.previewing_on_tab }, true);
+
+        this.previewing_on_tab = null;
     }
 
     refresh()
