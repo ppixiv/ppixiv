@@ -19,7 +19,7 @@ ppixiv.view_search = class extends ppixiv.view
         this.thumbnail_onclick = this.thumbnail_onclick.bind(this);
         this.submit_user_search = this.submit_user_search.bind(this);
 
-        this.set_active(false, null);
+        this.set_active(false, { });
         this.thumbnail_templates = {};
 
         window.addEventListener("thumbnailsLoaded", this.thumbs_loaded);
@@ -575,7 +575,7 @@ ppixiv.view_search = class extends ppixiv.view
         return null;
     };
 
-    set_active(active, data_source)
+    set_active(active, { data_source })
     {
         if(this._active == active && this.data_source == data_source)
             return;
@@ -592,7 +592,7 @@ ppixiv.view_search = class extends ppixiv.view
         if(was_active && this.data_source)
             this.data_source.thumbnail_view_scroll_pos = this.container.scrollTop;
 
-        super.set_active(active, data_source);
+        super.set_active(active);
         
         if(active)
         {

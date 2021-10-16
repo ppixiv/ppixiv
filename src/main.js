@@ -368,8 +368,7 @@ ppixiv.main_controller = class
         }
 
         // If the data source is changing, set it up.
-        let data_source_changing = this.data_source != data_source;
-        if(data_source_changing)
+        if(this.data_source != data_source)
         {
             // Shut down the old data source.
             if(this.data_source != null)
@@ -410,29 +409,26 @@ ppixiv.main_controller = class
         // active.
         document.body.dataset.currentView = new_view_name;
 
-        // Set the image before activating the view.  If we do this after activating it,
-        // it'll start loading any previous image it was pointed at.  Don't do this in
-        // search mode, or we'll start loading the default image.
-        if(new_view_name == "illust")
-            this.illust_view.show_image(illust_id, manga_page);
-        else if(new_view_name == "manga")
-            this.manga_view.shown_illust_id = illust_id;
- 
         var new_view = this.views[new_view_name];
 
         this.context_menu.illust_id = illust_id;
         
+        this.current_view_name = new_view_name;
+
         // If we're changing between views, update the active view.
         var view_changing = new_view != old_view;
-        if(view_changing || data_source_changing)
-        {
-            this.current_view_name = new_view_name;
 
-            // Make sure we deactivate the old view before activating the new one.
-            if(old_view != null)
-                old_view.set_active(false, null);
-            if(new_view != null)
-                new_view.set_active(true, data_source);
+        // Make sure we deactivate the old view before activating the new one.
+        if(old_view != null && old_view != new_view)
+            old_view.set_active(false, { });
+
+        if(new_view != null)
+        {
+            new_view.set_active(true, {
+                data_source: data_source,
+                illust_id: illust_id,
+                page: manga_page,
+            });
         }
 
         // Dismiss any message when toggling between views.

@@ -1831,12 +1831,17 @@ ppixiv.data_sources.current_illust = class extends data_source
     // We're always viewing our illust_id.
     get_current_illust_id() { return this.illust_id; }
 
-    // This data source never returns any posts, so it should never be possible to
-    // navigate to another illustration while staying in this data source.
+    // We don't return any posts to navigate to, but this can still be called by
+    // quick view.
     set_current_illust_id(illust_id, args)
     {
-        if(illust_id != this.illust_id)
-            throw "Not implemented";
+        // Pixiv's inconsistent URLs are annoying.  Figure out where the ID field is.
+        // If the first field is a language, it's the third field (/en/artworks/#), otherwise
+        // it's the second (/artworks/#).
+        let parts = args.path.split("/");
+        let id_part = parts[1].length == 2? 3:2;
+        parts[id_part] = illust_id;
+        args.path = parts.join("/");
     }
 
     get page_title()

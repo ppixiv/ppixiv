@@ -29,7 +29,7 @@ ppixiv.view_manga = class extends ppixiv.view
         this.thumbnail_dimensions_style = helpers.create_style("");
         document.body.appendChild(this.thumbnail_dimensions_style);
 
-        this.set_active(false, null);
+        this.set_active(false, { });
     }
 
     window_onresize(e)
@@ -41,8 +41,11 @@ ppixiv.view_manga = class extends ppixiv.view
         this.refresh_images();
     }
 
-    set_active(active, data_source)
+    set_active(active, { data_source, illust_id })
     {
+        if(illust_id != null)
+            this.shown_illust_id = illust_id;
+        
         if(this.active == active)
             return;
 
@@ -64,7 +67,7 @@ ppixiv.view_manga = class extends ppixiv.view
             main_context_menu.get.user_info = null;
         }
 
-        super.set_active(active, data_source);
+        super.set_active(active);
 
         if(active)
             this.load_illust_id();

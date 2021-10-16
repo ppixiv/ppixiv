@@ -124,6 +124,10 @@ ppixiv.viewer_images = class extends ppixiv.viewer
 
     refresh()
     {
+        // If we don't have this.images, load() hasn't set it up yet.
+        if(this.images == null)
+            return;
+
         var current_image = this.images[this.index];
         if(current_image == null)
         {

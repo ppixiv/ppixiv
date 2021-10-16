@@ -59,7 +59,7 @@ ppixiv.view_illust = class extends ppixiv.view
         this.manga_page_bar = new progress_bar(this.container.querySelector(".ui-box")).controller();
         this.seek_bar = new seek_bar(this.container.querySelector(".ugoira-seek-bar"));
 
-        this.set_active(false, null);
+        this.set_active(false, { });
         this.flashed_page_change = false;
     }
 
@@ -94,6 +94,39 @@ ppixiv.view_illust = class extends ppixiv.view
         this.container.querySelector(".image-container").hidden = value;
     }
     
+    set_active(active, { illust_id, page, data_source })
+    {
+        this._active = active;
+        super.set_active(active);
+
+        // If we have a viewer, tell it if we're active.
+        if(this.viewer != null)
+            this.viewer.active = this._active;
+
+        if(!active)
+        {
+            this.cancel_async_navigation();
+
+            // Remove any image we're displaying, so if we show another image later, we
+            // won't show the previous image while the new one's data loads.
+            if(this.viewer != null)
+                this._hide_image = true;
+
+            // Stop showing the user in the context menu, and stop showing the current page.
+            main_context_menu.get.user_info = null;
+            main_context_menu.get.page = -1;
+            
+            this.flashed_page_change = false;
+
+            this.stop_displaying_image();
+            
+            return;
+        }
+
+        this.set_data_source(data_source);
+        this.show_image(illust_id, page);
+    }
+
     // Show an image.
     // If manga_page is -1, show the last page.
     async show_image(illust_id, manga_page)
@@ -316,6 +349,7 @@ ppixiv.view_illust = class extends ppixiv.view
             this.manga_thumbnails.set_illust_info(null);
         
         this.wanted_illust_id = null;
+        this.current_illust_id = null;
 
         // The manga page to show, or the last page if -1.
         this.wanted_illust_page = 0;
@@ -331,52 +365,6 @@ ppixiv.view_illust = class extends ppixiv.view
     get active()
     {
         return this._active;
-    }
-
-    set_active(active, data_source)
-    {
-        if(this._active == active)
-            return;
-
-        this._active = active;
-        super.set_active(active, data_source);
-
-        // If we have a viewer, tell it if we're active.
-        if(this.viewer != null)
-            this.viewer.active = this._active;
-
-        if(!active)
-        {
-            this.cancel_async_navigation();
-
-            // Remove any image we're displaying, so if we show another image later, we
-            // won't show the previous image while the new one's data loads.
-            if(this.viewer != null)
-                this._hide_image = true;
-
-            // Stop showing the user in the context menu, and stop showing the current page.
-            main_context_menu.get.user_info = null;
-            main_context_menu.get.page = -1;
-            
-            this.flashed_page_change = false;
-
-            this.stop_displaying_image();
-            
-            return;
-        }
-
-        this.set_data_source(data_source);
-
-        // If show_image was called while we were inactive, load it now.
-        if(this.wanted_illust_id != this.current_illust_id || this.viewer == null || this.wanted_illust_page != this.viewer.page || this._hide_image)
-        {
-            // Show the image.
-            console.log("Showing illust_id", this.wanted_illust_id, "that was set while hidden");
-            this.show_image(this.wanted_illust_id, this.wanted_illust_page);
-        }
-        
-        // If we're becoming active, refresh the UI, since we don't do that while we're inactive.
-        this.refresh_ui();
     }
 
     // Refresh the UI for the current image.

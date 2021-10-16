@@ -37,7 +37,7 @@ ppixiv.view = class
     restore_scroll_position() { }
     scroll_to_illust_id(illust_id, manga_page) { }
 
-    set_active(active, data_source)
+    set_active(active)
     {
         // Show or hide the view container.
         this.container.hidden = !active;
