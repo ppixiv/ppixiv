@@ -147,7 +147,7 @@ ppixiv.SendImage = class
             // if it's us.
             if(data.to == null)
             {
-                if(!settings.get("receive_quick_view"))
+                if(settings.get("no_receive_quick_view"))
                 {
                     console.log("Not receiving quick view");
                     return;
@@ -191,7 +191,7 @@ ppixiv.SendImage = class
             // This is the same as send-image.
             if(data.to == null)
             {
-                if(!settings.get("receive_quick_view"))
+                if(settings.get("no_receive_quick_view"))
                 {
                     console.log("Not receiving quick view");
                     return;

@@ -85,7 +85,8 @@ ppixiv.menu_option = class
         });
         new menu_option_toggle(container, {
             label: "Link to quick view (experimental)",
-            setting: "receive_quick_view",
+            setting: "no_receive_quick_view",
+            invert_display: true,
         });
 
 /*        new menu_option_toggle(container, {
