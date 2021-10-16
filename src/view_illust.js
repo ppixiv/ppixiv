@@ -360,6 +360,8 @@ ppixiv.view_illust = class extends ppixiv.view
             
             this.flashed_page_change = false;
 
+            this.stop_displaying_image();
+            
             return;
         }
 
