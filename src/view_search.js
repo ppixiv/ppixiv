@@ -817,7 +817,7 @@ ppixiv.view_search = class extends ppixiv.view
             {
                 // If this is an illustration, add it to wanted_illust_ids so we load its thumbnail
                 // info.  Don't do this if it's a user.
-                if(helpers.id_type(element.dataset.id) == "illust")
+                if(helpers.parse_id(element.dataset.id).type == "illust")
                     wanted_illust_ids.push(element.dataset.id);
             }
         }
@@ -968,8 +968,7 @@ ppixiv.view_search = class extends ppixiv.view
 
             var search_mode = this.data_source.search_mode;
 
-            let thumb_type = helpers.id_type(illust_id);
-            let thumb_id = helpers.actual_id(illust_id);
+            let { id: thumb_id, type: thumb_type } = helpers.parse_id(illust_id);
             let thumb_data = {};
 
             // For illustrations, get thumbnail info.  If we don't have it yet, skip the image (leave it pending)
@@ -995,7 +994,7 @@ ppixiv.view_search = class extends ppixiv.view
             {
                 // This is a user thumbnail rather than an illustration thumbnail.  It just shows a small subset
                 // of info.
-                let user_id = helpers.actual_id(illust_id);
+                let user_id = thumb_id;
 
                 var link = element.querySelector("a.thumbnail-link");
                 if(thumb_type == "user")

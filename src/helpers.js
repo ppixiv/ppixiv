@@ -1660,25 +1660,16 @@ ppixiv.helpers = {
     // If we need to show something else in a thumbnail, we encode it.  We can show a user
     // thumbnail by adding "user:12345" as an ID.
     //
-    // Return the type of the ID.  If this is just a regular illustration ID, return "illust".
-    // Otherwise, return the prefix ("user").
-    id_type(id)
+    // Return the type of the ID and the underlying illust or user ID.
+    parse_id(id)
     {
         let parts = id.split(":");
-        if(parts.length < 2)
-            return "illust";
-        else
-            return parts[0];
-    },
-
-    // Return the real ID.  For example, for "user:12345", the actual ID is 12345.
-    actual_id(id)
-    {
-        let parts = id.split(":");
-        if(parts.length < 2)
-            return id;
-        else
-            return parts[1];
+        let type = parts.length < 2?  "illust": parts[0];
+        let actual_id = parts.length < 2? id: parts[1];
+        return {
+            type: type,
+            id: actual_id,
+        }
     },
 
     // Generate a UUID.

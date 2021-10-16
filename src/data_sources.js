@@ -128,7 +128,7 @@ class illust_id_list
                 return null;
 
             // If it's not an illustration, keep looking.
-            if(helpers.id_type(illust_id) == "illust")
+            if(helpers.parse_id(illust_id).type == "illust")
                 return illust_id;
         }
         return null;
