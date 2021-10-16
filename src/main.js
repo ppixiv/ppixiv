@@ -464,6 +464,11 @@ ppixiv.main_controller = class
             console.log("Scroll to top for new search");
             new_view.scroll_to_top();
         }
+        else if(cause == "leaving-virtual")
+        {
+            // We're backing out of a virtual URL used for quick view.  Don't change the scroll position.
+            new_view.restore_scroll_position();
+        }
         else if(navigating_forwards)
         {
             // On browser history forwards, try to restore the scroll position.

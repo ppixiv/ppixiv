@@ -2202,7 +2202,9 @@ ppixiv.VirtualHistory = class
 
     broadcastPopstate()
     {
-        window.dispatchEvent(new PopStateEvent("popstate"));
+        let e = new PopStateEvent("popstate");
+        e.navigationCause = "leaving-virtual";
+        window.dispatchEvent(e);
     }
 };
 
