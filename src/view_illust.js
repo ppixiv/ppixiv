@@ -590,7 +590,7 @@ ppixiv.view_illust = class extends ppixiv.view
                 if(new_page != old_page)
                 {
                     main_controller.singleton.show_illust(this.wanted_illust_id, {
-                        manga_page: new_page,
+                        page: new_page,
                     });
                     return;
                 }
@@ -696,7 +696,7 @@ ppixiv.view_illust = class extends ppixiv.view
         if(new_illust_id != null)
         {
             main_controller.singleton.show_illust(new_illust_id, {
-                manga_page: down || skip_manga_pages? 0:-1,
+                page: down || skip_manga_pages? 0:-1,
             });
         }
     }

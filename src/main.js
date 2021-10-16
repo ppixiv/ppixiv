@@ -499,35 +499,23 @@ ppixiv.main_controller = class
     // Show an illustration by ID.
     //
     // This actually just sets the history URL.  We'll do the rest of the work in popstate.
-    show_illust(illust_id, options)
+    show_illust(illust_id, {page, add_to_history=false, view="illust", preview=false})
     {
-        if(options == null)
-            options = {};
+        console.assert(illust_id != null, "Invalid illust_id", illust_id);
 
-        var manga_page = options.manga_page != null? options.manga_page:null;
-        var add_to_history = options.add_to_history || false;
-        var view = options.view || "illust";
-
-        // Sanity check:
-        if(illust_id == null)
-        {
-            console.error("Invalid illust_id", illust_id);
-            return;
-        }
-
-        // Set the wanted illust_id in the URL, and disable the thumb view so we show
-        // the image.  Do this in a single URL update, so we don't add multiple history
-        // entries.
         var args = helpers.get_args(ppixiv.location);
 
+        // Update the URL to display this illust_id.  This stays on the same data source,
+        // so displaying an illust won't cause a search to be made in the background or
+        // have other side-effects.
         this._set_active_view_in_url(args.hash, view);
         this.data_source.set_current_illust_id(illust_id, args);
 
         // Remove any leftover page from the current illust.  We'll load the default.
-        if(manga_page == null)
+        if(page == null)
             args.hash.delete("page");
         else
-            args.hash.set("page", manga_page + 1);
+            args.hash.set("page", page + 1);
 
         helpers.set_args(args, add_to_history, "navigation");
     }
@@ -647,7 +635,7 @@ ppixiv.main_controller = class
             var view = args.hash.has("view")? args.hash.get("view"):"illust";
             this.show_illust(illust_id, {
                 view: view,
-                manga_page: page,
+                page: page,
                 add_to_history: true
             });
             

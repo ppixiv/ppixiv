@@ -159,7 +159,7 @@ ppixiv.manga_thumbnail_widget = class
                 return;
 
             main_controller.singleton.show_illust(this.illust_info.illustId, {
-                manga_page: new_page,
+                page: new_page,
             });
             
             /*
@@ -181,7 +181,7 @@ ppixiv.manga_thumbnail_widget = class
 
             var new_page = parseInt(thumb.dataset.page);
             main_controller.singleton.show_illust(this.illust_info.illustId, {
-                manga_page: new_page,
+                page: new_page,
             });
             return;
         }
