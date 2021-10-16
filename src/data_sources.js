@@ -285,6 +285,7 @@ class data_source
 
         // Sort hash parameters.
         var new_hash = helpers.sort_query_parameters(helpers.get_hash_args(url));
+
         helpers.set_hash_args(url, new_hash);        
         
         return url.toString();
@@ -313,6 +314,10 @@ class data_source
         // Any illust_id in the search or the hash doesn't require a new data source.
         // bluh
         // but the user underneath it does
+        
+        // These are for quick view and don't affect the data source.
+        hash_args.delete("virtual");
+        hash_args.delete("quick-view");
 
         helpers.set_hash_args(url, hash_args);        
     }
