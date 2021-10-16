@@ -160,7 +160,8 @@ ppixiv.thumbnail_data = class
 
     
     // Given a low-res thumbnail URL from thumbnail data, return a high-res thumbnail URL.
-    get_high_res_thumbnail_url(url)
+    // If page isn't 0, return a URL for the given manga page.
+    get_high_res_thumbnail_url(url, page=0)
     {
         // Some random results on the user recommendations page also return this:
         //
@@ -191,6 +192,17 @@ ppixiv.thumbnail_data = class
         }
 
         url.pathname = match[1] + "540x540_70" + match[3] + "master1200.jpg";
+
+        if(page != 0)
+        {
+            // Manga URLs end with:
+            //
+            // /c/540x540_70/custom-thumb/img/.../12345678_p0_master1200.jpg
+            //
+            // p0 is the page number.
+            url.pathname = url.pathname.replace("_p0_master1200", "_p" + page + "_master1200");
+        }
+
         return url.toString();
 
     }
@@ -321,14 +333,21 @@ ppixiv.thumbnail_data = class
             else
                 throw "Unrecognized source: " + source;
 
-            // Different APIs return different thumbnail URLs.
-            remapped_thumb_info.url = this.get_high_res_thumbnail_url(remapped_thumb_info.url);
-            
             // These fields are strings in some sources.  Switch them to ints.
             for(let key of ["pageCount", "width", "height"])
             {
                 if(remapped_thumb_info[key] != null)
                     remapped_thumb_info[key] = parseInt(remapped_thumb_info[key]);
+            }
+
+            // Different APIs return different thumbnail URLs.
+            remapped_thumb_info.url = this.get_high_res_thumbnail_url(remapped_thumb_info.url);
+            
+            remapped_thumb_info.mangaPages = [];
+            for(let page = 0; page < remapped_thumb_info.pageCount; ++page)
+            {
+                let url = this.get_high_res_thumbnail_url(remapped_thumb_info.url, page);
+                remapped_thumb_info.mangaPages.push(url);
             }
 
             thumb_info = remapped_thumb_info;

@@ -127,13 +127,11 @@ ppixiv.view_illust = class extends ppixiv.view
         // Tell the preloader about the current image.
         image_preloader.singleton.set_current_image(illust_id);
 
-        var image_container = this.container.querySelector(".image-container");
-
-        // If possible, show the quick preview.
-        this.show_fast_preview(illust_id, manga_page);
-
-        // Load info for this image if needed.
-        var illust_data = await image_data.singleton().get_image_info(illust_id);
+        // Get very basic illust info.  This is enough to tell which viewer to use, how
+        // many pages it has, and whether it's muted.  This will always complete immediately
+        // if we're coming from a search or anywhere else that will already have this info,
+        // but it can block if we're loading from scratch.
+        let early_illust_data = await image_data.singleton().get_early_illust_data(illust_id);
 
         // If we were deactivated while waiting for image info or the image we want to show has changed, stop.
         if(!this.active || this.wanted_illust_id != illust_id || this.wanted_illust_page != manga_page)
@@ -142,23 +140,19 @@ ppixiv.view_illust = class extends ppixiv.view
             return;
         }
 
-        // Remove the preview image, if any, since we're starting up the real viewer.  Note
-        // that viewer_illust will create an identical-looking preview once it starts.
-        this.hide_preview();
-
         // If manga_page is -1, we didn't know the page count when we did the navigation
         // and we want the last page.  Otherwise, just make sure the page is in range.
         if(manga_page == -1)
-            manga_page = illust_data.pageCount - 1;
+            manga_page = early_illust_data.pageCount - 1;
         else
-            manga_page = helpers.clamp(manga_page, 0, illust_data.pageCount-1);
+            manga_page = helpers.clamp(manga_page, 0, early_illust_data.pageCount-1);
 
         console.log("Showing image", illust_id, "page", manga_page);
 
         // If we adjusted the page, update the URL.  Allow "page" to be 1 or not present for
         // page 1.
         var args = helpers.args.location;
-        var wanted_page_arg = illust_data.pageCount > 1? (manga_page + 1).toString():1;
+        var wanted_page_arg = early_illust_data.pageCount > 1? (manga_page + 1).toString():1;
         let current_page_arg = args.hash.get("page") || "1";
         if(current_page_arg != wanted_page_arg)
         {
@@ -202,17 +196,16 @@ ppixiv.view_illust = class extends ppixiv.view
             image_preloader.singleton.set_speculative_image(preload_illust_id);
         }
 
+        // Finalize the illust ID.  We haven't loaded full illust data yet, so clear it.
         this.current_illust_id = illust_id;
-        this.current_illust_data = illust_data;
+        this.current_illust_data = null;
 
         this.ui.illust_id = illust_id;
 
         this.refresh_ui();
 
-        var illust_data = this.current_illust_data;
-        
         // If the image has the ドット絵 tag, enable nearest neighbor filtering.
-        helpers.set_class(document.body, "dot", helpers.tags_contain_dot(illust_data));
+        helpers.set_class(document.body, "dot", helpers.tags_contain_dot(early_illust_data));
 
         // Dismiss any message when changing images.
         message_widget.singleton.hide();
@@ -228,10 +221,11 @@ ppixiv.view_illust = class extends ppixiv.view
         // previous image.
         this._hide_image = false;
 
-        // Check if this image is muted.
-        var muted_tag = muting.singleton.any_tag_muted(illust_data.tags.tags);
-        var muted_user = muting.singleton.is_muted_user_id(illust_data.userId);
+        let image_container = this.container.querySelector(".image-container");
 
+        // Check if this image is muted.
+        var muted_tag = muting.singleton.any_tag_muted(early_illust_data.tags);
+        var muted_user = muting.singleton.is_muted_user_id(early_illust_data.userId);
         if(muted_tag || muted_user)
         {
             // Tell the thumbnail view about the image.  If the image is muted, disable thumbs.
@@ -239,34 +233,24 @@ ppixiv.view_illust = class extends ppixiv.view
                 this.manga_thumbnails.set_illust_info(null);
 
             // If the image is muted, load a dummy viewer.
-            this.viewer = new viewer_muted(image_container, illust_data);
+            this.viewer = new viewer_muted(image_container, illust_id);
             return;
         }
      
         var manga_page = this.wanted_illust_page;
         if(manga_page == -1)
-            manga_page = illust_data.pageCount - 1;
-
-        // Tell the thumbnail view about the image.
-        if(this.manga_thumbnails)
-        {
-            this.manga_thumbnails.set_illust_info(illust_data);
-            this.manga_thumbnails.snap_transition();
-
-            // Let the manga thumbnail display know about the selected page.
-            this.manga_thumbnails.current_page_changed(manga_page);
-        }
+            manga_page = early_illust_data.pageCount - 1;
 
         // Create the image viewer.
         var progress_bar = this.progress_bar.controller();
-        if(illust_data.illustType == 2)
-            this.viewer = new viewer_ugoira(image_container, illust_data, {
+        if(early_illust_data.illustType == 2)
+            this.viewer = new viewer_ugoira(image_container, illust_id, {
                 progress_bar: progress_bar,
                 seek_bar: this.seek_bar,
             });
         else
         {
-            this.viewer = new viewer_images(image_container, illust_data, {
+            this.viewer = new viewer_images(image_container, illust_id, {
                 progress_bar: progress_bar,
                 manga_page_bar: this.manga_page_bar,
                 manga_page: manga_page,
@@ -275,7 +259,30 @@ ppixiv.view_illust = class extends ppixiv.view
 
         this.viewer.active = this._active;
 
+        // Tell the thumbnail view about the image.
+/*        if(this.manga_thumbnails)
+        {
+            this.manga_thumbnails.set_illust_info(this.current_illust_data);
+            this.manga_thumbnails.snap_transition();
+
+            // Let the manga thumbnail display know about the selected page.
+            this.manga_thumbnails.current_page_changed(manga_page);
+        }*/
+
         // Refresh the UI now that we have a new viewer.
+        this.refresh_ui();
+
+        // Now that we're done setting up the viewer, load full image info.  This is more
+        // likely to block than initial info, so do this late after everything else is set
+        // up.
+        let illust_data = await image_data.singleton().get_image_info(illust_id);
+        if(this.current_illust_id != illust_id)
+        {
+            console.log("show_image: illust ID or page changed while loading illust info, stopping");
+            return;
+        }
+
+        this.current_illust_data = illust_data;
         this.refresh_ui();
     }
 
@@ -289,87 +296,6 @@ ppixiv.view_illust = class extends ppixiv.view
 
         console.info("Cancelling async navigation");
         this.pending_navigation = null;
-    }
-
-    // When loading an image, illust_viewer shows the search thumbnail while loading the main
-    // image.  However, we can only start illust_viewer once we have image info, which causes
-    // UI delays, even though we often already have enough info to show the preview image
-    // immediately.
-    //
-    // If we have thumbnail data for illust_id, create a dummy image viewer to show it until
-    // we start the main viewer.  The image is already cached if we're coming from a search
-    // result, so this is often shown immediately.
-    //
-    // If this shows a preview image, the viewer will be removed.
-    show_fast_preview(illust_id, manga_page)
-    {
-        this.hide_preview();
-
-        // See if we already have thumbnail data loaded.
-        var illust_thumbnail_data = thumbnail_data.singleton().get_one_thumbnail_info(illust_id);
-        if(illust_thumbnail_data == null)
-            return;
-
-        // Don't do this if we're viewing a multi-page post past the first page.
-        if(manga_page != 0)
-            return;
-            
-        // Don't show the preview if this image is muted.
-        var muted_tag = muting.singleton.any_tag_muted(illust_thumbnail_data.tags);
-        var muted_user = muting.singleton.is_muted_user_id(illust_thumbnail_data.userId);
-        if(muted_tag || muted_user)
-            return;
-        
-        // Hack: If we were already showing a page on the same image, that means we're
-        // changing manga pages within the same post.  Don't show the preview in this
-        // case, so we don't remove the viewer and reset the zoom/pan position.
-        if(illust_id == this.current_illust_id && this.viewer != null)
-        {
-            console.log("Not showing preview because we're changing manga pages");
-            return;
-        }
-
-        console.log("Show fast preview for", illust_thumbnail_data.id);
-        this.preview_img = document.createElement("img");
-        this.preview_img.src = illust_thumbnail_data.url;
-        this.preview_img.style.pointerEvents = "none";
-        this.preview_img.classList.add("filtering");
-        this.preview_img.classList.add("low-res-preview");
-        
-        var preview_container = this.container.querySelector(".preview-container");
-        preview_container.appendChild(this.preview_img);
-        
-        this.preview_on_click_viewer = new on_click_viewer();
-        this.preview_on_click_viewer.set_new_image(this.preview_img, null, illust_thumbnail_data.width, illust_thumbnail_data.height);
-
-        // Don't actually allow zooming the preview, since it'll reset once it's replaced with the real
-        // viewer.  We just create the on_click_viewer to match the zoom with what the real image will
-        // have.
-        this.preview_on_click_viewer.disable();
-
-        // The preview is taking the place of the viewer until we create it, so remove any existing
-        // viewer.
-        if(this.viewer != null)
-        {
-            this.viewer.shutdown();
-            this.viewer = null;
-        }
-    }
-
-    // Remove our preview image.
-    hide_preview()
-    {
-        if(this.preview_on_click_viewer != null)
-        {
-            this.preview_on_click_viewer.disable();
-            this.preview_on_click_viewer = null;
-        }
-
-        if(this.preview_img != null)
-        {
-            this.preview_img.remove();
-            this.preview_img = null;
-        }
     }
 
     // Stop displaying any image (and cancel any wanted navigation), putting us back
@@ -389,8 +315,6 @@ ppixiv.view_illust = class extends ppixiv.view
         if(this.manga_thumbnails)
             this.manga_thumbnails.set_illust_info(null);
         
-        this.hide_preview();
-
         this.wanted_illust_id = null;
 
         // The manga page to show, or the last page if -1.
@@ -632,7 +556,8 @@ ppixiv.view_illust = class extends ppixiv.view
                 // We should normally know which page the illustration we're currently viewing is on.
                 console.warn("Don't know the next page for illust", navigate_from_illust_id);
                 new_illust_id = this.data_source.id_list.get_first_id();
-                main_controller.singleton.show_illust(new_illust_id);
+                if(new_illust_id != null)
+                    main_controller.singleton.show_illust(new_illust_id);
                 return true;
             }
 

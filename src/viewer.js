@@ -4,15 +4,18 @@
 // type of content in the main display.
 ppixiv.viewer = class
 {
-    constructor(container, illust_data)
+    constructor(container, illust_id)
     {
-        this.illust_data = illust_data;
+        this.illust_id = illust_id;
         this.active = false;
     }
 
     // Remove any event listeners, nodes, etc. and shut down so a different viewer can
     // be used.
-    shutdown() { }
+    shutdown()
+    {
+        this.was_shutdown = true;
+    }
 
     set page(page) { }
     get page() { return 0; }

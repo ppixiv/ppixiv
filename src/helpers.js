@@ -1418,6 +1418,9 @@ ppixiv.helpers = {
     // If image.decode is available, asynchronously decode url.
     async decode_image(url, abort_signal)
     {
+        if(url == null)
+            return;
+
         var img = document.createElement("img");
         img.src = url;
 

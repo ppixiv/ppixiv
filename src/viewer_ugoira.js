@@ -2,9 +2,9 @@
 
 ppixiv.viewer_ugoira = class extends ppixiv.viewer
 {
-    constructor(container, illust_data, options)
+    constructor(container, illust_id, options)
     {
-        super(container, illust_data);
+        super(container, illust_id);
         
         this.refresh_focus = this.refresh_focus.bind(this);
         this.clicked_canvas = this.clicked_canvas.bind(this);
@@ -20,6 +20,63 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
         this.seek_bar.set_current_time(0);
         this.seek_bar.set_callback(this.seek_callback);
 
+        // Create a canvas to render into.
+        this.canvas = document.createElement("canvas");
+        this.canvas.hidden = true;
+        this.canvas.className = "filtering";
+        this.canvas.style.width = "100%";
+        this.canvas.style.height = "100%";
+        this.canvas.style.objectFit = "contain";
+        this.container.appendChild(this.canvas);
+
+        this.canvas.addEventListener("click", this.clicked_canvas, false);
+
+        // True if we want to play if the window has focus.  We always pause when backgrounded.
+        let args = helpers.args.location;
+        this.want_playing = !args.state.paused;
+
+        // True if the user is seeking.  We temporarily pause while seeking.  This is separate
+        // from this.want_playing so we stay paused after seeking if we were paused at the start.
+        this.seeking = false;
+
+        window.addEventListener("visibilitychange", this.refresh_focus);
+
+        // This can be used to abort ZipImagePlayer's download.
+        this.abort_controller = new AbortController;
+
+        this.load();
+    }
+
+    async load()
+    {
+        this.illust_data = await image_data.singleton().get_image_info(this.illust_id);
+
+        // Stop if we were removed before the request finished.
+        if(this.was_shutdown)
+            return;
+        
+        this.create_preview_images(this.illust_data);
+        
+        // Create the player.
+        this.player = new ZipImagePlayer({
+            metadata: this.illust_data.ugoiraMetadata,
+            autoStart: false,
+            source: this.illust_data.ugoiraMetadata.originalSrc,
+            mime_type: this.illust_data.ugoiraMetadata.mime_type,
+            signal: this.abort_controller.signal,
+            autosize: true,
+            canvas: this.canvas,
+            loop: true,
+            debug: false,
+            progress: this.progress,
+            drew_frame: this.drew_frame,
+        });            
+
+        this.refresh_focus();
+    }
+
+    async create_preview_images(illust_data)
+    {
         // Create an image to display the static image while we load.
         //
         // Like static image viewing, load the thumbnail, then the main image on top, since
@@ -42,56 +99,16 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
         this.preview_img2.src = illust_data.urls.original;
         this.container.appendChild(this.preview_img2);
 
-        // Remove the low-res preview image when the high-res one finishes loading.
-        this.preview_img2.addEventListener("load", (e) => {
-            this.preview_img1.remove();
-        });
-        
-        // Create a canvas to render into.
-        this.canvas = document.createElement("canvas");
-        this.canvas.hidden = true;
-        this.canvas.className = "filtering";
-        this.canvas.style.width = "100%";
-        this.canvas.style.height = "100%";
-        this.canvas.style.objectFit = "contain";
-        this.container.appendChild(this.canvas);
-
-        this.canvas.addEventListener("click", this.clicked_canvas, false);
-
         // Allow clicking the previews too, so if you click to pause the video before it has enough
         // data to start playing, it'll still toggle to paused.
         this.preview_img1.addEventListener("click", this.clicked_canvas, false);
         this.preview_img2.addEventListener("click", this.clicked_canvas, false);
 
-        // True if we want to play if the window has focus.  We always pause when backgrounded.
-        let args = helpers.args.location;
-        this.want_playing = !args.state.paused;
-
-        // True if the user is seeking.  We temporarily pause while seeking.  This is separate
-        // from this.want_playing so we stay paused after seeking if we were paused at the start.
-        this.seeking = false;
-
-        window.addEventListener("visibilitychange", this.refresh_focus);
-
-        // This can be used to abort ZipImagePlayer's download.
-        this.abort_controller = new AbortController;
-
-        // Create the player.
-        this.player = new ZipImagePlayer({
-            metadata: illust_data.ugoiraMetadata,
-            autoStart: false,
-            source: illust_data.ugoiraMetadata.originalSrc,
-            mime_type: illust_data.ugoiraMetadata.mime_type,
-            signal: this.abort_controller.signal,
-            autosize: true,
-            canvas: this.canvas,
-            loop: true,
-            debug: false,
-            progress: this.progress,
-            drew_frame: this.drew_frame,
-        });            
-
-        this.refresh_focus();
+        // Wait for the high-res image to finish loading.
+        helpers.wait_for_image_load(this.preview_img2);
+        
+        // Remove the low-res preview image when the high-res one finishes loading.
+        this.preview_img1.remove();
     }
 
     set active(active)
@@ -238,7 +255,7 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
 
     shutdown()
     {
-        this.finished = true;
+        super.shutdown();
 
         // Cancel the player's download.
         this.abort_controller.abort();

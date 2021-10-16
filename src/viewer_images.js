@@ -4,9 +4,9 @@
 // either a single image or navigate between an image sequence.
 ppixiv.viewer_images = class extends ppixiv.viewer
 {
-    constructor(container, illust_data, options)
+    constructor(container, illust_id, options)
     {
-        super(container, illust_data);
+        super(container, illust_id);
 
         this.container = container;
         this.options = options || {};
@@ -20,12 +20,56 @@ ppixiv.viewer_images = class extends ppixiv.viewer
 
         main_context_menu.get.on_click_viewer = this.on_click_viewer;
 
+        this.load();
+    }
+
+    async load()
+    {
+        // First, load early illust data.  This is enough info to set up the image list
+        // with preview URLs, so we can starat the image view early.
+        //
+        // If this blocks to load, the full illust data will be loaded, so we'll never
+        // run two separate requests here.
+        let early_illust_data = await image_data.singleton().get_early_illust_data(this.illust_id);
+
+        // Stop if we were removed before the request finished.
+        if(this.was_shutdown)
+            return;
+       
         // Make a list of image URLs we're viewing.
         this.images = [];
+        for(let page = 0; page < early_illust_data.pageCount; ++page)
+        {
+            let preview_url = early_illust_data.previewUrl;
+            if(page > 0)
+            {
+                // We know the URLs to manga pages from thumbnail data, but we don't know their
+                // resolutions, so don't use them for previews.  This usually shouldn't be seen,
+                // dsince we usually aren't navigating to later pages without having loaded full
+                // illust info.
+                preview_url = null;
+            }
+            
+            this.images.push({
+                url: null,
+                preview_url: preview_url,
+                width: early_illust_data.width,
+                height: early_illust_data.height,
+            });
+        }
 
-        // If there are multiple pages, get image info from mangaPages.  Otherwise, use
-        // the main image.
-        for(var page of illust_data.mangaPages)
+        this.refresh();
+        
+        // Now wait for full illust info to load.
+        this.illust_data = await image_data.singleton().get_image_info(this.illust_id);
+
+        // Stop if we were removed before the request finished.
+        if(this.was_shutdown)
+            return;
+
+        // Update the list to include the image URLs.
+        this.images = [];
+        for(var page of this.illust_data.mangaPages)
         {
             this.images.push({
                 url: page.urls.original,
@@ -51,6 +95,8 @@ ppixiv.viewer_images = class extends ppixiv.viewer
     
     shutdown()
     {
+        super.shutdown();
+
         if(this.on_click_viewer)
         {
             this.on_click_viewer.disable();
@@ -122,9 +168,10 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         }
         
         // Create the low-res preview.  This loads the thumbnail underneath the main image.  Don't set the
-        // "filtering" class, since using point sampling for the thumbnail doesn't make sense.
+        // "filtering" class, since using point sampling for the thumbnail doesn't make sense.  If preview_url
+        // is null, just use a blank image.
         this.preview_img = document.createElement("img");
-        this.preview_img.src = preview_url;
+        this.preview_img.src = preview_url? preview_url:helpers.blank_image;
         this.preview_img.classList.add("low-res-preview");
 
         // The secondary image holds the low-res preview image that's shown underneath the loading image.
@@ -132,18 +179,27 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         this.preview_img.style.pointerEvents = "none";
         this.container.appendChild(this.preview_img);
 
-        this.img = document.createElement("img");
-        this.img.src = url;
-        this.img.className = "filtering";
-        this.container.appendChild(this.img);
+        let preview_image = this.preview_img;
 
-        // When the image finishes loading, remove the preview image, to prevent artifacts with
-        // transparent images.  Keep a reference to preview_img, so we don't need to worry about
-        // it changing.  on_click_viewer will still have a reference to it, but it won't do anything.
-        var preview_image = this.preview_img;
-        this.img.addEventListener("load", (e) => {
-            preview_image.remove();
-        });
+        this.img = document.createElement("img");
+        this.container.appendChild(this.img);
+        if(url == null)
+        {
+            // We don't have the image URL yet.  Use a blank image.
+            this.img.src = helpers.blank_image;
+        }
+        else
+        {
+            this.img.src = url;
+            this.img.className = "filtering";
+
+            // When the image finishes loading, remove the preview image, to prevent artifacts with
+            // transparent images.  Keep a reference to preview_img, so we don't need to worry about
+            // it changing.  on_click_viewer will still have a reference to it, but it won't do anything.
+            this.img.addEventListener("load", (e) => {
+                preview_image.remove();
+            });
+        }
 
         this.on_click_viewer.set_new_image(this.img, this.preview_img, width, height);
     }
