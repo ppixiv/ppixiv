@@ -460,6 +460,7 @@ ppixiv.SendImage = class
     }
 };
 
+// A context menu widget showing known tabs on the desktop to send images to.
 ppixiv.send_image_widget = class extends ppixiv.illust_widget
 {
     constructor(container)
@@ -634,7 +635,6 @@ ppixiv.send_image_widget = class extends ppixiv.illust_widget
             entry.style.width = `${width}px`;
             entry.style.height =`${height}px`;
             entry.style.display = "block";
-
         }
     }
 
@@ -655,24 +655,23 @@ ppixiv.send_image_widget = class extends ppixiv.illust_widget
         // Set the image.
         let img = entry.querySelector(".shown-image");
         img.hidden = true;
-        if(info.illust_id != null && info.illust_screen_pos != null)
+
+        let image_url = null;
+        if(info.illust_data)
         {
-            let image_url = null;
-            if(info.illust_data)
-            {
-                image_url = info.illust_data.urls.small;
-                if(info.page > 0)
-                    image_url = info.illust_data.mangaPages[info.page].urls.small;
-            }
-            else if(info.thumbnail_info)
-            {
-                image_url = info.thumbnail_info.url;
-            }
-            if(image_url)
-            {
-                img.hidden = false;
-                img.src = image_url;
-            }
+            image_url = info.illust_data.urls.small;
+            if(info.page > 0)
+                image_url = info.illust_data.mangaPages[info.page].urls.small;
+        }
+        else if(info.thumbnail_info)
+        {
+            image_url = info.thumbnail_info.url;
+        }
+
+        if(image_url && info.illust_screen_pos)
+        {
+            img.hidden = false;
+            img.src = image_url;
 
             // Position the image in the same way it is in the tab.  The container is the same
             // dimensions as the window, so we can just copy the final percentages.
@@ -680,6 +679,11 @@ ppixiv.send_image_widget = class extends ppixiv.illust_widget
             img.style.left = `${info.illust_screen_pos.left*100}%`;
             img.style.width = `${info.illust_screen_pos.width*100}%`;
             img.style.height = `${info.illust_screen_pos.height*100}%`;
+        }
+        else
+        {
+            // Show the mock search image if we have no image URL.
+            entry.querySelector(".search-tab").hidden = false;
         }
 
         // We don't need mouse event listeners for ourself.
