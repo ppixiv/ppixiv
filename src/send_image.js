@@ -319,14 +319,44 @@ ppixiv.SendImage = class
                 return;
             
             this.quick_view_active = new AbortController();
-            window.addEventListener("mousedown", this.quick_view_window_onmousedown, { signal: this.quick_view_active.signal, capture: true });
-            window.addEventListener("mouseup", this.quick_view_window_onmouseup, { signal: this.quick_view_active.signal, capture: true });
+            window.addEventListener("pointerdown", this.quick_view_window_onmousedown, { signal: this.quick_view_active.signal, capture: true });
+            window.addEventListener("pointerup", this.quick_view_window_onmouseup, { signal: this.quick_view_active.signal, capture: true });
             window.addEventListener("click", this.quick_view_window_onclick, { signal: this.quick_view_active.signal, capture: true });
         };
 
         // Set up listeners, and update them when the quick view setting changes.
         setup();
         settings.register_change_callback("quick_view", setup);
+    }
+
+    static quick_view_started(pointer_id)
+    {
+        // Hide the cursor, and capture the cursor to the document so it stays hidden.
+        document.body.style.cursor = "none";
+
+        this.captured_pointer_id = pointer_id;
+        document.body.setPointerCapture(this.captured_pointer_id);
+        
+        // Pause thumbnail animations, so they don't keep playing while viewing an image
+        // in another tab.
+        document.body.classList.add("pause-thumbnail-animation");
+
+        // Listen to pointer movement during quick view.
+        window.addEventListener("pointermove", this.quick_view_window_onpointermove);
+    }
+
+    static quick_view_stopped()
+    {
+        if(this.captured_pointer_id != null)
+        {
+            document.body.releasePointerCapture(this.captured_pointer_id);
+            this.captured_pointer_id = null;
+        }
+
+        document.body.classList.remove("pause-thumbnail-animation");
+        window.removeEventListener("pointermove", this.quick_view_window_onpointermove);
+
+        document.body.style.cursor = "";
     }
 
     static quick_view_window_onmousedown = (e) =>
@@ -349,12 +379,7 @@ ppixiv.SendImage = class
             this.previewing_image = { illust_id: illust_id, page: page };
             SendImage.send_image(illust_id, page, null, "quick-view");
 
-            // Pause thumbnail animations, so they don't keep playing while viewing an image
-            // in another tab.
-            document.body.classList.add("pause-thumbnail-animation");
-
-            // Listen to pointer movement during quick view.
-            window.addEventListener("pointermove", this.quick_view_window_onpointermove);
+            this.quick_view_started(e.pointerId);
         }
 
         // Right-clicking while quick viewing an image locks the image, so it doesn't go away
@@ -364,7 +389,7 @@ ppixiv.SendImage = class
             if(!this.previewing_image)
                 return;
 
-            document.body.classList.remove("pause-thumbnail-animation");
+            this.quick_view_stopped();
 
             SendImage.send_image(this.previewing_image.illust_id, this.previewing_image.page, null, "display");
 
@@ -388,9 +413,7 @@ ppixiv.SendImage = class
         e.preventDefault();
         e.stopImmediatePropagation();
 
-        document.body.classList.remove("pause-thumbnail-animation");
-
-        window.removeEventListener("pointermove", this.quick_view_window_onpointermove);
+        this.quick_view_stopped();
 
         SendImage.send_message({ message: "hide-preview-image", to: null }, true);
     }
