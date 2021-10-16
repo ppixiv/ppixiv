@@ -954,11 +954,9 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
     }
 }
 
-.thumbnail-box.load-previous {
-    width: 100%;
-}
-
 .thumbnail-load-previous {
+    width: 100%;
+
     & > .load-previous-buttons {
         margin-left: auto;
         margin-right: auto;
