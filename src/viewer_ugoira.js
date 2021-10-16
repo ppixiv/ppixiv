@@ -6,8 +6,6 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
     {
         super(container, illust_data);
         
-        console.log("create player:", illust_data.illustId);
-
         this.refresh_focus = this.refresh_focus.bind(this);
         this.clicked_canvas = this.clicked_canvas.bind(this);
         this.onkeydown = this.onkeydown.bind(this);
@@ -66,7 +64,8 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
         this.preview_img2.addEventListener("click", this.clicked_canvas, false);
 
         // True if we want to play if the window has focus.  We always pause when backgrounded.
-        this.want_playing = true;
+        let args = helpers.args.location;
+        this.want_playing = !args.state.paused;
 
         // True if the user is seeking.  We temporarily pause while seeking.  This is separate
         // from this.want_playing so we stay paused after seeking if we were paused at the start.
@@ -171,8 +170,7 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
             e.stopPropagation();
             e.preventDefault();
 
-            this.want_playing = !this.want_playing;
-            this.refresh_focus();
+            this.set_want_playing(!this.want_playing);
 
             return;
         case 36: // home
@@ -213,13 +211,28 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
 
     play()
     {
-        this.want_playing = true;
-        this.refresh_focus();
+        this.set_want_playing(true);
     }
 
     pause()
     {
-        this.want_playing = false;
+        this.set_want_playing(false);
+    }
+
+    // Set whether the user wants the video to be playing or paused.
+    set_want_playing(value)
+    {
+        if(this.want_playing != value)
+        {
+            // Store the play/pause state in history, so if we navigate out and back in while
+            // paused, we'll stay paused.
+            let args = helpers.args.location;
+            args.state.paused = !value;
+            helpers.set_page_url(args, false, "updating-video-pause");
+
+            this.want_playing = value;
+        }
+
         this.refresh_focus();
     }
 
@@ -264,7 +277,7 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
 
     clicked_canvas(e)
     {
-        this.want_playing = !this.want_playing;
+        this.set_want_playing(!this.want_playing);
         this.refresh_focus();
     }
 
