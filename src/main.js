@@ -499,7 +499,7 @@ ppixiv.main_controller = class
     // Show an illustration by ID.
     //
     // This actually just sets the history URL.  We'll do the rest of the work in popstate.
-    show_illust(illust_id, {page, add_to_history=false, view="illust", preview=false})
+    show_illust(illust_id, {page, add_to_history=false, view="illust", quick_view=false})
     {
         console.assert(illust_id != null, "Invalid illust_id", illust_id);
 
@@ -517,15 +517,15 @@ ppixiv.main_controller = class
         else
             args.hash.set("page", page + 1);
 
-        if(preview)
+        if(quick_view)
         {
             args.hash.set("virtual", "1");
-            args.hash.set("preview", "1");
+            args.hash.set("quick-view", "1");
         }
         else
         {
             args.hash.delete("virtual");
-            args.hash.delete("preview");
+            args.hash.delete("quick-view");
         }
 
         helpers.set_args(args, add_to_history, "navigation");

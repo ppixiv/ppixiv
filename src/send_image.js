@@ -72,7 +72,7 @@ ppixiv.SendImage = class
         SendImage.send_message({ message: "list-tabs" });
     }
 
-    // Send an image to another tab.  action is either "preview", to show the image temporarily,
+    // Send an image to another tab.  action is either "quick-view", to show the image temporarily,
     // or "display", to navigate to it.
     static async send_image(illust_id, page, tab_id, action)
     {
@@ -93,7 +93,7 @@ ppixiv.SendImage = class
             illust_id: illust_id,
             page: page,
             info: info,
-            action: action, // "preview" or "display"
+            action: action, // "quick-view" or "display"
         }, true);
     }
 
@@ -177,7 +177,7 @@ ppixiv.SendImage = class
             // Show the image.
             main_controller.singleton.show_illust(data.info.illust_id, {
                 page: data.page,
-                preview: data.action == "preview",
+                quick_view: data.action == "quick-view",
 
                 // When we first show a preview, add it to history.  If we show another image
                 // or finalize the previewed image while we're showing a preview, replace the
@@ -336,7 +336,7 @@ ppixiv.SendImage = class
 
             // Quick view this image.
             this.previewing_image = { illust_id: illust_id, page: page };
-            SendImage.send_image(illust_id, page, null, "preview");
+            SendImage.send_image(illust_id, page, null, "quick-view");
 
             // Listen to pointer movement during quick view.
             window.addEventListener("pointermove", this.quick_view_window_onpointermove);
@@ -645,7 +645,7 @@ ppixiv.send_image_widget = class extends ppixiv.illust_widget
             if(!entry)
                 return;
 
-            SendImage.send_image(this._illust_id, this._page, tab_id, "preview");
+            SendImage.send_image(this._illust_id, this._page, tab_id, "quick-view");
             this.previewing_on_tab = tab_id;
         });
 
