@@ -1114,9 +1114,25 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
     }
 }
 
-/* The popup title below thumbs: */
-.thumbnail-inner {
-    & > .thumbnail-label {
+.thumbnail-box
+{
+    .thumb {
+        object-fit: cover;
+
+        /* Show the top-center of the thunbnail.  This generally makes more sense
+         * than cropping the center. */
+        object-position: 50% 0%;    
+        width: 100%;
+        height: 100%;
+    }
+
+    // Hide the image while it's pending, so we don't show a broken image icon.
+    &[data-pending] .thumb {
+        display: none;
+    }
+
+    // The popup title below thumbs:
+    .thumbnail-label {
         position: absolute;
         bottom: 3px;
         pointer-events: none;
@@ -1140,48 +1156,40 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
             line-height: 19px;
         }
     }
-}
 
-/* Hide the img while it's pending so we don't show a broken image icon. */
-.thumbnail-box[data-pending] a img.thumb {
-    display: none;
-}
-
-.thumbnail-box .thumb {
-    object-fit: cover;
-
-    /* Show the top-center of the thunbnail.  This generally makes more sense
-     * than cropping the center. */
-    object-position: 50% 0%;    
-    width: 100%;
-    height: 100%;
-}
-
-/* Be careful not to set any transform: scale if zooming is disabled.  A scale of 1
- * will cause thumbnails to shift around in Firefox. */
-body:not(.disable-thumbnail-zooming) {
-    .view-search-container .thumbnail-box .thumb {
+    // Thumbnail zooming
+    .thumb {
         transition: transform .5s;
-        transform: scale(1.25, 1.25);
-    }
-
-    .view-search-container .thumbnail-box .thumbnail-inner:hover .thumb {
         transform: scale(1, 1);
     }
-}
 
-.thumbnail-box
-{
-    &.vertical-panning .thumb,
-    &.horizontal-panning .thumb
+    // If thumbnail zooming is enabled, zoom thumbs in while not hovered, or while
+    // .pause-thumbnail-animation is set.
+    body:not(.disable-thumbnail-zooming) & .thumbnail-inner:not(:hover),
+    body:not(.disable-thumbnail-zooming).pause-thumbnail-animation &
     {
-        animation-duration: 4s;
-        animation-timing-function: ease-in-out;
-        animation-iteration-count: infinite;
+        .thumb {
+            transform: scale(1.25, 1.25);
+        }
     }
 
-    .thumbnail-inner:not(:hover) .thumb {
-        animation-play-state: paused;
+    // Thumbnail panning
+    &.vertical-panning, &.horizontal-panning
+    {
+        .thumb {
+            animation-duration: 4s;
+            animation-timing-function: ease-in-out;
+            animation-iteration-count: infinite;
+        }
+    }
+
+    // Pause animations while the mouse isn't over them, or if pause-thumbnail-animation is set.
+    .thumbnail-inner:not(:hover),
+    body.pause-thumbnail-animation &
+    {
+        .thumb {
+            animation-play-state: paused;
+        }
     }
 
     body:not(.disable-thumbnail-panning) &.horizontal-panning .thumb {
@@ -1193,7 +1201,6 @@ body:not(.disable-thumbnail-zooming) {
          * we are before any animation.  This is different from vertical panning, since it
          * pans from the top, which is already where we start (top center). */
         animation-delay: -.8s;
-
     }
 
     body:not(.disable-thumbnail-panning) &.vertical-panning .thumb {
