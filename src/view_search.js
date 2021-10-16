@@ -907,7 +907,7 @@ ppixiv.view_search = class extends ppixiv.view
             return;
 
         // See if this link is for this data source, one page before the current start page.
-        let args = new helpers.args(ppixiv.location);
+        let args = helpers.args.location;
         let page = this.data_source.get_start_page(args);
         this.data_source.set_start_page(args, page-1);
         let previous_page_url = args.url.toString();
@@ -1029,7 +1029,7 @@ ppixiv.view_search = class extends ppixiv.view
             {
                 // Set the link for the first page and previous page buttons.  Most of the time this is handled
                 // by our in-page click handler.
-                let args = new helpers.args(ppixiv.location);
+                let args = helpers.args.location;
                 let page = this.data_source.get_start_page(args);
                 this.data_source.set_start_page(args, page-1);
                 element.querySelector("a.load-previous-page-link").href = args.url;

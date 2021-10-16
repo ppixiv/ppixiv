@@ -354,7 +354,7 @@ ppixiv.main_controller = class
         // very well), but it at least makes rewinding to the first page work.
         if(data_source == this.data_source && data_source.supports_start_page)
         {
-            let args = new helpers.args(ppixiv.location);
+            let args = helpers.args.location;
             let wanted_page = this.data_source.get_start_page(args);
 
             let lowest_page = data_source.id_list.get_lowest_loaded_page();
@@ -389,7 +389,7 @@ ppixiv.main_controller = class
 
         // Figure out which view to display.
         var new_view_name;
-        let args = new helpers.args(ppixiv.location);
+        let args = helpers.args.location;
         if(!args.hash.has("view"))
             new_view_name = data_source.default_view;
         else

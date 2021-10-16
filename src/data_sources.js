@@ -429,7 +429,7 @@ class data_source
         // If we have an explicit illust_id in the hash, use it.  Note that some pages (in
         // particular illustration pages) put this in the query, which is handled in the particular
         // data source.
-        let args = new helpers.args(ppixiv.location);
+        let args = helpers.args.location;
         if(args.hash.has("illust_id"))
             return args.hash.get("illust_id");
         
