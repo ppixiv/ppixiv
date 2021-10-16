@@ -273,14 +273,9 @@ ppixiv.view_search = class extends ppixiv.view
         if(this.data_source == data_source)
             return;
 
+        // Remove listeners from the old data source.
         if(this.data_source != null)
-        {
             this.data_source.remove_update_listener(this.data_source_updated);
-
-            // Store our scroll position on the data source, so we can restore it if it's
-            // reactivated.  There's only one instance of thumbnail_view, so this is safe.
-            this.data_source.thumbnail_view_scroll_pos = this.container.scrollTop;
-        }
 
         // If the search mode is changing (eg. we're going from a list of illustrations to a list
         // of users), remove thumbs so we recreate them.  Otherwise, refresh_images will reuse them
@@ -580,13 +575,22 @@ ppixiv.view_search = class extends ppixiv.view
         return null;
     };
 
-
     set_active(active, data_source)
     {
-        if(this._active == active)
+        if(this._active == active && this.data_source == data_source)
             return;
 
+        let was_active = this._active;
         this._active = active;
+
+
+        // We're either becoming active or inactive, or our data source is being changed.
+        // Store our scroll position on the data source, so we can restore it if it's
+        // reactivated.  There's only one instance of thumbnail_view, so this is safe.
+        // Only do this if we were previously active, or we're hidden and scrollTop may
+        // be 0.
+        if(was_active && this.data_source)
+            this.data_source.thumbnail_view_scroll_pos = this.container.scrollTop;
 
         super.set_active(active, data_source);
         
