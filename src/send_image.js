@@ -7,10 +7,10 @@ ppixiv.SendImage = class
     static send_image_channel = new BroadcastChannel("ppixiv:send-image");
 
     // A UUID we use to identify ourself to other tabs:
-    static session_uuid = this.create_session_uuid();
-    static session_uuid_tiebreaker = Date.now()
+    static tab_id = this.create_tab_id();
+    static tab_id_tiebreaker = Date.now()
     
-    static create_session_uuid(recreate=false)
+    static create_tab_id(recreate=false)
     {
         // If we have a saved tab ID, use it.
         if(!recreate && sessionStorage.ppixivTabId)
@@ -19,7 +19,7 @@ ppixiv.SendImage = class
         // Make a new ID, and save it to the session.  This helps us keep the same ID
         // when we're reloaded.
         sessionStorage.ppixivTabId = helpers.create_uuid();
-        return sessionStorage.ppixivTabId;helpers.create_uuid();
+        return sessionStorage.ppixivTabId;
     }
 
     static known_tabs = {};
@@ -88,7 +88,7 @@ ppixiv.SendImage = class
 
         this.send_message({
             message: "send-image",
-            from: SendImage.session_uuid,
+            from: SendImage.tab_id,
             to: tab_id,
             illust_id: illust_id,
             page: page,
@@ -108,18 +108,18 @@ ppixiv.SendImage = class
             // can be used explicitly when we're displaying a tab thumbnail, but each tab
             // might have newer or older image info, and propagating them back and forth
             // could be confusing.
-            if(data.from == SendImage.session_uuid)
+            if(data.from == SendImage.tab_id)
             {
                 // The other tab has the same ID we do.  The only way this normally happens
                 // is if a tab is duplicated, which will duplicate its sessionStorage with it.
-                // If this happens, use session_uuid_tiebreaker to decide who wins.  The tab with
+                // If this happens, use tab_id_tiebreaker to decide who wins.  The tab with
                 // the higher value will recreate its tab ID.  This is set to the time when
                 // we're loaded, so this will usually cause new tabs to be the one to create
                 // a new ID.
-                if(SendImage.session_uuid_tiebreaker >= data.session_uuid_tiebreaker)
+                if(SendImage.tab_id_tiebreaker >= data.tab_id_tiebreaker)
                 {
                     console.log("Creating a new tab ID due to ID conflict");
-                    session_uuid = SendImage.create_session_uuid(true /* recreate */ );
+                    tab_id = SendImage.create_tab_id(true /* recreate */ );
                 }
                 else
                     console.log("Tab ID conflict (other tab will create a new ID)");
@@ -153,7 +153,7 @@ ppixiv.SendImage = class
                     return;
                 }
             }
-            else if(data.to != SendImage.session_uuid)
+            else if(data.to != SendImage.tab_id)
                 return;
 
             // Register the illust info from this image.  It can have thumbnail info, image
@@ -197,7 +197,7 @@ ppixiv.SendImage = class
                     return;
                 }
             }
-            else if(data.to != SendImage.session_uuid)
+            else if(data.to != SendImage.tab_id)
                 return;
             
             this.hide_preview_image();
@@ -229,7 +229,7 @@ ppixiv.SendImage = class
 
         let our_tab_info = {
             message: "tab-info",
-            session_uuid_tiebreaker: SendImage.session_uuid_tiebreaker,
+            tab_id_tiebreaker: SendImage.tab_id_tiebreaker,
             visible: !document.hidden,
             title: document.title,
             window_width: window.innerWidth,
@@ -252,7 +252,7 @@ ppixiv.SendImage = class
         this.send_message(our_tab_info);
 
         // Add us to our own known_tabs.
-        this.known_tabs[SendImage.session_uuid] = our_tab_info;
+        this.known_tabs[SendImage.tab_id] = our_tab_info;
     }
 
     // Allow adding extra data to tab info.  This lets us include things like the image
@@ -268,7 +268,7 @@ ppixiv.SendImage = class
     static send_message(data, send_to_self)
     {
         // Include the tab ID in all messages.
-        data.from = this.session_uuid;
+        data.from = this.tab_id;
         this.send_image_channel.postMessage(data);
 
         if(send_to_self)
@@ -522,7 +522,7 @@ ppixiv.send_image_widget = class extends ppixiv.illust_widget
             max_width = Math.max(max_width, info.window_width);
             max_height = Math.max(max_height, info.window_height);
 
-            if(tab_id != SendImage.session_uuid)
+            if(tab_id != SendImage.tab_id)
                 found_any = true;
         }
 
@@ -604,7 +604,7 @@ ppixiv.send_image_widget = class extends ppixiv.illust_widget
             entry.classList.add("tab-visible");
 
         // If this tab is our own window:
-        if(tab_id == SendImage.session_uuid)
+        if(tab_id == SendImage.tab_id)
             entry.classList.add("self");
 
         // Set the image.
@@ -638,11 +638,11 @@ ppixiv.send_image_widget = class extends ppixiv.illust_widget
         }
 
         // We don't need mouse event listeners for ourself.
-        if(tab_id == SendImage.session_uuid)
+        if(tab_id == SendImage.tab_id)
             return entry;
 
         entry.addEventListener("click", (e) => {
-            if(tab_id == SendImage.session_uuid)
+            if(tab_id == SendImage.tab_id)
                 return;            
 
             // On click, send the image for display, and close the dropdown.
