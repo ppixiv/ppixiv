@@ -343,6 +343,7 @@ ppixiv.SendImage = class
 
         // Listen to pointer movement during quick view.
         window.addEventListener("pointermove", this.quick_view_window_onpointermove);
+        window.addEventListener("contextmenu", this.quick_view_window_oncontextmenu, { capture: true });
     }
 
     static quick_view_stopped()
@@ -355,8 +356,15 @@ ppixiv.SendImage = class
 
         document.body.classList.remove("pause-thumbnail-animation");
         window.removeEventListener("pointermove", this.quick_view_window_onpointermove);
+        window.removeEventListener("contextmenu", this.quick_view_window_oncontextmenu, { capture: true });
 
         document.body.style.cursor = "";
+    }
+
+    static finalize_quick_view()
+    {
+        this.quick_view_stopped();
+        SendImage.send_image(this.previewing_image.illust_id, this.previewing_image.page, null, "display");
     }
 
     static quick_view_window_onmousedown = (e) =>
@@ -389,14 +397,9 @@ ppixiv.SendImage = class
             if(!this.previewing_image)
                 return;
 
-            this.quick_view_stopped();
-
-            SendImage.send_image(this.previewing_image.illust_id, this.previewing_image.page, null, "display");
-
-            // Don't prevent the mouseup event.  We do want the popup menu to appear, if only
-            // to handle preventing the default context menu from opening.
-            // e.preventDefault();
-            // e.stopImmediatePropagation();
+            this.finalize_quick_view();
+            e.preventDefault();
+            e.stopImmediatePropagation();
         }
     }
 
@@ -432,6 +435,17 @@ ppixiv.SendImage = class
 
         e.preventDefault();
         e.stopImmediatePropagation();
+    }
+
+    // Work around another wonderful bug: while pointer lock is active, we don't get pointerdown
+    // events for *other* mouse buttons.  That doesn't make much sense.  Work around it by
+    // assuming RMB will fire contextmenu.
+    static quick_view_window_oncontextmenu = (e) =>
+    {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+
+        this.finalize_quick_view();
     }
 
     // This is only registered while we're quick viewing, to send mouse movements to
