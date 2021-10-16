@@ -768,26 +768,8 @@ ppixiv.main_controller = class
         let illust_element = element.closest("[data-illust-id]");
         if(illust_element)
         {
-            // data-illust-id can contain a user ID.  This should be renamed.
-            let id = illust_element.dataset.illustId;
-            if(id != null)
-            {
-                let type = helpers.id_type(id);
-                let actual_id = helpers.actual_id(id);
-                console.log(id, type, actual_id);
-                switch(helpers.id_type(id))
-                {
-                case "illust":
-                    result.illust_id = parseInt(actual_id);
-                    result.page = parseInt(illust_element.dataset.pageIdx || "0");
-                    console.log("illust", result);
-                    break;
-                case "user":
-                    result.user_id = parseInt(actual_id);
-                    console.log("user", result);
-                    break;
-                }
-            }
+            result.illust_id = parseInt(illust_element.dataset.illustId);
+            result.page = parseInt(illust_element.dataset.pageIdx || "0");
         }
 
         let user_element = element.closest("[data-user-id]");

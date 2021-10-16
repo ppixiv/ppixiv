@@ -176,7 +176,7 @@ ppixiv.view_search = class extends ppixiv.view
     visible_thumbs_changed()
     {
         // Find the first thumb that's fully onscreen.
-        let first_thumb = this.container.querySelector(`.thumbnails > [data-illust_id][data-fully-on-screen]`);
+        let first_thumb = this.container.querySelector(`.thumbnails > [data-id][data-fully-on-screen]`);
         if(!first_thumb)
             return;
 
@@ -699,7 +699,7 @@ ppixiv.view_search = class extends ppixiv.view
             if(node == null)
                 return null;
 
-            let illust_id = node.dataset.illust_id;
+            let illust_id = node.dataset.id;
             let page = node.dataset.page;
             let index = illust_id + "/" + page;
             return images_to_add_index[index];
@@ -813,12 +813,12 @@ ppixiv.view_search = class extends ppixiv.view
         var elements = this.get_visible_thumbnails(false);
         for(var element of elements)
         {
-            if(element.dataset.illust_id != null)
+            if(element.dataset.id != null)
             {
                 // If this is an illustration, add it to wanted_illust_ids so we load its thumbnail
                 // info.  Don't do this if it's a user.
-                if(helpers.id_type(element.dataset.illust_id) == "illust")
-                    wanted_illust_ids.push(element.dataset.illust_id);
+                if(helpers.id_type(element.dataset.id) == "illust")
+                    wanted_illust_ids.push(element.dataset.id);
             }
         }
 
@@ -873,9 +873,9 @@ ppixiv.view_search = class extends ppixiv.view
             var nearby_illust_ids = [];
             for(var element of nearby_elements)
             {
-                if(element.dataset.illust_id == null)
+                if(element.dataset.id == null)
                     continue;
-                nearby_illust_ids.push(element.dataset.illust_id);
+                nearby_illust_ids.push(element.dataset.id);
             }
 
             // console.log("Wanted:", wanted_illust_ids.join(", "));
@@ -955,14 +955,14 @@ ppixiv.view_search = class extends ppixiv.view
         var illust_ids = [];
         for(var element of elements)
         {
-            if(element.dataset.illust_id == null)
+            if(element.dataset.id == null)
                 continue;
-            illust_ids.push(element.dataset.illust_id);
+            illust_ids.push(element.dataset.id);
         }        
 
         for(var element of elements)
         {
-            var illust_id = element.dataset.illust_id;
+            var illust_id = element.dataset.id;
             if(illust_id == null)
                 continue;
 
@@ -1131,7 +1131,7 @@ ppixiv.view_search = class extends ppixiv.view
     refresh_thumbnail(illust_id)
     {
         var ul = this.container.querySelector(".thumbnails");
-        var thumbnail_element = ul.querySelector("[data-illust_id=\"" + illust_id + "\"]");
+        var thumbnail_element = ul.querySelector("[data-id=\"" + illust_id + "\"]");
         if(thumbnail_element == null)
             return;
         this.refresh_bookmark_icon(thumbnail_element);
@@ -1144,7 +1144,7 @@ ppixiv.view_search = class extends ppixiv.view
         if(this.data_source && this.data_source.search_mode == "users")
             return;
 
-        var illust_id = thumbnail_element.dataset.illust_id;
+        var illust_id = thumbnail_element.dataset.id;
         if(illust_id == null)
             return;
 
@@ -1172,7 +1172,7 @@ ppixiv.view_search = class extends ppixiv.view
         if(this.container.offsetHeight == 0)
             return [];
 
-        return this.container.querySelectorAll(`.thumbnails > [data-illust_id][data-${extra? "farther-away":"nearby"}]`);
+        return this.container.querySelectorAll(`.thumbnails > [data-id][data-${extra? "farther-away":"nearby"}]`);
     }
 
     // Create a thumb placeholder.  This doesn't load the image yet.
@@ -1197,7 +1197,7 @@ ppixiv.view_search = class extends ppixiv.view
         entry.dataset.pending = true;
 
         if(illust_id != null)
-            entry.dataset.illust_id = illust_id;
+            entry.dataset.id = illust_id;
 
         entry.dataset.page = page;
         for(let observer of this.intersection_observers)
@@ -1215,7 +1215,7 @@ ppixiv.view_search = class extends ppixiv.view
     // after coming from an illustration.
     scroll_to_illust_id(illust_id)
     {
-        var thumb = this.container.querySelector("[data-illust_id='" + illust_id + "']");
+        var thumb = this.container.querySelector("[data-id='" + illust_id + "']");
         if(thumb == null)
             return;
 
@@ -1227,7 +1227,7 @@ ppixiv.view_search = class extends ppixiv.view
 
     pulse_thumbnail(illust_id)
     {
-        var thumb = this.container.querySelector("[data-illust_id='" + illust_id + "']");
+        var thumb = this.container.querySelector("[data-id='" + illust_id + "']");
         if(thumb == null)
             return;
 
