@@ -187,9 +187,9 @@ ppixiv.view_search = class extends ppixiv.view
 
         main_controller.singleton.temporarily_ignore_onpopstate = true;
         try {
-            let args = helpers.get_args(ppixiv.location);
+            let args = new helpers.args(ppixiv.location);
             this.data_source.set_start_page(args, first_thumb.dataset.page);
-            helpers.set_args(args, false, "viewing-page");
+            helpers.set_page_url(args.url, false, "viewing-page");
         } finally {
             main_controller.singleton.temporarily_ignore_onpopstate = false;
         }
@@ -907,10 +907,10 @@ ppixiv.view_search = class extends ppixiv.view
             return;
 
         // See if this link is for this data source, one page before the current start page.
-        let args = helpers.get_args(ppixiv.location);
+        let args = new helpers.args(ppixiv.location);
         let page = this.data_source.get_start_page(args);
         this.data_source.set_start_page(args, page-1);
-        let previous_page_url = helpers.get_url_from_args(args).toString();
+        let previous_page_url = args.url.toString();
         let clicked_url = new URL(e.target.href, ppixiv.location).toString();
 
         // console.log("Previous page:", previous_page_url);
@@ -1029,13 +1029,13 @@ ppixiv.view_search = class extends ppixiv.view
             {
                 // Set the link for the first page and previous page buttons.  Most of the time this is handled
                 // by our in-page click handler.
-                let args = helpers.get_args(ppixiv.location);
+                let args = new helpers.args(ppixiv.location);
                 let page = this.data_source.get_start_page(args);
                 this.data_source.set_start_page(args, page-1);
-                element.querySelector("a.load-previous-page-link").href = helpers.get_url_from_args(args);
+                element.querySelector("a.load-previous-page-link").href = args.url;
 
                 this.data_source.set_start_page(args, 1);
-                element.querySelector("a.load-first-page-link").href = helpers.get_url_from_args(args);
+                element.querySelector("a.load-first-page-link").href = args.url;
 
                 continue;
             }

@@ -251,7 +251,8 @@ class data_source
         // because the user clicks "load previous results", we'll reduce it.
         if(this.supports_start_page)
         {
-            let args = helpers.get_args(url);
+            let args = new helpers.args(url);
+            
             this.initial_page = this.get_start_page(args);
             console.log("Starting at page", this.initial_page);
         }
@@ -278,17 +279,17 @@ class data_source
     {
         // Make a copy of the URL.
         var url = new URL(url);
-        this.remove_ignored_url_parts(url);
+        url = this.remove_ignored_url_parts(url);
 
         // Sort query parameters.  We don't use multiple parameters with the same key.
         url.search = helpers.sort_query_parameters(url.searchParams).toString();
 
-        // Sort hash parameters.
-        var new_hash = helpers.sort_query_parameters(helpers.get_hash_args(url));
+        let args = new helpers.args(url);
 
-        helpers.set_hash_args(url, new_hash);        
-        
-        return url.toString();
+        // Sort hash parameters.
+        args.hash = helpers.sort_query_parameters(args.hash);
+
+        return args.url.toString();
     }
 
     // This is overridden by subclasses to remove parts of the URL that don't affect
@@ -298,28 +299,24 @@ class data_source
         // If p=1 is in the query, it's the page number, which doesn't affect the data source.
         url.searchParams.delete("p");
 
-        var hash_args = helpers.get_hash_args(url);
+        let args = new helpers.args(url);
 
         // The manga page doesn't affect the data source.
-        hash_args.delete("page");
+        args.hash.delete("page");
 
         // #view=thumbs controls which view is active.
-        hash_args.delete("view");
+        args.hash.delete("view");
 
         // illust_id in the hash is always just telling us which image within the current
         // data source to view.  data_source_current_illust is different and is handled in
         // the subclass.
-        hash_args.delete("illust_id");
+        args.hash.delete("illust_id");
 
-        // Any illust_id in the search or the hash doesn't require a new data source.
-        // bluh
-        // but the user underneath it does
-        
         // These are for quick view and don't affect the data source.
-        hash_args.delete("virtual");
-        hash_args.delete("quick-view");
+        args.hash.delete("virtual");
+        args.hash.delete("quick-view");
 
-        helpers.set_hash_args(url, hash_args);        
+        return args.url;
     }
 
     // startup() is called when the data source becomes active, and shutdown is called when
@@ -432,9 +429,9 @@ class data_source
         // If we have an explicit illust_id in the hash, use it.  Note that some pages (in
         // particular illustration pages) put this in the query, which is handled in the particular
         // data source.
-        var hash_args = helpers.get_hash_args(ppixiv.location);
-        if(hash_args.has("illust_id"))
-            return hash_args.get("illust_id");
+        let args = new helpers.args(ppixiv.location);
+        if(args.hash.has("illust_id"))
+            return args.hash.get("illust_id");
         
         return this.id_list.get_first_id();
     };
@@ -594,7 +591,7 @@ class data_source
         // back to page 1.
         url.searchParams.delete("p");
 
-        var hash_args = helpers.get_hash_args(url);
+        let args = new helpers.args(url);
         for(var key of Object.keys(fields))
         {
             var original_key = key;
@@ -605,7 +602,7 @@ class data_source
             if(hash)
                 key = key.substr(1);
 
-            var params = hash? hash_args:url.searchParams;
+            let params = hash? args.hash:args.query;
 
             // The value we're setting in the URL:
             var this_value = value;
@@ -630,7 +627,7 @@ class data_source
             else
                 params.delete(key);
         }
-        helpers.set_hash_args(url, hash_args);
+        url = args.url;
 
         helpers.set_class(link, "selected", button_is_selected);
 
@@ -860,8 +857,8 @@ ppixiv.data_sources.discovery_users = class extends data_source
     {
         super(url);
 
-        var hash_args = helpers.get_hash_args(this.url);
-        let user_id = hash_args.get("user_id");
+        let args = new helpers.args(this.url);
+        let user_id = args.hash.get("user_id");
         if(user_id != null)
         {
             this.showing_user_id = user_id;
@@ -1521,9 +1518,8 @@ ppixiv.data_sources.artist = class extends data_source
         // Update to refresh our page title, which uses user_info.
         this.call_update_listeners();
 
-        var query_args = this.url.searchParams;
-        var hash_args = helpers.get_hash_args(this.url);
-        var tag = query_args.get("tag") || "";
+        let args = new helpers.args(this.url);
+        var tag = args.query.get("tag") || "";
         if(tag == "")
         {
             // If we're not filtering by tag, use the profile/all request.  This returns all of
@@ -1544,7 +1540,7 @@ ppixiv.data_sources.artist = class extends data_source
         else
         {
             // We're filtering by tag.
-            var type = query_args.get("type");
+            var type = args.query.get("type");
 
             // For some reason, this API uses a random field in the URL for the type instead of a normal
             // query parameter.
@@ -2055,10 +2051,8 @@ class data_source_bookmarks_base extends data_source
             return "User's Bookmarks";
         }
 
-        var query_args = this.url.searchParams;
-        var hash_args = helpers.get_hash_args(this.url);
-
-        var private_bookmarks = query_args.get("rest") == "hide";
+        let args = new helpers.args(this.url);
+        let private_bookmarks = args.query.get("rest") == "hide";
         var displaying = this.viewing_all_bookmarks? "All Bookmarks":
             private_bookmarks? "Private Bookmarks":"Public Bookmarks";
 
@@ -2349,12 +2343,11 @@ ppixiv.data_sources.new_illust = class extends data_source
 
     async load_page_internal(page)
     {
-        var query_args = this.url.searchParams;
-        var hash_args = helpers.get_hash_args(this.url);
+        let args = new helpers.args(this.url);
 
         // new_illust.php or new_illust_r18.php:
         let r18 = this.url.pathname == "/new_illust_r18.php";
-        var type = query_args.get("type") || "illust";
+        var type = args.query.get("type") || "illust";
         
         // Everything Pixiv does has always been based on page numbers, but this one uses starting IDs.
         // That's a better way (avoids duplicates when moving forward in the list), but it's inconsistent

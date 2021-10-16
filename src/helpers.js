@@ -1148,18 +1148,6 @@ ppixiv.helpers = {
         return params;
     },
     
-    // Set the hash portion of url to args, as a ppixiv url.
-    //
-    // For example, given { a: "1", b: "2" }, set the hash to #ppixiv?a=1&b=2.
-    set_hash_args: function(url, hash_params)
-    {
-        url.hash = "#ppixiv";
-
-        var hash_string = hash_params.toString();
-        if(hash_string != "")
-            url.hash += "?" + hash_string;
-    },
-
     // Replace the given field in the URL path.
     //
     // If the path is "/a/b/c/d", "a" is 0 and "d" is 4.
@@ -1226,31 +1214,36 @@ ppixiv.helpers = {
         return (history.state && history.state.index != null)? history.state.index: 0;
     },
 
-    get_args: function(url)
+    args: class
     {
-        var url = new URL(url, ppixiv.location);
-        return {
-            path: url.pathname,
-            query: url.searchParams,
-            hash: helpers.get_hash_args(url),
+        constructor(url)
+        {
+            url = new URL(url, ppixiv.location);
+
+            this.path = url.pathname;
+            this.query = url.searchParams;
+            this.hash = helpers.get_hash_args(url);
+        }
+
+        get url()
+        {
+            let url = new URL(ppixiv.location);
+            url.pathname = this.path;
+            url.search = this.query.toString();
+
+            // Set the hash portion of url to args, as a ppixiv url.
+            //
+            // For example, given { a: "1", b: "2" }, set the hash to #ppixiv?a=1&b=2.
+            url.hash = "#ppixiv";
+
+            let hash_string = this.hash.toString();
+            if(hash_string != "")
+                url.hash += "?" + hash_string;
+
+            return url;
         }
     },
 
-    get_url_from_args(args)
-    {
-        var url = new URL(ppixiv.location);
-        url.pathname = args.path;
-        url.search = args.query.toString();
-        helpers.set_hash_args(url, args.hash);
-        return url;
-    },
-
-    set_args(args, add_to_history, cause)
-    {
-        var url = helpers.get_url_from_args(args);
-        helpers.set_page_url(url, add_to_history, cause);
-    },
-    
     // Set document.href, either adding or replacing the current history state.
     //
     // window.onpopstate will be synthesized if the URL is changing.
@@ -1266,15 +1259,11 @@ ppixiv.helpers = {
 
         // history.state.index is incremented whenever we navigate forwards, so we can
         // tell in onpopstate whether we're navigating forwards or backwards.
-        var current_history_index = helpers.current_history_state_index();
-
-        var new_history_index = current_history_index;
-        if(add_to_history)
-            new_history_index++;
-
-        var history_data = {
-            index: new_history_index
+        let history_data = {
         };
+        history_data.index = helpers.current_history_state_index();
+        if(add_to_history)
+            history_data.index++;
 
         // console.log("Changing state to", url.toString());
         if(add_to_history)
@@ -2105,8 +2094,8 @@ ppixiv.VirtualHistory = class
     url_is_virtual(url)
     {
         // Push a virtual URL by putting #virtual=1 in the hash.
-        let args = helpers.get_hash_args(url);
-        return args.get("virtual");
+        let args = new helpers.args(url);
+        return args.hash.get("virtual");
     }
 
     pushState(data, title, url)

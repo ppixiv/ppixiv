@@ -354,7 +354,7 @@ ppixiv.main_controller = class
         // very well), but it at least makes rewinding to the first page work.
         if(data_source == this.data_source && data_source.supports_start_page)
         {
-            let args = helpers.get_args(ppixiv.location);
+            let args = new helpers.args(ppixiv.location);
             let wanted_page = this.data_source.get_start_page(args);
 
             let lowest_page = data_source.id_list.get_lowest_loaded_page();
@@ -389,7 +389,7 @@ ppixiv.main_controller = class
 
         // Figure out which view to display.
         var new_view_name;
-        var args = helpers.get_args(ppixiv.location);
+        let args = new helpers.args(ppixiv.location);
         if(!args.hash.has("view"))
             new_view_name = data_source.default_view;
         else
@@ -503,7 +503,7 @@ ppixiv.main_controller = class
     {
         console.assert(illust_id != null, "Invalid illust_id", illust_id);
 
-        var args = helpers.get_args(ppixiv.location);
+        let args = new helpers.args(ppixiv.location);
 
         // If something else is navigating us in the middle of quick-view, such as changing
         // the page with the mousewheel, let SendImage handle it.  It'll treat it as a quick
@@ -539,7 +539,7 @@ ppixiv.main_controller = class
             args.hash.delete("quick-view");
         }
 
-        helpers.set_args(args, add_to_history, "navigation");
+        helpers.set_page_url(args.url, add_to_history, "navigation");
     }
 
     // Return the displayed view instance.
@@ -607,9 +607,9 @@ ppixiv.main_controller = class
             return;
 
         // Update the URL to mark whether thumbs are displayed.
-        let args = helpers.get_args(ppixiv.location);
+        let args = new helpers.args(ppixiv.location);
         this._set_active_view_in_url(args.hash, new_page);
-        helpers.set_args(args, true /* add_to_history */, "out");
+        helpers.set_page_url(args.url, true /* add_to_history */, "out");
     }
 
     // This captures clicks at the window level, allowing us to override them.
@@ -652,7 +652,7 @@ ppixiv.main_controller = class
         {
             let parts = url.pathname.split("/");
             let illust_id = parts[2];
-            var args = helpers.get_args(a.href);
+            let args = new helpers.args(a.href);
             var page = args.hash.has("page")? parseInt(args.hash.get("page"))-1: null;
             var view = args.hash.has("view")? args.hash.get("view"):"illust";
             this.show_illust(illust_id, {

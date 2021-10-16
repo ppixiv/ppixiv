@@ -89,12 +89,12 @@ ppixiv.page_manager = class
             // If show-all=0 isn't in the hash, and we're not viewing someone else's bookmarks,
             // we're viewing all bookmarks, so use data_sources.bookmarks_merged.  Otherwise,
             // use data_sources.bookmarks.
-            var hash_args = helpers.get_hash_args(url);
+            var args = new helpers.args(url);
             var user_id = helpers.get_path_part(url, 1);
             if(user_id == null)
                 user_id = window.global_data.user_id;
             var viewing_own_bookmarks = user_id == window.global_data.user_id;
-            var both_public_and_private = viewing_own_bookmarks && hash_args.get("show-all") != "0";
+            var both_public_and_private = viewing_own_bookmarks && args.hash.get("show-all") != "0";
             return both_public_and_private? data_sources.bookmarks_merged:data_sources.bookmarks;
 
         }
@@ -114,14 +114,13 @@ ppixiv.page_manager = class
             // If show-all=0 isn't in the hash, and we're not viewing someone else's bookmarks,
             // we're viewing all bookmarks, so use data_sources.bookmarks_merged.  Otherwise,
             // use data_sources.bookmarks.
-            var hash_args = helpers.get_hash_args(url);
-            var query_args = url.searchParams;
-            var user_id = query_args.get("id");
+            var args = new helpers.args(url);
+            var user_id = args.query.get("id");
             if(user_id == null)
                 user_id = window.global_data.user_id;
             var viewing_own_bookmarks = user_id == window.global_data.user_id;
             
-            var both_public_and_private = viewing_own_bookmarks && hash_args.get("show-all") != "0";
+            var both_public_and_private = viewing_own_bookmarks && args.hash.get("show-all") != "0";
             return both_public_and_private? data_sources.bookmarks_merged:data_sources.bookmarks;
         }
         else if(url.pathname == "/bookmark.php" && url.searchParams.get("type") == "user")
@@ -139,8 +138,8 @@ ppixiv.page_manager = class
         else if(url.pathname == "/bookmark_detail.php")
         {
             // If we've added "recommendations" to the hash info, this was a recommendations link.
-            var hash_args = helpers.get_hash_args(url);
-            if(hash_args.get("recommendations"))
+            let args = new helpers.args(url);
+            if(args.hash.get("recommendations"))
                 return data_sources.related_illusts;
             else
                 return data_sources.related_favorites;
