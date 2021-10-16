@@ -539,7 +539,7 @@ ppixiv.main_controller = class
             args.hash.delete("quick-view");
         }
 
-        helpers.set_page_url(args.url, add_to_history, "navigation");
+        helpers.set_page_url(args, add_to_history, "navigation");
     }
 
     // Return the displayed view instance.
@@ -609,7 +609,7 @@ ppixiv.main_controller = class
         // Update the URL to mark whether thumbs are displayed.
         let args = new helpers.args(ppixiv.location);
         this._set_active_view_in_url(args.hash, new_page);
-        helpers.set_page_url(args.url, true /* add_to_history */, "out");
+        helpers.set_page_url(args, true /* add_to_history */, "out");
     }
 
     // This captures clicks at the window level, allowing us to override them.

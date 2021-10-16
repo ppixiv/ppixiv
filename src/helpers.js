@@ -1251,10 +1251,15 @@ ppixiv.helpers = {
     // If cause is set, it'll be included in the popstate event as navigationCause.
     // This can be used in event listeners to determine what caused a navigation.
     // For browser forwards/back, this won't be present.
-    set_page_url(url, add_to_history, cause)
+    //
+    // args can be a helpers.args object, or a URL object.
+    set_page_url(args, add_to_history, cause)
     {
+        if(args instanceof URL)
+            args = new helpers.args(args);
+
         var old_url = ppixiv.location.toString();
-        if(url.toString() == old_url)
+        if(args.url.toString() == old_url)
             return;
 
         // history.state.index is incremented whenever we navigate forwards, so we can
@@ -1265,11 +1270,11 @@ ppixiv.helpers = {
         if(add_to_history)
             history_data.index++;
 
-        // console.log("Changing state to", url.toString());
+        // console.log("Changing state to", args.url.toString());
         if(add_to_history)
-            ppixiv.history.pushState(history_data, "", url.toString());
+            ppixiv.history.pushState(history_data, "", args.url.toString());
         else
-            ppixiv.history.replaceState(history_data, "", url.toString());
+            ppixiv.history.replaceState(history_data, "", args.url.toString());
 
         // Chrome is broken.  After replacing state for a while, it starts logging
         //

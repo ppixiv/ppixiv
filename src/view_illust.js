@@ -168,7 +168,7 @@ ppixiv.view_illust = class extends ppixiv.view
                 args.hash.delete("page");
 
             console.log("Updating URL with page number:", args.hash.toString());
-            helpers.set_page_url(args.url, false /* add_to_history */);
+            helpers.set_page_url(args, false /* add_to_history */);
         }
 
         // This is the first image we're displaying if we previously had no illust ID, or

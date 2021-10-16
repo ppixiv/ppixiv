@@ -189,7 +189,7 @@ ppixiv.view_search = class extends ppixiv.view
         try {
             let args = new helpers.args(ppixiv.location);
             this.data_source.set_start_page(args, first_thumb.dataset.page);
-            helpers.set_page_url(args.url, false, "viewing-page");
+            helpers.set_page_url(args, false, "viewing-page");
         } finally {
             main_controller.singleton.temporarily_ignore_onpopstate = false;
         }
