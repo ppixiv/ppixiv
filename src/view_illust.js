@@ -157,7 +157,7 @@ ppixiv.view_illust = class extends ppixiv.view
 
         // If we adjusted the page, update the URL.  Allow "page" to be 1 or not present for
         // page 1.
-        var args = new helpers.args(ppixiv.location);
+        var args = helpers.args.location;
         var wanted_page_arg = illust_data.pageCount > 1? (manga_page + 1).toString():1;
         let current_page_arg = args.hash.get("page") || "1";
         if(current_page_arg != wanted_page_arg)

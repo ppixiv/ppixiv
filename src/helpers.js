@@ -1223,6 +1223,22 @@ ppixiv.helpers = {
             this.path = url.pathname;
             this.query = url.searchParams;
             this.hash = helpers.get_hash_args(url);
+
+            // History state is only available when we come from the current history state,
+            // since URLs don't have state.
+            this.state = { };
+        }
+
+        // Return the args for the current page.
+        static get location()
+        {
+            let result = new this(ppixiv.location);
+
+            // Include history state as well.  Make a deep copy, so changing this doesn't
+            // modify history.state.
+            result.state = JSON.parse(JSON.stringify(history.state)) || { };
+
+            return result;
         }
 
         get url()
@@ -1259,13 +1275,20 @@ ppixiv.helpers = {
             args = new helpers.args(args);
 
         var old_url = ppixiv.location.toString();
-        if(args.url.toString() == old_url)
+
+        // If the state wouldn't change at all, don't set it, so we don't add junk to
+        // history if the same link is clicked repeatedly.  Comparing state via JSON
+        // is OK here since JS will maintain key order.
+        if(args.url.toString() == old_url && JSON.stringify(args.state) == JSON.stringify(history.state))
             return;
+
+        // Use the history state from args if it exists.
+        let history_data = {
+            ...args.state
+        };
 
         // history.state.index is incremented whenever we navigate forwards, so we can
         // tell in onpopstate whether we're navigating forwards or backwards.
-        let history_data = {
-        };
         history_data.index = helpers.current_history_state_index();
         if(add_to_history)
             history_data.index++;
@@ -2156,6 +2179,22 @@ ppixiv.VirtualHistory = class
         this.virtual_url = url;
     }
 
+    get state()
+    {
+        if(this.virtual)
+            return this.virtual_data;
+        else
+            return window.history.state;
+    }
+
+    set state(value)
+    {
+        if(this.virtual)
+            this.virtual_data = value;
+        else
+            window.history.state = value;
+    }
+    
     back()
     {
         // If we're backing out of a virtual URL, clear it to return to the real one.

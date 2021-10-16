@@ -503,7 +503,7 @@ ppixiv.main_controller = class
     {
         console.assert(illust_id != null, "Invalid illust_id", illust_id);
 
-        let args = new helpers.args(ppixiv.location);
+        let args = helpers.args.location;
 
         // If something else is navigating us in the middle of quick-view, such as changing
         // the page with the mousewheel, let SendImage handle it.  It'll treat it as a quick
@@ -607,7 +607,7 @@ ppixiv.main_controller = class
             return;
 
         // Update the URL to mark whether thumbs are displayed.
-        let args = new helpers.args(ppixiv.location);
+        let args = helpers.args.location;
         this._set_active_view_in_url(args.hash, new_page);
         helpers.set_page_url(args, true /* add_to_history */, "out");
     }
