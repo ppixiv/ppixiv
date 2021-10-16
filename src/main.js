@@ -252,11 +252,11 @@ ppixiv.main_controller = class
         document.documentElement.hidden = false;
 
         // Add binary resources as CSS styles.
-        helpers.add_style('body .noise-background { background-image: url("' + resources['resources/noise.png'] + '"); };');
-        helpers.add_style('body.light .noise-background { background-image: url("' + resources['resources/noise-light.png'] + '"); };');
+        helpers.add_style("noise-background", `body .noise-background { background-image: url("${resources['resources/noise.png']}"); };`);
+        helpers.add_style("light-noise-background", `body.light .noise-background { background-image: url("${resources['resources/noise-light.png']}"); };`);
         
         // Add the main CSS style.
-        helpers.add_style(resources['resources/main.css']);
+        helpers.add_style("main", resources['resources/main.css']);
        
         // Create the page from our HTML resource.
         document.body.insertAdjacentHTML("beforeend", resources['resources/main.html']);
@@ -367,7 +367,7 @@ ppixiv.main_controller = class
             }
         }
 
-        // If the data source is changing, set it.
+        // If the data source is changing, set it up.
         let data_source_changing = this.data_source != data_source;
         if(data_source_changing)
         {

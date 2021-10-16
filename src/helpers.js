@@ -484,12 +484,12 @@ ppixiv.helpers = {
         }, true);
     },
     
-    add_style: function(css)
+    add_style: function(name, css)
     {
-        var head = document.getElementsByTagName('head')[0];
-
         let style = helpers.create_style(css);
-        head.appendChild(style);
+        style.id = name;
+        document.querySelector("head").appendChild(style);
+        return style;
     },
 
     // Create a node from HTML.

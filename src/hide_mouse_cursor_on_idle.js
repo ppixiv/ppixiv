@@ -160,16 +160,14 @@ ppixiv.hide_mouse_cursor_on_idle = class
         // This is set as a separate style, so we can disable it selectively.  This allows us to
         // globally disable mouse hiding.  This used to be done by setting a class on body, but
         // that's slower and can cause animation hitches.
-        let style = `
+        let style = helpers.add_style("hide-cursor", `
             .hide-cursor {
                 cursor: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="), none !important;
             }
             .hide-cursor * { cursor: inherit !important; }
-        `;
+        `);
 
-        style = helpers.create_style(style);
         hide_mouse_cursor_on_idle.global_style = style;
-        document.head.appendChild(style);
     }
 
     static update_from_settings()
