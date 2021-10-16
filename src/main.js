@@ -517,6 +517,17 @@ ppixiv.main_controller = class
         else
             args.hash.set("page", page + 1);
 
+        if(preview)
+        {
+            args.hash.set("virtual", "1");
+            args.hash.set("preview", "1");
+        }
+        else
+        {
+            args.hash.delete("virtual");
+            args.hash.delete("preview");
+        }
+
         helpers.set_args(args, add_to_history, "navigation");
     }
 

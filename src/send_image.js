@@ -174,26 +174,16 @@ ppixiv.SendImage = class
                 image_data.singleton().add_illust_data(illust_data);
             }
             
-            let was_in_preview = ppixiv.history.virtual;
-            let do_preview = data.action == "preview";
-
             // Show the image.
-            let url = new URL("https://www.pixiv.net/en/artworks/" + data.info.illust_id);
-            let hash_args = new unsafeWindow.URLSearchParams();
-            if(do_preview)
-            {
-                hash_args.set("virtual", "1");
-                hash_args.set("preview", "1");
-            }
-            if(data.page != -1)
-                hash_args.set("page", data.page+1);
+            main_controller.singleton.show_illust(data.info.illust_id, {
+                page: data.page,
+                preview: data.action == "preview",
 
-            helpers.set_hash_args(url, hash_args);
-            
-            // When we first show a preview, add it to history.  If we show another image
-            // or finalize the previewed image while we're showing a preview, replace the
-            // preview history entry.
-            helpers.set_page_url(url, !was_in_preview, "sent-image");
+                // When we first show a preview, add it to history.  If we show another image
+                // or finalize the previewed image while we're showing a preview, replace the
+                // preview history entry.
+                add_to_history: !ppixiv.history.virtual,
+            });
         }
         else if(data.message == "hide-preview-image")
         {
@@ -215,10 +205,7 @@ ppixiv.SendImage = class
         {
             // Ignore this message if we're not displaying a quick view image.
             if(!ppixiv.history.virtual)
-            {
-                console.log("stop");
                 return;
-            }
             
             // The mouse moved in the tab that's sending quick view.  Broadcast an event
             // like pointermove.
