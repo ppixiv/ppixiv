@@ -98,33 +98,6 @@ ppixiv.page_manager = class
             return both_public_and_private? data_sources.bookmarks_merged:data_sources.bookmarks;
 
         }
-        else if(url.pathname == "/bookmark.php" && url.searchParams.get("type") == null)
-        {
-            // Note: This code is copied and pasted from the above.  There's no point in combining this
-            // code, it'll be removed soon once we're sure bookmark.php is rolled out to all users.
-            //
-            // Handle a special case: we're called by early_controller just to find out if
-            // the current page is supported or not.  This happens before window.global_data
-            // exists, so we can't check if we're viewing our own bookmarks or someone else's.
-            // In this case we don't need to, since the caller just wants to see if we return
-            // a data source or not.
-            if(window.global_data == null)
-                return data_sources.bookmarks;
-
-            // If show-all=0 isn't in the hash, and we're not viewing someone else's bookmarks,
-            // we're viewing all bookmarks, so use data_sources.bookmarks_merged.  Otherwise,
-            // use data_sources.bookmarks.
-            var args = new helpers.args(url);
-            var user_id = args.query.get("id");
-            if(user_id == null)
-                user_id = window.global_data.user_id;
-            var viewing_own_bookmarks = user_id == window.global_data.user_id;
-            
-            var both_public_and_private = viewing_own_bookmarks && args.hash.get("show-all") != "0";
-            return both_public_and_private? data_sources.bookmarks_merged:data_sources.bookmarks;
-        }
-        else if(url.pathname == "/bookmark.php" && url.searchParams.get("type") == "user")
-            return data_sources.follows;
         else if(url.pathname == "/new_illust.php" || url.pathname == "/new_illust_r18.php")
             return data_sources.new_illust;
         else if(url.pathname == "/bookmark_new_illust.php" || url.pathname == "/bookmark_new_illust_r18.php")
