@@ -260,8 +260,9 @@ ppixiv.view_illust = class extends ppixiv.view
         // Create the image viewer.
         var progress_bar = this.progress_bar.controller();
         if(illust_data.illustType == 2)
-            this.viewer = new viewer_ugoira(image_container, illust_data, this.seek_bar, {
+            this.viewer = new viewer_ugoira(image_container, illust_data, {
                 progress_bar: progress_bar,
+                seek_bar: this.seek_bar,
             });
         else
         {

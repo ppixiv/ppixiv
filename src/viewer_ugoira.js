@@ -2,7 +2,7 @@
 
 ppixiv.viewer_ugoira = class extends ppixiv.viewer
 {
-    constructor(container, illust_data, seek_bar, options)
+    constructor(container, illust_data, options)
     {
         super(container, illust_data);
         
@@ -16,7 +16,7 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
         this.container = container;
         this.options = options;
 
-        this.seek_bar = seek_bar;
+        this.seek_bar = options.seek_bar;
         this.seek_bar.set_current_time(0);
         this.seek_bar.set_callback(this.seek_callback);
 
