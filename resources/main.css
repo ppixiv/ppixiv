@@ -122,7 +122,7 @@ ul {
 }
 
 img.low-res-preview {
-    filter: brightness(80%);
+//    filter: brightness(80%);
 }
 
 [hidden] {
