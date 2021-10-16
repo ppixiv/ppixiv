@@ -499,11 +499,22 @@ ppixiv.main_controller = class
     // Show an illustration by ID.
     //
     // This actually just sets the history URL.  We'll do the rest of the work in popstate.
-    show_illust(illust_id, {page, add_to_history=false, view="illust", quick_view=false})
+    show_illust(illust_id, {page, add_to_history=false, view="illust", quick_view=false, source=""}={})
     {
         console.assert(illust_id != null, "Invalid illust_id", illust_id);
 
         var args = helpers.get_args(ppixiv.location);
+
+        // If something else is navigating us in the middle of quick-view, such as changing
+        // the page with the mousewheel, let SendImage handle it.  It'll treat it as a quick
+        // view and we'll end up back here with quick_view true.  Don't do this if this is
+        // already coming from quick view.
+        if(args.hash.has("quick-view") && !quick_view && source != "quick-view")
+        {
+            console.log("Illust change during quick view");
+            SendImage.illust_change_during_quick_view(illust_id, page);
+            return;
+        }
 
         // Update the URL to display this illust_id.  This stays on the same data source,
         // so displaying an illust won't cause a search to be made in the background or

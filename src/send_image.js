@@ -178,6 +178,7 @@ ppixiv.SendImage = class
             main_controller.singleton.show_illust(data.info.illust_id, {
                 page: data.page,
                 quick_view: data.action == "quick-view",
+                source: "quick-view",
 
                 // When we first show a preview, add it to history.  If we show another image
                 // or finalize the previewed image while we're showing a preview, replace the
@@ -279,6 +280,16 @@ ppixiv.SendImage = class
             data.self = true;
             this.send_image_channel.dispatchEvent(new MessageEvent("message", { data: data }));
         }
+    }
+
+    // This is called if something else changes the illust while we're in quick view.  Send it
+    // as a quick-view instead.
+    static illust_change_during_quick_view(illust_id, page)
+    {
+        // This should only happen while we're in quick view.
+        console.assert(ppixiv.history.virtual);
+
+        SendImage.send_image(illust_id, page, null, "quick-view");
     }
 
     // If we're currently showing a preview image sent from another tab, back out to
