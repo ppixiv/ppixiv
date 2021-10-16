@@ -349,6 +349,10 @@ ppixiv.SendImage = class
             this.previewing_image = { illust_id: illust_id, page: page };
             SendImage.send_image(illust_id, page, null, "quick-view");
 
+            // Pause thumbnail animations, so they don't keep playing while viewing an image
+            // in another tab.
+            document.body.classList.add("pause-thumbnail-animation");
+
             // Listen to pointer movement during quick view.
             window.addEventListener("pointermove", this.quick_view_window_onpointermove);
         }
@@ -359,6 +363,8 @@ ppixiv.SendImage = class
         {
             if(!this.previewing_image)
                 return;
+
+            document.body.classList.remove("pause-thumbnail-animation");
 
             SendImage.send_image(this.previewing_image.illust_id, this.previewing_image.page, null, "display");
 
@@ -377,10 +383,12 @@ ppixiv.SendImage = class
 
         if(!this.previewing_image)
             return;
-        this.previewing_image = false;
+        this.previewing_image = null;
         
         e.preventDefault();
         e.stopImmediatePropagation();
+
+        document.body.classList.remove("pause-thumbnail-animation");
 
         window.removeEventListener("pointermove", this.quick_view_window_onpointermove);
 
