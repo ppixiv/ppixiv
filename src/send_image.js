@@ -222,9 +222,9 @@ ppixiv.SendImage = class
 
     static broadcast_tab_info()
     {
-        let view = main_controller.singleton.displayed_view;
-        let illust_id = view? view.displayed_illust_id:null;
-        let page = view? view.displayed_illust_page:null;
+        let screen = main_controller.singleton.displayed_screen;
+        let illust_id = screen? screen.displayed_illust_id:null;
+        let page = screen? screen.displayed_illust_page:null;
         let thumbnail_info = illust_id? thumbnail_data.singleton().get_one_thumbnail_info(illust_id):null;
         let illust_data = illust_id? image_data.singleton().get_image_info_sync(illust_id):null;
 

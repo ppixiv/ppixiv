@@ -402,7 +402,7 @@ class data_source
 
         // Reduce the start page, which will update the "load more results" button if any.  It's important
         // to do this after the await above.  If we do it before, it'll update the button before we load
-        // and cause the button to update before the thumbs.  view_search.refresh_images won't be able
+        // and cause the button to update before the thumbs.  screen_search.refresh_images won't be able
         // to optimize that and it'll cause uglier refreshes.
         if(this.supports_start_page && page < this.initial_page)
             this.initial_page = page;
@@ -483,8 +483,8 @@ class data_source
         return 10;
     };
 
-    // Return the view that should be displayed by default, if no "view" field is in the URL.
-    get default_view()
+    // Return the screen that should be displayed by default, if no "view" field is in the URL.
+    get default_screen()
     {
         return "search";
     }
@@ -1818,7 +1818,7 @@ ppixiv.data_sources.current_illust = class extends data_source
     }
 
     // Show the illustration by default.
-    get default_view()
+    get default_screen()
     {
         return "illust";
     }

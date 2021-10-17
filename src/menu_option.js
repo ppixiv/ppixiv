@@ -5,7 +5,7 @@ ppixiv.menu_option = class
 {
     static add_settings(container)
     {
-        if(container.closest(".view-manga-container"))
+        if(container.closest(".screen-manga-container"))
         {
             new thumbnail_size_slider_widget(container, {
                 label: "Thumbnail size",
@@ -15,7 +15,7 @@ ppixiv.menu_option = class
             });
         }
 
-        if(container.closest(".view-search-container"))
+        if(container.closest(".screen-search-container"))
         {
             new thumbnail_size_slider_widget(container, {
                 label: "Thumbnail size",
@@ -240,7 +240,7 @@ ppixiv.thumbnail_size_slider_widget = class extends menu_option_slider
         this.onwheel = this.onwheel.bind(this);
         this.onkeydown = this.onkeydown.bind(this);
 
-        var view = this.container.closest(".view");
+        var view = this.container.closest(".screen");
         view.addEventListener("wheel", this.onwheel, { passive: false });
         view.addEventListener("keydown", this.onkeydown);
 

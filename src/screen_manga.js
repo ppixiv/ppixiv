@@ -4,7 +4,7 @@
 //
 // This is similar to the main search view.  It doesn't share code, since it
 // works differently enough that it would complicate things too much.
-ppixiv.view_manga = class extends ppixiv.view
+ppixiv.screen_manga = class extends ppixiv.screen
 {
     constructor(container)
     {
@@ -97,7 +97,7 @@ ppixiv.view_manga = class extends ppixiv.view
         this.illust_info = null;
         this.ui.illust_id = illust_id;
 
-        // Refresh even if illust_id is null, so we quickly clear the view.
+        // Refresh even if illust_id is null, so we quickly clear the screen.
         this.refresh_ui();
         if(this.illust_id == null)
             return;
@@ -113,7 +113,7 @@ ppixiv.view_manga = class extends ppixiv.view
         if(this.illust_id == null)
             return;
         
-        console.log("Loading manga view for:", this.illust_id);
+        console.log("Loading manga screen for:", this.illust_id);
 
         // Load image info.
         var illust_info = await image_data.singleton().get_image_info(this.illust_id);
@@ -161,7 +161,7 @@ ppixiv.view_manga = class extends ppixiv.view
         let thumbnail_size = settings.get("manga-thumbnail-size", 4);
         thumbnail_size = thumbnail_size_slider_widget.thumbnail_size_for_value(thumbnail_size);
 
-        this.thumbnail_dimensions_style.textContent = helpers.make_thumbnail_sizing_style(ul, ".view-manga-container", {
+        this.thumbnail_dimensions_style.textContent = helpers.make_thumbnail_sizing_style(ul, ".screen-manga-container", {
             wide: true,
             size: thumbnail_size,
             ratio: ratio,

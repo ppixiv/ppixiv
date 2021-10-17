@@ -1,6 +1,6 @@
 "use strict";
 
-// This handles high-level navigation and controlling the different views.
+// This handles high-level navigation and controlling the different screens.
 ppixiv.main_controller = class
 {
     // This is called by bootstrap at startup.  Just create ourself.
@@ -155,7 +155,7 @@ ppixiv.main_controller = class
         console.log("ppixiv controller setup");
 
         this.onkeydown = this.onkeydown.bind(this);
-        this.redirect_event_to_view = this.redirect_event_to_view.bind(this);
+        this.redirect_event_to_screen = this.redirect_event_to_screen.bind(this);
         this.window_onclick_capture = this.window_onclick_capture.bind(this);
         this.window_onpopstate = this.window_onpopstate.bind(this);
 
@@ -205,13 +205,13 @@ ppixiv.main_controller = class
         window.addEventListener("click", this.window_onclick_capture);
         window.addEventListener("popstate", this.window_onpopstate);
 
-        window.addEventListener("keyup", this.redirect_event_to_view, true);
-        window.addEventListener("keydown", this.redirect_event_to_view, true);
-        window.addEventListener("keypress", this.redirect_event_to_view, true);
+        window.addEventListener("keyup", this.redirect_event_to_screen, true);
+        window.addEventListener("keydown", this.redirect_event_to_screen, true);
+        window.addEventListener("keypress", this.redirect_event_to_screen, true);
 
         window.addEventListener("keydown", this.onkeydown);
 
-        this.current_view_name = null;
+        this.current_screen_name = null;
         this.current_history_index = helpers.current_history_state_index();
 
         // If the URL hash doesn't start with #ppixiv, the page was loaded with the base Pixiv
@@ -277,21 +277,17 @@ ppixiv.main_controller = class
         // Create the main progress bar.
         this.progress_bar = new progress_bar(this.container.querySelector(".loading-progress-bar"));
         
-        // Create the thumbnail view handler.
-        this.thumbnail_view = new view_search(this.container.querySelector(".view-search-container"));
-
-        // Create the manga page viewer.
-        this.manga_view = new view_manga(this.container.querySelector(".view-manga-container"));
-        
-        // Create the illustration viewer.
-        this.illust_view = new view_illust(this.container.querySelector(".view-illust-container"));
+        // Create the screens.
+        this.screen_search = new screen_search(this.container.querySelector(".screen-search-container"));
+        this.screen_illust = new screen_illust(this.container.querySelector(".screen-illust-container"));
+        this.screen_manga = new screen_manga(this.container.querySelector(".screen-manga-container"));
 
         SendImage.init();
 
-        this.views = {
-            search: this.thumbnail_view,
-            illust: this.illust_view,
-            manga: this.manga_view,
+        this.screens = {
+            search: this.screen_search,
+            illust: this.screen_illust,
+            manga: this.screen_manga,
         };
 
         // Create the data source for this page.
@@ -336,9 +332,9 @@ ppixiv.main_controller = class
     async set_current_data_source(html, cause)
     {
         // Remember what we were displaying before we start changing things.
-        var old_view = this.views[this.current_view_name];
-        var old_illust_id = old_view? old_view.displayed_illust_id:null;
-        var old_illust_page = old_view? old_view.displayed_illust_page:null;
+        var old_screen = this.screens[this.current_screen_name];
+        var old_illust_id = old_screen? old_screen.displayed_illust_id:null;
+        var old_illust_page = old_screen? old_screen.displayed_illust_page:null;
 
         // Get the current data source.  If we've already created it, this will just return
         // the same object and not create a new one.
@@ -386,60 +382,60 @@ ppixiv.main_controller = class
                 this.data_source.startup();
         }
 
-        // Figure out which view to display.
-        var new_view_name;
+        // Figure out which screen to display.
+        var new_screen_name;
         let args = helpers.args.location;
         if(!args.hash.has("view"))
-            new_view_name = data_source.default_view;
+            new_screen_name = data_source.default_screen;
         else
-            new_view_name = args.hash.get("view");
+            new_screen_name = args.hash.get("view");
 
         var illust_id = data_source.get_current_illust_id();
         var manga_page = args.hash.has("page")? parseInt(args.hash.get("page"))-1:0;
 
         // If we're on search, we don't care what image is current.  Clear illust_id so we
         // tell context_menu that we're not viewing anything, so it disables bookmarking.
-        if(new_view_name == "search")
+        if(new_screen_name == "search")
             illust_id = null;
 
-        console.log("Loading data source.  View:", new_view_name, "Cause:", cause, "URL:", ppixiv.location.href);
+        console.log("Loading data source.  Screen:", new_screen_name, "Cause:", cause, "URL:", ppixiv.location.href);
         if(illust_id != null)
             console.log("  Show image", illust_id, "page", manga_page);
 
-        // Mark the current view.  Other code can watch for this to tell which view is
+        // Mark the current screen.  Other code can watch for this to tell which view is
         // active.
-        document.body.dataset.currentView = new_view_name;
+        document.body.dataset.currentView = new_screen_name;
 
-        var new_view = this.views[new_view_name];
+        let new_screen = this.screens[new_screen_name];
 
         this.context_menu.illust_id = illust_id;
         
-        this.current_view_name = new_view_name;
+        this.current_screen_name = new_screen_name;
 
-        // If we're changing between views, update the active view.
-        var view_changing = new_view != old_view;
+        // If we're changing between screens, update the active screen.
+        let screen_changing = new_screen != old_screen;
 
-        // Make sure we deactivate the old view before activating the new one.
-        if(old_view != null && old_view != new_view)
-            old_view.set_active(false, { });
+        // Make sure we deactivate the old screen before activating the new one.
+        if(old_screen != null && old_screen != new_screen)
+            old_screen.set_active(false, { });
 
-        if(new_view != null)
+        if(new_screen != null)
         {
-            new_view.set_active(true, {
+            new_screen.set_active(true, {
                 data_source: data_source,
                 illust_id: illust_id,
                 page: manga_page,
             });
         }
 
-        // Dismiss any message when toggling between views.
-        if(view_changing)
+        // Dismiss any message when toggling between screens.
+        if(screen_changing)
             message_widget.singleton.hide();
 
         // If we're enabling the thumbnail, pulse the image that was just being viewed (or
         // loading to be viewed), to make it easier to find your place.
-        if(new_view_name == "search" && old_illust_id != null)
-            this.thumbnail_view.pulse_thumbnail(old_illust_id);
+        if(new_screen_name == "search" && old_illust_id != null)
+            this.screen_search.pulse_thumbnail(old_illust_id);
         
         // Are we navigating forwards or back?
         var new_history_index = helpers.current_history_state_index();
@@ -459,30 +455,30 @@ ppixiv.main_controller = class
             // scroll to the top.  If this data source exists previously in history, we don't want to
             // restore the scroll position from back then.
             console.log("Scroll to top for new search");
-            new_view.scroll_to_top();
+            new_screen.scroll_to_top();
         }
         else if(cause == "leaving-virtual")
         {
             // We're backing out of a virtual URL used for quick view.  Don't change the scroll position.
-            new_view.restore_scroll_position();
+            new_screen.restore_scroll_position();
         }
         else if(navigating_forwards)
         {
             // On browser history forwards, try to restore the scroll position.
             console.log("Restore scroll position for forwards navigation");
-            new_view.restore_scroll_position();
+            new_screen.restore_scroll_position();
         }
-        else if(view_changing && old_illust_id != null)
+        else if(screen_changing && old_illust_id != null)
         {
             // If we're navigating backwards or toggling, and we're switching from the image UI to thumbnails,
-            // try to scroll the thumbnail view to the image that was displayed.  Otherwise, tell
-            // the thumbnail view to restore any scroll position saved in the data source.
+            // try to scroll the search screen to the image that was displayed.  Otherwise, tell
+            // it to restore any scroll position saved in the data source.
             console.log("Scroll to", old_illust_id, old_illust_page);
-            new_view.scroll_to_illust_id(old_illust_id, old_illust_page);
+            new_screen.scroll_to_illust_id(old_illust_id, old_illust_page);
         }
         else
         {
-            new_view.restore_scroll_position();
+            new_screen.restore_scroll_position();
         }
     }
 
@@ -501,7 +497,7 @@ ppixiv.main_controller = class
     // Show an illustration by ID.
     //
     // This actually just sets the history URL.  We'll do the rest of the work in popstate.
-    show_illust(illust_id, {page, add_to_history=false, view="illust", quick_view=false, source=""}={})
+    show_illust(illust_id, {page, add_to_history=false, screen="illust", quick_view=false, source=""}={})
     {
         console.assert(illust_id != null, "Invalid illust_id", illust_id);
 
@@ -521,7 +517,7 @@ ppixiv.main_controller = class
         // Update the URL to display this illust_id.  This stays on the same data source,
         // so displaying an illust won't cause a search to be made in the background or
         // have other side-effects.
-        this._set_active_view_in_url(args.hash, view);
+        this._set_active_screen_in_url(args.hash, screen);
         this.data_source.set_current_illust_id(illust_id, args);
 
         // Remove any leftover page from the current illust.  We'll load the default.
@@ -544,22 +540,22 @@ ppixiv.main_controller = class
         helpers.set_page_url(args, add_to_history, "navigation");
     }
 
-    // Return the displayed view instance.
-    get displayed_view()
+    // Return the displayed screen instance.
+    get displayed_screen()
     {
-        for(var view_name in this.views)
+        for(let screen_name in this.screens)
         {
-            var view = this.views[view_name];
-            if(view.active)
-                return view;
+            var screen = this.screens[screen_name];
+            if(screen.active)
+                return screen;
         }        
 
         return null;
     }
 
-    _set_active_view_in_url(hash_args, view)
+    _set_active_screen_in_url(hash_args, screen)
     {
-        hash_args.set("view", view);
+        hash_args.set("view", screen);
     }
 
     // Navigate out.
@@ -574,19 +570,19 @@ ppixiv.main_controller = class
     _get_navigate_out_target()
     {
         var new_page = null;
-        var view = this.displayed_view;
+        let screen = this.displayed_screen;
 
-        // This gets called by the popup menu when it's created before we have any view.
-        if(view == null)
+        // This gets called by the popup menu when it's created before we have a screen.
+        if(screen == null)
             return [null, null];
 
-        if(view == this.views.manga)
+        if(screen == this.screens.manga)
         {
             return ["search", "search"];
         }
-        else if(view == this.views.illust)
+        else if(screen == this.screens.illust)
         {
-            var page_count = view.current_illust_data != null? view.current_illust_data.pageCount:1;
+            var page_count = screen.current_illust_data != null? screen.current_illust_data.pageCount:1;
             if(page_count > 1)
                 return ["manga", "page list"];
             else
@@ -610,13 +606,13 @@ ppixiv.main_controller = class
 
         // Update the URL to mark whether thumbs are displayed.
         let args = helpers.args.location;
-        this._set_active_view_in_url(args.hash, new_page);
+        this._set_active_screen_in_url(args.hash, new_page);
         helpers.set_page_url(args, true /* add_to_history */, "out");
     }
 
     // This captures clicks at the window level, allowing us to override them.
     //
-    // When the user left clicks on a link that also goes into one of our views,
+    // When the user left clicks on a link that also goes into one of our screens,
     // rather than loading a new page, we just set up a new data source, so we
     // don't have to do a full navigation.
     //
@@ -656,9 +652,9 @@ ppixiv.main_controller = class
             let illust_id = parts[2];
             let args = new helpers.args(a.href);
             var page = args.hash.has("page")? parseInt(args.hash.get("page"))-1: null;
-            var view = args.hash.has("view")? args.hash.get("view"):"illust";
+            let screen = args.hash.has("view")? args.hash.get("view"):"illust";
             this.show_illust(illust_id, {
-                view: view,
+                screen: screen,
                 page: page,
                 add_to_history: true
             });
@@ -702,27 +698,27 @@ ppixiv.main_controller = class
         helpers.set_class(document.body, "hide-r18g", !window.global_data.include_r18g);
     };
 
-    // Redirect keyboard events that didn't go into the active view.
-    redirect_event_to_view(e)
+    // Redirect keyboard events that didn't go into the active screen.
+    redirect_event_to_screen(e)
     {
-        var view = this.displayed_view;
-        if(view == null)
+        let screen = this.displayed_screen;
+        if(screen == null)
             return;
 
         // If a popup is open, leave inputs alone.
         if(document.body.dataset.popupOpen)
             return;
 
-        // If the keyboard input didn't go to an element inside the view, redirect
-        // it to the view's container.
+        // If the keyboard input didn't go to an element inside the screen, redirect
+        // it to the screen's container.
         var target = e.target;
-        // If the event is going to an element inside the view already, just let it continue.
-        if(helpers.is_above(view.container, e.target))
+        // If the event is going to an element inside the screen already, just let it continue.
+        if(helpers.is_above(screen.container, e.target))
             return;
 
-        // Clone the event and redispatch it to the view's container.
+        // Clone the event and redispatch it to the screen's container.
         var e2 = new e.constructor(e.type, e);
-        if(!view.container.dispatchEvent(e2))
+        if(!screen.container.dispatchEvent(e2))
         {
             e.preventDefault();
             e.stopImmediatePropagation();
@@ -732,9 +728,9 @@ ppixiv.main_controller = class
 
     onkeydown(e)
     {
-        // Ignore keypresses if we haven't set up the view yet.
-        var view = this.displayed_view;
-        if(view == null)
+        // Ignore keypresses if we haven't set up the screen yet.
+        let screen = this.displayed_screen;
+        if(screen == null)
             return;
 
         // If a popup is open, leave inputs alone and don't process hotkeys.
@@ -751,12 +747,12 @@ ppixiv.main_controller = class
             return;
         }
        
-        // Let the view handle the input.
-        view.handle_onkeydown(e);
+        // Let the screen handle the input.
+        screen.handle_onkeydown(e);
     }
 
     // Return the illust_id and page or user_id of the image under element.  This can
-    // be an image in the search view, or a page in the manga view.
+    // be an image in the search screen, or a page in the manga screen.
     //
     // If element is an illustration and also has the user ID attached, both the user ID
     // and illust ID will be returned.

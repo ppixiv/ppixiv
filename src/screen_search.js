@@ -1,7 +1,7 @@
 "use strict";
 
 // The search UI.
-ppixiv.view_search = class extends ppixiv.view
+ppixiv.screen_search = class extends ppixiv.screen
 {
     constructor(container)
     {
@@ -781,7 +781,7 @@ ppixiv.view_search = class extends ppixiv.view
         let thumbnail_size = settings.get("thumbnail-size", 4);
         thumbnail_size = thumbnail_size_slider_widget.thumbnail_size_for_value(thumbnail_size);
 
-        this.thumbnail_dimensions_style.textContent = helpers.make_thumbnail_sizing_style(ul, ".view-search-container", {
+        this.thumbnail_dimensions_style.textContent = helpers.make_thumbnail_sizing_style(ul, ".screen-search-container", {
             wide: true,
             size: thumbnail_size,
             max_columns: 5,

@@ -1,7 +1,7 @@
 "use strict";
 
 // The main UI.  This handles creating the viewers and the global UI.
-ppixiv.view_illust = class extends ppixiv.view
+ppixiv.screen_illust = class extends ppixiv.screen
 {
     constructor(container)
     {
