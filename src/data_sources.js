@@ -2147,7 +2147,7 @@ class data_source_bookmarks_base extends data_source
             a.innerText = tag_name;
 
             // Show the bookmark count in the popup.
-            if(tag != "All")
+            if(tag_count != null)
             {
                 a.classList.add("popup");
                 a.dataset.popup = tag_count + (tag_count == 1? " bookmark":" bookmarks");
