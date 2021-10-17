@@ -80,11 +80,6 @@ ppixiv.SendImage = class
         // do a lookup.
         let thumbnail_info = thumbnail_data.singleton().get_one_thumbnail_info(illust_id);
         let illust_data = image_data.singleton().get_image_info_sync(illust_id);
-        let info = {
-            illust_id: illust_id,
-            thumbnail_info: thumbnail_info,
-            illust_data: illust_data,
-        };
 
         this.send_message({
             message: "send-image",
@@ -92,8 +87,9 @@ ppixiv.SendImage = class
             to: tab_id,
             illust_id: illust_id,
             page: page,
-            info: info,
             action: action, // "quick-view" or "display"
+            thumbnail_info: thumbnail_info,
+            illust_data: illust_data,
         }, true);
     }
 
@@ -156,13 +152,12 @@ ppixiv.SendImage = class
             else if(data.to != SendImage.tab_id)
                 return;
 
-            // Register the illust info from this image.  It can have thumbnail info, image
-            // info or both, depending on what the sending page had.
-            let thumbnail_info = data.info.thumbnail_info;
+            // If this message has illust info or thumbnail info, register it.
+            let thumbnail_info = data.thumbnail_info;
             if(thumbnail_info != null)
                 thumbnail_data.singleton().loaded_thumbnail_info([thumbnail_info], "normal");
 
-            let illust_data = data.info.illust_data;
+            let illust_data = data.illust_data;
             if(illust_data != null)
             {
                 // If it also has user info, add that too.  Do this before registering illust data,
@@ -173,9 +168,31 @@ ppixiv.SendImage = class
 
                 image_data.singleton().add_illust_data(illust_data);
             }
-            
+
+            // To finalize, just remove preview and quick-view from the URL to turn the current
+            // preview into a real navigation.  This is slightly different from sending "display"
+            // with the illust ID, since it handles navigation during quick view.
+            if(data.action == "finalize")
+            {
+                let args = ppixiv.helpers.args.location;
+                args.hash.delete("virtual");
+                args.hash.delete("quick-view");
+                ppixiv.helpers.set_page_url(args, false, "navigation");
+                return;
+            }
+
+            if(data.action == "cancel")
+            {
+                this.hide_preview_image();
+                return;
+            }
+
+            // Otherwise, we're displaying an image.  quick-view displays in quick-view+virtual
+            // mode, display just navigates to the image normally.
+            console.assert(data.action == "quick-view" || data.action == "display");
+
             // Show the image.
-            main_controller.singleton.show_illust(data.info.illust_id, {
+            main_controller.singleton.show_illust(data.illust_id, {
                 page: data.page,
                 quick_view: data.action == "quick-view",
                 source: "quick-view",
@@ -185,22 +202,6 @@ ppixiv.SendImage = class
                 // preview history entry.
                 add_to_history: !ppixiv.history.virtual,
             });
-        }
-        else if(data.message == "hide-preview-image")
-        {
-            // This is the same as send-image.
-            if(data.to == null)
-            {
-                if(settings.get("no_receive_quick_view"))
-                {
-                    console.log("Not receiving quick view");
-                    return;
-                }
-            }
-            else if(data.to != SendImage.tab_id)
-                return;
-            
-            this.hide_preview_image();
         }
         else if(data.message == "preview-mouse-movement")
         {
@@ -364,7 +365,8 @@ ppixiv.SendImage = class
     static finalize_quick_view()
     {
         this.quick_view_stopped();
-        SendImage.send_image(this.previewing_image.illust_id, this.previewing_image.page, null, "display");
+
+        SendImage.send_message({ message: "send-image", action: "finalize", to: null }, true);
     }
 
     static quick_view_window_onmousedown = (e) =>
@@ -384,7 +386,7 @@ ppixiv.SendImage = class
                 return;
 
             // Quick view this image.
-            this.previewing_image = { illust_id: illust_id, page: page };
+            this.previewing_image = true;
             SendImage.send_image(illust_id, page, null, "quick-view");
 
             this.quick_view_started(e.pointerId);
@@ -411,14 +413,14 @@ ppixiv.SendImage = class
 
         if(!this.previewing_image)
             return;
-        this.previewing_image = null;
+        this.previewing_image = false;
         
         e.preventDefault();
         e.stopImmediatePropagation();
 
         this.quick_view_stopped();
 
-        SendImage.send_message({ message: "hide-preview-image", to: null }, true);
+        SendImage.send_message({ message: "send-image", action: "cancel", to: null }, true);
     }
 
     static quick_view_window_onclick = (e) =>
@@ -520,7 +522,7 @@ ppixiv.send_image_widget = class extends ppixiv.illust_widget
             return;
 
         // Stop previewing the tab.
-        SendImage.send_message({ message: "hide-preview-image", to: this.previewing_on_tab }, true);
+        SendImage.send_message({ message: "send-image", action: "cancel", to: this.previewing_on_tab }, true);
 
         this.previewing_on_tab = null;
     }
