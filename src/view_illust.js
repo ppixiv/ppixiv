@@ -563,7 +563,7 @@ ppixiv.view_illust = class extends ppixiv.view
 
             // Ask the data source to load it.
             var pending_navigation = this.pending_navigation = new Object();
-            let new_page_loaded = await this.data_source.load_page(next_page);
+            let new_page_loaded = await this.data_source.load_page(next_page, { cause: "illust navigation" });
 
             // If this.pending_navigation is no longer the same as pending_navigation, we navigated since
             // we requested this load and this navigation is stale, so stop.

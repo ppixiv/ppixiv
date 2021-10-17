@@ -850,10 +850,9 @@ ppixiv.view_search = class extends ppixiv.view
 
         if(load_page != null)
         {
-            console.log("Load page", load_page, "for thumbnails");
             this.container.querySelector(".no-results").hidden = true;
 
-            var result = await this.data_source.load_page(load_page);
+            var result = await this.data_source.load_page(load_page, { cause: "thumbnails" });
 
             // If this page didn't load, it probably means we've reached the end, so stop trying
             // to load more pages.
@@ -932,7 +931,7 @@ ppixiv.view_search = class extends ppixiv.view
         e.stopImmediatePropagation();
 
         console.log("Loading previous page:", page-1);
-        await this.data_source.load_page(page-1);
+        await this.data_source.load_page(page-1, { cause: "previous page" });
     }
 
     update_from_settings()

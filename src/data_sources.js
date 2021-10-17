@@ -336,13 +336,12 @@ class data_source
     //
     // If we synchronously know that the page doesn't exist, return false and don't
     // call callback.  Otherwise, return true.
-    load_page(page)
+    load_page(page, { cause }={})
     {
         var result = this.loading_pages[page];
         if(result == null)
         {
-            // console.log("started loading page", page);
-            var result = this._load_page_async(page);
+            var result = this._load_page_async(page, cause);
             this.loading_pages[page] = result;
             result.finally(() => {
                 // console.log("finished loading page", page);
@@ -373,7 +372,7 @@ class data_source
         return false;
     }
 
-    async _load_page_async(page)
+    async _load_page_async(page, cause)
     {
         // Check if we're trying to load backwards too far.
         if(page < 1)
@@ -386,10 +385,7 @@ class data_source
         // was empty), don't try to load this one.  This prevents us from spamming empty page
         // requests.
         if(this.first_empty_page != -1 && page >= this.first_empty_page)
-        {
-            console.info("No pages after", this.first_empty_page);
             return false;
-        }
 
         // If the page is already loaded, stop.
         if(this.id_list.is_page_loaded(page))
@@ -399,6 +395,8 @@ class data_source
         if(!this.load_page_available(page))
             return false;
         
+        console.log("Load page", page, "for:", cause);
+
         // Start the actual load.
         var result = await this.load_page_internal(page);
 
@@ -1036,7 +1034,7 @@ ppixiv.data_sources.related_illusts = class extends data_source_fake_pagination
 {
     get name() { return "related-illusts"; }
    
-    async _load_page_async(page)
+    async _load_page_async(page, cause)
     {
         // The first time we load a page, get info about the source illustration too, so
         // we can show it in the UI.
@@ -1055,7 +1053,7 @@ ppixiv.data_sources.related_illusts = class extends data_source_fake_pagination
             });
         }
 
-        return await super._load_page_async(page);
+        return await super._load_page_async(page, cause);
     }
      
     // Implement data_source_fake_pagination:
