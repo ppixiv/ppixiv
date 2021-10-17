@@ -320,9 +320,14 @@ ppixiv.SendImage = class
                 return;
             
             this.quick_view_active = new AbortController();
-            window.addEventListener("pointerdown", this.quick_view_window_onmousedown, { signal: this.quick_view_active.signal, capture: true });
-            window.addEventListener("pointerup", this.quick_view_window_onmouseup, { signal: this.quick_view_active.signal, capture: true });
             window.addEventListener("click", this.quick_view_window_onclick, { signal: this.quick_view_active.signal, capture: true });
+
+            new ppixiv.pointer_listener({
+                element: window,
+                button_mask: 0b11,
+                signal: this.quick_view_active.signal,
+                callback: this.quick_view_pointerevent,
+            });
         };
 
         // Set up listeners, and update them when the quick view setting changes.
@@ -369,9 +374,9 @@ ppixiv.SendImage = class
         SendImage.send_message({ message: "send-image", action: "finalize", to: null }, true);
     }
 
-    static quick_view_window_onmousedown = (e) =>
+    static quick_view_pointerevent = (e) =>
     {
-        if(e.button == 0)
+        if(e.pressed && e.mouseButton == 0)
         {
             // See if the click is on an image search result.
             let { illust_id, page } = main_controller.singleton.get_illust_at_element(e.target);
@@ -394,33 +399,31 @@ ppixiv.SendImage = class
 
         // Right-clicking while quick viewing an image locks the image, so it doesn't go away
         // when the LMB is released.
-        if(e.button == 2)
+        if(e.pressed && e.mouseButton == 1)
         {
             if(!this.previewing_image)
                 return;
 
-            this.finalize_quick_view();
             e.preventDefault();
             e.stopImmediatePropagation();
+
+            this.finalize_quick_view();
         }
-    }
 
-    static quick_view_window_onmouseup = (e) =>
-    {
         // Releasing LMB while previewing an image stops previewing.
-        if(e.button != 0)
-            return;
+        if(!e.pressed && e.mouseButton == 0)
+        {
+            if(!this.previewing_image)
+                return;
+            this.previewing_image = false;
+            
+            e.preventDefault();
+            e.stopImmediatePropagation();
 
-        if(!this.previewing_image)
-            return;
-        this.previewing_image = false;
-        
-        e.preventDefault();
-        e.stopImmediatePropagation();
+            this.quick_view_stopped();
 
-        this.quick_view_stopped();
-
-        SendImage.send_message({ message: "send-image", action: "cancel", to: null }, true);
+            SendImage.send_message({ message: "send-image", action: "cancel", to: null }, true);
+        }
     }
 
     static quick_view_window_onclick = (e) =>
@@ -444,6 +447,7 @@ ppixiv.SendImage = class
     // assuming RMB will fire contextmenu.
     static quick_view_window_oncontextmenu = (e) =>
     {
+        console.log("context", e.button);
         e.preventDefault();
         e.stopImmediatePropagation();
 

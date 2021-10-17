@@ -69,14 +69,11 @@ ppixiv.context_menu_image_info_widget = class extends ppixiv.illust_widget
 ppixiv.popup_context_menu = class
 {
     // Names for buttons, for storing in this.buttons_down.
-    buttons = ["lmb", "mmb", "rmb"];
+    buttons = ["lmb", "rmb", "mmb"];
 
     constructor(container)
     {
-        this.onmousedown = this.onmousedown.bind(this);
-        this.window_onmouseup = this.window_onmouseup.bind(this);
         this.window_onblur = this.window_onblur.bind(this);
-        this.oncontextmenu = this.oncontextmenu.bind(this);
         this.onmouseover = this.onmouseover.bind(this);
         this.onmouseout = this.onmouseout.bind(this);
         this.onkeyevent = this.onkeyevent.bind(this);
@@ -85,18 +82,19 @@ ppixiv.popup_context_menu = class
         this.onmousemove = this.onmousemove.bind(this);
 
         this.container = container;
-        this.blocking_context_menu_until_mouseup = false;
-        this.blocking_context_menu_until_timer = false;
         this.visible = false;
 
         // We can't tell where the mouse is until it moves due to half-baked web APIs, so pretend
         // the mouse is in the center of the window.
         this.latest_mouse_pos = [window.innerWidth/2, window.innerHeight/2];
 
-        this.container.addEventListener("mousedown", this.onmousedown);
-
-        window.addEventListener("contextmenu", this.oncontextmenu);
-        window.addEventListener("mouseup", this.window_onmouseup);
+        new ppixiv.pointer_listener({
+            element: window,
+            button_mask: 0b11,
+//            signal: this.quick_view_active.signal,
+            callback: this.pointerevent,
+        });
+        
         window.addEventListener("keydown", this.onkeyevent);
         window.addEventListener("keyup", this.onkeyevent);
         window.addEventListener("mousemove", this.onmousemove, { passive: true });
@@ -131,77 +129,57 @@ ppixiv.popup_context_menu = class
         return false;
     }
 
-    // - Block the context menu when the popup menu is open (we're acting as the context menu).
-    // - When the context menu is closed, keep preventing the context menu until we see a right
-    // click (or loss of window focus), followed by a short delay to work around browser inconsistencies.
-    oncontextmenu(e)
+    pointerevent = (e) =>
     {
-        // If we're already visible, always block contextmenu.
-/*        if(this.visible)
+        if(e.pressed)
         {
-            console.log("stop context menu (already open)");
+            if(!this.visible && !this.context_menu_enabled_for_element(e.target))
+                return;
+            
+            if(!this.visible && e.mouseButton != 1)
+                return;
+
+            let button_name = this.buttons[e.mouseButton];
+            if(button_name != null)
+                this.buttons_down[button_name] = true;
+            if(e.mouseButton != 1)
+                return;
+
+            // If invert-popup-hotkey is true, hold shift to open the popup menu.  Otherwise,
+            // hold shift to suppress the popup menu so the browser context menu will open.
+            //
+            // Firefox doesn't cancel the context menu if shift is pressed.  This seems like a
+            // well-intentioned but deeply confused attempt to let people override pages that
+            // block the context menu, making it impossible for us to let you choose context
+            // menu behavior and probably making it impossible for games to have sane keyboard
+            // behavior at all.
+            this.shift_was_pressed = e.shiftKey;
+            if(navigator.userAgent.indexOf("Firefox/") == -1 && settings.get("invert-popup-hotkey"))
+                this.shift_was_pressed = !this.shift_was_pressed;
+            if(this.shift_was_pressed)
+                return;
+
             e.preventDefault();
             e.stopPropagation();
-            return;
+
+            if(this.toggle_mode && this.visible)
+                this.hide();
+            else
+                this.show(e.pageX, e.pageY, e.target);
+        } else {
+            // Releasing the left or right mouse button hides the menu if both the left
+            // and right buttons are released.  Pressing right, then left, then releasing
+            // right won't close the menu until left is also released.  This prevents lost
+            // inputs when quickly right-left clicking.
+            if(!this.visible)
+                return;
+
+            let button_name = this.buttons[e.mouseButton];
+            if(button_name != null)
+                this.buttons_down[button_name] = false;
+
+            this.hide_if_all_buttons_released();
         }
-*/
-        if(this.blocking_context_menu_until_mouseup)
-        {
-            // console.log("stop context menu (waiting for mouseup)");
-            e.preventDefault();
-            e.stopPropagation();
-        }
-
-        if(this.blocking_context_menu_until_timer)
-        {
-            // console.log("stop context menu (waiting for timer)");
-            e.preventDefault();
-            e.stopPropagation();
-        }
-
-        // console.log("not preventing context menu");
-    }
-
-    onmousedown(e)
-    {
-        if(!this.visible && !this.context_menu_enabled_for_element(e.target))
-            return;
-        
-        if(!this.visible && e.button != 2)
-            return;
-
-        let button_name = this.buttons[e.button];
-        if(button_name != null)
-            this.buttons_down[button_name] = true;
-        if(e.button != 2)
-            return;
-
-        // If invert-popup-hotkey is true, hold shift to open the popup menu.  Otherwise,
-        // hold shift to suppress the popup menu so the browser context menu will open.
-        //
-        // Firefox doesn't cancel the context menu if shift is pressed.  This seems like a
-        // well-intentioned but deeply confused attempt to let people override pages that
-        // block the context menu, making it impossible for us to let you choose context
-        // menu behavior and probably making it impossible for games to have sane keyboard
-        // behavior at all.
-        this.shift_was_pressed = e.shiftKey;
-        if(navigator.userAgent.indexOf("Firefox/") == -1 && settings.get("invert-popup-hotkey"))
-            this.shift_was_pressed = !this.shift_was_pressed;
-        if(this.shift_was_pressed)
-            return;
-
-        e.preventDefault();
-        e.stopPropagation();
-
-        if(this.toggle_mode && this.visible)
-            this.hide();
-        else
-            this.show(e.pageX, e.pageY, e.target);
-
-        // We're either showing or hiding the context menu on click, so block the context menu until
-        // release.  It's crazy that preventDefault on mousedown doesn't prevent contextmenu and makes
-        // all of this needlessly complicated.
-        this.block_context_menu_until_mouseup();
     }
 
     // If true, RMB toggles the menu instead of displaying while held, and we'll also hide the
@@ -260,59 +238,6 @@ ppixiv.popup_context_menu = class
                 this.hide_if_all_buttons_released();
             }
         }
-    }
-
-    // After mouseup, we'll move into block_context_menu_until_timer.
-    block_context_menu_until_mouseup()
-    {
-        if(this.blocking_context_menu_until_mouseup)
-            return;
-        // console.log("Waiting for mouseup before releasing context menu");
-        this.blocking_context_menu_until_mouseup = true;
-    }
-
-    // Keep blocking briefly after mouseup.  This works around Firefox being flaky.  Otherwise,
-    // mashing the RMB will cause the context menu to randomly appear (this doesn't happen in
-    // Chrome).
-    block_context_menu_until_timer()
-    {
-        // console.log("Waiting for timer before releasing context menu");
-
-        this.blocking_context_menu_until_mouseup = false;
-        this.blocking_context_menu_until_timer = true;
-        if(this.timer != null)
-        {
-            clearTimeout(this.timer);
-            this.timer = null;
-        }
-
-        this.timer = setTimeout(() => {
-            this.timer = null;
-
-            // console.log("Releasing context menu after timer");
-            this.blocking_context_menu_until_timer = false;
-        }, 50);
-    }
-
-    // Releasing the left or right mouse button hides the menu if both the left
-    // and right buttons are released.  Pressing right, then left, then releasing
-    // right won't close the menu until left is also released.  This prevents lost
-    // inputs when quickly right-left clicking.
-    window_onmouseup(e)
-    {
-        // If we're blocking until mouseup and this is a RMB release, switch to blocking on
-        // a timer.
-        if(e.button == 2 && this.blocking_context_menu_until_mouseup)
-            this.block_context_menu_until_timer();
-
-        if(!this.visible)
-            return;
-
-        let button_name = this.buttons[e.button];
-        if(button_name != null)
-            this.buttons_down[button_name] = false;
-
-        this.hide_if_all_buttons_released();
     }
 
     // This is called on mouseup, and when keyboard shortcuts are released.  Hide the menu if all buttons
@@ -493,19 +418,6 @@ ppixiv.popup_context_menu = class
             this.click_outside_listener.shutdown();
             this.click_outside_listener = null;
         }
-    }
-
-    shutdown()
-    {
-        this.hide();
-
-        // Remove any mutation observer.
-        this.show_tooltip_for_element(null);
-
-        this.container.removeEventListener("mousedown", this.onmousedown);
-        this.container.removeEventListener("click", this.onclick);
-        window.removeEventListener("contextmenu", this.oncontextmenu);
-        window.removeEventListener("mouseup", this.window_onmouseup);
     }
 
     cancel_event(e)
@@ -725,14 +637,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         this._page = value;
         this._effective_illust_id_changed();
     }
-    
-    shutdown()
-    {
-        this.mode_observer.disconnect();
-        window.removeEventListener("wheel", this.onwheel, true);
-        super.shutdown();
-    }
-
+   
     // Set the current viewer, or null if none.  If set, we'll activate zoom controls.
     get on_click_viewer()
     {

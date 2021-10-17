@@ -2214,6 +2214,158 @@ ppixiv.VirtualHistory = class
         window.dispatchEvent(e);
     }
 };
-
 ppixiv.history = new VirtualHistory;
+
+// The pointer API is sadistically awful.  Only the first pointer press is sent by pointerdown.
+// To get others, you have to register pointermove and get spammed with all mouse movement.
+// You have to register pointermove when a button is pressed in order to see other buttons
+// without keeping a pointermove event running all the time.  You also have to use e.buttons
+// instead of e.button, because pointermove doesn't tell you what buttons changed, making e.button
+// meaningless.
+//
+// Who designed this?  This isn't some ancient IE6 legacy API.  How do you screw up a mouse
+// event API this badly?
+ppixiv.pointer_listener = class
+{
+    // callback(event) will be called each time buttons change.  The event will be the event
+    // that actually triggered the state change, and can be preventDefaulted, etc.
+    //
+    // To disable, include {signal: AbortSignal} in options.
+    constructor({element, callback, button_mask=1, ...options}={})
+    {
+        this.element = element;
+        this.button_mask = button_mask;
+        this.pointermove_registered = false;
+        this.buttons_down = 0;
+        this.callback = callback;
+        this.event_options = options;
+
+        let handling_right_click = (button_mask & 2) != 0;
+        this.blocking_context_menu_until_timer = false;
+        if(handling_right_click)
+            window.addEventListener("contextmenu", this.oncontextmenu, this.event_options);
+
+        if(options.signal)
+        {
+            options.signal.addEventListener("abort", (e) => {
+                // If we have a block_contextmenu_timer timer running when we're cancelled, remove it.
+                if(this.block_contextmenu_timer != null)
+                    clearTimeout(this.block_contextmenu_timer);
+            });
+        }
+        
+        this.element.addEventListener("pointerdown", this.onpointerevent, this.event_options);
+        this.element.addEventListener("pointerup", this.onpointerevent, this.event_options);
+        this.element.addEventListener("pointercancel", this.onpointerup, this.event_options);
+    }
+
+    register_mousemove(enable)
+    {
+        if(this.pointermove_registered)
+            return;
+        this.pointermove_registered = true;
+        this.element.addEventListener("pointermove", this.onpointermove, this.event_options);
+    }
+
+    unregister_mousemove(enable)
+    {
+        if(!this.pointermove_registered)
+            return;
+        this.pointermove_registered = false;
+        this.element.removeEventListener("pointermove", this.onpointermove, { ...this.event_options });
+    }
+
+    button_changed(buttons, event)
+    {
+        // We need to register pointermove to see presses past the first.
+        if(buttons)
+            this.register_mousemove();
+        else
+            this.unregister_mousemove();
+
+        let old_buttons_down = this.buttons_down;
+        this.buttons_down = buttons;
+        for(let button = 0; button < 5; ++button)
+        {
+            let mask = 1 << button;
+
+            // Ignore this if it's not a button change for a button in our mask.
+            if(!(mask & this.button_mask))
+                continue;
+            let was_pressed = old_buttons_down & mask;
+            let is_pressed = this.buttons_down & mask;
+
+            if(was_pressed == is_pressed)
+                continue;
+
+            // Pass the button in event.mouseButton, and whether it was pressed or released in event.pressed.
+            // Don't use e.button, since it's in a different order than e.buttons.
+            event.mouseButton = button;
+            event.pressed = is_pressed;
+            this.callback(event);
+
+            // Remove event.mouseButton so it doesn't appear for unrelated event listeners.
+            delete event.mouseButton;
+            delete event.pressed;
+
+            // Right-click handling
+            if(button == 1)
+            {
+                // If this is a right-click press and the user prevented the event, block the context
+                // menu briefly.  There seems to be no other way to do this: cancelling pointerdown
+                // or pointerup don't prevent actions like they should, contextmenu happens afterwards,
+                // and there's no way to know if a contextmenu event is coming other than waiting for
+                // an arbitrary amount of time.
+                if(!is_pressed)
+                    this.block_context_menu_until_timer();
+            }
+        }
+
+    }
+
+    onpointerevent = (e) =>
+    {
+        this.button_changed(e.buttons, e);
+    }
+
+    onpointermove = (e) =>
+    {
+        // Short-circuit processing pointermove if button is -1, which means it's just
+        // a move (the only thing this event should even be used for).
+        if(e.button == -1)
+            return;
+
+        this.button_changed(e.buttons, e);
+    }
+
+    oncontextmenu = (e) =>
+    {
+        if(this.blocking_context_menu_until_timer)
+        {
+            // console.log("stop context menu (waiting for timer)");
+            e.preventDefault();
+            e.stopPropagation();
+        }
+    }        
+
+    // Block contextmenu for a while.
+    block_context_menu_until_timer()
+    {
+        // console.log("Waiting for timer before releasing context menu");
+
+        this.blocking_context_menu_until_timer = true;
+        if(this.block_contextmenu_timer != null)
+        {
+            clearTimeout(this.block_contextmenu_timer);
+            this.block_contextmenu_timer = null;
+        }
+
+        this.block_contextmenu_timer = setTimeout(() => {
+            this.block_contextmenu_timer = null;
+
+            // console.log("Releasing context menu after timer");
+            this.blocking_context_menu_until_timer = false;
+        }, 50);
+    }
+}
 
