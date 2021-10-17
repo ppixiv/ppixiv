@@ -87,7 +87,7 @@ ppixiv.popup_context_menu = class
         this.container = container;
         this.blocking_context_menu_until_mouseup = false;
         this.blocking_context_menu_until_timer = false;
-        this.hidden = true;
+        this.visible = false;
 
         // We can't tell where the mouse is until it moves due to half-baked web APIs, so pretend
         // the mouse is in the center of the window.
@@ -339,7 +339,7 @@ ppixiv.popup_context_menu = class
             return;
 
         this.displayed_menu = this.menu;
-        this.hidden = false;
+        this.visible = true;
         this.refresh_visibility();
 
         // Disable popup UI while a context menu is open.
@@ -443,6 +443,11 @@ ppixiv.popup_context_menu = class
         return !this.hidden;
     }
 
+    set visible(value)
+    {
+        this.hidden = !value;
+    }
+
     get hide_temporarily()
     {
         return this.hidden_temporarily;
@@ -465,7 +470,7 @@ ppixiv.popup_context_menu = class
         if(!this.visible)
             return;
 
-        this.hidden = true;
+        this.visible = false;
         this.hidden_temporarily = false;
         this.refresh_visibility();
 
@@ -549,13 +554,6 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         this.menu.querySelector(".button-browser-back").addEventListener("click", (e) => {
             history.back();
         });
-        window.addEventListener("wheel", this.onwheel, {
-            capture: true,
-
-            // Work around Chrome intentionally breaking event listeners.  Remember when browsers
-            // actually made an effort to not break things?
-            passive: false,
-        });
 
         this.menu.addEventListener("click", this.handle_link_click);
 
@@ -624,6 +622,27 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         let url = new URL(a.href, ppixiv.location);
         helpers.set_page_url(url, true, "Clicked link in context menu");
     }
+
+    set visible(value)
+    {
+        if(this.visible == value)
+            return;
+
+        super.visible = value;
+
+        if(value)
+            window.addEventListener("wheel", this.onwheel, {
+                capture: true,
+
+                // Work around Chrome intentionally breaking event listeners.  Remember when browsers
+                // actually made an effort to not break things?
+                passive: false,
+            });
+        else
+            window.removeEventListener("wheel", this.onwheel, true);
+    }
+
+    get visible() { return super.visible; }
 
     // Return the illust ID active in the context menu, or null if none.
     //
@@ -930,8 +949,8 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         if(!this._is_zoom_ui_enabled)
             return;
 
-        // Only mousewheel zoom if control is pressed, or if the popup menu is visible.
-        if(!e.ctrlKey && !this.visible)
+        // Only mousewheel zoom if the popup menu is visible.
+        if(!this.visible)
             return;
 
         // We want to override almost all mousewheel events while the popup menu is open, but
