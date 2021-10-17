@@ -442,12 +442,20 @@ ppixiv.actions = class
         let url = "https://www.pixiv.net/ajax/user/" + window.global_data.user_id + "/illusts/bookmark/tags";
         let result = await helpers.get_request(url, {});
         let bookmark_tags = [];
+        let add_tag = (tag) => {
+            // Ignore "untagged".
+            if(tag.tag == "未分類")
+                return;
+
+            if(bookmark_tags.indexOf(tag.tag) == -1)
+                bookmark_tags.push(tag.tag);
+        }
+
         for(let tag of result.body.public)
-            if(bookmark_tags.indexOf(tag.tag) == -1)
-                bookmark_tags.push(tag.tag);
+            add_tag(tag);
+
         for(let tag of result.body.private)
-            if(bookmark_tags.indexOf(tag.tag) == -1)
-                bookmark_tags.push(tag.tag);
+            add_tag(tag);
         
         return bookmark_tags;
     }

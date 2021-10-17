@@ -684,7 +684,6 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
 
         this.container.querySelector(".sync-tags").addEventListener("click", async (e) => {
             var bookmark_tags = await actions.load_recent_bookmark_tags();
-            console.log("refreshed", bookmark_tags);
             helpers.set_recent_bookmark_tags(bookmark_tags);
         });
 
@@ -825,8 +824,6 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
         for(var tag of recent_bookmark_tags)
             if(shown_tags.indexOf(tag) == -1)
                 shown_tags.push(tag);
-
-        console.log("Showing tags:", shown_tags);
 
         for(var i = 0; i < shown_tags.length; ++i)
         {
