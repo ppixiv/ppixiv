@@ -1648,12 +1648,17 @@ ppixiv.data_sources.artist = class extends data_source
         var tag_list = container.querySelector(".post-tag-list");
         helpers.remove_elements(tag_list);
         
-        var add_tag_link = (tag) =>
+        var add_tag_link = (tag_info) =>
         {
+            let tag = tag_info.tag;
+            let translated_tag = tag;
+            if(this.translated_tags[tag])
+                translated_tag = this.translated_tags[tag];
+
             var a = document.createElement("a");
             a.classList.add("box-link");
             a.classList.add("following-tag");
-            a.innerText = tag;
+            a.innerText = translated_tag;
 
             let url = new URL(this.url);
             url.hash = "#ppixiv";
@@ -1674,9 +1679,9 @@ ppixiv.data_sources.artist = class extends data_source
 
         if(this.post_tags != null)
         {
-            add_tag_link("All");
-            for(var tag of this.post_tags || [])
-                add_tag_link(tag);
+            add_tag_link({ tag: "All" });
+            for(let tag_info of this.post_tags || [])
+                add_tag_link(tag_info);
         }
         else
         {
@@ -1695,14 +1700,6 @@ ppixiv.data_sources.artist = class extends data_source
     // This is called when the tag list dropdown is opened.
     async tag_list_opened()
     {
-        // Only do this once.
-        if(this.loaded_tags)
-        {
-            console.log("already loaded");
-            return;
-        }
-        this.loaded_tags = true;
-
         // Get user info.  We probably have this on this.user_info, but that async load
         // might not be finished yet.
         var user_info = await image_data.singleton().get_user_info_full(this.viewing_user_id);
@@ -1710,6 +1707,11 @@ ppixiv.data_sources.artist = class extends data_source
 
         // Load the user's common tags.
         this.post_tags = await this.get_user_tags(user_info);
+
+        let tags = [];
+        for(let tag_info of this.post_tags)
+            tags.push(tag_info.tag);
+        this.translated_tags = await tag_translations.get().get_translations(tags, "en");
 
         // If we became inactive before the above request finished, stop.
         if(!this.active)
@@ -1737,13 +1739,25 @@ ppixiv.data_sources.artist = class extends data_source
             return rhs.cnt - lhs.cnt;
         })
 
-        var tags = [];
-        for(var tag_info of result.body)
-            tags.push(tag_info.tag);
+        // Store translations.
+        let translations = [];
+        for(let tag_info of result.body)
+        {
+            if(tag_info.tag_translation == "")
+                continue;
+
+            translations.push({
+                tag: tag_info.tag,
+                translation: {
+                    en: tag_info.tag_translation,
+                },
+            });
+        }
+        tag_translations.get().add_translations(translations);
 
         // Cache the results on the user info.
-        user_info.frequentTags = tags;
-        return tags;
+        user_info.frequentTags = result.body;
+        return result.body;
     }
 
     get page_title()
