@@ -910,6 +910,12 @@ ppixiv.view_search = class extends ppixiv.view
         if(a == null)
             return;
 
+        // Don't do this for the "return to start" button.  That page does link to the previous
+        // page, but that button should always refresh so we scroll to the top, and not just add
+        // the previous page above where we are like this does.
+        if(a.classList.contains("load-first-page-link"))
+            return;
+
         // See if this link is for this data source, one page before the current start page.
         let args = helpers.args.location;
         let page = this.data_source.get_start_page(args);
