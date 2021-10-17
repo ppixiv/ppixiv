@@ -476,11 +476,12 @@ class data_source
         args.hash.set("illust_id", illust_id);
     }
 
-    // Return the estimated number of items per page.  This is used to pad the thumbnail
-    // list to reduce items moving around when we load pages.
+    // Return the estimated number of items per page.
     get estimated_items_per_page()
     {
-        return 10;
+        // Most newer Pixiv pages show a grid of 6x8 images.  Try to match it, so page numbers
+        // line up.
+        return 48;
     };
 
     // Return the screen that should be displayed by default, if no "view" field is in the URL.
@@ -1457,10 +1458,6 @@ ppixiv.data_sources.artist = class extends data_source
         this.fanbox_url = null;
     }
 
-    // Show the same number of results per page as Pixiv's page, so our page numbers
-    // line up.
-    get estimated_items_per_page() { return 48; }
-
     get viewing_user_id()
     {
         // /users/13245
@@ -2052,8 +2049,8 @@ class data_source_bookmarks_base extends data_source
         // the UI is disabled.
         return {
             tag: tag,
-            offset: (page-1)*20,
-            limit: 20,
+            offset: (page-1)*this.estimated_items_per_page,
+            limit: this.estimated_items_per_page,
             rest: rest, // public or private (no way to get both)
         };
     }
