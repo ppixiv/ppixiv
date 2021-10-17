@@ -2016,8 +2016,12 @@ class data_source_bookmarks_base extends data_source
             return tags[lhs].count - tags[lhs].count;
         });
 
-        // Trim the list.  Some users will return thousands of tags.
-        all_tags.splice(20);
+        if(!this.viewing_own_bookmarks())
+        {
+            // Trim the list when viewing other users.  Some users will return thousands of tags.
+            all_tags.splice(20);
+        }
+
         all_tags.sort();
         this.bookmark_tag_counts = {};
         for(let tag of all_tags)
