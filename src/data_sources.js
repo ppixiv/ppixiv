@@ -1650,6 +1650,12 @@ ppixiv.data_sources.artist = class extends data_source
         
         var add_tag_link = (tag_info) =>
         {
+            // Skip tags with very few posts.  This list includes every tag the author
+            // has ever used, and ends up being pages long with tons of tags that were
+            // only used once.
+            if(tag_info.tag != "All" && tag_info.cnt < 5)
+                return;
+
             let tag = tag_info.tag;
             let translated_tag = tag;
             if(this.translated_tags[tag])
