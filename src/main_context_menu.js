@@ -227,6 +227,10 @@ ppixiv.popup_context_menu = class
         if(e.repeat)
             return;
 
+        // Don't eat inputs if we're inside an input.
+        if(e.target.closest("input, textarea"))
+            return;
+
         // Let the subclass handle events.
         if(this.handle_key_event(e))
         {
