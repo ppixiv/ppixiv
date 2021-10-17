@@ -1457,6 +1457,10 @@ ppixiv.data_sources.artist = class extends data_source
         this.fanbox_url = null;
     }
 
+    // Show the same number of results per page as Pixiv's page, so our page numbers
+    // line up.
+    get estimated_items_per_page() { return 48; }
+
     get viewing_user_id()
     {
         // /users/13245
@@ -2995,8 +2999,8 @@ ppixiv.data_sources.follows = class extends data_source
 
         var url = "/ajax/user/" + this.viewing_user_id + "/following";
         let args = {
-            offset: 48*(page-1),
-            limit: 48,
+            offset: this.estimated_items_per_page*(page-1),
+            limit: this.estimated_items_per_page,
             rest: rest,
         };
         if(query_args.get("tag"))
