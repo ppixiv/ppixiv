@@ -152,7 +152,7 @@ ppixiv.main_controller = class
     // This is where the actual UI starts.
     async setup()
     {
-        console.log("Controller setup");
+        console.log("ppixiv controller setup");
 
         this.onkeydown = this.onkeydown.bind(this);
         this.redirect_event_to_view = this.redirect_event_to_view.bind(this);
@@ -403,7 +403,8 @@ ppixiv.main_controller = class
             illust_id = null;
 
         console.log("Loading data source.  View:", new_view_name, "Cause:", cause, "URL:", ppixiv.location.href);
-        console.log("  Show image", illust_id, "page", manga_page);
+        if(illust_id != null)
+            console.log("  Show image", illust_id, "page", manga_page);
 
         // Mark the current view.  Other code can watch for this to tell which view is
         // active.

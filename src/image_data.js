@@ -104,7 +104,7 @@ ppixiv.image_data = class
         // We need the illust data, user data, and ugoira metadata (for illustType 2).  (We could
         // load manga data too, but we currently let the manga view do that.)  We need to know the
         // user ID and illust type to start those loads.
-        console.error("Fetching", illust_id);
+        console.log("Fetching", illust_id);
 
         var user_info_promise = null;
         var manga_promise = null;
