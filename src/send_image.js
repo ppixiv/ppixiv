@@ -142,12 +142,12 @@ ppixiv.SendImage = class
         }
         else if(data.message == "send-image")
         {
-            // If to is null, a tab is sending a quick view preview.  Show this preview if
-            // this tab is a quick view target.  Otherwise, to is a tab ID, so only preview
-            // if it's us.
+            // If to is null, a tab is sending a quick view preview.  Show this preview if this
+            // tab is a quick view target and the document is visible.  Otherwise, to is a tab
+            // ID, so only preview if it's us.
             if(data.to == null)
             {
-                if(settings.get("no_receive_quick_view"))
+                if(settings.get("no_receive_quick_view") || document.hidden)
                 {
                     console.log("Not receiving quick view");
                     return;
