@@ -2165,7 +2165,7 @@ class data_source_bookmarks_base extends data_source
             {
                 if(parts.length < 6)
                     parts.push("");
-                parts[5] = tag;
+                parts[5] = encodeURIComponent(tag);
             }
             url.pathname = parts.join("/");
 
