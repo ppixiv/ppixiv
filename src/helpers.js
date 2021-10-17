@@ -152,6 +152,10 @@ ppixiv.helpers = {
                 let node = div.firstElementChild;
                 node.remove();
 
+                // Stash the source path on the node.  This is just for debugging to make
+                // it easy to tell where things came from.
+                node.dataset.ppixivResource = src;
+
                 // Cache the result, so we don't re-parse the node every time we create one.
                 helpers._resource_cache[src] = node;
             }
