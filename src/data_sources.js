@@ -1928,6 +1928,9 @@ class data_source_bookmarks_base extends data_source
         super(url);
 
         this.bookmark_tag_counts = [];
+
+        // The subclass sets this once it knows the number of bookmarks in this search.
+        this.total_bookmarks = -1;
     }
 
     // Return the bookmark types we're showing: "public", "private" or "both".
@@ -2085,12 +2088,23 @@ class data_source_bookmarks_base extends data_source
 
         let args = new helpers.args(this.url);
         let private_bookmarks = args.query.get("rest") == "hide";
-        var displaying = this.viewing_all_bookmarks? "All Bookmarks":
-            private_bookmarks? "Private Bookmarks":"Public Bookmarks";
+        var displaying = "";
+
+        if(this.total_bookmarks != -1)
+            displaying += this.total_bookmarks + " ";
+
+        displaying += this.viewing_all_bookmarks? "Bookmark":
+            private_bookmarks? "Private Bookmark":"Public Bookmark";
+
+        // English-centric pluralization:
+        if(this.total_bookmarks != 1)
+            displaying += "s";
 
         var tag = this.displaying_tag;
-        if(tag)
-            displaying += " with tag \"" + tag + "\"";
+        if(tag == "")
+            displaying += ` with no tags`;
+        else if(tag != null)
+            displaying += ` with tag "${tag}"`;
 
         return displaying;
     };
@@ -2273,6 +2287,9 @@ ppixiv.data_sources.bookmarks = class extends data_source_bookmarks_base
 
         // Register the new page of data.
         this.add_page(page, illust_ids);
+
+        // Remember the total count, for display.
+        this.total_bookmarks = result.body.total;
     }
 };
 
@@ -2289,6 +2306,7 @@ ppixiv.data_sources.bookmarks_merged = class extends data_source_bookmarks_base
 
         this.max_page_per_type = [-1, -1]; // public, private
         this.bookmark_illust_ids = [[], []]; // public, private
+        this.bookmark_totals = [0, 0]; // public, private
     }
 
     async continue_loading_page_internal(page)
@@ -2309,6 +2327,9 @@ ppixiv.data_sources.bookmarks_merged = class extends data_source_bookmarks_base
                 illust_ids = illust_ids.concat(this.bookmark_illust_ids[i][page]);
         
         this.add_page(page, illust_ids);
+
+        // Combine the two totals.
+        this.total_bookmarks = this.bookmark_totals[0] + this.bookmark_totals[1];
     }
 
     async request_bookmarks(page, rest)
@@ -2355,6 +2376,9 @@ ppixiv.data_sources.bookmarks_merged = class extends data_source_bookmarks_base
 
         // Store the IDs.  We don't register them here.
         this.bookmark_illust_ids[is_private][page] = illust_ids;
+
+        // Remember the total count, for display.
+        this.bookmark_totals[is_private] = result.body.total;
     }
 }
 
