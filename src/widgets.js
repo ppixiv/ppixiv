@@ -726,7 +726,6 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
         return !this.container.hidden;
     }
     
-    // Why can't setters be async?
     set visible(value) { this._set_tag_dropdown_visible(value); }
 
     // Hide the dropdown without committing anything.  This happens if a bookmark
@@ -787,6 +786,15 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
 
         if(illust_data == null || !this.visible)
             return;
+
+        // Figure out how much space we have, and set that as the max-height.  This will
+        // fit the tag scroll box within however much space we have available.
+        let dropdown = this.container.querySelector(".tag-list");
+        let pos = helpers.get_relative_pos(dropdown, document)[1];
+        let tag_box_height = window.innerHeight - pos;
+        tag_box_height -= 10; // a bit of padding so it's not flush against the edge
+        tag_box_height = Math.min(400, tag_box_height);
+        dropdown.style.maxHeight = `${tag_box_height}px`;
 
         // Create a temporary entry to show loading while we load bookmark details.
         var entry = document.createElement("span");

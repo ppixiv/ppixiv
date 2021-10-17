@@ -1861,7 +1861,7 @@ input.search-tags {
     background-color: var(--frame-bg-color);
     color: var(--frame-fg-color);
     position: absolute;
-    padding: 4px;
+    padding: 6px 8px;
     top: calc(100%);
     left: 0;
     border-radius: 0px 0px 4px 4px;
@@ -1878,7 +1878,6 @@ input.search-tags {
     & > .tag-list {
         display: flex;
         flex-direction: column;
-        max-height: 200px;
         min-width: 200px;
         overflow-x: hidden;
         overflow-y: auto;
@@ -1901,7 +1900,7 @@ input.search-tags {
 
     /* Recent bookmark tags in the popup menu: */
     .popup-bookmark-tag-entry {
-        padding: 2px 8px;
+        padding: 4px 0px;
         display: flex;
         cursor: pointer;
         > .tag-name {
