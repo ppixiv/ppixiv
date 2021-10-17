@@ -139,8 +139,10 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
     // flicker when the first frame is drawn.
     drew_frame()
     {
-        this.preview_img1.hidden = true;
-        this.preview_img2.hidden = true;
+        if(this.preview_img1)
+            this.preview_img1.hidden = true;
+        if(this.preview_img2)
+            this.preview_img2.hidden = true;
         this.canvas.hidden = false;
 
         if(this.seek_bar)
@@ -275,8 +277,18 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
 
         if(this.player)
             this.player.pause(); 
-        this.preview_img1.remove();
-        this.preview_img2.remove();
+
+        if(this.preview_img1)
+        {
+            this.preview_img1.remove();
+            this.preview_img1 = null;
+        }
+        if(this.preview_img2)
+        {
+            this.preview_img2.remove();
+            this.preview_img2 = null;
+        }
+
         this.canvas.remove();
     }
 
