@@ -1164,7 +1164,8 @@ ppixiv.screen_search = class extends ppixiv.screen
         if(this.container.offsetHeight == 0)
             return [];
 
-        return this.container.querySelectorAll(`.thumbnails > [data-id][data-nearby]`);
+        // Don't include data-special, which are non-thumb entries like "load previous results".
+        return this.container.querySelectorAll(`.thumbnails > [data-id][data-nearby]:not([data-special])`);
     }
 
     // Get a given number of thumb that should be loaded, starting with thumbs that are onscreen
@@ -1240,6 +1241,10 @@ ppixiv.screen_search = class extends ppixiv.screen
             this.thumbnail_templates[template_type] = document.body.querySelector(template_type);
             
         let entry = helpers.create_from_template(this.thumbnail_templates[template_type]);
+
+        // If this is a non-thumb entry, mark it so we ignore it for "nearby thumb" handling, etc.
+        if(illust_id == "special:previous-page")
+            entry.dataset.special = 1;
 
         // Mark that this thumb hasn't been filled in yet.
         entry.dataset.pending = true;
