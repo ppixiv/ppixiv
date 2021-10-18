@@ -21,6 +21,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         this.thumbnail_templates = {};
 
         window.addEventListener("thumbnailsLoaded", this.thumbs_loaded);
+        window.addEventListener("focus", this.visible_thumbs_changed);
 
         this.container.addEventListener("wheel", this.onwheel, { passive: false });
 //        this.container.addEventListener("mousemove", this.onmousemove);
@@ -90,6 +91,15 @@ ppixiv.screen_search = class extends ppixiv.screen
         this.container.querySelector(".whats-new-button").addEventListener("click", this.whats_new.bind(this));
         this.container.querySelector(".thumbnails").addEventListener("click", this.thumbnail_onclick);
 
+        // Clear recent illusts:
+        this.container.querySelector("[data-type='clear-recents']").addEventListener("click", async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            await ppixiv.recently_seen_illusts.get().clear();
+            this.refresh_search();
+        });
+
         var settings_menu = this.container.querySelector(".settings-menu-box > .popup-menu-box");
 
         menu_option.add_settings(settings_menu);
@@ -104,6 +114,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         settings.register_change_callback("disable_thumbnail_panning", this.update_from_settings);
         settings.register_change_callback("ui-on-hover", this.update_from_settings);
         settings.register_change_callback("no-hide-cursor", this.update_from_settings);
+        settings.register_change_callback("no_recent_history", this.update_from_settings);
          
         // Create the tag dropdown for the search page input.
         new tag_search_box_widget(this.container.querySelector(".tag-search-box"));
@@ -139,6 +150,16 @@ ppixiv.screen_search = class extends ppixiv.screen
             rootMargin: "50%",
         }));
 
+        this.intersection_observers.push(new IntersectionObserver((entries) => {
+            for(let entry of entries)
+                helpers.set_dataset(entry.target.dataset, "visible", entry.isIntersecting);
+            
+            this.visible_thumbs_changed();
+        }, {
+            root: this.container,
+            rootMargin: "0%",
+        }));
+        
         /*
          * Add a slight delay before hiding the UI.  This allows opening the UI by swiping past the top
          * of the window, without it disappearing as soon as the mouse leaves the window.  This doesn't
@@ -177,6 +198,27 @@ ppixiv.screen_search = class extends ppixiv.screen
         } finally {
             main_controller.singleton.temporarily_ignore_onpopstate = false;
         }
+    }
+
+    // The thumbs actually visible onscreen have changed, or the window has gained focus.
+    // Store recently viewed thumbs.
+    visible_thumbs_changed = () =>
+    {
+        // Don't add recent illusts if we're viewing recent illusts.
+        if(this.data_source && this.data_source.name == "recent")
+            return;
+
+        let visible_illust_ids = [];
+        for(let element of this.container.querySelectorAll(`.thumbnails > [data-id][data-visible]:not([data-special])`))
+        {
+            let { type, id } = helpers.parse_id(element.dataset.id);
+            if(type != "illust")
+                continue;
+
+            visible_illust_ids.push(id);
+        }
+        
+        ppixiv.recently_seen_illusts.get().add_illusts(visible_illust_ids);
     }
 
     refresh_search()
@@ -920,6 +962,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         helpers.set_class(document.body, "disable-thumbnail-panning", settings.get("disable_thumbnail_panning"));
         helpers.set_class(document.body, "disable-thumbnail-zooming", settings.get("disable_thumbnail_zooming"));
         helpers.set_class(document.body, "ui-on-hover", settings.get("ui-on-hover"));
+        helpers.set_class(this.container.querySelector(".recent-history-link"), "disabled", !ppixiv.recently_seen_illusts.get().enabled);
 
         // Flush the top UI transition, so it doesn't animate weirdly when toggling ui-on-hover.
         for(let box of document.querySelectorAll(".top-ui-box"))

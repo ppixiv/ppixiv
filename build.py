@@ -42,6 +42,7 @@ source_files = [
     'src/screen_manga.js',
     'src/image_ui.js',
     'src/tag_search_dropdown_widget.js',
+    'src/recently_seen_illusts.js',
     'src/tag_translations.js',
     'src/thumbnail_data.js',
     'src/manga_thumbnail_widget.js',

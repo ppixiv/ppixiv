@@ -1304,7 +1304,7 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
     -moz-user-select: none;
     white-space: nowrap;
 
-    .disabled {
+    &.disabled {
         color: var(--box-link-disabled-color);
     }
 

@@ -126,6 +126,12 @@ ppixiv.main_controller = class
         // This is the global "pixiv" object, which is used on older pages.
         let pixiv = helpers.get_pixiv_data(doc);
 
+        // Hack: don't use this object if we're on /history.php.  It has both of these, and
+        // this object doesn't actually have all info, but its presence will prevent us from
+        // falling back and loading meta-global-data if needed.
+        if(document.location.pathname == "/history.php")
+            pixiv = null;
+
         // Discard any of these that have no login info.
         if(global_data && global_data.userData == null)
             global_data = null;
@@ -364,9 +370,15 @@ ppixiv.main_controller = class
         // If the data source is changing, set it up.
         if(this.data_source != data_source)
         {
-            // Shut down the old data source.
             if(this.data_source != null)
+            {
+                // Shut down the old data source.
                 this.data_source.shutdown();
+
+                // If the old data source was transient, discard it.
+                if(this.data_source.transient)
+                    page_manager.singleton().discard_data_source(this.data_source);
+            }
 
             // If we were showing a message for the old data source, it might be persistent,
             // so clear it.

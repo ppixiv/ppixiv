@@ -497,6 +497,10 @@ class data_source
         return null;
     };
 
+    // If a data source is transient, it'll be discarded when the user navigates away instead of
+    // reused.
+    get transient() { return false; }
+
     // Some data sources can restart the search at a page.
     get supports_start_page() { return false; }
 
@@ -3182,5 +3186,35 @@ ppixiv.data_sources.search_users = class extends data_source_from_page
     {
         return this.page_title;
     };
+}
+
+// /history.php - Recent history
+//
+// This uses our own history and not Pixiv's history.
+ppixiv.data_sources.recent = class extends data_source_fake_pagination
+{
+    get name() { return "recent"; }
+
+    // Implement data_source_fake_pagination:
+    async load_all_results()
+    {
+        return await ppixiv.recently_seen_illusts.get().get_recent_illusts();
+    };
+
+    get page_title() { return "Recent"; }
+    get_displaying_text() { return "Recent History"; }
+
+    // This data source is transient, so it's recreated each time the user navigates to it.
+    get transient() { return true; }
+    
+    // XXX: add a "clear" button
+    refresh_thumbnail_ui(container)
+    {
+        // Set .selected on the current mode.
+        let current_mode = this.url.searchParams.get("mode") || "all";
+        helpers.set_class(container.querySelector(".box-link[data-type=all]"), "selected", current_mode == "all");
+        helpers.set_class(container.querySelector(".box-link[data-type=safe]"), "selected", current_mode == "safe");
+        helpers.set_class(container.querySelector(".box-link[data-type=r18]"), "selected", current_mode == "r18");
+    }
 }
 

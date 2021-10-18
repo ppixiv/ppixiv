@@ -102,6 +102,8 @@ ppixiv.page_manager = class
             return data_sources.new_illust;
         else if(url.pathname == "/bookmark_new_illust.php" || url.pathname == "/bookmark_new_illust_r18.php")
             return data_sources.bookmarks_new_illust;
+        else if(url.pathname == "/history.php")
+            return data_sources.recent;
         else if(first_part == "tags")
             return data_sources.search;
         else if(url.pathname == "/discovery")
@@ -155,6 +157,21 @@ ppixiv.page_manager = class
         var source = new data_source_class(url.href);
         this.data_sources_by_canonical_url[canonical_url] = source;
         return source;
+    }
+
+    // If we have the given data source cached, discard it, so it'll be recreated
+    // the next time it's used.
+    discard_data_source(data_source)
+    {
+        let urls_to_remove = [];
+        for(let url in this.data_sources_by_canonical_url)
+        {
+            if(this.data_sources_by_canonical_url[url] === data_source)
+                urls_to_remove.push(url);
+        }
+
+        for(let url of urls_to_remove)
+            delete this.data_sources_by_canonical_url[url];
     }
 
     // Return true if it's possible for us to be active on this page.

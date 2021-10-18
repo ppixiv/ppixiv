@@ -69,5 +69,37 @@ ppixiv.install_polyfills = function()
             return func;
         };
     }
+
+    // Make IDBRequest an async generator.
+    //
+    // Note that this will clobber onsuccess and onerror on the IDBRequest.
+    if(!IDBRequest.prototype[Symbol.asyncIterator])
+    {
+        // This is awful (is there no syntax sugar to make this more readable?), but it
+        // makes IDBRequests much more sane to use.
+        IDBRequest.prototype[Symbol.asyncIterator] = function() {
+            return {
+                next: () => {
+                    return new Promise((accept, reject) => {
+                        this.onsuccess = (e) => {
+                            let entry = e.target.result;
+                            if(entry == null)
+                            {
+                                accept({ done: true });                                    
+                                return;
+                            }
+
+                            accept({ value: entry, done: false });
+                            entry.continue();
+                        }
+
+                        this.onerror = (e) => {
+                            reject(e);
+                        };
+                    });
+                }
+            };
+        };
+    }
 }
 
