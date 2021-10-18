@@ -825,13 +825,14 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
                 active_tags.push(tag);
         }
 
-        var shown_tags = Array.from(active_tags); // copy
-        shown_tags.sort();
+        var shown_tags = [];
 
         var recent_bookmark_tags = Array.from(helpers.get_recent_bookmark_tags()); // copy
         for(var tag of recent_bookmark_tags)
             if(shown_tags.indexOf(tag) == -1)
                 shown_tags.push(tag);
+
+        shown_tags.sort();
 
         for(var i = 0; i < shown_tags.length; ++i)
         {

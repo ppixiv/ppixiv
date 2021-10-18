@@ -1900,6 +1900,9 @@ input.search-tags {
 
     /* Recent bookmark tags in the popup menu: */
     .popup-bookmark-tag-entry {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
         padding: 4px 0px;
         display: flex;
         cursor: pointer;
@@ -1907,7 +1910,7 @@ input.search-tags {
             flex: 1;
         }
                    &.active {
-            background-color: #004;
+            background-color: #008;
         }
         body.light &.active {
             background-color: #00c;
