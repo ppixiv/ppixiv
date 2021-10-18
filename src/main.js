@@ -609,10 +609,18 @@ ppixiv.main_controller = class
 
     navigate_out()
     {
-        var target = this._get_navigate_out_target();
-        var new_page = target[0];
+        let [new_page, label] = this._get_navigate_out_target();
         if(new_page == null)
             return;
+
+        // If the user clicks "return to search" while on data_sources.current_illust, go somewhere
+        // else instead, since that viewer never has any search results.
+        if(new_page == "search" && this.data_source instanceof data_sources.current_illust)
+        {
+            let args = new helpers.args("/bookmark_new_illust.php#ppixiv", ppixiv.location);
+            helpers.set_page_url(args, true /* add_to_history */, "out");
+            return;
+        }
 
         // Update the URL to mark whether thumbs are displayed.
         let args = helpers.args.location;
