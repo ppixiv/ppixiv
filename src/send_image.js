@@ -115,7 +115,7 @@ ppixiv.SendImage = class
                 if(SendImage.tab_id_tiebreaker >= data.tab_id_tiebreaker)
                 {
                     console.log("Creating a new tab ID due to ID conflict");
-                    tab_id = SendImage.create_tab_id(true /* recreate */ );
+                    SendImage.tab_id = SendImage.create_tab_id(true /* recreate */ );
                 }
                 else
                     console.log("Tab ID conflict (other tab will create a new ID)");
