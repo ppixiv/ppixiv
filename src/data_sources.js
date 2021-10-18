@@ -543,13 +543,7 @@ class data_source
     {
         var callbacks = this.update_callbacks.slice();
         for(var callback of callbacks)
-        {
-            try {
-                callback();
-            } catch(e) {
-                console.error(e);
-            }
-        }
+            callback();
     }
 
     // Refresh parts of the UI that are specific to this data source.  This is only called
