@@ -832,7 +832,11 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
             if(shown_tags.indexOf(tag) == -1)
                 shown_tags.push(tag);
 
-        shown_tags.sort();
+        shown_tags.sort((lhs, rhs) => {
+            lhs = lhs.toLowerCase();
+            rhs = rhs.toLowerCase();
+            return lhs.localeCompare(rhs);
+        });
 
         for(var i = 0; i < shown_tags.length; ++i)
         {
