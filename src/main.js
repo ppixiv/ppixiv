@@ -762,7 +762,11 @@ ppixiv.main_controller = class
         if(illust_element)
         {
             result.illust_id = parseInt(illust_element.dataset.illustId);
-            result.page = parseInt(illust_element.dataset.pageIdx || "0");
+
+            // If no page is present, set page to null rather than page 0.  This distinguishes image
+            // search results which don't refer to a specific page from the manga page display.  Don't
+            // use -1 for this, since that's used in some places to mean the last page.
+            result.page = illust_element.dataset.pageIdx == null? null:parseInt(illust_element.dataset.pageIdx);
         }
 
         let user_element = element.closest("[data-user-id]");
