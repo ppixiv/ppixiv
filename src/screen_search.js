@@ -10,11 +10,9 @@ ppixiv.screen_search = class extends ppixiv.screen
         this.thumbs_loaded = this.thumbs_loaded.bind(this);
         this.data_source_updated = this.data_source_updated.bind(this);
         this.onwheel = this.onwheel.bind(this);
-        this.onscroll = this.onscroll.bind(this);
 //        this.onmousemove = this.onmousemove.bind(this);
         this.refresh_thumbnail = this.refresh_thumbnail.bind(this);
         this.refresh_images = this.refresh_images.bind(this);
-        this.window_onresize = this.window_onresize.bind(this);
         this.update_from_settings = this.update_from_settings.bind(this);
         this.thumbnail_onclick = this.thumbnail_onclick.bind(this);
         this.submit_user_search = this.submit_user_search.bind(this);
@@ -23,13 +21,9 @@ ppixiv.screen_search = class extends ppixiv.screen
         this.thumbnail_templates = {};
 
         window.addEventListener("thumbnailsLoaded", this.thumbs_loaded);
-        window.addEventListener("resize", this.window_onresize);
 
         this.container.addEventListener("wheel", this.onwheel, { passive: false });
 //        this.container.addEventListener("mousemove", this.onmousemove);
-
-        this.container.addEventListener("scroll", this.onscroll);
-        window.addEventListener("resize", this.onscroll);
 
         image_data.singleton().user_modified_callbacks.register(this.refresh_ui.bind(this));
 
@@ -183,14 +177,6 @@ ppixiv.screen_search = class extends ppixiv.screen
         }
     }
 
-    window_onresize(e)
-    {
-        if(!this.active)
-            return;
-
-        this.refresh_images();
-    }
-
     refresh_search()
     {
         main_controller.singleton.refresh_current_data_source();
@@ -240,11 +226,6 @@ ppixiv.screen_search = class extends ppixiv.screen
     {
         // Stop event propagation so we don't change images on any viewer underneath the thumbs.
         e.stopPropagation();
-    };
-
-    onscroll(e)
-    {
-        this.load_needed_thumb_data();
     };
 
     initial_refresh_ui()
