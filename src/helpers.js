@@ -2296,12 +2296,20 @@ ppixiv.pointer_listener = class
             if(button == 1)
             {
                 // If this is a right-click press and the user prevented the event, block the context
-                // menu briefly.  There seems to be no other way to do this: cancelling pointerdown
-                // or pointerup don't prevent actions like they should, contextmenu happens afterwards,
-                // and there's no way to know if a contextmenu event is coming other than waiting for
-                // an arbitrary amount of time.
-                if(!is_pressed)
+                // menu when this button is released.
+                if(is_pressed && event.defaultPrevented)
+                    this.block_context_menu_on_release = true;
+
+                // If this is a right-click release and the user prevented the event (or the corresponding
+                // press earlier), block the context menu briefly.  There seems to be no other way to do
+                // this: cancelling pointerdown or pointerup don't prevent actions like they should,
+                // contextmenu happens afterwards, and there's no way to know if a contextmenu event
+                // is coming other than waiting for an arbitrary amount of time.
+                if(!is_pressed && (event.defaultPrevented || this.block_context_menu_on_release))
+                {
+                    this.block_context_menu_on_release = false;
                     this.block_context_menu_until_timer();
+                }
             }
         }
 
