@@ -2250,7 +2250,6 @@ svg.heart-image .delete {
                 border-radius: 3px;
                 border: 2px solid black;
                 display: flex;
-                cursor: pointer;
 
                 &.tab-entry {
                     background-color: #880;
@@ -2268,8 +2267,9 @@ svg.heart-image .delete {
                     }
                 }
 
-                &:not(.self) {
+                &.tab-entry:not(.self) {
                     background-color: var(--ui-bg-section-color);
+                    cursor: pointer;
 
                     filter: brightness(70%);
 
@@ -2287,7 +2287,6 @@ svg.heart-image .delete {
                 // Dim out the tab representing ourself.
                 &.self {
                     background-color: #222 !important;
-                    cursor: inherit;
                     filter: brightness(60%);
                 };
 
