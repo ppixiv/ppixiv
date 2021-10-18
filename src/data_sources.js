@@ -1776,12 +1776,16 @@ class data_source_bookmarks_base extends data_source
     {
         this.fetch_bookmark_tag_counts();
         
-        // Make sure the user info is loaded.  This should normally be preloaded by globalInitData
-        // in main.js, and this won't make a request.
-        var user_info = await image_data.singleton().get_user_info_full(this.viewing_user_id);
+        // Load the user's info.  We don't need to wait for this to finish.
+        let user_info_promise = image_data.singleton().get_user_info_full(this.viewing_user_id);
+        user_info_promise.then((user_info) => {
+            // Stop if we were deactivated before this finished.
+            if(!this.active)
+                return;
 
-        this.user_info = user_info;
-        this.call_update_listeners();
+            this.user_info = user_info;
+            this.call_update_listeners();
+        });
 
         await this.continue_loading_page_internal(page);
     };
