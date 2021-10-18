@@ -413,9 +413,9 @@ ppixiv.screen_search = class extends ppixiv.screen
         bookmarks_link.hidden = user_info == null;
         if(user_info != null)
         {
-            var bookmarks_url = "/users/" + user_info.userId + "/bookmarks/artworks#ppixiv";
+            var bookmarks_url = `/users/${user_info.userId}/bookmarks/artworks#ppixiv`;
             bookmarks_link.href = bookmarks_url;
-            bookmarks_link.dataset.popup = user_info? ("View " + user_info.name + "'s bookmarks"):"View bookmarks";
+            bookmarks_link.dataset.popup = user_info? (`View ${user_info.name}'s bookmarks`):"View bookmarks";
         }
 
         // Set the similar artists link.
@@ -993,9 +993,9 @@ ppixiv.screen_search = class extends ppixiv.screen
 
                 var link = element.querySelector("a.thumbnail-link");
                 if(thumb_type == "user")
-                    link.href = "/users/" + user_id + "#ppixiv";
+                    link.href = `/users/${user_id}/artworks#ppixiv`;
                 else
-                    link.href = "/users/" + user_id + "/bookmarks/artworks#ppixiv";
+                    link.href = `/users/${user_id}/bookmarks/artworks#ppixiv`;
 
                 link.dataset.userId = user_id;
 

@@ -1310,19 +1310,14 @@ class data_source_from_page extends data_source
     }
 };
 
-// There are two ways we can show images for a user: from an illustration page
-// (/artworks/#), or from the user's works page (/users/#).
+// - User illustrations
 //
-// The illustration page is better, since it gives us the ID of every post by the
-// user, so we don't have to fetch them page by page, but we have to know the ID
-// of a post to get to to that.  It's also handy because we can tell where we are
-// in the list from the illustration ID without having to know which page we're on,
-// the page has the user info encoded (so we don't have to request it separately,
-// making loads faster), and if we're going to display a specific illustration, we
-// don't need to request it separately either.
+// /users/# 
+// /users/#/artworks
+// /users/#/illustrations
+// /users/#/manga
 //
-// However, we can only do searching and filtering on the user page, and that's
-// where we land when we load a link to the user.
+// We prefer to link to the /artworks page, but we handle /users/# as well.
 ppixiv.data_sources.artist = class extends data_source
 {
     get name() { return "artist"; }
@@ -1333,6 +1328,8 @@ ppixiv.data_sources.artist = class extends data_source
 
         this.fanbox_url = null;
     }
+
+    get supports_start_page() { return true; }
 
     get viewing_user_id()
     {
