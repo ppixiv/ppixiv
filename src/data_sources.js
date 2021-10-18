@@ -1898,6 +1898,16 @@ class data_source_bookmarks_base extends data_source
         };
     }
 
+    async request_bookmarks(page, rest)
+    {
+        let data = this.get_bookmark_query_params(page, rest);
+        let url = `/ajax/user/${this.viewing_user_id}/illusts/bookmarks`;
+        let result = await helpers.get_request(url, data);
+        result.body.works = data_source_bookmarks_base.filter_deleted_images(result.body.works);
+
+        return result.body;
+    }
+
     // This is implemented by the subclass to do the main loading.
     async continue_loading_page_internal(page)
     {
@@ -2113,23 +2123,21 @@ ppixiv.data_sources.bookmarks = class extends data_source_bookmarks_base
     {
         var data = this.get_bookmark_query_params(page);
 
-        var url = "/ajax/user/" + this.viewing_user_id + "/illusts/bookmarks";
-        var result = await helpers.get_request(url, data);
-        result.body.works = data_source_bookmarks_base.filter_deleted_images(result.body.works);
+        let result = await this.request_bookmarks(page, null);
 
         var illust_ids = [];
-        for(var illust_data of result.body.works)
+        for(let illust_data of result.works)
             illust_ids.push(illust_data.id);
 
         // This request returns all of the thumbnail data we need.  Forward it to
         // thumbnail_data so we don't need to look it up.
-        thumbnail_data.singleton().loaded_thumbnail_info(result.body.works, "normal");
+        thumbnail_data.singleton().loaded_thumbnail_info(result.works, "normal");
 
         // Register the new page of data.
         this.add_page(page, illust_ids);
 
         // Remember the total count, for display.
-        this.total_bookmarks = result.body.total;
+        this.total_bookmarks = result.total;
     }
 };
 
@@ -2153,8 +2161,8 @@ ppixiv.data_sources.bookmarks_merged = class extends data_source_bookmarks_base
     {
         // Request both the public and private bookmarks on the given page.  If we've
         // already reached the end of either of them, don't send that request.
-        var request1 = this.request_bookmarks(page, "show");
-        var request2 = this.request_bookmarks(page, "hide");
+        let request1 = this.request_bookmark_type(page, "show");
+        let request2 = this.request_bookmark_type(page, "hide");
 
         // Wait for both requests to finish.
         await Promise.all([request1, request2]);
@@ -2172,7 +2180,7 @@ ppixiv.data_sources.bookmarks_merged = class extends data_source_bookmarks_base
         this.total_bookmarks = this.bookmark_totals[0] + this.bookmark_totals[1];
     }
 
-    async request_bookmarks(page, rest)
+    async request_bookmark_type(page, rest)
     {
         var is_private = rest == "hide"? 1:0;
         var max_page = this.max_page_per_type[is_private];
@@ -2183,25 +2191,21 @@ ppixiv.data_sources.bookmarks_merged = class extends data_source_bookmarks_base
             return;
         }
 
-        var data = this.get_bookmark_query_params(page, rest);
-
-        var url = "/ajax/user/" + this.viewing_user_id + "/illusts/bookmarks";
-        var result = await helpers.get_request(url, data);
-        result.body.works = data_source_bookmarks_base.filter_deleted_images(result.body.works);
+        let result = await this.request_bookmarks(page, rest);
 
         // Put higher (newer) bookmarks first.
-        result.body.works.sort(function(lhs, rhs)
+        result.works.sort(function(lhs, rhs)
         {
             return parseInt(rhs.bookmarkData.id) - parseInt(lhs.bookmarkData.id);
         });
 
         var illust_ids = [];
-        for(var illust_data of result.body.works)
+        for(let illust_data of result.works)
             illust_ids.push(illust_data.id);
 
         // This request returns all of the thumbnail data we need.  Forward it to
         // thumbnail_data so we don't need to look it up.
-        thumbnail_data.singleton().loaded_thumbnail_info(result.body.works, "normal");
+        thumbnail_data.singleton().loaded_thumbnail_info(result.works, "normal");
 
         // If there are no results, remember that this is the last page, so we don't
         // make more requests for this type.
@@ -2218,7 +2222,7 @@ ppixiv.data_sources.bookmarks_merged = class extends data_source_bookmarks_base
         this.bookmark_illust_ids[is_private][page] = illust_ids;
 
         // Remember the total count, for display.
-        this.bookmark_totals[is_private] = result.body.total;
+        this.bookmark_totals[is_private] = result.total;
     }
 }
 
