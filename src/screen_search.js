@@ -155,6 +155,8 @@ ppixiv.screen_search = class extends ppixiv.screen
         this.refresh_whats_new_button();
     }
 
+    // This is called as the user scrolls and different thumbs are fully onscreen,
+    // to update the page URL.
     first_visible_thumbs_changed()
     {
         // Find the first thumb that's fully onscreen.
@@ -880,23 +882,32 @@ ppixiv.screen_search = class extends ppixiv.screen
         if(a.classList.contains("load-first-page-link"))
             return;
 
-        // See if this link is for this data source, one page before the current start page.
-        let args = helpers.args.location;
-        let page = this.data_source.get_start_page(args);
-        this.data_source.set_start_page(args, page-1);
-        let previous_page_url = args.url.toString();
-        let clicked_url = new URL(e.target.href, ppixiv.location).toString();
+        if(a.classList.contains("load-previous-page-link"))
+        {
+            let page = this.data_source.id_list.get_lowest_loaded_page() - 1;
+            this.load_page(page);
 
-        // console.log("Previous page:", previous_page_url);
-        // console.log("Clicked:", clicked_url);
-        if(clicked_url.toString() != previous_page_url.toString())
-            return;
+            e.preventDefault();
+            e.stopImmediatePropagation();
+        }
+    }
 
-        e.preventDefault();
-        e.stopImmediatePropagation();
-
-        console.log("Loading previous page:", page-1);
-        await this.data_source.load_page(page-1, { cause: "previous page" });
+    // See if we can load page in-place.  Return true if we were able to, and the click that
+    // requested it should be cancelled, or false if we can't and it should be handled as a
+    // regular navigation.
+    async load_page(page)
+    {
+        // We can only add pages that are immediately before or after the pages we currently have.
+        let min_page = this.data_source.id_list.get_lowest_loaded_page();
+        let max_page = this.data_source.id_list.get_highest_loaded_page();
+        if(page < min_page-1)
+            return false;
+        if(page > max_page+1)
+            return false;
+        
+        console.log("Loading page:", page);
+        await this.data_source.load_page(page, { cause: "previous page" });
+        return true;
     }
 
     update_from_settings()
@@ -998,21 +1009,6 @@ ppixiv.screen_search = class extends ppixiv.screen
                 continue;
             }
 
-            if(illust_id == "special:previous-page")
-            {
-                // Set the link for the first page and previous page buttons.  Most of the time this is handled
-                // by our in-page click handler.
-                let args = helpers.args.location;
-                let page = this.data_source.get_start_page(args);
-                this.data_source.set_start_page(args, page-1);
-                element.querySelector("a.load-previous-page-link").href = args.url;
-
-                this.data_source.set_start_page(args, 1);
-                element.querySelector("a.load-first-page-link").href = args.url;
-
-                continue;
-            }
-
             if(thumb_type != "illust")
                 throw "Unexpected thumb type: " + thumb_type;
 
@@ -1096,6 +1092,28 @@ ppixiv.screen_search = class extends ppixiv.screen
                 label.hidden = true;
             }
         }        
+
+        if(this.data_source != null)
+        {
+            // Set the link for the first page and previous page buttons.  Most of the time this is handled
+            // by our in-page click handler.
+            let page = this.data_source.get_start_page(helpers.args.location);
+            let previous_page_link = this.container.querySelector("a.load-previous-page-link");
+            if(previous_page_link)
+            {
+                let args = helpers.args.location;
+                this.data_source.set_start_page(args, page-1);
+                previous_page_link.href = args.url;
+            }
+
+            let first_page_link = this.container.querySelector("a.load-first-page-link");
+            if(first_page_link)
+            {
+                let args = helpers.args.location;
+                this.data_source.set_start_page(args, 1);
+                first_page_link.href = args.url;
+            }
+        }
     }
 
     // Refresh the thumbnail for illust_id.
