@@ -1796,7 +1796,8 @@ class data_source_bookmarks_base extends data_source
 
     get supports_start_page()
     {
-        return true;
+        // Disable start pages when we're shuffling pages anyway.
+        return !this.shuffle;
     }
 
     get displaying_tag()
