@@ -83,11 +83,13 @@ ppixiv.tag_translations = class
 
             // Store the tag data that we care about.  We don't need to store post-specific info
             // like "deletable".
-            data[tag.tag] = {
+            let tag_info = {
                 tag: tag.tag,
                 translation: translation,
-                romaji: tag.romaji,
             };
+            if(tag.romaji)
+                tag_info.romaji = tag.romaji;
+            data[tag.tag] = tag_info;
         }
 
         // Batch write:
