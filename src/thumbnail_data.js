@@ -406,7 +406,15 @@ ppixiv.thumbnail_data = class
                 profileImageUrl: user_data.profileImageUrl,
             };
         }
-        else if(source == "recommendations" || source == "users_bookmarking_illust" || source == "user_search")
+        else if(source == "recommendations")
+        {
+            data = {
+                userId: user_data.userId,
+                userName: user_data.name,
+                profileImageUrl: user_data.imageBig,
+            };
+        }
+        else if(source == "users_bookmarking_illust" || source == "user_search")
         {
             data = {
                 userId: user_data.user_id,

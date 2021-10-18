@@ -17,6 +17,40 @@ ppixiv.tag_translations = class
 
     // Store a list of tag translations.
     // 
+    // tag_list is a dictionary:
+    // {
+    //     original_tag: {
+    //         en: "english tag",
+    //     }
+    // }
+    async add_translations_dict(tags)
+    {
+        let translations = [];
+        for(let tag of Object.keys(tags))
+        {
+            let tag_info = tags[tag];
+            let tag_translation = {};
+            for(let lang of Object.keys(tag_info))
+            {
+                if(tag_info[lang] == "")
+                    continue;
+                tag_translation[lang] = tag_info[lang];
+            }
+
+            if(Object.keys(tag_translation).length > 0)
+            {
+                translations.push({
+                    tag: tag,
+                    translation: tag_translation,
+                });
+            }
+        }
+
+        this.add_translations(translations);
+    }
+    
+    // Store a list of tag translations.
+    // 
     // tag_list is a list of
     // {
     //     tag: "original tag",

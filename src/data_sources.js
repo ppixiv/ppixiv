@@ -838,42 +838,26 @@ ppixiv.data_sources.discovery_users = class extends data_source
 {
     get name() { return "discovery_users"; }
 
-    // The constructor receives the original HTMLDocument.
-    constructor(url, doc)
+    constructor(url)
     {
         super(url);
 
         let args = new helpers.args(this.url);
         let user_id = args.hash.get("user_id");
         if(user_id != null)
-        {
             this.showing_user_id = user_id;
-            this.sample_user_ids = [user_id]
-        }
-        else
-            this.sample_user_ids = null;
-        this.original_doc = doc;
+
         this.original_url = url;
         this.seen_user_ids = {};
     }
 
-    // Return true if the two URLs refer to the same data.
-    is_same_page(url1, url2)
+    get users_per_page() { return 20; }
+    get estimated_items_per_page()
     {
-        var cleanup_url = (url) =>
-        {
-            var url = new URL(url);
-
-            // The hash doesn't affect the page that we load.
-            url.hash = "";
-            return url.toString();
-        };
-
-        var url1 = cleanup_url(url1);
-        var url2 = cleanup_url(url2);
-        return url1 == url2;
+        let illusts_per_user = this.showing_user_id != null? 3:5;
+        return this.users_per_page + (users_per_page * illusts_per_user);
     }
-
+    
     async load_page_internal(page)
     {
         if(this.showing_user_id != null)
@@ -885,96 +869,75 @@ ppixiv.data_sources.discovery_users = class extends data_source
             this.call_update_listeners();
         }
  
-        // Find the sample user IDs we need to request suggestions.
-        await this.load_sample_user_ids();
-
-        var data = {
-            mode: "get_recommend_users_and_works_by_user_ids",
-            user_ids: this.sample_user_ids.join(","),
-            user_num: 30,
-            work_num: 5,
-        };
-
         // Get suggestions.  Each entry is a user, and contains info about a small selection of
         // images.
-        var result = await helpers.get_request("/rpc/index.php", data);
+        let result;
+        if(this.showing_user_id != null)
+        {
+            result = await helpers.get_request(`/ajax/user/${this.showing_user_id}/recommends`, {
+                userNum: this.users_per_page,
+                workNum: 3,
+                isR18: true,
+                lang: "en"
+            });
+        } else {
+            result = await helpers.get_request("/ajax/discovery/users", {
+                limit: this.users_per_page,
+                lang: "en",
+            });
+
+            // This one includes tag translations.
+            tag_translations.get().add_translations_dict(result.body.tagTranslation);
+        }
+
         if(result.error)
             throw "Error reading suggestions: " + result.message;
 
-        // Convert the images into thumbnail_info.  Like everything else, this is returned in a format
-        // slightly different from the other APIs that it's similar to.
+        thumbnail_data.singleton().loaded_thumbnail_info(result.body.thumbnails.illust, "normal");
+
+        for(let user of result.body.users)
+        {
+            image_data.singleton().add_user_data(user);
+
+            // Register this as quick user data, for use in thumbnails.
+            thumbnail_data.singleton().add_quick_user_data(user, "recommendations");
+        }
+
+        // Pixiv's motto: "never do the same thing the same way twice"
+        // ajax/user/#/recommends is body.recommendUsers and user.illustIds.
+        // discovery/users is body.recommendedUsers and user.recentIllustIds.
+        let recommended_users = result.body.recommendUsers || result.body.recommendedUsers;
         let illust_ids = [];
-        for(let user of result.body)
+        for(let user of recommended_users)
         {
             // Each time we load a "page", we're actually just getting a new randomized set of recommendations
             // for our seed, so we'll often get duplicate results.  Ignore users that we've seen already.  id_list
             // will remove dupes, but we might get different sample illustrations for a duplicated artist, and
             // those wouldn't be removed.
-            if(this.seen_user_ids[user.user_id])
+            if(this.seen_user_ids[user.userId])
                 continue;
-            this.seen_user_ids[user.user_id] = true;
+            this.seen_user_ids[user.userId] = true;
 
-            // Register this as quick user data, for use in thumbnails.
-            thumbnail_data.singleton().add_quick_user_data(user, "recommendations");
-
-            illust_ids.push("user:" + user.user_id);
-
-            for(let illust_data of user.illusts)
-                illust_ids.push(illust_data.illust_id);
+            illust_ids.push("user:" + user.userId);
+            
+            let illustIds = user.illustIds || user.recentIllustIds;
+            for(let illust_id of illustIds)
+                illust_ids.push(illust_id);
         }
 
         // Register the new page of data.
         this.add_page(page, illust_ids);
     }
 
-    // Read /discovery/users and set sample_user_ids from userRecommendSampleUser.
-    async load_sample_user_ids()
+    load_page_available(page)
     {
-        if(this.sample_user_ids)
-            return;
+        // If we're showing similar users, only show one page, since the API returns the
+        // same thing every time.
+        if(this.showing_user_id)
+            return page == 1;
 
-        // Work around a browser issue: loading an iframe with the same URL as the current page doesn't
-        // work.  (This might have made sense once upon a time when it would always recurse, but today
-        // this doesn't make sense.)  Just add a dummy query to the URL to make sure it's different.
-        //
-        // This usually doesn't happen, since we'll normally use this.original_doc if we're reading
-        // the same page.  Skip it if it's not needed, so we don't throw weird URLs at the site if
-        // we don't have to.
-        var url = new unsafeWindow.URL(this.original_url);
-
-        // If the underlying page isn't /discovery/users, load it in an iframe to get some data.
-        let doc = this.original_doc;
-        if(this.original_doc == null || !this.is_same_page(url, this.original_url))
-        {
-            console.log("Loading:", url.toString());
-            doc = await helpers.load_data_in_iframe(url.toString());
-        }
-
-        // Look for:
-        //
-        // <script>pixiv.context.userRecommendSampleUser = "id,id,id,...";</script>
-        let sample_user_script = null;
-        for(let script of doc.querySelectorAll("script"))
-        {
-            let text = script.innerText;
-            if(!text.startsWith("pixiv.context.userRecommendSampleUser"))
-                continue;
-
-            sample_user_script = script.innerText;
-            break;
-        }
-
-        if(sample_user_script == null)
-            throw "Couldn't find userRecommendSampleUser";
-
-        // Pull out the list, and turn it into a JSON array to parse it.
-        let match = sample_user_script.match(/pixiv.context.userRecommendSampleUser = "(.*)";/);
-        if(match == null)
-            throw "Couldn't parse userRecommendSampleUser: " + sample_user_scripts;
-
-        this.sample_user_ids = JSON.parse("[" + match[1] + "]");
-        console.log("Sample user IDs:", this.sample_user_ids);
-     }
+        return true;
+    }
 
     get estimated_items_per_page() { return 30; }
     get page_title()
@@ -987,7 +950,6 @@ ppixiv.data_sources.discovery_users = class extends data_source
         else
             return "Loading...";
     }
-
     
     get_displaying_text()
     {
@@ -2470,15 +2432,7 @@ ppixiv.data_sources.bookmarks_new_illust = class extends data_source
         let data = result.body;
 
         // Add translations.
-        let translations = [];
-        for(let tag of Object.keys(data.tagTranslation))
-        {
-            translations.push({
-                tag: tag,
-                translation: data.tagTranslation[tag],
-            });
-        }
-        tag_translations.get().add_translations(translations);
+        tag_translations.get().add_translations_dict(data.tagTranslation);
 
         // Store bookmark tags.
         this.bookmark_tags = data.page.tags;
