@@ -291,7 +291,7 @@ ppixiv.main_controller = class
         };
 
         // Create the data source for this page.
-        this.set_current_data_source(html, "initialization");
+        this.set_current_data_source("initialization");
     };
 
     window_onpopstate(e)
@@ -305,7 +305,7 @@ ppixiv.main_controller = class
         }
 
         // Set the current data source and state.
-        this.set_current_data_source(null, e.navigationCause || "history");
+        this.set_current_data_source(e.navigationCause || "history");
     }
 
     async refresh_current_data_source()
@@ -317,19 +317,14 @@ ppixiv.main_controller = class
         // This returns the data source, but just call set_current_data_source so
         // we load the new one.
         console.log("Refreshing data source for", ppixiv.location.toString());
-        page_manager.singleton().create_data_source_for_url(ppixiv.location, null, true);
-        await this.set_current_data_source(null, "refresh");
+        page_manager.singleton().create_data_source_for_url(ppixiv.location, true);
+        await this.set_current_data_source("refresh");
     }
 
     // Create a data source for the current URL and activate it.
     //
     // This is called on startup, and in onpopstate where we might be changing data sources.
-    //
-    // If this is on startup, html is the HTML elements on the page to pass to the data source
-    // to preload the first page.  On navigation, html is null.  If we navigate to a page that
-    // can load the first page from the HTML page, we won't load the HTML and we'll just allow
-    // the first page to load like any other page.
-    async set_current_data_source(html, cause)
+    async set_current_data_source(cause)
     {
         // Remember what we were displaying before we start changing things.
         var old_screen = this.screens[this.current_screen_name];
@@ -338,7 +333,7 @@ ppixiv.main_controller = class
 
         // Get the current data source.  If we've already created it, this will just return
         // the same object and not create a new one.
-        let data_source = page_manager.singleton().create_data_source_for_url(ppixiv.location, html);
+        let data_source = page_manager.singleton().create_data_source_for_url(ppixiv.location);
 
         // If the data source supports_start_page, and a link was clicked on a page that isn't currently
         // loaded, create a new data source.  If we're on page 5 of bookmarks and the user clicks a link
@@ -359,7 +354,7 @@ ppixiv.main_controller = class
             {
                 // This works the same as refresh_current_data_source above.
                 console.log("Resetting data source to an unavailable page:", lowest_page, wanted_page, highest_page);
-                data_source = page_manager.singleton().create_data_source_for_url(ppixiv.location, null, true);
+                data_source = page_manager.singleton().create_data_source_for_url(ppixiv.location, true);
             }
         }
 

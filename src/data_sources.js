@@ -1264,40 +1264,15 @@ ppixiv.data_sources.rankings = class extends data_source
 // modify the URL appropriately.
 class data_source_from_page extends data_source
 {
-    // The constructor receives the original HTMLDocument.
-    constructor(url, doc)
+    constructor(url)
     {
         super(url);
-        if(url == null)
-            throw "url can't be null";
 
-        this.original_doc = doc;
         this.items_per_page = 1;
-
-        // Remember the URL that original_doc came from.
         this.original_url = url;
     }
 
-    // Return true if the two URLs refer to the same data.
-    is_same_page(url1, url2)
-    {
-        var cleanup_url = (url) =>
-        {
-            var url = new URL(url);
-
-            // p=1 and no page at all is the same.  Remove p=1 so they compare the same.
-            if(url.searchParams.get("p") == "1")
-                url.searchParams.delete("p");
-
-            // The hash doesn't affect the page that we load.
-            url.hash = "";
-            return url.toString();
-        };
-
-        var url1 = cleanup_url(url1);
-        var url2 = cleanup_url(url2);
-        return url1 == url2;
-    }
+    get estimated_items_per_page() { return this.items_per_page; }
 
     async load_page_internal(page)
     {
@@ -1306,43 +1281,21 @@ class data_source_from_page extends data_source
         // https://www.pixiv.net/bookmark.php?p=2
         //
         // possibly with other search options.  Request the current URL page data.
-        var url = new unsafeWindow.URL(this.original_url);
+        var url = new unsafeWindow.URL(this.url);
 
         // Update the URL with the current page.
-        var params = url.searchParams;
-        params.set("p", page);
-
-        if(this.original_doc != null && this.is_same_page(url, this.original_url))
-        {
-            this.finished_loading_illust(page, this.original_doc);
-            return true;
-        }
-
-        url.search = params.toString();
+        url.searchParams.set("p", page);
 
         console.log("Loading:", url.toString());
 
-        var doc = await helpers.load_data_in_iframe(url.toString());
-        this.finished_loading_illust(page, doc);
-    };
+        let doc = await helpers.load_data_in_iframe(url);
 
-    get estimated_items_per_page() { return this.items_per_page; }
-
-    // We finished loading a page.  Parse it and register the results.
-    finished_loading_illust(page, doc)
-    {
-        var illust_ids = this.parse_document(doc);
+        let illust_ids = this.parse_document(doc);
         if(illust_ids == null)
         {
             // The most common case of there being no data in the document is loading
             // a deleted illustration.  See if we can find an error message.
             console.error("No data on page");
-            var error = doc.querySelector(".error-message");
-            var error_message = "Error loading page";
-            if(error != null)
-                error_message = error.textContent;
-            message_widget.singleton.show(error_message);
-            message_widget.singleton.clear_timer();
             return;
         }
 
@@ -1723,7 +1676,6 @@ ppixiv.data_sources.current_illust = class extends data_source
 {
     get name() { return "illust"; }
 
-    // The constructor receives the original HTMLDocument.
     constructor(url)
     {
         super(url);
@@ -2508,9 +2460,9 @@ ppixiv.data_sources.search = class extends data_source
 {
     get name() { return "search"; }
 
-    constructor(url, doc)
+    constructor(url)
     {
-        super(url, doc);
+        super(url);
 
         this.cache_search_title = this.cache_search_title.bind(this);
 

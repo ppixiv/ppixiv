@@ -132,7 +132,7 @@ ppixiv.page_manager = class
     //
     // If force is true, we'll always create a new data source, replacing any
     // previously created one.
-    create_data_source_for_url(url, doc, force)
+    create_data_source_for_url(url, force)
     {
         var data_source_class = this.get_data_source_for_url(url);
         if(data_source_class == null)
@@ -152,7 +152,7 @@ ppixiv.page_manager = class
         }
         
         // console.log("Creating new data source for", url.toString());
-        var source = new data_source_class(url.href, doc);
+        var source = new data_source_class(url.href);
         this.data_sources_by_canonical_url[canonical_url] = source;
         return source;
     }
