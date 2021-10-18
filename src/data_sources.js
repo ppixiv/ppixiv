@@ -1773,9 +1773,6 @@ class data_source_bookmarks_base extends data_source
         this.total_bookmarks = -1;
     }
 
-    // Return the bookmark types we're showing: "public", "private" or "both".
-    get public_search_mode() { throw "Not implemented"; }
-
     async load_page_internal(page)
     {
         this.fetch_bookmark_tag_counts();
@@ -1822,37 +1819,65 @@ class data_source_bookmarks_base extends data_source
             return;
         this.fetched_bookmark_tag_counts = true;
 
+        // If we have cached bookmark counts for ourself, load them.
+        if(this.viewing_own_bookmarks() && data_source_bookmarks_base.cached_bookmark_tag_counts != null)
+            this.load_bookmark_tag_counts(data_source_bookmarks_base.cached_bookmark_tag_counts);
+        
         // Fetch bookmark tags.  We can do this in parallel with everything else.
         var url = "https://www.pixiv.net/ajax/user/" + this.viewing_user_id + "/illusts/bookmark/tags";
         var result = await helpers.get_request(url, {});
 
-        let search_mode = this.public_search_mode;
-        
+        // Cache this if we're viewing our own bookmarks, so we can display them while
+        // navigating bookmarks.  We'll still refresh it as each page loads.
+        if(this.viewing_own_bookmarks())
+            data_source_bookmarks_base.cached_bookmark_tag_counts = result.body;
+
+        this.load_bookmark_tag_counts(result.body);
+    }
+
+    load_bookmark_tag_counts(result)
+    {
+        let public_bookmarks = this.viewing_public;
+        let private_bookmarks = this.viewing_private;
+
         // Reformat the tag list into a format that's easier to work with.
         let tags = { };
-        let add_tag = (tag, public_tag) =>
+        for(let privacy of ["public", "private"])
         {
-            // Rename "未分類" (uncategorized) to "".
-            if(tag.tag == "未分類")
-                tag.tag = "";
+            let public_tags = privacy == "public";
+            if((public_tags && !public_bookmarks) ||
+              (!public_tags && !private_bookmarks))
+                continue;
 
-            if(tags[tag.tag] == null)
-                tags[tag.tag] = 0;
+            let tag_counts = result[privacy];
+            for(let tag_info of tag_counts)
+            {
+                let tag = tag_info.tag;
 
-            // Add to the tag count.
-            let tag_count = parseInt(bookmark_tag.cnt);
-            if(search_mode == "public" && public_tag)
-                tags[tag.tag] += tag_count;
-            if(search_mode == "private" && !public_tag)
-                tags[tag.tag] += tag_count;
-            if(search_mode == "both")
-                tags[tag.tag] += tag_count;
-        };
+                // Rename "未分類" (uncategorized) to "".
+                if(tag == "未分類")
+                    tag = "";
+                
+                if(tags[tag] == null)
+                    tags[tag] = 0;
 
-        for(var bookmark_tag of result.body.public)
-            add_tag(bookmark_tag, true);
-        for(var bookmark_tag of result.body.private)
-            add_tag(bookmark_tag, false);
+                // Add to the tag count.
+                tags[tag] += tag_info.cnt;
+            }
+        }
+
+        // Fill in total_bookmarks from the tag count.  We'll get this from the search API,
+        // but we can have it here earlier if we're viewing our own bookmarks and
+        // cached_bookmark_tag_counts is filled in.  We can't do this when viewing all bookmarks
+        // (summing the counts will give the wrong answer whenever multiple tags are used on
+        // one bookmark).
+        let displaying_tag = this.displaying_tag;
+        if(displaying_tag != null && this.total_bookmarks == -1)
+        {
+            let count = tags[displaying_tag];
+            if(count != null)
+                this.total_bookmarks = count;
+        }
 
         // Sort tags by count, so we can trim just the most used tags.  Use the count for the
         // display mode we're in.
@@ -1942,13 +1967,15 @@ class data_source_bookmarks_base extends data_source
         }
 
         let args = new helpers.args(this.url);
-        let private_bookmarks = args.query.get("rest") == "hide";
+        let public_bookmarks = this.viewing_public;
+        let private_bookmarks = this.viewing_private;
+        let viewing_all = public_bookmarks && private_bookmarks;
         var displaying = "";
 
         if(this.total_bookmarks != -1)
             displaying += this.total_bookmarks + " ";
 
-        displaying += this.viewing_all_bookmarks? "Bookmark":
+        displaying += viewing_all? "Bookmark":
             private_bookmarks? "Private Bookmark":"Public Bookmark";
 
         // English-centric pluralization:
@@ -1964,7 +1991,19 @@ class data_source_bookmarks_base extends data_source
         return displaying;
     };
 
-    get viewing_all_bookmarks() { return false; }
+    // Return true if we're viewing publig and private bookmarks.  These are overridden
+    // in bookmarks_merged.
+    get viewing_public()
+    {
+        let args = new helpers.args(this.url);
+        return args.query.get("rest") != "hide";
+    }
+
+    get viewing_private()
+    {
+        let args = new helpers.args(this.url);
+        return args.query.get("rest") == "hide";
+    }
 
     refresh_thumbnail_ui(container, thumbnail_view)
     {
@@ -2069,25 +2108,11 @@ class data_source_bookmarks_base extends data_source
 
     get viewing_user_id()
     {
-        if(helpers.get_path_part(this.url, 0) == "users")
-        {
-            // New URLs (/users/13245/bookmarks)
-            //
-            // This is currently only used for viewing other people's bookmarks.  Your own bookmarks are still
-            // viewed with /bookmark.php with no ID.
-            return helpers.get_path_part(this.url, 1);
-        }
-        else
-        {
-            // Old URLs (/bookmark.php?id=12345)
-            // If there's no user ID in the URL, view our own bookmarks.
-            var query_args = this.url.searchParams;
-            var user_id = query_args.get("id");
-            if(user_id == null)
-                return window.global_data.user_id;
-            
-            return query_args.get("id");
-        }
+        // /users/13245/bookmarks
+        //
+        // This is currently only used for viewing other people's bookmarks.  Your own bookmarks are still
+        // viewed with /bookmark.php with no ID.
+        return helpers.get_path_part(this.url, 1);
     };
 
     // Return true if we're viewing our own bookmarks.
@@ -2127,12 +2152,6 @@ class data_source_bookmarks_base extends data_source
 // and not both.
 ppixiv.data_sources.bookmarks = class extends data_source_bookmarks_base
 {
-    get public_search_mode()
-    {
-        let rest = this.url.searchParams.get("rest") || "show";
-        return rest == "show"? "public":"private";
-    }
-
     get shuffle()
     {
         let args = new helpers.args(this.url);
@@ -2194,8 +2213,8 @@ ppixiv.data_sources.bookmarks = class extends data_source_bookmarks_base
 // and merges them together.
 ppixiv.data_sources.bookmarks_merged = class extends data_source_bookmarks_base
 {
-    get viewing_all_bookmarks() { return true; }
-    get public_search_mode() { return "both"; }
+    get viewing_public() { return true; }
+    get viewing_private() { return true; }
 
     constructor(url)
     {
