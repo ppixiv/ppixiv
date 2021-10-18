@@ -1967,10 +1967,20 @@ class data_source_bookmarks_base extends data_source
         var public_private_button_container = container.querySelector(".bookmarks-public-private");
         public_private_button_container.hidden = !this.viewing_own_bookmarks();
 
-        // Set up the public and private buttons.
-        this.set_item(public_private_button_container, "all", {"#show-all": 1}, {"#show-all": 1});
+        // Set up the public and private buttons.  The "all" button also removes shuffle, since it's not
+        // supported there.
+        this.set_item(public_private_button_container, "all", {"#show-all": 1, "#shuffle": null}, {"#show-all": 1});
         this.set_item(container, "public", {rest: null, "#show-all": 0}, {"#show-all": 1});
         this.set_item(container, "private", {rest: "hide", "#show-all": 0}, {"#show-all": 1});
+
+        // Shuffle isn't supported for merged bookmarks.  If we're on #show-all, make the shuffle button
+        // also switch to public bookmarks.  This is easier than graying it out and trying to explain it
+        // in the popup, and better than hiding it which makes it hard to find.
+        let args = new helpers.args(this.url);
+        let show_all = args.hash.get("show-all") != "0";
+        let set_public = show_all? { rest: null, "#show-all": 0 }:{};
+        this.set_item(container, "order-date", {"#shuffle": null}, {"#shuffle": null});
+        this.set_item(container, "order-shuffle", {"#shuffle": 1, ...set_public}, {"#shuffle": null, "#show-all": 1});
 
         // Refresh the bookmark tag list.  Remove the page number from these buttons.
         let current_url = new URL(this.url);
@@ -2114,26 +2124,60 @@ ppixiv.data_sources.bookmarks = class extends data_source_bookmarks_base
 {
     get public_search_mode()
     {
-        var query_args = this.url.searchParams;
-        var rest = query_args.get("rest") || "show";
+        let rest = this.url.searchParams.get("rest") || "show";
         return rest == "show"? "public":"private";
+    }
+
+    get shuffle()
+    {
+        let args = new helpers.args(this.url);
+        return args.hash.has("shuffle");
     }
 
     async continue_loading_page_internal(page)
     {
-        var data = this.get_bookmark_query_params(page);
+        let page_to_load = page;
+        if(this.shuffle)
+        {
+            // We need to know the number of pages in order to shuffle, so load the first page.
+            // This is why we don't support this for merged bookmark loading: we'd need to load
+            // both first pages, then both first shuffled pages, so we'd be making four bookmark
+            // requests all at once.
+            if(this.total_shuffled_bookmarks == null)
+            {
+                let result = await this.request_bookmarks(1, null);
 
-        let result = await this.request_bookmarks(page, null);
+                this.total_shuffled_bookmarks = result.total;
+                this.total_pages = Math.ceil(this.total_shuffled_bookmarks / this.estimated_items_per_page);
+
+                // Create a shuffled page list.
+                this.shuffled_pages = [];
+                for(let p = 1; p <= this.total_pages; ++p)
+                    this.shuffled_pages.push(p);
+
+                helpers.shuffle_array(this.shuffled_pages);
+            }
+
+            if(page < this.shuffled_pages.length)
+                page_to_load = this.shuffled_pages[page];
+        }
+
+        let result = await this.request_bookmarks(page_to_load, null);
 
         var illust_ids = [];
         for(let illust_data of result.works)
             illust_ids.push(illust_data.id);
 
+        // If we're shuffling, shuffle the individual illustrations too.
+        if(this.shuffle)
+            helpers.shuffle_array(illust_ids);
+        
         // This request returns all of the thumbnail data we need.  Forward it to
         // thumbnail_data so we don't need to look it up.
         thumbnail_data.singleton().loaded_thumbnail_info(result.works, "normal");
 
-        // Register the new page of data.
+        // Register the new page of data.  If we're shuffling, use the original page number, not the
+        // shuffled page.
         this.add_page(page, illust_ids);
 
         // Remember the total count, for display.

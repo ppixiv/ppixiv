@@ -1689,6 +1689,15 @@ ppixiv.helpers = {
         for(let i = 10; i < 16; ++i) result += data[i].toString(16).padStart(2, "0");
         return result;
     },
+
+    shuffle_array(array)
+    {
+        for(let idx = 0; idx < array.length; ++idx)
+        {
+            let swap_with = Math.floor(Math.random() * array.length);
+            [array[idx], array[swap_with]] = [array[swap_with], array[idx]];
+        }
+    },
 };
 
 // Handle maintaining and calling a list of callbacks.

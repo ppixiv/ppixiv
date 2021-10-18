@@ -244,10 +244,18 @@
                 </div>
                  
                 <div class="data-source-specific" data-datasource=bookmarks>
-                    <div class=bookmarks-public-private>
-                        <a class="box-link popup" data-type=all data-popup="Show all bookmarks" href=#>All</a>
-                        <a class="box-link popup" data-type=public data-popup="Show public bookmarks" href=#>Public</a>
-                        <a class="box-link popup" data-type=private data-popup="Show private bookmarks" href=#>Private</a>
+                    <div>
+                        <!-- These are hidden if you're viewing somebody else's bookmarks. -->
+                        <span class=bookmarks-public-private style="margin-right: 25px;">
+                            <a class="box-link popup" data-type=all data-popup="Show all bookmarks" href=#>All</a>
+                            <a class="box-link popup" data-type=public data-popup="Show public bookmarks" href=#>Public</a>
+                            <a class="box-link popup" data-type=private data-popup="Show private bookmarks" href=#>Private</a>
+                        </span>
+
+                        <span class=bookmarks-shuffle>
+                            <a class="box-link popup" data-type=order-date data-popup="Show newest bookmarks first" href=#>Newest</a>
+                            <a class="box-link popup" data-type=order-shuffle data-popup="Show in random order" href=#>Shuffle</a>
+                        </span>
                     </div>
                 </div>                
 
