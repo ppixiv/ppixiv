@@ -130,7 +130,8 @@ ppixiv.screen_search = class extends ppixiv.screen
             for(let entry of entries)
                 helpers.set_dataset(entry.target.dataset, "fullyOnScreen", entry.isIntersecting);
 
-            this.visible_thumbs_changed();
+            this.load_needed_thumb_data();
+            this.first_visible_thumbs_changed();
         }, {
             root: this.container,
             threshold: 1,
@@ -144,16 +145,6 @@ ppixiv.screen_search = class extends ppixiv.screen
         }, {
             root: this.container,
             rootMargin: "50%",
-        }));
-
-        this.intersection_observers.push(new IntersectionObserver((entries) => {
-            for(let entry of entries)
-                helpers.set_dataset(entry.target.dataset, "fartherAway", entry.isIntersecting);
-
-            this.load_needed_thumb_data();
-        }, {
-            root: this.container,
-            rootMargin: "150%",
         }));
 
         /*
@@ -172,8 +163,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         this.refresh_whats_new_button();
     }
 
-    // The thumbnails visible on screen have changed.
-    visible_thumbs_changed()
+    first_visible_thumbs_changed()
     {
         // Find the first thumb that's fully onscreen.
         let first_thumb = this.container.querySelector(`.thumbnails > [data-id][data-fully-on-screen]`);
@@ -814,7 +804,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         var wanted_illust_ids = [];
         var need_thumbnail_data = false;
 
-        var elements = this.get_visible_thumbnails(false);
+        let elements = this.get_visible_thumbnails();
         for(var element of elements)
         {
             if(element.dataset.id != null)
@@ -825,7 +815,6 @@ ppixiv.screen_search = class extends ppixiv.screen
                     wanted_illust_ids.push(element.dataset.id);
             }
         }
-
 
         // We load pages when the last thumbs on the previous page are loaded, but the first
         // time through there's no previous page to reach the end of.  Always make sure the
@@ -871,18 +860,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         {
             // At least one visible thumbnail needs to be loaded, so load more data at the same
             // time.
-            var nearby_elements = this.get_visible_thumbnails(true);
-
-            var nearby_illust_ids = [];
-            for(var element of nearby_elements)
-            {
-                if(element.dataset.id == null)
-                    continue;
-                nearby_illust_ids.push(element.dataset.id);
-            }
-
-            // console.log("Wanted:", wanted_illust_ids.join(", "));
-            // console.log("Nearby:", nearby_illust_ids.join(", "));
+            let nearby_illust_ids = this.get_thumbs_to_load();
 
             // Load the thumbnail data if needed.
             thumbnail_data.singleton().get_thumbnail_info(nearby_illust_ids);
@@ -1171,16 +1149,70 @@ ppixiv.screen_search = class extends ppixiv.screen
 
     // Return a list of thumbnails that are either visible, or close to being visible
     // (so we load thumbs before they actually come on screen).
-    //
-    // If extra is true, return more offscreen thumbnails.
-    get_visible_thumbnails(extra)
+    get_visible_thumbnails()
     {
         // If the container has a zero height, that means we're hidden and we don't want to load
         // thumbnail data at all.
         if(this.container.offsetHeight == 0)
             return [];
 
-        return this.container.querySelectorAll(`.thumbnails > [data-id][data-${extra? "farther-away":"nearby"}]`);
+        return this.container.querySelectorAll(`.thumbnails > [data-id][data-nearby]`);
+    }
+
+    // Get a given number of thumb that should be loaded, starting with thumbs that are onscreen
+    // and working outwards until we have enough.
+    get_thumbs_to_load(count=100)
+    {
+        // If the container has a zero height, that means we're hidden and we don't want to load
+        // thumbnail data at all.
+        if(this.container.offsetHeight == 0)
+            return [];
+
+        let results = [];
+        let add_element = (element) =>
+        {
+            if(element == null)
+                return;
+
+            if(element.dataset.id == null)
+                return;
+
+            let { type, id } = helpers.parse_id(element.dataset.id);
+            if(type != "illust")
+                return;
+
+            // Skip this thumb if it's already loading.
+            if(thumbnail_data.singleton().is_id_loaded_or_loading(id))
+                return;
+
+            results.push(id);
+        }
+        
+        let onscreen_thumbs = this.container.querySelectorAll(`.thumbnails > [data-id][data-fully-on-screen]`);
+        if(onscreen_thumbs.length == 0)
+            return [];
+
+        // First, add all thumbs that are onscreen, so these are prioritized.
+        for(let thumb of onscreen_thumbs)
+            add_element(thumb);
+
+        // Walk forwards and backwards around the initial results.
+        let forwards = onscreen_thumbs[onscreen_thumbs.length-1];
+        let backwards = onscreen_thumbs[0];
+        while(forwards || backwards)
+        {
+            if(results.length >= count)
+                break;
+            if(forwards)
+                forwards = forwards.nextElementSibling;
+            if(backwards)
+                backwards = backwards.previousElementSibling;
+
+            add_element(forwards);
+            add_element(backwards);
+        }
+
+        return results;
     }
 
     // Create a thumb placeholder.  This doesn't load the image yet.

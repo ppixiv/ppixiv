@@ -39,6 +39,11 @@ ppixiv.thumbnail_data = class
         }
         return true;
     }
+   
+    is_id_loaded_or_loading(illust_id)
+    {
+        return this.thumbnail_data[illust_id] != null || this.loading_ids[illust_id];
+    }
     
     // Return thumbnail data for illud_id, or null if it's not loaded.
     //
