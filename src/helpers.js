@@ -1927,33 +1927,78 @@ ppixiv.hover_with_delay = class
 // Originally from https://gist.github.com/wilsonpage/01d2eb139959c79e0d9a
 ppixiv.key_storage = class
 {
-    constructor(name)
+    constructor(store_name, {db_upgrade=null, version=1}={})
     {
-        this.name = name;
-        this.ready = new Promise((resolve, reject) => {
-            var request = indexedDB.open("ppixiv");
+        this.db_name = store_name;
+        this.db_upgrade = db_upgrade;
+        this.store_name = store_name;
+        this.version = version;
+    }
+
+    // Open the database, run func, then close the database.
+    //
+    // If you open a database with IndexedDB and then leave it open, like you would with
+    // any other database, any attempts to add stores (which you can do seamlessly with
+    // any other database) will permanently wedge the database.  We have to open it and
+    // close it around every op.
+    async db_op(func)
+    {
+        let db = await this.open_database();
+        try {
+            return await func(db);
+        } finally {
+            db.close();
+        }
+    }
+
+    async get_db_version()
+    {
+        let dbs = await indexedDB.databases();
+        for(let db of dbs)
+        {
+            if(db.name == this.db_name)
+                return db.version;
+        }
+
+        return 0;
+    }
+
+    open_database()
+    {
+        return new Promise((resolve, reject) => {
+            let request = indexedDB.open(this.db_name, this.version);
+
+            // If this happens, another tab has the database open.
+            request.onblocked = e => {
+                console.error("Database blocked:", e);
+            };
 
             request.onupgradeneeded = e => {
-                this.db = e.target.result;
-                this.db.createObjectStore(this.name);
+                // If we have a db_upgrade function, let it handle the upgrade.  Otherwise, we're
+                // just creating the initial database and we're not doing anything special with it.
+                let db = e.target.result;
+                if(this.db_upgrade)
+                    this.db_upgrade(e);
+                else
+                    db.createObjectStore(this.store_name);
             };
 
             request.onsuccess = e => {
-                this.db = e.target.result;
-                resolve();
+                let db = e.target.result;
+                resolve(db);
             };
 
             request.onerror = e => {
-                this.db = e.target.result;
+                console.log(`Error opening database: ${request.error}`);
                 reject(e);
             };
         });
     }
 
-    getStore()
+    get_store(db)
     {
-        let transaction = this.db.transaction(this.name, "readwrite");
-        return transaction.objectStore(this.name);
+        let transaction = db.transaction(this.store_name, "readwrite");
+        return transaction.objectStore(this.store_name);
     }
 
     static async_store_get(store, key)
@@ -1967,20 +2012,22 @@ ppixiv.key_storage = class
 
     async get(key, store)
     {
-        await this.ready;
-        return key_storage.async_store_get(this.getStore(), key);
+        return await this.db_op(async (db) => {
+            return await key_storage.async_store_get(this.get_store(db), key);
+        });
     }
 
     // Given a list of keys, return known translations.  Tags that we don't have data for are null.
     async multi_get(keys)
     {
-        await this.ready;
-        let store = this.getStore();
+        return await this.db_op(async (db) => {
+            let store = this.get_store(db);
 
-        let promises = [];
-        for(let key of keys)
-            promises.push(key_storage.async_store_get(store, key));
-        return await Promise.all(promises);
+            let promises = [];
+            for(let key of keys)
+                promises.push(key_storage.async_store_get(store, key));
+            return await Promise.all(promises);
+        });
     }
 
     static async_store_set(store, key, value)
@@ -1994,8 +2041,9 @@ ppixiv.key_storage = class
     
     async set(key, value)
     {
-        await this.ready;
-        return key_storage.async_store_set(this.getStore(), key, value);
+        return await this.db_op(async (db) => {
+            return key_storage.async_store_set(this.get_store(db), key, value);
+        });
     }
 
     // Internal helper: batch set all keys[n] to values[n].
@@ -2019,15 +2067,48 @@ ppixiv.key_storage = class
     // Given a dictionary, set all key/value pairs.
     async multi_set(data)
     {
-        await this.ready;
-        let store = this.getStore();
+        return await this.db_op(async (db) => {
+            let store = this.get_store(db);
 
-        let keys = Object.keys(data);
-        let values = [];
-        for(let key of keys)
-            values.push(data[key]);
+            let keys = Object.keys(data);
+            let values = [];
+            for(let key of keys)
+                values.push(data[key]);
 
-        await key_storage.async_store_multi_set(store, keys, values);
+            await key_storage.async_store_multi_set(store, keys, values);
+        });
+    }
+
+    static async_multi_delete(store, keys)
+    {
+        return new Promise((resolve, reject) => {
+            // Only wait for onsuccess on the final put, for performance.
+            for(let i = 0; i < keys.length; ++i)
+            {
+                var request = store.delete(keys[i]);
+                request.onerror = reject;
+                if(i == keys.length - 1)
+                    request.onsuccess = resolve;
+            }
+        });
+    }
+    
+    // Delete a list of keys.
+    async multi_delete(keys)
+    {
+        return await this.db_op(async (db) => {
+            let store = this.get_store(db);
+            await key_storage.async_multi_delete(store, keys);
+        });
+    }
+
+    // Delete all keys.
+    async clear()
+    {
+        return await this.db_op(async (db) => {
+            let store = this.get_store(db);
+            await store.clear();
+        });
     }
 }
 
