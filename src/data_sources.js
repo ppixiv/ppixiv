@@ -1724,20 +1724,15 @@ ppixiv.data_sources.current_illust = class extends data_source
     get name() { return "illust"; }
 
     // The constructor receives the original HTMLDocument.
-    constructor(url, doc)
+    constructor(url)
     {
         super(url);
-
-        this.original_doc = doc;
-        this.original_url = url;
 
         // /artworks/#
         url = new URL(url);
         url = helpers.get_url_without_language(url);
         let parts = url.pathname.split("/");
         this.illust_id = parts[2];
-
-        this.check_illust();
     }
 
     // Show the illustration by default.
@@ -1748,34 +1743,6 @@ ppixiv.data_sources.current_illust = class extends data_source
 
     // This data source just views a single image and doesn't return any posts.
     async load_page_internal(page) { }
-
-    check_illust()
-    {
-        if(this.original_doc == null)
-            return;
-    
-        // Check that this is actually an illust page.
-        let preload = this.original_doc.querySelector("#meta-preload-data");
-        if(preload != null)
-            return;
-
-        // The most common case of there being no data in the document is loading
-        // a deleted illustration.  See if we can find an error message.
-        console.error("Couldn't find globalInitData");
-
-        console.error("No data on page");
-        var error = this.original_doc.querySelector(".error-message");
-        var error_message = "Error loading page";
-        if(error != null)
-            error_message = error.textContent;
-
-        // Hack: show this async instead of immediately.  main.set_current_data_source will hide
-        // the error message if the data source is changing and it's tricky to fix the ordering.
-        setTimeout(() => {
-            message_widget.singleton.show(error_message);
-            message_widget.singleton.clear_timer();
-        }, 0);
-    }
 
     // We're always viewing our illust_id.
     get_current_illust_id() { return this.illust_id; }

@@ -10,11 +10,6 @@ ppixiv.APIError = class extends Error
     }
 };
 
-// This is thrown when an XHR request fails with a Pixiv error message.
-ppixiv.PixivError = class extends ppixiv.APIError
-{
-};
-
 // This is thrown when we disable creating blocked elements.
 ppixiv.ElementDisabled = class extends Error
 {
@@ -674,9 +669,6 @@ ppixiv.helpers = {
             },
         });
 
-        if(result && result.error)
-            throw new PixivError(result.message, url);
-
         return result;
     },
 
@@ -703,9 +695,6 @@ ppixiv.helpers = {
             },
         });
 
-        if(result.error)
-            throw new PixivError(result.message, url);
-
         return result;
     },
 
@@ -723,9 +712,6 @@ ppixiv.helpers = {
                 "Content-Type": "application/json; charset=utf-8",
             },
         });        
-
-        if(result.error)
-            throw new PixivError(result.message, url);
 
         return result;
     },
@@ -756,8 +742,6 @@ ppixiv.helpers = {
         // If the result isn't valid JSON, we'll get a null result.
         if(result == null)
             result = { error: true, message: "Invalid response" };
-        if(result.error)
-            throw new PixivError(result.message, url);
 
         return result;
     },

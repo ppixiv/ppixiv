@@ -295,6 +295,9 @@ ppixiv.image_preloader = class
 
     preload_thumbs(illust_info)
     {
+        if(illust_info == null)
+            return;
+
         // We're only interested in preloading thumbs for manga pages.
         if(illust_info.pageCount < 2)
             return;

@@ -166,6 +166,15 @@ ppixiv.screen_illust = class extends ppixiv.screen
         // but it can block if we're loading from scratch.
         let early_illust_data = await image_data.singleton().get_early_illust_data(illust_id);
 
+        if(early_illust_data == null)
+        {
+            // This usually only happens if the illust doesn't exist or has been deleted.
+            let message = image_data.singleton().get_illust_load_error(illust_id);
+            message_widget.singleton.show(message);
+            message_widget.singleton.clear_timer();
+            return;
+        }
+
         // If we were deactivated while waiting for image info or the image we want to show has changed, stop.
         if(!this.active || this.wanted_illust_id != illust_id || this.wanted_illust_page != manga_page)
         {

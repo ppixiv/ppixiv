@@ -18,6 +18,11 @@ ppixiv.image_data = class
         this.image_data = { };
         this.user_data = { };
 
+        // Negative cache to remember illusts that don't exist, so we don't try to
+        // load them repeatedly:
+        this.nonexistant_illist_ids = { };
+        this.nonexistant_user_ids = { }; // XXX
+
         this.illust_loads = {};
         this.user_info_loads = {};
     };
@@ -55,6 +60,10 @@ ppixiv.image_data = class
     get_image_info(illust_id)
     {
         if(illust_id == null)
+            return null;
+
+        // Stop if we know this illust doesn't exist.
+        if(illust_id in this.nonexistant_illist_ids)
             return null;
 
         // If we already have the image data, just return it.
@@ -137,7 +146,13 @@ ppixiv.image_data = class
             var illust_result_promise = helpers.get_request("/ajax/illust/" + illust_id, {});
             var illust_result = await illust_result_promise;
             if(illust_result == null || illust_result.error)
-                return;
+            {
+                let message = illust_result?.message || "Error loading illustration";
+                console.log(`Error loading illust ${illust_id}; ${message}`);
+                this.nonexistant_illist_ids[illust_id] = message;
+                return null;
+            }
+
             illust_data = illust_result.body;
         }
         tag_translations.get().add_translations(illust_data.tags.tags);
@@ -187,6 +202,10 @@ ppixiv.image_data = class
         return illust_data;
     }
 
+    // If get_image_info or get_user_info returned null, return the error message.
+    get_illust_load_error(illust_id) { return this.nonexistant_illist_ids[illust_id]; }
+    get_user_load_error(user_id) { return this.nonexistant_user_ids[illust_id]; }
+
     // The user request can either return a small subset of data (just the username,
     // profile image URL, etc.), or a larger set with a webpage URL, Twitter, etc.
     // User preloads often only have the smaller set, and we want to use the preload
@@ -219,6 +238,10 @@ ppixiv.image_data = class
         if(user_id == null)
             return null;
 
+        // Stop if we know this user doesn't exist.
+        if(user_id in this.nonexistant_user_ids)
+            return null;
+        
         // If we already have the user info for this illustration (and it's full data, if
         // requested), we're done.
         if(this.user_data[user_id] != null)
@@ -248,7 +271,15 @@ ppixiv.image_data = class
     async load_user_info(user_id)
     {
         // console.log("Fetch user", user_id);
-        var result = await helpers.get_request("/ajax/user/" + user_id, {full:1});
+        let result = await helpers.get_request("/ajax/user/" + user_id, {full:1});
+        if(result == null || result.error)
+        {
+            let message = result?.message || "Error loading user";
+            console.log(`Error loading user ${user_id}; ${message}`);
+            this.nonexistant_user_ids[user_id] = message;
+            return null;
+        }
+
         return this.loaded_user_info(result);
     }
 
@@ -405,6 +436,9 @@ ppixiv.image_data = class
         }
     
         let illust_data = await image_data.singleton().get_image_info(illust_id);
+        if(illust_data == null)
+            return null;
+
         let tags = [];
         for(let tag of illust_data.tags.tags)
             tags.push(tag.tag);
