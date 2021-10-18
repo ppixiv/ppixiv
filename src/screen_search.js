@@ -101,10 +101,8 @@ ppixiv.screen_search = class extends ppixiv.screen
         menu_option.add_settings(settings_menu);
 
         settings.register_change_callback("thumbnail-size", () => {
-                // refresh_images first to update thumbnail_dimensions_style, then call onscroll
-                // to fill in images.
-                this.refresh_images();
-                this.onscroll();
+            // refresh_images first to update thumbnail_dimensions_style.
+            this.refresh_images();
         });
 
         settings.register_change_callback("theme", this.update_from_settings);
