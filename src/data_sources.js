@@ -768,8 +768,6 @@ function paginate_illust_ids(illust_ids, items_per_page)
 // awkward.  This artificially paginates the results.
 class data_source_fake_pagination extends data_source
 {
-    get estimated_items_per_page() { return 30; }
-
     async load_page_internal(page)
     {
         if(this.pages == null)
@@ -790,14 +788,7 @@ class data_source_fake_pagination extends data_source
     }
 }
 
-// /discovery
-//
-// This is an actual API call for once, so we don't need to scrape HTML.  We only show
-// recommended works (we don't have a user view list).
-//
-// The API call returns 1000 entries.  We don't do pagination, we just show the 1000 entries
-// and then stop.  I haven't checked to see if the API supports returning further pages.
-
+// /discovery - Recommended Works
 ppixiv.data_sources.discovery = class extends data_source_fake_pagination
 {
     get name() { return "discovery"; }
@@ -806,18 +797,14 @@ ppixiv.data_sources.discovery = class extends data_source_fake_pagination
     async load_all_results()
     {
         // Get "mode" from the URL.  If it's not present, use "all".
-        var query_args = this.url.searchParams;
-        var mode = query_args.get("mode") || "all";
-        
-        var data = {
+        let mode = this.url.searchParams.get("mode") || "all";
+        let result = await helpers.get_request("/rpc/recommender.php", {
             type: "illust",
             sample_illusts: "auto",
             num_recommendations: 1000,
             page: "discovery",
             mode: mode,
-        };
-
-        var result = await helpers.get_request("/rpc/recommender.php", data);
+        });
 
         // Unlike other APIs, this one returns IDs as ints rather than strings.  Convert back
         // to strings.
@@ -885,12 +872,6 @@ ppixiv.data_sources.discovery_users = class extends data_source
         var url1 = cleanup_url(url1);
         var url2 = cleanup_url(url2);
         return url1 == url2;
-    }
-
-    // We can always return another page.
-    load_page_available(page)
-    {
-        return true;
     }
 
     async load_page_internal(page)
@@ -1024,13 +1005,10 @@ ppixiv.data_sources.discovery_users = class extends data_source
     }
 };
 
-// bookmark_detail.php (with recommendations=1 in the hash)
+// bookmark_detail.php#recommendations=1 - Similar Illustrations
 //
 // We use this as an anchor page for viewing recommended illusts for an image, since
 // there's no dedicated page for this.
-//
-// This returns a big chunk of results in one call, so we use data_source_fake_pagination
-// to break it up.
 ppixiv.data_sources.related_illusts = class extends data_source_fake_pagination
 {
     get name() { return "related-illusts"; }
@@ -1044,8 +1022,7 @@ ppixiv.data_sources.related_illusts = class extends data_source_fake_pagination
             this.fetched_illust_info = true;
 
             // Don't wait for this to finish before continuing.
-            var query_args = this.url.searchParams;
-            var illust_id = query_args.get("illust_id");
+            let illust_id = this.url.searchParams.get("illust_id");
             image_data.singleton().get_image_info(illust_id).then((illust_info) => {
                 this.illust_info = illust_info;
                 this.call_update_listeners();
@@ -1060,16 +1037,11 @@ ppixiv.data_sources.related_illusts = class extends data_source_fake_pagination
     // Implement data_source_fake_pagination:
     async load_all_results()
     {
-        var query_args = this.url.searchParams;
-        var illust_id = query_args.get("illust_id");
-
-        var data = {
+        let result = await helpers.get_request("/rpc/recommender.php", {
             type: "illust",
-            sample_illusts: illust_id,
+            sample_illusts: this.url.searchParams.get("illust_id"),
             num_recommendations: 1000,
-        };
-
-        var result = await helpers.get_request("/rpc/recommender.php", data);
+        });
 
         // Unlike other APIs, this one returns IDs as ints rather than strings.  Convert back
         // to strings.
@@ -1365,11 +1337,6 @@ class data_source_from_page extends data_source
         return url1 == url2;
     }
 
-    load_page_available(page)
-    {
-        return true;
-    }
-    
     async load_page_internal(page)
     {
         // Our page URL looks like eg.
@@ -1786,13 +1753,10 @@ ppixiv.data_sources.artist = class extends data_source
     };
 }
 
-// Viewing a single illustration.
+// /artworks/# - Viewing a single illustration
 //
-// This page gives us all of the user's illustration IDs, so we can treat this as
-// a data source for a user without having to make separate requests.
-//
-// This reads data from a page, but we don't use data_source_from_page here.  We
-// don't need its pagination logic, and we do want to have pagination from data_source_fake_pagination.
+// This is a stub for when we're viewing an image with no search.  it
+// doesn't return any search results.
 ppixiv.data_sources.current_illust = class extends data_source
 {
     get name() { return "illust"; }
