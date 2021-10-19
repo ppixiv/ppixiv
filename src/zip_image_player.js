@@ -253,12 +253,9 @@ ppixiv.ZipImagePlayer = class
         }
 
         // Call completion.
+        await helpers.yield();
         if(this.op.progress)
-        {
-            setTimeout(() => {
-                this.op.progress(null);
-            }, 0);
-        }
+            this.op.progress(null);
     }
 
     // Load the next frame into this.frame_images.
@@ -360,13 +357,9 @@ ppixiv.ZipImagePlayer = class
         // If the user wants to know when the frame is ready, call it.
         if(this.op.drew_frame)
         {
-            try {
-                setTimeout(function() {
-                    this.op.drew_frame(null);
-                }.bind(this), 0);
-            } catch(e) {
-                console.error(e);
-            }
+            helpers.yield_call(() => {
+                this.op.drew_frame(null);
+            });
         }
         
         if(this.paused)

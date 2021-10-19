@@ -629,9 +629,9 @@ ppixiv.screen_search = class extends ppixiv.screen
             // to scroll away from.
             this.refresh_images();
 
-            setTimeout(function() {
+            helpers.yield_call(() => {
                 this.load_needed_thumb_data();
-            }.bind(this), 0);
+            });
         }
         else
         {

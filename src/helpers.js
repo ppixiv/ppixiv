@@ -328,6 +328,12 @@ ppixiv.helpers = {
         });
     },
 
+    async yield_call(func)
+    {
+        await this.yield();
+        func();
+    },
+
     // Block until DOMContentLoaded.
     wait_for_content_loaded: function()
     {
