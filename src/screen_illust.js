@@ -114,7 +114,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
 
             // Stop showing the user in the context menu, and stop showing the current page.
             main_context_menu.get.user_id = null;
-            main_context_menu.get.page = -1;
+            main_context_menu.get.page = null;
             
             this.flashed_page_change = false;
 

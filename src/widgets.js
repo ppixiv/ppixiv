@@ -43,8 +43,9 @@ ppixiv.illust_widget = class extends ppixiv.widget
         return "illust_info";
     }
 
-    set_illust_id(illust_id, page=-1)
+    set_illust_id(illust_id, page=null)
     {
+        console.assert(page != -1);
         if(this._illust_id == illust_id && this._page == page)
             return;
 
@@ -757,7 +758,7 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
 
     // Override setting illust_id to save tags when we're closed.  Otherwise, illust_id will already
     // be cleared when we close and we won't be able to save.
-    set_illust_id(illust_id, page=-1)
+    set_illust_id(illust_id, page=null)
     {
         // If we're hiding and were previously visible, save changes.
         if(illust_id == null)

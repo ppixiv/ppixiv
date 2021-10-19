@@ -458,7 +458,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         this.handle_link_click = this.handle_link_click.bind(this);
 
         this._on_click_viewer = null;
-        this._page = -1;
+        this._page = null;
 
         // Refresh the menu when the view changes.
         this.mode_observer = new MutationObserver(function(mutationsList, observer) {
