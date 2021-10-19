@@ -1632,7 +1632,6 @@ ppixiv.helpers = {
         if(illust_data.bookmarkData)
             page_title += "★";
 
-        console.log(illust_data);
         page_title += illust_data.userName + " - " + illust_data.illustTitle;
         helpers.set_page_title(page_title);
     },

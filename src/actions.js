@@ -357,8 +357,8 @@ ppixiv.actions = class
     // Download illust_data.
     static async download_illust(illust_id, progress_bar_controller, download_type, manga_page)
     {
-        let illust_data = await image_data.singleton().get_image_info(illust_id);
-        let user_info = illust_data.userInfo;
+        let illust_data = await image_data.singleton().get_image_info(illust_id, { load_user_info: true });
+        let user_info = await image_data.singleton().get_user_info(illust_data.userId);
         console.log("Download", illust_id, "with type", download_type);
 
         if(download_type == "MKV")

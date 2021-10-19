@@ -81,6 +81,9 @@ ppixiv.SendImage = class
         let thumbnail_info = thumbnail_data.singleton().get_one_thumbnail_info(illust_id);
         let illust_data = image_data.singleton().get_image_info_sync(illust_id);
 
+        let user_id = illust_data?.userId;
+        let user_info = user_id? image_data.singleton().get_user_info_sync(user_id):null;
+
         this.send_message({
             message: "send-image",
             from: SendImage.tab_id,
@@ -90,6 +93,7 @@ ppixiv.SendImage = class
             action: action, // "quick-view" or "display"
             thumbnail_info: thumbnail_info,
             illust_data: illust_data,
+            user_info: user_info,
         }, true);
     }
 
@@ -157,17 +161,13 @@ ppixiv.SendImage = class
             if(thumbnail_info != null)
                 thumbnail_data.singleton().loaded_thumbnail_info([thumbnail_info], "normal");
 
+            let user_info = data.user_info;
+            if(user_info != null)
+                image_data.singleton().add_user_data(user_info);
+
             let illust_data = data.illust_data;
             if(illust_data != null)
-            {
-                // If it also has user info, add that too.  Do this before registering illust data,
-                // or image_data will request the data.  This is the only place we get user info
-                // along with illust info.
-                if(illust_data.userInfo)
-                    image_data.singleton().add_user_data(illust_data.userInfo);
-
                 image_data.singleton().add_illust_data(illust_data);
-            }
 
             // To finalize, just remove preview and quick-view from the URL to turn the current
             // preview into a real navigation.  This is slightly different from sending "display"
@@ -228,6 +228,9 @@ ppixiv.SendImage = class
         let thumbnail_info = illust_id? thumbnail_data.singleton().get_one_thumbnail_info(illust_id):null;
         let illust_data = illust_id? image_data.singleton().get_image_info_sync(illust_id):null;
 
+        let user_id = illust_data?.userId;
+        let user_info = user_id? image_data.singleton().get_user_info_sync(user_id):null;
+
         let our_tab_info = {
             message: "tab-info",
             tab_id_tiebreaker: SendImage.tab_id_tiebreaker,
@@ -244,6 +247,7 @@ ppixiv.SendImage = class
             // another tab, we don't have to look it up again.
             thumbnail_info: thumbnail_info,
             illust_data: illust_data,
+            user_info: user_info,
         };
 
         // Add any extra data we've been given.

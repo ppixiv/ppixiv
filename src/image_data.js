@@ -53,10 +53,6 @@ ppixiv.image_data = class
     //
     // await get_image_info(12345);
     //
-    // User data for the illustration will be fetched, and returned as image_data.userInfo.
-    // Note that user data can change (eg. when following a user), and all images for the
-    // same user will share the same userInfo object.
-    //
     // If illust_id is a video, we'll also download the metadata before returning it, and store
     // it as image_data.ugoiraMetadata.
     get_image_info(illust_id)
@@ -69,7 +65,7 @@ ppixiv.image_data = class
             return null;
 
         // If we already have the image data, just return it.
-        if(this.image_data[illust_id] != null && this.image_data[illust_id].userInfo)
+        if(this.image_data[illust_id] != null)
         {
             return new Promise(resolve => {
                 resolve(this.image_data[illust_id]);
@@ -105,7 +101,11 @@ ppixiv.image_data = class
     //
     // If we already have the image data (not necessarily the rest, like ugoira_metadata),
     // it can be supplied with illust_data.
-    async load_image_info(illust_id, illust_data)
+    //
+    // If load_user_info is true, we'll attempt to load user info in parallel.  It still
+    // needs to be requested with get_user_info(), but loading it here can allow requesting
+    // it sooner.
+    async load_image_info(illust_id, illust_data, { load_user_info=false }={})
     {
         // See if we already have data for this image.  If we do, stop.  We always load
         // everything we need if we load anything at all.
@@ -125,7 +125,7 @@ ppixiv.image_data = class
         // fetches we can.
         var start_loading = (user_id, illust_type, page_count) => {
             // If we know the user ID and haven't started loading user info yet, start it.
-            if(user_info_promise == null && user_id != null)
+            if(load_user_info && user_info_promise == null && user_id != null)
                 user_info_promise = this.get_user_info(user_id);
             
             // If we know the illust type and haven't started loading other data yet, start them.
@@ -162,12 +162,11 @@ ppixiv.image_data = class
         // Now that we have illust data, load anything we weren't able to load before.
         start_loading(illust_data.userId, illust_data.illustType, illust_data.pageCount);
 
-        // Store the results.
-        illust_data.userInfo = await user_info_promise;
-
         // If we're loading image info, we're almost definitely going to load the avatar, so
         // start preloading it now.
-        helpers.preload_images([illust_data.userInfo.imageBig]);
+        let user_info = await user_info_promise;
+        if(user_info)
+            helpers.preload_images([user_info.imageBig]);
         
         if(manga_promise != null)
         {
@@ -225,6 +224,11 @@ ppixiv.image_data = class
     async get_user_info(user_id)
     {
         return await this._get_user_info(user_id, false);
+    }
+
+    get_user_info_sync(user_id)
+    {
+        return this.user_data[user_id];
     }
 
     // Load user_id if needed.

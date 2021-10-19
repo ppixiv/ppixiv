@@ -25,8 +25,10 @@ ppixiv.viewer_muted = class extends ppixiv.viewer
             return;
         
         // Show the user's avatar instead of the muted image.
+        let user_info = await image_data.singleton().get_user_info(this.illust_data.userId);
+        console.log(user_info);
         var img = this.root.querySelector(".muted-image");
-        img.src = this.illust_data.userInfo.imageBig;
+        img.src = user_info.imageBig;
 
         let muted_tag = muting.singleton.any_tag_muted(this.illust_data.tags.tags);
         let muted_user = muting.singleton.is_muted_user_id(this.illust_data.userId);
@@ -40,7 +42,7 @@ ppixiv.viewer_muted = class extends ppixiv.viewer
             muted_label.innerText = muted_tag;
         }
         else
-            muted_label.innerText = illust_data.userName;
+            muted_label.innerText = this.illust_data.userName;
     }
 
     shutdown()
