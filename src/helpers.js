@@ -805,33 +805,15 @@ ppixiv.helpers = {
         return result;
     },
 
-    // Download all URLs in the list.  Call callback with an array containing one ArrayData for each URL.  If
-    // any URL fails to download, call callback with null.
-    //
-    // I'm not sure if it's due to a bug in the userscript extension or because we need to specify a
-    // header here, but this doesn't properly use cache and reloads the resources from scratch, which
-    // is really annoying.  We can't read the images directly since they're on a different domain.
-    //
-    // We could start multiple requests to pipeline this better.  However, the usual case where we'd download
-    // lots of images is downloading a group of images, and in that case we're already preloading them as
-    // images, so it's probably redundant to do it here.
-    download_urls: function(urls, callback)
+    download_url: async function(url)
     {
-        // Make a copy.
-        urls = urls.slice(0);
-
-        var results = [];
-        var start_next = function()
-        {
-            var url = urls.shift();
+        return new Promise((accept, reject) => {
             if(url == null)
             {
-                callback(results);
+                accept(null);
                 return;
             }
 
-            // FIXME: This caches in GreaseMonkey, but not in TamperMonkey.  Do we need to specify cache
-            // headers or is TamperMonkey just broken?
             GM_xmlhttpRequest({
                 "method": "GET",
                 "url": url,
@@ -843,14 +825,26 @@ ppixiv.helpers = {
                     "Origin": "https://www.pixiv.net/",
                 },
 
-                onload: function(result) {
-                    results.push(result.response);
-                    start_next();
-                }.bind(this),
+                onload: (result) => {
+                    accept(result.response);
+                },
+                onerror: (e) => {
+                    reject(e);
+                },
             });
-        };
+        });
+    },
 
-        start_next();
+    download_urls: async function(urls)
+    {
+        let results = [];
+        for(let url of urls)
+        {
+            let result = await helpers.download_url(url);
+            results.push(result);
+        }
+
+        return results;
     },
 
     // Load a page in an iframe, and call callback on the resulting document.

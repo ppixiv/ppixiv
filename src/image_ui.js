@@ -233,7 +233,7 @@ ppixiv.image_ui = class
         e.stopPropagation();
 
         let download_type = clicked_button.dataset.download;
-        actions.download_illust(this.illust_data, this.progress_bar.controller(), download_type, this.displayed_page);
+        actions.download_illust(this.illust_id, this.progress_bar.controller(), download_type, this.displayed_page);
     }
  }
 

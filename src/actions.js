@@ -355,9 +355,11 @@ ppixiv.actions = class
     // Image downloading
     //
     // Download illust_data.
-    static download_illust(illust_data, progress_bar_controller, download_type, manga_page)
+    static async download_illust(illust_id, progress_bar_controller, download_type, manga_page)
     {
-        console.log("Download", illust_data.illustId, "with type", download_type);
+        let illust_data = await image_data.singleton().get_image_info(illust_id);
+        let user_info = illust_data.userInfo;
+        console.log("Download", illust_id, "with type", download_type);
 
         if(download_type == "MKV")
         {
@@ -388,44 +390,43 @@ ppixiv.actions = class
         if(download_type == "image")
             images = [images[manga_page]];
 
-        var user_data = illust_data.userInfo;
-        helpers.download_urls(images, function(results) {
-            // If there's just one image, save it directly.
-            if(images.length == 1)
-            {
-                var url = images[0];
-                var buf = results[0];
-                var blob = new Blob([results[0]]);
-                var ext = helpers.get_extension(url);
-                var filename = user_data.name + " - " + illust_data.illustId;
+        let results = await helpers.download_urls(images);
 
-                // If this is a single page of a manga post, include the page number.
-                if(download_type == "image" && illust_data.mangaPages.length > 1)
-                    filename += " #" + (manga_page + 1);
+        // If there's just one image, save it directly.
+        if(images.length == 1)
+        {
+            var url = images[0];
+            var buf = results[0];
+            var blob = new Blob([results[0]]);
+            var ext = helpers.get_extension(url);
+            var filename = user_info.name + " - " + illust_data.illustId;
 
-                filename += " - " + illust_data.illustTitle + "." + ext;
-                helpers.save_blob(blob, filename);
-                return;
-            }
+            // If this is a single page of a manga post, include the page number.
+            if(download_type == "image" && illust_data.mangaPages.length > 1)
+                filename += " #" + (manga_page + 1);
 
-            // There are multiple images, and since browsers are stuck in their own little world, there's
-            // still no way in 2018 to save a batch of files to disk, so ZIP the images.
-            var filenames = [];
-            for(var i = 0; i < images.length; ++i)
-            {
-                var url = images[i];
-                var blob = results[i];
+            filename += " - " + illust_data.illustTitle + "." + ext;
+            helpers.save_blob(blob, filename);
+            return;
+        }
 
-                var ext = helpers.get_extension(url);
-                var filename = i.toString().padStart(3, '0') + "." + ext;
-                filenames.push(filename);
-            }
+        // There are multiple images, and since browsers are stuck in their own little world, there's
+        // still no way in 2018 to save a batch of files to disk, so ZIP the images.
+        var filenames = [];
+        for(var i = 0; i < images.length; ++i)
+        {
+            var url = images[i];
+            var blob = results[i];
 
-            // Create the ZIP.
-            var zip = new create_zip(filenames, results);
-            var filename = user_data.name + " - " + illust_data.illustId + " - " + illust_data.illustTitle + ".zip";
-            helpers.save_blob(zip, filename);
-        });
+            var ext = helpers.get_extension(url);
+            var filename = i.toString().padStart(3, '0') + "." + ext;
+            filenames.push(filename);
+        }
+
+        // Create the ZIP.
+        var zip = new create_zip(filenames, results);
+        var filename = user_info.name + " - " + illust_data.illustId + " - " + illust_data.illustTitle + ".zip";
+        helpers.save_blob(zip, filename);
     }
 
     static is_download_type_available(download_type, illust_data)
