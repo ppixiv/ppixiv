@@ -35,6 +35,9 @@ ppixiv.illust_widget = class extends ppixiv.widget
 
     // The data this widget needs.  This can be illust_id (nothing but the ID), illust_info,
     // or early_info.
+    //
+    // This can change dynamically.  Some widgets need illust_info only when viewing a manga
+    // page.
     get needed_data()
     {
         return "illust_info";

@@ -11,8 +11,21 @@
 // This also handles alt-mousewheel zooming.
 ppixiv.context_menu_image_info_widget = class extends ppixiv.illust_widget
 {
-    refresh_internal({ illust_data })
+    get needed_data()
     {
+        // We need illust info if we're viewing a manga page beyond page 1, since
+        // early info doesn't have that.  Most of the time, we only need early info.
+        if(this._page == -1 || this._page == 0)
+            return "early_info";
+        else
+            return "illust_info";
+    }
+
+    refresh_internal({ early_info, illust_data })
+    {
+        if(!illust_data)
+            illust_data = early_info;
+
         this.container.hidden = (illust_data == null || this._page == null);
         if(this.container.hidden)
             return;
@@ -41,9 +54,16 @@ ppixiv.context_menu_image_info_widget = class extends ppixiv.illust_widget
         if(page == -1)
             page = 0;
 
+        // If we're on the first page then we only requested early info, and we can use the dimensions
+        // on it.  Otherwise, we have full info and we'll get dimensions from mangaPages.
         var info = "";
-        var page_info = illust_data.mangaPages[page];
-        info += page_info.width + "x" + page_info.height;
+        if(page == 0)
+            info += illust_data.width + "x" + illust_data.height;
+        else
+        {
+            let page_info = illust_data.mangaPages[page];
+            info += page_info.width + "x" + page_info.height;
+        }
         set_info(".image-info", info);
 
         let seconds_old = (new Date() - new Date(illust_data.createDate)) / 1000;
