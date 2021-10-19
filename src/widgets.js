@@ -1040,7 +1040,6 @@ ppixiv.bookmark_button_widget = class extends ppixiv.illust_widget
 
 ppixiv.bookmark_count_widget = class extends ppixiv.illust_widget
 {
-    // XXX: quick?
     constructor(container)
     {
         super(container);

@@ -54,11 +54,20 @@ ppixiv.recently_seen_illusts = class
         let idx = 0;
         for(let illust_id of illust_ids)
         {
+            // Store thumbnail info with the image.  Every data_source these days is able
+            // to fill in thumbnail data as part of the request, so we store the thumbnail
+            // info to be able to do the same in data_source.recent.  We're called when
+            // a thumbnail is being displayed, so 
+            let thumb_info = thumbnail_data.singleton().get_one_thumbnail_info(illust_id);
+            if(thumb_info == null)
+                continue;
+
             data[illust_id] = {
                 // Nudge the time back slightly as we go, so illustrations earlier in the list will
                 // be treated as older.  This causes them to sort earlier in the recent illustrations
                 // view.  If we don't do this, they'll be displayed in an undefined order.
                 last_seen: time - idx,
+                thumb_info: thumb_info,
             };
             idx++;
         }
@@ -71,40 +80,74 @@ ppixiv.recently_seen_illusts = class
     {
     }
 
-    // Given a dictionary, set all key/value pairs.
-    async get_recent_illusts()
+    // Return illust_ids for recently viewed illusts, most recent first.
+    async get_recent_illust_ids()
     {
-        return await this.get_stored_illusts("new");
+        return await this.db.db_op(async (db) => {
+            let store = this.db.get_store(db);
+            return await this.get_stored_illusts(store, "new");
+        });
+    }
+
+    // Return thumbnail data for the given illust IDs if we have it.
+    async get_thumbnail_info(illust_ids)
+    {
+        return await this.db.db_op(async (db) => {
+            let store = this.db.get_store(db);
+
+            // Load the thumbnail info in bulk.
+            let promises = {};
+            for(let illust_id of illust_ids)
+                promises[illust_id] = key_storage.async_store_get(store, illust_id);
+            await Promise.all(Object.values(promises));
+
+            let results = [];
+            for(let illust_id of illust_ids)
+            {
+                let entry = await promises[illust_id];
+                if(entry && entry.thumb_info)
+                    results.push(entry.thumb_info);
+            }
+
+            return results;
+        });
     }
 
     // Clean up IDs that haven't been seen in a while.
     async purge_old_illusts()
     {
-        let ids_to_delete = await this.get_stored_illusts("old");
-        if(ids_to_delete.length == 0)
-            return;
+        await this.db.db_op(async (db) => {
+            let store = this.db.get_store(db);
 
-        await this.db.multi_delete(ids_to_delete);
+            let ids_to_delete = await this.get_stored_illusts(store, "old");
+            if(ids_to_delete.length == 0)
+                return;
+
+            await this.db.multi_delete(ids_to_delete);
+        });
     }
 
     // Get illusts in the database.  If which is "new", return ones that we want to display
     // to the user.  If it's "old", return ones that should be deleted.
-    async get_stored_illusts(which="new")
+    async get_stored_illusts(store, which="new")
+    {
+        // Read illustrations seen within the last hour, newest first.
+        let index = store.index("last_seen");
+        let starting_from = Date.now() - (60*60*1000);
+        let query = which == "new"? IDBKeyRange.lowerBound(starting_from):IDBKeyRange.upperBound(starting_from);
+        let cursor = index.openCursor(query, "prev");
+
+        let results = [];
+        for await (let entry of cursor)
+            results.push(entry.primaryKey);
+
+        return results;
+    }
+
+    async get_stored_illust_thumbnail_info(illust_ids)
     {
         return await this.db.db_op(async (db) => {
             let store = this.db.get_store(db);
-
-            // Read illustrations seen within the last hour, newest first.
-            let index = store.index("last_seen");
-            let starting_from = Date.now() - (60*60*1000);
-            let query = which == "new"? IDBKeyRange.lowerBound(starting_from):IDBKeyRange.upperBound(starting_from);
-            let cursor = index.openCursor(query, "prev");
-
-            let results = [];
-            for await (let entry of cursor)
-                results.push(entry.primaryKey);
-
-            return results;
         });
     }
 

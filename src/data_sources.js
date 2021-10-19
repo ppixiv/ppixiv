@@ -3243,14 +3243,34 @@ ppixiv.data_sources.search_users = class extends data_source_from_page
 // /history.php - Recent history
 //
 // This uses our own history and not Pixiv's history.
-ppixiv.data_sources.recent = class extends data_source_fake_pagination
+ppixiv.data_sources.recent = class extends data_source
 {
     get name() { return "recent"; }
 
     // Implement data_source_fake_pagination:
-    async load_all_results()
+    async load_page_internal(page)
     {
-        return await ppixiv.recently_seen_illusts.get().get_recent_illusts();
+        // Read illust_ids once and paginate them so we don't return them all at once.
+        if(this.illust_ids == null)
+        {
+            let illust_ids = await ppixiv.recently_seen_illusts.get().get_recent_illust_ids();
+            this.pages = paginate_illust_ids(illust_ids, this.estimated_items_per_page);
+        }
+
+        // Register this page.
+        let illust_ids = this.pages[page-1] || [];
+        let found_illust_ids = [];
+
+        // Get thumbnail data for this page.  Some thumbnail data might be missing if it
+        // expired before this page was viewed.  Don't add illust IDs that we don't have
+        // thumbnail data for.
+        let thumbs = await ppixiv.recently_seen_illusts.get().get_thumbnail_info(illust_ids);
+        thumbnail_data.singleton().loaded_thumbnail_info(thumbs, "normal");
+
+        for(let thumb of thumbs)
+            found_illust_ids.push(thumb.id);
+
+        this.add_page(page, found_illust_ids);
     };
 
     get page_title() { return "Recent"; }
@@ -3259,7 +3279,6 @@ ppixiv.data_sources.recent = class extends data_source_fake_pagination
     // This data source is transient, so it's recreated each time the user navigates to it.
     get transient() { return true; }
     
-    // XXX: add a "clear" button
     refresh_thumbnail_ui(container)
     {
         // Set .selected on the current mode.
