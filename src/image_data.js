@@ -429,6 +429,9 @@ ppixiv.image_data = class
         "height": "height",
         "mangaPages": "mangaPages",
         "bookmarkData": "bookmarkData",
+        "width": "width",
+        "height": "height",
+        "createDate": "createDate",
         // These are handled separately.
         // "tags": "tags",
         // "url": "previewUrl",
@@ -442,6 +445,9 @@ ppixiv.image_data = class
         "height": "height",
         "mangaPages": "mangaPages",
         "bookmarkData": "bookmarkData",
+        "width": "width",
+        "height": "height",
+        "createDate": "createDate",
         // "tags": "tags",
         // urls.small: "previewUrl",
     };

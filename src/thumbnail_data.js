@@ -138,6 +138,9 @@ ppixiv.thumbnail_data = class
             ["illust_title", "title"],
             ["user_profile_img", "profileImageUrl"],
             ["user_name", "userName"],
+
+            // illust_list.php doesn't give the creation date.
+            [null, "createDate"],
         ];
         return this._thumbnail_info_map_illust_list;
     };
@@ -159,6 +162,7 @@ ppixiv.thumbnail_data = class
             ["title", "title"],
             ["profile_img", "profileImageUrl"],
             ["user_name", "userName"],
+            ["illust_upload_timestamp", "createDate"],
         ];
         return this._thumbnail_info_map_ranking;
     };
@@ -285,6 +289,13 @@ ppixiv.thumbnail_data = class
                 {
                     let from_key = pair[0];
                     let to_key = pair[1];
+                    if(from_key == null)
+                    {
+                        // This is just for illust_list createDate.
+                        remapped_thumb_info[to_key] = null;
+                        continue;
+                    }
+
                     if(!(from_key in thumb_info))
                     {
                         console.warn("Thumbnail info is missing key:", from_key);
@@ -334,6 +345,20 @@ ppixiv.thumbnail_data = class
 
                 // illustType can be a string in these instead of an int, so convert it.
                 remapped_thumb_info.illustType = parseInt(remapped_thumb_info.illustType);
+
+                if(source == "rankings")
+                {
+                    // Rankings thumbnail info gives createDate as a Unix timestamp.  Convert
+                    // it to the same format as everything else.
+                    let date = new Date(remapped_thumb_info.createDate*1000);
+                    remapped_thumb_info.createDate = date.toISOString();
+                }
+                else if(source == "illust_list")
+                {
+                    // This is the only source of thumbnail data that doesn't give createDate at
+                    // all.  This source is very rarely used now, so just fill in a bogus date.
+                    remapped_thumb_info.createDate = new Date(0).toISOString();
+                }
             }
             else
                 throw "Unrecognized source: " + source;
