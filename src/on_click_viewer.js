@@ -84,18 +84,22 @@ ppixiv.on_click_viewer = class
 
     _add_events()
     {
-        var target = this.img.parentNode;
+        this._remove_events();
+
+        this.event_abort = new AbortController();
+
+        let target = this.img.parentNode;
         this.event_target = target;
-        window.addEventListener("blur", this.window_blur);
-        window.addEventListener("resize", this.onresize, true);
-        target.addEventListener("pointerdown", this.pointerdown);
-        target.addEventListener("pointerup", this.pointerup);
-        target.addEventListener("pointercancel", this.pointerup);
-        target.addEventListener("dragstart", this.block_event);
-        target.addEventListener("selectstart", this.block_event);
+        window.addEventListener("blur", this.window_blur, { signal: this.event_abort.signal });
+        window.addEventListener("resize", this.onresize, { signal: this.event_abort.signal, capture: true });
+        target.addEventListener("pointerdown", this.pointerdown, { signal: this.event_abort.signal });
+        target.addEventListener("pointerup", this.pointerup, { signal: this.event_abort.signal });
+        target.addEventListener("pointercancel", this.pointerup, { signal: this.event_abort.signal });
+        target.addEventListener("dragstart", this.block_event, { signal: this.event_abort.signal });
+        target.addEventListener("selectstart", this.block_event, { signal: this.event_abort.signal });
 
         // This is like pointermove, but received XXX
-        window.addEventListener("quickviewpointermove", this.quick_view_pointermove);
+        window.addEventListener("quickviewpointermove", this.quick_view_pointermove, { signal: this.event_abort.signal });
 
         target.style.userSelect = "none";
         target.style.MozUserSelect = "none";
@@ -103,22 +107,18 @@ ppixiv.on_click_viewer = class
 
     _remove_events()
     {
-        if(this.event_target)
+        if(this.event_abort)
         {
-            var target = this.event_target;
-            this.event_target = null;
-            target.removeEventListener("pointerdown", this.pointerdown);
-            target.removeEventListener("pointerup", this.pointerup);
-            target.removeEventListener("pointercancel", this.pointerup);
-            target.removeEventListener("dragstart", this.block_event);
-            target.removeEventListener("selectstart", this.block_event);
-            target.style.userSelect = "none";
-            target.style.MozUserSelect = "";
+            this.event_abort.abort();
+            this.event_abort = null;
         }
 
-        window.removeEventListener("blur", this.window_blur);
-        window.removeEventListener("resize", this.onresize, true);
-        window.removeEventListener("quickviewpointermove", this.quick_view_pointermove);
+        if(this.event_target)
+        {
+            this.event_target.style.userSelect = "none";
+            this.event_target.style.MozUserSelect = "";
+            this.event_target = null;
+        }
     }
 
     disable()
