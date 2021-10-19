@@ -787,30 +787,33 @@ class data_source_fake_pagination extends data_source
 }
 
 // /discovery - Recommended Works
-ppixiv.data_sources.discovery = class extends data_source_fake_pagination
+ppixiv.data_sources.discovery = class extends data_source
 {
     get name() { return "discovery"; }
 
-    // Implement data_source_fake_pagination:
-    async load_all_results()
+    get estimated_items_per_page() { return 60; }
+
+    async load_page_internal(page)
     {
         // Get "mode" from the URL.  If it's not present, use "all".
         let mode = this.url.searchParams.get("mode") || "all";
-        let result = await helpers.get_request("/rpc/recommender.php", {
-            type: "illust",
-            sample_illusts: "auto",
-            num_recommendations: 1000,
-            page: "discovery",
+        let result = await helpers.get_request("/ajax/discovery/artworks", {
+            limit: this.estimated_items_per_page,
             mode: mode,
+            lang: "en",
         });
 
-        // Unlike other APIs, this one returns IDs as ints rather than strings.  Convert back
-        // to strings.
-        var illust_ids = [];
-        for(var illust_id of result.recommendations)
-            illust_ids.push(illust_id + "");
+        // result.body.recommendedIllusts[].recommendMethods, recommendSeedIllustIds
+        // has info about why it recommended it.
+        let thumbs = result.body.thumbnails.illust;
+        thumbnail_data.singleton().loaded_thumbnail_info(thumbs, "normal");
 
-        return illust_ids;
+        let illust_ids = [];
+        for(let thumb of thumbs)
+            illust_ids.push(thumb.id);
+
+        tag_translations.get().add_translations_dict(result.body.tagTranslation);
+        this.add_page(page, illust_ids);
     };
 
     get page_title() { return "Discovery"; }
