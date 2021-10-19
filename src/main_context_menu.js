@@ -11,16 +11,6 @@
 // This also handles alt-mousewheel zooming.
 ppixiv.context_menu_image_info_widget = class extends ppixiv.illust_widget
 {
-    set_illust_and_page(illust_id, page)
-    {
-        if(this._illust_id == illust_id && this._page == page)
-            return;
-
-        this._illust_id = illust_id;
-        this._page = page;
-        this.refresh();
-    }
-
     refresh_internal({ illust_data })
     {
         this.container.hidden = (illust_data == null || this._page == null);
@@ -485,11 +475,17 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
             this.send_image_widget.visible = !this.send_image_widget.visible;
         });
 
-        this.bookmark_tag_widget = new bookmark_tag_list_widget(this.menu.querySelector(".popup-bookmark-tag-dropdown-container"));
-        this.toggle_tag_widget = new toggle_bookmark_tag_list_widget(this.menu.querySelector(".button-bookmark-tags"), this.bookmark_tag_widget);
-        this.like_button = new like_button_widget(this.menu.querySelector(".button-like"));
-        this.image_info_widget = new context_menu_image_info_widget(this.menu.querySelector(".context-menu-image-info"));
+        let bookmark_tag_widget = new bookmark_tag_list_widget(this.menu.querySelector(".popup-bookmark-tag-dropdown-container"));
         this.send_image_widget = new send_image_widget(this.menu.querySelector(".popup-send-to-tab-container"));
+        this.illust_widgets = [
+            bookmark_tag_widget,
+            this.send_image_widget,
+            new toggle_bookmark_tag_list_widget(this.menu.querySelector(".button-bookmark-tags"), bookmark_tag_widget),
+            new like_button_widget(this.menu.querySelector(".button-like")),
+            new like_count_widget(this.menu.querySelector(".button-like .count")),
+            new context_menu_image_info_widget(this.menu.querySelector(".context-menu-image-info")),
+            new bookmark_count_widget(this.menu.querySelector(".button-bookmark.public")),
+        ];
 
         this.avatar_widget = new avatar_widget({
             parent: this.menu.querySelector(".avatar-widget-container"),
@@ -497,10 +493,11 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         });
 
         // The bookmark buttons, and clicks in the tag dropdown:
-        this.bookmark_buttons = [];
         for(var a of this.menu.querySelectorAll(".button-bookmark"))
-            this.bookmark_buttons.push(new bookmark_button_widget(a, a.classList.contains("private"), this.bookmark_tag_widget));
-
+        {
+            let private_bookmark = a.classList.contains("private");
+            this.illust_widgets.push(new bookmark_button_widget(a, private_bookmark, bookmark_tag_widget));
+        }
         this.element_bookmark_tag_list = this.menu.querySelector(".bookmark-tag-list");
 
         this.refresh();
@@ -609,14 +606,9 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         if(!this.visible && illust_id != null)
             return;
 
-        this.like_button.set_illust_id(illust_id, this.effective_page);
-        this.bookmark_tag_widget.set_illust_id(illust_id, this.effective_page);
-        this.send_image_widget.set_illust_id(illust_id, this.effective_page);
-        this.toggle_tag_widget.set_illust_id(illust_id, this.effective_page);
-        for(var button of this.bookmark_buttons)
-            button.set_illust_id(illust_id, this.effective_page);
+        for(let widget of this.illust_widgets)
+            widget.set_illust_id(illust_id, this.effective_page);
 
-        this.image_info_widget.set_illust_and_page(this.effective_illust_id, this.effective_page);
         helpers.set_class(this.send_button, "enabled", illust_id != null);
     }
 

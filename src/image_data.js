@@ -491,6 +491,10 @@ ppixiv.image_data = class
         return result;
     }
 
+    // Update early illust data.
+    //
+    // THe data might have come from illust info or thumbnail info, so update whichever
+    // we have.  This can't update fields with special handling, like tags.
     update_early_illust_data(illust_id, data)
     {
         let update_data = (update, keys) => {
@@ -508,17 +512,11 @@ ppixiv.image_data = class
         let thumb_data = thumbnail_data.singleton().get_one_thumbnail_info(illust_id);
         let tags = null;
         if(thumb_data)
-        {
-            console.log("update thumb", thumb_data);
             update_data(thumb_data, this.thumbnail_info_early_illust_data_keys);
-        }
 
         let illust_info = image_data.singleton().get_image_info_sync(illust_id);
         if(illust_info != null)
-        {
-            console.log("update illust", illust_info);
             update_data(illust_info, this.illust_info_early_illust_data_keys);
-        }
 
         this.call_illust_modified_callbacks(illust_id);
     }

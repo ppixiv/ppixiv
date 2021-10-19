@@ -350,6 +350,12 @@ ppixiv.helpers = {
             // Both prototypes and instances might be wrapped.  If this is an instance, look
             // at the prototype to find the original.
             let orig_func = obj.__proto__[name]? obj.__proto__[name]:obj[name];
+            if(!orig_func)
+            {
+                console.log("Couldn't find function to unwrap:", name);
+                return;
+            }
+
             if(!orig_func.__sentry_original__)
                 return;
 

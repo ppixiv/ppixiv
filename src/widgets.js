@@ -5,6 +5,8 @@ ppixiv.widget = class
 {
     constructor(container)
     {
+        console.assert(container != null);
+
         this.container = container;
 
         // Let the caller finish, then refresh.
@@ -943,6 +945,8 @@ ppixiv.toggle_bookmark_tag_list_widget = class extends ppixiv.illust_widget
 
 ppixiv.bookmark_button_widget = class extends ppixiv.illust_widget
 {
+    get needed_data() { return "early_info"; }
+
     constructor(container, private_bookmark, bookmark_tag_widget)
     {
         super(container);
@@ -955,24 +959,20 @@ ppixiv.bookmark_button_widget = class extends ppixiv.illust_widget
         image_data.singleton().illust_modified_callbacks.register(this.refresh.bind(this));
     }
 
-    refresh_internal({ illust_data })
+    refresh_internal({ early_info })
     {
-        var count = this.container.querySelector(".count");
-        if(count)
-            count.textContent = illust_data? illust_data.bookmarkCount:"---";
-
-        var bookmarked = illust_data && illust_data.bookmarkData != null;
-        var our_bookmark_type = illust_data && illust_data.bookmarkData && illust_data.bookmarkData.private == this.private_bookmark;
+        var bookmarked = early_info?.bookmarkData != null;
+        var our_bookmark_type = early_info?.bookmarkData?.private == this.private_bookmark;
 
         // Set up the bookmark buttons.
-        helpers.set_class(this.container,  "enabled",     illust_data != null);
+        helpers.set_class(this.container,  "enabled",     early_info != null);
         helpers.set_class(this.container,  "bookmarked",  our_bookmark_type);
         helpers.set_class(this.container,  "will-delete", our_bookmark_type);
         
         // Set the tooltip.
         var type_string = this.private_bookmark? "private":"public";
         this.container.dataset.popup =
-            illust_data == null? "":
+            early_info == null? "":
             !bookmarked? (this.private_bookmark? "Bookmark privately":"Bookmark image"):
             our_bookmark_type? "Remove bookmark":
             "Change bookmark to " + type_string;
@@ -1038,24 +1038,39 @@ ppixiv.bookmark_button_widget = class extends ppixiv.illust_widget
     }
 }
 
-ppixiv.like_button_widget = class extends ppixiv.illust_widget
+ppixiv.bookmark_count_widget = class extends ppixiv.illust_widget
 {
-    constructor(container, private_bookmark)
+    // XXX: quick?
+    constructor(container)
     {
         super(container);
 
-        this.private_bookmark = private_bookmark;
+        image_data.singleton().illust_modified_callbacks.register(this.refresh.bind(this));
+    }
+
+    refresh_internal({ illust_data })
+    {
+        var count = this.container.querySelector(".count");
+        if(count)
+            count.textContent = illust_data? illust_data.bookmarkCount:"---";
+    }
+}
+
+ppixiv.like_button_widget = class extends ppixiv.illust_widget
+{
+    get needed_data() { return "illust_id"; }
+
+    constructor(container)
+    {
+        super(container);
 
         this.container.addEventListener("click", this.clicked_like);
 
         image_data.singleton().illust_modified_callbacks.register(this.refresh.bind(this));
     }
 
-    async refresh_internal({ illust_data })
+    async refresh_internal({ illust_id })
     {
-        // Update the like button highlight and tooltip.
-        this.container.querySelector(".count").textContent = illust_data? illust_data.likeCount:"---";
-
         let liked_recently = this._illust_id != null? image_data.singleton().get_liked_recently(this._illust_id):false;
         helpers.set_class(this.container, "liked", liked_recently);
         helpers.set_class(this.container, "enabled", !liked_recently);
@@ -1074,4 +1089,17 @@ ppixiv.like_button_widget = class extends ppixiv.illust_widget
     }
 }
 
+ppixiv.like_count_widget = class extends ppixiv.illust_widget
+{
+    constructor(container)
+    {
+        super(container);
+        image_data.singleton().illust_modified_callbacks.register(this.refresh.bind(this));
+    }
+
+    async refresh_internal({ illust_data })
+    {
+        this.container.textContent = illust_data? illust_data.likeCount:"---";
+    }
+}
 

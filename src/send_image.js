@@ -467,7 +467,7 @@ ppixiv.SendImage = class
 };
 
 // A context menu widget showing known tabs on the desktop to send images to.
-ppixiv.send_image_widget = class extends ppixiv.widget
+ppixiv.send_image_widget = class extends ppixiv.illust_widget
 {
     constructor(container)
     {
@@ -483,16 +483,6 @@ ppixiv.send_image_widget = class extends ppixiv.widget
 
         // Refresh when the image data changes.
         image_data.singleton().illust_modified_callbacks.register(this.refresh.bind(this));
-    }
-
-    set_illust_id(illust_id, page=-1)
-    {
-        if(this._illust_id == illust_id && this._page == page)
-            return;
-
-        this._illust_id = illust_id;
-        this._page = page;
-        this.refresh();
     }
 
     get visible()
