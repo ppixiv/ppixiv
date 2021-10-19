@@ -51,22 +51,35 @@ ppixiv.on_click_viewer = class
 
         this._add_events();
 
-        // If we've never set an image position, do it now.
+        // Figure out whether the image is relatively portrait or landscape compared to the screen.
+        let screen_width = Math.max(this.container_width, 1); // might be 0 if we're hidden
+        let screen_height = Math.max(this.container_height, 1);
+        let aspect = (screen_width/this.original_width) > (screen_height/this.original_height)? "portrait":"landscape";
+
+        // If this.set_initial_image_position is true, then we're changing pages in the same illustration
+        // and already have a position.  If the images are similar, it's useful to keep the same position,
+        // so you can alternate between variants of an image and have them stay in place.  However, if
+        // they're very different, this just leaves the display in a weird place.
+        //
+        // Try to guess.  If we have a position already, only replace it if the aspect ratio mode is
+        // the same.  If we're going from portrait to portrait leave the position alone, but if we're
+        // going from portrait to landscape, reset it.
+        //
+        // Note that we'll come here twice when loading most images: once using the preview image and
+        // then again with the real image.  It's important that we not mess with the zoom position on
+        // the second call.
+        if(this.set_initial_image_position && aspect != this.initial_image_position_aspect)
+            this.set_initial_image_position = false;
+
         if(!this.set_initial_image_position)
         {
             // Similar to how we display thumbnails for portrait images starting at the top, default to the top
-            // if we'll be panning vertically when in cover mode.  This is based on how the image fits into the
-            // browser window instead of the actual aspect ratio.
-            // let aspect_ratio = this.original_width / this.original_height;
-            // let portrait = aspect_ratio < 0.9;
-            let screen_width = Math.max(this.container_width, 1); // might be 0 if we're hidden
-            let screen_height = Math.max(this.container_height, 1);
-            let portrait = (screen_width/this.original_width) > (screen_height/this.original_height);
-            
+            // if we'll be panning vertically when in cover mode.
             this.set_initial_image_position = true;
-            this.set_image_position(
-                    [this.container_width * 0.5, this.container_height * 0.5],
-                    [this.width * 0.5, this.height * (portrait? 0:0.5)]);
+            let screen_pos = [this.container_width * 0.5, this.container_height * 0.5];
+            let zoom_center = [this.width * 0.5, aspect == "portrait"? 0: (this.height * 0.5)];
+            this.set_image_position(screen_pos, zoom_center);
+            this.initial_image_position_aspect = aspect;
         }
 
         this.reposition();
