@@ -17,6 +17,7 @@ ppixiv.image_data = class
         // Cached data:
         this.image_data = { };
         this.user_data = { };
+        this.bookmarked_image_tags = {};
 
         // Negative cache to remember illusts that don't exist, so we don't try to
         // load them repeatedly:
@@ -390,28 +391,33 @@ ppixiv.image_data = class
         return this.bookmark_details[illust_id];
     }
 
-    async load_bookmark_details(illust_info)
+    async load_bookmark_details(illust_id)
     {
-        // Stop if this image isn't bookmarked.
-        if(illust_info.bookmarkData == null)
-            return;
-
         // Stop if this is already loaded.
-        if(illust_info.bookmarkData.tags != null)
-            return;
+        if(this.bookmarked_image_tags[illust_id])
+            return this.bookmarked_image_tags[illust_id]; 
 
-        var bookmark_page = await helpers.load_data_in_iframe("/bookmark_add.php?type=illust&illust_id=" + illust_info.illustId);
-
-        // Stop if the image was unbookmarked while we were loading.
-        if(illust_info.bookmarkData == null)
-            return;
-
-        var tags = bookmark_page.querySelector(".bookmark-detail-unit form input[name='tag']").value;
+        let bookmark_page = await helpers.load_data_in_iframe("/bookmark_add.php?type=illust&illust_id=" + illust_id);
+        
+        let tags = bookmark_page.querySelector(".bookmark-detail-unit form input[name='tag']").value;
         tags = tags.split(" ");
         tags = tags.filter((value) => { return value != ""; });
 
-        illust_info.bookmarkData.tags = tags;
-     }
+        this.bookmarked_image_tags[illust_id] = tags;
+        return this.bookmarked_image_tags[illust_id]; 
+    }
+
+    // Replace our cache of bookmark tags for an image.  This is used after updating
+    // a bookmark.
+    update_cached_bookmark_image_tags(illust_id, tags)
+    {
+        if(tags == null)
+            delete this.bookmarked_image_tags[illust_id];
+        else
+            this.bookmarked_image_tags[illust_id] = tags;
+
+        this.call_illust_modified_callbacks(illust_id);
+    }
 
     // Get illustration info that can be retrieved from both 
     // Get the info we need to set up an image display.  We can do this from thumbnail info

@@ -51,7 +51,8 @@ ppixiv.actions = class
             private: !!request.restrict,
             tags: request.tags,
         }
-        console.log("Updated bookmark data:", illust_info.bookmarkData);
+        console.log("Updated bookmark data:", illust_info.bookmarkData, request.tags);
+        image_data.singleton().update_cached_bookmark_image_tags(illust_id, request.tags);
 
         if(!was_bookmarked)
             illust_info.bookmarkCount++;
@@ -121,7 +122,7 @@ ppixiv.actions = class
 
         // If we're modifying tags, we need bookmark details loaded, so we can preserve
         // the current privacy status.  This will insert the info into illust_info.bookmarkData.
-        await image_data.singleton().load_bookmark_details(illust_info);
+        let bookmark_tags = await image_data.singleton().load_bookmark_details(illust_info.illustId);
 
         var bookmark_params = {
             // Don't auto-like if we're editing an existing bookmark.
@@ -147,7 +148,7 @@ ppixiv.actions = class
             // that aren't changing.
             for(var tag of options.tags)
             {
-                var is_new_tag = illust_info.bookmarkData.tags.indexOf(tag) == -1;
+                var is_new_tag = bookmark_tags.indexOf(tag) == -1;
                 if(is_new_tag)
                     helpers.update_recent_bookmark_tags([tag]);
             }
@@ -177,6 +178,7 @@ ppixiv.actions = class
 
         illust_info.bookmarkData = null;
         illust_info.bookmarkCount--;
+        image_data.singleton().update_cached_bookmark_image_tags(illust_id, null);
 
         var thumbnail_info = thumbnail_data.singleton().get_one_thumbnail_info(illust_id);
         if(thumbnail_info != null)
@@ -239,10 +241,10 @@ ppixiv.actions = class
 
         // This should already be loaded, since the only way to open this prompt is
         // in the tag dropdown.
-        await image_data.singleton().load_bookmark_details(illust_data);
+        let bookmark_tags = await image_data.singleton().load_bookmark_details(illust_data.illustId);
 
         // Add each tag the user entered to the tag list to update it.
-        let active_tags = illust_data.bookmarkData? Array.from(illust_data.bookmarkData.tags):[];
+        let active_tags = [...bookmark_tags];
 
         for(let tag of tags)
         {

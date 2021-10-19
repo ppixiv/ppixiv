@@ -803,7 +803,7 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
 
         // If the tag list is open, populate bookmark details to get bookmark tags.
         // If the image isn't bookmarked this won't do anything.
-        await image_data.singleton().load_bookmark_details(illust_data);
+        let active_tags = await image_data.singleton().load_bookmark_details(illust_id);
 
         // Remember which illustration's bookmark tags are actually loaded.
         this.displaying_illust_id = illust_id;
@@ -812,10 +812,6 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
         // and to remove the loading entry.
         helpers.remove_elements(bookmark_tags);
         
-        // Put tags that are set on the bookmark first in alphabetical order, followed by
-        // all other tags in order of recent use.
-        var active_tags = illust_data.bookmarkData? Array.from(illust_data.bookmarkData.tags):[];
-
         // If we're refreshing the list while it's open, make sure that any tags the user
         // selected are still in the list, even if they were removed by the refresh.  Put
         // them in active_tags, so they'll be marked as active.
@@ -867,8 +863,7 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
 
         // Get the tags currently on the bookmark to compare.
         var illust_data = await image_data.singleton().get_image_info(illust_id);
-        await image_data.singleton().load_bookmark_details(illust_data);
-        var old_tags = illust_data.bookmarkData? illust_data.bookmarkData.tags:[];
+        let old_tags = await image_data.singleton().load_bookmark_details(illust_id);
 
         var equal = new_tags.length == old_tags.length;
         for(var tag of new_tags)
