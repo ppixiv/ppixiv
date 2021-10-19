@@ -722,11 +722,29 @@ ppixiv.helpers = {
         return result;
     },
 
+    create_search_params(data)
+    {
+        let params = new URLSearchParams();
+        for(let key in data)
+        {
+            // If this is an array, add each entry separately.  This is used by
+            // /ajax/user/#/profile/illusts.
+            let value = data[key];
+            if(Array.isArray(value))
+            {
+                for(let item of value)
+                    params.append(key, item);
+            }
+            else
+                params.append(key, value);
+        }
+        return params;
+    },
+
     async get_request(url, data, options)
     {
-        var params = new URLSearchParams();
-        for(var key in data)
-            params.set(key, data[key]);
+        let params = this.create_search_params(data);
+
         var query = params.toString();
         if(query != "")
             url += "?" + query;
