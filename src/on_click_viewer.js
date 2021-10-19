@@ -162,7 +162,6 @@ ppixiv.on_click_viewer = class
     {
         this._zoom_level = value;
         settings.set("zoom-level", this._zoom_level);
-        console.log("set", value);
         this.reposition();
     }
 
@@ -242,12 +241,12 @@ ppixiv.on_click_viewer = class
         };
         if(crossed(old_level, new_level, cover_zoom_level))
         {
-            console.log("Selected cover zoom");
+            // console.log("Selected cover zoom");
             new_level = "cover";
         }
         else if(crossed(old_level, new_level, actual_zoom_level))
         {
-            console.log("Selected actual zoom");
+            // console.log("Selected actual zoom");
             new_level = "actual";
         }
         else
