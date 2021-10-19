@@ -711,8 +711,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
                 if(illust_id == null)
                     return;
 
-                let illust_data = await image_data.singleton().get_image_info(illust_id);
-                actions.like_image(illust_data);
+                actions.like_image(illust_id);
             })();
 
             return true;

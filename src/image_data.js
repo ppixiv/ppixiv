@@ -17,7 +17,8 @@ ppixiv.image_data = class
         // Cached data:
         this.image_data = { };
         this.user_data = { };
-        this.bookmarked_image_tags = {};
+        this.bookmarked_image_tags = { };
+        this.recent_likes = { }
 
         // Negative cache to remember illusts that don't exist, so we don't try to
         // load them repeatedly:
@@ -460,5 +461,9 @@ ppixiv.image_data = class
             previewUrl: illust_data.urls.small,
         }
     }
+
+    // Remember when we've liked an image recently, so we don't spam API requests.
+    get_liked_recently(illust_id) { return this.recent_likes[illust_id]; }
+    add_liked_recently(illust_id) { this.recent_likes[illust_id] = true; }
 }
 

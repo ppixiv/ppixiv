@@ -1044,21 +1044,22 @@ ppixiv.like_button_widget = class extends ppixiv.illust_widget
     {
         // Update the like button highlight and tooltip.
         this.container.querySelector(".count").textContent = illust_data? illust_data.likeCount:"---";
-        helpers.set_class(this.container, "liked", illust_data && illust_data.likeData);
-        helpers.set_class(this.container, "enabled", illust_data != null && !illust_data.likeData);
 
-        this.container.dataset.popup =
-            illust_data && !illust_data.likeData? "Like image":
-            illust_data && illust_data.likeData? "Already liked image":"";
+        let liked_recently = this._illust_id != null? image_data.singleton().get_liked_recently(this._illust_id):false;
+        helpers.set_class(this.container, "liked", liked_recently);
+        helpers.set_class(this.container, "enabled", !liked_recently);
+
+        this.container.dataset.popup = this._illust_id == null? "":
+            liked_recently? "Already liked image":"Like image";
     }
     
-    async clicked_like(e)
+    clicked_like(e)
     {
         e.preventDefault();
         e.stopPropagation();
 
-        var illust_data = await image_data.singleton().get_image_info(this._illust_id);
-        actions.like_image(illust_data);
+        if(this._illust_id != null)
+            actions.like_image(this._illust_id);
     }
 }
 

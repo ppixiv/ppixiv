@@ -9,19 +9,19 @@ ppixiv.actions = class
         if(options == null)
             options = {};
 
+        let illust_id = illust_info.illustId;
+
         console.log("Add bookmark:", options);
 
         // If auto-like is enabled, like an image when we bookmark it.
         if(!options.disable_auto_like)
         {
             console.log("Automatically liking image with bookmark");
-            actions.like_image(illust_info, true /* quiet */);
+            actions.like_image(illust_id, true /* quiet */);
         }
          
         // Remember whether this is a new bookmark or an edit.
         var was_bookmarked = illust_info.bookmarkData != null;
-
-        var illust_id = illust_info.illustId;
 
         var request = {
             "illust_id": illust_id,
@@ -266,11 +266,11 @@ ppixiv.actions = class
     }
     
     // If quiet is true, don't print any messages.
-    static async like_image(illust_data, quiet)
+    static async like_image(illust_id, quiet)
     {
-        var illust_id = illust_data.illustId;
         console.log("Clicked like on", illust_id);
-        if(illust_data.likeData)
+        
+        if(image_data.singleton().get_liked_recently(illust_id))
         {
             if(!quiet)
                 message_widget.singleton.show("Already liked this image");
@@ -281,13 +281,28 @@ ppixiv.actions = class
             "illust_id": illust_id,
         });
 
-        // Update the image data.
-        illust_data.likeData = true;
-        illust_data.likeCount++;
-        image_data.singleton().call_illust_modified_callbacks(illust_id);
+        // If is_liked is true, we already liked the image, so this had no effect.
+        let was_already_liked = result.body.is_liked;
+
+        // Remember that we liked this image recently.
+        image_data.singleton().add_liked_recently(illust_id);
+
+        // If we have illust data, increase the like count locally.  Don't load it
+        // if it's not loaded already.
+        let illust_data = image_data.singleton().get_image_info_sync(illust_id);
+        if(!was_already_liked && illust_data)
+        {
+            illust_data.likeCount++;
+            image_data.singleton().call_illust_modified_callbacks(illust_id);
+        }
 
         if(!quiet)
-            message_widget.singleton.show("Illustration liked");
+        {
+            if(was_already_liked)
+                message_widget.singleton.show("Already liked this image");
+            else
+                message_widget.singleton.show("Illustration liked");
+        }
     }
 
     static async follow(user_data, follow_privately, tags)
