@@ -15,7 +15,7 @@ ppixiv.context_menu_image_info_widget = class extends ppixiv.illust_widget
     {
         // We need illust info if we're viewing a manga page beyond page 1, since
         // early info doesn't have that.  Most of the time, we only need early info.
-        if(this._page == -1 || this._page == 0)
+        if(this._page == null || this._page == 0)
             return "early_info";
         else
             return "illust_info";
@@ -26,7 +26,7 @@ ppixiv.context_menu_image_info_widget = class extends ppixiv.illust_widget
         if(!illust_data)
             illust_data = early_info;
 
-        this.container.hidden = (illust_data == null || this._page == null);
+        this.container.hidden = illust_data == null;
         if(this.container.hidden)
             return;
 
@@ -41,7 +41,7 @@ ppixiv.context_menu_image_info_widget = class extends ppixiv.illust_widget
         var page_text = "";
         if(illust_data.pageCount > 1)
         {
-            if(this._page == -1)
+            if(this._page == null)
                 page_text = illust_data.pageCount + " pages";
             else
                 page_text = "Page " + (this._page+1) + "/" + illust_data.pageCount;
@@ -51,7 +51,7 @@ ppixiv.context_menu_image_info_widget = class extends ppixiv.illust_widget
         // Show info for the current page.  If _page is -1 then we're on the search view and don't have
         // a specific page, so show info for the first page.
         let page = this._page;
-        if(page == -1)
+        if(page == null)
             page = 0;
 
         // If we're on the first page then we only requested early info, and we can use the dimensions
