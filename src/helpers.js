@@ -1620,11 +1620,8 @@ ppixiv.helpers = {
         helpers.set_class(thumb, "horizontal-panning", horizontal_panning);
     },
 
-    set_title(illust_data, user_data)
+    set_title(illust_data)
     {
-        if(user_data == null && illust_data != null)
-            user_data = illust_data.userInfo;
-
         if(illust_data == null)
         {
             helpers.set_page_title("Loading...");
@@ -1635,22 +1632,20 @@ ppixiv.helpers = {
         if(illust_data.bookmarkData)
             page_title += "★";
 
-        page_title += user_data.name + " - " + illust_data.illustTitle;
+        console.log(illust_data);
+        page_title += illust_data.userName + " - " + illust_data.illustTitle;
         helpers.set_page_title(page_title);
     },
 
-    set_icon(illust_data, user_data)
+    set_icon(illust_data)
     {
-        if(user_data == null && illust_data != null)
-            user_data = illust_data.userInfo;
-
-        helpers.set_page_icon(user_data && user_data.isFollowed? resources['resources/favorited-icon.png']:resources['resources/regular-pixiv-icon.png']);
+        helpers.set_page_icon(resources['resources/regular-pixiv-icon.png']);
     },
 
-    set_title_and_icon(illust_data, user_data)
+    set_title_and_icon(illust_data)
     {
-        helpers.set_title(illust_data, user_data)
-        helpers.set_icon(illust_data, user_data)
+        helpers.set_title(illust_data)
+        helpers.set_icon(illust_data)
     },
 
     // Return 1 if the given keydown event should zoom in, -1 if it should zoom

@@ -40,7 +40,7 @@ ppixiv.viewer_muted = class extends ppixiv.viewer
             muted_label.innerText = muted_tag;
         }
         else
-            muted_label.innerText = illust_data.userInfo.name;
+            muted_label.innerText = illust_data.userName;
     }
 
     shutdown()

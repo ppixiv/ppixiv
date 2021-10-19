@@ -110,15 +110,15 @@ ppixiv.image_ui = class
 
         var illust_data = this.illust_data;
         var illust_id = illust_data.illustId;
-        var user_data = illust_data.userInfo;
+        let user_id = illust_data.userId;
         
         // Show the author if it's someone else's post, or the edit link if it's ours.
-        var our_post = global_data.user_id == user_data.userId;
+        var our_post = global_data.user_id == user_id;
         this.container.querySelector(".author-block").hidden = our_post;
         this.container.querySelector(".edit-post").hidden = !our_post;
         this.container.querySelector(".edit-post").href = "/member_illust_mod.php?mode=mod&illust_id=" + illust_id;
 
-        this.avatar_widget.set_user_id(user_data.userId);
+        this.avatar_widget.set_user_id(user_id);
         this.tag_widget.set(illust_data.tags);
 
         var element_title = this.container.querySelector(".title");
@@ -126,11 +126,11 @@ ppixiv.image_ui = class
         element_title.href = "/artworks/" + illust_id + "#ppixiv";
 
         var element_author = this.container.querySelector(".author");
-        element_author.textContent = user_data.name;
-        element_author.href = "/users/" + user_data.userId + "#ppixiv";
+        element_author.textContent = illust_data.userName;
+        element_author.href = `/users/${user_id}#ppixiv`;
         
         this.container.querySelector(".similar-illusts-button").href = "/bookmark_detail.php?illust_id=" + illust_id + "#ppixiv?recommendations=1";
-        this.container.querySelector(".similar-artists-button").href = "/discovery/users#ppixiv?user_id=" + user_data.userId;
+        this.container.querySelector(".similar-artists-button").href = "/discovery/users#ppixiv?user_id=" + user_id;
         this.container.querySelector(".similar-bookmarks-button").href = "/bookmark_detail.php?illust_id=" + illust_id + "#ppixiv";
 
         // Fill in the post info text.

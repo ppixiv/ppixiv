@@ -429,8 +429,6 @@ ppixiv.screen_search = class extends ppixiv.screen
         if(this.viewing_user_id != initial_user_id || !this.active)
             return;
 
-        helpers.set_icon(null, user_info);
-
         // Set the bookmarks link.
         var bookmarks_link = this.container.querySelector(".bookmarks-link");
         bookmarks_link.hidden = user_info == null;
