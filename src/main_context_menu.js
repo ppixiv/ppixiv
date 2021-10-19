@@ -602,7 +602,9 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
 
     get effective_page()
     {
-        if(this._clicked_page != null)
+        // If we have a temporary illust_id, use the temporary page too.  If it's
+        // null, that means we're over an illust and not a page.
+        if(this._clicked_illust_id != null)
             return this._clicked_page;
         else
             return this._page;
