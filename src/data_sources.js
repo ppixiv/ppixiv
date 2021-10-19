@@ -829,6 +829,79 @@ ppixiv.data_sources.discovery = class extends data_source
     }
 }
 
+// bookmark_detail.php#recommendations=1 - Similar Illustrations
+//
+// We use this as an anchor page for viewing recommended illusts for an image, since
+// there's no dedicated page for this.
+ppixiv.data_sources.related_illusts = class extends data_source
+{
+    get name() { return "related-illusts"; }
+   
+    get estimated_items_per_page() { return 60; }
+
+    async _load_page_async(page, cause)
+    {
+        // The first time we load a page, get info about the source illustration too, so
+        // we can show it in the UI.
+        if(!this.fetched_illust_info)
+        {
+            this.fetched_illust_info = true;
+
+            // Don't wait for this to finish before continuing.
+            let illust_id = this.url.searchParams.get("illust_id");
+            image_data.singleton().get_image_info(illust_id).then((illust_info) => {
+                this.illust_info = illust_info;
+                this.call_update_listeners();
+            }).catch((e) => {
+                console.error(e);
+            });
+        }
+
+        return await super._load_page_async(page, cause);
+    }
+     
+    async load_page_internal(page)
+    {
+        // Get "mode" from the URL.  If it's not present, use "all".
+        let mode = this.url.searchParams.get("mode") || "all";
+        let result = await helpers.get_request("/ajax/discovery/artworks", {
+            sampleIllustId: this.url.searchParams.get("illust_id"),
+            mode: mode,
+            limit: this.estimated_items_per_page,
+            lang: "en",
+        });
+
+        // result.body.recommendedIllusts[].recommendMethods, recommendSeedIllustIds
+        // has info about why it recommended it.
+        let thumbs = result.body.thumbnails.illust;
+        thumbnail_data.singleton().loaded_thumbnail_info(thumbs, "normal");
+
+        let illust_ids = [];
+        for(let thumb of thumbs)
+            illust_ids.push(thumb.id);
+
+        tag_translations.get().add_translations_dict(result.body.tagTranslation);
+        this.add_page(page, illust_ids);
+    };
+
+    get page_title() { return "Similar Illusts"; }
+    get_displaying_text() { return "Similar Illustrations"; }
+
+    refresh_thumbnail_ui(container)
+    {
+        // Set the source image.
+        var source_link = container.querySelector(".image-for-suggestions");
+        source_link.hidden = this.illust_info == null;
+        if(this.illust_info)
+        {
+            source_link.href = "/artworks/" + this.illust_info.illustId + "#ppixiv";
+
+            var img = source_link.querySelector(".image-for-suggestions > img");
+            img.src = this.illust_info.urls.thumb;
+        }
+    }
+}
+
 // Artist suggestions take a random sample of followed users, and query suggestions from them.
 // The followed user list normally comes from /discovery/users.
 //
@@ -967,71 +1040,6 @@ ppixiv.data_sources.discovery_users = class extends data_source
     {
     }
 };
-
-// bookmark_detail.php#recommendations=1 - Similar Illustrations
-//
-// We use this as an anchor page for viewing recommended illusts for an image, since
-// there's no dedicated page for this.
-ppixiv.data_sources.related_illusts = class extends data_source_fake_pagination
-{
-    get name() { return "related-illusts"; }
-   
-    async _load_page_async(page, cause)
-    {
-        // The first time we load a page, get info about the source illustration too, so
-        // we can show it in the UI.
-        if(!this.fetched_illust_info)
-        {
-            this.fetched_illust_info = true;
-
-            // Don't wait for this to finish before continuing.
-            let illust_id = this.url.searchParams.get("illust_id");
-            image_data.singleton().get_image_info(illust_id).then((illust_info) => {
-                this.illust_info = illust_info;
-                this.call_update_listeners();
-            }).catch((e) => {
-                console.error(e);
-            });
-        }
-
-        return await super._load_page_async(page, cause);
-    }
-     
-    // Implement data_source_fake_pagination:
-    async load_all_results()
-    {
-        let result = await helpers.get_request("/rpc/recommender.php", {
-            type: "illust",
-            sample_illusts: this.url.searchParams.get("illust_id"),
-            num_recommendations: 1000,
-        });
-
-        // Unlike other APIs, this one returns IDs as ints rather than strings.  Convert back
-        // to strings.
-        var illust_ids = [];
-        for(var illust_id of result.recommendations)
-            illust_ids.push(illust_id + "");
-
-        return illust_ids;
-    };
-
-    get page_title() { return "Similar Illusts"; }
-    get_displaying_text() { return "Similar Illustrations"; }
-
-    refresh_thumbnail_ui(container)
-    {
-        // Set the source image.
-        var source_link = container.querySelector(".image-for-suggestions");
-        source_link.hidden = this.illust_info == null;
-        if(this.illust_info)
-        {
-            source_link.href = "/artworks/" + this.illust_info.illustId + "#ppixiv";
-
-            var img = source_link.querySelector(".image-for-suggestions > img");
-            img.src = this.illust_info.urls.thumb;
-        }
-    }
-}
 
 // /ranking.php
 //
