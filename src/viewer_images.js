@@ -36,27 +36,14 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         if(this.was_shutdown)
             return;
        
-        // Make a list of image URLs we're viewing.
-        this.images = [];
-        for(let page = 0; page < early_illust_data.pageCount; ++page)
-        {
-            let preview_url = early_illust_data.previewUrl;
-            if(page > 0)
-            {
-                // We know the URLs to manga pages from thumbnail data, but we don't know their
-                // resolutions, so don't use them for previews.  This usually shouldn't be seen,
-                // dsince we usually aren't navigating to later pages without having loaded full
-                // illust info.
-                preview_url = null;
-            }
-            
-            this.images.push({
-                url: null,
-                preview_url: preview_url,
-                width: early_illust_data.width,
-                height: early_illust_data.height,
-            });
-        }
+        // Only add an entry for page 1.  We don't have image dimensions for manga pages from
+        // early data, so we can't use them for quick previews.
+        this.images = [{
+            url: null,
+            preview_url: early_illust_data.previewUrl,
+            width: early_illust_data.width,
+            height: early_illust_data.height,
+        }];
 
         this.refresh();
         
@@ -128,21 +115,19 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         if(this.images == null)
             return;
 
-        var current_image = this.images[this.index];
+        // This will be null if this is a manga page that we don't have any info for yet.
+        let current_image = this.images[this.index];
         if(current_image == null)
-        {
-            console.error("Invalid page", this.index, "in images", this.images);
-            return;
-        }
+            console.info(`No info for page ${this.index} yet`);
         if(this.on_click_viewer && this.img && this.img.src == current_image.url)
             return;
 
         // Create the new image and pass it to the viewer.
-        this._create_image(current_image.url, current_image.preview_url, current_image.width, current_image.height);
+        this._create_image(current_image?.url, current_image?.preview_url, current_image?.width, current_image?.height);
         
         // Decode the next and previous image.  This reduces flicker when changing pages
         // since the image will already be decoded.
-        if(this.index > 0)
+        if(this.index > 0 && this.index - 1 < this.images.length)
             helpers.decode_image(this.images[this.index - 1].url);
         if(this.index + 1 < this.images.length)
             helpers.decode_image(this.images[this.index + 1].url);
@@ -171,6 +156,14 @@ ppixiv.viewer_images = class extends ppixiv.viewer
             this.preview_img = null;
         }
         
+        // If width is null, we don't have any info for the image yet.  Clear the image so we
+        // don't keep showing an old one, and don't create any image.
+        if(width == null)
+        {
+            this.on_click_viewer.set_new_image(null, null, 0, 0);
+            return;
+        }
+
         // Create the low-res preview.  This loads the thumbnail underneath the main image.  Don't set the
         // "filtering" class, since using point sampling for the thumbnail doesn't make sense.  If preview_url
         // is null, just use a blank image.
