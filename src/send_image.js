@@ -467,7 +467,7 @@ ppixiv.SendImage = class
 };
 
 // A context menu widget showing known tabs on the desktop to send images to.
-ppixiv.send_image_widget = class extends ppixiv.illust_widget
+ppixiv.send_image_widget = class extends ppixiv.widget
 {
     constructor(container)
     {

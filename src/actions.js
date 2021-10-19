@@ -4,12 +4,12 @@
 ppixiv.actions = class
 {
     // Set a bookmark.  Any existing bookmark will be overwritten.
-    static async _bookmark_add_internal(illust_info, options)
+    static async _bookmark_add_internal(illust_id, options)
     {
+        let illust_info = await image_data.singleton().get_early_illust_data(illust_id);
+        
         if(options == null)
             options = {};
-
-        let illust_id = illust_info.illustId;
 
         console.log("Add bookmark:", options);
 
@@ -39,34 +39,28 @@ ppixiv.actions = class
         if(new_bookmark_id == null)
             throw "Didn't get a bookmark ID";
 
-        // last_bookmark_id seems to be the ID of the new bookmark.  We need to store this correctly
-        // so the unbookmark button works.
+        // Store the ID of the new bookmark, so the unbookmark button works.
         //
-        // Update bookmark info in image data.
-        //
+        image_data.singleton().update_early_illust_data(illust_id, {
+            bookmarkData: {
+                id: new_bookmark_id,
+                private: !!request.restrict,
+            },
+        });
+
         // Even if we weren't given tags, we still know that they're unset, so set tags so
         // we won't need to request bookmark details later.
-        illust_info.bookmarkData = {
-            id: new_bookmark_id,
-            private: !!request.restrict,
-            tags: request.tags,
-        }
-        console.log("Updated bookmark data:", illust_info.bookmarkData, request.tags);
         image_data.singleton().update_cached_bookmark_image_tags(illust_id, request.tags);
+        console.log("Updated bookmark data:", illust_id, new_bookmark_id, request.restrict, request.tags);
 
         if(!was_bookmarked)
-            illust_info.bookmarkCount++;
-
-        // If this image's thumbnail info is loaded, update that too.
-        var thumbnail_info = thumbnail_data.singleton().get_one_thumbnail_info(illust_id);
-        if(thumbnail_info != null)
         {
-            thumbnail_info.bookmarkData = {
-                id: result.body.last_bookmark_id,
-                private: !!request.restrict,
-            }
+            // If we have full illust data loaded, increase its bookmark count locally.
+            let full_illust_info = image_data.singleton().get_image_info_sync(illust_id);
+            if(full_illust_info)
+                full_illust_info.bookmarkCount++;
         }
-        
+
         message_widget.singleton.show(
                 was_bookmarked? "Bookmark edited":
                 options.private? "Bookmarked privately":"Bookmarked");
@@ -83,12 +77,14 @@ ppixiv.actions = class
     // existing data), except for public/private which can be changed in-place, and we need
     // to do an extra request to retrieve the tag list if we need it.  We try to avoid
     // making the extra bookmark details request if possible.
-    static async bookmark_add(illust_info, options)
+    static async bookmark_add(illust_id, options)
     {
         if(options == null)
             options = {};
 
-        console.log("Add bookmark for", illust_info.illustId, "options:", options);
+        let illust_info = await image_data.singleton().get_early_illust_data(illust_id);
+
+        console.log("Add bookmark for", illust_id, "options:", options);
 
         // This is a mess, since Pixiv's APIs are all over the place.
         //
@@ -99,7 +95,7 @@ ppixiv.actions = class
             if(options.tags != null)
                 helpers.update_recent_bookmark_tags(options.tags);
         
-            return await actions._bookmark_add_internal(illust_info, options);
+            return await actions._bookmark_add_internal(illust_id, options);
         }
         
         // Special case: If we're not setting anything, then we just want this image to
@@ -117,28 +113,27 @@ ppixiv.actions = class
             // If the image is already bookmarked, use bookmark_set_private to edit the
             // existing bookmark.  This won't auto-like.
             console.log("Only editing private field", options.private);
-            return await actions.bookmark_set_private(illust_info, options.private);
+            return await actions.bookmark_set_private(illust_id, options.private);
         }
 
         // If we're modifying tags, we need bookmark details loaded, so we can preserve
         // the current privacy status.  This will insert the info into illust_info.bookmarkData.
-        let bookmark_tags = await image_data.singleton().load_bookmark_details(illust_info.illustId);
+        let bookmark_tags = await image_data.singleton().load_bookmark_details(illust_id);
 
         var bookmark_params = {
             // Don't auto-like if we're editing an existing bookmark.
             disable_auto_like: true,
         };
 
-        // Copy any of these keys that are in options to our bookmark_add arguments.
-        // Copy any fields that aren't being set from the current value.
-        for(let key of ["private", "tags"])
-        {
-            var value = options[key];
-            if(value == null)
-                value = illust_info.bookmarkData[key];
+        if("private" in options)
+            bookmark_params.private = options.private;
+        else
+            bookmark_params.private = illust_info.bookmarkData.private;
 
-            bookmark_params[key] = value;
-        }
+        if("tags" in options)
+            bookmark_params.tags = options.tags;
+        else
+            bookmark_params.tags = bookmark_tags;
 
         // Only update recent tags if we're modifying tags.
         if(options.tags != null)
@@ -154,18 +149,18 @@ ppixiv.actions = class
             }
         }
         
-        return await actions._bookmark_add_internal(illust_info, bookmark_params);
+        return await actions._bookmark_add_internal(illust_id, bookmark_params);
     }
 
-    static async bookmark_remove(illust_info)
+    static async bookmark_remove(illust_id)
     {
+        let illust_info = await image_data.singleton().get_early_illust_data(illust_id);
         if(illust_info.bookmarkData == null)
         {
             console.log("Not bookmarked");
             return;
         }
 
-        var illust_id = illust_info.illustId;
         var bookmark_id = illust_info.bookmarkData.id;
         
         console.log("Remove bookmark", bookmark_id);
@@ -176,8 +171,18 @@ ppixiv.actions = class
 
         console.log("Removing bookmark finished");
 
-        illust_info.bookmarkData = null;
-        illust_info.bookmarkCount--;
+        image_data.singleton().update_early_illust_data(illust_id, {
+            bookmarkData: null
+        });
+
+        // If we have full image data loaded, update the like count locally.
+        let illust_data = image_data.singleton().get_image_info_sync(illust_id);
+        if(illust_data)
+        {
+            illust_info.bookmarkCount--;
+            image_data.singleton().call_illust_modified_callbacks(illust_id);
+        }
+        
         image_data.singleton().update_cached_bookmark_image_tags(illust_id, null);
 
         var thumbnail_info = thumbnail_data.singleton().get_one_thumbnail_info(illust_id);
@@ -190,25 +195,29 @@ ppixiv.actions = class
     }
 
     // Change an existing bookmark to public or private.
-    static async bookmark_set_private(illust_info, private_bookmark)
+    static async bookmark_set_private(illust_id, private_bookmark)
     {
-        var illust_id = illust_info.illustId;
-        var bookmark_id = illust_info.bookmarkData.id;
+        let illust_info = await image_data.singleton().get_early_illust_data(illust_id);
+        if(!illust_info.bookmarkData)
+        {
+            console.log(`Illust ${illust_id} wasn't bookmarked`);
+            return;
+        }
+
+        let bookmark_id = illust_info.bookmarkData.id;
         
         let result = await helpers.post_request("/ajax/illusts/bookmarks/edit_restrict", {
             bookmarkIds: [bookmark_id],
             bookmarkRestrict: private_bookmark? "private":"public",
         });
 
-        // If this image's info is loaded, update its bookmark info.  Leave fields other
-        // than private_bookmark alone.
-        if(illust_info.bookmarkData != null)
-            illust_info.bookmarkData.private = private_bookmark;
-
-        // If this image's thumbnail info is loaded, update that too.
-        var thumbnail_info = thumbnail_data.singleton().get_one_thumbnail_info(illust_id);
-        if(thumbnail_info != null)
-            thumbnail_info.bookmarkData.private = private_bookmark;
+        // Update bookmark info.
+        image_data.singleton().update_early_illust_data(illust_id, {
+            bookmarkData: {
+                id: bookmark_id,
+                private: private_bookmark,
+            },
+        });
         
         message_widget.singleton.show(private_bookmark? "Bookmarked privately":"Bookmarked");
 
@@ -260,7 +269,7 @@ ppixiv.actions = class
         console.log("All tags:", active_tags);
         
         // Edit the bookmark.
-        await actions.bookmark_add(illust_data, {
+        await actions.bookmark_add(illust_id, {
             tags: active_tags,
         });
     }

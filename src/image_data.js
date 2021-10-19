@@ -420,46 +420,107 @@ ppixiv.image_data = class
         this.call_illust_modified_callbacks(illust_id);
     }
 
+    thumbnail_info_early_illust_data_keys = {
+        "id": "id",
+        "illustType": "illustType",
+        "pageCount": "pageCount",
+        "userId": "userId",
+        "width": "width",
+        "height": "height",
+        "mangaPages": "mangaPages",
+        "bookmarkData": "bookmarkData",
+        // These are handled separately.
+        // "tags": "tags",
+        // "url": "previewUrl",
+    };
+    illust_info_early_illust_data_keys = {
+        "id": "id",
+        "illustType": "illustType",
+        "pageCount": "pageCount",
+        "userId": "userId",
+        "width": "width",
+        "height": "height",
+        "mangaPages": "mangaPages",
+        "bookmarkData": "bookmarkData",
+        // "tags": "tags",
+        // urls.small: "previewUrl",
+    };
+    
     // Get illustration info that can be retrieved from both 
     // Get the info we need to set up an image display.  We can do this from thumbnail info
     // if we're coming from a search, or illust info otherwise.  This only blocks if we
     // need to load the data.
     async get_early_illust_data(illust_id)
     {
+        let keys = null;
+        let data = thumbnail_data.singleton().get_one_thumbnail_info(illust_id);
+        let result = { };
+        if(data)
+        {
+            keys = this.thumbnail_info_early_illust_data_keys;
+            result.previewUrl = data.url;
+            result.tags = data.tags;
+        }
+        else
+        {
+            data = await image_data.singleton().get_image_info(illust_id);
+            if(data == null)
+                return null;
+
+            keys = this.illust_info_early_illust_data_keys;
+
+            result.previewUrl = data.urls.small;
+            result.tags = [];
+            for(let tag of data.tags.tags)
+                result.tags.push(tag.tag);
+        }
+
+        // Remap whichever data type we got.
+        for(let from_key in keys)
+        {
+            let to_key = keys[from_key];
+            if(!(from_key in data))
+            {
+                console.warn(`Missing key ${from_key} for early data`, data);
+                continue;
+            }
+
+            result[to_key] = data[from_key];
+        }
+
+        return result;
+    }
+
+    update_early_illust_data(illust_id, data)
+    {
+        let update_data = (update, keys) => {
+            for(let from_key in keys)
+            {
+                let to_key = keys[from_key];
+                if(!(from_key in data))
+                    continue;
+
+                console.assert(from_key != "tags");
+                update[to_key] = data[from_key];
+            }
+        };
+
         let thumb_data = thumbnail_data.singleton().get_one_thumbnail_info(illust_id);
+        let tags = null;
         if(thumb_data)
         {
-            return {
-                id: thumb_data.id,
-                illustType: thumb_data.illustType,
-                pageCount: thumb_data.pageCount,
-                tags: thumb_data.tags,
-                userId: thumb_data.userId,
-                width: thumb_data.width,
-                height: thumb_data.height,
-                previewUrl: thumb_data.url,
-                mangaPages: thumb_data.mangaPages,
-            }
+            console.log("update thumb", thumb_data);
+            update_data(thumb_data, this.thumbnail_info_early_illust_data_keys);
         }
-    
-        let illust_data = await image_data.singleton().get_image_info(illust_id);
-        if(illust_data == null)
-            return null;
 
-        let tags = [];
-        for(let tag of illust_data.tags.tags)
-            tags.push(tag.tag);
-
-        return {
-            id: illust_data.id,
-            illustType: illust_data.illustType,
-            pageCount: illust_data.pageCount,
-            tags: tags,
-            userId: illust_data.userId,
-            width: illust_data.width,
-            height: illust_data.height,
-            previewUrl: illust_data.urls.small,
+        let illust_info = image_data.singleton().get_image_info_sync(illust_id);
+        if(illust_info != null)
+        {
+            console.log("update illust", illust_info);
+            update_data(illust_info, this.illust_info_early_illust_data_keys);
         }
+
+        this.call_illust_modified_callbacks(illust_id);
     }
 
     // Remember when we've liked an image recently, so we don't spam API requests.

@@ -31,6 +31,13 @@ ppixiv.illust_widget = class extends ppixiv.widget
         image_data.singleton().illust_modified_callbacks.register(this.refresh.bind(this));
     }
 
+    // The data this widget needs.  This can be illust_id (nothing but the ID), illust_info,
+    // or early_info.
+    get needed_data()
+    {
+        return "illust_info";
+    }
+
     set_illust_id(illust_id, page=-1)
     {
         if(this._illust_id == illust_id && this._page == page)
@@ -58,17 +65,25 @@ ppixiv.illust_widget = class extends ppixiv.widget
         // Grab the illust info.
         var illust_id = this._illust_id;
         var illust_data = null;
+        let info = { illust_id: this._illust_id };
         if(this._illust_id != null)
-            illust_data = await image_data.singleton().get_image_info(this._illust_id);
+        {
+            if(this.needed_data == "illust_id")
+                illust_data = illust_id;
+            else if(this.needed_data == "early_info")
+                info.early_info = await image_data.singleton().get_early_illust_data(this._illust_id);
+            else
+                info.illust_data = await image_data.singleton().get_image_info(this._illust_id);
+        }
 
         // Stop if the ID changed while we were async.
         if(this._illust_id != illust_id)
             return;
 
-        await this.refresh_internal(illust_data);
+        await this.refresh_internal(info);
     }
 
-    refresh_internal(illust_data)
+    async refresh_internal({ illust_id, illust_data, early_info})
     {
         throw "Not implemented";
     }
@@ -667,6 +682,8 @@ ppixiv.text_prompt = class
 // Widget for editing bookmark tags.
 ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
 {
+    get needed_data() { return "illust_id"; }
+
     constructor(container)
     {
         super(container);
@@ -763,10 +780,8 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
         }
     }
 
-    async refresh_internal(illust_data)
+    async refresh_internal({ illust_id })
     {
-        let illust_id = illust_data? illust_data.illustId:null;
-
         // If we're refreshing the same illust that's already refreshed, store which tags were selected
         // before we clear the list.
         var old_selected_tags = this.displaying_illust_id == illust_id? this.selected_tags:[];
@@ -776,15 +791,11 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
         var bookmark_tags = this.container.querySelector(".tag-list");
         helpers.remove_elements(bookmark_tags);
 
-        var bookmarked = illust_data && illust_data.bookmarkData != null;
-        var public_bookmark = illust_data && illust_data.bookmarkData && !illust_data.bookmarkData.private;
-        var private_bookmark = illust_data && illust_data.bookmarkData && illust_data.bookmarkData.private;
-
         // Make sure the dropdown is hidden if we have no image.
-        if(illust_data == null)
+        if(illust_id == null)
             this.visible = false;
 
-        if(illust_data == null || !this.visible)
+        if(illust_id == null || !this.visible)
             return;
 
         // Figure out how much space we have, and set that as the max-height.  This will
@@ -862,7 +873,6 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
             return;
 
         // Get the tags currently on the bookmark to compare.
-        var illust_data = await image_data.singleton().get_image_info(illust_id);
         let old_tags = await image_data.singleton().load_bookmark_details(illust_id);
 
         var equal = new_tags.length == old_tags.length;
@@ -880,7 +890,7 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
         console.log("Old tags:", old_tags);
         console.log("New tags:", new_tags);
 
-        await actions.bookmark_add(illust_data, {
+        await actions.bookmark_add(this._illust_id, {
             tags: new_tags,
         });
     }
@@ -905,14 +915,14 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
 // The button that shows and hides the tag list.
 ppixiv.toggle_bookmark_tag_list_widget = class extends ppixiv.illust_widget
 {
+    // We only need an illust ID and no info.
+    get needed_data() { return "illust_id"; }
+
     constructor(container, bookmark_tag_widget)
     {
         super(container);
 
         this.bookmark_tag_widget = bookmark_tag_widget;
-
-        // XXX
-        // this.menu.querySelector(".tag-dropdown-arrow").hidden = !value;
 
         this.container.addEventListener("click", (e) => {
             e.preventDefault();
@@ -925,9 +935,9 @@ ppixiv.toggle_bookmark_tag_list_widget = class extends ppixiv.illust_widget
         });
     }
 
-    async refresh_internal(illust_data)
+    refresh_internal({ illust_id })
     {
-        helpers.set_class(this.container, "enabled", illust_data != null);
+        helpers.set_class(this.container, "enabled", illust_id != null);
     }
 }
 
@@ -945,7 +955,7 @@ ppixiv.bookmark_button_widget = class extends ppixiv.illust_widget
         image_data.singleton().illust_modified_callbacks.register(this.refresh.bind(this));
     }
 
-    async refresh_internal(illust_data)
+    refresh_internal({ illust_data })
     {
         var count = this.container.querySelector(".count");
         if(count)
@@ -998,10 +1008,11 @@ ppixiv.bookmark_button_widget = class extends ppixiv.illust_widget
             this.bookmark_tag_widget.hide_without_sync();
 
         // If the image is bookmarked and the same privacy button was clicked, remove the bookmark.
-        var illust_data = await image_data.singleton().get_image_info(this._illust_id);
+        let illust_data = await image_data.singleton().get_early_illust_data(this._illust_id);
+        
         if(illust_data.bookmarkData && illust_data.bookmarkData.private == this.private_bookmark)
         {
-            await actions.bookmark_remove(illust_data);
+            await actions.bookmark_remove(this._illust_id);
 
             // If the current image changed while we were async, stop.
             if(this._illust_id != illust_data.illustId)
@@ -1016,7 +1027,7 @@ ppixiv.bookmark_button_widget = class extends ppixiv.illust_widget
         }
 
         // Add or edit the bookmark.
-        await actions.bookmark_add(illust_data, {
+        await actions.bookmark_add(this._illust_id, {
             private: this.private_bookmark,
             tags: tag_list,
         });
@@ -1035,12 +1046,12 @@ ppixiv.like_button_widget = class extends ppixiv.illust_widget
 
         this.private_bookmark = private_bookmark;
 
-        this.container.addEventListener("click", this.clicked_like.bind(this));
+        this.container.addEventListener("click", this.clicked_like);
 
         image_data.singleton().illust_modified_callbacks.register(this.refresh.bind(this));
     }
 
-    async refresh_internal(illust_data)
+    async refresh_internal({ illust_data })
     {
         // Update the like button highlight and tooltip.
         this.container.querySelector(".count").textContent = illust_data? illust_data.likeCount:"---";
@@ -1053,7 +1064,7 @@ ppixiv.like_button_widget = class extends ppixiv.illust_widget
             liked_recently? "Already liked image":"Like image";
     }
     
-    clicked_like(e)
+    clicked_like = (e) =>
     {
         e.preventDefault();
         e.stopPropagation();

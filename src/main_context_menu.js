@@ -21,7 +21,7 @@ ppixiv.context_menu_image_info_widget = class extends ppixiv.illust_widget
         this.refresh();
     }
 
-    refresh_internal(illust_data)
+    refresh_internal({ illust_data })
     {
         this.container.hidden = (illust_data == null || this._page == null);
         if(this.container.hidden)
@@ -723,7 +723,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
                 if(illust_id == null)
                     return;
 
-                let illust_data = await image_data.singleton().get_image_info(illust_id);
+                let illust_data = await image_data.singleton().get_early_illust_data(illust_id);
 
                 // Ctrl-Shift-Alt-B: add a bookmark tag
                 if(e.altKey && e.shiftKey)
@@ -741,7 +741,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
                         return;
                     }
 
-                    actions.bookmark_remove(illust_data);
+                    actions.bookmark_remove(illust_id);
                     return;
                 }
 
@@ -754,7 +754,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
                     return;
                 }
 
-                actions.bookmark_add(illust_data, {
+                actions.bookmark_add(illust_id, {
                     private: bookmark_privately
                 });
             })();
@@ -957,28 +957,14 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
     // the search view.
     async _set_temporary_illust(illust_id, page)
     {
-        // If this object is null or changed, we know we've been hidden since we
-        // started this request.
-        var show_sentinel = this.load_illust_sentinel = new Object();
-
         // Store the illust_id immediately, so it's available without waiting for image
         // info to load.
         this._clicked_illust_id = illust_id;
         this._clicked_page = page;
-        this._clicked_illust_info = null;
-
-        // Read illust info to see if we're following the user.
-        var illust_info = await image_data.singleton().get_image_info(illust_id);
-
-        // If the popup was closed while we were waiting, ignore the results.
-        if(show_sentinel != this.load_illust_sentinel)
-            return;
-        this.load_illust_sentinel = null;
 
         if(page != null)
             page = parseInt(page);
 
-        this._clicked_illust_info = illust_info;
         this._effective_illust_id_changed();
     }
 
@@ -1015,12 +1001,10 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         if(unsafeWindow.keep_context_menu_open)
             return;
 
-        this.load_illust_sentinel = null;
         this.load_user_sentinel = null;
         this._clicked_user_id = null;
         this._clicked_user_info = null;
         this._clicked_illust_id = null;
-        this._clicked_illust_info = null;
         this._clicked_page = null;
 
         // Don't refresh yet, so we try to not change the display while it fades out.
