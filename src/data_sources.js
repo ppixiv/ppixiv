@@ -1965,8 +1965,17 @@ class data_source_bookmarks_base extends data_source
         let data = this.get_bookmark_query_params(page, rest);
         let url = `/ajax/user/${this.viewing_user_id}/illusts/bookmarks`;
         let result = await helpers.get_request(url, data);
-        result.body.works = data_source_bookmarks_base.filter_deleted_images(result.body.works);
 
+        // This request includes each bookmark's tags.  Register those with image_data,
+        // so the bookmark tag dropdown can display tags more quickly.
+        for(let illust of result.body.works)
+        {
+            let bookmark_id = illust.bookmarkData.id;
+            let tags = result.body.bookmarkTags[bookmark_id] || [];
+            image_data.singleton().update_cached_bookmark_image_tags(illust.id, tags);
+        }
+
+        result.body.works = data_source_bookmarks_base.filter_deleted_images(result.body.works);
         return result.body;
     }
 
