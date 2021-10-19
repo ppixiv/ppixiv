@@ -397,6 +397,11 @@ class data_source
         
         console.log("Load page", page, "for:", cause);
 
+        // Before starting, yield the task with an empty wait.  This guarantees that load_page
+        // has a chance to store us in this.loading_pages before we do anything that might
+        // have side-effects of starting another load.
+        await helpers.yield();
+
         // Start the actual load.
         var result = await this.load_page_internal(page);
 

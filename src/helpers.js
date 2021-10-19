@@ -299,6 +299,35 @@ ppixiv.helpers = {
         return array;
     },
 
+    yield: function()
+    {
+        // Use a MessageChannel to work around Chrome's ideas of "fixing" setTimeout by
+        // giving it a full second delay when in the background, breaking everything that
+        // uses it for event posting.  Their solution to problems is to just break them
+        // completely and let it be somebody else's problem...
+        if(!this.yield_channel)
+        {
+            this.yield_channel = new MessageChannel();
+            this.yield_channel.port1.start();
+            this.yield_channel.port2.start();
+            this.pending_yields = [];
+
+            this.yield_channel.port1.onmessage = () => {
+                // Swap pending_yields with an empty array, and run all waiting accept() functions.
+                let yields = [];
+                [yields, this.pending_yields] = [this.pending_yields, yields];
+
+                for(let func of yields)
+                    func();
+            };
+        }
+
+        return new Promise((accept, reject) => {
+            this.pending_yields.push(accept);
+            this.yield_channel.port2.realPostMessage(null);
+        });
+    },
+
     // Block until DOMContentLoaded.
     wait_for_content_loaded: function()
     {
