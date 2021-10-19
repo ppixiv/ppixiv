@@ -118,7 +118,7 @@ ppixiv.image_ui = class
         this.container.querySelector(".edit-post").hidden = !our_post;
         this.container.querySelector(".edit-post").href = "/member_illust_mod.php?mode=mod&illust_id=" + illust_id;
 
-        this.avatar_widget.set_from_user_data(user_data);
+        this.avatar_widget.set_user_id(user_data.userId);
         this.tag_widget.set(illust_data.tags);
 
         var element_title = this.container.querySelector(".title");

@@ -1538,9 +1538,7 @@ ppixiv.data_sources.artist = class extends data_source
     refresh_thumbnail_ui(container, thumbnail_view)
     {
         if(this.user_info)
-        {
-            thumbnail_view.avatar_widget.set_from_user_data(this.user_info);
-        }
+            thumbnail_view.avatar_widget.set_user_id(this.viewing_user_id);
 
         let viewing_type = this.viewing_type;
         let url = new URL(this.url);
@@ -1754,14 +1752,6 @@ ppixiv.data_sources.current_illust = class extends data_source
         else
             return "Illustrations";
     };
-
-    refresh_thumbnail_ui(container, thumbnail_view)
-    {
-        if(this.user_info)
-        {
-            thumbnail_view.avatar_widget.set_from_user_data(this.user_info);
-        }
-    }
 
     get page_title()
     {
@@ -2143,8 +2133,7 @@ class data_source_bookmarks_base extends data_source
             add_tag_link(tag);
         }
 
-        if(this.user_info)
-            thumbnail_view.avatar_widget.set_from_user_data(this.user_info);
+        thumbnail_view.avatar_widget.set_user_id(this.viewing_user_id);
     }
 
     get viewing_user_id()
@@ -3019,10 +3008,7 @@ ppixiv.data_sources.follows = class extends data_source
 
     refresh_thumbnail_ui(container, thumbnail_view)
     {
-        if(this.user_info)
-        {
-            thumbnail_view.avatar_widget.set_from_user_data(this.user_info);
-        }
+        thumbnail_view.avatar_widget.set_user_id(this.viewing_user_id);
 
         // The public/private button only makes sense when viewing your own follows.
         var public_private_button_container = container.querySelector(".follows-public-private");
@@ -3069,8 +3055,7 @@ ppixiv.data_sources.follows = class extends data_source
         for(var tag of this.follow_tags || [])
             add_tag_link(tag);
 
-        if(this.user_info)
-            thumbnail_view.avatar_widget.set_from_user_data(this.user_info);
+        thumbnail_view.avatar_widget.set_user_id(this.viewing_user_id);
     }
 
     get viewing_self()

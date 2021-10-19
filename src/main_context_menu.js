@@ -807,7 +807,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
                         return;
                     }
 
-                    await actions.unfollow(user_info);
+                    await actions.unfollow(user_id);
                     return;
                 }
             
@@ -823,7 +823,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
                     return;
                 }
             
-                await actions.follow(user_info, follow_privately, []);
+                await actions.follow(user_id, follow_privately, []);
             })();
 
             return true;
@@ -985,7 +985,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
     {
         // Clear the avatar widget while we load user info, so we don't show the previous
         // user's avatar while the new avatar loads.
-        this.avatar_widget.set_from_user_data(null);
+        this.avatar_widget.set_user_id(null);
         
         // If this object is null or changed, we know we've been hidden since we
         // started this request.
@@ -1043,7 +1043,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
             helpers.set_class(element, "enabled", this._is_zoom_ui_enabled);
 
         // Set the avatar button.
-        this.avatar_widget.set_from_user_data(this.effective_user_info);
+        this.avatar_widget.set_user_id(this.effective_user_id);
 
         if(this._is_zoom_ui_enabled)
         {

@@ -444,16 +444,18 @@ ppixiv.avatar_widget = class
     // Refresh when the user changes.
     user_changed(user_id)
     {
-        if(this.user_data == null || this.user_data.userId != user_id)
+        if(this.user_id == null || this.user_id != user_id)
             return;
 
-        this.set_from_user_data(this.user_data);
+        this.set_user_id(this.user_id);
     }
 
-    set_from_user_data(user_data)
+    async set_user_id(user_id)
     {
+        let user_data = user_id? await image_data.singleton().get_user_info(user_id):null;
+        this.user_id = user_id;
         this.user_data = user_data;
-        if(this.user_data == null)
+        if(this.user_id == null)
         {
             this.root.classList.add("loading");
 
@@ -465,13 +467,13 @@ ppixiv.avatar_widget = class
         }
         this.root.classList.remove("loading");
 
-        helpers.set_class(this.root, "self", user_data.userId == global_data.user_id);
+        helpers.set_class(this.root, "self", this.user_id == global_data.user_id);
 
         // We can't tell if we're followed privately or not, only that we're following.
         helpers.set_class(this.root, "followed", this.user_data.isFollowed);
 
-        this.root.querySelector(".avatar-link").href = `/users/${user_data.userId}/artworks#ppixiv`;
-        this.root.querySelector(".avatar").dataset.popup = "View " + user_data.name + "'s posts";
+        this.root.querySelector(".avatar-link").href = `/users/${this.user_id}/artworks#ppixiv`;
+        this.root.querySelector(".avatar").dataset.popup = "View " + this.user_data.name + "'s posts";
 
         // Hide the popup in dropdown mode, since it covers the dropdown.
         if(this.options.mode == "dropdown")
@@ -480,27 +482,27 @@ ppixiv.avatar_widget = class
         // If we don't have an image because we're loaded from a source that doesn't give us them,
         // just hide the avatar image.
         var key = "imageBig";
-        if(user_data[key])
-            this.img.src = user_data[key];
+        if(this.user_data[key])
+            this.img.src = this.user_data[key];
         else
             this.img.src = helpers.blank_image;
     }
     
     async follow(follow_privately)
     {
-        if(this.user_data == null)
+        if(this.user_id == null)
             return;
 
         var tags = this.element_follow_folder.value;
-        await actions.follow(this.user_data, follow_privately, tags);
+        await actions.follow(this.user_id, follow_privately, tags);
     }
 
     async unfollow()
     {
-        if(this.user_data == null)
+        if(this.user_id == null)
             return;
 
-        await actions.unfollow(this.user_data);
+        await actions.unfollow(this.user_id);
     }
 
     // Note that in some cases we'll only have the user's ID and name, so we won't be able

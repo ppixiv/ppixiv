@@ -314,18 +314,19 @@ ppixiv.actions = class
         }
     }
 
-    static async follow(user_data, follow_privately, tags)
+    static async follow(user_id, follow_privately, tags)
     {
         var result = await helpers.rpc_post_request("/bookmark_add.php", {
             mode: "add",
             type: "user",
-            user_id: user_data.userId,
+            user_id: user_id,
             tag: tags,
             restrict: follow_privately? 1:0,
             format: "json",
         });
 
         // This doesn't return any data.  Record that we're following and refresh the UI.
+        let user_data = await image_data.singleton().get_user_info(user_id);
         user_data.isFollowed = true;
         image_data.singleton().call_user_modified_callbacks(user_data.userId);
 
@@ -335,15 +336,16 @@ ppixiv.actions = class
         message_widget.singleton.show(message);
     }
    
-    static async unfollow(user_data)
+    static async unfollow(user_id)
     {
         var result = await helpers.rpc_post_request("/rpc_group_setting.php", {
             mode: "del",
             type: "bookuser",
-            id: user_data.userId,
+            id: user_id,
         });
 
         // Record that we're no longer following and refresh the UI.
+        let user_data = await image_data.singleton().get_user_info(user_id);
         user_data.isFollowed = false;
         image_data.singleton().call_user_modified_callbacks(user_data.userId);
 
