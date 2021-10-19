@@ -26,7 +26,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
     async load()
     {
         // First, load early illust data.  This is enough info to set up the image list
-        // with preview URLs, so we can starat the image view early.
+        // with preview URLs, so we can start the image view early.
         //
         // If this blocks to load, the full illust data will be loaded, so we'll never
         // run two separate requests here.
@@ -183,23 +183,20 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         this.preview_img.style.pointerEvents = "none";
         this.container.appendChild(this.preview_img);
 
-        let preview_image = this.preview_img;
-
         this.img = document.createElement("img");
+        this.img.src = url? url:helpers.blank_image;
+        this.img.className = "filtering";
         this.container.appendChild(this.img);
-        if(url == null)
-        {
-            // We don't have the image URL yet.  Use a blank image.
-            this.img.src = helpers.blank_image;
-        }
-        else
-        {
-            this.img.src = url;
-            this.img.className = "filtering";
 
-            // When the image finishes loading, remove the preview image, to prevent artifacts with
-            // transparent images.  Keep a reference to preview_img, so we don't need to worry about
-            // it changing.  on_click_viewer will still have a reference to it, but it won't do anything.
+        // When the image finishes loading, remove the preview image, to prevent artifacts with
+        // transparent images.  Keep a reference to preview_img, so we don't need to worry about
+        // it changing.  on_click_viewer will still have a reference to it, but it won't do anything.
+        //
+        // Don't do this if url is null.  Leave the preview up and don't switch over to the blank
+        // image.
+        let preview_image = this.preview_img;
+        if(url != null)
+        {
             this.img.addEventListener("load", (e) => {
                 preview_image.remove();
             });
