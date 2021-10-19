@@ -113,7 +113,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
                 this._hide_image = true;
 
             // Stop showing the user in the context menu, and stop showing the current page.
-            main_context_menu.get.user_info = null;
+            main_context_menu.get.user_id = null;
             main_context_menu.get.page = -1;
             
             this.flashed_page_change = false;
@@ -389,7 +389,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
         this.ui.set_displayed_page_info(page);
 
         // Tell the context menu which user is being viewed.
-        main_context_menu.get.user_info = this.current_illust_data? this.current_illust_data.userInfo:null;
+        main_context_menu.get.user_id = this.current_illust_data? this.current_illust_data.userId:null;
         main_context_menu.get.page = page;
 
         // Pull out info about the user and illustration.

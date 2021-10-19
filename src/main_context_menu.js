@@ -594,8 +594,8 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
     {
         if(this._clicked_user_id != null)
             return this._clicked_user_id;
-        else if(this._user_info)
-            return this._user_info.userId;
+        else if(this._user_id)
+            return this._user_id;
         else
             return null;
     }
@@ -657,15 +657,15 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
     }
 
     // Set the related user currently being viewed, or null if none.
-    get user_info()
+    get user_id()
     {
-        return this._user_info;
+        return this._user_id;
     }
-    set user_info(user_info)
+    set user_id(user_id)
     {
-        if(this._user_info == user_info)
+        if(this._user_id == user_id)
             return;
-        this._user_info = user_info;
+        this._user_id = user_id;
 
         this.refresh();
     }

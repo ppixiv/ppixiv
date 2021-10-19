@@ -64,7 +64,7 @@ ppixiv.screen_manga = class extends ppixiv.screen
             this.ui.bookmark_tag_widget.visible = false;
 
             // Stop showing the user in the context menu.
-            main_context_menu.get.user_info = null;
+            main_context_menu.get.user_id = null;
         }
 
         super.set_active(active);
@@ -138,7 +138,7 @@ ppixiv.screen_manga = class extends ppixiv.screen
         helpers.set_title_and_icon(this.illust_info);
 
         // Tell the context menu which user is being viewed.
-        main_context_menu.get.user_info = this.illust_info.userInfo;
+        main_context_menu.get.user_id = this.illust_info.userId;
 
         this.refresh_images();
     }

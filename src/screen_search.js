@@ -555,7 +555,7 @@ ppixiv.screen_search = class extends ppixiv.screen
 
         // Tell the context menu which user is being viewed (if we're viewing a user-specific
         // search).
-        main_context_menu.get.user_info = user_info;
+        main_context_menu.get.user_id = user_id;
     }
 
     // Use different icons for sites where you can give the artist money.  This helps make
@@ -635,7 +635,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         {
             this.stop_pulsing_thumbnail();
 
-            main_context_menu.get.user_info = null;
+            main_context_menu.get.user_id = null;
         }
     }
 
