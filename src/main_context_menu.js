@@ -599,14 +599,6 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
             return null;
     }
 
-    get effective_user_info()
-    {
-        if(this._clicked_user_info != null)
-            return this._clicked_user_info;
-        else
-            return this._user_info;
-    }
-
     get effective_page()
     {
         if(this._clicked_page != null)
@@ -987,23 +979,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         // user's avatar while the new avatar loads.
         this.avatar_widget.set_user_id(null);
         
-        // If this object is null or changed, we know we've been hidden since we
-        // started this request.
-        var show_sentinel = this.load_user_sentinel = new Object();
-
-        // Store the user_id immediately, so it's available without waiting for user
-        // info to load.
         this._clicked_user_id = user_id;
-
-        // Read user info to see if we're following the user.
-        var user_info = await image_data.singleton().get_user_info(user_id);
-
-        // If the popup was closed while we were waiting, ignore the results.
-        if(show_sentinel != this.load_user_sentinel)
-            return;
-        this.load_user_sentinel = null;
-
-        this._clicked_user_info = user_info;
         this.refresh();
     }
 
@@ -1013,9 +989,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         if(unsafeWindow.keep_context_menu_open)
             return;
 
-        this.load_user_sentinel = null;
         this._clicked_user_id = null;
-        this._clicked_user_info = null;
         this._clicked_illust_id = null;
         this._clicked_page = null;
 

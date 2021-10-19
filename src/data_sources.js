@@ -3133,7 +3133,7 @@ ppixiv.data_sources.related_favorites = class extends data_source_from_page
                 //
                 // These links might be annoying animated GIFs, but we don't bother killing them here
                 // like we do for the followed page since this isn't used very much.
-                profile_img: element.dataset.profile_img.replace("_50", "_170"),
+                profile_img: element.dataset.profile_img.replace("_50.", "_170."),
             }, "users_bookmarking_illust");
 
             // The bookmarks: URL type will generate links to this user's bookmarks.

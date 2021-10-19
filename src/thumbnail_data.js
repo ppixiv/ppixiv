@@ -14,6 +14,7 @@ ppixiv.thumbnail_data = class
         // Cached data:
         this.thumbnail_data = { };
         this.quick_user_data = { };
+        this.user_profile_urls = {};
 
         // IDs that we're currently requesting:
         this.loading_ids = {};
@@ -239,7 +240,6 @@ ppixiv.thumbnail_data = class
         if(thumb_result.error)
             return;
 
-        var urls = [];
         let remapped_thumb_info = null;
         for(var thumb_info of thumb_result)
         {
@@ -388,9 +388,11 @@ ppixiv.thumbnail_data = class
             var illust_id = thumb_info.id;
             delete this.loading_ids[illust_id];
 
-            // Don't preload muted images.
-            if(!this.is_muted(thumb_info))
-                urls.push(thumb_info.url);
+            // Cache the user's profile URL.  This lets us display it more quickly when we
+            // haven't loaded user info yet.
+            let profile_image_url = thumb_info.profileImageUrl;
+            profile_image_url = profile_image_url.replace("_50.", "_170."),
+            this.user_profile_urls[thumb_info.userId] = profile_image_url;
         }
 
         // Broadcast that we have new thumbnail data available.

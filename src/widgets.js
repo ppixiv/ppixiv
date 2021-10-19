@@ -452,11 +452,10 @@ ppixiv.avatar_widget = class
 
     async set_user_id(user_id)
     {
-        let user_data = user_id? await image_data.singleton().get_user_info(user_id):null;
         this.user_id = user_id;
-        this.user_data = user_data;
         if(this.user_id == null)
         {
+            this.user_data = null;
             this.root.classList.add("loading");
 
             // Set the avatar image to a blank image, so it doesn't flash the previous image
@@ -465,19 +464,38 @@ ppixiv.avatar_widget = class
             this.img.src = helpers.blank_image;
             return;
         }
+
+        // If we've seen this user's profile image URL from thumbnail data, start loading it
+        // now.  Otherwise, we'll have to wait until user info finishes loading.
+        let cached_profile_url = thumbnail_data.singleton().user_profile_urls[this.user_id];
+        if(cached_profile_url)
+            this.img.src = cached_profile_url;
+
+        // Set up stuff that we don't need user info for.
+        this.root.querySelector(".avatar-link").href = `/users/${this.user_id}/artworks#ppixiv`;
+
+        // Hide the popup in dropdown mode, since it covers the dropdown.
+        if(this.options.mode == "dropdown")
+            this.root.querySelector(".avatar").classList.remove("popup");
+
+
+        // Clear stuff we need user info for, so we don't show old data while loading.
+        helpers.set_class(this.root, "followed", false);
+        this.root.querySelector(".avatar").dataset.popup = "";
+        this.root.querySelector(".follow-buttons").hidden = true;
+        this.root.querySelector(".follow-popup").hidden = true;
+
         this.root.classList.remove("loading");
+
+        let user_data = await image_data.singleton().get_user_info(user_id);
+        this.user_data = user_data;
 
         helpers.set_class(this.root, "self", this.user_id == global_data.user_id);
 
         // We can't tell if we're followed privately or not, only that we're following.
         helpers.set_class(this.root, "followed", this.user_data.isFollowed);
 
-        this.root.querySelector(".avatar-link").href = `/users/${this.user_id}/artworks#ppixiv`;
         this.root.querySelector(".avatar").dataset.popup = "View " + this.user_data.name + "'s posts";
-
-        // Hide the popup in dropdown mode, since it covers the dropdown.
-        if(this.options.mode == "dropdown")
-            this.root.querySelector(".avatar").classList.remove("popup");
 
         // If we don't have an image because we're loaded from a source that doesn't give us them,
         // just hide the avatar image.
@@ -486,6 +504,9 @@ ppixiv.avatar_widget = class
             this.img.src = this.user_data[key];
         else
             this.img.src = helpers.blank_image;
+
+        this.root.querySelector(".follow-buttons").hidden = false;
+        this.root.querySelector(".follow-popup").hidden = false;
     }
     
     async follow(follow_privately)
