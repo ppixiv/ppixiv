@@ -154,11 +154,11 @@ ppixiv.thumbnail_data = class
             ["user_id", "userId"],
             ["width", "width"],
             ["height", "height"],
+            ["illust_type", "illustType"],
             ["illust_page_count", "pageCount"],
             ["title", "title"],
-            ["user_name", "userName"],
-            ["illust_type", "illustType"],
             ["profile_img", "profileImageUrl"],
+            ["user_name", "userName"],
         ];
         return this._thumbnail_info_map_ranking;
     };
@@ -235,8 +235,8 @@ ppixiv.thumbnail_data = class
         if(thumb_result.error)
             return;
 
-        var thumbnail_info_map = this.thumbnail_info_map_illust_list;
         var urls = [];
+        let remapped_thumb_info = null;
         for(var thumb_info of thumb_result)
         {
             // Ignore entries with "isAdContainer".  These aren't search results at all and just contain
@@ -249,11 +249,11 @@ ppixiv.thumbnail_data = class
                 // The data is already in the format we want.  Just check that all keys we
                 // expect exist, and remove any keys we don't know about so we don't use them
                 // accidentally.
-                var thumbnail_info_map = this.thumbnail_info_map_illust_list;
-                var remapped_thumb_info = { };
-                for(var pair of thumbnail_info_map)
+                let thumbnail_info_map = this.thumbnail_info_map_ranking;
+                remapped_thumb_info = { };
+                for(let pair of thumbnail_info_map)
                 {
-                    var key = pair[1];
+                    let key = pair[1];
                     if(!(key in thumb_info))
                     {
                         console.warn("Thumbnail info is missing key:", key);
@@ -276,21 +276,21 @@ ppixiv.thumbnail_data = class
             else if(source == "illust_list" || source == "rankings")
             {
                 // Get the mapping for this mode.
-                var thumbnail_info_map = 
+                let thumbnail_info_map = 
                     source == "illust_list"? this.thumbnail_info_map_illust_list:
                     this.thumbnail_info_map_ranking;
 
-                var remapped_thumb_info = { };
-                for(var pair of thumbnail_info_map)
+                remapped_thumb_info = { };
+                for(let pair of thumbnail_info_map)
                 {
-                    var from_key = pair[0];
-                    var to_key = pair[1];
+                    let from_key = pair[0];
+                    let to_key = pair[1];
                     if(!(from_key in thumb_info))
                     {
                         console.warn("Thumbnail info is missing key:", from_key);
                         continue;
                     }
-                    var value = thumb_info[from_key];
+                    let value = thumb_info[from_key];
                     remapped_thumb_info[to_key] = value;
                 }
 
