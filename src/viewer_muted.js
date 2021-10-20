@@ -34,7 +34,7 @@ ppixiv.viewer_muted = class extends ppixiv.viewer
         let muted_user = muting.singleton.is_muted_user_id(this.illust_data.userId);
 
         let muted_label = this.root.querySelector(".muted-label");
-        if(muted_tag)
+        if(muted_tag || muted_user)
         {
             let translated_tags = await tag_translations.get().get_translations([muted_tag], "en");
             if(translated_tags[muted_tag])
