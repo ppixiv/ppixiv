@@ -586,7 +586,7 @@ ppixiv.on_click_viewer = class
             width: width / screen_width,
             height: height / screen_height,
         };
-        SendImage.set_extra_data("illust_screen_pos", current_zoom_desc, false);
+        SendImage.set_extra_data("illust_screen_pos", current_zoom_desc, true);
     }
 }
 
