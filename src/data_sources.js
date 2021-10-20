@@ -1746,30 +1746,6 @@ ppixiv.data_sources.current_illust = class extends data_source
         args.path = parts.join("/");
     }
 
-    get page_title()
-    {
-        if(this.user_info)
-            return this.user_info.name;
-        else
-            return "Illustrations";
-    }
-
-    get_displaying_text()
-    {
-        if(this.user_info)
-            return this.user_info.name + "'s Illustrations";
-        else
-            return "Illustrations";
-    };
-
-    get page_title()
-    {
-        if(this.user_info)
-            return this.user_info.name;
-        else
-            return "Illustrations";
-    }
-
     get viewing_user_id()
     {
         if(this.user_info == null)
