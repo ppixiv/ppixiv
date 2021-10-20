@@ -319,6 +319,9 @@ ppixiv.screen_search = class extends ppixiv.screen
         // If we disabled loading more pages earlier, reenable it.
         this.disable_loading_more_pages = false;
 
+        // Disable the avatar widget unless the data source enables it.
+        this.avatar_widget.visible = false;
+
         // Listen to the data source loading new pages, so we can refresh the list.
         this.data_source.add_update_listener(this.data_source_updated);
 

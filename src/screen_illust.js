@@ -25,11 +25,15 @@ ppixiv.screen_illust = class extends ppixiv.screen
 
         var ui_visibility_changed = () => {
             // Hide the dropdown tag widget when the hover UI is hidden.
-            if(!ui_box.classList.contains("hovering-over-box") && !ui_box.classList.contains("hovering-over-sphere"))
+            let visible = ui_box.classList.contains("hovering-over-box") || ui_box.classList.contains("hovering-over-sphere");
+            if(!visible)
             {
                 this.ui.bookmark_tag_widget.visible = false; // XXX remove
                 view_hidden_listener.send_viewhidden(ui_box);
             }
+
+            // Tell the image UI when it's visible.
+            this.ui.visible = visible;
         };
         ui_box.addEventListener("mouseenter", (e) => { helpers.set_class(ui_box, "hovering-over-box", true); ui_visibility_changed(); });
         ui_box.addEventListener("mouseleave", (e) => { helpers.set_class(ui_box, "hovering-over-box", false); ui_visibility_changed(); });

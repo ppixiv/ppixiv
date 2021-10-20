@@ -563,6 +563,8 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
             return;
 
         super.visible = value;
+        if(this.avatar_widget != null)
+            this.avatar_widget.visible = value;
 
         if(value)
             window.addEventListener("wheel", this.onwheel, {

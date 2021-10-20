@@ -49,6 +49,11 @@ ppixiv.image_ui = class
         menu_option.add_settings(settings_menu);
     }
 
+    set visible(value)
+    {
+        this.avatar_widget.visible = value;
+    }
+
     set data_source(data_source)
     {
         if(this._data_source == data_source)

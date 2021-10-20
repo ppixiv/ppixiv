@@ -386,6 +386,7 @@ ppixiv.avatar_widget = class
 
         this.clicked_follow = this.clicked_follow.bind(this);
         this.user_changed = this.user_changed.bind(this);
+        this._visible = false;
 
         this.root = helpers.create_from_template(".template-avatar");
         helpers.set_class(this.root, "big", this.options.big);
@@ -442,6 +443,16 @@ ppixiv.avatar_widget = class
         image_data.singleton().user_modified_callbacks.unregister(this.user_changed);
     }
 
+    set visible(value)
+    {
+        if(this._visible == value)
+            return;
+        this._visible = value;
+        this.refresh();
+    }
+
+    get visible() { return this._visible; }
+    
     // Refresh when the user changes.
     user_changed(user_id)
     {
@@ -454,6 +465,15 @@ ppixiv.avatar_widget = class
     async set_user_id(user_id)
     {
         this.user_id = user_id;
+        this.refresh();
+    }
+
+    async refresh()
+    {
+        // Only update when we're visible, so we don't load user info until it's needed.
+        if(!this._visible)
+            return;
+
         if(this.user_id == null)
         {
             this.user_data = null;
@@ -479,7 +499,6 @@ ppixiv.avatar_widget = class
         if(this.options.mode == "dropdown")
             this.root.querySelector(".avatar").classList.remove("popup");
 
-
         // Clear stuff we need user info for, so we don't show old data while loading.
         helpers.set_class(this.root, "followed", false);
         this.root.querySelector(".avatar").dataset.popup = "";
@@ -488,8 +507,13 @@ ppixiv.avatar_widget = class
 
         this.root.classList.remove("loading");
 
-        let user_data = await image_data.singleton().get_user_info(user_id);
+        let user_data = await image_data.singleton().get_user_info(this.user_id);
         this.user_data = user_data;
+        if(user_data == null)
+        {
+            console.log("Couldn't load user:", this.user_id);
+            return;
+        }
 
         helpers.set_class(this.root, "self", this.user_id == global_data.user_id);
 

@@ -1545,6 +1545,7 @@ ppixiv.data_sources.artist = class extends data_source
 
     refresh_thumbnail_ui(container, thumbnail_view)
     {
+        thumbnail_view.avatar_widget.visible = true;
         if(this.user_info)
             thumbnail_view.avatar_widget.set_user_id(this.viewing_user_id);
 
@@ -2141,6 +2142,7 @@ class data_source_bookmarks_base extends data_source
             add_tag_link(tag);
         }
 
+        thumbnail_view.avatar_widget.visible = true;
         thumbnail_view.avatar_widget.set_user_id(this.viewing_user_id);
     }
 
@@ -3016,6 +3018,7 @@ ppixiv.data_sources.follows = class extends data_source
 
     refresh_thumbnail_ui(container, thumbnail_view)
     {
+        thumbnail_view.avatar_widget.visible = true;
         thumbnail_view.avatar_widget.set_user_id(this.viewing_user_id);
 
         // The public/private button only makes sense when viewing your own follows.
@@ -3062,8 +3065,6 @@ ppixiv.data_sources.follows = class extends data_source
         add_tag_link("All");
         for(var tag of this.follow_tags || [])
             add_tag_link(tag);
-
-        thumbnail_view.avatar_widget.set_user_id(this.viewing_user_id);
     }
 
     get viewing_self()
