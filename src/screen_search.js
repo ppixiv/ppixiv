@@ -1071,7 +1071,14 @@ ppixiv.screen_search = class extends ppixiv.screen
                 // is something Pixiv does wrong).  Load the user profile image instead.
                 thumb.src = info.profileImageUrl;
 
-                element.querySelector(".muted-label").textContent = muted_tag? muted_tag:info.userName;
+                let muted_label = element.querySelector(".muted-label");
+
+                // Quick hack to look up translations, since we're not async:
+                (async() => {
+                    if(muted_tag)
+                        muted_tag = await tag_translations.get().get_translation(muted_tag);
+                    muted_label.textContent = muted_tag? muted_tag:info.userName;
+                })();
 
                 // We can use this if we want a "show anyway' UI.
                 thumb.dataset.mutedUrl = url;

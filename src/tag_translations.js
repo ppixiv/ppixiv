@@ -160,6 +160,17 @@ ppixiv.tag_translations = class
         }
         return result;
     }
+
+    // A shortcut to retrieve one translation.  If no translation is available, returns the
+    // original tag.
+    async get_translation(tag, language="en")
+    {
+        let translated_tags = await tag_translations.get().get_translations([tag], "en");
+        if(translated_tags[tag])
+            return translated_tags[tag];
+        else
+            return tag;
+    }
 }
 
 // This updates the pp_tag_translations IDB store to ppixiv-tag-translations.
