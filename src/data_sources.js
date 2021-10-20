@@ -1427,19 +1427,22 @@ ppixiv.data_sources.artist = class extends data_source
 
             let illust_ids = this.pages[page-1] || [];
 
-            // That only gives us a list of illust IDs, so we have to load them.  Annoyingly, this
-            // is the one single place it gives us illust info in bulk instead of thumbnail data.
-            // It would be really useful to be able to batch load like this in general, but this only
-            // works for a single user's posts.
-            let url = `/ajax/user/${this.viewing_user_id}/profile/illusts`;
-            let result = await helpers.get_request(url, {
-                "ids[]": illust_ids,
-                work_category: "illustManga",
-                is_first_page: "0",
-            });
-            
-            let illusts = Object.values(result.body.works);
-            thumbnail_data.singleton().loaded_thumbnail_info(illusts, "normal");
+            if(illust_ids.length)
+            {
+                // That only gives us a list of illust IDs, so we have to load them.  Annoyingly, this
+                // is the one single place it gives us illust info in bulk instead of thumbnail data.
+                // It would be really useful to be able to batch load like this in general, but this only
+                // works for a single user's posts.
+                let url = `/ajax/user/${this.viewing_user_id}/profile/illusts`;
+                let result = await helpers.get_request(url, {
+                    "ids[]": illust_ids,
+                    work_category: "illustManga",
+                    is_first_page: "0",
+                });
+                
+                let illusts = Object.values(result.body.works);
+                thumbnail_data.singleton().loaded_thumbnail_info(illusts, "normal");
+            }
 
             // Don't do this.  image_data assumes that if we have illust data, we want all data,
             // like manga pages, and it'll make a request for each one to add the missing info.
