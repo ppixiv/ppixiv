@@ -18,7 +18,7 @@
 // thumbnails from being able to load.
 
 // A base class for fetching a single resource:
-class _preloader
+class preloader
 {
     constructor()
     {
@@ -37,7 +37,7 @@ class _preloader
 }
 
 // Load a single image with <img>:
-class _img_preloader extends _preloader
+class img_preloader extends preloader
 {
     constructor(url)
     {
@@ -53,7 +53,7 @@ class _img_preloader extends _preloader
 }
 
 // Load a resource with fetch.
-class _fetch_preloader extends _preloader
+class fetch_preloader extends preloader
 {
     constructor(url)
     {
@@ -111,7 +111,7 @@ ppixiv.image_preloader = class
             return;
 
         // Get the image data.  This will often already be available.
-        var illust_info = await image_data.singleton().get_image_info(this.current_illust_id);
+        let illust_info = await image_data.singleton().get_image_info(this.current_illust_id);
         if(this.current_illust_id != illust_id || this.current_illust_info != null)
             return;
 
@@ -137,7 +137,7 @@ ppixiv.image_preloader = class
             return;
 
         // Get the image data.  This will often already be available.
-        var illust_info = await image_data.singleton().get_image_info(this.speculative_illust_id);
+        let illust_info = await image_data.singleton().get_image_info(this.speculative_illust_id);
         if(this.speculative_illust_id != illust_id || this.speculative_illust_info != null)
             return;
 
@@ -157,15 +157,15 @@ ppixiv.image_preloader = class
         // console.log("check queue:", this.current_illust_info != null, this.speculative_illust_info != null);
 
         // Make a list of fetches that we want to be running, in priority order.
-        var wanted_preloads = [];
+        let wanted_preloads = [];
         if(this.current_illust_info != null)
             wanted_preloads = wanted_preloads.concat(this.create_preloaders_for_illust(this.current_illust_info));
         if(this.speculative_illust_info != null)
             wanted_preloads = wanted_preloads.concat(this.create_preloaders_for_illust(this.speculative_illust_info));
 
         // Remove all preloads from wanted_preloads that we've already finished recently.
-        var filtered_preloads = [];
-        for(var preload of wanted_preloads)
+        let filtered_preloads = [];
+        for(let preload of wanted_preloads)
         {
             if(this.recently_preloaded_urls.indexOf(preload.url) == -1)
                 filtered_preloads.push(preload);
@@ -180,7 +180,7 @@ ppixiv.image_preloader = class
 
         // Discard preloads beyond the number we want to be running.  If we're loading more than this,
         // we'll start more as these finish.
-        var concurrent_preloads = 5;
+        let concurrent_preloads = 5;
         filtered_preloads.splice(concurrent_preloads);
         // console.log("Preloads:", filtered_preloads.length);
 
@@ -198,8 +198,8 @@ ppixiv.image_preloader = class
         //
         // updated_preload_list allows us to run multiple preloads at a time, but we currently
         // run them in serial.
-        var unwanted_preloads;
-        var updated_preload_list = [];
+        let unwanted_preloads;
+        let updated_preload_list = [];
         for(let preload of filtered_preloads)
         {
             // Start this preload.
@@ -212,7 +212,7 @@ ppixiv.image_preloader = class
                 this.recently_preloaded_urls.splice(0, this.recently_preloaded_urls.length - 1000);
 
                 // When the preload finishes (successful or not), remove it from the list.
-                var idx = this.preloads.indexOf(preload);
+                let idx = this.preloads.indexOf(preload);
                 if(idx == -1)
                 {
                     console.error("Preload finished, but we weren't running it:", preload.url);
@@ -231,7 +231,7 @@ ppixiv.image_preloader = class
         // Cancel preloads in this.preloads that aren't in updated_preload_list.  These are
         // preloads that we either don't want anymore, or which have been pushed further down
         // the priority queue and overridden.
-        for(var preload of this.preloads)
+        for(let preload of this.preloads)
         {
             if(updated_preload_list.indexOf(preload) != -1)
                 continue;
@@ -249,7 +249,7 @@ ppixiv.image_preloader = class
     // Return the preloader if we're currently preloading url.
     _find_active_preload_by_url(url)
     {
-        for(var preload of this.preloads)
+        for(let preload of this.preloads)
             if(preload.url == url)
                 return preload;
         return null;
@@ -267,28 +267,27 @@ ppixiv.image_preloader = class
         // If this is a video, preload the ZIP.
         if(illust_data.illustType == 2)
         {
-            var results = [];
-            results.push(new _fetch_preloader(illust_data.ugoiraMetadata.originalSrc));
+            let results = [];
+            results.push(new fetch_preloader(illust_data.ugoiraMetadata.originalSrc));
 
             // Preload the original image too, which viewer_ugoira displays if the ZIP isn't
             // ready yet.
-            results.push(new _img_preloader(illust_data.urls.original));
+            results.push(new img_preloader(illust_data.urls.original));
 
             return results;
         }
 
         // Otherwise, preload the images.  Preload thumbs first, since they'll load
-        // much faster.  Only preload low-res images for image viewing if low res previews
-        // are enabled.
-        var results = [];
-        for(var page of illust_data.mangaPages)
-            results.push(new _img_preloader(page.urls.small));
+        // much faster.
+        let results = [];
+        for(let page of illust_data.mangaPages)
+            results.push(new img_preloader(page.urls.small));
 
         // Only preload the first page, which is the main page of a regular illustration.
         // This also forces us to wait for the current image to load before preloading future
         // images, so we don't slow down loading the current image by preloading too early.
         if(illust_data.mangaPages.length >= 1)
-            results.push(new _img_preloader(illust_data.mangaPages[0].urls.original));
+            results.push(new img_preloader(illust_data.mangaPages[0].urls.original));
 
         return results;
     }
@@ -304,8 +303,8 @@ ppixiv.image_preloader = class
 
         // Preload thumbs directly rather than queueing, since they load quickly and
         // this reduces flicker in the manga thumbnail bar.
-        var thumbs = [];
-        for(var page of illust_info.mangaPages)
+        let thumbs = [];
+        for(let page of illust_info.mangaPages)
             thumbs.push(page.urls.small);
 
         helpers.preload_images(thumbs);
