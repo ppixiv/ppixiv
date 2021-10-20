@@ -126,7 +126,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         let current_image = this.images[this.index];
         if(current_image == null)
             console.info(`No info for page ${this.index} yet`);
-        if(this.on_click_viewer && this.img?.src == current_image?.url)
+        if(this.on_click_viewer && current_image?.url && this.img?.src == current_image?.url)
             return;
 
         // Create the new image and pass it to the viewer.
