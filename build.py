@@ -5,6 +5,13 @@ import sass
 from pprint import pprint
 from io import StringIO
 
+# Work around Python *still* being braindamaged about UTF-8:
+_open = open
+def open(fn, mode='r', *args, **kwargs):
+    if 'b' not in mode:
+        kwargs['encoding'] = 'utf-8'
+    return _open(fn, mode, *args, **kwargs)
+
 # This builds a user script that imports each filename directly from the build
 # tree.  This can be used during development: you can edit files and refresh a
 # page without having to build the script or install it.
@@ -168,6 +175,7 @@ class Build(object):
         resources = collections.OrderedDict()
 
         for fn in glob.glob('resources/*'):
+            fn = fn.replace('\\', '/')
             _, ext = os.path.splitext(fn)
 
             if ext in ('.css', '.scss'):
@@ -322,15 +330,6 @@ class Build(object):
     def build_debug(self):
         output_file = 'output/ppixiv-debug.user.js'
         print('Building: %s' % output_file)
-
-        cwd = os.getcwd()
-
-        # I only run this in Cygwin.  This would need adjustment for native Python.
-        # /cygdrive/c/...
-        assert cwd.startswith('/cygdrive/')
-        cwd = cwd[len('/cygdrive/'):]
-        assert cwd[1] == '/'
-        cwd = 'file:///' + cwd[0] + ':' + cwd[1:] + '/'
 
         lines = self.build_output(for_debug=True)
 
