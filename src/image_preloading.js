@@ -100,12 +100,13 @@ ppixiv.image_preloader = class
 
     // Set the illust_id the user is currently viewing.  If illust_id is null, the user isn't
     // viewing an image (eg. currently viewing thumbnails).
-    async set_current_image(illust_id)
+    async set_current_image(illust_id, page)
     {
-        if(this.current_illust_id == illust_id)
+        if(this.current_illust_id == illust_id && this.current_illust_page == page)
             return;
 
         this.current_illust_id = illust_id;
+        this.current_illust_page = page;
         this.current_illust_info = null;
         if(this.current_illust_id == null)
             return;
@@ -113,6 +114,10 @@ ppixiv.image_preloader = class
         // Get the image data.  This will often already be available.
         let illust_info = await image_data.singleton().get_image_info(this.current_illust_id);
         if(this.current_illust_id != illust_id || this.current_illust_info != null)
+            return;
+
+        // Stop if the illust was changed while we were loading.
+        if(this.current_illust_id != illust_id && this.current_illust_page != page)
             return;
 
         // Store the illust_info for current_illust_id.
@@ -126,12 +131,14 @@ ppixiv.image_preloader = class
 
     // Set the illust_id we want to speculatively load, which is the next or previous image in
     // the current search.  If illust_id is null, we don't want to speculatively load anything.
-    async set_speculative_image(illust_id)
+    // If page is -1, the caller wants to preload the last manga page.
+    async set_speculative_image(illust_id, page)
     {
-        if(this.speculative_illust_id == illust_id)
+        if(this.speculative_illust_id == illust_id && this.speculative_illust_page == page)
             return;
         
         this.speculative_illust_id = illust_id;
+        this.speculative_illust_page = page;
         this.speculative_illust_info = null;
         if(this.speculative_illust_id == null)
             return;
@@ -139,6 +146,10 @@ ppixiv.image_preloader = class
         // Get the image data.  This will often already be available.
         let illust_info = await image_data.singleton().get_image_info(this.speculative_illust_id);
         if(this.speculative_illust_id != illust_id || this.speculative_illust_info != null)
+            return;
+
+        // Stop if the illust was changed while we were loading.
+        if(this.speculative_illust_id != illust_id && this.speculative_illust_page != page)
             return;
 
         // Store the illust_info for current_illust_id.
@@ -159,9 +170,9 @@ ppixiv.image_preloader = class
         // Make a list of fetches that we want to be running, in priority order.
         let wanted_preloads = [];
         if(this.current_illust_info != null)
-            wanted_preloads = wanted_preloads.concat(this.create_preloaders_for_illust(this.current_illust_info));
+            wanted_preloads = wanted_preloads.concat(this.create_preloaders_for_illust(this.current_illust_info, this.current_illust_page));
         if(this.speculative_illust_info != null)
-            wanted_preloads = wanted_preloads.concat(this.create_preloaders_for_illust(this.speculative_illust_info));
+            wanted_preloads = wanted_preloads.concat(this.create_preloaders_for_illust(this.speculative_illust_info, this.speculative_illust_page));
 
         // Remove all preloads from wanted_preloads that we've already finished recently.
         let filtered_preloads = [];
@@ -204,12 +215,25 @@ ppixiv.image_preloader = class
         {
             // Start this preload.
             // console.log("Start preload:", preload.url);
-            preload.start().finally(() => {
+            let promise = preload.start();
+            let aborted = false;
+            promise.catch((e) => {
+                if(e.name == "AbortError")
+                    aborted = true;
+            });
+
+            promise.finally(() => {
                 // Add the URL to recently_preloaded_urls, so we don't try to preload this
                 // again for a while.  We do this even on error, so we don't try to load
                 // failing images repeatedly.
-                this.recently_preloaded_urls.push(preload.url);
-                this.recently_preloaded_urls.splice(0, this.recently_preloaded_urls.length - 1000);
+                //
+                // Don't do this if the request was aborted, since that just means the user
+                // navigated away.
+                if(!aborted)
+                {
+                    this.recently_preloaded_urls.push(preload.url);
+                    this.recently_preloaded_urls.splice(0, this.recently_preloaded_urls.length - 1000);
+                }
 
                 // When the preload finishes (successful or not), remove it from the list.
                 let idx = this.preloads.indexOf(preload);
@@ -256,7 +280,7 @@ ppixiv.image_preloader = class
     }
 
     // Return an array of preloaders to load resources for the given illustration.
-    create_preloaders_for_illust(illust_data)
+    create_preloaders_for_illust(illust_data, page)
     {
         // Don't precache muted images.
         if(muting.singleton.any_tag_muted(illust_data.tags.tags))
@@ -277,17 +301,19 @@ ppixiv.image_preloader = class
             return results;
         }
 
+        // If page is -1, preload the last page.
+        if(page == -1)
+            page = illust_data.mangaPages.length-1;
+
         // Otherwise, preload the images.  Preload thumbs first, since they'll load
         // much faster.
         let results = [];
         for(let page of illust_data.mangaPages)
             results.push(new img_preloader(page.urls.small));
 
-        // Only preload the first page, which is the main page of a regular illustration.
-        // This also forces us to wait for the current image to load before preloading future
-        // images, so we don't slow down loading the current image by preloading too early.
-        if(illust_data.mangaPages.length >= 1)
-            results.push(new img_preloader(illust_data.mangaPages[0].urls.original));
+        // Preload the requested page.
+        if(page < illust_data.mangaPages.length)
+            results.push(new img_preloader(illust_data.mangaPages[page].urls.original));
 
         return results;
     }
