@@ -166,7 +166,6 @@ ppixiv.screen_illust = class extends ppixiv.screen
         // if we're coming from a search or anywhere else that will already have this info,
         // but it can block if we're loading from scratch.
         let early_illust_data = await image_data.singleton().get_early_illust_data(illust_id);
-
         if(early_illust_data == null)
         {
             // This usually only happens if the illust doesn't exist or has been deleted.
@@ -190,7 +189,9 @@ ppixiv.screen_illust = class extends ppixiv.screen
         else
             manga_page = helpers.clamp(manga_page, 0, early_illust_data.pageCount-1);
 
-        console.log("Showing image", illust_id, "page", manga_page);
+        console.log(`Showing image ${illust_id} page ${manga_page}`);
+
+        helpers.set_title_and_icon(early_illust_data);
 
         // Tell the preloader about the current image.
         image_preloader.singleton.set_current_image(illust_id, manga_page);
@@ -411,8 +412,6 @@ ppixiv.screen_illust = class extends ppixiv.screen
 
         // If we're not showing an image yet, hide the UI and don't try to update it.
         helpers.set_class(this.container.querySelector(".ui"), "disabled", illust_id == -1);
-
-        helpers.set_title_and_icon(this.current_illust_data);
 
         if(illust_id == -1)
             return;

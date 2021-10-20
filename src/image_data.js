@@ -427,8 +427,10 @@ ppixiv.image_data = class
     thumbnail_info_early_illust_data_keys = {
         "id": "id",
         "illustType": "illustType",
+        "title": "illustTitle",
         "pageCount": "pageCount",
         "userId": "userId",
+        "userName": "userName",
         "width": "width",
         "height": "height",
         "mangaPages": "mangaPages",
@@ -443,8 +445,10 @@ ppixiv.image_data = class
     illust_info_early_illust_data_keys = {
         "id": "id",
         "illustType": "illustType",
+        "illustTitle": "illustTitle",
         "pageCount": "pageCount",
         "userId": "userId",
+        "userName": "userName",
         "width": "width",
         "height": "height",
         "mangaPages": "mangaPages",
