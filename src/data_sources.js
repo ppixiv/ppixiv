@@ -1185,7 +1185,7 @@ ppixiv.data_sources.rankings = class extends data_source
         helpers.set_class(yesterday.querySelector(".box-link"), "disabled", this.prev_date == null);
         if(this.prev_date)
         {
-            var url = new URL(window.location);
+            let url = new URL(this.url);
             url.searchParams.set("date", this.prev_date);
             yesterday.querySelector("a").href = url;
         }
@@ -1194,7 +1194,7 @@ ppixiv.data_sources.rankings = class extends data_source
         helpers.set_class(tomorrow.querySelector(".box-link"), "disabled", this.next_date == null);
         if(this.next_date)
         {
-            var url = new URL(window.location);
+            let url = new URL(this.url);
             url.searchParams.set("date", this.next_date);
             tomorrow.querySelector("a").href = url;
         }
@@ -2564,7 +2564,7 @@ ppixiv.data_sources.search = class extends data_source
     }
 
     // Return the search type from the URL.  This is one of "artworks", "illustrations"
-    // or "novels" (not supported").  It can also be omitted, which is the "top" page,
+    // or "novels" (not supported).  It can also be omitted, which is the "top" page,
     // but that gives the same results as "artworks" with a different page layout, so
     // we treat it as "artworks".
     get _search_type()

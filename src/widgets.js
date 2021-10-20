@@ -597,7 +597,7 @@ ppixiv.tag_widget = class
         if(this.options.format_link)
             return this.options.format_link(tag);
 
-        var search_url = new URL("/tags/" + encodeURIComponent(tag) + "/artworks", window.location.href);
+        var search_url = new URL("/tags/" + encodeURIComponent(tag) + "/artworks", ppixiv.location.href);
         search_url.hash = "#ppixiv";
         return search_url.toString();
     };
