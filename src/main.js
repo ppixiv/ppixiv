@@ -527,7 +527,7 @@ ppixiv.main_controller = class
         // Update the URL to display this illust_id.  This stays on the same data source,
         // so displaying an illust won't cause a search to be made in the background or
         // have other side-effects.
-        this._set_active_screen_in_url(args.hash, screen);
+        this._set_active_screen_in_url(args, screen);
         this.data_source.set_current_illust_id(illust_id, args);
 
         // Remove any leftover page from the current illust.  We'll load the default.
@@ -563,9 +563,16 @@ ppixiv.main_controller = class
         return null;
     }
 
-    _set_active_screen_in_url(hash_args, screen)
+    _set_active_screen_in_url(args, screen)
     {
-        hash_args.set("view", screen);
+        args.hash.set("view", screen);
+
+        // If we're going to the search or manga page, remove the page.
+        // If we're going to the manga page, remove just the page.
+        if(screen == "search" || screen == "manga")
+            args.hash.delete("page");
+        if(screen == "search")
+            args.hash.delete("illust_id");
     }
 
     // Navigate out.
@@ -624,7 +631,7 @@ ppixiv.main_controller = class
 
         // Update the URL to mark whether thumbs are displayed.
         let args = helpers.args.location;
-        this._set_active_screen_in_url(args.hash, new_page);
+        this._set_active_screen_in_url(args, new_page);
         helpers.set_page_url(args, true /* add_to_history */, "out");
     }
 
