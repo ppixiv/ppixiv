@@ -251,8 +251,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
 
         // Finalize the illust ID.  We haven't loaded full illust data yet, so clear it.
         this.current_illust_id = illust_id;
-        this.current_illust_data = null;
-
+        this.current_user_id = early_illust_data.userId;
         this.ui.illust_id = illust_id;
 
         this.refresh_ui();
@@ -312,30 +311,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
 
         this.viewer.active = this._active;
 
-        // Tell the thumbnail view about the image.
-/*        if(this.manga_thumbnails)
-        {
-            this.manga_thumbnails.set_illust_info(this.current_illust_data);
-            this.manga_thumbnails.snap_transition();
-
-            // Let the manga thumbnail display know about the selected page.
-            this.manga_thumbnails.current_page_changed(manga_page);
-        }*/
-
         // Refresh the UI now that we have a new viewer.
-        this.refresh_ui();
-
-        // Now that we're done setting up the viewer, load full image info.  This is more
-        // likely to block than initial info, so do this late after everything else is set
-        // up.
-        let illust_data = await image_data.singleton().get_image_info(illust_id);
-        if(this.current_illust_id != illust_id)
-        {
-            console.log("show_image: illust ID or page changed while loading illust info, stopping");
-            return;
-        }
-
-        this.current_illust_data = illust_data;
         this.refresh_ui();
     }
 
@@ -400,7 +376,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
         this.ui.set_displayed_page_info(page);
 
         // Tell the context menu which user is being viewed.
-        main_context_menu.get.user_id = this.current_illust_data? this.current_illust_data.userId:null;
+        main_context_menu.get.user_id = this.current_user_id;
         main_context_menu.get.page = page;
 
         // Pull out info about the user and illustration.
