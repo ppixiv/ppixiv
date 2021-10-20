@@ -73,8 +73,11 @@
                 // Add sourceURL to each file, so they show meaningful filenames in logs.
                 // Since we're loading the files as-is and line numbers don't change, we
                 // don't need a source map.
+                //
+                // This uses a path that pretends to be on the same URl as the site, which
+                // seems to be needed to make VS Code map the paths correctly.
                 source += "\n";
-                source += "//# sourceURL=" + setup.build_path + path + "\n";
+                source += `//# sourceURL=${document.location.origin}/ppixiv/${path}\n`;
 
                 env.resources[path] = source;
             }

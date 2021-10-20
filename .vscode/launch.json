@@ -1,0 +1,20 @@
+{
+    "version": "0.2.0",
+    "configurations": [{
+        "type": "pwa-chrome",
+        "request": "launch",
+        "name": "Launch",
+        "url": "https://www.pixiv.net/bookmark_new_illust.php#ppixiv",
+        "webRoot": "${workspaceFolder}",
+        "urlFilter": "https://www.pixiv.net/*#ppixiv*",
+
+        // Use a persistent profile, since we need to load TamperMonkey and the debug
+        // script into it.
+        "userDataDir": "${workspaceFolder}/chrome",
+        "pathMapping": {
+            "/ppixiv/": "${workspaceFolder}/"
+        },
+        "enableContentValidation": false,
+        "preLaunchTask": "build"
+    }]
+}

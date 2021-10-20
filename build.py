@@ -145,11 +145,6 @@ class Build(object):
         # Output the environment file for bootstrap.js.
         environment = {
             'source_files': source_files,
-
-            # The debug bootstrap code wants to know the local source path so it can add sourceURL.
-            # This is only used by bootstrap.js when we're launched from debug.user.js which loads
-            # from local files.  The release build doesn't use it (it points to a local path).
-            'build_path': self.get_local_root_url(),
         }
 
 
