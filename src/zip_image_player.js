@@ -356,7 +356,7 @@ ppixiv.ZipImagePlayer = class
         // If the user wants to know when the frame is ready, call it.
         if(this.op.drew_frame)
         {
-            helpers.yield_call(() => {
+            helpers.yield(() => {
                 this.op.drew_frame(null);
             });
         }

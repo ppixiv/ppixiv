@@ -635,7 +635,7 @@ ppixiv.screen_search = class extends ppixiv.screen
             // to scroll away from.
             this.refresh_images();
 
-            helpers.yield_call(() => {
+            helpers.yield(() => {
                 this.load_needed_thumb_data();
             });
         }

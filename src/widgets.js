@@ -10,7 +10,7 @@ ppixiv.widget = class
         this.container = container;
 
         // Let the caller finish, then refresh.
-        helpers.yield_call(() => {
+        helpers.yield(() => {
             this.refresh();
         });
     }

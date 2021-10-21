@@ -546,7 +546,7 @@ class data_source
         this.id_list.add_page(page, illust_ids);
 
         // Call update listeners asynchronously to let them know we have more data.
-        helpers.yield_call(() => {
+        helpers.yield(() => {
             this.call_update_listeners();
         });
     }
