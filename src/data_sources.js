@@ -22,33 +22,30 @@ class illust_id_list
 {
     constructor()
     {
-        this.illust_ids_by_page = {};
+        this.illust_ids_by_page = new Map();
     };
 
     get_all_illust_ids()
     {
         // Make a list of all IDs we already have.
-        var all_ids = [];
-        for(var page of Object.keys(this.illust_ids_by_page))
-        {
-            var ids = this.illust_ids_by_page[page];
+        let all_ids = [];
+        for(let [page, ids] in this.illust_ids_by_page)
             all_ids = all_ids.concat(ids);
-        }
         return all_ids;
     }
 
     get_lowest_loaded_page()
     {
-        var min_page = 999999;
-        for(var page of Object.keys(this.illust_ids_by_page))
+        let min_page = 999999;
+        for(let page of this.illust_ids_by_page.keys())
             min_page = Math.min(min_page, page);
         return min_page;
     }
 
     get_highest_loaded_page()
     {
-        var max_page = 0;
-        for(var page of Object.keys(this.illust_ids_by_page))
+        let max_page = 0;
+        for(let page of this.illust_ids_by_page.keys())
             max_page = Math.max(max_page, page);
         return max_page;
     }
@@ -64,20 +61,20 @@ class illust_id_list
             if(illust_id == null)
                 console.warn("Null illust_id added");
 
-        if(this.illust_ids_by_page[page] != null)
+        if(this.illust_ids_by_page.has(page))
         {
             console.warn("Page", page, "was already loaded");
             return true;
         }
 
         // Make a list of all IDs we already have.
-        var all_illusts = this.get_all_illust_ids();
+        let all_illusts = this.get_all_illust_ids();
 
         // For fast-moving pages like new_illust.php, we'll very often get a few entries at the
         // start of page 2 that were at the end of page 1 when we requested it, because new posts
         // have been added to page 1 that we haven't seen.  Remove any duplicate IDs.
-        var ids_to_remove = [];
-        for(var new_id of illust_ids)
+        let ids_to_remove = [];
+        for(let new_id of illust_ids)
         {
             if(all_illusts.indexOf(new_id) != -1)
                 ids_to_remove.push(new_id);
@@ -86,9 +83,9 @@ class illust_id_list
         if(ids_to_remove.length > 0)
             console.log("Removing duplicate illustration IDs:", ids_to_remove.join(", "));
         illust_ids = illust_ids.slice();
-        for(var new_id of ids_to_remove)
+        for(let new_id of ids_to_remove)
         {
-            var idx = illust_ids.indexOf(new_id);
+            let idx = illust_ids.indexOf(new_id);
             illust_ids.splice(idx, 1);
         }
 
@@ -100,19 +97,17 @@ class illust_id_list
         if(illust_ids.length == 0)
             return;
 
-        this.illust_ids_by_page[page] = illust_ids;
+        this.illust_ids_by_page.set(page, illust_ids);
     };
 
     // Return the page number illust_id is on, or null if we don't know.
     get_page_for_illust(illust_id)
     {
-        for(var page of Object.keys(this.illust_ids_by_page))
+        for(let [page, ids] of this.illust_ids_by_page)
         {
-            var ids = this.illust_ids_by_page[page];
-            page = parseInt(page);
             if(ids.indexOf(illust_id) != -1)
                 return page;
-        };
+        }
         return null;
     };
 
@@ -137,18 +132,18 @@ class illust_id_list
     // The actual logic for get_neighboring_illust_id, except for skipping entries.
     _get_neighboring_illust_id_internal(illust_id, next)
     {
-        var page = this.get_page_for_illust(illust_id);
+        let page = this.get_page_for_illust(illust_id);
         if(page == null)
             return null;
 
-        var ids = this.illust_ids_by_page[page];
-        var idx = ids.indexOf(illust_id);
-        var new_idx = idx + (next? +1:-1);
+        let ids = this.illust_ids_by_page.get(page);
+        let idx = ids.indexOf(illust_id);
+        let new_idx = idx + (next? +1:-1);
         if(new_idx < 0)
         {
             // Return the last illustration on the previous page, or null if that page isn't loaded.
-            var prev_page_no = page - 1;
-            var prev_page_illust_ids = this.illust_ids_by_page[prev_page_no];
+            let prev_page_no = page - 1;
+            let prev_page_illust_ids = this.illust_ids_by_page.get(prev_page_no);
             if(prev_page_illust_ids == null)
                 return null;
             return prev_page_illust_ids[prev_page_illust_ids.length-1];
@@ -156,8 +151,8 @@ class illust_id_list
         else if(new_idx >= ids.length)
         {
             // Return the first illustration on the next page, or null if that page isn't loaded.
-            var next_page_no = page + 1;
-            var next_page_illust_ids = this.illust_ids_by_page[next_page_no];
+            let next_page_no = page + 1;
+            let next_page_illust_ids = this.illust_ids_by_page.get(next_page_no);
             if(next_page_illust_ids == null)
                 return null;
             return next_page_illust_ids[0];
@@ -172,13 +167,13 @@ class illust_id_list
     // makes sense if get_neighboring_illust returns null.
     get_page_for_neighboring_illust(illust_id, next)
     {
-        var page = this.get_page_for_illust(illust_id);
+        let page = this.get_page_for_illust(illust_id);
         if(page == null)
             return null;
 
-        var ids = this.illust_ids_by_page[page];
-        var idx = ids.indexOf(illust_id);
-        var new_idx = idx + (next? +1:-1);
+        let ids = this.illust_ids_by_page.get(page);
+        let idx = ids.indexOf(illust_id);
+        let new_idx = idx + (next? +1:-1);
         if(new_idx >= 0 && new_idx < ids.length)
             return page;
 
@@ -189,18 +184,18 @@ class illust_id_list
     // Return the first ID, or null if we don't have any.
     get_first_id()
     {
-        var keys = Object.keys(this.illust_ids_by_page);
-        if(keys.length == 0)
+        if(this.illust_ids_by_page.size == 0)
             return null;
 
-        var page = keys[0];
-        return this.illust_ids_by_page[page][0];
+        let keys = this.illust_ids_by_page.keys();
+        let page = keys.next().value;
+        return this.illust_ids_by_page.get(page)[0];
     }
 
     // Return true if the given page is loaded.
     is_page_loaded(page)
     {
-        return this.illust_ids_by_page[page] != null;
+        return this.illust_ids_by_page.has(page);
     }
 };
 
@@ -417,7 +412,7 @@ class data_source
 
         // If there were no results, then we've loaded the last page.  Don't try to load
         // any pages beyond this.
-        if(this.id_list.illust_ids_by_page[page] == null)
+        if(!this.id_list.illust_ids_by_page.has(page))
         {
             console.log("No data on page", page);
             if(this.first_empty_page == -1 || page < this.first_empty_page)

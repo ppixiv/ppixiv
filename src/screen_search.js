@@ -675,7 +675,7 @@ ppixiv.screen_search = class extends ppixiv.screen
             var items_per_page = this.data_source.estimated_items_per_page;
             for(var page = min_page; page <= max_page; ++page)
             {
-                var illust_ids = id_list.illust_ids_by_page[page];
+                let illust_ids = id_list.illust_ids_by_page.get(page);
                 if(illust_ids == null)
                 {
                     // This page isn't loaded.  Fill the gap with items_per_page blank entries.
