@@ -659,7 +659,6 @@ ppixiv.helpers = {
         // calls (not things like ugoira ZIPs), and the request will fail if we're in XHR
         // mode and set headers, since it'll trigger CORS.
         var hostname = new URL(options.url, ppixiv.location).hostname;
-        if("global_data" in window)
         if(hostname == "www.pixiv.net" && "global_data" in window)
         {
             options.headers["x-csrf-token"] = global_data.csrf_token;
