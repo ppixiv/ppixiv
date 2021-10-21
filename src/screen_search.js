@@ -150,6 +150,8 @@ ppixiv.screen_search = class extends ppixiv.screen
         }, {
             
             root: this.container,
+
+            // This margin determines how far in advance we load the next page of results.
             rootMargin: "50%",
         }));
 
