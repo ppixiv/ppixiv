@@ -1,0 +1,8 @@
+{
+    "search.useIgnoreFiles": false,
+    "files.exclude": {
+        "chrome": true,
+        "output": true,
+        "unused": true
+    }
+}
