@@ -294,10 +294,7 @@ ppixiv.popup_context_menu = class
         // In toggle mode, close the popup if anything outside is clicked.
         if(this.toggle_mode && this.click_outside_listener == null)
         {
-            this.click_outside_listener = new click_outside_listener([this.menu], async () => {
-                // Small hack: delay this, so if this is a right click, it doesn't close and then
-                // immediately reopen the menu.
-                await helpers.yield();
+            this.click_outside_listener = new click_outside_listener([this.menu], () => {
                 this.hide();
             });
         }

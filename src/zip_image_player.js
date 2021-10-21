@@ -253,7 +253,6 @@ ppixiv.ZipImagePlayer = class
         }
 
         // Call completion.
-        await helpers.yield();
         if(this.op.progress)
             this.op.progress(null);
     }
