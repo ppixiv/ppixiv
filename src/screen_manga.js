@@ -130,6 +130,9 @@ ppixiv.screen_manga = class extends ppixiv.screen
         return this.illust_id;        
     }
     
+    // Navigating out goes back to the search.
+    get navigate_out_target() { return "search"; }
+
     refresh_ui()
     {
         if(!this._active)

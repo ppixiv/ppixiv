@@ -17,6 +17,9 @@ ppixiv.screen = class
     {
     }
 
+    // Return the view that navigating back in the popup menu should go to.
+    get navigate_out_target() { return null; }
+
     // If this screen is displaying an image, return its ID.
     // If this screen is displaying a user's posts, return "user:ID".
     // Otherwise, return null.

@@ -584,39 +584,20 @@ ppixiv.main_controller = class
     // would be better for this to integrate with browser history (just browser back if browser back
     // is where we're going), but for some reason you can't view history state entries even if they're
     // on the same page, so there's no way to tell where History.back() would take us.
-    _get_navigate_out_target()
-    {
-        var new_page = null;
-        let screen = this.displayed_screen;
-
-        // This gets called by the popup menu when it's created before we have a screen.
-        if(screen == null)
-            return [null, null];
-
-        if(screen == this.screens.manga)
-        {
-            return ["search", "search"];
-        }
-        else if(screen == this.screens.illust)
-        {
-            var page_count = screen.current_illust_data != null? screen.current_illust_data.pageCount:1;
-            if(page_count > 1)
-                return ["manga", "page list"];
-            else
-                return ["search", "search"];
-        }
-        else
-            return [null, null];
-    }
     get navigate_out_label()
     {
-        var target = this._get_navigate_out_target();
-        return target[1];
+        let target = this.displayed_screen?.navigate_out_target;
+        switch(target)
+        {
+        case "manga": return "page list";
+        case "search": return "search";
+        default: return null;
+        }
     }
 
     navigate_out()
     {
-        let [new_page, label] = this._get_navigate_out_target();
+        let new_page = this.displayed_screen?.navigate_out_target;
         if(new_page == null)
             return;
 
