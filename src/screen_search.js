@@ -144,6 +144,8 @@ ppixiv.screen_search = class extends ppixiv.screen
             for(let entry of entries)
                 helpers.set_dataset(entry.target.dataset, "nearby", entry.isIntersecting);
 
+            // Set up any thumbs that just came nearby, and see if we need to load more search results.
+            this.set_visible_thumbs();
             this.load_needed_thumb_data();
         }, {
             
@@ -835,7 +837,6 @@ ppixiv.screen_search = class extends ppixiv.screen
         // Make a list of pages that we need loaded, and illustrations that we want to have
         // set.
         var wanted_illust_ids = [];
-        var need_thumbnail_data = false;
 
         let elements = this.get_visible_thumbnails();
         for(var element of elements)
@@ -872,8 +873,6 @@ ppixiv.screen_search = class extends ppixiv.screen
 
         if(load_page != null)
         {
-            this.container.querySelector(".no-results").hidden = true;
-
             var result = await this.data_source.load_page(load_page, { cause: "thumbnails" });
 
             // If this page didn't load, it probably means we've reached the end, so stop trying
@@ -896,6 +895,9 @@ ppixiv.screen_search = class extends ppixiv.screen
             let nearby_illust_ids = this.get_thumbs_to_load();
 
             // Load the thumbnail data if needed.
+            //
+            // Loading thumbnail info here very rarely happens anymore, since every data
+            // source provides thumbnail info with its illust IDs.
             thumbnail_data.singleton().get_thumbnail_info(nearby_illust_ids);
         }
         
