@@ -219,7 +219,6 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
                 return;
 
             this.pause();
-            var total_frames = this.player.get_frame_count();
             var current_frame = this.player.get_current_frame();
             var next = e.keyCode == 87;
             var new_frame = current_frame + (next?+1:-1);
@@ -271,8 +270,7 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
         window.removeEventListener("visibilitychange", this.refresh_focus);
 
         // Send a finished progress callback if we were still loading.  We won't
-        // send any progress calls after this (though the ZipImagePlayer will finish
-        // downloading the file anyway).
+        // send any progress calls after this.
         this.progress(null);
 
         if(this.player)

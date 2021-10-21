@@ -119,9 +119,9 @@ ppixiv.message_widget = class
 
         this.container.classList.add("show");
         this.container.classList.remove("centered");
-        this.timer = setTimeout(function() {
+        this.timer = setTimeout(() => {
             this.container.classList.remove("show");
-        }.bind(this), 3000);
+        }, 3000);
     }
 
     clear_timer()
@@ -158,13 +158,14 @@ ppixiv.click_outside_listener = class
     // Return true if node is below any node in node_list.
     is_node_in_list(node)
     {
-        for(var ancestor of this.node_list)
+        for(let ancestor of this.node_list)
         {
             if(helpers.is_above(ancestor, node))
                 return true;
         }
         return false;
     }
+
     window_onmousedown(e)
     {
         // Close the popup if anything outside the dropdown is clicked.  Don't
@@ -188,9 +189,9 @@ ppixiv.dropdown_menu_opener = class
 {
     static create_handlers(container, selectors)
     {
-        for(var selector of selectors)
+        for(let selector of selectors)
         {
-            var item = container.querySelector(selector);
+            let item = container.querySelector(selector);
             if(item == null)
             {
                 console.warn("Couldn't find", selector);
@@ -203,8 +204,8 @@ ppixiv.dropdown_menu_opener = class
     // A shortcut for creating an opener for our common button/popup layout.
     static create_handler(container)
     {
-        var button = container.querySelector(".menu-button");
-        var box = container.querySelector(".popup-menu-box");
+        let button = container.querySelector(".menu-button");
+        let box = container.querySelector(".popup-menu-box");
         if(button == null)
         {
             console.error("Couldn't find menu button for " + container);
@@ -393,7 +394,7 @@ ppixiv.avatar_widget = class
 
         image_data.singleton().user_modified_callbacks.register(this.user_changed);
 
-        var element_author_avatar = this.root.querySelector(".avatar");
+        let element_author_avatar = this.root.querySelector(".avatar");
 
         this.img = document.createElement("img");
 
@@ -405,8 +406,8 @@ ppixiv.avatar_widget = class
         this.highlight_filter = new image_canvas_filter(this.img, element_author_avatar.querySelector("canvas.highlight"), "brightness(150%)", (ctx, img) => {
             ctx.globalCompositeOperation = "destination-in";
 
-            var feather = 25;
-            var radius = 15;
+            let feather = 25;
+            let radius = 15;
             ctx.filter = "blur(" + feather + "px)";
             helpers.draw_round_rect(ctx, feather, feather + this.img.naturalHeight/2, this.img.naturalWidth - feather*2, this.img.naturalHeight - feather*2, radius);
             ctx.fill();
@@ -415,7 +416,7 @@ ppixiv.avatar_widget = class
         this.root.dataset.mode = this.options.mode;
 
         // Show the favorite UI when hovering over the avatar icon.
-        var avatar_popup = this.root; //container.querySelector(".avatar-popup");
+        let avatar_popup = this.root; //container.querySelector(".avatar-popup");
         if(this.options.mode == "dropdown")
         {
             avatar_popup.addEventListener("mouseover", function(e) { helpers.set_class(avatar_popup, "popup-visible", true); }.bind(this));
@@ -424,11 +425,11 @@ ppixiv.avatar_widget = class
 
         new creepy_eye_widget(this.root.querySelector(".unfollow-button .eye-image"));
 
-        for(var button of avatar_popup.querySelectorAll(".follow-button.public"))
+        for(let button of avatar_popup.querySelectorAll(".follow-button.public"))
             button.addEventListener("click", this.clicked_follow.bind(this, false), false);
-        for(var button of avatar_popup.querySelectorAll(".follow-button.private"))
+        for(let button of avatar_popup.querySelectorAll(".follow-button.private"))
             button.addEventListener("click", this.clicked_follow.bind(this, true), false);
-        for(var button of avatar_popup.querySelectorAll(".unfollow-button"))
+        for(let button of avatar_popup.querySelectorAll(".unfollow-button"))
             button.addEventListener("click", this.clicked_follow.bind(this, true), false);
         this.element_follow_folder = avatar_popup.querySelector(".folder");
 
@@ -524,7 +525,7 @@ ppixiv.avatar_widget = class
 
         // If we don't have an image because we're loaded from a source that doesn't give us them,
         // just hide the avatar image.
-        var key = "imageBig";
+        let key = "imageBig";
         if(this.user_data[key])
             this.img.src = this.user_data[key];
         else
@@ -597,7 +598,7 @@ ppixiv.tag_widget = class
         if(this.options.format_link)
             return this.options.format_link(tag);
 
-        var search_url = new URL("/tags/" + encodeURIComponent(tag) + "/artworks", ppixiv.location.href);
+        let search_url = new URL("/tags/" + encodeURIComponent(tag) + "/artworks", ppixiv.location.href);
         search_url.hash = "#ppixiv";
         return search_url.toString();
     };
@@ -619,20 +620,20 @@ ppixiv.tag_widget = class
 
         // Look up tag translations.
         let tag_list = [];
-        for(var tag of this.tags.tags)
+        for(let tag of this.tags.tags)
             tag_list.push(tag.tag);
         let translated_tags = await tag_translations.get().get_translations(tag_list, "en");
         
         // Remove any old tag list and create a new one.
         helpers.remove_elements(this.tag_list_container);
 
-        for(var tag of tag_list)
+        for(let tag of tag_list)
         {
-            var a = this.tag_list_container.appendChild(document.createElement("a"));
+            let a = this.tag_list_container.appendChild(document.createElement("a"));
             a.classList.add("tag");
             a.classList.add("box-link");
 
-            var popup = null;
+            let popup = null;
             let translated_tag = tag;
             if(translated_tags[tag])
                 translated_tag = translated_tags[tag];
@@ -707,7 +708,7 @@ ppixiv.text_prompt = class
     // Close the popup and call the completion callback with the result.
     submit(e)
     {
-        var result = this.input.value;
+        let result = this.input.value;
         console.log("submit", result);
         this._remove();
 
@@ -837,11 +838,11 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
     {
         // If we're refreshing the same illust that's already refreshed, store which tags were selected
         // before we clear the list.
-        var old_selected_tags = this.displaying_illust_id == illust_id? this.selected_tags:[];
+        let old_selected_tags = this.displaying_illust_id == illust_id? this.selected_tags:[];
 
         this.displaying_illust_id = null;
 
-        var bookmark_tags = this.container.querySelector(".tag-list");
+        let bookmark_tags = this.container.querySelector(".tag-list");
         helpers.remove_elements(bookmark_tags);
 
         // Make sure the dropdown is hidden if we have no image.
@@ -861,7 +862,7 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
         dropdown.style.maxHeight = `${tag_box_height}px`;
 
         // Create a temporary entry to show loading while we load bookmark details.
-        var entry = document.createElement("span");
+        let entry = document.createElement("span");
         bookmark_tags.appendChild(entry);
         entry.innerText = "Loading...";
 
@@ -879,16 +880,16 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
         // If we're refreshing the list while it's open, make sure that any tags the user
         // selected are still in the list, even if they were removed by the refresh.  Put
         // them in active_tags, so they'll be marked as active.
-        for(var tag of old_selected_tags)
+        for(let tag of old_selected_tags)
         {
             if(active_tags.indexOf(tag) == -1)
                 active_tags.push(tag);
         }
 
-        var shown_tags = [];
+        let shown_tags = [];
 
-        var recent_bookmark_tags = Array.from(helpers.get_recent_bookmark_tags()); // copy
-        for(var tag of recent_bookmark_tags)
+        let recent_bookmark_tags = Array.from(helpers.get_recent_bookmark_tags()); // copy
+        for(let tag of recent_bookmark_tags)
             if(shown_tags.indexOf(tag) == -1)
                 shown_tags.push(tag);
 
@@ -898,15 +899,15 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
             return lhs.localeCompare(rhs);
         });
 
-        for(var i = 0; i < shown_tags.length; ++i)
+        for(let i = 0; i < shown_tags.length; ++i)
         {
-            var tag = shown_tags[i];
-            var entry = helpers.create_from_template(".template-popup-bookmark-tag-entry");
+            let tag = shown_tags[i];
+            let entry = helpers.create_from_template(".template-popup-bookmark-tag-entry");
             entry.dataset.tag = tag;
             bookmark_tags.appendChild(entry);
             entry.querySelector(".tag-name").innerText = tag;
 
-            var active = active_tags.indexOf(tag) != -1;
+            let active = active_tags.indexOf(tag) != -1;
             helpers.set_class(entry, "active", active);
         }
     }
@@ -929,7 +930,7 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
         let old_tags = await image_data.singleton().load_bookmark_details(illust_id);
 
         var equal = new_tags.length == old_tags.length;
-        for(var tag of new_tags)
+        for(let tag of new_tags)
         {
             if(old_tags.indexOf(tag) == -1)
                 equal = false;
@@ -951,7 +952,7 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
     // Toggle tags on click.  We don't save changes until we're closed.
     async clicked_bookmark_tag(e)
     {
-        var a = e.target.closest(".popup-bookmark-tag-entry");
+        let a = e.target.closest(".popup-bookmark-tag-entry");
         if(a == null)
             return;
 
@@ -960,7 +961,7 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
 
         // Toggle this tag.  Don't actually save it immediately, so if we make multiple
         // changes we don't spam requests.
-        var tag = a.dataset.tag;
+        let tag = a.dataset.tag;
         helpers.set_class(a, "active", !a.classList.contains("active"));
     }
 }
@@ -1012,8 +1013,8 @@ ppixiv.bookmark_button_widget = class extends ppixiv.illust_widget
 
     refresh_internal({ early_info })
     {
-        var bookmarked = early_info?.bookmarkData != null;
-        var our_bookmark_type = early_info?.bookmarkData?.private == this.private_bookmark;
+        let bookmarked = early_info?.bookmarkData != null;
+        let our_bookmark_type = early_info?.bookmarkData?.private == this.private_bookmark;
 
         // Set up the bookmark buttons.
         helpers.set_class(this.container,  "enabled",     early_info != null);
@@ -1021,7 +1022,7 @@ ppixiv.bookmark_button_widget = class extends ppixiv.illust_widget
         helpers.set_class(this.container,  "will-delete", our_bookmark_type);
         
         // Set the tooltip.
-        var type_string = this.private_bookmark? "private":"public";
+        let type_string = this.private_bookmark? "private":"public";
         this.container.dataset.popup =
             early_info == null? "":
             !bookmarked? (this.private_bookmark? "Bookmark privately":"Bookmark image"):
@@ -1033,7 +1034,7 @@ ppixiv.bookmark_button_widget = class extends ppixiv.illust_widget
     async clicked_bookmark(e)
     {
         // See if this is a click on a bookmark button.
-        var a = e.target.closest(".button-bookmark");
+        let a = e.target.closest(".button-bookmark");
         if(a == null)
             return;
 
@@ -1042,7 +1043,7 @@ ppixiv.bookmark_button_widget = class extends ppixiv.illust_widget
 
         // If the tag list dropdown is open, make a list of tags selected in the tag list dropdown.
         // If it's closed, leave tag_list null so we don't modify the tag list.
-        var tag_list = null;
+        let tag_list = null;
         if(this.bookmark_tag_widget && this.bookmark_tag_widget.visible)
             tag_list = this.bookmark_tag_widget.selected_tags;
 
@@ -1082,10 +1083,6 @@ ppixiv.bookmark_button_widget = class extends ppixiv.illust_widget
             private: this.private_bookmark,
             tags: tag_list,
         });
-
-        // If the current image changed while we were async, stop.
-        if(this._illust_id != illust_data.illustId)
-            return;
     }
 }
 
@@ -1100,7 +1097,7 @@ ppixiv.bookmark_count_widget = class extends ppixiv.illust_widget
 
     refresh_internal({ illust_data })
     {
-        var count = this.container.querySelector(".count");
+        let count = this.container.querySelector(".count");
         if(count)
             count.textContent = illust_data? illust_data.bookmarkCount:"---";
     }
