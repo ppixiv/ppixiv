@@ -146,6 +146,7 @@ ppixiv.screen_search = class extends ppixiv.screen
 
             this.load_needed_thumb_data();
         }, {
+            
             root: this.container,
             rootMargin: "50%",
         }));
@@ -597,7 +598,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         return null;
     };
 
-    set_active(active, { data_source })
+    async set_active(active, { data_source })
     {
         if(this._active == active && this.data_source == data_source)
             return;
@@ -614,7 +615,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         if(was_active && this.data_source)
             this.data_source.thumbnail_view_scroll_pos = this.container.scrollTop;
 
-        super.set_active(active);
+        await super.set_active(active);
         
         if(active)
         {

@@ -12,9 +12,16 @@ ppixiv.screen_manga = class extends ppixiv.screen
 
         this.refresh_ui = this.refresh_ui.bind(this);
         this.window_onresize = this.window_onresize.bind(this);
-        this.refresh_images = this.refresh_images.bind(this);
+        this.refresh_count = 0;
 
         window.addEventListener("resize", this.window_onresize);
+
+        // If the "view muted image" button is clicked, add view-muted to the URL.
+        this.container.querySelector(".view-muted-image").addEventListener("click", (e) => {
+            let args = helpers.args.location;
+            args.hash.set("view-muted", "1");
+            helpers.set_page_url(args, false /* add_to_history */, "override-mute");
+        });
 
         this.progress_bar = main_controller.singleton.progress_bar;
         this.ui = new image_ui(this.container.querySelector(".ui-container"), this.progress_bar);
@@ -23,7 +30,7 @@ ppixiv.screen_manga = class extends ppixiv.screen
         image_data.singleton().user_modified_callbacks.register(this.refresh_ui);
         image_data.singleton().illust_modified_callbacks.register(this.refresh_ui);
 
-        settings.register_change_callback("manga-thumbnail-size", this.refresh_images);
+        settings.register_change_callback("manga-thumbnail-size", this.refresh_ui);
         
         // Create a style for our thumbnail style.
         this.thumbnail_dimensions_style = helpers.create_style("");
@@ -34,24 +41,30 @@ ppixiv.screen_manga = class extends ppixiv.screen
 
     window_onresize(e)
     {
-        if(!this.active)
+        if(!this._active)
             return;
         
-        console.log("resize");
-        this.refresh_images();
+        this.refresh_ui();
     }
 
-    set_active(active, { data_source, illust_id })
+    async set_active(active, { illust_id })
     {
-        if(illust_id != null)
-            this.shown_illust_id = illust_id;
-        
-        if(this.active == active)
-            return;
+        if(this.illust_id != illust_id)
+        {
+            // The load itself is async and might not happen immediately if we don't have page info yet.
+            // Clear any previous image list so it doesn't flash on screen while we load the new info.
+            let ul = this.container.querySelector(".thumbnails");
+            helpers.remove_elements(ul);
 
-        this._active = active;
+            this.illust_id = illust_id;
+            this.illust_info = null;
+            this.ui.illust_id = illust_id;
 
-        if(!active)
+            // Refresh even if illust_id is null, so we quickly clear the screen.
+            await this.refresh_ui();
+        }
+
+        if(this._active && !active)
         {
             // Save the old scroll position.
             if(this.illust_id != null)
@@ -67,52 +80,21 @@ ppixiv.screen_manga = class extends ppixiv.screen
             main_context_menu.get.user_id = null;
         }
 
-        super.set_active(active);
+        this._active = active;
 
-        if(active)
-            this.load_illust_id();
-    }
+        // This will hide or unhide us.
+        await super.set_active(active);
 
-    get active()
-    {
-        return this._active;
-    }
-
-    get shown_illust_id()
-    {
-        return this.illust_id;
-    }
-
-    set shown_illust_id(illust_id)
-    {
-        if(this.illust_id == illust_id)
-            return;
-
-        // The load itself is async and might not happen immediately if we don't have page info yet.
-        // Clear any previous image list so it doesn't flash on screen while we load the new info.
-        let ul = this.container.querySelector(".thumbnails");
-        helpers.remove_elements(ul);
-
-        this.illust_id = illust_id;
-        this.illust_info = null;
-        this.ui.illust_id = illust_id;
-
-        // Refresh even if illust_id is null, so we quickly clear the screen.
-        this.refresh_ui();
-        if(this.illust_id == null)
-            return;
-
-        if(!this.active)
-            return;
-
-        this.load_illust_id();
-    }
-
-    async load_illust_id()
-    {
-        if(this.illust_id == null)
+        if(!active || this.illust_id == null)
             return;
         
+        // The rest of the load happens async.  Although we're already in an async
+        // function, it should return without waiting for API requests.
+        this.async_set_image();
+    }
+
+    async async_set_image()
+    {
         console.log("Loading manga screen for:", this.illust_id);
 
         // Load image info.
@@ -122,45 +104,65 @@ ppixiv.screen_manga = class extends ppixiv.screen
 
         this.illust_info = illust_info;
 
-        this.refresh_ui();
+        await this.refresh_ui();
     }
 
-    get displayed_illust_id()
+    get view_muted()
     {
-        return this.illust_id;        
+        return helpers.args.location.hash.get("view-muted") == "1";
+    }
+
+    should_hide_muted_image()
+    {
+        let muted_tag = muting.singleton.any_tag_muted(image_data.from_tag_list(this.illust_info.tags));
+        let muted_user = muting.singleton.is_muted_user_id(this.illust_info.userId);
+        if(this.view_muted || (!muted_tag && !muted_user))
+            return { is_muted: false };
+
+        return { is_muted: true, muted_tag: muted_tag, muted_user: muted_user };
     }
     
-    // Navigating out goes back to the search.
-    get navigate_out_target() { return "search"; }
+    update_mute()
+    {
+        // Check if this post is muted.
+        let { is_muted, muted_tag, muted_user } = this.should_hide_muted_image();
+        this.hiding_muted_image = this.view_muted;
+        this.container.querySelector(".muted-text").hidden = !is_muted;
+        if(!is_muted)
+            return false;
 
-    refresh_ui()
+        let muted_label = this.container.querySelector(".muted-label");
+        if(muted_tag)
+            tag_translations.get.set_translated_tag(muted_label, muted_tag);
+        else if(muted_user)
+            muted_label.innerText = this.illust_info.userName;
+
+        return true;
+    }
+
+    refresh_ui = async () =>
     {
         if(!this._active)
             return;
         
         helpers.set_title_and_icon(this.illust_info);
 
-        // Tell the context menu which user is being viewed.
-        main_context_menu.get.user_id = this.illust_info.userId;
-
-        this.refresh_images();
-    }
-
-    refresh_images()
-    {
         var original_scroll_top = this.container.scrollTop;
 
-        // Remove all existing entries and collect them.
         var ul = this.container.querySelector(".thumbnails");
         helpers.remove_elements(ul);
 
         if(this.illust_info == null)
             return;
 
+        // Tell the context menu which user is being viewed.
+        main_context_menu.get.user_id = this.illust_info.userId;
+
+        if(this.update_mute())
+            return;
+
         // Get the aspect ratio to crop images to.
         var ratio = this.get_display_aspect_ratio(this.illust_info.mangaPages);
-        // 
-        // console.log("size", size);
         let thumbnail_size = settings.get("manga-thumbnail-size", 4);
         thumbnail_size = thumbnail_size_slider_widget.thumbnail_size_for_value(thumbnail_size);
 
@@ -190,6 +192,19 @@ ppixiv.screen_manga = class extends ppixiv.screen
         // the wrong position, even though scrollRestoration is disabled.
         this.container.scrollTop = original_scroll_top;
     }
+
+    get active()
+    {
+        return this._active;
+    }
+
+    get displayed_illust_id()
+    {
+        return this.illust_id;        
+    }
+    
+    // Navigating out goes back to the search.
+    get navigate_out_target() { return "search"; }
 
     // Given a list of manga infos, return the aspect ratio we'll crop them to.
     get_display_aspect_ratio(manga_info)

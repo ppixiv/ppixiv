@@ -40,7 +40,7 @@ ppixiv.screen = class
     restore_scroll_position() { }
     scroll_to_illust_id(illust_id, manga_page) { }
 
-    set_active(active)
+    async set_active(active)
     {
         // Show or hide the screen.
         this.container.hidden = !active;

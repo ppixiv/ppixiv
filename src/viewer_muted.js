@@ -18,6 +18,12 @@ ppixiv.viewer_muted = class extends ppixiv.viewer
 
     async load()
     {
+        this.root.querySelector(".view-muted-image").addEventListener("click", (e) => {
+            let args = helpers.args.location;
+            args.hash.set("view-muted", "1");
+            helpers.set_page_url(args, false /* add_to_history */, "override-mute");
+        });
+
         this.illust_data = await image_data.singleton().get_image_info(this.illust_id);
 
         // Stop if we were removed before the request finished.
@@ -26,7 +32,6 @@ ppixiv.viewer_muted = class extends ppixiv.viewer
         
         // Show the user's avatar instead of the muted image.
         let user_info = await image_data.singleton().get_user_info(this.illust_data.userId);
-        console.log(user_info);
         var img = this.root.querySelector(".muted-image");
         img.src = user_info.imageBig;
 
@@ -34,14 +39,9 @@ ppixiv.viewer_muted = class extends ppixiv.viewer
         let muted_user = muting.singleton.is_muted_user_id(this.illust_data.userId);
 
         let muted_label = this.root.querySelector(".muted-label");
-        if(muted_tag || muted_user)
-        {
-            let translated_tags = await tag_translations.get().get_translations([muted_tag], "en");
-            if(translated_tags[muted_tag])
-                muted_tag = translated_tags[muted_tag];
-            muted_label.innerText = muted_tag;
-        }
-        else
+        if(muted_tag)
+            tag_translations.get.set_translated_tag(muted_label, muted_tag);
+        else if(muted_user)
             muted_label.innerText = this.illust_data.userName;
     }
 

@@ -316,6 +316,9 @@ class data_source
         args.hash.delete("virtual");
         args.hash.delete("quick-view");
 
+        // This is for overriding muting.
+        args.hash.delete("view-muted");
+
         return args.url;
     }
 

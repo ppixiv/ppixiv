@@ -98,10 +98,10 @@ ppixiv.screen_illust = class extends ppixiv.screen
         this.container.querySelector(".image-container").hidden = value;
     }
     
-    set_active(active, { illust_id, page, data_source })
+    async set_active(active, { illust_id, page, data_source })
     {
         this._active = active;
-        super.set_active(active);
+        await super.set_active(active);
 
         // If we have a viewer, tell it if we're active.
         if(this.viewer != null)
@@ -131,8 +131,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
         this.show_image(illust_id, page);
     }
 
-    // Show an image.
-    // If manga_page is -1, show the last page.
+    // Show an image.  If manga_page is -1, show the last page.
     async show_image(illust_id, manga_page)
     {
         helpers.set_class(document.body,  "force-ui", unsafeWindow.debug_show_ui);
@@ -148,16 +147,13 @@ ppixiv.screen_illust = class extends ppixiv.screen
         this.wanted_illust_page = manga_page;
 
         // If this image is already loaded, just make sure it's not hidden.
-        if(illust_id == this.current_illust_id && this.viewer != null && this.wanted_illust_page == this.viewer.page && !this._hide_image)
+        if( this.wanted_illust_id == this.current_illust_id && 
+            this.wanted_illust_page == this.viewer.page &&
+            this.viewer != null && 
+            this.hiding_muted_image == this.view_muted && // view-muted not changing
+            !this._hide_image)
         {
-            console.log("illust_id", illust_id, "page", this.wanted_illust_page, "already displayed");
-            return;
-        }
-
-        // If we're not active, stop.  We'll show this image if we become loaded later.
-        if(!this.active)
-        {
-            // console.log("not active, set wanted id to", this.wanted_illust_id);
+            console.log(`illust ${illust_id} page ${this.wanted_illust_page} is already displayed`);
             return;
         }
 
@@ -199,7 +195,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
         // If we adjusted the page, update the URL.  Allow "page" to be 1 or not present for
         // page 1.
         var args = helpers.args.location;
-        var wanted_page_arg = early_illust_data.pageCount > 1? (manga_page + 1).toString():1;
+        var wanted_page_arg = early_illust_data.pageCount > 1? (manga_page + 1):1;
         let current_page_arg = args.hash.get("page") || "1";
         if(current_page_arg != wanted_page_arg)
         {
@@ -214,7 +210,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
 
         // This is the first image we're displaying if we previously had no illust ID, or
         // if we were hidden.
-        var first_image_displayed = this.current_illust_id == -1 || this._hide_image;
+        let is_first_image_displayed = this.current_illust_id == -1 || this._hide_image;
 
         // Speculatively load the next image, which is what we'll show if you press page down, so
         // advancing through images is smoother.
@@ -222,7 +218,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
         // We don't do this when showing the first image, since the most common case is simply
         // viewing a single image and not navigating to any others, so this avoids making
         // speculative loads every time you load a single illustration.
-        if(!first_image_displayed)
+        if(!is_first_image_displayed)
         {
             // get_navigation may block to load more search results.  Run this async without
             // waiting for it.
@@ -236,8 +232,19 @@ ppixiv.screen_illust = class extends ppixiv.screen
             })();
         }
 
+        // Finalize the illust ID.
+        this.current_illust_id = illust_id;
+        this.current_user_id = early_illust_data.userId;
+        this.viewing_manga = early_illust_data.pageCount > 1; // for navigate_out_target
+        this.ui.illust_id = illust_id;
+
+        this.refresh_ui();
+
+        if(this.update_mute(early_illust_data))
+            return;
+
         // If the illust ID isn't changing, just update the viewed page.
-        if(illust_id == this.current_illust_id && this.viewer != null)
+        if(illust_id == this.current_illust_id && this.viewer != null && this.viewer.page != this.wanted_illust_page)
         {
             console.log("Image ID not changed, setting page", this.wanted_illust_page, "of image", this.current_illust_id);
             this._hide_image = false;
@@ -249,71 +256,82 @@ ppixiv.screen_illust = class extends ppixiv.screen
             return;
         }
 
-        // Finalize the illust ID.  We haven't loaded full illust data yet, so clear it.
-        this.current_illust_id = illust_id;
-        this.current_user_id = early_illust_data.userId;
-        this.viewing_manga = early_illust_data.pageCount > 1; // for navigate_out_target
-        this.ui.illust_id = illust_id;
-
-        this.refresh_ui();
-
         // If the image has the ドット絵 tag, enable nearest neighbor filtering.
         helpers.set_class(document.body, "dot", helpers.tags_contain_dot(early_illust_data));
 
         // Dismiss any message when changing images.
         message_widget.singleton.hide();
        
-        // If we're showing something else, remove it.
+        // Create the image viewer.
+        var progress_bar = this.progress_bar.controller();
+        let image_container = this.container.querySelector(".image-container");
+        if(early_illust_data.illustType == 2)
+            this.set_viewer(new viewer_ugoira(image_container, illust_id, {
+                progress_bar: progress_bar,
+                seek_bar: this.seek_bar,
+            }));
+        else
+        {
+            this.set_viewer(new viewer_images(image_container, illust_id, {
+                progress_bar: progress_bar,
+                manga_page_bar: this.manga_page_bar,
+                manga_page: manga_page,
+            }));
+        }
+
+        // If the viewer was hidden, unhide it now that the new one is set up.
+        this._hide_image = false;
+
+        this.viewer.active = this._active;
+
+        // Refresh the UI now that we have a new viewer.
+        this.refresh_ui();
+    }
+
+    get view_muted()
+    {
+        return helpers.args.location.hash.get("view-muted") == "1";
+    }
+
+    should_hide_muted_image(early_illust_data)
+    {
+        let muted_tag = muting.singleton.any_tag_muted(early_illust_data.tags);
+        let muted_user = muting.singleton.is_muted_user_id(early_illust_data.userId);
+        if(this.view_muted || (!muted_tag && !muted_user))
+            return { is_muted: false };
+
+        return { is_muted: true, muted_tag: muted_tag, muted_user: muted_user };
+    }
+
+    update_mute(early_illust_data)
+    {
+        // Check if this post is muted.
+        let { is_muted } = this.should_hide_muted_image(early_illust_data);
+        this.hiding_muted_image = this.view_muted;
+        if(!is_muted)
+            return false;
+    
+        // Tell the thumbnail view about the image.  If the image is muted, disable thumbs.
+        if(this.manga_thumbnails)
+            this.manga_thumbnails.set_illust_info(null);
+
+        // If the image is muted, load a dummy viewer.
+        let image_container = this.container.querySelector(".image-container");
+        this.set_viewer(new viewer_muted(image_container, this.current_illust_id));
+        this._hide_image = false;
+        return true;
+    }
+    
+    set_viewer(viewer)
+    {
+        // Remove the old viewer, if any.
         if(this.viewer != null)
         {
             this.viewer.shutdown();
             this.viewer = null;
         }
 
-        // The viewer is gone, so we can unhide the image container without flashing the
-        // previous image.
-        this._hide_image = false;
-
-        let image_container = this.container.querySelector(".image-container");
-
-        // Check if this image is muted.
-        var muted_tag = muting.singleton.any_tag_muted(early_illust_data.tags);
-        var muted_user = muting.singleton.is_muted_user_id(early_illust_data.userId);
-        if(muted_tag || muted_user)
-        {
-            // Tell the thumbnail view about the image.  If the image is muted, disable thumbs.
-            if(this.manga_thumbnails)
-                this.manga_thumbnails.set_illust_info(null);
-
-            // If the image is muted, load a dummy viewer.
-            this.viewer = new viewer_muted(image_container, illust_id);
-            return;
-        }
-     
-        var manga_page = this.wanted_illust_page;
-        if(manga_page == -1)
-            manga_page = early_illust_data.pageCount - 1;
-
-        // Create the image viewer.
-        var progress_bar = this.progress_bar.controller();
-        if(early_illust_data.illustType == 2)
-            this.viewer = new viewer_ugoira(image_container, illust_id, {
-                progress_bar: progress_bar,
-                seek_bar: this.seek_bar,
-            });
-        else
-        {
-            this.viewer = new viewer_images(image_container, illust_id, {
-                progress_bar: progress_bar,
-                manga_page_bar: this.manga_page_bar,
-                manga_page: manga_page,
-            });
-        }
-
-        this.viewer.active = this._active;
-
-        // Refresh the UI now that we have a new viewer.
-        this.refresh_ui();
+        this.viewer = viewer;
     }
 
     // If we started navigating to a new image and were delayed to load data (either to load
@@ -348,7 +366,6 @@ ppixiv.screen_illust = class extends ppixiv.screen
         this.wanted_illust_id = null;
         this.current_illust_id = null;
 
-        // The manga page to show, or the last page if -1.
         this.wanted_illust_page = 0;
         this.current_illust_id = -1;
         this.refresh_ui();
@@ -482,7 +499,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
             let num_pages = early_illust_data.pageCount;
             if(num_pages > 1)
             {
-                var old_page = this.wanted_illust_page;
+                var old_page = this.displayed_illust_page;
                 var new_page = old_page + (down? +1:-1);
                 new_page = Math.max(0, Math.min(num_pages - 1, new_page));
                 if(new_page != old_page)

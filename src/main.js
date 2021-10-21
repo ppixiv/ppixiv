@@ -427,14 +427,15 @@ ppixiv.main_controller = class
 
         // Make sure we deactivate the old screen before activating the new one.
         if(old_screen != null && old_screen != new_screen)
-            old_screen.set_active(false, { });
+            await old_screen.set_active(false, { });
 
         if(new_screen != null)
         {
-            new_screen.set_active(true, {
+            await new_screen.set_active(true, {
                 data_source: data_source,
                 illust_id: illust_id,
                 page: manga_page,
+                navigation_cause: cause,
             });
         }
 

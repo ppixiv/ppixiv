@@ -287,5 +287,21 @@ ppixiv.update_translation_storage = class
             await tag_translations.get().add_translations(translations);
         });
     }
+
+    // Set the innerText of an element to tag, translating it if possible.
+    //
+    // This is async to look up the tag translation, but it's safe to release this
+    // without awaiting.
+    async set_translated_tag(element, tag)
+    {
+        element.dataset.tag = tag;
+        tag = await this.get_translation(muted_tag);
+
+        // Stop if another call was made here while we were async.
+        if(tag.dataset.tag != tag)
+            return;
+
+        element.innerText = tag;
+    }
 }
 

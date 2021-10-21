@@ -538,5 +538,21 @@ ppixiv.image_data = class
     // Remember when we've liked an image recently, so we don't spam API requests.
     get_liked_recently(illust_id) { return this.recent_likes[illust_id]; }
     add_liked_recently(illust_id) { this.recent_likes[illust_id] = true; }
+
+    // Convert a verbose tag list from illust info:
+    //
+    // illust_info.tags = { tags: [{tag: "tag1"}, {tag: "tag2"}] };
+    //
+    // to a simple array of tag names, which is what we get in thumbnail data and
+    // the format we use in early illust info.
+    static from_tag_list(tags)
+    {
+        let result = [];
+        for(let tag of tags.tags)
+        {
+            result.push(tag.tag);
+        }
+        return result;
+    }
 }
 

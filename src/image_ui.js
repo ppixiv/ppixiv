@@ -5,7 +5,6 @@ ppixiv.image_ui = class
 {
     constructor(container, progress_bar)
     {
-        this.image_data_loaded = this.image_data_loaded.bind(this);
         this.clicked_download = this.clicked_download.bind(this);
         this.refresh = this.refresh.bind(this);
 
@@ -81,31 +80,30 @@ ppixiv.image_ui = class
 
         this._illust_id = illust_id;
         this.illust_data = null;
-        image_data.singleton().get_image_info(illust_id).then((illust_info) => {
-            this.image_data_loaded(illust_info);
-        }).catch((e) => {
-            console.error(e);
-        });
 
         this.like_button.illust_id = illust_id;
         this.bookmark_tag_widget.illust_id = illust_id;
         this.toggle_tag_widget.illust_id = illust_id;
-        for(var button of this.bookmark_buttons)
+        for(let button of this.bookmark_buttons)
             button.illust_id = illust_id;
         
+        if(illust_id == null)
+        {
+            this.refresh();
+            return;
+        }
+
+        image_data.singleton().get_image_info(illust_id).then((illust_info) => {
+            if(illust_info.illustId != this._illust_id)
+                return;
+    
+            this.illust_data = illust_info;
+            this.refresh();
+        });
     }
 
     handle_onkeydown(e)
     {
-    }
-
-    image_data_loaded(illust_data)
-    {
-        if(illust_data.illustId != this._illust_id)
-            return;
-
-        this.illust_data = illust_data;
-        this.refresh();
     }
 
     refresh()
