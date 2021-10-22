@@ -409,8 +409,6 @@ ppixiv.main_controller = class
             illust_id = null;
 
         console.log("Loading data source.  Screen:", new_screen_name, "Cause:", cause, "URL:", ppixiv.location.href);
-        if(illust_id != null)
-            console.log("  Show image", illust_id, "page", manga_page);
 
         // Mark the current screen.  Other code can watch for this to tell which view is
         // active.
@@ -465,7 +463,7 @@ ppixiv.main_controller = class
             // If this is an initial navigation, eg. from a user clicking a link to a search, always
             // scroll to the top.  If this data source exists previously in history, we don't want to
             // restore the scroll position from back then.
-            console.log("Scroll to top for new search");
+            // console.log("Scroll to top for new search");
             new_screen.scroll_to_top();
         }
         else if(cause == "leaving-virtual")
@@ -476,7 +474,7 @@ ppixiv.main_controller = class
         else if(navigating_forwards)
         {
             // On browser history forwards, try to restore the scroll position.
-            console.log("Restore scroll position for forwards navigation");
+            // console.log("Restore scroll position for forwards navigation");
             new_screen.restore_scroll_position();
         }
         else if(screen_changing && old_illust_id != null)
@@ -484,7 +482,7 @@ ppixiv.main_controller = class
             // If we're navigating backwards or toggling, and we're switching from the image UI to thumbnails,
             // try to scroll the search screen to the image that was displayed.  Otherwise, tell
             // it to restore any scroll position saved in the data source.
-            console.log("Scroll to", old_illust_id, old_illust_page);
+            // console.log("Scroll to", old_illust_id, old_illust_page);
             new_screen.scroll_to_illust_id(old_illust_id, old_illust_page);
         }
         else
