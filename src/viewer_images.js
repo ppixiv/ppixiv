@@ -47,15 +47,6 @@ ppixiv.viewer_images = class extends ppixiv.viewer
 
         this.refresh();
         
-        // If we were created with the restore_history option set, restore it now that
-        // we have an image set up.  This is done when we're restoring a browser state, so
-        // only do this the first time.
-        if(this.options.restore_history)
-        {
-            this.on_click_viewer.restore_from_history();
-            this.options.restore_history = false;
-        }
-
         // Now wait for full illust info to load.
         this.illust_data = await image_data.singleton().get_image_info(this.illust_id);
 
@@ -78,14 +69,10 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         this.refresh();
     }
 
+    // Note that this will always return JPG if all we have is the preview URL.
     get current_image_type()
     {
-        var url;
-        if(this.illust_data.illustType != 2 && this.illust_data.pageCount == 1)
-            url = this.illust_data.urls.original;
-        else
-            url = this.img.src;
-        return helpers.get_extension(url).toUpperCase();
+        return helpers.get_extension(this.url).toUpperCase();
     }
     
     
@@ -97,18 +84,6 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         {
             this.on_click_viewer.disable();
             this.on_click_viewer = null;
-        }
-
-        if(this.img)
-        {
-            this.img.remove();
-            this.img = null;
-        }
-
-        if(this.preview_img)
-        {
-            this.preview_img.remove();
-            this.preview_img = null;
         }
 
         main_context_menu.get.on_click_viewer = null;
@@ -134,13 +109,21 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         // This will be null if this is a manga page that we don't have any info for yet.
         let current_image = this.images[this.index];
         if(current_image == null)
+        {
             console.info(`No info for page ${this.index} yet`);
-        if(this.on_click_viewer && current_image?.url && this.img?.src == current_image?.url)
+            return;
+        }
+
+        if(this.on_click_viewer &&
+            current_image.url == this.on_click_viewer.url &&
+            current_image.preview_url == this.on_click_viewer.preview_url)
             return;
 
         // Create the new image and pass it to the viewer.
-        this._create_image(current_image?.url, current_image?.preview_url, current_image?.width, current_image?.height);
-        
+        this.url = current_image.url || current_image.preview_url;
+        this.on_click_viewer.set_new_image(current_image.url, current_image.preview_url,
+            this.container, current_image.width, current_image.height);
+
         // Decode the next and previous image.  This reduces flicker when changing pages
         // since the image will already be decoded.
         if(this.index > 0 && this.index - 1 < this.images.length)
@@ -156,62 +139,15 @@ ppixiv.viewer_images = class extends ppixiv.viewer
             else
                 this.manga_page_bar.set((this.index+1) / this.images.length);
         }
-    }
 
-    _create_image(url, preview_url, width, height)
-    {
-        if(this.img)
+        // If we were created with the restore_history option set, restore it now that
+        // we have an image set up.  This is done when we're restoring a browser state, so
+        // only do this the first time.
+        if(this.options.restore_history)
         {
-            this.img.remove();
-            this.img = null;
+            this.on_click_viewer.restore_from_history();
+            this.options.restore_history = false;
         }
-
-        if(this.preview_img)
-        {
-            this.preview_img.remove();
-            this.preview_img = null;
-        }
-        
-        // If width is null, we don't have any info for the image yet.  Clear the image so we
-        // don't keep showing an old one, and don't create any image.
-        if(width == null)
-        {
-            this.on_click_viewer.set_new_image(null, null, 0, 0);
-            return;
-        }
-
-        // Create the low-res preview.  This loads the thumbnail underneath the main image.  Don't set the
-        // "filtering" class, since using point sampling for the thumbnail doesn't make sense.  If preview_url
-        // is null, just use a blank image.
-        this.preview_img = document.createElement("img");
-        this.preview_img.src = preview_url? preview_url:helpers.blank_image;
-        this.preview_img.classList.add("low-res-preview");
-
-        // The secondary image holds the low-res preview image that's shown underneath the loading image.
-        // It just follows the main image around and shouldn't receive input events.
-        this.preview_img.style.pointerEvents = "none";
-        this.container.appendChild(this.preview_img);
-
-        this.img = document.createElement("img");
-        this.img.src = url? url:helpers.blank_image;
-        this.img.className = "filtering";
-        this.container.appendChild(this.img);
-
-        // When the image finishes loading, remove the preview image, to prevent artifacts with
-        // transparent images.  Keep a reference to preview_img, so we don't need to worry about
-        // it changing.  on_click_viewer will still have a reference to it, but it won't do anything.
-        //
-        // Don't do this if url is null.  Leave the preview up and don't switch over to the blank
-        // image.
-        let preview_image = this.preview_img;
-        if(url != null)
-        {
-            this.img.addEventListener("load", (e) => {
-                preview_image.remove();
-            });
-        }
-
-        this.on_click_viewer.set_new_image(this.img, this.preview_img, width, height);
     }
 
     onkeydown(e)
