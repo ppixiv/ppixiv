@@ -76,7 +76,7 @@ ppixiv.on_click_viewer = class
             // if we'll be panning vertically when in cover mode.
             this.set_initial_image_position = true;
             let screen_pos = [this.container_width * 0.5, this.container_height * 0.5];
-            let zoom_center = [this.width * 0.5, aspect == "portrait"? 0: (this.height * 0.5)];
+            let zoom_center = [this.original_width * 0.5, aspect == "portrait"? 0: (this.original_height * 0.5)];
             this.set_image_position(screen_pos, zoom_center);
             this.initial_image_position_aspect = aspect;
         }
@@ -181,10 +181,18 @@ ppixiv.on_click_viewer = class
         settings.set("zoom-level", this._zoom_level);
         this.reposition();
     }
+    
+    // A zoom level is the exponential ratio the user sees, and the zoom
+    // factor is just the multiplier.
+    zoom_level_to_zoom_factor(level) { return Math.pow(1.5, level); }
+    zoom_factor_to_zoom_level(factor) { return Math.log2(factor) / Math.log2(1.5); }
 
-    // Get the effective zoom level, translating "cover" and "fill" to actual values.
-    get _zoom_level_value()
+    // Get the effective zoom level, translating "cover" and "actual" to actual values.
+    get _zoom_level_current()
     {
+        if(!this.zoom_active)
+            return 0;
+
         let level = this._zoom_level;
         if(level == "cover")
             return this._zoom_level_cover;
@@ -193,32 +201,17 @@ ppixiv.on_click_viewer = class
         else
             return level;
     }
-    
-    // Return the zoom factor applied by relative zoom.
-    get relative_zoom_factor()
-    {
-        return Math.pow(1.5, this._zoom_level_value);
-    }
 
-    // The zoom level for cover mode:
-    get _zoom_level_cover()
-    {
-        let screen_width = this.container_width;
-        let screen_height = this.container_height;
-        let cover_zoom_ratio = Math.max(screen_width/this.width, screen_height/this.height);
+    // Return the active zoom ratio.  A zoom of 1x corresponds to "contain" zooming.
+    get _zoom_factor_current() { return this.zoom_level_to_zoom_factor(this._zoom_level_current); }
 
-        // Convert from a linear zoom ratio to the exponential zoom ratio.
-        return Math.log2(cover_zoom_ratio) / Math.log2(1.5);
-    }
+    // The zoom factor for cover mode:
+    get _zoom_factor_cover() { return Math.max(this.container_width/this.width, this.container_height/this.height); }
+    get _zoom_level_cover() { return this.zoom_factor_to_zoom_level(this._zoom_factor_cover); }
 
     // The zoom level for "actual" mode:
-    get _zoom_level_actual()
-    {
-        let actual_zoom_ratio = 1 / this._image_to_screen_ratio;
-
-        // Convert from a linear zoom ratio to the exponential zoom ratio.
-        return Math.log2(actual_zoom_ratio) / Math.log2(1.5);
-    }
+    get _zoom_factor_actual() { return 1 / this._image_to_screen_ratio; }
+    get _zoom_level_actual() { return this.zoom_factor_to_zoom_level(this._zoom_factor_actual); }
 
     // Zoom in or out.  If zoom_in is true, zoom in by one level, otherwise zoom out by one level.
     change_zoom(zoom_out)
@@ -241,7 +234,7 @@ ppixiv.on_click_viewer = class
         // Increase or decrease relative_zoom_level by snapping to the next or previous increment.
         // We're usually on a multiple of increment, moving from eg. 0.5 to 0.75, but if we're on
         // a non-increment value from a special zoom level, this puts us back on the zoom increment.
-        let old_level = this._zoom_level_value;
+        let old_level = this._zoom_level_current;
         let new_level = old_level;
 
         let increment = 0.25;
@@ -276,15 +269,6 @@ ppixiv.on_click_viewer = class
         this.zoom_level = new_level;
     }
 
-    // Return the active zoom ratio.
-    get _effective_zoom_level()
-    {
-        if(!this.zoom_active)
-            return 1;
-
-        return this.relative_zoom_factor;
-    }
-
     // Return the image coordinate at a given screen coordinate.
     get_image_position(screen_pos)
     {
@@ -305,10 +289,10 @@ ppixiv.on_click_viewer = class
         zoom_center[1] -= (screen_height - this.height) / 2;
 
         // Scale from the current zoom level to the effective size.
-        var zoom_level = this._effective_zoom_level;
-        zoom_center[0] /= zoom_level;
-        zoom_center[1] /= zoom_level;
-        
+        let zoom_level = this._zoom_factor_actual / this._zoom_factor_current;
+        zoom_center[0] *= zoom_level;
+        zoom_center[1] *= zoom_level;
+
         return zoom_center;
     }
 
@@ -322,9 +306,9 @@ ppixiv.on_click_viewer = class
         // This just does the inverse of get_image_position.
         zoom_center = [zoom_center[0], zoom_center[1]];
 
-        var zoom_level = this._effective_zoom_level;
-        zoom_center[0] *= zoom_level;
-        zoom_center[1] *= zoom_level;
+        let zoom_level = this._zoom_factor_actual / this._zoom_factor_current;
+        zoom_center[0] /= zoom_level;
+        zoom_center[1] /= zoom_level;
 
         // make this relative to zoom_pos, since that's what we need to set it back to below
         let screen_width = this.container_width;
@@ -358,7 +342,7 @@ ppixiv.on_click_viewer = class
             document.body.classList.add("hide-ui");
 
             if(!this._locked_zoom)
-                var zoom_center_percent = this.get_image_position([e.pageX, e.pageY]);
+                var zoom_center_pos = this.get_image_position([e.pageX, e.pageY]);
 
             this._mouse_pressed = true;
             this.dragged_while_zoomed = false;
@@ -369,7 +353,7 @@ ppixiv.on_click_viewer = class
             // If this is a click-zoom, align the zoom to the point on the image that
             // was clicked.
             if(!this._locked_zoom)
-                this.set_image_position([e.pageX, e.pageY], zoom_center_percent);
+                this.set_image_position([e.pageX, e.pageY], zoom_center_pos);
 
             this.reposition();
 
@@ -449,7 +433,7 @@ ppixiv.on_click_viewer = class
         }
        
         // Scale movement by the zoom level.
-        var zoom_level = this._effective_zoom_level;
+        let zoom_level = this._zoom_factor_current;
         this.zoom_pos[0] += x_offset * -1 * zoom_level;
         this.zoom_pos[1] += y_offset * -1 * zoom_level;
 
@@ -515,7 +499,7 @@ ppixiv.on_click_viewer = class
             top += this.zoom_pos[1];
 
             // Apply the zoom.
-            var zoom_level = this._effective_zoom_level;
+            let zoom_level = this._zoom_factor_current;
             height *= zoom_level;
             width *= zoom_level;
 
