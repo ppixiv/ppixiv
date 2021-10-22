@@ -10,8 +10,6 @@ ppixiv.on_click_viewer = class
     constructor()
     {
         this.onresize = this.onresize.bind(this);
-        this.pointerdown = this.pointerdown.bind(this);
-        this.pointerup = this.pointerup.bind(this);
         this.pointermove = this.pointermove.bind(this);
         this.block_event = this.block_event.bind(this);
         this.window_blur = this.window_blur.bind(this);
@@ -105,13 +103,17 @@ ppixiv.on_click_viewer = class
         this.event_target = target;
         window.addEventListener("blur", this.window_blur, { signal: this.event_abort.signal });
         window.addEventListener("resize", this.onresize, { signal: this.event_abort.signal, capture: true });
-        target.addEventListener("pointerdown", this.pointerdown, { signal: this.event_abort.signal });
-        target.addEventListener("pointerup", this.pointerup, { signal: this.event_abort.signal });
-        target.addEventListener("pointercancel", this.pointerup, { signal: this.event_abort.signal });
         target.addEventListener("dragstart", this.block_event, { signal: this.event_abort.signal });
         target.addEventListener("selectstart", this.block_event, { signal: this.event_abort.signal });
 
-        // This is like pointermove, but received XXX
+        new ppixiv.pointer_listener({
+            element: target,
+            button_mask: 1,
+            signal: this.event_abort.signal,
+            callback: this.pointerevent,
+        });
+
+        // This is like pointermove, but received during quick view from the source tab.
         window.addEventListener("quickviewpointermove", this.quick_view_pointermove, { signal: this.event_abort.signal });
 
         target.style.userSelect = "none";
@@ -337,55 +339,55 @@ ppixiv.on_click_viewer = class
         this.reposition();
     }
 
-    pointerdown(e)
+    pointerevent = (e) =>
     {
-        if(e.button != 0)
+        if(e.mouseButton != 0)
             return;
 
-        // We only want clicks on the image, or on the container backing the image, not other
-        // elements inside the container.
-        if(e.target != this.img && e.target != this.img.parentNode)
-            return;
+        if(e.pressed)
+        {
+            // We only want clicks on the image, or on the container backing the image, not other
+            // elements inside the container.
+            if(e.target != this.img && e.target != this.img.parentNode)
+                return;
 
-        this.event_target.style.cursor = "none";
+            this.event_target.style.cursor = "none";
 
-        // Don't show the UI if the mouse hovers over it while dragging.
-        document.body.classList.add("hide-ui");
+            // Don't show the UI if the mouse hovers over it while dragging.
+            document.body.classList.add("hide-ui");
 
-        if(!this._locked_zoom)
-            var zoom_center_percent = this.get_image_position([e.pageX, e.pageY]);
+            if(!this._locked_zoom)
+                var zoom_center_percent = this.get_image_position([e.pageX, e.pageY]);
 
-        this._mouse_pressed = true;
-        this.dragged_while_zoomed = false;
+            this._mouse_pressed = true;
+            this.dragged_while_zoomed = false;
 
-        this.captured_pointer_id = e.pointerId;
-        this.img.setPointerCapture(this.captured_pointer_id);
+            this.captured_pointer_id = e.pointerId;
+            this.img.setPointerCapture(this.captured_pointer_id);
 
-        // If this is a click-zoom, align the zoom to the point on the image that
-        // was clicked.
-        if(!this._locked_zoom)
-            this.set_image_position([e.pageX, e.pageY], zoom_center_percent);
+            // If this is a click-zoom, align the zoom to the point on the image that
+            // was clicked.
+            if(!this._locked_zoom)
+                this.set_image_position([e.pageX, e.pageY], zoom_center_percent);
 
-        this.reposition();
+            this.reposition();
 
-        // Only listen to pointermove while we're dragging.
-        this.event_target.addEventListener("pointermove", this.pointermove);
-    }
+            // Only listen to pointermove while we're dragging.
+            this.event_target.addEventListener("pointermove", this.pointermove);
+        } else {
+            if(this.captured_pointer_id == null || e.pointerId != this.captured_pointer_id)
+                return;
 
-    pointerup(e)
-    {
-        if(this.captured_pointer_id == null || e.pointerId != this.captured_pointer_id)
-            return;
+            if(!this._mouse_pressed)
+                return;
 
-        if(!this._mouse_pressed)
-            return;
-
-        // Tell hide_mouse_cursor_on_idle that the mouse cursor should be hidden, even though the
-        // cursor may have just been moved.  This prevents the cursor from appearing briefly and
-        // disappearing every time a zoom is released.
-        track_mouse_movement.singleton.simulate_inactivity();
-        
-        this.stop_dragging();
+            // Tell hide_mouse_cursor_on_idle that the mouse cursor should be hidden, even though the
+            // cursor may have just been moved.  This prevents the cursor from appearing briefly and
+            // disappearing every time a zoom is released.
+            track_mouse_movement.singleton.simulate_inactivity();
+            
+            this.stop_dragging();
+        }
     }
 
     stop_dragging()
@@ -422,14 +424,6 @@ ppixiv.on_click_viewer = class
     {
         if(!this._mouse_pressed)
             return;
-
-        // If button 1 isn't pressed, treat this as a pointerup.  (The pointer events API
-        // is really poorly designed in its handling of multiple button presses.)
-        if((e.buttons & 1) == 0)
-        {
-            this.pointerup(e);
-            return;
-        }
 
         this.dragged_while_zoomed = true;
 
