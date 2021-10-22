@@ -146,6 +146,36 @@ ppixiv.screen_illust = class extends ppixiv.screen
         this.wanted_illust_id = illust_id;
         this.wanted_illust_page = manga_page;
 
+        // Get very basic illust info.  This is enough to tell which viewer to use, how
+        // many pages it has, and whether it's muted.  This will always complete immediately
+        // if we're coming from a search or anywhere else that will already have this info,
+        // but it can block if we're loading from scratch.
+        let early_illust_data = await image_data.singleton().get_early_illust_data(illust_id);
+
+        // If we were deactivated while waiting for image info or the image we want to show has changed, stop.
+        if(!this.active || this.wanted_illust_id != illust_id || this.wanted_illust_page != manga_page)
+        {
+            console.log("show_image: illust ID or page changed while async, stopping");
+            return;
+        }
+
+        // Check if we got illust info.  This usually means it's been deleted.
+        if(early_illust_data == null)
+        {
+            let message = image_data.singleton().get_illust_load_error(illust_id);
+            message_widget.singleton.show(message);
+            message_widget.singleton.clear_timer();
+            return;
+        }
+
+        // If manga_page is -1, update wanted_illust_page with the last page now that we know
+        // what it is.
+        if(manga_page == -1)
+            manga_page = early_illust_data.pageCount - 1;
+        else
+            manga_page = helpers.clamp(manga_page, 0, early_illust_data.pageCount-1);
+        this.wanted_illust_page = manga_page;
+
         // If this image is already loaded, just make sure it's not hidden.
         if( this.wanted_illust_id == this.current_illust_id && 
             this.wanted_illust_page == this.viewer.page &&
@@ -157,38 +187,10 @@ ppixiv.screen_illust = class extends ppixiv.screen
             return;
         }
 
-        // Get very basic illust info.  This is enough to tell which viewer to use, how
-        // many pages it has, and whether it's muted.  This will always complete immediately
-        // if we're coming from a search or anywhere else that will already have this info,
-        // but it can block if we're loading from scratch.
-        let early_illust_data = await image_data.singleton().get_early_illust_data(illust_id);
-        if(early_illust_data == null)
-        {
-            // This usually only happens if the illust doesn't exist or has been deleted.
-            let message = image_data.singleton().get_illust_load_error(illust_id);
-            message_widget.singleton.show(message);
-            message_widget.singleton.clear_timer();
-            return;
-        }
-
-        // If we were deactivated while waiting for image info or the image we want to show has changed, stop.
-        if(!this.active || this.wanted_illust_id != illust_id || this.wanted_illust_page != manga_page)
-        {
-            console.log("show_image: illust ID or page changed while async, stopping");
-            return;
-        }
-
-        // If manga_page is -1, we didn't know the page count when we did the navigation
-        // and we want the last page.  Otherwise, just make sure the page is in range.
-        if(manga_page == -1)
-            manga_page = early_illust_data.pageCount - 1;
-        else
-            manga_page = helpers.clamp(manga_page, 0, early_illust_data.pageCount-1);
-
         console.log(`Showing image ${illust_id} page ${manga_page}`);
 
         helpers.set_title_and_icon(early_illust_data);
-
+        
         // Tell the preloader about the current image.
         image_preloader.singleton.set_current_image(illust_id, manga_page);
 
@@ -232,17 +234,6 @@ ppixiv.screen_illust = class extends ppixiv.screen
             })();
         }
 
-        // Finalize the illust ID.
-        this.current_illust_id = illust_id;
-        this.current_user_id = early_illust_data.userId;
-        this.viewing_manga = early_illust_data.pageCount > 1; // for navigate_out_target
-        this.ui.illust_id = illust_id;
-
-        this.refresh_ui();
-
-        if(this.update_mute(early_illust_data))
-            return;
-
         // If the illust ID isn't changing, just update the viewed page.
         if(illust_id == this.current_illust_id && this.viewer != null && this.viewer.page != this.wanted_illust_page)
         {
@@ -255,6 +246,16 @@ ppixiv.screen_illust = class extends ppixiv.screen
 
             return;
         }
+
+        // Finalize the new illust ID.
+        this.current_illust_id = illust_id;
+        this.current_user_id = early_illust_data.userId;
+        this.viewing_manga = early_illust_data.pageCount > 1; // for navigate_out_target
+        this.ui.illust_id = illust_id;
+        this.refresh_ui();
+
+        if(this.update_mute(early_illust_data))
+            return;
 
         // If the image has the ドット絵 tag, enable nearest neighbor filtering.
         helpers.set_class(document.body, "dot", helpers.tags_contain_dot(early_illust_data));

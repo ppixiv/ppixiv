@@ -219,6 +219,7 @@ ppixiv.image_ui = class
     // is displayed.
     set_displayed_page_info(page)
     {
+        console.assert(page == null || page >= 0);
         this.displayed_page = page;
         this.refresh();
     }
