@@ -37,6 +37,7 @@ ppixiv.on_click_viewer = class
             // Don't call this.disable, so we don't exit zoom.
             this._remove_events();
             this.img.remove();
+            this.cancel_save_to_history();
         }
 
         this.img = img;
@@ -140,6 +141,7 @@ ppixiv.on_click_viewer = class
     {
         this.stop_dragging();
         this._remove_events();
+        this.cancel_save_to_history();
     }
 
     onresize(e)
@@ -283,8 +285,7 @@ ppixiv.on_click_viewer = class
         return this.relative_zoom_factor;
     }
 
-    // Given a screen position, return the normalized position relative to the image.
-    // (0,0) is the top-left of the image and (1,1) is the bottom-right.
+    // Return the image coordinate at a given screen coordinate.
     get_image_position(screen_pos)
     {
         // zoom_pos shifts the image around in screen space.
@@ -478,8 +479,9 @@ ppixiv.on_click_viewer = class
     get height() { return this.original_height * this._image_to_screen_ratio; }
 
     // The dimensions of the image viewport.  This can be 0 if the view is hidden.
-    get container_width() { return this.img.parentNode.offsetWidth; }
-    get container_height() { return this.img.parentNode.offsetHeight; }
+    get parent() { return this.img?.parentNode || this.secondary_img?.parentNode; }
+    get container_width() { return this.parent.offsetWidth; }
+    get container_height() { return this.parent.offsetHeight; }
 
     reposition()
     {
@@ -490,6 +492,8 @@ ppixiv.on_click_viewer = class
         if(this.img.parentNode == null)
             return;
 
+        this.schedule_save_to_history();
+        
         let screen_width = this.container_width;
         let screen_height = this.container_height;
         var width = this.width;
@@ -581,6 +585,55 @@ ppixiv.on_click_viewer = class
             height: height / screen_height,
         };
         SendImage.set_extra_data("illust_screen_pos", current_zoom_desc, true);
+    }
+
+    // Restore the pan and zoom state from history.
+    restore_from_history = () =>
+    {
+        let args = helpers.args.location;
+        if(args.state.zoom == null)
+            return;
+
+        let screen_pos = [this.container_width / 2, this.container_height / 2];
+        let zoom_center = args.state.zoom?.center;
+
+        this.zoom_level = args.state.zoom?.zoom;
+        this.locked_zoom = args.state.zoom?.lock;
+        this.set_image_position(screen_pos, zoom_center);
+    }
+
+    // Save the pan and zoom state to history.
+    save_to_history = () =>
+    {
+        this.save_to_history_id = null;
+
+        // Store the pan position at the center of the screen.
+        let args = helpers.args.location;
+        let screen_pos = [this.container_width / 2, this.container_height / 2];
+        args.state.zoom = {
+            center: this.get_image_position(screen_pos),
+            zoom: this.zoom_level,
+            lock: this.locked_zoom,
+        };
+
+        helpers.set_page_url(args, false /* add_to_history */);
+    }
+
+    // Schedule save_to_history to run.  This is buffered so we don't call history.replaceState
+    // too quickly.
+    schedule_save_to_history()
+    {
+        this.cancel_save_to_history();
+        this.save_to_history_id = setTimeout(this.save_to_history, 250);
+    }
+
+    cancel_save_to_history()
+    {
+        if(this.save_to_history_id != null)
+        {
+            clearTimeout(this.save_to_history_id);
+            this.save_to_history_id = null;
+        }
     }
 }
 

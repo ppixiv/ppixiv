@@ -429,11 +429,18 @@ ppixiv.main_controller = class
 
         if(new_screen != null)
         {
+            // Restore state from history if this is an initial load (which may be
+            // restoring a tab), for browser forward/back, or if we're exiting from
+            // quick view (which is like browser back).  This causes the pan/zoom state
+            // to be restored.
+            let restore_history = cause == "initialization" || cause == "history" || cause == "leaving-virtual";
+
             await new_screen.set_active(true, {
                 data_source: data_source,
                 illust_id: illust_id,
                 page: manga_page,
                 navigation_cause: cause,
+                restore_history: restore_history,
             });
         }
 

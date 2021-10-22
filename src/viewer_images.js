@@ -47,6 +47,15 @@ ppixiv.viewer_images = class extends ppixiv.viewer
 
         this.refresh();
         
+        // If we were created with the restore_history option set, restore it now that
+        // we have an image set up.  This is done when we're restoring a browser state, so
+        // only do this the first time.
+        if(this.options.restore_history)
+        {
+            this.on_click_viewer.restore_from_history();
+            this.options.restore_history = false;
+        }
+
         // Now wait for full illust info to load.
         this.illust_data = await image_data.singleton().get_image_info(this.illust_id);
 

@@ -98,7 +98,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
         this.container.querySelector(".image-container").hidden = value;
     }
     
-    async set_active(active, { illust_id, page, data_source })
+    async set_active(active, { illust_id, page, data_source, restore_history })
     {
         this._active = active;
         await super.set_active(active);
@@ -128,11 +128,11 @@ ppixiv.screen_illust = class extends ppixiv.screen
         }
 
         this.set_data_source(data_source);
-        this.show_image(illust_id, page);
+        this.show_image(illust_id, page, restore_history);
     }
 
     // Show an image.  If manga_page is -1, show the last page.
-    async show_image(illust_id, manga_page)
+    async show_image(illust_id, manga_page, restore_history)
     {
         helpers.set_class(document.body,  "force-ui", unsafeWindow.debug_show_ui);
 
@@ -279,6 +279,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
                 progress_bar: progress_bar,
                 manga_page_bar: this.manga_page_bar,
                 manga_page: manga_page,
+                restore_history: restore_history,
             });
         }
 
