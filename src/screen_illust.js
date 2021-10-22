@@ -263,21 +263,23 @@ ppixiv.screen_illust = class extends ppixiv.screen
         // Dismiss any message when changing images.
         message_widget.singleton.hide();
        
+        this.remove_viewer();
+
         // Create the image viewer.
         var progress_bar = this.progress_bar.controller();
         let image_container = this.container.querySelector(".image-container");
         if(early_illust_data.illustType == 2)
-            this.set_viewer(new viewer_ugoira(image_container, illust_id, {
+            this.viewer = new viewer_ugoira(image_container, illust_id, {
                 progress_bar: progress_bar,
                 seek_bar: this.seek_bar,
-            }));
+            });
         else
         {
-            this.set_viewer(new viewer_images(image_container, illust_id, {
+            this.viewer = new viewer_images(image_container, illust_id, {
                 progress_bar: progress_bar,
                 manga_page_bar: this.manga_page_bar,
                 manga_page: manga_page,
-            }));
+            });
         }
 
         // If the viewer was hidden, unhide it now that the new one is set up.
@@ -318,21 +320,20 @@ ppixiv.screen_illust = class extends ppixiv.screen
 
         // If the image is muted, load a dummy viewer.
         let image_container = this.container.querySelector(".image-container");
-        this.set_viewer(new viewer_muted(image_container, this.current_illust_id));
+        this.remove_viewer();
+        this.viewer = new viewer_muted(image_container, this.current_illust_id);
         this._hide_image = false;
         return true;
     }
     
-    set_viewer(viewer)
+    // Remove the old viewer, if any.
+    remove_viewer()
     {
-        // Remove the old viewer, if any.
         if(this.viewer != null)
         {
             this.viewer.shutdown();
             this.viewer = null;
         }
-
-        this.viewer = viewer;
     }
 
     // If we started navigating to a new image and were delayed to load data (either to load
