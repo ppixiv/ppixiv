@@ -228,6 +228,11 @@ ppixiv.update_translation_storage = class
 
     async update()
     {
+        // Firefox is missing indexedDB.databases, so Firefox users get to wait for
+        // tag translations to repopulate.
+        if(!indexedDB.databases)
+            return;
+            
         // If the ppixiv-tag-translations database exists, assume this migration has already been done.
         // First see if the old database exists and the new one doesn't.
         let found = false;
