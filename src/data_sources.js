@@ -1268,9 +1268,6 @@ ppixiv.data_sources.rankings = class extends data_source
 // This is a base class for data sources that work by loading a regular Pixiv page
 // and scraping it.
 //
-// This wouldn't be needed if we could access the mobile APIs, but for some reason those
-// use different authentication tokens and can't be accessed from the website.
-//
 // All of these work the same way.  We keep the current URL (ignoring the hash) synced up
 // as a valid page URL that we can load.  If we change pages or other search options, we
 // modify the URL appropriately.
@@ -3183,24 +3180,6 @@ ppixiv.data_sources.search_users = class extends data_source_from_page
         let search = this.url.searchParams.get("nick");
         container.querySelector(".search-users").value = search;
     }
-
-    
-/*
-    refresh_thumbnail_ui(container, thumbnail_view)
-    {
-        this.set_item(container, "public-follows", {rest: "show"}, {rest: "show"});
-        this.set_item(container, "private-follows", {rest: "hide"}, {rest: "show"});
-
-        var tag_list = container.querySelector(".follow-tag-list");
-        
-        helpers.remove_elements(tag_list);
-
-        // Refresh the bookmark tag list.  Remove the page number from these buttons.
-        let current_url = new URL(this.url);
-        current_url.searchParams.delete("p");
-        let current_query = current_url.searchParams.toString();
-    }
-*/
 
     get page_title()
     {
