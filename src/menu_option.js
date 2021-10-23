@@ -78,7 +78,7 @@ ppixiv.menu_option = class
             setting: "disable_thumbnail_zooming",
             invert_display: true,
         });
-/*
+
         new menu_option_toggle(container, {
             label: "Quick view (experimental)",
             setting: "quick_view",
@@ -88,7 +88,6 @@ ppixiv.menu_option = class
             setting: "no_receive_quick_view",
             invert_display: true,
         });
-        */
         new menu_option_toggle(container, {
             label: "Remember recent history",
             setting: "no_recent_history",
