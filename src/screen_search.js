@@ -330,11 +330,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         // Listen to the data source loading new pages, so we can refresh the list.
         this.data_source.add_update_listener(this.data_source_updated);
 
-        this.refresh_images();
         this.load_needed_thumb_data();
-
-        this.initial_refresh_ui();
-        this.refresh_ui();
     };
 
     restore_scroll_position()
