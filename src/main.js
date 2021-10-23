@@ -733,6 +733,22 @@ ppixiv.main_controller = class
         return result;
     }
 
+    show_logout_message(force)
+    {
+        // Unless forced, don't show the message if we've already shown it recently.
+        // A session might last for weeks, so we don't want to force it to only be shown
+        // once, but we don't want to show it repeatedly.
+        let last_shown = window.sessionStorage.showed_logout_message || 0;
+        let time_since_shown = Date.now() - last_shown;
+        let hours_since_shown = time_since_shown / (60*60*1000);
+        if(!force && hours_since_shown < 6)
+            return;
+
+        window.sessionStorage.showed_logout_message = Date.now();
+
+        alert("Please log in to use ppixiv.");
+    }
+
     temporarily_hide_document()
     {
         if(document.documentElement != null)
@@ -758,8 +774,11 @@ ppixiv.main_controller = class
     };
 
     // When we're disabled, but available on the current page, add the button to enable us.
-    setup_disabled_ui()
+    async setup_disabled_ui(logged_out=false)
     {
+        // Wait for DOMContentLoaded for body.
+        await helpers.wait_for_content_loaded();
+
         // On most pages, we show our button in the top corner to enable us on that page.  Clicking
         // it on a search page will switch to us on the same search.
         var disabled_ui = helpers.create_node(resources['resources/disabled.html']);
@@ -782,6 +801,20 @@ ppixiv.main_controller = class
             // Only do this if we're available and disabled, which means the user disabled us.
             // If we wouldn't be available on this page at all, don't store it.
             page_manager.singleton().store_ppixiv_disabled(true);
+        }
+
+        // If we're showing this and we know we're logged out, show a message on click.
+        // This doesn't work if we would be inactive anyway, since we don't know whether
+        // we're logged in, so the user may need to click the button twice before actually
+        // seeing this message.
+        if(logged_out)
+        {
+            disabled_ui.querySelector("a").addEventListener("click", (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+
+                this.show_logout_message(true);
+            });
         }
     };
 };
