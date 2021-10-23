@@ -159,6 +159,9 @@ ppixiv.main_controller = class
         // Add the main CSS style.
         helpers.add_style("main", resources['resources/main.css']);
        
+        // Load image resources into blobs.
+        await this.load_resource_blobs();
+
         // Create the page from our HTML resource.
         document.body.insertAdjacentHTML("beforeend", resources['resources/main.html']);
         helpers.replace_inlines(document.body);
@@ -743,6 +746,23 @@ ppixiv.main_controller = class
             result.user_id = parseInt(user_element.dataset.userId);
 
         return result;
+    }
+
+    // Load PNG resources into blobs, so we don't copy the whole PNG into every
+    // place it's used.
+    async load_resource_blobs()
+    {
+        for(let [name, dataURL] of Object.entries(ppixiv.resources))
+        {
+            if(!name.endsWith(".png"))
+                continue;
+
+            let result = await fetch(dataURL);
+            let blob = await result.blob(); 
+
+            let blobURL = URL.createObjectURL(blob);
+            ppixiv.resources[name] = blobURL;
+        }
     }
 
     show_logout_message(force)

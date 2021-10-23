@@ -122,13 +122,16 @@ ppixiv.helpers = {
                 continue;
 
             let name = src.substr(7);
-            let resource = resources[name];
+            let resource = ppixiv.resources[name];
             if(resource == null)
             {
                 console.error("Unknown resource \"" + name + "\" in", element);
                 continue;
             }
             element.setAttribute("src", resource);
+
+            // Put the original URL on the element for diagnostics.
+            element.dataset.originalUrl = src;
         }
 
         for(let element of root.querySelectorAll("ppixiv-inline"))
