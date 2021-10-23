@@ -24,14 +24,6 @@ ppixiv.main_controller = class
 
     async initial_setup()
     {
-        // If this is an iframe, don't do anything.
-        if(window.top != window.self)
-            return;
-
-        // Don't activate for things like sketch.pixiv.net.
-        if(ppixiv.location.hostname != "www.pixiv.net")
-            return;
-
         // If we're not active, just see if we need to add our button, and stop without messing
         // around with the page more than we need to.
         if(!page_manager.singleton().active)

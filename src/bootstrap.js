@@ -17,7 +17,6 @@
     //
     // If we're in a debug build, this script runs standalone, and we set up the environment
     // here.
-    console.log("ppixiv bootstrap");
     
     // Our source files are stored as text, so we can attach sourceURL to them to give them
     // useful filenames.  "this" is set to the ppixiv context, and we load them out here so
@@ -35,6 +34,16 @@
     {
         constructor(env)
         {
+            // If this is an iframe, don't do anything.
+            if(window.top != window.self)
+                return;
+
+            // Don't activate for things like sketch.pixiv.net.
+            if(window.location.hostname != "www.pixiv.net")
+                return;
+
+            console.log("ppixiv bootstrap");
+
             // If env is the window, this script was run directly, which means this is a
             // development build and we need to do some extra setup.  If this is a release build,
             // the environment will be set up already.
