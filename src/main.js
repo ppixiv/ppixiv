@@ -54,58 +54,6 @@ ppixiv.main_controller = class
         await this.setup();
     }
 
-    temporarily_hide_document()
-    {
-        if(document.documentElement != null)
-        {
-            document.documentElement.hidden = true;
-            return;
-        }
-
-        // At this point, none of the document has loaded, and document.body and
-        // document.documentElement don't exist yet, so we can't hide it.  However,
-        // we want to hide the document as soon as it's added, so we don't flash
-        // the original page before we have a chance to replace it.  Use a mutationObserver
-        // to detect the document being created.
-        var observer = new MutationObserver((mutation_list) => {
-            if(document.documentElement == null)
-                return;
-            observer.disconnect();
-
-            document.documentElement.hidden = true;
-        });
-
-        observer.observe(document, { attributes: false, childList: true, subtree: true });
-    };
-
-    // When we're disabled, but available on the current page, add the button to enable us.
-    setup_disabled_ui()
-    {
-        // On most pages, we show our button in the top corner to enable us on that page.  Clicking
-        // it on a search page will switch to us on the same search.
-        var disabled_ui = helpers.create_node(resources['resources/disabled.html']);
-        helpers.replace_inlines(disabled_ui);
-
-        // If we're on a page that we don't support, like the top page, rewrite the link to switch to
-        // a page we do support.
-        if(!page_manager.singleton().available_for_url(ppixiv.location))
-            disabled_ui.querySelector("a").href = "/ranking.php?mode=daily#ppixiv";
-
-        document.body.appendChild(disabled_ui);
-
-        if(page_manager.singleton().available_for_url(ppixiv.location))
-        {
-            // Remember that we're disabled in this tab.  This way, clicking the "return
-            // to Pixiv" button will remember that we're disabled.  We do this on page load
-            // rather than when the button is clicked so this works when middle-clicking
-            // the button to open a regular Pixiv page in a tab.
-            //
-            // Only do this if we're available and disabled, which means the user disabled us.
-            // If we wouldn't be available on this page at all, don't store it.
-            page_manager.singleton().store_ppixiv_disabled(true);
-        }
-    };
-
     // This is where the actual UI starts.
     async setup()
     {
@@ -784,5 +732,57 @@ ppixiv.main_controller = class
 
         return result;
     }
+
+    temporarily_hide_document()
+    {
+        if(document.documentElement != null)
+        {
+            document.documentElement.hidden = true;
+            return;
+        }
+
+        // At this point, none of the document has loaded, and document.body and
+        // document.documentElement don't exist yet, so we can't hide it.  However,
+        // we want to hide the document as soon as it's added, so we don't flash
+        // the original page before we have a chance to replace it.  Use a mutationObserver
+        // to detect the document being created.
+        var observer = new MutationObserver((mutation_list) => {
+            if(document.documentElement == null)
+                return;
+            observer.disconnect();
+
+            document.documentElement.hidden = true;
+        });
+
+        observer.observe(document, { attributes: false, childList: true, subtree: true });
+    };
+
+    // When we're disabled, but available on the current page, add the button to enable us.
+    setup_disabled_ui()
+    {
+        // On most pages, we show our button in the top corner to enable us on that page.  Clicking
+        // it on a search page will switch to us on the same search.
+        var disabled_ui = helpers.create_node(resources['resources/disabled.html']);
+        helpers.replace_inlines(disabled_ui);
+
+        // If we're on a page that we don't support, like the top page, rewrite the link to switch to
+        // a page we do support.
+        if(!page_manager.singleton().available_for_url(ppixiv.location))
+            disabled_ui.querySelector("a").href = "/ranking.php?mode=daily#ppixiv";
+
+        document.body.appendChild(disabled_ui);
+
+        if(page_manager.singleton().available_for_url(ppixiv.location))
+        {
+            // Remember that we're disabled in this tab.  This way, clicking the "return
+            // to Pixiv" button will remember that we're disabled.  We do this on page load
+            // rather than when the button is clicked so this works when middle-clicking
+            // the button to open a regular Pixiv page in a tab.
+            //
+            // Only do this if we're available and disabled, which means the user disabled us.
+            // If we wouldn't be available on this page at all, don't store it.
+            page_manager.singleton().store_ppixiv_disabled(true);
+        }
+    };
 };
 
