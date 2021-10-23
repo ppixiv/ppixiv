@@ -149,6 +149,14 @@ ppixiv.main_controller = class
             }
         }
 
+        // Set the .premium class on body if this is a premium account, to display features
+        // that only work with premium.
+        helpers.set_class(document.body, "premium", window.global_data.premium);
+
+        // These are used to hide buttons that the user has disabled.
+        helpers.set_class(document.body, "hide-r18", !window.global_data.include_r18);
+        helpers.set_class(document.body, "hide-r18g", !window.global_data.include_r18g);
+
         // See if the page has preload data.  This sometimes contains illust and user info
         // that the page will display, which lets us avoid making a separate API call for it.
         let preload = document.querySelector("#meta-preload-data");
@@ -692,14 +700,6 @@ ppixiv.main_controller = class
             include_r18g: content_mode >= 2,
             premium: premium,
         };
-
-        // Set the .premium class on body if this is a premium account, to display features
-        // that only work with premium.
-        helpers.set_class(document.body, "premium", window.global_data.premium);
-
-        // These are used to hide buttons that the user has disabled.
-        helpers.set_class(document.body, "hide-r18", !window.global_data.include_r18);
-        helpers.set_class(document.body, "hide-r18g", !window.global_data.include_r18g);
     };
 
     // Redirect keyboard events that didn't go into the active screen.
