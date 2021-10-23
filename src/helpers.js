@@ -76,22 +76,32 @@ ppixiv.helpers = {
         return style;
     },
 
+    get_template: function(type)
+    {
+        let template = document.body.querySelector(type);
+        if(template == null)
+            throw "Missing template: " + type;
+
+        // Replace any <ppixiv-inline> inlines on the template, and remember that
+        // we've done this so we don't redo it every time the template is used.
+        if(!template.dataset.replacedInlines)
+        {
+            template.dataset.replacedInlines = true;
+            helpers.replace_inlines(template.content);
+        }
+
+        return template;
+    },
+
     create_from_template: function(type)
     {
         var template;
         if(typeof(type) == "string")
-        {
-            template = document.body.querySelector(type);
-            if(template == null)
-                throw "Missing template: " + type;
-        }
+            template = this.get_template(type);
         else
             template = type;
 
         var node = document.importNode(template.content, true).firstElementChild;
-
-        // Replace any <ppixiv-inline> inlines.
-        helpers.replace_inlines(node);
         
         // Make all IDs in the template we just cloned unique.
         for(var svg of node.querySelectorAll("svg"))
