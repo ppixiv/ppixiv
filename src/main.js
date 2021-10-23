@@ -114,47 +114,6 @@ ppixiv.main_controller = class
         }
     };
 
-    // Load Pixiv's global info from doc.  This can be the document, or a copy of the
-    // document that we fetched separately.  Return true on success.
-    load_global_info_from_document(doc)
-    {
-        // This format is used on at least /new_illust.php.
-        let global_data = doc.querySelector("#meta-global-data");
-        if(global_data != null)
-            global_data = JSON.parse(global_data.getAttribute("content"));
-
-        // This is the global "pixiv" object, which is used on older pages.
-        let pixiv = helpers.get_pixiv_data(doc);
-
-        // Hack: don't use this object if we're on /history.php.  It has both of these, and
-        // this object doesn't actually have all info, but its presence will prevent us from
-        // falling back and loading meta-global-data if needed.
-        if(document.location.pathname == "/history.php")
-            pixiv = null;
-
-        // Discard any of these that have no login info.
-        if(global_data && global_data.userData == null)
-            global_data = null;
-        if(pixiv && (pixiv.user == null || pixiv.user.id == null))
-            pixiv = null;
-
-        if(global_data == null && pixiv == null)
-            return false;
-
-        if(global_data != null)
-        {
-            this.init_global_data(global_data.token, global_data.userData.id, global_data.userData.premium,
-                    global_data.mute, global_data.userData.adult);
-        }
-        else
-        {
-            this.init_global_data(pixiv.context.token, pixiv.user.id, pixiv.user.premium,
-                    pixiv.user.mutes, pixiv.user.explicit);
-        }
-
-        return true;
-    }
-
     // This is where the actual UI starts.
     async setup()
     {
@@ -676,6 +635,47 @@ ppixiv.main_controller = class
 
         // Navigate to the URL in-page.
         helpers.set_page_url(url, true /* add to history */, "navigation");
+    }
+
+    // Load Pixiv's global info from doc.  This can be the document, or a copy of the
+    // document that we fetched separately.  Return true on success.
+    load_global_info_from_document(doc)
+    {
+        // This format is used on at least /new_illust.php.
+        let global_data = doc.querySelector("#meta-global-data");
+        if(global_data != null)
+            global_data = JSON.parse(global_data.getAttribute("content"));
+
+        // This is the global "pixiv" object, which is used on older pages.
+        let pixiv = helpers.get_pixiv_data(doc);
+
+        // Hack: don't use this object if we're on /history.php.  It has both of these, and
+        // this object doesn't actually have all info, but its presence will prevent us from
+        // falling back and loading meta-global-data if needed.
+        if(document.location.pathname == "/history.php")
+            pixiv = null;
+
+        // Discard any of these that have no login info.
+        if(global_data && global_data.userData == null)
+            global_data = null;
+        if(pixiv && (pixiv.user == null || pixiv.user.id == null))
+            pixiv = null;
+
+        if(global_data == null && pixiv == null)
+            return false;
+
+        if(global_data != null)
+        {
+            this.init_global_data(global_data.token, global_data.userData.id, global_data.userData.premium,
+                    global_data.mute, global_data.userData.adult);
+        }
+        else
+        {
+            this.init_global_data(pixiv.context.token, pixiv.user.id, pixiv.user.premium,
+                    pixiv.user.mutes, pixiv.user.explicit);
+        }
+
+        return true;
     }
 
     init_global_data(csrf_token, user_id, premium, mutes, content_mode)
