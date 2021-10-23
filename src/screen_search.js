@@ -1287,7 +1287,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         // Cache a reference to the thumbnail template.  We can do this a lot, and this
         // query takes a lot of page setup time if we run it for each thumb.
         if(this.thumbnail_templates[template_type] == null)
-            this.thumbnail_templates[template_type] = document.body.querySelector(template_type);
+            this.thumbnail_templates[template_type] = helpers.get_template(template_type);
             
         let entry = helpers.create_from_template(this.thumbnail_templates[template_type]);
 
