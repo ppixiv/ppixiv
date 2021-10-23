@@ -666,26 +666,26 @@ ppixiv.screen_search = class extends ppixiv.screen
     refresh_images()
     {
         // Make a list of [illust_id, page] thumbs to add.
-        var images_to_add = [];
+        let images_to_add = [];
         if(this.data_source != null)
         {
-            var id_list = this.data_source.id_list;
-            var min_page = id_list.get_lowest_loaded_page();
-            var max_page = id_list.get_highest_loaded_page();
-            var items_per_page = this.data_source.estimated_items_per_page;
-            for(var page = min_page; page <= max_page; ++page)
+            let id_list = this.data_source.id_list;
+            let min_page = id_list.get_lowest_loaded_page();
+            let max_page = id_list.get_highest_loaded_page();
+            let items_per_page = this.data_source.estimated_items_per_page;
+            for(let page = min_page; page <= max_page; ++page)
             {
                 let illust_ids = id_list.illust_ids_by_page.get(page);
                 if(illust_ids == null)
                 {
                     // This page isn't loaded.  Fill the gap with items_per_page blank entries.
-                    for(var idx = 0; idx < items_per_page; ++idx)
+                    for(let idx = 0; idx < items_per_page; ++idx)
                         images_to_add.push([null, page]);
                     continue;
                 }
 
                 // Create an image for each ID.
-                for(var illust_id of illust_ids)
+                for(let illust_id of illust_ids)
                     images_to_add.push({id: illust_id, page: page});
             }
 
@@ -711,8 +711,8 @@ ppixiv.screen_search = class extends ppixiv.screen
         //
         // Most of the time we're just appending.  The main time that we add to the beginning is
         // the "load previous results" button.
-        var ul = this.container.querySelector(".thumbnails");
-        var next_node = ul.firstElementChild;
+        let ul = this.container.querySelector(".thumbnails");
+        let next_node = ul.firstElementChild;
 
         // Make a dictionary of all illust IDs and pages, so we can look them up quickly.
         let images_to_add_index = {};
@@ -780,9 +780,9 @@ ppixiv.screen_search = class extends ppixiv.screen
            for(let idx = first_idx - 1; idx >= 0; --idx)
            {
                let entry = images_to_add[idx];
-               var illust_id = entry.id;
-               var page = entry.page;
-               var node = this.create_thumb(illust_id, page);
+               let illust_id = entry.id;
+               let page = entry.page;
+               let node = this.create_thumb(illust_id, page);
                first_matching_node.insertAdjacentElement("beforebegin", node);
                first_matching_node = node;
            }
@@ -796,9 +796,9 @@ ppixiv.screen_search = class extends ppixiv.screen
         for(let idx = last_idx + 1; idx < images_to_add.length; ++idx)
         {
             let entry = images_to_add[idx];
-            var illust_id = entry.id;
-            var page = entry.page;
-            var node = this.create_thumb(illust_id, page);
+            let illust_id = entry.id;
+            let page = entry.page;
+            let node = this.create_thumb(illust_id, page);
             ul.appendChild(node);
         }
 
