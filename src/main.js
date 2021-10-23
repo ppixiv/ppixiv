@@ -78,23 +78,8 @@ ppixiv.main_controller = class
         // not there, re-fetch the page to get it.
         if(!this.load_global_info_from_document(document))
         {
-            console.log("Reloading page to get init data");
-
-            // Some Pixiv pages try to force cache expiry.  We really don't want that to happen
-            // here, since we just want to grab the page we're on quickly.  Setting cache: force_cache
-            // tells Chrome to give us the cached page even if it's expired.
-            let result = await helpers.load_data_in_iframe(document.location.toString(), {
-                cache: "force-cache",
-            });
-
-            console.log("Finished loading init data");
-            if(!this.load_global_info_from_document(result))
-            {
-                // Stop if we don't have anything.  This can happen if we're not logged in.
-                console.log("Couldn't find context data.  Are we logged in?");
-                document.documentElement.hidden = false;
+            if(!await this.load_global_data_async())
                 return;
-            }
         }
 
         // Set the .premium class on body if this is a premium account, to display features
@@ -585,10 +570,37 @@ ppixiv.main_controller = class
         helpers.set_page_url(url, true /* add to history */, "navigation");
     }
 
+    async load_global_data_async()
+    {
+        // Doing this sync works better, because it 
+        console.log("Reloading page to get init data");
+
+        // Some Pixiv pages try to force cache expiry.  We really don't want that to happen
+        // here, since we just want to grab the page we're on quickly.  Setting cache: force_cache
+        // tells Chrome to give us the cached page even if it's expired.
+        let result = await helpers.load_data_in_iframe(document.location.toString(), {
+            cache: "force-cache",
+        });
+
+        console.log("Finished loading init data");
+        if(this.load_global_info_from_document(result))
+            return true;
+
+        // The user is probably not logged in.  If this happens on this code path, we
+        // can't restore the page.
+        console.log("Couldn't find context data.  Are we logged in?");
+        this.show_logout_message(true);
+        return false;
+    }
+
     // Load Pixiv's global info from doc.  This can be the document, or a copy of the
     // document that we fetched separately.  Return true on success.
     load_global_info_from_document(doc)
     {
+        // Stop if we already have this.
+        if(window.global_data)
+            return true;
+            
         // This format is used on at least /new_illust.php.
         let global_data = doc.querySelector("#meta-global-data");
         if(global_data != null)
