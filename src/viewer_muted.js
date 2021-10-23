@@ -40,7 +40,7 @@ ppixiv.viewer_muted = class extends ppixiv.viewer
 
         let muted_label = this.root.querySelector(".muted-label");
         if(muted_tag)
-            tag_translations.get.set_translated_tag(muted_label, muted_tag);
+            tag_translations.get().set_translated_tag(muted_label, muted_tag);
         else if(muted_user)
             muted_label.innerText = this.illust_data.userName;
     }

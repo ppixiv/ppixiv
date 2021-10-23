@@ -133,7 +133,7 @@ ppixiv.screen_manga = class extends ppixiv.screen
 
         let muted_label = this.container.querySelector(".muted-label");
         if(muted_tag)
-            tag_translations.get.set_translated_tag(muted_label, muted_tag);
+            tag_translations.get().set_translated_tag(muted_label, muted_tag);
         else if(muted_user)
             muted_label.innerText = this.illust_info.userName;
 
