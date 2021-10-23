@@ -253,7 +253,8 @@ ppixiv.helpers = {
                     return "url(#" + new_id + ")";
                 });
 
-                node.setAttribute(attr, new_value);
+                if(new_value != value)
+                    node.setAttribute(attr, new_value);
             }
         }
 
