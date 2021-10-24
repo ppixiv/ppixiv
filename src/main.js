@@ -252,9 +252,11 @@ ppixiv.main_controller = class
             let args = helpers.args.location;
             let wanted_page = this.data_source.get_start_page(args);
 
+            // Don't create a new data source if no pages are loaded, which can happen if
+            // we're loaded viewing an illust.  We can start from any page.
             let lowest_page = data_source.id_list.get_lowest_loaded_page();
             let highest_page = data_source.id_list.get_highest_loaded_page();
-            if(wanted_page < lowest_page || wanted_page > highest_page)
+            if(data_source.id_list.any_pages_loaded && (wanted_page < lowest_page || wanted_page > highest_page))
             {
                 // This works the same as refresh_current_data_source above.
                 console.log("Resetting data source to an unavailable page:", lowest_page, wanted_page, highest_page);

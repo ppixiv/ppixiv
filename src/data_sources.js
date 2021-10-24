@@ -34,6 +34,11 @@ class illust_id_list
         return all_ids;
     }
 
+    get any_pages_loaded()
+    {
+        return this.illust_ids_by_page.size != 0;
+    }
+
     get_lowest_loaded_page()
     {
         let min_page = 999999;
