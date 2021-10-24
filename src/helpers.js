@@ -1472,24 +1472,10 @@ ppixiv.helpers = {
         if(abort_signal && abort_signal.aborted)
             return;
         
-        if(HTMLImageElement.prototype.decode == null)
-        {
-            // If we don't have img.decode, fake it by drawing the image into an offscreen canvas
-            // to force the browser to decode it.
-            var canvas = document.createElement("canvas");
-            canvas.width = 1;
-            canvas.height = 1;
-
-            var context = canvas.getContext('2d');
-            context.drawImage(img, 0, 0);
-        }
-        else
-        {
-            try {
-                await img.decode();
-            } catch(e) {
-                // console.error("Ignoring error in decode:", e);
-            }
+        try {
+            await img.decode();
+        } catch(e) {
+            // console.error("Ignoring error in decode:", e);
         }
     },
 
