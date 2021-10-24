@@ -1403,7 +1403,8 @@ ppixiv.helpers = {
     // Return a promise that waits for img to load.
     //
     // If img loads successfully, resolve with null.  If abort_signal is aborted,
-    // resolve with "aborted".  Otherwise, reject with the exception.
+    // resolve with "aborted".  Otherwise, reject with "failed".  This never
+    // rejects.
     //
     // If we're aborted, img.src will be set to helpers.blank_image.  Otherwise,
     // the image will load anyway.  This is a little invasive, but it's what we
@@ -1412,17 +1413,19 @@ ppixiv.helpers = {
     wait_for_image_load(img, abort_signal)
     {
         return new Promise((resolve, reject) => {
+            let src = img.src;
+
             // Resolve immediately if the image is already loaded.
             if(img.complete)
             {
-                resolve();
+                resolve(null);
                 return;
             }
 
             if(abort_signal && abort_signal.aborted)
             {
                 img.src = helpers.blank_image;
-                reject("Aborted");
+                resolve("aborted");
                 return;
             }
 
@@ -1430,13 +1433,16 @@ ppixiv.helpers = {
             let remove_listeners_signal = new AbortController();
 
             img.addEventListener("error", (e) => {
+                // We kept a reference to src in case in changes, so this log should
+                // always point to the right URL.
+                console.log("Error loading image:", src, e);
                 remove_listeners_signal.abort();
-                reject("Error loading image");
+                resolve("failed");
             }, { signal: remove_listeners_signal.signal });
 
             img.addEventListener("load", (e) => {
                 remove_listeners_signal.abort();
-                resolve();
+                resolve(null);
             }, { signal: remove_listeners_signal.signal });
 
             if(abort_signal)
@@ -1444,7 +1450,7 @@ ppixiv.helpers = {
                 abort_signal.addEventListener("abort",(e) => {
                     img.src = helpers.blank_image;
                     remove_listeners_signal.abort();
-                    reject("Aborted");
+                    resolve("aborted");
                 }, { signal: remove_listeners_signal.signal });
             }
         });
@@ -1459,19 +1465,9 @@ ppixiv.helpers = {
         var img = document.createElement("img");
         img.src = url;
 
-        try {
-            await helpers.wait_for_image_load(img, abort_signal);
-        } catch(e) {
-            // Ignore load errors, since this is just a load optimization.
-            // console.error("Ignoring error in decode:", e);
+        if(await helpers.wait_for_image_load(img, abort_signal) != null)
             return;
-        }
 
-        // If we finished by aborting, don't bother decoding the blank PNG we changed the
-        // image to.
-        if(abort_signal && abort_signal.aborted)
-            return;
-        
         try {
             await img.decode();
         } catch(e) {
