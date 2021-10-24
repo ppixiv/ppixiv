@@ -1400,8 +1400,15 @@ ppixiv.helpers = {
         return Math.pow(distance, 0.5);
     },
     
-    // Return a promise that resolves when img finishes loading, or rejects if it
-    // fails to load.
+    // Return a promise that waits for img to load.
+    //
+    // If img loads successfully, resolve with null.  If abort_signal is aborted,
+    // resolve with "aborted".  Otherwise, reject with the exception.
+    //
+    // If we're aborted, img.src will be set to helpers.blank_image.  Otherwise,
+    // the image will load anyway.  This is a little invasive, but it's what we
+    // need to do any time we have a cancellable image load, so we might as well
+    // do it in one place.
     wait_for_image_load(img, abort_signal)
     {
         return new Promise((resolve, reject) => {
@@ -1414,6 +1421,7 @@ ppixiv.helpers = {
 
             if(abort_signal && abort_signal.aborted)
             {
+                img.src = helpers.blank_image;
                 reject("Aborted");
                 return;
             }
@@ -1434,6 +1442,7 @@ ppixiv.helpers = {
             if(abort_signal)
             {
                 abort_signal.addEventListener("abort",(e) => {
+                    img.src = helpers.blank_image;
                     remove_listeners_signal.abort();
                     reject("Aborted");
                 }, { signal: remove_listeners_signal.signal });
@@ -1450,25 +1459,12 @@ ppixiv.helpers = {
         var img = document.createElement("img");
         img.src = url;
 
-        var onabort = (e) => {
-            // If we're aborted, set the image to a small PNG, which cancels the previous load
-            // in Firefox and Chrome.
-            img.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==";
-        };
-
-        if(abort_signal)
-            abort_signal.addEventListener("abort", onabort);
-        
         try {
             await helpers.wait_for_image_load(img, abort_signal);
         } catch(e) {
             // Ignore load errors, since this is just a load optimization.
             // console.error("Ignoring error in decode:", e);
             return;
-        } finally {
-            // Remove the abort listener.
-            if(abort_signal)
-                abort_signal.removeEventListener("abort", onabort);
         }
 
         // If we finished by aborting, don't bother decoding the blank PNG we changed the
