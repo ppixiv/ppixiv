@@ -263,25 +263,31 @@ ppixiv.screen_illust = class extends ppixiv.screen
         // Dismiss any message when changing images.
         message_widget.singleton.hide();
        
-        this.remove_viewer();
-
         // Create the image viewer.
-        var progress_bar = this.progress_bar.controller();
-        let image_container = this.container.querySelector(".image-container");
+        let viewer_class;
         if(early_illust_data.illustType == 2)
-            this.viewer = new viewer_ugoira(image_container, illust_id, {
-                progress_bar: progress_bar,
+            viewer_class = viewer_ugoira;
+        else
+            viewer_class = viewer_images;
+
+        // If we already have a viewer, only recreate it if we need a different type.
+        // Reusing the same viewer when switching images helps prevent flicker.
+        if(this.viewer && !(this.viewer instanceof viewer_class))
+            this.remove_viewer();
+
+        if(this.viewer == null)
+        {
+            let image_container = this.container.querySelector(".image-container");
+            this.viewer = new viewer_class(image_container, {
+                progress_bar: this.progress_bar.controller(),
+                manga_page_bar: this.manga_page_bar,
                 seek_bar: this.seek_bar,
             });
-        else
-        {
-            this.viewer = new viewer_images(image_container, illust_id, {
-                progress_bar: progress_bar,
-                manga_page_bar: this.manga_page_bar,
-                manga_page: manga_page,
-                restore_history: restore_history,
-            });
         }
+
+        this.viewer.load(illust_id, manga_page, {
+            restore_history: restore_history,
+        });
 
         // If the viewer was hidden, unhide it now that the new one is set up.
         this._hide_image = false;
@@ -563,8 +569,6 @@ ppixiv.screen_illust = class extends ppixiv.screen
             // Wait for results.
             new_page_loaded = await new_page_loaded;
 
-            this.pending_navigation = null;
-
             if(new_page_loaded)
             {
                 // Now that we've loaded data, try to find the new image again.
@@ -614,6 +618,8 @@ ppixiv.screen_illust = class extends ppixiv.screen
             console.error("Aborting stale navigation");
             return { stale: true };
         }
+
+        this.pending_navigation = null;
 
         // If we didn't get a page, we're at the end of the search results.  Flash the
         // indicator to show we've reached the end and stop.

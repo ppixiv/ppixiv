@@ -2,9 +2,9 @@
 
 ppixiv.viewer_ugoira = class extends ppixiv.viewer
 {
-    constructor(container, illust_id, options)
+    constructor(container, options)
     {
-        super(container, illust_id);
+        super(container);
         
         this.refresh_focus = this.refresh_focus.bind(this);
         this.clicked_canvas = this.clicked_canvas.bind(this);
@@ -40,23 +40,27 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
         this.seeking = false;
 
         window.addEventListener("visibilitychange", this.refresh_focus);
+    }
 
+    async load(illust_id, manga_page)
+    {
+        this.unload();
+
+        let sentinel = this.load_sentinel = new Object();
+
+        this.illust_id = illust_id;
+        this.illust_data = await image_data.singleton().get_image_info(this.illust_id);
+
+        // Stop if another load() call was made while we were loading.
+        if(sentinel !== this.load_sentinel)
+            return;
+        this.load_sentinel = null;
+
+        this.create_preview_images(this.illust_data);
+        
         // This can be used to abort ZipImagePlayer's download.
         this.abort_controller = new AbortController;
 
-        this.load();
-    }
-
-    async load()
-    {
-        this.illust_data = await image_data.singleton().get_image_info(this.illust_id);
-
-        // Stop if we were removed before the request finished.
-        if(this.was_shutdown)
-            return;
-        
-        this.create_preview_images(this.illust_data);
-        
         // Create the player.
         this.player = new ZipImagePlayer({
             metadata: this.illust_data.ugoiraMetadata,
@@ -73,6 +77,55 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
         });            
 
         this.refresh_focus();
+    }
+
+    // Undo load().
+    unload()
+    {
+        // Cancel the player's download.
+        if(this.abort_controller)
+        {
+            this.abort_controller.abort();
+            this.abort_controller = null;
+        }
+
+        // Send a finished progress callback if we were still loading.
+        this.progress(null);
+
+        if(this.player)
+        {
+            this.player.pause(); 
+            this.player = null;
+        }
+
+        if(this.preview_img1)
+        {
+            this.preview_img1.remove();
+            this.preview_img1 = null;
+        }
+        if(this.preview_img2)
+        {
+            this.preview_img2.remove();
+            this.preview_img2 = null;
+        }
+    }
+
+    // Undo load() and the constructor.
+    shutdown()
+    {
+        this.unload();
+
+        super.shutdown();
+
+        if(this.seek_bar)
+        {
+            this.seek_bar.set_callback(null);
+            this.seek_bar = null;
+        }
+
+        window.removeEventListener("visibilitychange", this.refresh_focus);
+
+        this.canvas.remove();
     }
 
     async create_preview_images(illust_data)
@@ -127,12 +180,6 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
     {
         if(this.options.progress_bar)
             this.options.progress_bar.set(value);
-
-        if(value == null)
-        {
-            // Once we send "finished", don't make any more progress calls.
-            this.options.progress_bar = null;
-        }
     }
 
     // Once we draw a frame, hide the preview and show the canvas.  This avoids
@@ -252,42 +299,6 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
         }
 
         this.refresh_focus();
-    }
-
-    shutdown()
-    {
-        super.shutdown();
-
-        // Cancel the player's download.
-        this.abort_controller.abort();
-
-        if(this.seek_bar)
-        {
-            this.seek_bar.set_callback(null);
-            this.seek_bar = null;
-        }
-
-        window.removeEventListener("visibilitychange", this.refresh_focus);
-
-        // Send a finished progress callback if we were still loading.  We won't
-        // send any progress calls after this.
-        this.progress(null);
-
-        if(this.player)
-            this.player.pause(); 
-
-        if(this.preview_img1)
-        {
-            this.preview_img1.remove();
-            this.preview_img1 = null;
-        }
-        if(this.preview_img2)
-        {
-            this.preview_img2.remove();
-            this.preview_img2 = null;
-        }
-
-        this.canvas.remove();
     }
 
     refresh_focus()

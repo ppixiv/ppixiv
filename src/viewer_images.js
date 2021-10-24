@@ -4,27 +4,29 @@
 // either a single image or navigate between an image sequence.
 ppixiv.viewer_images = class extends ppixiv.viewer
 {
-    constructor(container, illust_id, options)
+    constructor(container, options)
     {
-        super(container, illust_id);
+        super(container);
 
         this.container = container;
         this.options = options || {};
         this.manga_page_bar = options.manga_page_bar;
         this.onkeydown = this.onkeydown.bind(this);
-
-        this._page = options.manga_page || 0;
+        this.restore_history;
 
         // Create a click and drag viewer for the image.
         this.on_click_viewer = new on_click_viewer();
 
         main_context_menu.get.on_click_viewer = this.on_click_viewer;
-
-        this.load();
     }
 
-    async load()
+    async load(illust_id, page, { restore_history=false }={})
     {
+        this.restore_history = restore_history;
+
+        this.illust_id = illust_id;
+        this._page = page;
+
         // First, load early illust data.  This is enough info to set up the image list
         // with preview URLs, so we can start the image view early.
         //
@@ -56,13 +58,13 @@ ppixiv.viewer_images = class extends ppixiv.viewer
 
         // Update the list to include the image URLs.
         this.images = [];
-        for(var page of this.illust_data.mangaPages)
+        for(let manga_page of this.illust_data.mangaPages)
         {
             this.images.push({
-                url: page.urls.original,
-                preview_url: page.urls.small,
-                width: page.width,
-                height: page.height,
+                url: manga_page.urls.original,
+                preview_url: manga_page.urls.small,
+                width: manga_page.width,
+                height: manga_page.height,
             });
         }
 
@@ -143,10 +145,10 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         // If we were created with the restore_history option set, restore it now that
         // we have an image set up.  This is done when we're restoring a browser state, so
         // only do this the first time.
-        if(this.options.restore_history)
+        if(this.restore_history)
         {
             this.on_click_viewer.restore_from_history();
-            this.options.restore_history = false;
+            this.restore_history = false;
         }
     }
 
