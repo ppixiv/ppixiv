@@ -118,7 +118,7 @@ ul {
 /* Let the browser know about our dynamic zooming and panning.  This prevents Chrome from baking the
  * resize when it doesn't change for a while, which causes a big hitch the next time we zoom. */
 .image-container > img {
-    will-change: width, height, transform;
+    will-change: transform;
 }
 
 img.low-res-preview {
