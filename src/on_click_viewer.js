@@ -391,7 +391,7 @@ ppixiv.on_click_viewer = class
             this.dragged_while_zoomed = false;
 
             this.captured_pointer_id = e.pointerId;
-            this.img.setPointerCapture(this.captured_pointer_id);
+            this.image_container.setPointerCapture(this.captured_pointer_id);
 
             // If this is a click-zoom, align the zoom to the point on the image that
             // was clicked.
@@ -428,7 +428,7 @@ ppixiv.on_click_viewer = class
 
         if(this.captured_pointer_id != null)
         {
-            this.img.releasePointerCapture(this.captured_pointer_id);
+            this.image_container.releasePointerCapture(this.captured_pointer_id);
             this.captured_pointer_id = null;
         }
         
