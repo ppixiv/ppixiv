@@ -35,7 +35,6 @@ ppixiv.on_click_viewer = class
         this.img = document.createElement("img");
         this.img.src = url? url:helpers.blank_image;
         this.img.className = "filtering";
-        image_container.appendChild(this.img);
 
         // Create the low-res preview.  This loads the thumbnail underneath the main image.  Don't set the
         // "filtering" class, since using point sampling for the thumbnail doesn't make sense.  If preview_url
@@ -43,29 +42,67 @@ ppixiv.on_click_viewer = class
         this.preview_img = document.createElement("img");
         this.preview_img.src = preview_url? preview_url:helpers.blank_image;
         this.preview_img.classList.add("low-res-preview");
-        image_container.appendChild(this.preview_img);
 
         // The secondary image holds the low-res preview image that's shown underneath the loading image.
         // It just follows the main image around and shouldn't receive input events.
         this.preview_img.style.pointerEvents = "none";
 
-        // When the image finishes loading, remove the preview image, to prevent artifacts with
-        // transparent images.  Keep a reference to preview_img, so we don't need to worry about
-        // it changing.  on_click_viewer will still have a reference to it, but it won't do anything.
-        //
-        // Don't do this if url is null.  Leave the preview up and don't switch over to the blank
-        // image.
-        let preview_image = this.preview_img;
+        image_container.appendChild(this.preview_img);
+
+        // If we have a main image, handle adding it and switching from the preview.
+        // If url is null, just use the preview.
         if(url != null)
-        {
-            this.img.addEventListener("load", (e) => {
-                preview_image.remove();
-            });
-        }
+            this.finish_loading_main_image();
 
         this._add_events();
         this.reset_position();
         this.reposition();
+    }
+
+    // Add this.img to the container, and when the main image finishes loading, remove the
+    // preview image, to prevent artifacts with transparent images.
+    async finish_loading_main_image()
+    {
+        // Keep a reference to the images, so we don't need to worry about them changing.
+        let img = this.img;
+        let preview_image = this.preview_img;
+
+        // If we don't have img.decode or we're not using it, do this the simpler way: just
+        // add the image, and remove the preview when it's done loading.
+        //
+        // Every browser supports img.decode, but let's keep this code path around in case we
+        // want to make this an option or do it selectively.
+        if(!img.decode)
+        {
+            this.image_container.appendChild(img);
+            img.addEventListener("load", (e) => {
+                preview_image.remove();
+            }, { once: true });
+            return;
+        }
+
+        // Wait for the image to decode before adding it.  This is cleaner for large images,
+        // since Chrome blocks the UI thread when setting up images.  The downside is it doesn't
+        // allow incremental loading.
+        let signal = this.abort_loading_signal = new AbortController();
+        try {
+            let result = await helpers.wait_for_image_load(img, this.abort_loading_signal.signal);
+            if(result != null)
+                return;
+        } finally {
+            if(signal == this.abort_loading_signal)
+                this.abort_loading_signal = null;
+        }
+
+        await img.decode();
+
+        // If this.img is no longer img, the viewer was changed or removed while we were waiting,
+        // so throw this away.
+        if(this.img != img)
+            return;
+
+        this.image_container.appendChild(img);
+        preview_image.remove();
     }
 
     disable(stop_drag=true)
@@ -75,6 +112,12 @@ ppixiv.on_click_viewer = class
 
         this._remove_events();
         this.cancel_save_to_history();
+
+        if(this.abort_loading_signal)
+        {
+            this.abort_loading_signal.abort();
+            this.abort_loading_signal = null;
+        }
 
         if(this.img)
         {
