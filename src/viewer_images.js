@@ -127,9 +127,9 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         // Decode the next and previous image.  This reduces flicker when changing pages
         // since the image will already be decoded.
         if(this.index > 0 && this.index - 1 < this.images.length)
-            helpers.decode_image(this.images[this.index - 1].url);
+            helpers.decode_image(this.images[this.index - 1].preview_url);
         if(this.index + 1 < this.images.length)
-            helpers.decode_image(this.images[this.index + 1].url);
+            helpers.decode_image(this.images[this.index + 1].preview_url);
 
         // If we have a manga_page_bar, update to show the current page.
         if(this.manga_page_bar)
