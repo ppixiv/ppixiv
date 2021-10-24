@@ -748,13 +748,13 @@ ppixiv.main_controller = class
         return result;
     }
 
-    // Load PNG resources into blobs, so we don't copy the whole PNG into every
-    // place it's used.
+    // Load binary resources into blobs, so we don't copy images into every
+    // place they're used.
     async load_resource_blobs()
     {
         for(let [name, dataURL] of Object.entries(ppixiv.resources))
         {
-            if(!name.endsWith(".png"))
+            if(!dataURL.startsWith || !dataURL.startsWith("data:"))
                 continue;
 
             let result = await fetch(dataURL);
