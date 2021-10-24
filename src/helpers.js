@@ -51,8 +51,8 @@ ppixiv.helpers = {
     
     remove_elements: function(parent)
     {
-        while(parent.firstElementChild !== null)
-            parent.firstElementChild.remove();
+        while(parent.firstChild !== null)
+            parent.firstChild.remove();
     },
 
     // Return true if ancestor is one of descendant's parents, or if descendant is ancestor.
