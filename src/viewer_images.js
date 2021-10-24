@@ -13,7 +13,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         this.manga_page_bar = options.manga_page_bar;
         this.onkeydown = this.onkeydown.bind(this);
 
-        this.index = options.manga_page || 0;
+        this._page = options.manga_page || 0;
 
         // Create a click and drag viewer for the image.
         this.on_click_viewer = new on_click_viewer();
@@ -91,12 +91,12 @@ ppixiv.viewer_images = class extends ppixiv.viewer
 
     get page()
     {
-        return this.index;
+        return this._page;
     }
 
     set page(page)
     {
-        this.index = page;
+        this._page = page;
         this.refresh();
     }
 
@@ -107,10 +107,10 @@ ppixiv.viewer_images = class extends ppixiv.viewer
             return;
 
         // This will be null if this is a manga page that we don't have any info for yet.
-        let current_image = this.images[this.index];
+        let current_image = this.images[this._page];
         if(current_image == null)
         {
-            console.info(`No info for page ${this.index} yet`);
+            console.info(`No info for page ${this._page} yet`);
             return;
         }
 
@@ -126,10 +126,10 @@ ppixiv.viewer_images = class extends ppixiv.viewer
 
         // Decode the next and previous image.  This reduces flicker when changing pages
         // since the image will already be decoded.
-        if(this.index > 0 && this.index - 1 < this.images.length)
-            helpers.decode_image(this.images[this.index - 1].preview_url);
-        if(this.index + 1 < this.images.length)
-            helpers.decode_image(this.images[this.index + 1].preview_url);
+        if(this._page > 0 && this._page - 1 < this.images.length)
+            helpers.decode_image(this.images[this._page - 1].preview_url);
+        if(this._page + 1 < this.images.length)
+            helpers.decode_image(this.images[this._page + 1].preview_url);
 
         // If we have a manga_page_bar, update to show the current page.
         if(this.manga_page_bar)
@@ -137,7 +137,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
             if(this.images.length == 1)
                 this.manga_page_bar.set(null);
             else
-                this.manga_page_bar.set((this.index+1) / this.images.length);
+                this.manga_page_bar.set((this._page+1) / this.images.length);
         }
 
         // If we were created with the restore_history option set, restore it now that
