@@ -496,9 +496,9 @@ ppixiv.helpers = {
 
         window.addEventListener("unhandledrejection", (e) => {
             let silence_error = false;
-            if(e.reason.stack && e.reason.stack.indexOf("s.pximg.net") != -1)
+            if(e.reason && e.reason.stack && e.reason.stack.indexOf("s.pximg.net") != -1)
                 silence_error = true;
-            if(e.reason.message == "Element disabled")
+            if(e.reason && e.reason.message == "Element disabled")
                 silence_error = true;
 
             if(silence_error)
