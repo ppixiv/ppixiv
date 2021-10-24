@@ -427,6 +427,11 @@ ppixiv.helpers = {
             console.error("Error disabling postMessage", e);
         }
 
+        // Disable the page's timers.  This helps prevent things like GTM from running.
+        unsafeWindow.setTimeout = (f, ms) => { return -1; };
+        unsafeWindow.setInterval = (f, ms) => { return -1; };
+        unsafeWindow.clearTimeout = () => { };
+
         // Try to freeze the document.  This works in Chrome but not Firefox.
         try {
             Object.freeze(document);
