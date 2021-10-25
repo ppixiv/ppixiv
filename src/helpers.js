@@ -398,6 +398,8 @@ ppixiv.helpers = {
             unwrap_func(document, "addEventListener");
             unwrap_func(document, "removeEventListener");
             unwrap_func(unsafeWindow, "fetch");
+            unwrap_func(unsafeWindow, "setTimeout");
+            unwrap_func(unsafeWindow, "setInterval");
             unwrap_func(EventTarget.prototype, "addEventListener");
             unwrap_func(EventTarget.prototype, "removeEventListener");
             unwrap_func(XMLHttpRequest.prototype, "send");
@@ -436,11 +438,20 @@ ppixiv.helpers = {
             console.error("Error disabling postMessage", e);
         }
 
+        // TamperMonkey reimplements setTimeout, etc. for some reason, which is slower
+        // than the real versions.  Grab them instead.
+        ppixiv.setTimeout = unsafeWindow.setTimeout.bind(unsafeWindow);
+        ppixiv.setInterval = unsafeWindow.setInterval.bind(unsafeWindow);
+        ppixiv.clearTimeout = unsafeWindow.clearTimeout.bind(unsafeWindow);
+
         // Disable the page's timers.  This helps prevent things like GTM from running.
         unsafeWindow.setTimeout = (f, ms) => { return -1; };
         unsafeWindow.setInterval = (f, ms) => { return -1; };
         unsafeWindow.clearTimeout = () => { };
 
+        window.addEventListener = Window.prototype.addEventListener.bind(unsafeWindow);
+        window.removeEventListener = Window.prototype.removeEventListener.bind(unsafeWindow);
+        
         // Try to freeze the document.  This works in Chrome but not Firefox.
         try {
             Object.freeze(document);
@@ -2274,8 +2285,10 @@ ppixiv.VirtualHistory = class
     {
         if(this.virtual)
             return this.virtual_data;
-        else
-            return window.history.state;
+
+        // Use unsafeWindow.history instead of window.history to avoid unnecessary
+        // TamperMonkey wrappers.
+        return unsafeWindow.history.state;
     }
 
     set state(value)
@@ -2283,7 +2296,7 @@ ppixiv.VirtualHistory = class
         if(this.virtual)
             this.virtual_data = value;
         else
-            window.history.state = value;
+            unsafeWindow.history.state = value;
     }
     
     back()
