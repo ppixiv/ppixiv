@@ -12,6 +12,7 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
         this.drew_frame = this.drew_frame.bind(this);
         this.progress = this.progress.bind(this);
         this.seek_callback = this.seek_callback.bind(this);
+        this.load = new SentinelGuard(this.load, this);
 
         this.container = container;
         this.options = options;
@@ -42,22 +43,24 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
         window.addEventListener("visibilitychange", this.refresh_focus);
     }
 
-    async load(illust_id, manga_page)
+    async load(signal, illust_id, manga_page)
     {
         this.unload();
 
-        let sentinel = this.load_sentinel = new Object();
-
         this.illust_id = illust_id;
+
+
+        // Load early data to show the low-res preview quickly.  This is a simpler version of
+        // what viewer_images does,.
+        let early_illust_data = await image_data.singleton().get_early_illust_data(this.illust_id);
+        signal.check();
+        this.create_preview_images(early_illust_data.previewUrl, null);
+
+        // Load full data.
         this.illust_data = await image_data.singleton().get_image_info(this.illust_id);
+        signal.check();
+        this.create_preview_images(this.illust_data.urls.small, this.illust_data.urls.original);
 
-        // Stop if another load() call was made while we were loading.
-        if(sentinel !== this.load_sentinel)
-            return;
-        this.load_sentinel = null;
-
-        this.create_preview_images(this.illust_data);
-        
         // This can be used to abort ZipImagePlayer's download.
         this.abort_controller = new AbortController;
 
@@ -117,6 +120,9 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
 
         super.shutdown();
 
+        // If this.load() is running, cancel it.
+        this.load.abort();
+
         if(this.seek_bar)
         {
             this.seek_bar.set_callback(null);
@@ -128,40 +134,61 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
         this.canvas.remove();
     }
 
-    async create_preview_images(illust_data)
+    async create_preview_images(url1, url2)
     {
+        if(this.preview_img1)
+        {
+            this.preview_img1.remove();
+            this.preview_img1 = null;
+        }
+
+        if(this.preview_img2)
+        {
+            this.preview_img2.remove();
+            this.preview_img2 = null;
+        }
+        
         // Create an image to display the static image while we load.
         //
         // Like static image viewing, load the thumbnail, then the main image on top, since
         // the thumbnail will often be visible immediately.
-        this.preview_img1 = document.createElement("img");
-        this.preview_img1.classList.add("low-res-preview");
-        this.preview_img1.style.position = "absolute";
-        this.preview_img1.style.width = "100%";
-        this.preview_img1.style.height = "100%";
-        this.preview_img1.style.objectFit = "contain";
-        this.preview_img1.src = illust_data.urls.small;
-        this.container.appendChild(this.preview_img1);
+        if(url1)
+        {
+            let img1 = document.createElement("img");
+            img1.classList.add("low-res-preview");
+            img1.style.position = "absolute";
+            img1.style.width = "100%";
+            img1.style.height = "100%";
+            img1.style.objectFit = "contain";
+            img1.src = url1;
+            this.container.appendChild(img1);
+            this.preview_img1 = img1;
 
-        this.preview_img2 = document.createElement("img");
-        this.preview_img2.style.position = "absolute";
-        this.preview_img2.className = "filtering";
-        this.preview_img2.style.width = "100%";
-        this.preview_img2.style.height = "100%";
-        this.preview_img2.style.objectFit = "contain";
-        this.preview_img2.src = illust_data.urls.original;
-        this.container.appendChild(this.preview_img2);
+            // Allow clicking the previews too, so if you click to pause the video before it has enough
+            // data to start playing, it'll still toggle to paused.
+            img1.addEventListener("click", this.clicked_canvas, false);
+        }
 
-        // Allow clicking the previews too, so if you click to pause the video before it has enough
-        // data to start playing, it'll still toggle to paused.
-        this.preview_img1.addEventListener("click", this.clicked_canvas, false);
-        this.preview_img2.addEventListener("click", this.clicked_canvas, false);
+        if(url2)
+        {
+            let img2 = document.createElement("img");
+            img2.style.position = "absolute";
+            img2.className = "filtering";
+            img2.style.width = "100%";
+            img2.style.height = "100%";
+            img2.style.objectFit = "contain";
+            img2.src = url2;
+            this.container.appendChild(img2);
+            img2.addEventListener("click", this.clicked_canvas, false);
+            this.preview_img2 = img2;
 
-        // Wait for the high-res image to finish loading.
-        helpers.wait_for_image_load(this.preview_img2);
-        
-        // Remove the low-res preview image when the high-res one finishes loading.
-        this.preview_img1.remove();
+            // Wait for the high-res image to finish loading.
+            let img1 = this.preview_img1;
+            helpers.wait_for_image_load(img2).then(() => {
+                // Remove the low-res preview image when the high-res one finishes loading.
+                img1.remove();
+            });
+        }
     }
 
     set active(active)
