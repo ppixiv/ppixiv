@@ -10,6 +10,7 @@ ppixiv.image_ui = class
 
         this.container = container;
         this.progress_bar = progress_bar;
+        this._visible = false;
 
         this.ui = helpers.create_from_template(".template-image-ui");
         this.container.appendChild(this.ui);
@@ -50,7 +51,13 @@ ppixiv.image_ui = class
 
     set visible(value)
     {
+        if(this._visible == value)
+            return;
+        this._visible = value;
         this.avatar_widget.visible = value;
+
+        if(value)
+            this.refresh();
     }
 
     set data_source(data_source)
@@ -108,7 +115,7 @@ ppixiv.image_ui = class
 
     refresh()
     {
-        if(this.illust_data == null)
+        if(this.illust_data == null || !this._visible)
             return;
 
         var illust_data = this.illust_data;
