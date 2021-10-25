@@ -111,7 +111,6 @@ ul {
     width: 100%;
     height: 100%;
     user-select: none;
-    -moz-user-select: none;
     cursor: pointer;
 }
 
@@ -654,7 +653,6 @@ body.light .whats-new-button.updates > svg {
 /* When .dot is set, show images with nearest neighbor filtering. */
 body.dot img.filtering,
 body.dot canvas.filtering {
-    image-rendering: -moz-crisp-edges;
     image-rendering: crisp-edges;
     image-rendering: pixelated;
 }
@@ -928,7 +926,6 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
     /* .thumbnails is the actual thumbnail list. */
     .thumbnails {
         user-select: none;
-        -moz-user-select: none;
         padding: 0;
         text-align: center;
     }
@@ -1301,7 +1298,6 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
     color: var(--box-link-fg-color);
     background-color: var(--box-link-bg-color);
     user-select: none;
-    -moz-user-select: none;
     white-space: nowrap;
 
     &.disabled {
@@ -1589,7 +1585,6 @@ input.search-tags {
     height: 240px;
     max-height: 30%;
     user-select: none;
-    -moz-user-select: none;
 
     body.hide-ui &
     {
@@ -1706,7 +1701,6 @@ input.search-tags {
     display: flex;
     flex-direction: column;
     user-select: none;
-    -moz-user-select: none;
     will-change: opacity, transform;
     transition:
         opacity ease 0.15s,
