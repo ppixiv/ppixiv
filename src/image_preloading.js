@@ -48,7 +48,9 @@ class img_preloader extends preloader
     // Start the fetch.  This should only be called once.
     async start()
     {
-        await helpers.decode_image(this.url, this.abort_controller.signal);
+        let img = document.createElement("img");
+        img.src = this.url;
+        await helpers.wait_for_image_load(img, this.abort_controller.signal);
     }
 }
 

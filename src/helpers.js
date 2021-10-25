@@ -1484,25 +1484,6 @@ ppixiv.helpers = {
         return await Promise.any([promise, sleep]);
     },
 
-    // If image.decode is available, asynchronously decode url.
-    async decode_image(url, abort_signal)
-    {
-        if(url == null)
-            return;
-
-        var img = document.createElement("img");
-        img.src = url;
-
-        if(await helpers.wait_for_image_load(img, abort_signal) != null)
-            return;
-
-        try {
-            await img.decode();
-        } catch(e) {
-            // console.error("Ignoring error in decode:", e);
-        }
-    },
-
     // Return a CSS style to specify thumbnail resolutions.
     //
     // Based on the dimensions of the container and a desired pixel size of thumbnails,
