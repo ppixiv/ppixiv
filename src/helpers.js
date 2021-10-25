@@ -2466,3 +2466,60 @@ ppixiv.pointer_listener = class
     }
 }
 
+
+// This is an attempt to make it easier to handle a common problem with
+// asyncs: checking whether what we're doing should continue after awaiting.
+// The wrapped function will be passed an AbortSignal.  It can be used normally
+// for aborting async calls.  It also has signal.cancel(), which will throw
+// SentinelAborted if another call to the guarded function has been made.
+class SentinelAborted extends Error { };
+
+ppixiv.SentinelGuard = function(func, self)
+{
+    if(self)
+        func = func.bind(self);
+    let sentinel = null;
+
+    let abort = () =>
+    {
+        // Abort the current sentinel.
+        if(sentinel)
+        {
+            sentinel.abort();
+            sentinel = null;
+        }
+    };
+
+    async function wrapped(...args)
+    {
+        // If another call is running, abort it.
+        abort();
+
+        sentinel = new AbortController();
+        let our_sentinel = sentinel;
+        let signal = sentinel.signal;
+        signal.check = () =>
+        {
+            // If we're signalled, another guarded function was started, so this one should abort.
+            if(our_sentinel.signal.aborted)
+                throw new SentinelAborted;
+        };
+
+        try {
+            return await func(signal, ...args);
+        } catch(e) {
+            if(!(e instanceof SentinelAborted))
+                throw e;
+            
+            console.warn("Guarded function cancelled");
+            return null;
+        } finally {
+            if(our_sentinel === sentinel)
+                sentinel = null;
+        }
+    };
+
+    wrapped.abort = abort;
+
+    return wrapped;
+};
