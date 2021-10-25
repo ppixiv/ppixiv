@@ -320,6 +320,15 @@ ppixiv.helpers = {
         });
     },
 
+    sleep(ms)
+    {
+        return new Promise((accept, reject) => {
+            setTimeout(() => {
+                accept();
+            }, ms);
+        });
+    },
+
     // Block until DOMContentLoaded.
     wait_for_content_loaded: function()
     {
@@ -1459,6 +1468,20 @@ ppixiv.helpers = {
                 }, { signal: remove_listeners_signal.signal });
             }
         });
+    },
+
+    // Wait up to ms for promise to complete.  If the promise completes, return its
+    // result, otherwise return "timed-out".
+    async await_with_timeout(promise, ms)
+    {
+        let sleep = new Promise((accept, reject) => {
+            setTimeout(() => {
+                accept("timed-out");
+            }, ms);
+        });
+
+        // Wait for whichever finishes first.
+        return await Promise.any([promise, sleep]);
     },
 
     // If image.decode is available, asynchronously decode url.

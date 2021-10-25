@@ -14,13 +14,15 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         this.onkeydown = this.onkeydown.bind(this);
         this.restore_history;
 
+        this.load = new SentinelGuard(this.load, this);
+
         // Create a click and drag viewer for the image.
-        this.on_click_viewer = new on_click_viewer();
+        this.on_click_viewer = new on_click_viewer(this.container);
 
         main_context_menu.get.on_click_viewer = this.on_click_viewer;
     }
 
-    async load(illust_id, page, { restore_history=false }={})
+    async load(signal, illust_id, page, { restore_history=false }={})
     {
         this.restore_history = restore_history;
 
@@ -35,8 +37,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         let early_illust_data = await image_data.singleton().get_early_illust_data(this.illust_id);
 
         // Stop if we were removed before the request finished.
-        if(this.was_shutdown)
-            return;
+        signal.check();
        
         // Only add an entry for page 1.  We don't have image dimensions for manga pages from
         // early data, so we can't use them for quick previews.
@@ -53,8 +54,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         this.illust_data = await image_data.singleton().get_image_info(this.illust_id);
 
         // Stop if we were removed before the request finished.
-        if(this.was_shutdown)
-            return;
+        signal.check();
 
         // Update the list to include the image URLs.
         this.images = [];
@@ -82,9 +82,12 @@ ppixiv.viewer_images = class extends ppixiv.viewer
     {
         super.shutdown();
 
+        // If this.load() is running, cancel it.
+        this.load.abort();
+
         if(this.on_click_viewer)
         {
-            this.on_click_viewer.disable();
+            this.on_click_viewer.shutdown();
             this.on_click_viewer = null;
         }
 
@@ -124,14 +127,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         // Create the new image and pass it to the viewer.
         this.url = current_image.url || current_image.preview_url;
         this.on_click_viewer.set_new_image(current_image.url, current_image.preview_url,
-            this.container, current_image.width, current_image.height);
-
-        // Decode the next and previous image.  This reduces flicker when changing pages
-        // since the image will already be decoded.
-        if(this._page > 0 && this._page - 1 < this.images.length)
-            helpers.decode_image(this.images[this._page - 1].preview_url);
-        if(this._page + 1 < this.images.length)
-            helpers.decode_image(this.images[this._page + 1].preview_url);
+            current_image.width, current_image.height);
 
         // If we have a manga_page_bar, update to show the current page.
         if(this.manga_page_bar)

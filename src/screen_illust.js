@@ -49,7 +49,6 @@ ppixiv.screen_illust = class extends ppixiv.screen
         // Remove the "flash" class when the page change indicator's animation finishes.
         let page_change_indicator = this.container.querySelector(".page-change-indicator");
         page_change_indicator.addEventListener("animationend", (e) => {
-            console.log("done", e.target);
             page_change_indicator.classList.remove("flash");
         });
 

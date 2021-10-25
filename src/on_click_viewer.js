@@ -7,13 +7,16 @@
 // more usable than doing things like zooming based on the native resolution.
 ppixiv.on_click_viewer = class
 {
-    constructor()
+    constructor(container)
     {
         this.onresize = this.onresize.bind(this);
         this.pointermove = this.pointermove.bind(this);
         this.block_event = this.block_event.bind(this);
         this.window_blur = this.window_blur.bind(this);
 
+        this.set_new_image = new SentinelGuard(this.set_new_image, this);
+
+        this.image_container = container;
         this.original_width = 1;
         this.original_height = 1;
 
@@ -22,114 +25,173 @@ ppixiv.on_click_viewer = class
         // Restore the most recent zoom mode.  We assume that there's only one of these on screen.
         this.locked_zoom = settings.get("zoom-mode") == "locked";
         this._zoom_level = settings.get("zoom-level", "cover");
+
+        // This is aborted when we shut down to remove listeners.
+        this.event_shutdown = new AbortController();
+
+        window.addEventListener("blur", this.window_blur, { signal: this.event_shutdown.signal });
+        window.addEventListener("resize", this.onresize, { signal: this.event_shutdown.signal, capture: true });
+        this.image_container.addEventListener("dragstart", this.block_event, { signal: this.event_shutdown.signal });
+        this.image_container.addEventListener("selectstart", this.block_event, { signal: this.event_shutdown.signal });
+
+        new ppixiv.pointer_listener({
+            element: this.image_container,
+            button_mask: 1,
+            signal: this.event_shutdown.signal,
+            callback: this.pointerevent,
+        });
+
+        // This is like pointermove, but received during quick view from the source tab.
+        window.addEventListener("quickviewpointermove", this.quick_view_pointermove, { signal: this.event_shutdown.signal });
     }
 
-    set_new_image(url, preview_url, image_container, width, height)
+    // Loading images is tricky due to various browser quirks and API limitations.
+    set_new_image = async(signal, url, preview_url, width, height) =>
     {
-        this.disable(false /* !stop_drag */);
-
-        this.image_container = image_container;
-        this.original_width = width;
-        this.original_height = height;
-
-        this.img = document.createElement("img");
-        this.img.src = url? url:helpers.blank_image;
-        this.img.className = "filtering";
+        let img = document.createElement("img");
+        img.src = url? url:helpers.blank_image;
+        img.className = "filtering";
 
         // Create the low-res preview.  This loads the thumbnail underneath the main image.  Don't set the
         // "filtering" class, since using point sampling for the thumbnail doesn't make sense.  If preview_url
         // is null, just use a blank image.
-        this.preview_img = document.createElement("img");
-        this.preview_img.src = preview_url? preview_url:helpers.blank_image;
-        this.preview_img.classList.add("low-res-preview");
+        let preview_img = document.createElement("img");
+        preview_img.src = preview_url? preview_url:helpers.blank_image;
+        preview_img.classList.add("low-res-preview");
+        preview_img.style.pointerEvents = "none";
 
-        // The secondary image holds the low-res preview image that's shown underneath the loading image.
-        // It just follows the main image around and shouldn't receive input events.
-        this.preview_img.style.pointerEvents = "none";
+        // Get the new image ready before removing the old one, to avoid flashing a black
+        // screen while the new image decodes.  This will finish quickly if the preview image
+        // is preloaded.
+        //
+        // We have to work around an API limitation: there's no way to abort decode().  If
+        // a couple decode() calls from previous navigations are still running, this decode can
+        // be queued, even though it's a tiny image and would finish instantly.  If a previous
+        // decode is still running, skip this and prefer to just add the image.  It causes us
+        // to flash a blank screen when navigating quickly, but image switching is more responsive.
+        if(!this.decoding)
+        {
+            try {
+                await preview_img.decode();
+            } catch(e) {
+                // Ignore exceptions from aborts.
+            }
+        }
+        signal.check();
 
-        image_container.appendChild(this.preview_img);
+        // Work around a Chrome quirk: even if an image is already decoded, calling img.decode()
+        // will always delay and allow the page to update.  This means that if we add the preview
+        // image, decode the main image, then display the main image, the preview image will
+        // flicker for one frame, which is ugly.  Work around this: if the image is fully downloaded,
+        // call decode() and see if it finishes quickly.  If it does, we'll skip the preview and just
+        // show the final image.
+        let img_ready = false;
+        let decode_promise = null;
+        if(url != null && img && img.complete)
+        {
+            decode_promise = this.decode_img(img);
 
-        // If we have a main image, handle adding it and switching from the preview.
-        // If url is null, just use the preview.
-        if(url != null)
-            this.finish_loading_main_image();
+            // See if it finishes quickly.
+            img_ready = await helpers.await_with_timeout(decode_promise, 50) != "timed-out";
+        }
+        signal.check();
 
-        this._add_events();
+        // Remove the old image.
+        this.remove_images();
+
+        // Finalize our data.  Don't do this until we've called this.remove_images().
+        this.original_width = width;
+        this.original_height = height;
+        this.img = img;
+        this.preview_img = preview_img;
+
         this.reset_position();
         this.reposition();
-    }
 
-    // Add this.img to the container, and when the main image finishes loading, remove the
-    // preview image, to prevent artifacts with transparent images.
-    async finish_loading_main_image()
-    {
-        // Keep a reference to the images, so we don't need to worry about them changing.
-        let img = this.img;
-        let preview_image = this.preview_img;
-
-        // If we don't have img.decode or we're not using it, do this the simpler way: just
-        // add the image, and remove the preview when it's done loading.
-        //
-        // Every browser supports img.decode, but let's keep this code path around in case we
-        // want to make this an option or do it selectively.
-        if(!img.decode)
+        // If the load already finished, just add the main image and don't use the preview.
+        if(img_ready)
         {
-            this.image_container.appendChild(img);
-            img.addEventListener("load", (e) => {
-                preview_image.remove();
-            }, { once: true });
+            this.image_container.appendChild(this.img);
             return;
         }
 
-        // Wait for the image to decode before adding it.  This is cleaner for large images,
-        // since Chrome blocks the UI thread when setting up images.  The downside is it doesn't
-        // allow incremental loading.
-        let signal = this.abort_loading_signal = new AbortController();
-        try {
-            let result = await helpers.wait_for_image_load(img, this.abort_loading_signal.signal);
+        // If the new preview was complete, removing the previous image may have been deferred.
+        // Wait for it to decode, and then add the new preview and remove the old one at the
+        // same time.  This prevents flashing a blank screen for a frame while the preview
+        // decodes.
+        this.image_container.appendChild(this.preview_img);
+
+        // If we don't have a main URL, stop here.  We only have the preview to display.
+        if(url == null)
+            return;
+
+        // If the image isn't downloaded, load it now.  img.decode will do this too, but it
+        // doesn't support AbortSignal.
+        if(!img.complete)
+        {
+            let result = await helpers.wait_for_image_load(img, signal);
             if(result != null)
                 return;
-        } finally {
-            if(signal == this.abort_loading_signal)
-                this.abort_loading_signal = null;
+
+            signal.check();
         }
 
-        await img.decode();
+        // Decode the image asynchronously before adding it.  This is cleaner for large images,
+        // since Chrome blocks the UI thread when setting up images.  The downside is it doesn't
+        // allow incremental loading.
+        //
+        // If we already have decode_promise, we already started the decode, so just wait for that
+        // to finish.
+        if(!decode_promise)
+            decode_promise = this.decode_img(img);
 
-        // If this.img is no longer img, the viewer was changed or removed while we were waiting,
-        // so throw this away.
-        if(this.img != img)
-            return;
+        await decode_promise;
+        signal.check();
 
         this.image_container.appendChild(img);
-        preview_image.remove();
+        preview_img.remove();
     }
 
-    disable(stop_drag=true)
+    async decode_img(img)
     {
-        if(stop_drag)
-            this.stop_dragging();
+        this.decoding = true;
+        try {
+            await img.decode();
+        } catch(e) {
+            // Ignore exceptions from aborts.
+        } finally {
+            this.decoding = false;
+        }
+    }
 
-        this._remove_events();
+    remove_images()
+    {
         this.cancel_save_to_history();
 
-        if(this.abort_loading_signal)
-        {
-            this.abort_loading_signal.abort();
-            this.abort_loading_signal = null;
-        }
-
+        // Clear the image URLs when we remove them, so any loads are cancelled.  This seems to
+        // help Chrome with GC delays.
         if(this.img)
         {
             this.img.remove();
+            this.img.src = helpers.blank_image;
             this.img = null;
         }
 
         if(this.preview_img)
         {
             this.preview_img.remove();
+            this.preview_img.src = helpers.blank_image;
             this.preview_img = null;
         }
+    }
+
+    shutdown()
+    {
+        this.stop_dragging();
+        this.remove_images();
+        this.event_shutdown.abort();
+        this.set_new_image.abort();
+        this.image_container = null;
     }
 
     // Set the pan position to the default for this image.
@@ -170,46 +232,6 @@ ppixiv.on_click_viewer = class
     block_event(e)
     {
         e.preventDefault();
-    }
-
-    _add_events()
-    {
-        this._remove_events();
-
-        this.event_abort = new AbortController();
-
-        window.addEventListener("blur", this.window_blur, { signal: this.event_abort.signal });
-        window.addEventListener("resize", this.onresize, { signal: this.event_abort.signal, capture: true });
-        this.image_container.addEventListener("dragstart", this.block_event, { signal: this.event_abort.signal });
-        this.image_container.addEventListener("selectstart", this.block_event, { signal: this.event_abort.signal });
-
-        new ppixiv.pointer_listener({
-            element: this.image_container,
-            button_mask: 1,
-            signal: this.event_abort.signal,
-            callback: this.pointerevent,
-        });
-
-        // This is like pointermove, but received during quick view from the source tab.
-        window.addEventListener("quickviewpointermove", this.quick_view_pointermove, { signal: this.event_abort.signal });
-
-        this.image_container.style.userSelect = "none";
-        this.image_container.style.MozUserSelect = "none";
-    }
-
-    _remove_events()
-    {
-        if(this.event_abort)
-        {
-            this.event_abort.abort();
-            this.event_abort = null;
-        }
-
-        if(this.image_container)
-        {
-            this.image_container.style.userSelect = "none";
-            this.image_container.style.MozUserSelect = "";
-        }
     }
 
     onresize(e)
