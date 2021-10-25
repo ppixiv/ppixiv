@@ -126,9 +126,6 @@ ppixiv.image_preloader = class
         // Store the illust_info for current_illust_id.
         this.current_illust_info = illust_info;
 
-        // Preload thumbnails.
-        this.preload_thumbs(illust_info);
-
         this.check_fetch_queue();
     }
 
@@ -157,9 +154,6 @@ ppixiv.image_preloader = class
 
         // Store the illust_info for current_illust_id.
         this.speculative_illust_info = illust_info;
-
-        // Preload thumbnails.
-        this.preload_thumbs(illust_info);
 
         this.check_fetch_queue();
     }
@@ -319,24 +313,6 @@ ppixiv.image_preloader = class
             results.push(new img_preloader(illust_data.mangaPages[page].urls.original));
 
         return results;
-    }
-
-    preload_thumbs(illust_info)
-    {
-        if(illust_info == null)
-            return;
-
-        // We're only interested in preloading thumbs for manga pages.
-        if(illust_info.pageCount < 2)
-            return;
-
-        // Preload thumbs directly rather than queueing, since they load quickly and
-        // this reduces flicker in the manga thumbnail bar.
-        let thumbs = [];
-        for(let page of illust_info.mangaPages)
-            thumbs.push(page.urls.small);
-
-        helpers.preload_images(thumbs);
     }
 };
 
