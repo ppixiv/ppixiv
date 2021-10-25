@@ -63,7 +63,7 @@ class fetch_preloader extends preloader
 
     async start()
     {
-        let request = await helpers.send_pixiv_request({
+        let request = helpers.send_pixiv_request({
             url: this.url,
             method: "GET",
             signal: this.abort_controller.signal,
@@ -72,6 +72,7 @@ class fetch_preloader extends preloader
         // Wait for the body to download before completing.  Ignore errors here (they'll
         // usually be cancellations).
         try {
+            request = await request;
             await request.text();
         } catch(e) { }
     }
