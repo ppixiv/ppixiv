@@ -45,9 +45,22 @@ ppixiv.on_click_viewer = class
         window.addEventListener("quickviewpointermove", this.quick_view_pointermove, { signal: this.event_shutdown.signal });
     }
 
-    // Loading images is tricky due to various browser quirks and API limitations.
+    // Load the given illust and page.
+    //
+    // If width and height are null, we'll get the image dimensions from the loaded
+    // image.  This can force us to use a slightly less efficient loading path in
+    // order to know the dimensions early enough.
     set_new_image = async(signal, url, preview_url, width, height) =>
     {
+        // A special case is when we have no images at all.  This happens when navigating
+        // to a manga page and we don't have illust info yet, so we don't know anything about
+        // the page.
+        if(url == null && preview_url == null)
+        {
+            this.remove_images();
+            return;
+        }
+        
         let img = document.createElement("img");
         img.src = url? url:helpers.blank_image;
         img.className = "filtering";
@@ -69,10 +82,18 @@ ppixiv.on_click_viewer = class
         // be queued, even though it's a tiny image and would finish instantly.  If a previous
         // decode is still running, skip this and prefer to just add the image.  It causes us
         // to flash a blank screen when navigating quickly, but image switching is more responsive.
-        if(!this.decoding)
+        //
+        // If width and height are null, always do this so we can get the image dimensions.
+        if(!this.decoding || width == null)
         {
             try {
                 await preview_img.decode();
+
+                if(width == null)
+                {
+                    width = preview_img.naturalWidth;
+                    height = preview_img.naturalHeight;
+                }
             } catch(e) {
                 // Ignore exceptions from aborts.
             }
