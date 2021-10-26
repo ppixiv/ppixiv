@@ -1466,6 +1466,49 @@ ppixiv.helpers = {
         });
     },
 
+    // Wait until img.naturalWidth/naturalHeight are available.
+    //
+    // There's no event to tell us that img.naturalWidth/naturalHeight are
+    // available, so we have to jump hoops.  Loop using requestAnimationFrame,
+    // since this lets us check quickly at a rate that makes sense for the
+    // user's system, and won't be throttled as badly as setTimeout.
+    async wait_for_image_dimensions(img, abort_signal)
+    {
+        return new Promise((resolve, reject) => {
+            let src = img.src;
+
+            if(abort_signal && abort_signal.aborted)
+                resolve(false);
+            if(img.naturalWidth != 0)
+                resolve(true);
+
+            let frame_id = null;
+
+            // If abort_signal is aborted, cancel our frame request.
+            let abort = () => {
+                abort_signal.removeEventListener("aborted", abort);
+                if(frame_id != null)
+                    cancelAnimationFrame(frame_id);
+                resolve(false);
+            };
+            if(abort_signal)
+                abort_signal.addEventListener("aborted", abort);
+
+            let check = () => {
+                if(img.naturalWidth != 0)
+                {
+                    resolve(true);
+                    if(abort_signal)
+                        abort_signal.removeEventListener("aborted", abort);
+                    return;
+                }
+
+                frame_id = requestAnimationFrame(check);
+            };
+            check();
+        });
+    },
+
     // Wait up to ms for promise to complete.  If the promise completes, return its
     // result, otherwise return "timed-out".
     async await_with_timeout(promise, ms)

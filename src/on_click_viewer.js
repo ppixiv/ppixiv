@@ -73,6 +73,23 @@ ppixiv.on_click_viewer = class
         preview_img.classList.add("low-res-preview");
         preview_img.style.pointerEvents = "none";
 
+        // If width and height are null, we don't know the image dimensions, which we need to
+        // display the preview.  Wait until the main image has loaded enough to give us the
+        // dimensions.
+        if(width == null)
+        {
+            // This will take a moment if the image isn't cached.  Remove the previous image
+            // early, since leaving it onscreen makes the UI feel unresponsive.
+            this.remove_images();
+
+            console.log("Display delayed while we wait for image dimensions");
+            await helpers.wait_for_image_dimensions(img);
+            width = img.naturalWidth;
+            height = img.naturalHeight;
+            console.log(`Dimensions: ${width}x${height}`);
+            signal.check();
+        }
+
         // Get the new image ready before removing the old one, to avoid flashing a black
         // screen while the new image decodes.  This will finish quickly if the preview image
         // is preloaded.
@@ -84,7 +101,7 @@ ppixiv.on_click_viewer = class
         // to flash a blank screen when navigating quickly, but image switching is more responsive.
         //
         // If width and height are null, always do this so we can get the image dimensions.
-        if(!this.decoding || width == null)
+        if(!this.decoding)
         {
             try {
                 await preview_img.decode();
@@ -165,7 +182,6 @@ ppixiv.on_click_viewer = class
         // to finish.
         if(!decode_promise)
             decode_promise = this.decode_img(img);
-
         await decode_promise;
         signal.check();
 
