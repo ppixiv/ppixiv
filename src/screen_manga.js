@@ -68,10 +68,7 @@ ppixiv.screen_manga = class extends ppixiv.screen
         {
             // Save the old scroll position.
             if(this.illust_id != null)
-            {
-                console.log("save scroll position for", this.illust_id, this.container.scrollTop);
                 this.scroll_positions_by_illust_id[this.illust_id] = this.container.scrollTop;
-            }
 
             // Hide the dropdown tag widget.
             this.ui.bookmark_tag_widget.visible = false;
@@ -296,7 +293,6 @@ ppixiv.screen_manga = class extends ppixiv.screen
         // sometimes has no effect in Firefox.
         this.container.offsetHeight;
         this.container.scrollTop = 0;
-        console.log("scroll to top", this.container.scrollTop, this.container.hidden, this.container.offsetHeight);
     }
 
     restore_scroll_position()
@@ -306,7 +302,6 @@ ppixiv.screen_manga = class extends ppixiv.screen
         var scroll_pos = this.scroll_positions_by_illust_id[this.illust_id];
         if(scroll_pos != null)
         {
-            console.log("scroll pos:", scroll_pos);
             this.container.scrollTop = scroll_pos;
             delete this.scroll_positions_by_illust_id[this.illust_id];
         }
@@ -322,8 +317,6 @@ ppixiv.screen_manga = class extends ppixiv.screen
         var thumb = this.container.querySelector('[data-page-idx="' + manga_page + '"]');
         if(thumb == null)
             return;
-
-        console.log("Scrolling to", thumb);
 
         // If the item isn't visible, center it.
         var scroll_pos = this.container.scrollTop;
