@@ -178,7 +178,7 @@ ppixiv.actions = class
         let illust_data = image_data.singleton().get_image_info_sync(illust_id);
         if(illust_data)
         {
-            illust_info.bookmarkCount--;
+            illust_data.bookmarkCount--;
             image_data.singleton().call_illust_modified_callbacks(illust_id);
         }
         
