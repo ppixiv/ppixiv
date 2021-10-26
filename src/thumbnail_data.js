@@ -136,7 +136,7 @@ ppixiv.thumbnail_data = class
             ["illust_height", "height"],
             ["illust_type", "illustType"],
             ["illust_page_count", "pageCount"],
-            ["illust_title", "title"],
+            ["illust_title", "illustTitle"],
             ["user_profile_img", "profileImageUrl"],
             ["user_name", "userName"],
 
@@ -160,7 +160,7 @@ ppixiv.thumbnail_data = class
             ["height", "height"],
             ["illust_type", "illustType"],
             ["illust_page_count", "pageCount"],
-            ["title", "title"],
+            ["title", "illustTitle"],
             ["profile_img", "profileImageUrl"],
             ["user_name", "userName"],
             ["illust_upload_timestamp", "createDate"],
@@ -250,9 +250,20 @@ ppixiv.thumbnail_data = class
 
             if(source == "normal")
             {
-                // The data is already in the format we want.  Just check that all keys we
-                // expect exist, and remove any keys we don't know about so we don't use them
-                // accidentally.
+                // The data is already in the format we want.  The only change we make is
+                // to rename title to illustTitle, to match it up with illust info.
+                if(!("title" in thumb_info))
+                {
+                    console.warn("Thumbnail info is missing key: title");
+                }
+                else
+                {
+                    thumb_info.illustTitle = thumb_info.title;
+                    delete thumb_info.title;
+                }
+
+                // Check that all keys we expect exist, and remove any keys we don't know about
+                // so we don't use them accidentally.
                 let thumbnail_info_map = this.thumbnail_info_map_ranking;
                 remapped_thumb_info = { };
                 for(let pair of thumbnail_info_map)
