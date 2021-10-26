@@ -76,13 +76,15 @@ ppixiv.context_menu_image_info_widget = class extends ppixiv.illust_widget
 // A helper for a simple right-click context menu.
 //
 // The menu opens on right click and closes when the button is released.
-ppixiv.popup_context_menu = class
+ppixiv.popup_context_menu = class extends ppixiv.widget
 {
     // Names for buttons, for storing in this.buttons_down.
     buttons = ["lmb", "rmb", "mmb"];
 
-    constructor(container)
+    constructor(options)
     {
+        super(options);
+
         this.window_onblur = this.window_onblur.bind(this);
         this.onmouseover = this.onmouseover.bind(this);
         this.onmouseout = this.onmouseout.bind(this);
@@ -91,7 +93,6 @@ ppixiv.popup_context_menu = class
         this.cancel_event = this.cancel_event.bind(this);
         this.onmousemove = this.onmousemove.bind(this);
 
-        this.container = container;
         this.visible = false;
 
         // We can't tell where the mouse is until it moves due to half-baked web APIs, so pretend
@@ -443,9 +444,9 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         return main_context_menu._singleton;
     }
 
-    constructor(container)
+    constructor(options)
     {
-        super(container);
+        super(options);
 
         if(main_context_menu._singleton != null)
             throw "Singleton already exists";
@@ -493,20 +494,42 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
             this.send_image_widget.visible = !this.send_image_widget.visible;
         });
 
-        let bookmark_tag_widget = new bookmark_tag_list_widget(this.menu.querySelector(".popup-bookmark-tag-dropdown-container"));
-        this.send_image_widget = new send_image_widget(this.menu.querySelector(".popup-send-to-tab-container"));
+        let bookmark_tag_widget = new bookmark_tag_list_widget({
+            parent: this,
+            container: this.menu.querySelector(".popup-bookmark-tag-dropdown-container"),
+        });
+        this.send_image_widget = new send_image_widget({
+            parent: this,
+            container: this.menu.querySelector(".popup-send-to-tab-container"),
+        });
         this.illust_widgets = [
             bookmark_tag_widget,
             this.send_image_widget,
-            new toggle_bookmark_tag_list_widget(this.menu.querySelector(".button-bookmark-tags"), bookmark_tag_widget),
-            new like_button_widget(this.menu.querySelector(".button-like")),
-            new like_count_widget(this.menu.querySelector(".button-like .count")),
-            new context_menu_image_info_widget(this.menu.querySelector(".context-menu-image-info")),
-            new bookmark_count_widget(this.menu.querySelector(".button-bookmark.public")),
+            new toggle_bookmark_tag_list_widget({
+                container: this.menu.querySelector(".button-bookmark-tags"),
+                parent: this,
+                bookmark_tag_widget: bookmark_tag_widget,
+            }),
+            new like_button_widget({
+                parent: this,
+                container: this.menu.querySelector(".button-like"),
+            }),
+            new like_count_widget({
+                parent: this,
+                container: this.menu.querySelector(".button-like .count"),
+            }),
+            new context_menu_image_info_widget({
+                parent: this,
+                container: this.menu.querySelector(".context-menu-image-info"),
+            }),
+            new bookmark_count_widget({
+                parent: this,
+                container: this.menu.querySelector(".button-bookmark.public")
+            }),
         ];
 
         this.avatar_widget = new avatar_widget({
-            parent: this.menu.querySelector(".avatar-widget-container"),
+            container: this.menu.querySelector(".avatar-widget-container"),
             mode: "overlay",
         });
 
@@ -514,7 +537,12 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         for(var a of this.menu.querySelectorAll(".button-bookmark"))
         {
             let private_bookmark = a.classList.contains("private");
-            this.illust_widgets.push(new bookmark_button_widget(a, private_bookmark, bookmark_tag_widget));
+            this.illust_widgets.push(new bookmark_button_widget({
+                parent: this,
+                container: a,
+                private_bookmark: private_bookmark,
+                bookmark_tag_widget, bookmark_tag_widget
+            }));
         }
         this.element_bookmark_tag_list = this.menu.querySelector(".bookmark-tag-list");
 

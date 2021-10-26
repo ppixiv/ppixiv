@@ -3,9 +3,9 @@
 // The search UI.
 ppixiv.screen_search = class extends ppixiv.screen
 {
-    constructor(container)
+    constructor(options)
     {
-        super(container);
+        super(options);
         
         this.thumbs_loaded = this.thumbs_loaded.bind(this);
         this.data_source_updated = this.data_source_updated.bind(this);
@@ -36,7 +36,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         
         // Create the avatar widget shown on the artist data source.
         this.avatar_widget = new avatar_widget({
-            parent: this.container.querySelector(".avatar-container"),
+            container: this.container.querySelector(".avatar-container"),
             changed_callback: this.data_source_updated,
             big: true,
             mode: "dropdown",

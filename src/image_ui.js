@@ -1,10 +1,12 @@
 "use strict";
 
 // This handles the overlay UI on the illustration page.
-ppixiv.image_ui = class
+ppixiv.image_ui = class extends ppixiv.widget
 {
-    constructor(container, progress_bar)
+    constructor(container, {progress_bar, ...options})
     {
+        super({container, ...options});
+
         this.clicked_download = this.clicked_download.bind(this);
         this.refresh = this.refresh.bind(this);
 
@@ -16,7 +18,7 @@ ppixiv.image_ui = class
         this.container.appendChild(this.ui);
 
         this.avatar_widget = new avatar_widget({
-            parent: this.container.querySelector(".avatar-popup"),
+            container: this.container.querySelector(".avatar-popup"),
             mode: "dropdown",
         });
 
@@ -29,14 +31,29 @@ ppixiv.image_ui = class
         
         image_data.singleton().illust_modified_callbacks.register(this.refresh);
         
-        this.bookmark_tag_widget = new bookmark_tag_list_widget(this.container.querySelector(".popup-bookmark-tag-dropdown-container"));
-        this.toggle_tag_widget = new toggle_bookmark_tag_list_widget(this.container.querySelector(".button-bookmark-tags"), this.bookmark_tag_widget);
-        this.like_button = new like_button_widget(this.container.querySelector(".button-like"));
+        this.bookmark_tag_widget = new bookmark_tag_list_widget({
+            parent: this,
+            container: this.container.querySelector(".popup-bookmark-tag-dropdown-container"),
+        });
+        this.toggle_tag_widget = new toggle_bookmark_tag_list_widget({
+            parent: this,
+            container: this.container.querySelector(".button-bookmark-tags"),
+            bookmark_tag_widget: this.bookmark_tag_widget,
+        });
+        this.like_button = new like_button_widget({
+            parent: this,
+            container: this.container.querySelector(".button-like"),
+        });
 
         // The bookmark buttons, and clicks in the tag dropdown:
         this.bookmark_buttons = [];
         for(var a of this.container.querySelectorAll(".button-bookmark"))
-            this.bookmark_buttons.push(new bookmark_button_widget(a, a.classList.contains("private"), this.bookmark_tag_widget));
+            this.bookmark_buttons.push(new bookmark_button_widget({
+                parent: this,
+                container: a,
+                private: a.classList.contains("private"),
+                bookmark_tag_widget: this.bookmark_tag_widget,
+            }));
 
         for(let button of this.container.querySelectorAll(".download-button"))
             button.addEventListener("click", this.clicked_download);

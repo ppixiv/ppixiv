@@ -3,9 +3,9 @@
 // The main UI.  This handles creating the viewers and the global UI.
 ppixiv.screen_illust = class extends ppixiv.screen
 {
-    constructor(container)
+    constructor(options)
     {
-        super(container);
+        super(options);
         
         this.onwheel = this.onwheel.bind(this);
         this.refresh_ui = this.refresh_ui.bind(this);
@@ -13,13 +13,12 @@ ppixiv.screen_illust = class extends ppixiv.screen
 
         this.current_illust_id = -1;
         this.latest_navigation_direction_down = true;
-        this.container = container;
 
         this.progress_bar = main_controller.singleton.progress_bar;
 
         // Create a UI box and put it in its container.
         var ui_container = this.container.querySelector(".ui");
-        this.ui = new image_ui(ui_container, this.progress_bar);
+        this.ui = new image_ui(ui_container, {parent: this, progress_bar: this.progress_bar});
         
         var ui_box = this.container.querySelector(".ui-box");
 

@@ -176,15 +176,15 @@ ppixiv.main_controller = class
         this.container = document.body;
 
         // Create the popup menu handler.
-        this.context_menu = new main_context_menu(document.body);
+        this.context_menu = new main_context_menu({container: document.body});
         
         // Create the main progress bar.
         this.progress_bar = new progress_bar(this.container.querySelector(".loading-progress-bar"));
         
         // Create the screens.
-        this.screen_search = new screen_search(this.container.querySelector(".screen-search-container"));
-        this.screen_illust = new screen_illust(this.container.querySelector(".screen-illust-container"));
-        this.screen_manga = new screen_manga(this.container.querySelector(".screen-manga-container"));
+        this.screen_search = new screen_search({ container: this.container.querySelector(".screen-search-container") });
+        this.screen_illust = new screen_illust({ container: this.container.querySelector(".screen-illust-container") });
+        this.screen_manga = new screen_manga({ container: this.container.querySelector(".screen-manga-container") });
 
         SendImage.init();
 

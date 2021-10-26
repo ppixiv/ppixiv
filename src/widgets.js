@@ -3,10 +3,11 @@
 // A basic widget base class.
 ppixiv.widget = class
 {
-    constructor(container)
+    constructor({container, parent=null}={})
     {
         console.assert(container != null);
 
+        this.parent = parent;
         this.container = container;
 
         // Let the caller finish, then refresh.
@@ -25,9 +26,9 @@ ppixiv.widget = class
 // An illust_id can be set, and we'll refresh when it changes.
 ppixiv.illust_widget = class extends ppixiv.widget
 {
-    constructor(container)
+    constructor(options)
     {
-        super(container);
+        super(options);
 
         // Refresh when the image data changes.
         image_data.singleton().illust_modified_callbacks.register(this.refresh.bind(this));
@@ -373,7 +374,7 @@ ppixiv.creepy_eye_widget = class
     }
 }
 
-ppixiv.avatar_widget = class
+ppixiv.avatar_widget = class extends widget
 {
     // options:
     // parent: node to add ourself to (required)
@@ -381,6 +382,8 @@ ppixiv.avatar_widget = class
     // big: if true, show the big avatar instead of the small one
     constructor(options)
     {
+        super({...options});
+
         this.options = options;
         if(this.options.mode != "dropdown" && this.options.mode != "overlay")
             throw "Invalid avatar widget mode";
@@ -436,7 +439,7 @@ ppixiv.avatar_widget = class
         // Follow publically when enter is pressed on the follow folder input.
         helpers.input_handler(avatar_popup.querySelector(".folder"), this.clicked_follow.bind(this, false));
 
-        this.options.parent.appendChild(this.root);
+        this.container.appendChild(this.root);
     }
 
     shutdown()
@@ -738,9 +741,9 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
 {
     get needed_data() { return "illust_id"; }
 
-    constructor(container)
+    constructor(options)
     {
-        super(container);
+        super(options);
 
         this.container.hidden = true;
         this.displaying_illust_id = null;
@@ -972,9 +975,9 @@ ppixiv.toggle_bookmark_tag_list_widget = class extends ppixiv.illust_widget
     // We only need an illust ID and no info.
     get needed_data() { return "illust_id"; }
 
-    constructor(container, bookmark_tag_widget)
+    constructor({bookmark_tag_widget, ...options})
     {
-        super(container);
+        super(options);
 
         this.bookmark_tag_widget = bookmark_tag_widget;
 
@@ -999,9 +1002,9 @@ ppixiv.bookmark_button_widget = class extends ppixiv.illust_widget
 {
     get needed_data() { return "early_info"; }
 
-    constructor(container, private_bookmark, bookmark_tag_widget)
+    constructor({private_bookmark, bookmark_tag_widget, ...options})
     {
-        super(container);
+        super(options);
 
         this.private_bookmark = private_bookmark;
         this.bookmark_tag_widget = bookmark_tag_widget;
@@ -1088,9 +1091,9 @@ ppixiv.bookmark_button_widget = class extends ppixiv.illust_widget
 
 ppixiv.bookmark_count_widget = class extends ppixiv.illust_widget
 {
-    constructor(container)
+    constructor(options)
     {
-        super(container);
+        super(options);
 
         image_data.singleton().illust_modified_callbacks.register(this.refresh.bind(this));
     }
@@ -1107,9 +1110,9 @@ ppixiv.like_button_widget = class extends ppixiv.illust_widget
 {
     get needed_data() { return "illust_id"; }
 
-    constructor(container)
+    constructor(options)
     {
-        super(container);
+        super(options);
 
         this.container.addEventListener("click", this.clicked_like);
 
@@ -1138,9 +1141,9 @@ ppixiv.like_button_widget = class extends ppixiv.illust_widget
 
 ppixiv.like_count_widget = class extends ppixiv.illust_widget
 {
-    constructor(container)
+    constructor(options)
     {
-        super(container);
+        super(options);
         image_data.singleton().illust_modified_callbacks.register(this.refresh.bind(this));
     }
 

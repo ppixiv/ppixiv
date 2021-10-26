@@ -1,11 +1,11 @@
 "use strict";
 
 // The base class for our main screens.
-ppixiv.screen = class
+ppixiv.screen = class extends ppixiv.widget
 {
-    constructor(container)
+    constructor(options)
     {
-        this.container = container;
+        super(options);
 
         // Make our container focusable, so we can give it keyboard focus when we
         // become active.

@@ -6,9 +6,9 @@
 // works differently enough that it would complicate things too much.
 ppixiv.screen_manga = class extends ppixiv.screen
 {
-    constructor(container)
+    constructor(options)
     {
-        super(container);
+        super(options);
 
         this.refresh_ui = this.refresh_ui.bind(this);
         this.window_onresize = this.window_onresize.bind(this);
@@ -24,7 +24,7 @@ ppixiv.screen_manga = class extends ppixiv.screen
         });
 
         this.progress_bar = main_controller.singleton.progress_bar;
-        this.ui = new image_ui(this.container.querySelector(".ui-container"), this.progress_bar);
+        this.ui = new image_ui(this.container.querySelector(".ui-container"), { parent: this, progress_bar: this.progress_bar });
         this.scroll_positions_by_illust_id = {};
         
         image_data.singleton().user_modified_callbacks.register(this.refresh_ui);

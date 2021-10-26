@@ -2194,12 +2194,12 @@ svg.heart-image .delete {
     transform-origin: 0 0;
     opacity: 0;
 
-    &.visible {
+    .popup-send-to-tab-container.visible > & {
         display: block;
         transform: scale(1);
         opacity: 1;
     }
-    &:not(.visible) {
+    .popup-send-to-tab-container:not(.visible) > & {
         pointer-events: none;
     }
 

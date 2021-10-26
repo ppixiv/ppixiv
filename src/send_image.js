@@ -473,12 +473,12 @@ ppixiv.SendImage = class
 // A context menu widget showing known tabs on the desktop to send images to.
 ppixiv.send_image_widget = class extends ppixiv.illust_widget
 {
-    constructor(container)
+    constructor(options)
     {
-        let contents = helpers.create_from_template(".template-popup-send-image");
-        container.appendChild(contents);
+        super(options);
 
-        super(contents);
+        let contents = helpers.create_from_template(".template-popup-send-image");
+        this.container.appendChild(contents);
 
         this.dropdown_list = this.container.querySelector(".list");
 
