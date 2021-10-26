@@ -80,11 +80,8 @@ ppixiv.screen_search = class extends ppixiv.screen
 
             if(a.dataset.illustId == null)
                 return;
-            let illust_data = await image_data.singleton().get_image_info(a.dataset.illustId);
 
-            // This is a bit optimistic, but if we get a result before the user releases the mouse, start
-            // preloading the image.  This would be more effective if we had the image URL in thumbnail data.
-            helpers.preload_images([illust_data.urls.original]);
+            await image_data.singleton().get_image_info(a.dataset.illustId);
         }, true);
  
         this.container.querySelector(".refresh-search-button").addEventListener("click", this.refresh_search.bind(this));
