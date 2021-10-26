@@ -1070,7 +1070,7 @@ ppixiv.screen_search = class extends ppixiv.screen
 
                 // The image will be obscured, but we still shouldn't load the image the user blocked (which
                 // is something Pixiv does wrong).  Load the user profile image instead.
-                thumb.src = info.profileImageUrl;
+                thumb.src = thumbnail_data.singleton().get_profile_picture_url(info.userId);
 
                 let muted_label = element.querySelector(".muted-label");
 

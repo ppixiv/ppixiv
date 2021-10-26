@@ -121,6 +121,15 @@ ppixiv.thumbnail_data = class
         this.loaded_thumbnail_info(result, "illust_list");
     }
 
+    // Get the user's profile picture URL, or a fallback if we haven't seen it.
+    get_profile_picture_url(user_id)
+    {
+        let result = this.user_profile_urls[user_id];
+        if(!result)
+            result = "https://s.pximg.net/common/images/no_profile.png";
+        return result;
+    }
+
     // Get the mapping from /ajax/user/id/illusts/bookmarks to illust_list.php's keys.
     get thumbnail_info_map_illust_list()
     {
@@ -360,11 +369,14 @@ ppixiv.thumbnail_data = class
             var illust_id = thumb_info.id;
             delete this.loading_ids[illust_id];
 
-            // Cache the user's profile URL.  This lets us display it more quickly when we
-            // haven't loaded user info yet.
+            // This is really annoying: the profile picture is the only field that's present in thumbnail
+            // info but not illust info.  We want a single basic data set for both, so that can't include
+            // the profile picture.  But, we do want to display it in places where we can't get user
+            // info (muted search results), so store it separately.
             let profile_image_url = thumb_info.profileImageUrl;
             profile_image_url = profile_image_url.replace("_50.", "_170."),
             this.user_profile_urls[thumb_info.userId] = profile_image_url;
+            delete thumb_info.profileImageUrl;
         }
 
         // Broadcast that we have new thumbnail data available.

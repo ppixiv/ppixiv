@@ -446,7 +446,6 @@ ppixiv.image_data = class
         "bookmarkData",
         "createDate",
         "tagList",
-        "profileImageUrl",
     ];
     
     // Get illustration info that can be retrieved from both 
