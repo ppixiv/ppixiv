@@ -1445,7 +1445,7 @@ ppixiv.helpers = {
             img.addEventListener("error", (e) => {
                 // We kept a reference to src in case in changes, so this log should
                 // always point to the right URL.
-                console.log("Error loading image:", src, e);
+                console.log("Error loading image:", src);
                 remove_listeners_signal.abort();
                 resolve("failed");
             }, { signal: remove_listeners_signal.signal });
@@ -2560,7 +2560,7 @@ ppixiv.SentinelGuard = function(func, self)
             if(!(e instanceof SentinelAborted))
                 throw e;
             
-            console.warn("Guarded function cancelled");
+            // console.warn("Guarded function cancelled");
             return null;
         } finally {
             if(our_sentinel === sentinel)
