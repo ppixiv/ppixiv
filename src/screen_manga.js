@@ -78,6 +78,7 @@ ppixiv.screen_manga = class extends ppixiv.screen
         }
 
         this._active = active;
+        this.ui.visible = active;
 
         // This will hide or unhide us.
         await super.set_active(active);
