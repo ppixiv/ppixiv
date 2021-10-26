@@ -444,10 +444,9 @@ ppixiv.image_data = class
         "height": "height",
         "previewUrls": "previewUrls",
         "bookmarkData": "bookmarkData",
-        "width": "width",
-        "height": "height",
         "createDate": "createDate",
         "tagList": "tagList",
+        "profileImageUrl": "profileImageUrl",
     };
     illust_info_early_illust_data_keys = {
         "id": "id",
@@ -464,6 +463,7 @@ ppixiv.image_data = class
         "height": "height",
         "createDate": "createDate",
         "tagList": "tagList",
+        "profileImageUrl": "profileImageUrl",
     };
     
     // Get illustration info that can be retrieved from both 
