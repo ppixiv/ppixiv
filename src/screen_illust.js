@@ -148,7 +148,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
         // many pages it has, and whether it's muted.  This will always complete immediately
         // if we're coming from a search or anywhere else that will already have this info,
         // but it can block if we're loading from scratch.
-        let early_illust_data = await image_data.singleton().get_early_illust_data(illust_id);
+        let early_illust_data = await thumbnail_data.singleton().get_or_load_illust_data(illust_id);
 
         // If we were deactivated while waiting for image info or the image we want to show has changed, stop.
         if(!this.active || this.wanted_illust_id != illust_id || this.wanted_illust_page != manga_page)
@@ -502,7 +502,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
         {
             // Using early_illust_data here means we can handle page navigation earlier, if
             // the user navigates before we have full illust info.
-            let early_illust_data = await image_data.singleton().get_early_illust_data(this.wanted_illust_id);
+            let early_illust_data = await thumbnail_data.singleton().get_or_load_illust_data(this.wanted_illust_id);
             let num_pages = early_illust_data.pageCount;
             if(num_pages > 1)
             {

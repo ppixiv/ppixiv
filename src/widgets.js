@@ -35,7 +35,7 @@ ppixiv.illust_widget = class extends ppixiv.widget
     }
 
     // The data this widget needs.  This can be illust_id (nothing but the ID), illust_info,
-    // or early_info.
+    // or thumbnail info.
     //
     // This can change dynamically.  Some widgets need illust_info only when viewing a manga
     // page.
@@ -77,8 +77,8 @@ ppixiv.illust_widget = class extends ppixiv.widget
         {
             if(this.needed_data == "illust_id")
                 illust_data = illust_id;
-            else if(this.needed_data == "early_info")
-                info.early_info = await image_data.singleton().get_early_illust_data(this._illust_id);
+            else if(this.needed_data == "thumbnail")
+                info.thumbnail_data = await thumbnail_data.singleton().get_or_load_illust_data(this._illust_id);
             else
                 info.illust_data = await image_data.singleton().get_image_info(this._illust_id);
         }
@@ -90,7 +90,7 @@ ppixiv.illust_widget = class extends ppixiv.widget
         await this.refresh_internal(info);
     }
 
-    async refresh_internal({ illust_id, illust_data, early_info})
+    async refresh_internal({ illust_id, illust_data, thumbnail_data })
     {
         throw "Not implemented";
     }
@@ -994,7 +994,7 @@ ppixiv.toggle_bookmark_tag_list_widget = class extends ppixiv.illust_widget
 
 ppixiv.bookmark_button_widget = class extends ppixiv.illust_widget
 {
-    get needed_data() { return "early_info"; }
+    get needed_data() { return "thumbnail"; }
 
     constructor({private_bookmark, bookmark_tag_widget, ...options})
     {
@@ -1008,20 +1008,20 @@ ppixiv.bookmark_button_widget = class extends ppixiv.illust_widget
         image_data.singleton().illust_modified_callbacks.register(this.refresh.bind(this));
     }
 
-    refresh_internal({ early_info })
+    refresh_internal({ thumbnail_data })
     {
-        let bookmarked = early_info?.bookmarkData != null;
-        let our_bookmark_type = early_info?.bookmarkData?.private == this.private_bookmark;
+        let bookmarked = thumbnail_data?.bookmarkData != null;
+        let our_bookmark_type = thumbnail_data?.bookmarkData?.private == this.private_bookmark;
 
         // Set up the bookmark buttons.
-        helpers.set_class(this.container,  "enabled",     early_info != null);
+        helpers.set_class(this.container,  "enabled",     thumbnail_data != null);
         helpers.set_class(this.container,  "bookmarked",  our_bookmark_type);
         helpers.set_class(this.container,  "will-delete", our_bookmark_type);
         
         // Set the tooltip.
         let type_string = this.private_bookmark? "private":"public";
         this.container.dataset.popup =
-            early_info == null? "":
+            thumbnail_data == null? "":
             !bookmarked? (this.private_bookmark? "Bookmark privately":"Bookmark image"):
             our_bookmark_type? "Remove bookmark":
             "Change bookmark to " + type_string;
@@ -1057,7 +1057,7 @@ ppixiv.bookmark_button_widget = class extends ppixiv.illust_widget
             this.bookmark_tag_widget.hide_without_sync();
 
         // If the image is bookmarked and the same privacy button was clicked, remove the bookmark.
-        let illust_data = await image_data.singleton().get_early_illust_data(this._illust_id);
+        let illust_data = await thumbnail_data.singleton().get_or_load_illust_data(this._illust_id);
         
         if(illust_data.bookmarkData && illust_data.bookmarkData.private == this.private_bookmark)
         {

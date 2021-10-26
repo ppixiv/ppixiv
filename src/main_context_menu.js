@@ -16,15 +16,15 @@ ppixiv.context_menu_image_info_widget = class extends ppixiv.illust_widget
         // We need illust info if we're viewing a manga page beyond page 1, since
         // early info doesn't have that.  Most of the time, we only need early info.
         if(this._page == null || this._page == 0)
-            return "early_info";
+            return "thumbnail";
         else
             return "illust_info";
     }
 
-    refresh_internal({ early_info, illust_data })
+    refresh_internal({ thumbnail_data, illust_data })
     {
         if(!illust_data)
-            illust_data = early_info;
+            illust_data = thumbnail_data;
 
         this.container.hidden = illust_data == null;
         if(this.container.hidden)
@@ -757,7 +757,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
                 if(illust_id == null)
                     return;
 
-                let illust_data = await image_data.singleton().get_early_illust_data(illust_id);
+                let illust_data = await thumbnail_data.singleton().get_or_load_illust_data(illust_id);
 
                 // Ctrl-Shift-Alt-B: add a bookmark tag
                 if(e.altKey && e.shiftKey)

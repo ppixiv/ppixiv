@@ -52,7 +52,7 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
 
         // Load early data to show the low-res preview quickly.  This is a simpler version of
         // what viewer_images does,.
-        let early_illust_data = await image_data.singleton().get_early_illust_data(this.illust_id);
+        let early_illust_data = await thumbnail_data.singleton().get_or_load_illust_data(this.illust_id);
         signal.check();
         this.create_preview_images(early_illust_data.previewUrls[0], null);
 

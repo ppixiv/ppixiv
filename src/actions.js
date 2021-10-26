@@ -6,7 +6,7 @@ ppixiv.actions = class
     // Set a bookmark.  Any existing bookmark will be overwritten.
     static async _bookmark_add_internal(illust_id, options)
     {
-        let illust_info = await image_data.singleton().get_early_illust_data(illust_id);
+        let illust_info = await thumbnail_data.singleton().get_or_load_illust_data(illust_id);
         
         if(options == null)
             options = {};
@@ -40,8 +40,7 @@ ppixiv.actions = class
             throw "Didn't get a bookmark ID";
 
         // Store the ID of the new bookmark, so the unbookmark button works.
-        //
-        image_data.singleton().update_early_illust_data(illust_id, {
+        thumbnail_data.singleton().update_illust_data(illust_id, {
             bookmarkData: {
                 id: new_bookmark_id,
                 private: !!request.restrict,
@@ -82,7 +81,7 @@ ppixiv.actions = class
         if(options == null)
             options = {};
 
-        let illust_info = await image_data.singleton().get_early_illust_data(illust_id);
+        let illust_info = await thumbnail_data.singleton().get_or_load_illust_data(illust_id);
 
         console.log("Add bookmark for", illust_id, "options:", options);
 
@@ -154,7 +153,7 @@ ppixiv.actions = class
 
     static async bookmark_remove(illust_id)
     {
-        let illust_info = await image_data.singleton().get_early_illust_data(illust_id);
+        let illust_info = await thumbnail_data.singleton().get_or_load_illust_data(illust_id);
         if(illust_info.bookmarkData == null)
         {
             console.log("Not bookmarked");
@@ -171,7 +170,7 @@ ppixiv.actions = class
 
         console.log("Removing bookmark finished");
 
-        image_data.singleton().update_early_illust_data(illust_id, {
+        thumbnail_data.singleton().update_illust_data(illust_id, {
             bookmarkData: null
         });
 
@@ -185,10 +184,6 @@ ppixiv.actions = class
         
         image_data.singleton().update_cached_bookmark_image_tags(illust_id, null);
 
-        var thumbnail_info = thumbnail_data.singleton().get_one_thumbnail_info(illust_id);
-        if(thumbnail_info != null)
-            thumbnail_info.bookmarkData = null;
-         
         message_widget.singleton.show("Bookmark removed");
 
         image_data.singleton().call_illust_modified_callbacks(illust_id);
@@ -197,7 +192,7 @@ ppixiv.actions = class
     // Change an existing bookmark to public or private.
     static async bookmark_set_private(illust_id, private_bookmark)
     {
-        let illust_info = await image_data.singleton().get_early_illust_data(illust_id);
+        let illust_info = await thumbnail_data.singleton().get_or_load_illust_data(illust_id);
         if(!illust_info.bookmarkData)
         {
             console.log(`Illust ${illust_id} wasn't bookmarked`);
@@ -212,7 +207,7 @@ ppixiv.actions = class
         });
 
         // Update bookmark info.
-        image_data.singleton().update_early_illust_data(illust_id, {
+        thumbnail_data.singleton().update_illust_data(illust_id, {
             bookmarkData: {
                 id: bookmark_id,
                 private: private_bookmark,

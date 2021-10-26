@@ -448,5 +448,82 @@ ppixiv.thumbnail_data = class
     {
         return this.quick_user_data[user_id];
     }
+
+    thumbnail_info_keys = [
+        "id",
+        "illustType",
+        "illustTitle",
+        "pageCount",
+        "userId",
+        "userName",
+        "width",
+        "height",
+        "previewUrls",
+        "bookmarkData",
+        "createDate",
+        "tagList",
+    ];
+    
+    // Return thumbnail data for a single illust if it's available.  If it isn't, read
+    // full illust info, and then return thumbnail data.
+    //
+    // This is used when we're displaying info for a single image, and the caller only
+    // needs thumbnail data.  It allows us to use either thumbnail data or illust info,
+    // so we can usually return the data immediately.
+    //
+    // If it isn't available and we need to load it, we load illust info instead of thumbnail
+    // data, since it takes a full API request either way.
+    async get_or_load_illust_data(illust_id)
+    {
+        let data = thumbnail_data.singleton().get_one_thumbnail_info(illust_id);
+        if(data == null)
+        {
+            data = await image_data.singleton().get_image_info(illust_id);
+            if(data == null)
+                return null;
+        }
+
+        // Verify whichever data type we got.
+        for(let key of this.thumbnail_info_keys)
+        {
+            if(!(key in data))
+            {
+                console.warn(`Missing key ${key} for early data`, data);
+                continue;
+            }
+        }
+
+        return data;
+    }
+
+    // Update illustration data in both thumbnail info and illust info.
+    //
+    // This is used in places that use get_or_load_illust_data to get thumbnail
+    // info, and then need to save changes to it.  Update both sources.
+    //
+    // This can't update tags.
+    update_illust_data(illust_id, data)
+    {
+        let update_data = (update, keys) => {
+            for(let key of keys)
+            {
+                if(!(key in data))
+                    continue;
+
+                console.assert(key != "tags");
+                update[key] = data[key];
+            }
+        };
+
+        let thumb_data = thumbnail_data.singleton().get_one_thumbnail_info(illust_id);
+        if(thumb_data)
+            update_data(thumb_data, this.thumbnail_info_keys);
+
+        let illust_info = image_data.singleton().get_image_info_sync(illust_id);
+        if(illust_info != null)
+            update_data(illust_info, this.thumbnail_info_keys);
+
+        image_data.singleton().call_illust_modified_callbacks(illust_id);
+    }
 }
 
