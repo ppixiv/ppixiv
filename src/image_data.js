@@ -66,11 +66,7 @@ ppixiv.image_data = class
 
         // If we already have the image data, just return it.
         if(this.image_data[illust_id] != null)
-        {
-            return new Promise(resolve => {
-                resolve(this.image_data[illust_id]);
-            });
-        }
+            return Promise.resolve(this.image_data[illust_id]);
 
         // If there's already a load in progress, just return it.
         if(this.illust_loads[illust_id] != null)
