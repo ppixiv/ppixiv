@@ -659,13 +659,11 @@ ppixiv.send_image_widget = class extends ppixiv.illust_widget
         let image_url = null;
         if(info.illust_data)
         {
-            image_url = info.illust_data.urls.small;
-            if(info.page > 0)
-                image_url = info.illust_data.previewUrls[info.page];
+            image_url = info.illust_data.previewUrls[info.page];
         }
         else if(info.thumbnail_info)
         {
-            image_url = info.thumbnail_info.url;
+            image_url = info.thumbnail_info.previewUrls[0];
         }
 
         if(image_url && info.illust_screen_pos)

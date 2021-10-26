@@ -1058,7 +1058,7 @@ ppixiv.screen_search = class extends ppixiv.screen
                 throw "Unexpected thumb type: " + thumb_type;
 
             // Set this thumb.
-            var url = info.url;
+            let url = info.previewUrls[0];
             var thumb = element.querySelector(".thumb");
 
             // Check if this illustration is muted (blocked).

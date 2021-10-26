@@ -337,12 +337,16 @@ ppixiv.thumbnail_data = class
             // Different APIs return different thumbnail URLs.
             remapped_thumb_info.url = helpers.get_high_res_thumbnail_url(remapped_thumb_info.url);
             
+            // Create a list of thumbnail URLs.
             remapped_thumb_info.previewUrls = [];
             for(let page = 0; page < remapped_thumb_info.pageCount; ++page)
             {
                 let url = helpers.get_high_res_thumbnail_url(remapped_thumb_info.url, page);
                 remapped_thumb_info.previewUrls.push(url);
             }
+
+            // Remove url.  Use previewUrl[0] instead
+            delete remapped_thumb_info.url;
 
             // Rename .tags to .tagList, for consistency with the flat tag list in illust info.
             remapped_thumb_info.tagList = remapped_thumb_info.tags;
