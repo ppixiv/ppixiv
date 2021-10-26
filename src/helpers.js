@@ -1602,7 +1602,11 @@ ppixiv.helpers = {
                 height: ${max_height}px;
                 contain-intrinsic-size: ${max_width}px ${max_height}px;
             }
-            ${top_selector} .thumbnails { gap: ${padding}px; }`;
+            ${top_selector} .thumbnails { gap: ${padding}px; }
+            ${top_selector} .last-viewed-image-marker { 
+                width: ${max_width/4}px;
+            }
+        `;
         if(container_width != null)
             css += `${top_selector} > .thumbnails { max-width: ${container_width}px; }`;
         return css;

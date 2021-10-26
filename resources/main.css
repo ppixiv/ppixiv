@@ -952,6 +952,21 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
             filter: brightness(200%);
         }
     }
+
+    // Marker above the last viewed image:
+    .last-viewed-image-marker {
+        position: absolute;
+        left: 0;
+        top: 0;
+        pointer-events: none;
+
+        // This is set by make_thumbnail_sizing_style based on the thumbnail size.
+        // width: 100px;
+        height: auto;
+    }
+    .thumbnail-box:not(.flash) .last-viewed-image-marker {
+        display: none;
+    }
 }
 
 .thumbnail-load-previous {
