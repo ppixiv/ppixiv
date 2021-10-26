@@ -337,11 +337,11 @@ ppixiv.thumbnail_data = class
             // Different APIs return different thumbnail URLs.
             remapped_thumb_info.url = helpers.get_high_res_thumbnail_url(remapped_thumb_info.url);
             
-            remapped_thumb_info.mangaPages = [];
+            remapped_thumb_info.previewUrls = [];
             for(let page = 0; page < remapped_thumb_info.pageCount; ++page)
             {
                 let url = helpers.get_high_res_thumbnail_url(remapped_thumb_info.url, page);
-                remapped_thumb_info.mangaPages.push(url);
+                remapped_thumb_info.previewUrls.push(url);
             }
 
             thumb_info = remapped_thumb_info;

@@ -158,6 +158,14 @@ ppixiv.image_data = class
         // Now that we have illust data, load anything we weren't able to load before.
         start_loading(illust_data.userId, illust_data.illustType, illust_data.pageCount);
 
+        // Add an array of thumbnail URLs.
+        illust_data.previewUrls = [];
+        for(let page = 0; page < illust_data.pageCount; ++page)
+        {
+            let url = helpers.get_high_res_thumbnail_url(illust_data.urls.small, page);
+            illust_data.previewUrls.push(url);
+        }
+
         // If we're loading image info, we're almost definitely going to load the avatar, so
         // start preloading it now.
         let user_info = await user_info_promise;
@@ -429,14 +437,13 @@ ppixiv.image_data = class
         "userName": "userName",
         "width": "width",
         "height": "height",
-        "mangaPages": "mangaPages",
+        "previewUrls": "previewUrls",
         "bookmarkData": "bookmarkData",
         "width": "width",
         "height": "height",
         "createDate": "createDate",
-        // These are handled separately.
+        // This is handled separately.
         // "tags": "tags",
-        // "url": "previewUrl",
     };
     illust_info_early_illust_data_keys = {
         "id": "id",
@@ -447,13 +454,12 @@ ppixiv.image_data = class
         "userName": "userName",
         "width": "width",
         "height": "height",
-        "mangaPages": "mangaPages",
+        "previewUrls": "previewUrls",
         "bookmarkData": "bookmarkData",
         "width": "width",
         "height": "height",
         "createDate": "createDate",
         // "tags": "tags",
-        // urls.small: "previewUrl",
     };
     
     // Get illustration info that can be retrieved from both 
@@ -468,7 +474,6 @@ ppixiv.image_data = class
         if(data)
         {
             keys = this.thumbnail_info_early_illust_data_keys;
-            result.previewUrl = data.url;
             result.tags = data.tags;
         }
         else
@@ -479,7 +484,6 @@ ppixiv.image_data = class
 
             keys = this.illust_info_early_illust_data_keys;
 
-            result.previewUrl = data.urls.small;
             result.tags = [];
             for(let tag of data.tags.tags)
                 result.tags.push(tag.tag);

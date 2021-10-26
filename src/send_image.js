@@ -661,7 +661,7 @@ ppixiv.send_image_widget = class extends ppixiv.illust_widget
         {
             image_url = info.illust_data.urls.small;
             if(info.page > 0)
-                image_url = info.illust_data.mangaPages[info.page].urls.small;
+                image_url = info.illust_data.previewUrls[info.page];
         }
         else if(info.thumbnail_info)
         {

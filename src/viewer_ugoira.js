@@ -54,7 +54,7 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
         // what viewer_images does,.
         let early_illust_data = await image_data.singleton().get_early_illust_data(this.illust_id);
         signal.check();
-        this.create_preview_images(early_illust_data.previewUrl, null);
+        this.create_preview_images(early_illust_data.previewUrls[0], null);
 
         // Load full data.
         this.illust_data = await image_data.singleton().get_image_info(this.illust_id);

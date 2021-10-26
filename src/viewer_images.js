@@ -43,12 +43,12 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         // The rest set width and height to null, which will tell on_click_viewer to
         // get it from the images.
         this.images = [{
-            preview_url: early_illust_data.previewUrl,
+            preview_url: early_illust_data.previewUrls[0],
             width: early_illust_data.width,
             height: early_illust_data.height,
         }];
 
-        for(let manga_page of early_illust_data.mangaPages.slice(1))
+        for(let manga_page of early_illust_data.previewUrls.slice(1))
             this.images.push({ preview_url: manga_page });
 
         this.refresh();

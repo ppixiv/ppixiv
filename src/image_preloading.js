@@ -305,8 +305,8 @@ ppixiv.image_preloader = class
         // Otherwise, preload the images.  Preload thumbs first, since they'll load
         // much faster.
         let results = [];
-        for(let page of illust_data.mangaPages)
-            results.push(new img_preloader(page.urls.small));
+        for(let url of illust_data.previewUrls)
+            results.push(new img_preloader(url));
 
         // Preload the requested page.
         if(page < illust_data.mangaPages.length)
