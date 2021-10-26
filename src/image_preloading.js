@@ -39,10 +39,11 @@ class preloader
 // Load a single image with <img>:
 class img_preloader extends preloader
 {
-    constructor(url)
+    constructor(url, onerror=null)
     {
         super();
         this.url = url;
+        this.onerror = onerror;
     }
 
     // Start the fetch.  This should only be called once.
@@ -50,7 +51,10 @@ class img_preloader extends preloader
     {
         let img = document.createElement("img");
         img.src = this.url;
-        await helpers.wait_for_image_load(img, this.abort_controller.signal);
+
+        let result = await helpers.wait_for_image_load(img, this.abort_controller.signal);
+        if(result == "failed" && this.onerror)
+            this.onerror();
     }
 }
 
@@ -111,6 +115,9 @@ ppixiv.image_preloader = class
         this.current_illust_id = illust_id;
         this.current_illust_page = page;
         this.current_illust_info = null;
+
+        await this.guess_preload(illust_id, page);
+
         if(this.current_illust_id == null)
             return;
 
@@ -313,6 +320,45 @@ ppixiv.image_preloader = class
             results.push(new img_preloader(illust_data.mangaPages[page].urls.original));
 
         return results;
+    }
+
+    // Try to start a guessed preload.
+    //
+    // This uses guess_image_url to try to figure out the image URL earlier.  Normally
+    // we have to wait for the image info request to finish before we have the image URL
+    // to start loading, but if we can guess the URL correctly then we can start loading
+    // it immediately.
+    //
+    // If illust_id is null, stop any running guessed preload.
+    async guess_preload(illust_id, page)
+    {
+        // See if we can guess the image's URL from previous info, or if we can figure it
+        // out from another source.
+        let guessed_url = null;
+        if(illust_id != null && page != null)
+        {
+            guessed_url = await guess_image_url.get.guess_url(illust_id, page);
+            if(this.guessed_preload && this.guessed_preload.url == guessed_url)
+                return;
+        }
+
+        // Cancel any previous guessed preload.
+        if(this.guessed_preload)
+        {
+            this.guessed_preload.cancel();
+            this.guessed_preload = null;
+        }
+
+        // Start the new guessed preload.
+        if(guessed_url)
+        {
+            this.guessed_preload = new img_preloader(guessed_url, () => {
+                // The image load failed.  Let guessed_preload know.
+                console.info("Guessed image load failed");
+                guess_image_url.get.guessed_url_incorrect(illust_id, page);
+            });
+            this.guessed_preload.start();
+        }
     }
 };
 

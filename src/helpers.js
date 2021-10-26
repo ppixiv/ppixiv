@@ -2063,6 +2063,22 @@ ppixiv.key_storage = class
         return transaction.objectStore(this.store_name);
     }
 
+    static await_request(request)
+    {
+        return new Promise((resolve, reject) => {
+            let abort = new AbortController;
+            request.addEventListener("success", (e) => {
+                abort.abort();
+                resolve(request.result);
+            }, { signal: abort.signal });
+
+            request.addEventListener("error", (e) => {
+                abort.abort();
+                reject(request.result);
+            }, { signal: abort.signal });
+        });        
+    }
+
     static async_store_get(store, key)
     {
         return new Promise((resolve, reject) => {
@@ -2108,59 +2124,48 @@ ppixiv.key_storage = class
         });
     }
 
-    // Internal helper: batch set all keys[n] to values[n].
-    static async_store_multi_set(store, keys, values)
-    {
-        if(keys.length != values.length)
-            throw "key and value arrays have different lengths";
-
-        return new Promise((resolve, reject) => {
-            // Only wait for onsuccess on the final put, for performance.
-            for(let i = 0; i < keys.length; ++i)
-            {
-                var request = store.put(values[i], keys[i]);
-                request.onerror = reject;
-                if(i == keys.length - 1)
-                    request.onsuccess = resolve;
-            }
-        });
-    }
-
     // Given a dictionary, set all key/value pairs.
     async multi_set(data)
     {
         return await this.db_op(async (db) => {
             let store = this.get_store(db);
 
-            let keys = Object.keys(data);
-            let values = [];
-            for(let key of keys)
-                values.push(data[key]);
-
-            await key_storage.async_store_multi_set(store, keys, values);
-        });
-    }
-
-    static async_multi_delete(store, keys)
-    {
-        return new Promise((resolve, reject) => {
-            // Only wait for onsuccess on the final put, for performance.
-            for(let i = 0; i < keys.length; ++i)
+            let promises = [];
+            for(let [key, value] of Object.entries(data))
             {
-                var request = store.delete(keys[i]);
-                request.onerror = reject;
-                if(i == keys.length - 1)
-                    request.onsuccess = resolve;
+                let request = store.put(value, key);
+                promises.push(key_storage.await_request(request));
             }
+            await Promise.all(promises);
         });
     }
-    
+
+    async multi_set_values(data)
+    {
+        return await this.db_op(async (db) => {
+            let store = this.get_store(db);
+            let promises = [];
+            for(let item of data)
+            {
+                let request = store.put(item);
+                promises.push(key_storage.await_request(request));
+            }
+            return Promise.all(promises);
+        });
+    }
+
     // Delete a list of keys.
     async multi_delete(keys)
     {
         return await this.db_op(async (db) => {
             let store = this.get_store(db);
-            await key_storage.async_multi_delete(store, keys);
+            let promises = [];
+            for(let key of keys)
+            {
+                let request = store.delete(key);
+                promises.push(key_storage.await_request(request));
+            }
+            return Promise.all(promises);
         });
     }
 
@@ -2571,4 +2576,186 @@ ppixiv.SentinelGuard = function(func, self)
     wrapped.abort = abort;
 
     return wrapped;
+};
+
+// Try to guess the full URL for an image from its preview image and user ID.
+//
+// The most annoying thing about Pixiv's API is that thumbnail info doesn't include
+// image URLs.  This means you have to wait for image data to load before you can
+// start loading the image at all, and the API call to get image data often takes
+// as long as the image load itself.  This makes loading images take much longer
+// than it needs to.
+//
+// We can mostly guess the image URL from the thumbnail URL, but we don't know the
+// extension.  Try to guess.  Keep track of which formats we've seen from each user
+// as we see them.  If we've seen a few posts from a user and they have a consistent
+// file type, guess that the user always uses that format.
+//
+// This tries to let us start loading images earlier, without causing a ton of 404s
+// from wrong guesses.
+ppixiv.guess_image_url = class
+{
+    static _singleton = null;
+    static get get()
+    {
+        if(!this._singleton)
+            this._singleton = new this();
+        return this._singleton;
+    }
+
+    constructor()
+    {
+        this.db = new key_storage("ppixiv-file-types", { db_upgrade: this.db_upgrade });
+    }
+
+    db_upgrade = (e) =>
+    {
+        let db = e.target.result;
+        let store = db.createObjectStore("ppixiv-file-types", {
+            keyPath: "illust_id_and_page",
+        });
+
+        // This index lets us look up the number of entries for a given user and filetype
+        // quickly.
+        //
+        // page is included in this so we can limit the search to just page 1.  This is so
+        // a single 100-page post doesn't overwhelm every other post a user makes: we only
+        // use page 1 when guessing a user's preferred file type.
+        store.createIndex("user_id_and_filetype", ["user_id", "page", "ext"]);
+    }
+
+    // Use the illust ID and page together as the primary key.
+    get_key(illust_id, page)
+    {
+        return `${illust_id}_${page}`;
+    }
+
+    // Store info about an image that we've loaded data for.
+    add_info(image_info)
+    {
+        let illust_id = image_info.id;
+
+        // Store one record per page.
+        let pages = [];
+        for(let page = 0; page < image_info.pageCount; ++page)
+        {
+            let url = image_info.mangaPages[page].urls.original;
+            let parts = url.split(".");
+            let ext = parts[parts.length-1];
+    
+            pages.push({
+                illust_id_and_page: this.get_key(illust_id, page),
+                illust_id: illust_id,
+                page: page,
+                user_id: image_info.userId,
+                url: url,
+                ext: ext,
+            });
+        }
+
+        // We don't need to wait for this to finish, but return the promise in case
+        // the caller wants to.
+        return this.db.multi_set_values(pages);
+    }
+
+    // Return the number of images by the given user that have the given file type,
+    // eg. "jpg".
+    //
+    // We have a dedicated index for this, so retrieving the count is fast.
+    async get_filetype_count_for_user(store, user_id, filetype)
+    {
+        let index = store.index("user_id_and_filetype");
+        let query = IDBKeyRange.only([user_id, 0 /* page */, filetype]);
+        return await key_storage.await_request(index.count(query));
+    }
+
+    // Try to guess the user's preferred file type.  Returns "jpg", "png" or null.
+    guess_filetype_for_user_id(user_id)
+    {
+        return this.db.db_op(async (db) => {
+            let store = this.db.get_store(db);
+
+            // Get the number of posts by this user with both file types.
+            let jpg = await this.get_filetype_count_for_user(store, user_id, "jpg");
+            let png = await this.get_filetype_count_for_user(store, user_id, "png");
+
+            // Wait until we've seen a few images from this user before we start guessing.
+            if(jpg+png < 3)
+                return null;
+
+            // If a user's posts are at least 90% one file type, use that type.
+            let jpg_fraction = jpg / (jpg+png);
+            if(jpg_fraction > 0.9)
+            {
+                console.debug(`User ${user_id} posts mostly JPEGs`);
+                return "jpg";
+            }
+            else if(jpg_fraction < 0.1)
+            {
+                console.debug(`User ${user_id} posts mostly PNGs`);
+                return "png";
+            }
+            else
+            {
+                console.debug(`Not guessing file types for ${user_id} due to too much variance`);
+                return null;
+            }
+        });
+    }
+
+    async get_stored_record(illust_id, page)
+    {
+        return this.db.db_op(async (db) => {
+            let key = this.get_key(illust_id, page);
+            let store = this.db.get_store(db);
+            let record = await key_storage.async_store_get(store, key);
+            if(record == null)
+                return null;
+            else
+                return record.url;
+        });
+    }
+
+    async guess_url(illust_id, page)
+    {
+        // If we already have illust info, use it.
+        let illust_info = image_data.singleton().get_image_info_sync(illust_id);
+        if(illust_info != null)
+            return illust_info.mangaPages[page].urls.original;
+
+        // If we've stored this URL, use it.
+        let stored_url = await this.get_stored_record(illust_id, page);
+        if(stored_url != null)
+            return stored_url;
+        
+        // Get thumbnail data.  We need the thumbnail URL to figure out the image URL.
+        let thumb = thumbnail_data.singleton().get_one_thumbnail_info(illust_id);
+        if(thumb == null)
+            return null;
+
+        // Try to make a guess at the file type.
+        let guessed_filetype = await this.guess_filetype_for_user_id(thumb.userId);
+        if(guessed_filetype == null)
+            return null;
+    
+        // Convert the thumbnail URL to the equivalent original URL:
+        // https://i.pximg.net             /img-original/img/2021/01/01/01/00/02/12345678_p0.jpg
+        // https://i.pximg.net/c/540x540_70  /img-master/img/2021/01/01/01/00/02/12345678_p0_master1200.jpg      
+        let url = thumb.previewUrls[page];
+        url = url.replace("/c/540x540_70/", "/");
+        url = url.replace("/img-master/", "/img-original/");
+        url = url.replace("_master1200.", ".");
+        url = url.replace(/jpg$/, guessed_filetype);
+        return url;
+    }
+
+    // This is called if a guessed preload fails to load.  This either means we
+    // guessed wrong, or if we came from a cached URL in the database, that the
+    // user reuploaded the image with a different file type.
+    async guessed_url_incorrect(illust_id, page)
+    {
+        // If this was a stored URL, remove it from the database.
+        let key = this.get_key(illust_id, page);
+        await this.db.multi_delete([key]);
+    }
 };

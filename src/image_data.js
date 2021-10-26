@@ -207,6 +207,8 @@ ppixiv.image_data = class
             }];
         }
 
+        guess_image_url.get.add_info(illust_data);
+
         // Store the image data.
         this.image_data[illust_id] = illust_data;
         return illust_data;

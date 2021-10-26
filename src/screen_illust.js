@@ -376,6 +376,10 @@ ppixiv.screen_illust = class extends ppixiv.screen
         this.wanted_illust_page = 0;
         this.current_illust_id = -1;
         this.refresh_ui();
+
+        // Tell the preloader that we're not displaying an image anymore.
+        image_preloader.singleton.set_current_image(null, null);
+        image_preloader.singleton.set_speculative_image(null, null);
     }
 
     data_source_updated()
