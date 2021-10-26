@@ -166,6 +166,11 @@ ppixiv.image_data = class
             illust_data.previewUrls.push(url);
         }
 
+        // Add a flattened tag list.
+        illust_data.tagList = [];
+        for(let tag of illust_data.tags.tags)
+            illust_data.tagList.push(tag.tag);
+
         // If we're loading image info, we're almost definitely going to load the avatar, so
         // start preloading it now.
         let user_info = await user_info_promise;
@@ -442,8 +447,7 @@ ppixiv.image_data = class
         "width": "width",
         "height": "height",
         "createDate": "createDate",
-        // This is handled separately.
-        // "tags": "tags",
+        "tagList": "tagList",
     };
     illust_info_early_illust_data_keys = {
         "id": "id",
@@ -459,7 +463,7 @@ ppixiv.image_data = class
         "width": "width",
         "height": "height",
         "createDate": "createDate",
-        // "tags": "tags",
+        "tagList": "tagList",
     };
     
     // Get illustration info that can be retrieved from both 
@@ -474,7 +478,6 @@ ppixiv.image_data = class
         if(data)
         {
             keys = this.thumbnail_info_early_illust_data_keys;
-            result.tags = data.tags;
         }
         else
         {
@@ -483,10 +486,6 @@ ppixiv.image_data = class
                 return null;
 
             keys = this.illust_info_early_illust_data_keys;
-
-            result.tags = [];
-            for(let tag of data.tags.tags)
-                result.tags.push(tag.tag);
         }
 
         // Remap whichever data type we got.
@@ -538,21 +537,5 @@ ppixiv.image_data = class
     // Remember when we've liked an image recently, so we don't spam API requests.
     get_liked_recently(illust_id) { return this.recent_likes[illust_id]; }
     add_liked_recently(illust_id) { this.recent_likes[illust_id] = true; }
-
-    // Convert a verbose tag list from illust info:
-    //
-    // illust_info.tags = { tags: [{tag: "tag1"}, {tag: "tag2"}] };
-    //
-    // to a simple array of tag names, which is what we get in thumbnail data and
-    // the format we use in early illust info.
-    static from_tag_list(tags)
-    {
-        let result = [];
-        for(let tag of tags.tags)
-        {
-            result.push(tag.tag);
-        }
-        return result;
-    }
 }
 

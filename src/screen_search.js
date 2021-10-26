@@ -1062,7 +1062,7 @@ ppixiv.screen_search = class extends ppixiv.screen
             var thumb = element.querySelector(".thumb");
 
             // Check if this illustration is muted (blocked).
-            var muted_tag = muting.singleton.any_tag_muted(info.tags);
+            var muted_tag = muting.singleton.any_tag_muted(info.tagList);
             var muted_user = muting.singleton.is_muted_user_id(info.userId);
             if(muted_tag || muted_user)
             {

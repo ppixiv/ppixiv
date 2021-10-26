@@ -2673,9 +2673,7 @@ ppixiv.data_sources.search = class extends data_source
         // future pages, so the tags don't keep changing as you scroll around.
         if(this.related_tags == null)
         {
-            this.related_tags = [];
-            for(let tag of body.relatedTags)
-                this.related_tags.push({tag: tag});
+            this.related_tags = body.relatedTags;
             this.call_update_listeners();
         }
 
@@ -2781,11 +2779,7 @@ ppixiv.data_sources.search = class extends data_source
     refresh_thumbnail_ui(container, thumbnail_view)
     {
         if(this.related_tags)
-        {
-            thumbnail_view.tag_widget.set({
-                tags: this.related_tags
-            });
-        }
+            thumbnail_view.tag_widget.set(this.related_tags);
 
         this.set_item(container, "ages-all", {mode: null});
         this.set_item(container, "ages-safe", {mode: "safe"});

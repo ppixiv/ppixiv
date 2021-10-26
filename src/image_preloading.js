@@ -280,7 +280,7 @@ ppixiv.image_preloader = class
     create_preloaders_for_illust(illust_data, page)
     {
         // Don't precache muted images.
-        if(muting.singleton.any_tag_muted(illust_data.tags.tags))
+        if(muting.singleton.any_tag_muted(illust_data.tagList))
             return [];
         if(muting.singleton.is_muted_user_id(illust_data.userId))
             return [];

@@ -114,7 +114,7 @@ ppixiv.screen_manga = class extends ppixiv.screen
 
     should_hide_muted_image()
     {
-        let muted_tag = muting.singleton.any_tag_muted(image_data.from_tag_list(this.illust_info.tags));
+        let muted_tag = muting.singleton.any_tag_muted(this.illust_info.tagList);
         let muted_user = muting.singleton.is_muted_user_id(this.illust_info.userId);
         if(this.view_muted || (!muted_tag && !muted_user))
             return { is_muted: false };

@@ -146,7 +146,7 @@ ppixiv.image_ui = class extends ppixiv.widget
         this.container.querySelector(".edit-post").href = "/member_illust_mod.php?mode=mod&illust_id=" + illust_id;
 
         this.avatar_widget.set_user_id(user_id);
-        this.tag_widget.set(illust_data.tags);
+        this.tag_widget.set(illust_data.tagList);
 
         var element_title = this.container.querySelector(".title");
         element_title.textContent = illust_data.illustTitle;

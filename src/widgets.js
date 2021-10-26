@@ -609,10 +609,6 @@ ppixiv.tag_widget = class
     async set(tags)
     {
         this.tags = tags;
-
-        // Register any tag translations.  Not all sources will have this.
-        tag_translations.get().add_translations(this.tags.tags);
-
         this.refresh();
     }
 
@@ -622,9 +618,7 @@ ppixiv.tag_widget = class
             return;
 
         // Look up tag translations.
-        let tag_list = [];
-        for(let tag of this.tags.tags)
-            tag_list.push(tag.tag);
+        let tag_list = this.tags;
         let translated_tags = await tag_translations.get().get_translations(tag_list, "en");
         
         // Remove any old tag list and create a new one.

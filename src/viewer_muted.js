@@ -35,7 +35,7 @@ ppixiv.viewer_muted = class extends ppixiv.viewer
         var img = this.root.querySelector(".muted-image");
         img.src = user_info.imageBig;
 
-        let muted_tag = muting.singleton.any_tag_muted(this.illust_data.tags.tags);
+        let muted_tag = muting.singleton.any_tag_muted(this.illust_data.tagList);
         let muted_user = muting.singleton.is_muted_user_id(this.illust_data.userId);
 
         let muted_label = this.root.querySelector(".muted-label");

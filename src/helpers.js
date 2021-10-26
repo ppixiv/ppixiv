@@ -997,25 +997,10 @@ ppixiv.helpers = {
         return eval(init_script);
     },
 
-    get_tags_from_illust_data(illust_data)
-    {
-        // illust_data might contain a list of dictionaries (data.tags.tags[].tag), or
-        // a simple list (data.tags[]), depending on the source.
-        if(illust_data.tags.tags == null)
-            return illust_data.tags;
-
-        var result = [];
-        for(var tag_data of illust_data.tags.tags)
-            result.push(tag_data.tag);
-            
-        return result;
-    },
-
     // Return true if the given illust_data.tags contains the pixel art (ドット絵) tag.
     tags_contain_dot(illust_data)
     {
-        var tags = helpers.get_tags_from_illust_data(illust_data);
-        for(var tag of tags)
+        for(let tag of illust_data.tagList)
             if(tag.indexOf("ドット") != -1)
                 return true;
 

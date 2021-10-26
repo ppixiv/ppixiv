@@ -303,7 +303,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
 
     should_hide_muted_image(early_illust_data)
     {
-        let muted_tag = muting.singleton.any_tag_muted(early_illust_data.tags);
+        let muted_tag = muting.singleton.any_tag_muted(early_illust_data.tagList);
         let muted_user = muting.singleton.is_muted_user_id(early_illust_data.userId);
         if(this.view_muted || (!muted_tag && !muted_user))
             return { is_muted: false };

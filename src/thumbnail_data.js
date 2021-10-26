@@ -344,6 +344,10 @@ ppixiv.thumbnail_data = class
                 remapped_thumb_info.previewUrls.push(url);
             }
 
+            // Rename .tags to .tagList, for consistency with the flat tag list in illust info.
+            remapped_thumb_info.tagList = remapped_thumb_info.tags;
+            delete remapped_thumb_info.tags;
+
             thumb_info = remapped_thumb_info;
 
             // Store the data.
