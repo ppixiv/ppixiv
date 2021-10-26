@@ -433,38 +433,21 @@ ppixiv.image_data = class
         this.call_illust_modified_callbacks(illust_id);
     }
 
-    thumbnail_info_early_illust_data_keys = {
-        "id": "id",
-        "illustType": "illustType",
-        "illustTitle": "illustTitle",
-        "pageCount": "pageCount",
-        "userId": "userId",
-        "userName": "userName",
-        "width": "width",
-        "height": "height",
-        "previewUrls": "previewUrls",
-        "bookmarkData": "bookmarkData",
-        "createDate": "createDate",
-        "tagList": "tagList",
-        "profileImageUrl": "profileImageUrl",
-    };
-    illust_info_early_illust_data_keys = {
-        "id": "id",
-        "illustType": "illustType",
-        "illustTitle": "illustTitle",
-        "pageCount": "pageCount",
-        "userId": "userId",
-        "userName": "userName",
-        "width": "width",
-        "height": "height",
-        "previewUrls": "previewUrls",
-        "bookmarkData": "bookmarkData",
-        "width": "width",
-        "height": "height",
-        "createDate": "createDate",
-        "tagList": "tagList",
-        "profileImageUrl": "profileImageUrl",
-    };
+    thumbnail_info_keys = [
+        "id",
+        "illustType",
+        "illustTitle",
+        "pageCount",
+        "userId",
+        "userName",
+        "width",
+        "height",
+        "previewUrls",
+        "bookmarkData",
+        "createDate",
+        "tagList",
+        "profileImageUrl",
+    ];
     
     // Get illustration info that can be retrieved from both 
     // Get the info we need to set up an image display.  We can do this from thumbnail info
@@ -472,36 +455,25 @@ ppixiv.image_data = class
     // need to load the data.
     async get_early_illust_data(illust_id)
     {
-        let keys = null;
         let data = thumbnail_data.singleton().get_one_thumbnail_info(illust_id);
-        let result = { };
-        if(data)
-        {
-            keys = this.thumbnail_info_early_illust_data_keys;
-        }
-        else
+        if(data == null)
         {
             data = await image_data.singleton().get_image_info(illust_id);
             if(data == null)
                 return null;
-
-            keys = this.illust_info_early_illust_data_keys;
         }
 
-        // Remap whichever data type we got.
-        for(let from_key in keys)
+        // Verify whichever data type we got.
+        for(let key of this.thumbnail_info_keys)
         {
-            let to_key = keys[from_key];
-            if(!(from_key in data))
+            if(!(key in data))
             {
-                console.warn(`Missing key ${from_key} for early data`, data);
+                console.warn(`Missing key ${key} for early data`, data);
                 continue;
             }
-
-            result[to_key] = data[from_key];
         }
 
-        return result;
+        return data;
     }
 
     // Update early illust data.
@@ -511,25 +483,23 @@ ppixiv.image_data = class
     update_early_illust_data(illust_id, data)
     {
         let update_data = (update, keys) => {
-            for(let from_key in keys)
+            for(let key in keys)
             {
-                let to_key = keys[from_key];
-                if(!(from_key in data))
+                if(!(key in data))
                     continue;
 
-                console.assert(from_key != "tags");
-                update[to_key] = data[from_key];
+                console.assert(key != "tags");
+                update[key] = data[key];
             }
         };
 
         let thumb_data = thumbnail_data.singleton().get_one_thumbnail_info(illust_id);
-        let tags = null;
         if(thumb_data)
-            update_data(thumb_data, this.thumbnail_info_early_illust_data_keys);
+            update_data(thumb_data, this.thumbnail_info_keys);
 
         let illust_info = image_data.singleton().get_image_info_sync(illust_id);
         if(illust_info != null)
-            update_data(illust_info, this.illust_info_early_illust_data_keys);
+            update_data(illust_info, this.thumbnail_info_keys);
 
         this.call_illust_modified_callbacks(illust_id);
     }
