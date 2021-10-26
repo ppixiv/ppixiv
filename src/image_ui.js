@@ -105,40 +105,41 @@ ppixiv.image_ui = class extends ppixiv.widget
         this._illust_id = illust_id;
         this.illust_data = null;
 
-        this.like_button.illust_id = illust_id;
-        this.bookmark_tag_widget.illust_id = illust_id;
-        this.toggle_tag_widget.illust_id = illust_id;
-        for(let button of this.bookmark_buttons)
-            button.illust_id = illust_id;
-        
-        if(illust_id == null)
-        {
-            this.refresh();
-            return;
-        }
-
-        image_data.singleton().get_image_info(illust_id).then((illust_info) => {
-            if(illust_info.illustId != this._illust_id)
-                return;
-    
-            this.illust_data = illust_info;
-            this.refresh();
-        });
+        this.refresh();
     }
 
     handle_onkeydown(e)
     {
     }
 
-    refresh()
+    async refresh()
     {
-        if(this.illust_data == null || !this._visible)
+        // Don't do anything if we're not visible.
+        if(!this._visible)
             return;
 
-        var illust_data = this.illust_data;
-        var illust_id = illust_data.illustId;
-        let user_id = illust_data.userId;
-        
+        // Update widget illust IDs.
+        this.like_button.illust_id = this._illust_id;
+        this.bookmark_tag_widget.illust_id = this._illust_id;
+        this.toggle_tag_widget.illust_id = this._illust_id;
+        for(let button of this.bookmark_buttons)
+            button.illust_id = this._illust_id;
+    
+        this.illust_data = null;
+        if(this._illust_id == null)
+            return;
+
+        // We need image info to update.
+        let illust_id = this._illust_id;
+        let illust_info = await image_data.singleton().get_image_info(illust_id);
+
+        // Check if anything changed while we were loading.
+        if(illust_info == null || illust_id != this._illust_id || !this._visible)
+            return;
+
+        this.illust_data = illust_info;
+        let user_id = illust_info.userId;
+
         // Show the author if it's someone else's post, or the edit link if it's ours.
         var our_post = global_data.user_id == user_id;
         this.container.querySelector(".author-block").hidden = our_post;
@@ -146,14 +147,14 @@ ppixiv.image_ui = class extends ppixiv.widget
         this.container.querySelector(".edit-post").href = "/member_illust_mod.php?mode=mod&illust_id=" + illust_id;
 
         this.avatar_widget.set_user_id(user_id);
-        this.tag_widget.set(illust_data.tagList);
+        this.tag_widget.set(illust_info.tagList);
 
         var element_title = this.container.querySelector(".title");
-        element_title.textContent = illust_data.illustTitle;
+        element_title.textContent = illust_info.illustTitle;
         element_title.href = "/artworks/" + illust_id + "#ppixiv";
 
         var element_author = this.container.querySelector(".author");
-        element_author.textContent = illust_data.userName;
+        element_author.textContent = illust_info.userName;
         element_author.href = `/users/${user_id}#ppixiv`;
         
         this.container.querySelector(".similar-illusts-button").href = "/bookmark_detail.php?illust_id=" + illust_id + "#ppixiv?recommendations=1";
@@ -165,23 +166,20 @@ ppixiv.image_ui = class extends ppixiv.widget
 
         // The comment (description) can contain HTML.
         var element_comment = this.container.querySelector(".description");
-        element_comment.hidden = illust_data.illustComment == "";
-        element_comment.innerHTML = illust_data.illustComment;
+        element_comment.hidden = illust_info.illustComment == "";
+        element_comment.innerHTML = illust_info.illustComment;
         helpers.fix_pixiv_links(element_comment);
         helpers.make_pixiv_links_internal(element_comment);
 
         // Set the download button popup text.
-        if(this.illust_data != null)
-        {
-            let download_image_button = this.container.querySelector(".download-image-button");
-            download_image_button.hidden = !actions.is_download_type_available("image", this.illust_data);
+        let download_image_button = this.container.querySelector(".download-image-button");
+        download_image_button.hidden = !actions.is_download_type_available("image", illust_info);
 
-            let download_manga_button = this.container.querySelector(".download-manga-button");
-            download_manga_button.hidden = !actions.is_download_type_available("ZIP", this.illust_data);
+        let download_manga_button = this.container.querySelector(".download-manga-button");
+        download_manga_button.hidden = !actions.is_download_type_available("ZIP", illust_info);
 
-            let download_video_button = this.container.querySelector(".download-video-button");
-            download_video_button.hidden = !actions.is_download_type_available("MKV", this.illust_data);
-        }
+        let download_video_button = this.container.querySelector(".download-video-button");
+        download_video_button.hidden = !actions.is_download_type_available("MKV", illust_info);
 
         // Set the popup for the thumbnails button.
         var navigate_out_label = main_controller.singleton.navigate_out_label;
