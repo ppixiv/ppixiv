@@ -1728,6 +1728,53 @@ ppixiv.helpers = {
             [array[idx], array[swap_with]] = [array[swap_with], array[idx]];
         }
     },
+
+    // Given a low-res thumbnail URL from thumbnail data, return a high-res thumbnail URL.
+    // If page isn't 0, return a URL for the given manga page.
+    get_high_res_thumbnail_url(url, page=0)
+    {
+        // Some random results on the user recommendations page also return this:
+        //
+        // /c/540x540_70/custom-thumb/img/.../12345678_custom1200.jpg
+        //
+        // Replace /custom-thumb/' with /img-master/ first, since it makes matching below simpler.
+        url = url.replace("/custom-thumb/", "/img-master/");
+
+        // path should look like
+        //
+        // /c/250x250_80_a2/img-master/img/.../12345678_square1200.jpg
+        //
+        // where 250x250_80_a2 is the resolution and probably JPEG quality.  We want
+        // the higher-res thumbnail (which is "small" in the full image data), which
+        // looks like:
+        //
+        // /c/540x540_70/img-master/img/.../12345678_master1200.jpg
+        //
+        // The resolution field is changed, and "square1200" is changed to "master1200".
+        var url = new URL(url, ppixiv.location);
+        var path = url.pathname;
+        var re = /(\/c\/)([^\/]+)(.*)(square1200|master1200|custom1200).jpg/;
+        var match = re.exec(path);
+        if(match == null)
+        {
+            console.warn("Couldn't parse thumbnail URL:", path);
+            return url.toString();
+        }
+
+        url.pathname = match[1] + "540x540_70" + match[3] + "master1200.jpg";
+
+        if(page != 0)
+        {
+            // Manga URLs end with:
+            //
+            // /c/540x540_70/custom-thumb/img/.../12345678_p0_master1200.jpg
+            //
+            // p0 is the page number.
+            url.pathname = url.pathname.replace("_p0_master1200", "_p" + page + "_master1200");
+        }
+
+        return url.toString();
+    },
 };
 
 // Handle maintaining and calling a list of callbacks.
