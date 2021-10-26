@@ -39,17 +39,12 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         // Stop if we were removed before the request finished.
         signal.check();
        
-        // Early data only gives us the image dimensions for page 1, which we'll include.
-        // The rest set width and height to null, which will tell on_click_viewer to
-        // get it from the images.
+        // Early data only gives us the image dimensions for page 1.
         this.images = [{
             preview_url: early_illust_data.previewUrls[0],
             width: early_illust_data.width,
             height: early_illust_data.height,
         }];
-
-        for(let manga_page of early_illust_data.previewUrls.slice(1))
-            this.images.push({ preview_url: manga_page });
 
         this.refresh();
         
@@ -118,7 +113,8 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         let current_image = this.images[this._page];
         if(current_image == null)
         {
-            console.error(`No info for page ${this._page} yet`);
+            console.log(`No info for page ${this._page} yet`);
+            this.on_click_viewer.set_new_image(null, null);
             return;
         }
 
