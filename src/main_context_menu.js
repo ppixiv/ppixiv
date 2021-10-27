@@ -91,13 +91,8 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
         this.onkeyevent = this.onkeyevent.bind(this);
         this.hide = this.hide.bind(this);
         this.cancel_event = this.cancel_event.bind(this);
-        this.onmousemove = this.onmousemove.bind(this);
 
         this.visible = false;
-
-        // We can't tell where the mouse is until it moves due to half-baked web APIs, so pretend
-        // the mouse is in the center of the window.
-        this.latest_mouse_pos = [window.innerWidth/2, window.innerHeight/2];
 
         new ppixiv.pointer_listener({
             element: window,
@@ -108,7 +103,6 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
         
         window.addEventListener("keydown", this.onkeyevent);
         window.addEventListener("keyup", this.onkeyevent);
-        window.addEventListener("mousemove", this.onmousemove, { passive: true });
 
         // Create the menu.  The caller will attach event listeners for clicks.
         this.menu = helpers.create_from_template(".template-context-menu");
@@ -200,13 +194,6 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
         return settings.get("touchpad-mode", false);
     }
 
-    onmousemove(e)
-    {
-        // Store the mouse position, so we can tell where to open the context menu if it's opened
-        // with the keyboard.
-        this.latest_mouse_pos = [e.pageX, e.pageY];
-    }
-
     // The subclass can override this to handle key events.  This is called whether the menu
     // is open or not.
     handle_key_event(e) { return false; }
@@ -241,8 +228,8 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
 
             if(down)
             {
-                let x = this.latest_mouse_pos[0];
-                let y = this.latest_mouse_pos[1];
+                let x = pointer_listener.latest_mouse_position[0];
+                let y = pointer_listener.latest_mouse_position[1];
                 let node = document.elementFromPoint(x, y);
                 this.show(x, y, node);
             } else {
