@@ -29,7 +29,7 @@ class illust_id_list
     {
         // Make a list of all IDs we already have.
         let all_ids = [];
-        for(let [page, ids] in this.illust_ids_by_page)
+        for(let [page, ids] of this.illust_ids_by_page)
             all_ids = all_ids.concat(ids);
         return all_ids;
     }
