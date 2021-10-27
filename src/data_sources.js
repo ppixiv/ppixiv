@@ -3220,7 +3220,7 @@ ppixiv.data_sources.recent = class extends data_source
         // expired before this page was viewed.  Don't add illust IDs that we don't have
         // thumbnail data for.
         let thumbs = await ppixiv.recently_seen_illusts.get().get_thumbnail_info(illust_ids);
-        thumbnail_data.singleton().loaded_thumbnail_info(thumbs, "normal");
+        thumbnail_data.singleton().loaded_thumbnail_info(thumbs, "internal");
 
         for(let thumb of thumbs)
             found_illust_ids.push(thumb.id);

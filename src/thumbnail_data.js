@@ -333,33 +333,41 @@ ppixiv.thumbnail_data = class
                     remapped_thumb_info.createDate = new Date(0).toISOString();
                 }
             }
+            else if(source == "internal")
+            {
+                remapped_thumb_info = thumb_info;
+            }
             else
                 throw "Unrecognized source: " + source;
 
-            // These fields are strings in some sources.  Switch them to ints.
-            for(let key of ["pageCount", "width", "height"])
+            // "internal" is for thumbnail data which is already processed.
+            if(source != "internal")
             {
-                if(remapped_thumb_info[key] != null)
-                    remapped_thumb_info[key] = parseInt(remapped_thumb_info[key]);
-            }
+                // These fields are strings in some sources.  Switch them to ints.
+                for(let key of ["pageCount", "width", "height"])
+                {
+                    if(remapped_thumb_info[key] != null)
+                        remapped_thumb_info[key] = parseInt(remapped_thumb_info[key]);
+                }
 
-            // Different APIs return different thumbnail URLs.
-            remapped_thumb_info.url = helpers.get_high_res_thumbnail_url(remapped_thumb_info.url);
+                // Different APIs return different thumbnail URLs.
+                remapped_thumb_info.url = helpers.get_high_res_thumbnail_url(remapped_thumb_info.url);
             
-            // Create a list of thumbnail URLs.
-            remapped_thumb_info.previewUrls = [];
-            for(let page = 0; page < remapped_thumb_info.pageCount; ++page)
-            {
-                let url = helpers.get_high_res_thumbnail_url(remapped_thumb_info.url, page);
-                remapped_thumb_info.previewUrls.push(url);
+                // Create a list of thumbnail URLs.
+                remapped_thumb_info.previewUrls = [];
+                for(let page = 0; page < remapped_thumb_info.pageCount; ++page)
+                {
+                    let url = helpers.get_high_res_thumbnail_url(remapped_thumb_info.url, page);
+                    remapped_thumb_info.previewUrls.push(url);
+                }
+
+                // Remove url.  Use previewUrl[0] instead
+                delete remapped_thumb_info.url;
+
+                // Rename .tags to .tagList, for consistency with the flat tag list in illust info.
+                remapped_thumb_info.tagList = remapped_thumb_info.tags;
+                delete remapped_thumb_info.tags;
             }
-
-            // Remove url.  Use previewUrl[0] instead
-            delete remapped_thumb_info.url;
-
-            // Rename .tags to .tagList, for consistency with the flat tag list in illust info.
-            remapped_thumb_info.tagList = remapped_thumb_info.tags;
-            delete remapped_thumb_info.tags;
 
             thumb_info = remapped_thumb_info;
 
@@ -373,10 +381,13 @@ ppixiv.thumbnail_data = class
             // info but not illust info.  We want a single basic data set for both, so that can't include
             // the profile picture.  But, we do want to display it in places where we can't get user
             // info (muted search results), so store it separately.
-            let profile_image_url = thumb_info.profileImageUrl;
-            profile_image_url = profile_image_url.replace("_50.", "_170."),
-            this.user_profile_urls[thumb_info.userId] = profile_image_url;
-            delete thumb_info.profileImageUrl;
+            if(thumb_info.profileImageUrl)
+            {
+                let profile_image_url = thumb_info.profileImageUrl;
+                profile_image_url = profile_image_url.replace("_50.", "_170."),
+                this.user_profile_urls[thumb_info.userId] = profile_image_url;
+                delete thumb_info.profileImageUrl;
+            }
         }
 
         // Broadcast that we have new thumbnail data available.
