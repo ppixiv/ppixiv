@@ -2063,7 +2063,7 @@ class data_source_bookmarks_base extends data_source
             if(tag_name == null)
                 tag_name = "All";
             else if(tag_name == "")
-                tag_name = "Uncategorized";
+                tag_name = "Untagged";
             a.innerText = tag_name;
 
             // Show the bookmark count in the popup.
@@ -3016,7 +3016,7 @@ ppixiv.data_sources.follows = class extends data_source
 
             let url = new URL(this.url);
             url.searchParams.delete("p");
-            if(tag == "Uncategorized")
+            if(tag == "Untagged")
                 url.searchParams.set("untagged", 1);
             else
                 url.searchParams.delete("untagged", 1);
