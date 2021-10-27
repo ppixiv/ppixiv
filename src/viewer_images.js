@@ -157,7 +157,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         case 36: // home
             e.stopPropagation();
             e.preventDefault();
-            main_controller.singleton.show_illust(this.illust_data.id, {
+            main_controller.singleton.show_illust(this.illust_id, {
                 page: 0,
             });
             return;
@@ -165,8 +165,8 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         case 35: // end
             e.stopPropagation();
             e.preventDefault();
-            main_controller.singleton.show_illust(this.illust_data.id, {
-                page: this.illust_data.pageCount - 1,
+            main_controller.singleton.show_illust(this.illust_id, {
+                page: -1,
             });
             return;
         }
