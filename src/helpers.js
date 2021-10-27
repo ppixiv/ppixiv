@@ -824,6 +824,12 @@ ppixiv.helpers = {
                 return;
             }
 
+            // We use i-cf for image URLs, but we don't currently have this in @connect,
+            // so we can't use that here.  Switch from i-cf back to the original URLs.
+            url = new URL(url);
+            if(url.hostname == "i-cf.pximg.net")
+                url.hostname = "i.pximg.net";
+
             GM_xmlhttpRequest({
                 "method": "GET",
                 "url": url,
@@ -1761,6 +1767,12 @@ ppixiv.helpers = {
         }
     },
 
+    adjust_image_url_hostname(url)
+    {
+        if(url.hostname == "i.pximg.net")
+            url.hostname = "i-cf.pximg.net";
+    },
+
     // Given a low-res thumbnail URL from thumbnail data, return a high-res thumbnail URL.
     // If page isn't 0, return a URL for the given manga page.
     get_high_res_thumbnail_url(url, page=0)
@@ -1804,6 +1816,8 @@ ppixiv.helpers = {
             // p0 is the page number.
             url.pathname = url.pathname.replace("_p0_master1200", "_p" + page + "_master1200");
         }
+
+        this.adjust_image_url_hostname(url);
 
         return url.toString();
     },

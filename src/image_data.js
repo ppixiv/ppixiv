@@ -158,6 +158,14 @@ ppixiv.image_data = class
         // Now that we have illust data, load anything we weren't able to load before.
         start_loading(illust_data.userId, illust_data.illustType, illust_data.pageCount);
 
+        // Switch from i.pximg.net to i-cf.pximg.net, which is much faster outside of Japan.
+        for(let [key, url] of Object.entries(illust_data.urls))
+        {
+            url = new URL(url);
+            helpers.adjust_image_url_hostname(url);
+            illust_data.urls[key] = url.toString();
+        }
+
         // Add an array of thumbnail URLs.
         illust_data.previewUrls = [];
         for(let page = 0; page < illust_data.pageCount; ++page)
@@ -181,6 +189,16 @@ ppixiv.image_data = class
         {
             var manga_info = await manga_promise;
             illust_data.mangaPages = manga_info.body;
+
+            for(let page of illust_data.mangaPages)
+            {
+                for(let [key, url] of Object.entries(page.urls))
+                {
+                    url = new URL(url);
+                    helpers.adjust_image_url_hostname(url);
+                    page.urls[key] = url.toString();
+                }
+            }
         }
 
         if(ugoira_promise != null)
