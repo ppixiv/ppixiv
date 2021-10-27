@@ -484,12 +484,17 @@ ppixiv.thumbnail_data = class
     //
     // If it isn't available and we need to load it, we load illust info instead of thumbnail
     // data, since it takes a full API request either way.
-    async get_or_load_illust_data(illust_id)
+    //
+    // If load is false, return null if we have no data instead of loading it.
+    async get_or_load_illust_data(illust_id, load=true)
     {
         let data = thumbnail_data.singleton().get_one_thumbnail_info(illust_id);
         if(data == null)
         {
-            data = await image_data.singleton().get_image_info(illust_id);
+            if(load)
+                data = await image_data.singleton().get_image_info(illust_id);
+            else
+                data = image_data.singleton().get_image_info_sync(illust_id);
             if(data == null)
                 return null;
         }

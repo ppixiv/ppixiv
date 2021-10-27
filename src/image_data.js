@@ -427,6 +427,12 @@ ppixiv.image_data = class
 
     async load_bookmark_details(illust_id)
     {
+        // If we know the image isn't bookmarked, we know there are no bookmark tags, so
+        // we can skip this.
+        let thumb = await thumbnail_data.singleton().get_or_load_illust_data(illust_id, false /* don't load */);
+        if(thumb && thumb.bookmarkData == null)
+            return [];
+
         // Stop if this is already loaded.
         if(this.bookmarked_image_tags[illust_id])
             return this.bookmarked_image_tags[illust_id]; 
