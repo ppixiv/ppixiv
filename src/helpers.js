@@ -2459,33 +2459,43 @@ ppixiv.pointer_listener = class
         }
         
         this.element.addEventListener("pointerdown", this.onpointerevent, this.event_options);
-        this.element.addEventListener("pointerup", this.onpointerevent, this.event_options);
-        this.element.addEventListener("pointercancel", this.onpointerup, this.event_options);
     }
 
-    register_mousemove(enable)
+    // Register events that we only register while one or more buttons are pressed.
+    //
+    // We only register pointermove as needed, so we don't get called for every mouse
+    // movement, and we only register pointerup as needed so we don't register a ton
+    // of events on window.
+    register_events_while_pressed(enable)
     {
         if(this.pointermove_registered)
             return;
         this.pointermove_registered = true;
         this.element.addEventListener("pointermove", this.onpointermove, this.event_options);
+
+        // These need to go on window, so if a mouse button is pressed and that causes
+        // the element to be hidden, we still get the pointerup.
+        window.addEventListener("pointerup", this.onpointerevent, this.event_options);
+        window.addEventListener("pointercancel", this.onpointerup, this.event_options);
     }
 
-    unregister_mousemove(enable)
+    unregister_events_while_pressed(enable)
     {
         if(!this.pointermove_registered)
             return;
         this.pointermove_registered = false;
-        this.element.removeEventListener("pointermove", this.onpointermove, { ...this.event_options });
+        this.element.removeEventListener("pointermove", this.onpointermove, this.event_options);
+        window.removeEventListener("pointerup", this.onpointerevent, this.event_options);
+        window.removeEventListener("pointercancel", this.onpointerup, this.event_options);
     }
 
     button_changed(buttons, event)
     {
         // We need to register pointermove to see presses past the first.
         if(buttons)
-            this.register_mousemove();
+            this.register_events_while_pressed();
         else
-            this.unregister_mousemove();
+            this.unregister_events_while_pressed();
 
         let old_buttons_down = this.buttons_down;
         this.buttons_down = buttons;
@@ -2532,7 +2542,6 @@ ppixiv.pointer_listener = class
                 }
             }
         }
-
     }
 
     onpointerevent = (e) =>
