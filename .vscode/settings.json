@@ -4,5 +4,6 @@
         "chrome": true,
         "output": true,
         "unused": true
-    }
+    },
+    "scss.lint.emptyRules": "ignore"
 }
