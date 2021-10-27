@@ -2431,6 +2431,38 @@ ppixiv.history = new VirtualHistory;
 // event API this badly?
 ppixiv.pointer_listener = class
 {
+    // The global handler is used to track button presses and mouse movement globally,
+    // primarily to implement pointer_listener.check().
+
+    // The latest mouse position seen by install_global_handler.
+    static latest_mouse_position = [window.innerWidth/2, window.innerHeight/2];
+    static buttons = 0;
+    static button_pointer_ids = new Map();
+    static install_global_handler()
+    {
+        window.addEventListener("mousemove", (e) => {
+            pointer_listener.latest_mouse_position = [e.pageX, e.pageY];
+        }, { passive: true, capture: true });
+
+        new pointer_listener({
+            element: window,
+            button_mask: 0xFFFF, // everything
+            capture: true,
+            callback: (e) => {
+                if(e.pressed)
+                {
+                    pointer_listener.buttons |= 1 << e.mouseButton;
+                    pointer_listener.button_pointer_ids.set(e.mouseButton, e.pointerId);
+                }
+                else
+                {
+                    pointer_listener.buttons &= ~(1 << e.mouseButton);
+                    pointer_listener.button_pointer_ids.delete(e.mouseButton);
+                }
+            }
+        });
+    }
+
     // callback(event) will be called each time buttons change.  The event will be the event
     // that actually triggered the state change, and can be preventDefaulted, etc.
     //
@@ -2587,6 +2619,51 @@ ppixiv.pointer_listener = class
             // console.log("Releasing context menu after timer");
             this.blocking_context_menu_until_timer = false;
         }, 50);
+    }
+
+    // Check if any buttons are pressed that were missed while the element wasn't visible.
+    //
+    // This can be used if the element becomes visible, and we want to see any presses
+    // already happening that are over the element.
+    //
+    // This requires install_global_handler.
+    check()
+    {
+        // If no buttons are pressed that this listener cares about, stop.
+        if(!(this.button_mask & pointer_listener.buttons))
+            return;
+
+        // See if the cursor is over our element.
+        let node_under_cursor = document.elementFromPoint(pointer_listener.latest_mouse_position[0], pointer_listener.latest_mouse_position[1]);
+        if(node_under_cursor == null || !helpers.is_above(this.element, node_under_cursor))
+            return;
+
+        // Simulate a pointerdown on this element for each button that's down, so we can
+        // send the corresponding pointerId for each button.
+        for(let button = 0; button < 8; ++button)
+        {
+            // Skip this button if it's not down.
+            let mask = 1 << button;
+            if(!(mask & pointer_listener.buttons))
+                continue;
+
+            // Add this button's mask to the listener's last seen mask, so it only sees this
+            // button being added.  This way, each button event is sent with the correct
+            // pointerId.
+            let new_button_mask = this.buttons_down;
+            new_button_mask |= mask;
+            let e = new MouseEvent("simulatedpointerdown", {
+                buttons: pointer_listener.buttons,
+                currentTarget: node_under_cursor,
+                target: node_under_cursor,
+                pageX: pointer_listener.latest_mouse_position[0],
+                pageY: pointer_listener.latest_mouse_position[1],
+                timestamp: performance.now(),
+            });
+            e.pointerId = pointer_listener.button_pointer_ids.get(button);
+
+            this.button_changed(new_button_mask, e);
+        }
     }
 }
 

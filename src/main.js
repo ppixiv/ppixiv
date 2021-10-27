@@ -73,6 +73,9 @@ ppixiv.main_controller = class
         // Migrate the translation database.  We don't need to wait for this.
         update_translation_storage.run();
 
+        // Set up the pointer_listener singleton.
+        pointer_listener.install_global_handler();
+
         // Pixiv scripts that use meta-global-data remove the element from the page after
         // it's parsed for some reason.  Try to get global info from document, and if it's
         // not there, re-fetch the page to get it.
