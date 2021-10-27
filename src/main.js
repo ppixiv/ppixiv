@@ -157,7 +157,7 @@ ppixiv.main_controller = class
         helpers.add_style("light-noise-background", `body.light .noise-background { background-image: url("${resources['resources/noise-light.png']}"); };`);
         
         // Add the main CSS style.
-        helpers.add_style("main", resources['resources/main.css']);
+        helpers.add_style("main", resources['resources/main.scss']);
        
         // Load image resources into blobs.
         await this.load_resource_blobs();
