@@ -62,7 +62,11 @@ ppixiv.screen_search = class extends ppixiv.screen
         this.container.querySelector(".search-tags-box .related-tag-list").addEventListener("scroll", function(e) { e.stopPropagation(); }, true);
 
         // Set up hover popups.
-        dropdown_menu_opener.create_handlers(this.container, [".navigation-menu-box", ".thumbnail-settings-menu-box", ".ages-box", ".popularity-box", ".type-box", ".search-mode-box", ".size-box", ".aspect-ratio-box", ".bookmarks-box", ".time-box", ".member-tags-box", ".search-tags-box"]);
+        dropdown_menu_opener.create_handlers(this.container, [
+            ".navigation-menu-box", ".thumbnail-settings-menu-box", ".ages-box", ".popularity-box", ".type-box",
+            ".search-mode-box", ".size-box", ".aspect-ratio-box", ".bookmarks-box", ".time-box", ".member-tags-box",
+            ".search-tags-box",
+        ]);
 
         // As an optimization, start loading image info on mousedown.  We don't navigate until click,
         // but this lets us start loading image info a bit earlier.
