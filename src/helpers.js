@@ -222,6 +222,7 @@ ppixiv.helpers = {
             for(let attr of node.getAttributeNames())
             {
                 let value = node.getAttribute(attr);
+                let new_value = value;
                 
                 // See if this is an ID reference.  We don't try to parse all valid URLs
                 // here.  Handle url(#abcd) inside strings, and things like xlink:xref="#abcd".
@@ -235,11 +236,11 @@ ppixiv.helpers = {
                         continue;
                     }
 
-                    value = "#" + new_id;
+                    new_value = "#" + new_id;
                 }
 
                 var re = /url\(#.*?\)/;
-                var new_value = value.replace(re, (str) => {
+                new_value = new_value.replace(re, (str) => {
                     var re = /url\(#(.*)\)/;
                     var old_id = str.match(re)[1];
                     let new_id = id_map[old_id];
