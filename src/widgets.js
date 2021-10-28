@@ -445,7 +445,7 @@ ppixiv.avatar_widget = class extends widget
 
         this.clicked_follow = this.clicked_follow.bind(this);
         this.user_changed = this.user_changed.bind(this);
-        this._visible = false;
+        this._visible = true;
 
         this.root = helpers.create_from_template(".template-avatar");
         helpers.set_class(this.root, "big", this.options.big);

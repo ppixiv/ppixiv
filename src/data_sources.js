@@ -1545,9 +1545,8 @@ ppixiv.data_sources.artist = class extends data_source
 
     refresh_thumbnail_ui(container, thumbnail_view)
     {
-        thumbnail_view.avatar_widget.visible = true;
-        if(this.user_info)
-            thumbnail_view.avatar_widget.set_user_id(this.viewing_user_id);
+        thumbnail_view.avatar_container.hidden = false;
+        thumbnail_view.avatar_widget.set_user_id(this.viewing_user_id);
 
         let viewing_type = this.viewing_type;
         let url = new URL(this.url);
@@ -1941,13 +1940,16 @@ class data_source_bookmarks_base extends data_source
         let url = `/ajax/user/${this.viewing_user_id}/illusts/bookmarks`;
         let result = await helpers.get_request(url, data);
 
-        // This request includes each bookmark's tags.  Register those with image_data,
-        // so the bookmark tag dropdown can display tags more quickly.
-        for(let illust of result.body.works)
+        if(this.viewing_own_bookmarks())
         {
-            let bookmark_id = illust.bookmarkData.id;
-            let tags = result.body.bookmarkTags[bookmark_id] || [];
-            image_data.singleton().update_cached_bookmark_image_tags(illust.id, tags);
+            // This request includes each bookmark's tags.  Register those with image_data,
+            // so the bookmark tag dropdown can display tags more quickly.
+            for(let illust of result.body.works)
+            {
+                let bookmark_id = illust.bookmarkData.id;
+                let tags = result.body.bookmarkTags[bookmark_id] || [];
+                image_data.singleton().update_cached_bookmark_image_tags(illust.id, tags);
+            }
         }
 
         result.body.works = data_source_bookmarks_base.filter_deleted_images(result.body.works);
@@ -2118,7 +2120,7 @@ class data_source_bookmarks_base extends data_source
             add_tag_link(tag);
         }
 
-        thumbnail_view.avatar_widget.visible = true;
+        thumbnail_view.avatar_container.hidden = this.viewing_own_bookmarks();
         thumbnail_view.avatar_widget.set_user_id(this.viewing_user_id);
     }
 
@@ -2988,9 +2990,12 @@ ppixiv.data_sources.follows = class extends data_source
 
     refresh_thumbnail_ui(container, thumbnail_view)
     {
-        thumbnail_view.avatar_widget.visible = true;
-        thumbnail_view.avatar_widget.set_user_id(this.viewing_user_id);
-
+        if(!this.viewing_self)
+        {
+            thumbnail_view.avatar_container.hidden = false;
+            thumbnail_view.avatar_widget.set_user_id(this.viewing_user_id);
+        }
+        
         // The public/private button only makes sense when viewing your own follows.
         var public_private_button_container = container.querySelector(".follows-public-private");
         public_private_button_container.hidden = !this.viewing_self;

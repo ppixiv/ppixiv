@@ -35,8 +35,9 @@ ppixiv.screen_search = class extends ppixiv.screen
         document.body.appendChild(this.thumbnail_dimensions_style);
         
         // Create the avatar widget shown on the artist data source.
+        this.avatar_container = this.container.querySelector(".avatar-container");
         this.avatar_widget = new avatar_widget({
-            container: this.container.querySelector(".avatar-container"),
+            container: this.avatar_container,
             changed_callback: this.data_source_updated,
             big: true,
             mode: "dropdown",
@@ -352,7 +353,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         this.disable_loading_more_pages = false;
 
         // Disable the avatar widget unless the data source enables it.
-        this.avatar_widget.visible = false;
+        this.avatar_container.hidden = true;
 
         // Listen to the data source loading new pages, so we can refresh the list.
         this.data_source.add_update_listener(this.data_source_updated);
