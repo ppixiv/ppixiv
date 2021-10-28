@@ -114,7 +114,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         if(current_image == null)
         {
             console.log(`No info for page ${this._page} yet`);
-            this.on_click_viewer.set_new_image(null, null);
+            this.on_click_viewer.set_new_image();
             return;
         }
 
@@ -125,8 +125,21 @@ ppixiv.viewer_images = class extends ppixiv.viewer
 
         // Create the new image and pass it to the viewer.
         this.url = current_image.url || current_image.preview_url;
-        this.on_click_viewer.set_new_image(current_image.url, current_image.preview_url,
-            current_image.width, current_image.height);
+        this.on_click_viewer.set_new_image({
+            url: current_image.url,
+            preview_url: current_image.preview_url,
+            width: current_image.width,
+            height: current_image.height,
+            restore_position: this.restore_history? "history":"auto",
+            ondisplayed: (e) => {
+                // Clear restore_history once the image is actually restored, since we
+                // only want to do this the first time.  We don't do this immediately
+                // so we don't skip it if a set_new_image call is interrupted when we
+                // replace preview images (history has always been restored when we get
+                // here).
+                this.restore_history = false;
+            },
+        });
 
         // If we have a manga_page_bar, update to show the current page.
         if(this.manga_page_bar)
@@ -135,15 +148,6 @@ ppixiv.viewer_images = class extends ppixiv.viewer
                 this.manga_page_bar.set(null);
             else
                 this.manga_page_bar.set((this._page+1) / this.images.length);
-        }
-
-        // If we were created with the restore_history option set, restore it now that
-        // we have an image set up.  This is done when we're restoring a browser state, so
-        // only do this the first time.
-        if(this.restore_history)
-        {
-            this.on_click_viewer.restore_from_history();
-            this.restore_history = false;
         }
     }
 

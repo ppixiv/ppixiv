@@ -46,11 +46,15 @@ ppixiv.on_click_viewer = class
     }
 
     // Load the given illust and page.
-    //
-    // If width and height are null, we'll get the image dimensions from the loaded
-    // image.  This can force us to use a slightly less efficient loading path in
-    // order to know the dimensions early enough.
-    set_new_image = async(signal, url, preview_url, width, height) =>
+    set_new_image = async(signal, {
+        url, preview_url,
+        width, height,
+        // "history" to restore from history, or "auto" to set automatically.
+        restore_position,
+
+        // This callback will be run once an image has actually been displayed.
+        ondisplayed,
+    }={}) =>
     {
         // A special case is when we have no images at all.  This happens when navigating
         // to a manga page and we don't have illust info yet, so we don't know anything about
@@ -126,8 +130,18 @@ ppixiv.on_click_viewer = class
         this.img = img;
         this.preview_img = preview_img;
 
-        this.reset_position();
+        if(restore_position == "history")
+            this.restore_from_history();
+        else if(restore_position == "auto")
+            this.reset_position();
+
         this.reposition();
+
+        // Let the caller know that we've displayed an image.  (We actually haven't since that
+        // happens just below, but this is only used to let viewer_images know that history
+        // has been restored.)
+        if(ondisplayed)
+            ondisplayed();
 
         // If the load already finished, just add the main image and don't use the preview.
         if(img_ready)
@@ -236,7 +250,6 @@ ppixiv.on_click_viewer = class
         // the second call.
         if(this.set_initial_image_position && aspect != this.initial_image_position_aspect)
             this.set_initial_image_position = false;
-
         if(this.set_initial_image_position)
             return;
 
@@ -655,15 +668,20 @@ ppixiv.on_click_viewer = class
     }
 
     // Restore the pan and zoom state from history.
-    restore_from_history = () =>
+    restore_from_history()
     {
         let args = helpers.args.location;
         if(args.state.zoom == null)
+        {
+            this.reset_position();
             return;
+        }
 
         this.zoom_level = args.state.zoom?.zoom;
         this.locked_zoom = args.state.zoom?.lock;
         this.center_pos = [...args.state.zoom?.pos];
+        this.set_initial_image_position = true;
+        this.initial_image_position_aspect = null;
         this.reposition();
 
         this.set_initial_image_position = true;
