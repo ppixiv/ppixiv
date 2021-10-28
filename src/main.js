@@ -184,6 +184,8 @@ ppixiv.main_controller = class
         this.context_menu = new main_context_menu({container: document.body});
         this.link_tabs_popup = new link_tabs_popup({container: document.body});
         this.link_this_tab_popup = new link_this_tab_popup({container: document.body});
+        this.send_here_popup = new send_here_popup({container: document.body});
+        this.send_image_popup = new send_image_popup({container: document.body});
 
         // Create the main progress bar.
         this.progress_bar = new progress_bar(this.container.querySelector(".loading-progress-bar"));

@@ -479,21 +479,17 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
             let illust_id = this.effective_illust_id;
             if(!illust_id)
                 return;
-
-            this.send_image_widget.visible = !this.send_image_widget.visible;
+                
+            main_controller.singleton.send_image_popup.show_for_illust(this.effective_illust_id, this.effective_page);
+            this.hide();
         });
 
         let bookmark_tag_widget = new bookmark_tag_list_widget({
             parent: this,
             container: this.menu.querySelector(".popup-bookmark-tag-dropdown-container"),
         });
-        this.send_image_widget = new send_image_widget({
-            parent: this,
-            container: this.menu.querySelector(".popup-send-to-tab-container"),
-        });
         this.illust_widgets = [
             bookmark_tag_widget,
-            this.send_image_widget,
             new toggle_bookmark_tag_list_widget({
                 container: this.menu.querySelector(".button-bookmark-tags"),
                 parent: this,

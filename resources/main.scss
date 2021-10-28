@@ -2376,11 +2376,25 @@ svg.heart-image .delete {
             transform-origin: 75px 30px;
             // transform: rotate(90deg);
             animation: rotate-monitor 4500ms linear infinite;
+
+            @keyframes rotate-monitor {
+                0% { transform: rotate(0deg); }
+                10% { transform: rotate(90deg); }
+                50% { transform: rotate(90deg); }
+                60% { transform: rotate(0deg); }
+            }
         }
     }
 }
 
-.link-this-tab-popup
+.send-image-popup
+{
+    .content {
+        padding: 1em;
+    }
+}
+
+.link-this-tab-popup, .send-image-here-popup
 {
     > .box {
         border: 1px solid black;

@@ -570,12 +570,9 @@ ppixiv.send_image_widget = class extends ppixiv.illust_widget
 
 ppixiv.link_tabs_popup = class extends ppixiv.widget
 {
-    constructor({container, ...options})
+    constructor({...options})
     {
-        let contents = helpers.create_from_template(".template-link-tabs");
-        super({container: contents, ...options});
-
-        container.appendChild(this.container);
+        super({template: "template-link-tabs", ...options});
 
         this.container.querySelector(".close-button").addEventListener("click", (e) => {
             this.visible = false;
@@ -680,12 +677,10 @@ ppixiv.link_tabs_popup = class extends ppixiv.widget
 
 ppixiv.link_this_tab_popup = class extends ppixiv.widget
 {
-    constructor({container, ...options})
+    constructor({...options})
     {
-        let contents = helpers.create_from_template(".template-link-this-tab");
-        super({container: contents, ...options});
+        super({template: "template-link-this-tab", ...options});
 
-        container.appendChild(this.container);
         this.visible = false;
 
         // Show ourself when we see a show-link-tab message and hide if we see a
@@ -732,6 +727,129 @@ ppixiv.link_this_tab_popup = class extends ppixiv.widget
             this.visible_timer = setTimeout(() => {
                 this.visible = false;
             }, 2000);
+        }
+    }
+}
+
+ppixiv.send_image_popup = class extends ppixiv.widget
+{
+    constructor({...options})
+    {
+        super({template: "template-send-image", ...options});
+
+        // Close if the container is clicked, but not if something inside the container is clicked.
+        this.container.addEventListener("click", (e) => {
+            if(e.target != this.container)
+                return;
+
+            this.visible = false;
+        });
+
+        SendImage.add_message_listener("take-image", (message) => {
+            let tab_id = message.from;
+            SendImage.send_image(this.illust_id, this.page, [tab_id], "display");
+
+            this.visible = false;
+        });
+
+        this.visible = false;
+    }
+
+    show_for_illust(illust_id, page)
+    {
+        this.illust_id = illust_id;
+        this.page = page;
+        this.visible = true;
+    }
+
+    send_show_send_image_message = () =>
+    {
+        // This will cause other tabs to show their linking UI, so only send this
+        // if we're active.
+        if(!this.visible)
+            return;
+
+        SendImage.send_message({
+            message: "show-send-image",
+        });
+    }
+
+    start_sending_show_send_image_message()
+    {
+        if(this.send_id == null)
+            this.send_id = setInterval(this.send_show_send_image_message, 1000);
+
+        this.send_show_send_image_message();
+    }
+
+    stop_sending_show_send_image_message()
+    {
+        if(this.send_id != null)
+        {
+            clearInterval(this.send_id);
+            this.send_id = null;
+
+            SendImage.send_message({ message: "hide-send-image" });
+        }
+    }
+
+    get visible() { return !this.container.hidden; }
+    set visible(value)
+    {
+        this.container.hidden = !value;
+        if(value)
+            this.start_sending_show_send_image_message();
+        else
+            this.stop_sending_show_send_image_message();
+    }
+}
+
+ppixiv.send_here_popup = class extends ppixiv.widget
+{
+    constructor({...options})
+    {
+        super({template: "template-send-here", ...options});
+
+        this.visible = false;
+
+        // Show ourself when we see a show-link-tab message and hide if we see a
+        // hide-link-tab-message.
+        SendImage.add_message_listener("show-send-image", (message) => {
+            this.visible = true;
+            this.other_tab_id = message.from;
+        });
+
+        SendImage.add_message_listener("hide-send-image", (message) => {
+            this.visible = false;
+        });
+    }
+
+    take_image = (e) =>
+    {
+        // Send take-image.  The sending tab will respond with a send-image message.
+        SendImage.send_message({ message: "take-image", to: [this.other_tab_id] });
+    }
+
+    set visible(value)
+    {
+        this.container.hidden = !value;
+
+        if(this.visible_timer)
+            clearTimeout(this.visible_timer);
+
+        // Hide if we don't see a show-link-tab message for a few seconds, as a
+        // safety in case the other tab dies.
+        if(value)
+        {
+            window.addEventListener("click", this.take_image);
+
+            this.visible_timer = setTimeout(() => {
+                this.visible = false;
+            }, 2000);
+        }
+        else
+        {
+            window.removeEventListener("click", this.take_image);
         }
     }
 }
