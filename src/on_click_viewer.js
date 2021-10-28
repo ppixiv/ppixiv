@@ -680,19 +680,6 @@ ppixiv.on_click_viewer = class
             this.preview_img.style.transformOrigin = "0 0";
             this.preview_img.style.transform = this.img.style.transform;
         }
-
-        // Store the effective zoom in our tab info.  This is in a format that makes it easy
-        // to replicate the zoom in other UIs.  Send this as extra data in the tab info.  This
-        // data isn't sent in realtime, since it would spam broadcasts as we zoom.  It's just
-        // sent when we lose focus.
-        let top_left = this.get_image_position([0,0]);
-        let current_zoom_desc = {
-            left: -top_left[0] * this.onscreen_width / screen_width, // convert from image size to fraction of screen size
-            top: -top_left[1] * this.onscreen_height / screen_height,
-            width: zoom_factor * width / screen_width,
-            height: zoom_factor * height / screen_height,
-        };
-        SendImage.set_extra_data("illust_screen_pos", current_zoom_desc, true);
     }
 
     // Restore the pan and zoom state from history.
