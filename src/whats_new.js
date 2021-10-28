@@ -3,6 +3,11 @@
 // This should be inside whats_new, but Firefox is in the dark ages and doesn't support class fields.
 let _update_history = [
     {
+        version: 109,
+        boring: true,
+        text: `Added a visual marker on thumbnails to show the last image you viewed.`
+    },
+    {
         version: 104,
         text:
             "Bookmarks can now be shuffled, to view them in random order. " +
