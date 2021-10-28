@@ -32,6 +32,7 @@ ppixiv.SendImage = class
         this.initialized = true;
 
         this.broadcast_tab_info = this.broadcast_tab_info.bind(this);
+        this.pending_movement = [0, 0];
 
         this.listeners = {};
 
@@ -302,6 +303,33 @@ ppixiv.SendImage = class
             return;
 
         ppixiv.history.back();        
+    }
+
+    static send_mouse_movement_to_linked_tabs(x, y)
+    {
+        let tab_ids = settings.get("linked_tabs", []);
+        if(tab_ids.length == 0)
+            return;
+
+        this.pending_movement[0] += x;
+        this.pending_movement[1] += y;
+
+        // Limit the rate we send these, since mice with high report rates can send updates
+        // fast enough to saturate BroadcastChannel and cause messages to back up.  Add up
+        // movement if we're sending too quickly and batch it into the next message.
+        if(this.last_movement_message_time != null && Date.now() - this.last_movement_message_time < 10)
+            return;
+
+        this.last_movement_message_time = Date.now();
+
+        SendImage.send_message({
+            message: "preview-mouse-movement",
+            x: this.pending_movement[0],
+            y: this.pending_movement[1],
+            to: tab_ids,
+        }, false);
+        
+        this.pending_movement = [0, 0];
     }
 };
 

@@ -521,22 +521,7 @@ ppixiv.on_click_viewer = class
     apply_pointer_movement({movementX, movementY})
     {
         // Send pointer movements to linked tabs.
-        let linked_tabs = settings.get("linked_tabs", []);
-        if(linked_tabs.length)
-        {
-            // Limit the rate we send these, since mice with high report rates can send updates
-            // fast enough to saturate BroadcastChannel and cause messages to back up.
-            if(this.last_movement_message_time == null || Date.now() - this.last_movement_message_time > 10)
-            {
-                this.last_movement_message_time = Date.now();
-                SendImage.send_message({
-                    message: "preview-mouse-movement",
-                    x: movementX,
-                    y: movementY,
-                    to: linked_tabs,
-                }, false);
-            }
-        }
+        SendImage.send_mouse_movement_to_linked_tabs(movementX, movementY);
 
         // Apply mouse dragging.
         let x_offset = movementX;
