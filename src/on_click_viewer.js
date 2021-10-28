@@ -34,7 +34,7 @@ ppixiv.on_click_viewer = class
         this.image_container.addEventListener("dragstart", this.block_event, { signal: this.event_shutdown.signal });
         this.image_container.addEventListener("selectstart", this.block_event, { signal: this.event_shutdown.signal });
 
-        new ppixiv.pointer_listener({
+        this.pointer_listener = new ppixiv.pointer_listener({
             element: this.image_container,
             button_mask: 1,
             signal: this.event_shutdown.signal,
@@ -56,6 +56,10 @@ ppixiv.on_click_viewer = class
         ondisplayed,
     }={}) =>
     {
+        // When quick view displays an image on mousedown, we want to see the mousedown too
+        // now that we're displayed.
+        this.pointer_listener.check();
+
         // A special case is when we have no images at all.  This happens when navigating
         // to a manga page and we don't have illust info yet, so we don't know anything about
         // the page.
@@ -429,6 +433,12 @@ ppixiv.on_click_viewer = class
 
         if(e.pressed)
         {
+            // If this is a simulated press event, the button was pressed on the previous page,
+            // probably due to quick view.  Don't start a zoom from this press, but do allow
+            // locked zoom to be moved from it.
+            if(e.type == "simulatedpointerdown" && !this._locked_zoom)
+                return;
+
             // We only want clicks on the image, or on the container backing the image, not other
             // elements inside the container.
             if(e.target != this.img && e.target != this.image_container)
@@ -510,6 +520,24 @@ ppixiv.on_click_viewer = class
 
     apply_pointer_movement({movementX, movementY})
     {
+        // Send pointer movements to linked tabs.
+        let linked_tabs = settings.get("linked_tabs", []);
+        if(linked_tabs.length)
+        {
+            // Limit the rate we send these, since mice with high report rates can send updates
+            // fast enough to saturate BroadcastChannel and cause messages to back up.
+            if(this.last_movement_message_time == null || Date.now() - this.last_movement_message_time > 10)
+            {
+                this.last_movement_message_time = Date.now();
+                SendImage.send_message({
+                    message: "preview-mouse-movement",
+                    x: movementX,
+                    y: movementY,
+                    to: linked_tabs,
+                }, false);
+            }
+        }
+
         // Apply mouse dragging.
         let x_offset = movementX;
         let y_offset = movementY;

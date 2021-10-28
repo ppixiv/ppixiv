@@ -94,7 +94,7 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
 
         this.visible = false;
 
-        new ppixiv.pointer_listener({
+        this.pointer_listener = new ppixiv.pointer_listener({
             element: window,
             button_mask: 0b11,
 //            signal: this.quick_view_active.signal,
@@ -264,6 +264,8 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
     {
         if(this.visible)
             return;
+
+        this.pointer_listener.check();
 
         this.displayed_menu = this.menu;
         this.visible = true;

@@ -5,7 +5,8 @@ ppixiv.settings = class
 {
     static sticky_settings = { };
     static session_settings = { };
-
+    static defaults = { };
+    
     static get_change_callback_list(key)
     {
         if(settings._callbacks == null)
@@ -27,7 +28,7 @@ ppixiv.settings = class
     // Session settings are stored in sessionStorage instead of localStorage.  These are
     // local to the tab.  They'll be copied into new tabs if a tab is duplicated, but they're
     // otherwise isolated, and lost when the tab is closed.
-    static configure(key, {sticky=false, session=false})
+    static configure(key, {sticky=false, session=false, default_value=null})
     {
         if(sticky)
         {
@@ -38,6 +39,9 @@ ppixiv.settings = class
 
         if(session)
             this.session_settings[key] = true;
+
+        if(default_value != null)
+            this.defaults[key] = default_value;
     }
 
     static _get_storage_for_key(key)
@@ -70,6 +74,9 @@ ppixiv.settings = class
 
     static get(key, default_value)
     {
+        if(key in this.defaults)
+            default_value = this.defaults[key];
+
         // If this is a sticky setting and we've already read it, use our loaded value.
         if(settings.sticky_settings[key])
             return settings.sticky_settings[key];
@@ -125,5 +132,6 @@ ppixiv.settings = class
 // Register settings.
 ppixiv.settings.configure("zoom-mode", { sticky: true });
 ppixiv.settings.configure("zoom-level", { sticky: true });
-ppixiv.settings.configure("no_receive_quick_view", { session: true });
+ppixiv.settings.configure("linked_tabs", { session: true });
+ppixiv.settings.configure("linked_tabs_enabled", { session: true, default_value: true });
 

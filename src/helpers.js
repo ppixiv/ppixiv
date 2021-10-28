@@ -400,6 +400,7 @@ ppixiv.helpers = {
             unwrap_func(unsafeWindow, "fetch");
             unwrap_func(unsafeWindow, "setTimeout");
             unwrap_func(unsafeWindow, "setInterval");
+            unwrap_func(unsafeWindow, "clearInterval");
             unwrap_func(EventTarget.prototype, "addEventListener");
             unwrap_func(EventTarget.prototype, "removeEventListener");
             unwrap_func(XMLHttpRequest.prototype, "send");
@@ -443,6 +444,7 @@ ppixiv.helpers = {
         ppixiv.setTimeout = unsafeWindow.setTimeout.bind(unsafeWindow);
         ppixiv.setInterval = unsafeWindow.setInterval.bind(unsafeWindow);
         ppixiv.clearTimeout = unsafeWindow.clearTimeout.bind(unsafeWindow);
+        ppixiv.clearInterval = unsafeWindow.clearInterval.bind(unsafeWindow);
 
         // Disable the page's timers.  This helps prevent things like GTM from running.
         unsafeWindow.setTimeout = (f, ms) => { return -1; };

@@ -92,6 +92,32 @@ ppixiv.screen_search = class extends ppixiv.screen
         this.container.querySelector(".whats-new-button").addEventListener("click", this.whats_new.bind(this));
         this.container.querySelector(".thumbnails").addEventListener("click", this.thumbnail_onclick);
 
+        // Handle quick_view.
+        new ppixiv.pointer_listener({
+            element: this.container.querySelector(".thumbnails"),
+            button_mask: 0b1,
+            callback: (e) => {
+                let a = e.target.closest("A");
+                if(a == null)
+                    return;
+
+                if(!settings.get("quick_view"))
+                    return;
+
+                let { illust_id, page } = main_controller.singleton.get_illust_at_element(e.target);
+                if(illust_id == null)
+                    return;
+
+                // Don't stopPropagation.  We want the illustration view to see the press too.
+                e.preventDefault();
+                // e.stopImmediatePropagation();
+        
+                main_controller.singleton.show_illust(illust_id, {
+                    page: page,
+                    add_to_history: true,
+                });
+            },
+        });
         // Clear recent illusts:
         this.container.querySelector("[data-type='clear-recents']").addEventListener("click", async (e) => {
             e.preventDefault();

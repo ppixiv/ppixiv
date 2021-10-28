@@ -33,6 +33,8 @@ ppixiv.SendImage = class
 
         this.broadcast_tab_info = this.broadcast_tab_info.bind(this);
 
+        this.listeners = {};
+
         window.addEventListener("unload", this.window_onunload.bind(this));
 
         // Let other tabs know when the info we send in tab info changes.  For resize, delay this
@@ -51,12 +53,32 @@ ppixiv.SendImage = class
         window.addEventListener("blur", this.broadcast_tab_info);
         window.addEventListener("popstate", this.broadcast_tab_info);
 
+        // If we gain focus while quick view is active, finalize the image.  Virtual
+        // history isn't meant to be left enabled, since it doesn't interact with browser
+        // history.
+        window.addEventListener("focus", (e) => {
+            let args = ppixiv.helpers.args.location;
+            if(args.hash.has("temp-view"))
+            {
+                console.log("Finalizing quick view image because we gained focus");
+                args.hash.delete("virtual");
+                args.hash.delete("temp-view");
+                ppixiv.helpers.set_page_url(args, false, "navigation");
+            }
+        });
+
         SendImage.send_image_channel.addEventListener("message", this.received_message.bind(this));
         this.broadcast_tab_info();
 
         this.query_tabs();
+    }
 
-        this.install_quick_view();
+    static add_message_listener(message, func)
+    {
+        if(!this.listeners[message])
+            this.listeners[message] = [];
+        this.listeners[message].push(func);
+
     }
 
     // If we're sending an image and the page is unloaded, try to cancel it.  This is
@@ -72,9 +94,9 @@ ppixiv.SendImage = class
         SendImage.send_message({ message: "list-tabs" });
     }
 
-    // Send an image to another tab.  action is either "quick-view", to show the image temporarily,
+    // Send an image to another tab.  action is either "temp-view", to show the image temporarily,
     // or "display", to navigate to it.
-    static async send_image(illust_id, page, tab_id, action)
+    static async send_image(illust_id, page, tab_ids, action)
     {
         // Send everything we know about the image, so the receiver doesn't have to
         // do a lookup.
@@ -87,19 +109,31 @@ ppixiv.SendImage = class
         this.send_message({
             message: "send-image",
             from: SendImage.tab_id,
-            to: tab_id,
+            to: tab_ids,
             illust_id: illust_id,
             page: page,
-            action: action, // "quick-view" or "display"
+            action: action, // "temp-view" or "display"
             thumbnail_info: thumbnail_info,
             illust_data: illust_data,
             user_info: user_info,
-        }, true);
+        }, false);
     }
 
     static received_message(e)
     {
         let data = e.data;
+
+        // If this message has a target and it's not us, ignore it.
+        if(data.to && data.to.indexOf(SendImage.tab_id) == -1)
+            return;
+
+        // Call any listeners for this message.
+        if(this.listeners[data.message])
+        {
+            for(let func of this.listeners[data.message])
+                func(data);
+        }
+
         if(data.message == "tab-info")
         {
             // Info about a new tab, or a change in visibility.
@@ -142,20 +176,6 @@ ppixiv.SendImage = class
         }
         else if(data.message == "send-image")
         {
-            // If to is null, a tab is sending a quick view preview.  Show this preview if this
-            // tab is a quick view target and the document is visible.  Otherwise, to is a tab
-            // ID, so only preview if it's us.
-            if(data.to == null)
-            {
-                if(settings.get("no_receive_quick_view") || document.hidden)
-                {
-                    console.log("Not receiving quick view");
-                    return;
-                }
-            }
-            else if(data.to != SendImage.tab_id)
-                return;
-
             // If this message has illust info or thumbnail info, register it.
             let thumbnail_info = data.thumbnail_info;
             if(thumbnail_info != null)
@@ -176,7 +196,7 @@ ppixiv.SendImage = class
             {
                 let args = ppixiv.helpers.args.location;
                 args.hash.delete("virtual");
-                args.hash.delete("quick-view");
+                args.hash.delete("temp-view");
                 ppixiv.helpers.set_page_url(args, false, "navigation");
                 return;
             }
@@ -189,13 +209,13 @@ ppixiv.SendImage = class
 
             // Otherwise, we're displaying an image.  quick-view displays in quick-view+virtual
             // mode, display just navigates to the image normally.
-            console.assert(data.action == "quick-view" || data.action == "display");
+            console.assert(data.action == "temp-view" || data.action == "display", data.actionj);
 
             // Show the image.
             main_controller.singleton.show_illust(data.illust_id, {
                 page: data.page,
-                quick_view: data.action == "quick-view",
-                source: "quick-view",
+                temp_view: data.action == "temp-view",
+                source: "temp-view",
 
                 // When we first show a preview, add it to history.  If we show another image
                 // or finalize the previewed image while we're showing a preview, replace the
@@ -287,16 +307,6 @@ ppixiv.SendImage = class
         }
     }
 
-    // This is called if something else changes the illust while we're in quick view.  Send it
-    // as a quick-view instead.
-    static illust_change_during_quick_view(illust_id, page)
-    {
-        // This should only happen while we're in quick view.
-        console.assert(ppixiv.history.virtual);
-
-        SendImage.send_image(illust_id, page, null, "quick-view");
-    }
-
     // If we're currently showing a preview image sent from another tab, back out to
     // where we were before.
     static hide_preview_image()
@@ -306,167 +316,6 @@ ppixiv.SendImage = class
             return;
 
         ppixiv.history.back();        
-    }
-
-    static install_quick_view()
-    {
-        let setup = () => {
-            // Remove old event handlers.
-            if(this.quick_view_active)
-            {
-                this.quick_view_active.abort();
-                this.quick_view_active = null;
-            }
-
-       
-            // Stop if quick view isn't enabled.
-            if(!settings.get("quick_view"))
-                return;
-            
-            this.quick_view_active = new AbortController();
-            window.addEventListener("click", this.quick_view_window_onclick, { signal: this.quick_view_active.signal, capture: true });
-
-            new ppixiv.pointer_listener({
-                element: window,
-                button_mask: 0b11,
-                signal: this.quick_view_active.signal,
-                callback: this.quick_view_pointerevent,
-            });
-        };
-
-        // Set up listeners, and update them when the quick view setting changes.
-        setup();
-        settings.register_change_callback("quick_view", setup);
-    }
-
-    static quick_view_started(pointer_id)
-    {
-        // Hide the cursor, and capture the cursor to the document so it stays hidden.
-        document.body.style.cursor = "none";
-
-        this.captured_pointer_id = pointer_id;
-        document.body.setPointerCapture(this.captured_pointer_id);
-        
-        // Pause thumbnail animations, so they don't keep playing while viewing an image
-        // in another tab.
-        document.body.classList.add("pause-thumbnail-animation");
-
-        // Listen to pointer movement during quick view.
-        window.addEventListener("pointermove", this.quick_view_window_onpointermove);
-        window.addEventListener("contextmenu", this.quick_view_window_oncontextmenu, { capture: true });
-    }
-
-    static quick_view_stopped()
-    {
-        if(this.captured_pointer_id != null)
-        {
-            document.body.releasePointerCapture(this.captured_pointer_id);
-            this.captured_pointer_id = null;
-        }
-
-        document.body.classList.remove("pause-thumbnail-animation");
-        window.removeEventListener("pointermove", this.quick_view_window_onpointermove);
-        window.removeEventListener("contextmenu", this.quick_view_window_oncontextmenu, { capture: true });
-
-        document.body.style.cursor = "";
-    }
-
-    static finalize_quick_view()
-    {
-        this.quick_view_stopped();
-
-        SendImage.send_message({ message: "send-image", action: "finalize", to: null }, true);
-    }
-
-    static quick_view_pointerevent = (e) =>
-    {
-        if(e.pressed && e.mouseButton == 0)
-        {
-            // See if the click is on an image search result.
-            let { illust_id, page } = main_controller.singleton.get_illust_at_element(e.target);
-            if(illust_id == null)
-                return;
-
-            e.preventDefault();
-            e.stopImmediatePropagation();
-
-            // This should never happen, but make sure we don't register duplicate pointermove events.
-            if(this.previewing_image)
-                return;
-
-            // Quick view this image.
-            this.previewing_image = true;
-            SendImage.send_image(illust_id, page, null, "quick-view");
-
-            this.quick_view_started(e.pointerId);
-        }
-
-        // Right-clicking while quick viewing an image locks the image, so it doesn't go away
-        // when the LMB is released.
-        if(e.pressed && e.mouseButton == 1)
-        {
-            if(!this.previewing_image)
-                return;
-
-            e.preventDefault();
-            e.stopImmediatePropagation();
-
-            this.finalize_quick_view();
-        }
-
-        // Releasing LMB while previewing an image stops previewing.
-        if(!e.pressed && e.mouseButton == 0)
-        {
-            if(!this.previewing_image)
-                return;
-            this.previewing_image = false;
-            
-            e.preventDefault();
-            e.stopImmediatePropagation();
-
-            this.quick_view_stopped();
-
-            SendImage.send_message({ message: "send-image", action: "cancel", to: null }, true);
-        }
-    }
-
-    static quick_view_window_onclick = (e) =>
-    {
-        if(e.button != 0)
-            return;
-
-        // Work around one of the oldest design mistakes: cancelling mouseup doesn't prevent
-        // the resulting click.  Check if this click was on an element that was handled by
-        // quick view, and cancel it if it was.
-        let { illust_id, page } = main_controller.singleton.get_illust_at_element(e.target);
-        if(illust_id == null)
-            return;
-
-        e.preventDefault();
-        e.stopImmediatePropagation();
-    }
-
-    // Work around another wonderful bug: while pointer lock is active, we don't get pointerdown
-    // events for *other* mouse buttons.  That doesn't make much sense.  Work around it by
-    // assuming RMB will fire contextmenu.
-    static quick_view_window_oncontextmenu = (e) =>
-    {
-        console.log("context", e.button);
-        e.preventDefault();
-        e.stopImmediatePropagation();
-
-        this.finalize_quick_view();
-    }
-
-    // This is only registered while we're quick viewing, to send mouse movements to
-    // anything displaying the image.
-    static quick_view_window_onpointermove = (e) =>
-    {
-        SendImage.send_message({
-            message: "preview-mouse-movement",
-            x: e.movementX,
-            y: e.movementY,
-        }, true);
     }
 };
 
@@ -520,7 +369,7 @@ ppixiv.send_image_widget = class extends ppixiv.illust_widget
             return;
 
         // Stop previewing the tab.
-        SendImage.send_message({ message: "send-image", action: "cancel", to: this.previewing_on_tab }, true);
+        SendImage.send_message({ message: "send-image", action: "cancel", to: [this.previewing_on_tab] }, true);
 
         this.previewing_on_tab = null;
     }
@@ -703,7 +552,7 @@ ppixiv.send_image_widget = class extends ppixiv.illust_widget
             if(!entry)
                 return;
 
-            SendImage.send_image(this._illust_id, this._page, tab_id, "quick-view");
+            SendImage.send_image(this._illust_id, this._page, tab_id, "temp-view");
             this.previewing_on_tab = tab_id;
         });
 
@@ -719,3 +568,170 @@ ppixiv.send_image_widget = class extends ppixiv.illust_widget
     }
 }
 
+ppixiv.link_tabs_popup = class extends ppixiv.widget
+{
+    constructor({container, ...options})
+    {
+        let contents = helpers.create_from_template(".template-link-tabs");
+        super({container: contents, ...options});
+
+        container.appendChild(this.container);
+
+        this.container.querySelector(".close-button").addEventListener("click", (e) => {
+            this.visible = false;
+        });
+
+        // Close if the container is clicked, but not if something inside the container is clicked.
+        this.container.addEventListener("click", (e) => {
+            if(e.target != this.container)
+                return;
+
+            this.visible = false;
+        });
+
+        new menu_option_toggle(this.container.querySelector(".toggle-enabled"), {
+            label: "Enabled",
+            setting: "linked_tabs_enabled",
+        });
+
+        // Refresh the "unlink all tabs" button when the linked tab list changes.
+        settings.register_change_callback("linked_tabs", this.refresh_unlink_all);
+        this.refresh_unlink_all();
+
+        this.container.querySelector(".unlink-all").addEventListener("click", (e) => {
+            settings.set("linked_tabs", []);
+            this.send_link_tab_message();
+        });
+
+        // The other tab will send these messages when the link and unlink buttons
+        // are clicked.
+        SendImage.add_message_listener("link-this-tab", (message) => {
+            let tab_ids = settings.get("linked_tabs", []);
+            if(tab_ids.indexOf(message.from) == -1)
+                tab_ids.push(message.from);
+
+            settings.set("linked_tabs", tab_ids);
+
+            this.send_link_tab_message();
+        });
+
+        SendImage.add_message_listener("unlink-this-tab", (message) => {
+            let tab_ids = settings.get("linked_tabs", []);
+            let idx = tab_ids.indexOf(message.from);
+            if(idx != -1)
+                tab_ids.splice(idx, 1);
+
+            settings.set("linked_tabs", tab_ids);
+
+            this.send_link_tab_message();
+        });
+
+        this.visible = false;
+    }
+
+    refresh_unlink_all = () =>
+    {
+        let any_tabs_linked = settings.get("linked_tabs", []).length > 0;
+        this.container.querySelector(".unlink-all").hidden = !any_tabs_linked;
+    }
+
+    send_link_tab_message = () =>
+    {
+        // This will cause other tabs to show their linking UI, so only send this
+        // if we're active.
+        if(!this.visible)
+            return;
+
+        SendImage.send_message({
+            message: "show-link-tab",
+            linked_tabs: settings.get("linked_tabs", []),
+        });
+    }
+
+    start_sending_link_tab_message()
+    {
+        if(this.send_id == null)
+            this.send_id = setInterval(this.send_link_tab_message, 1000);
+
+        this.send_link_tab_message();
+    }
+
+    stop_sending_link_tab_message()
+    {
+        if(this.send_id != null)
+        {
+            clearInterval(this.send_id);
+            this.send_id = null;
+
+            SendImage.send_message({ message: "hide-link-tab" });
+        }
+    }
+
+    get visible() { return !this.container.hidden; }
+    set visible(value)
+    {
+        this.container.hidden = !value;
+        if(value)
+            this.start_sending_link_tab_message();
+        else
+            this.stop_sending_link_tab_message();
+    }
+}
+
+ppixiv.link_this_tab_popup = class extends ppixiv.widget
+{
+    constructor({container, ...options})
+    {
+        let contents = helpers.create_from_template(".template-link-this-tab");
+        super({container: contents, ...options});
+
+        container.appendChild(this.container);
+        this.visible = false;
+
+        // Show ourself when we see a show-link-tab message and hide if we see a
+        // hide-link-tab-message.
+        SendImage.add_message_listener("show-link-tab", (message) => {
+            this.visible = true;
+
+            this.other_tab_id = message.from;
+
+            let linked = message.linked_tabs.indexOf(SendImage.tab_id) != -1;
+            this.container.querySelector(".link-this-tab").hidden = linked;
+            this.container.querySelector(".unlink-this-tab").hidden = !linked;
+        });
+
+        SendImage.add_message_listener("hide-link-tab", (message) => {
+            this.visible = false;
+        });
+
+        // When "link this tab" is clicked, send a link-this-tab message.
+        this.container.querySelector(".link-this-tab").addEventListener("click", (e) => {
+            SendImage.send_message({ message: "link-this-tab", to: [this.other_tab_id] });
+
+            // If we're linked to another tab, clear our linked tab list, to try to make
+            // sure we don't have weird chains of tabs linking each other.
+            settings.set("linked_tabs", []);
+        });
+
+        this.container.querySelector(".unlink-this-tab").addEventListener("click", (e) => {
+            SendImage.send_message({ message: "unlink-this-tab", to: [this.other_tab_id] });
+        });
+    }
+
+    set visible(value)
+    {
+        this.container.hidden = !value;
+
+        if(this.visible_timer)
+            clearTimeout(this.visible_timer);
+
+        // Hide if we don't see a show-link-tab message for a few seconds, as a
+        // safety in case the other tab dies.
+        if(value)
+        {
+            this.visible_timer = setTimeout(() => {
+                this.visible = false;
+            }, 2000);
+        }
+    }
+}

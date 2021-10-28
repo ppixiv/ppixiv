@@ -178,9 +178,13 @@ ppixiv.main_controller = class
          
         this.container = document.body;
 
+        SendImage.init();
+
         // Create the popup menu handler.
         this.context_menu = new main_context_menu({container: document.body});
-        
+        this.link_tabs_popup = new link_tabs_popup({container: document.body});
+        this.link_this_tab_popup = new link_this_tab_popup({container: document.body});
+
         // Create the main progress bar.
         this.progress_bar = new progress_bar(this.container.querySelector(".loading-progress-bar"));
         
@@ -188,8 +192,6 @@ ppixiv.main_controller = class
         this.screen_search = new screen_search({ container: this.container.querySelector(".screen-search-container") });
         this.screen_illust = new screen_illust({ container: this.container.querySelector(".screen-illust-container") });
         this.screen_manga = new screen_manga({ container: this.container.querySelector(".screen-manga-container") });
-
-        SendImage.init();
 
         this.screens = {
             search: this.screen_search,
@@ -413,22 +415,11 @@ ppixiv.main_controller = class
     // Show an illustration by ID.
     //
     // This actually just sets the history URL.  We'll do the rest of the work in popstate.
-    show_illust(illust_id, {page, add_to_history=false, screen="illust", quick_view=false, source=""}={})
+    show_illust(illust_id, {page, add_to_history=false, screen="illust", temp_view=false, source=""}={})
     {
         console.assert(illust_id != null, "Invalid illust_id", illust_id);
 
         let args = helpers.args.location;
-
-        // If something else is navigating us in the middle of quick-view, such as changing
-        // the page with the mousewheel, let SendImage handle it.  It'll treat it as a quick
-        // view and we'll end up back here with quick_view true.  Don't do this if this is
-        // already coming from quick view.
-        if(args.hash.has("quick-view") && !quick_view && source != "quick-view")
-        {
-            console.log("Illust change during quick view");
-            SendImage.illust_change_during_quick_view(illust_id, page);
-            return;
-        }
 
         // Update the URL to display this illust_id.  This stays on the same data source,
         // so displaying an illust won't cause a search to be made in the background or
@@ -442,15 +433,15 @@ ppixiv.main_controller = class
         else
             args.hash.set("page", page + 1);
 
-        if(quick_view)
+        if(temp_view)
         {
             args.hash.set("virtual", "1");
-            args.hash.set("quick-view", "1");
+            args.hash.set("temp-view", "1");
         }
         else
         {
             args.hash.delete("virtual");
-            args.hash.delete("quick-view");
+            args.hash.delete("temp-view");
         }
 
         helpers.set_page_url(args, add_to_history, "navigation");

@@ -312,9 +312,9 @@ class data_source
         // the subclass.
         args.hash.delete("illust_id");
 
-        // These are for quick view and don't affect the data source.
+        // These are for temp view and don't affect the data source.
         args.hash.delete("virtual");
-        args.hash.delete("quick-view");
+        args.hash.delete("temp-view");
 
         // This is for overriding muting.
         args.hash.delete("view-muted");

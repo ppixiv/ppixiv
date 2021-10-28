@@ -220,6 +220,7 @@ ppixiv.dropdown_menu_opener = class
         new dropdown_menu_opener(button, box);
     }
 
+    // When button is clicked, show box.
     constructor(button, box)
     {
         this.box_onclick = this.box_onclick.bind(this);
@@ -264,7 +265,7 @@ ppixiv.dropdown_menu_opener = class
             });
 
             if(this.close_on_click_inside)
-                this.box.addEventListener("click", this.box_onclick, true);
+                this.box.addEventListener("click", this.box_onclick);
         }
         else
         {
@@ -274,7 +275,7 @@ ppixiv.dropdown_menu_opener = class
                 this.listener = null;
             }
 
-            this.box.removeEventListener("click", this.box_onclick, true);
+            this.box.removeEventListener("click", this.box_onclick);
         }
 
         // If we're inside a .top-ui-box container (the UI that sits at the top of the screen), set
@@ -294,6 +295,8 @@ ppixiv.dropdown_menu_opener = class
         return true;
     }
 
+    // Close the popup when something inside is clicked.  This can be prevented with
+    // stopPropagation, or with the keep-menu-open class.
     box_onclick(e)
     {
         if(e.target.closest(".keep-menu-open"))

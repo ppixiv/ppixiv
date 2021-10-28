@@ -80,19 +80,21 @@ ppixiv.menu_option = class
         });
 
         new menu_option_toggle(container, {
-            label: "Quick view (experimental)",
+            label: "Quick view",
             setting: "quick_view",
-        });
-        new menu_option_toggle(container, {
-            label: "Link to quick view (experimental)",
-            setting: "no_receive_quick_view",
-            invert_display: true,
         });
         new menu_option_toggle(container, {
             label: "Remember recent history",
             setting: "no_recent_history",
             invert_display: true,
         });
+        new menu_option_button(container, {
+            label: "Link tabs",
+            onclick: () => {
+                main_controller.singleton.link_tabs_popup.visible = true;
+            }
+        });
+
 
 /*        new menu_option_toggle(container, {
             label: "Touchpad mode",
@@ -128,7 +130,7 @@ ppixiv.menu_option = class
     }            
 }
 
-class menu_option_toggle extends ppixiv.menu_option
+ppixiv.menu_option_toggle = class extends ppixiv.menu_option
 {
     constructor(container, options)
     {
@@ -191,6 +193,7 @@ class menu_option_slider extends ppixiv.menu_option
 
         this.item = helpers.create_from_template(".template-menu-slider");
         this.item.addEventListener("input", this.oninput);
+        this.item.addEventListener("click", (e) => { e.stopPropagation(); });
         this.item.querySelector(".label").innerText = options.label;
 
         this.slider = this.item.querySelector("input");
@@ -311,4 +314,18 @@ ppixiv.thumbnail_size_slider_widget = class extends menu_option_slider
     }
 };
 
+class menu_option_button extends ppixiv.menu_option
+{
+    constructor(container, options)
+    {
+        super(container, options);
 
+        this.item = helpers.create_from_template(".template-menu-button");
+        this.container.appendChild(this.item);
+        this.item.querySelector(".label").innerText = options.label;
+
+        this.item.addEventListener("click", (e) => {
+            this.options.onclick();
+        });
+    }
+}

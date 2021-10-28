@@ -144,6 +144,12 @@ ppixiv.screen_illust = class extends ppixiv.screen
         this.wanted_illust_id = illust_id;
         this.wanted_illust_page = manga_page;
 
+        // If remote quick view is active, send this image.  Only do this if we have
+        // focus, since if we don't have focus, we're probably receiving this from another
+        // tab.
+        if(settings.get("linked_tabs_enabled"))
+            SendImage.send_image(illust_id, manga_page, settings.get("linked_tabs", []), "temp-view");
+
         // Get very basic illust info.  This is enough to tell which viewer to use, how
         // many pages it has, and whether it's muted.  This will always complete immediately
         // if we're coming from a search or anywhere else that will already have this info,
@@ -380,6 +386,13 @@ ppixiv.screen_illust = class extends ppixiv.screen
         // Tell the preloader that we're not displaying an image anymore.
         image_preloader.singleton.set_current_image(null, null);
         image_preloader.singleton.set_speculative_image(null, null);
+
+        // If remote quick view is active, cancel it if we leave the image.
+        SendImage.send_message({
+            message: "send-image",
+            action: "cancel",
+            to: settings.get("linked_tabs", []),
+        });
     }
 
     data_source_updated()

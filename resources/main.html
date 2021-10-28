@@ -191,7 +191,7 @@
                             <ppixiv-inline src="resources/settings-icon.svg"></ppixiv-inline>
                         </div>
                         
-                        <div class="popup-menu-box keep-menu-open">
+                        <div class=popup-menu-box>
                             <div class=option-list></div>
                         </div>
                     </div>
@@ -503,7 +503,7 @@
         <div class=thumbnails></div>
     </div>
 
-    <div class=whats-new-box hidden>
+    <div class="whats-new-box dialog" hidden>
         <div class=content>
             <div class=scroll>
                 <div class=header>Updates</div>
@@ -690,7 +690,7 @@
                         <div class="menu-button grey-icon icon-button">
                             <ppixiv-inline src="resources/settings-icon.svg"></ppixiv-inline>
                         </div>
-                        <div class="popup-menu-box keep-menu-open"></div>
+                        <div class=popup-menu-box></div>
                     </div>
                 </div>
                 <div class=post-info>
@@ -1020,6 +1020,52 @@
                 <span class=on>☑</span>
                 <span class=off>☐</span>
                 <span class=label style="margin-left: 2px;"></span>
+            </div>
+        </template>
+
+        <template class=template-menu-button>
+            <div class="menu-toggle box-link">
+                <span class=off style="visibility: hidden;">☐</span> <!-- cheat for spacing -->
+                <span class=label style="margin-left: 2px;"></span>
+            </div>
+        </template>
+
+        <template class=template-link-tabs>
+            <div class="link-tab-popup dialog">
+                <div class=content>
+                    <div class=close-button>
+                        <ppixiv-inline src="resources/close-button.svg"></ppixiv-inline>
+                    </div>
+
+                    <div class=header>Link Tabs</div>
+
+                    <div style="text-align: center; width: 100%;">
+                        <ppixiv-inline src="resources/multi-monitor.svg" class=tutorial-monitor></ppixiv-inline>
+                        <div style="margin: 10px 0 15px 0; font-size: 125%;">
+                            Open a 
+                            <img src="ppixiv:resources/activate-icon.png" style="width: 28px; vertical-align: bottom;">
+                            tab on another monitor and click "Link this tab" to send images to it
+                        </div>
+                    </div>
+
+                    <div class=buttons style="margin-top: 1em;">
+                        <div class=toggle-enabled></div>
+                        <div class="unlink-all box-link" hidden>Unlink all tabs</div>
+                    </div>
+                </div>
+            </div>
+        </template>
+
+        <template class=template-link-this-tab>
+            <div class="link-this-tab-popup dialog">
+                <div class=content>
+                    <div class="button box-link link-this-tab">
+                        Link this tab
+                    </div>
+                    <div class="button box-link unlink-this-tab">
+                        Unlink this tab
+                    </div>
+                </div>
             </div>
         </template>
 
