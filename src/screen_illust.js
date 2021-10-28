@@ -511,7 +511,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
     // Get the illust_id and page navigating down (or up) will go to.
     //
     // This may trigger loading the next page of search results, if we've reached the end.
-    async get_navigation(down, { skip_manga_pages=false }={})
+    async get_navigation(down, { skip_manga_pages=false, }={})
     {
         // Check if we're just changing pages within the same manga post.
         let leaving_manga_post = false;
@@ -592,15 +592,6 @@ ppixiv.screen_illust = class extends ppixiv.screen
 
             console.log("Retrying navigation after data load");
         }
-    
-        // If we didn't get a page, we're at the end of the search results.  Flash the
-        // indicator to show we've reached the end and stop.
-        if(new_illust_id == null)
-        {
-            console.log("Reached the end of the list");
-            this.flash_end_indicator(down, "last-image");
-            return { illust_id: null, page: null, end: true };
-        }
 
         let page = down || skip_manga_pages? 0:-1;
         return { illust_id: new_illust_id, page: page, leaving_manga_post: leaving_manga_post };
@@ -625,6 +616,15 @@ ppixiv.screen_illust = class extends ppixiv.screen
         let { illust_id: new_illust_id, page, end, leaving_manga_post } = await this.get_navigation(down, {
             skip_manga_pages: skip_manga_pages,
         });
+    
+        // If we didn't get a page, we're at the end of the search results.  Flash the
+        // indicator to show we've reached the end and stop.
+        if(new_illust_id == null)
+        {
+            console.log("Reached the end of the list");
+            this.flash_end_indicator(down, "last-image");
+            return { illust_id: null, page: null, end: true };
+        }
 
         // If this.pending_navigation is no longer the same as pending_navigation, we navigated since
         // we requested this load and this navigation is stale, so stop.
