@@ -329,6 +329,75 @@ ppixiv.helpers = {
         });
     },
 
+    // setTimeout using an AbortSignal to remove the timer.
+    timeout(callback, ms, signal)
+    {
+        if(signal && signal.aborted)
+            return;
+
+        let id = setTimeout(callback, ms);
+
+        if(signal)
+        {
+            // Clear the interval when the signal is aborted.
+            signal.addEventListener("abort", () => {
+                clearTimeout(id);
+            }, { once: true });
+        }
+    },
+
+    // setInterval using an AbortSignal to remove the interval.
+    //
+    // If call_immediately is true, call callback() now, rather than waiting
+    // for the first interval.
+    interval(callback, ms, signal, call_immediately=true)
+    {
+        if(signal && signal.aborted)
+            return;
+
+        let id = setInterval(callback, ms);
+
+        if(signal)
+        {
+            // Clear the interval when the signal is aborted.
+            signal.addEventListener("abort", () => {
+                clearInterval(id);
+            }, { once: true });
+        }
+
+        if(call_immediately)
+            callback();
+    },
+
+    // A convenience wrapper for setTimeout:
+    timer: class
+    {
+        constructor(func)
+        {
+            this.func = func;
+        }
+    
+        run_func = () =>
+        {
+            this.func();
+        }
+    
+        clear()
+        {
+            if(this.id == null)
+                return;
+    
+            clearTimeout(this.id);
+            this.id = null;
+        }
+    
+        set(ms)
+        {
+            this.clear();
+            this.id = setTimeout(this.run_func, ms);
+        }
+    },
+    
     // Block until DOMContentLoaded.
     wait_for_content_loaded: function()
     {

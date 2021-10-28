@@ -28,6 +28,49 @@ ppixiv.widget = class
     async refresh()
     {
     }
+
+    get visible()
+    {
+        return !this.container.hidden;
+    }
+
+    // The subclass can override this.
+    visibility_changed()
+    {
+    }
+
+    set visible(value)
+    {
+        if(value == !this.container.hidden)
+            return;
+
+        if(value)
+        {
+            console.assert(this.visibility_abort == null);
+
+            // Create an AbortController that will be aborted when the widget is hidden.
+            this.visibility_abort = new AbortController;
+        } else {
+            if(this.visibility_abort)
+                this.visibility_abort.abort();
+
+            this.visibility_abort = null;
+        }
+
+        this.container.hidden = !value;
+
+        this.visibility_changed();
+    }
+}
+
+ppixiv.dialog_widget = class extends ppixiv.widget
+{
+    constructor({
+        ...options
+    })
+    {
+        super({...options});
+    }
 }
 
 // A widget that shows info for a particular illust_id.
