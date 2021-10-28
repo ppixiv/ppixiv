@@ -470,6 +470,11 @@ ppixiv.main_controller = class
             args.hash.delete("page");
         if(screen == "search")
             args.hash.delete("illust_id");
+
+        // If we're going somewhere other than illust, remove zoom state, so
+        // it's not still around the next time we view an image.
+        if(screen != "illust")
+            delete args.state.zoom;
     }
 
     // Navigate out.
