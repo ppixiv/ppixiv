@@ -3,6 +3,15 @@
 // This should be inside whats_new, but Firefox is in the dark ages and doesn't support class fields.
 let _update_history = [
     {
+        version: 110,
+        text: `
+Added Quick View.  This views images immediately when the mouse is pressed,
+and images can be panned with the same press.
+<p>
+This can be enabled in preferences, and may become the default in a future release.
+`
+    },
+    {
         version: 109,
         boring: true,
         text: `Added a visual marker on thumbnails to show the last image you viewed.`
