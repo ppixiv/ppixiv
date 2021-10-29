@@ -51,7 +51,7 @@ ppixiv.image_ui = class extends ppixiv.widget
             this.bookmark_buttons.push(new bookmark_button_widget({
                 parent: this,
                 container: a,
-                private: a.classList.contains("private"),
+                private_bookmark: a.classList.contains("private"),
                 bookmark_tag_widget: this.bookmark_tag_widget,
             }));
 
