@@ -481,6 +481,9 @@ ppixiv.on_click_viewer = class
 
     stop_dragging()
     {
+        // Save our history state on mouseup.
+        this.save_to_history();
+            
         if(this.image_container != null)
         {
             this.image_container.removeEventListener("pointermove", this.pointermove);
@@ -678,11 +681,8 @@ ppixiv.on_click_viewer = class
     // Save the pan and zoom state to history.
     save_to_history = () =>
     {
-        this.save_to_history_id = null;
-
         // Store the pan position at the center of the screen.
         let args = helpers.args.location;
-        let screen_pos = [this.container_width / 2, this.container_height / 2];
         args.state.zoom = {
             pos: this.center_pos,
             zoom: this.zoom_level,
@@ -697,7 +697,10 @@ ppixiv.on_click_viewer = class
     schedule_save_to_history()
     {
         this.cancel_save_to_history();
-        this.save_to_history_id = setTimeout(this.save_to_history, 250);
+        this.save_to_history_id = setTimeout(() => {
+            this.save_to_history_id = null;
+            this.save_to_history();
+        }, 250);
     }
 
     cancel_save_to_history()
