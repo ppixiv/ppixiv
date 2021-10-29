@@ -2510,10 +2510,12 @@ ppixiv.pointer_listener = class
     static latest_mouse_position = [window.innerWidth/2, window.innerHeight/2];
     static buttons = 0;
     static button_pointer_ids = new Map();
+    static pointer_type = "mouse";
     static install_global_handler()
     {
-        window.addEventListener("mousemove", (e) => {
+        window.addEventListener("pointermove", (e) => {
             pointer_listener.latest_mouse_position = [e.pageX, e.pageY];
+            this.pointer_type = e.pointerType;
         }, { passive: true, capture: true });
 
         new pointer_listener({

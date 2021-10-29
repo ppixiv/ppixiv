@@ -105,6 +105,11 @@ ppixiv.screen_search = class extends ppixiv.screen
                 if(!settings.get("quick_view"))
                     return;
 
+                // Activating on press would probably break navigation on touchpads, so only do
+                // this for mouse events.
+                if(e.pointerType != "mouse")
+                    return;
+
                 let { illust_id, page } = main_controller.singleton.get_illust_at_element(e.target);
                 if(illust_id == null)
                     return;

@@ -82,6 +82,16 @@ ppixiv.menu_option = class
         new menu_option_toggle(container, {
             label: "Quick view",
             setting: "quick_view",
+
+            check: () => {
+                // Only enable changing this option when using a mouse.  It has no effect
+                // on touchpads.
+                if(ppixiv.pointer_listener.pointer_type == "mouse")
+                    return true;
+
+                message_widget.singleton.show("Quick View is only supported when using a mouse.");
+                return false;
+            },
         });
         new menu_option_toggle(container, {
             label: "Remember recent history",
@@ -162,6 +172,9 @@ ppixiv.menu_option_toggle = class extends ppixiv.menu_option
     {
         e.preventDefault();
         e.stopPropagation();
+
+        if(this.options && this.options.check && !this.options.check())
+            return;
 
         this.value = !this.value;
     }
