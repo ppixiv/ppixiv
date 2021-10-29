@@ -42,7 +42,7 @@ ppixiv.on_click_viewer = class
         });
 
         // This is like pointermove, but received during quick view from the source tab.
-        window.addEventListener("quickviewpointermove", this.quick_view_pointermove, { signal: this.event_shutdown.signal });
+        window.addEventListener("quickviewpointermove", this.pointermove, { signal: this.event_shutdown.signal });
     }
 
     // Load the given illust and page.
@@ -134,6 +134,11 @@ ppixiv.on_click_viewer = class
         this.img = img;
         this.preview_img = preview_img;
 
+        // If the main image is already ready, add it.  Otherwise, add the preview image.
+        this.image_container.appendChild(img_ready? this.img:this.preview_img);
+
+        // Restore history or set the initial position, then call reposition() to apply it
+        // and do any clamping.
         if(restore_position == "history")
             this.restore_from_history();
         else if(restore_position == "auto")
@@ -147,18 +152,9 @@ ppixiv.on_click_viewer = class
         if(ondisplayed)
             ondisplayed();
 
-        // If the load already finished, just add the main image and don't use the preview.
+        // If we added the main image, we're done.
         if(img_ready)
-        {
-            this.image_container.appendChild(this.img);
             return;
-        }
-
-        // If the new preview was complete, removing the previous image may have been deferred.
-        // Wait for it to decode, and then add the new preview and remove the old one at the
-        // same time.  This prevents flashing a blank screen for a frame while the preview
-        // decodes.
-        this.image_container.appendChild(this.preview_img);
 
         // If we don't have a main URL, stop here.  We only have the preview to display.
         if(url == null)
@@ -433,12 +429,6 @@ ppixiv.on_click_viewer = class
 
         if(e.pressed)
         {
-            // If this is a simulated press event, the button was pressed on the previous page,
-            // probably due to quick view.  Don't start a zoom from this press, but do allow
-            // locked zoom to be moved from it.
-            if(e.type == "simulatedpointerdown" && !this._locked_zoom)
-                return;
-
             // We only want clicks on the image, or on the container backing the image, not other
             // elements inside the container.
             if(e.target != this.img && e.target != this.image_container)
@@ -452,7 +442,16 @@ ppixiv.on_click_viewer = class
             if(!this._locked_zoom)
                 var zoom_center_pos = this.get_image_position([e.pageX, e.pageY]);
 
-            this._mouse_pressed = true;
+            // If this is a simulated press event, the button was pressed on the previous page,
+            // probably due to quick view.  Don't zoom from this press, but do listen to pointermove,
+            // so send_mouse_movement_to_linked_tabs is still called.
+            let allow_zoom = true;
+            if(e.type == "simulatedpointerdown" && !this._locked_zoom)
+                allow_zoom = false;
+
+            if(allow_zoom)
+                this._mouse_pressed = true;
+
             this.dragged_while_zoomed = false;
 
             this.captured_pointer_id = e.pointerId;
@@ -469,9 +468,6 @@ ppixiv.on_click_viewer = class
             this.image_container.addEventListener("pointermove", this.pointermove);
         } else {
             if(this.captured_pointer_id == null || e.pointerId != this.captured_pointer_id)
-                return;
-
-            if(!this._mouse_pressed)
                 return;
 
             // Tell hide_mouse_cursor_on_idle that the mouse cursor should be hidden, even though the
@@ -505,21 +501,13 @@ ppixiv.on_click_viewer = class
 
     pointermove(e)
     {
-        if(!this._mouse_pressed)
-            return;
-
-        this.dragged_while_zoomed = true;
-
-        this.apply_pointer_movement({movementX: e.movementX, movementY: e.movementY});
-    }
-
-    quick_view_pointermove = (e) =>
-    {
         this.apply_pointer_movement({movementX: e.movementX, movementY: e.movementY});
     }
 
     apply_pointer_movement({movementX, movementY})
     {
+        this.dragged_while_zoomed = true;
+
         // Send pointer movements to linked tabs.
         SendImage.send_mouse_movement_to_linked_tabs(movementX, movementY);
 
