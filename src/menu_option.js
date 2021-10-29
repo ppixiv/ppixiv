@@ -98,14 +98,13 @@ ppixiv.menu_option = class
             setting: "no_recent_history",
             invert_display: true,
         });
-        /*
         new menu_option_button(container, {
             label: "Link tabs",
             onclick: () => {
                 main_controller.singleton.link_tabs_popup.visible = true;
             }
         });
-*/
+
 
 /*        new menu_option_toggle(container, {
             label: "Touchpad mode",
