@@ -1149,9 +1149,7 @@ ppixiv.bookmark_count_widget = class extends ppixiv.illust_widget
 
     refresh_internal({ illust_data })
     {
-        let count = this.container.querySelector(".count");
-        if(count)
-            count.textContent = illust_data? illust_data.bookmarkCount:"---";
+        this.container.textContent = illust_data? illust_data.bookmarkCount:"---";
     }
 }
 

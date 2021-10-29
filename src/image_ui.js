@@ -44,6 +44,14 @@ ppixiv.image_ui = class extends ppixiv.widget
             parent: this,
             container: this.container.querySelector(".button-like"),
         });
+        this.like_count_widget = new like_count_widget({
+            parent: this,
+            container: this.container.querySelector(".button-like .count"),
+        });
+        this.bookmark_count_widget = new bookmark_count_widget({
+            parent: this,
+            container: this.container.querySelector(".button-bookmark .count"),
+        });
 
         // The bookmark buttons, and clicks in the tag dropdown:
         this.bookmark_buttons = [];
@@ -122,6 +130,8 @@ ppixiv.image_ui = class extends ppixiv.widget
         this.like_button.illust_id = this._illust_id;
         this.bookmark_tag_widget.illust_id = this._illust_id;
         this.toggle_tag_widget.illust_id = this._illust_id;
+        this.like_count_widget.illust_id = this._illust_id;
+        this.bookmark_count_widget.illust_id = this._illust_id;
         for(let button of this.bookmark_buttons)
             button.illust_id = this._illust_id;
     

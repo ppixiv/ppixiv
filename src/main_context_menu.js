@@ -509,7 +509,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
             }),
             new bookmark_count_widget({
                 parent: this,
-                container: this.menu.querySelector(".button-bookmark.public")
+                container: this.menu.querySelector(".button-bookmark.public .count")
             }),
         ];
 
