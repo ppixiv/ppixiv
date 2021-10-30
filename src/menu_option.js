@@ -1,13 +1,14 @@
 "use strict";
 
 // Simple menu settings widgets.
-ppixiv.menu_option = class
+ppixiv.menu_option = class extends widget
 {
     static add_settings(container)
     {
         if(container.closest(".screen-manga-container"))
         {
-            new thumbnail_size_slider_widget(container, {
+            new thumbnail_size_slider_widget({
+                container: container,
                 label: "Thumbnail size",
                 setting: "manga-thumbnail-size",
                 min: 0,
@@ -17,7 +18,8 @@ ppixiv.menu_option = class
 
         if(container.closest(".screen-search-container"))
         {
-            new thumbnail_size_slider_widget(container, {
+            new thumbnail_size_slider_widget({
+                container: container,
                 label: "Thumbnail size",
                 setting: "thumbnail-size",
                 min: 0,
@@ -25,12 +27,14 @@ ppixiv.menu_option = class
             });
         }
         
-        new menu_option_toggle(container, {
+        new menu_option_toggle({
+            container: container,
             label: "Disabled by default",
             setting: "disabled-by-default",
         });
 
-        new menu_option_toggle(container, {
+        new menu_option_toggle({
+            container: container,
             label: "Hide cursor",
             setting: "no-hide-cursor",
             invert_display: true,
@@ -39,47 +43,55 @@ ppixiv.menu_option = class
         // Firefox's contextmenu behavior is broken, so hide this option.
         if(navigator.userAgent.indexOf("Firefox/") == -1)
         {
-            new menu_option_toggle(container, {
+            new menu_option_toggle({
+                container: container,
                 label: "Hold shift to open context menu",
                 setting: "invert-popup-hotkey",
             });
         }
 
-        new menu_option_toggle(container, {
+        new menu_option_toggle({
+            container: container,
             label: "Hover to show UI",
             setting: "ui-on-hover",
             onchange: this.update_from_settings,
         });
 
-        new menu_option_toggle(container, {
+        new menu_option_toggle({
+            container: container,
             label: "Invert scrolling while zoomed",
             setting: "invert-scrolling",
         });
  
-        new menu_option_toggle_light_theme(container, {
+        new menu_option_toggle_light_theme({
+            container: container,
             label: "Light mode",
             setting: "theme",
         });
 
-        new menu_option_toggle(container, {
+        new menu_option_toggle({
+            container: container,
             label: "Show translations",
             setting: "disable-translations",
             invert_display: true,
         });
  
-        new menu_option_toggle(container, {
+        new menu_option_toggle({
+            container: container,
             label: "Thumbnail panning",
             setting: "disable_thumbnail_panning",
             invert_display: true,
         });
 
-        new menu_option_toggle(container, {
+        new menu_option_toggle({
+            container: container,
             label: "Thumbnail zooming",
             setting: "disable_thumbnail_zooming",
             invert_display: true,
         });
 
-        new menu_option_toggle(container, {
+        new menu_option_toggle({
+            container: container,
             label: "Quick view",
             setting: "quick_view",
 
@@ -93,12 +105,14 @@ ppixiv.menu_option = class
                 return false;
             },
         });
-        new menu_option_toggle(container, {
+        new menu_option_toggle({
+            container: container,
             label: "Remember recent history",
             setting: "no_recent_history",
             invert_display: true,
         });
-        new menu_option_button(container, {
+        new menu_option_button({
+            container: container,
             label: "Link tabs",
             onclick: () => {
                 main_controller.singleton.link_tabs_popup.visible = true;
@@ -106,19 +120,19 @@ ppixiv.menu_option = class
         });
 
 
-/*        new menu_option_toggle(container, {
+/*        new menu_option_toggle({
+            container: container,
             label: "Touchpad mode",
             setting: "touchpad-mode",
         }); */
 
     }
 
-    constructor(container, options)
+    constructor({...options})
     {
-        this.refresh = this.refresh.bind(this);
+        super(options);
 
-        this.container = container;
-        this.options = options;
+        this.refresh = this.refresh.bind(this);
 
         settings.register_change_callback(this.options.setting, this.refresh);
     }
@@ -142,9 +156,9 @@ ppixiv.menu_option = class
 
 ppixiv.menu_option_toggle = class extends ppixiv.menu_option
 {
-    constructor(container, options)
+    constructor({...options})
     {
-        super(container, options);
+        super(options);
 
         this.onclick = this.onclick.bind(this);
 
@@ -198,9 +212,9 @@ class menu_option_toggle_light_theme extends menu_option_toggle
 
 class menu_option_slider extends ppixiv.menu_option
 {
-    constructor(container, options)
+    constructor({...options})
     {
-        super(container, options);
+        super(options);
 
         this.oninput = this.oninput.bind(this);
 
@@ -254,9 +268,9 @@ class menu_option_slider extends ppixiv.menu_option
 // A widget to control the thumbnail size slider.
 ppixiv.thumbnail_size_slider_widget = class extends menu_option_slider
 {
-    constructor(container, options)
+    constructor(options)
     {
-        super(container, options);
+        super(options);
 
         this.onwheel = this.onwheel.bind(this);
         this.onkeydown = this.onkeydown.bind(this);
@@ -329,9 +343,9 @@ ppixiv.thumbnail_size_slider_widget = class extends menu_option_slider
 
 class menu_option_button extends ppixiv.menu_option
 {
-    constructor(container, options)
+    constructor(options)
     {
-        super(container, options);
+        super(options);
 
         this.item = helpers.create_from_template(".template-menu-button");
         this.container.appendChild(this.item);

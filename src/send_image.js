@@ -351,7 +351,8 @@ ppixiv.link_tabs_popup = class extends ppixiv.dialog_widget
             this.visible = false;
         });
 
-        new menu_option_toggle(this.container.querySelector(".toggle-enabled"), {
+        new menu_option_toggle({
+            container: this.container.querySelector(".toggle-enabled"),
             label: "Enabled",
             setting: "linked_tabs_enabled",
         });
