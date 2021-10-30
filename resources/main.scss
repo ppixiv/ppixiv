@@ -1867,6 +1867,12 @@ input.search-tags {
             font-weight: bold;
         }
     }
+
+    .popup-bookmark-tag-dropdown {
+        // Nudge the dropdown to the left by the width of a button-block
+        // when it's inside the popup menu.
+        right: -100%;
+    }
 }
 
 .popup-bookmark-tag-dropdown {
@@ -1875,7 +1881,6 @@ input.search-tags {
     position: absolute;
     padding: 6px 8px;
     top: calc(100%);
-    left: 0;
     border-radius: 0px 0px 4px 4px;
 
     /* Put this on top of other elements, like the image-ui tag list. */
