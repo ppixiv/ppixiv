@@ -128,9 +128,11 @@ ppixiv.menu_option = class extends widget
 
     }
 
-    constructor({...options})
+    constructor({classes=[], ...options})
     {
         super(options);
+        for(let class_name of classes)
+            this.container.classList.add(class_name);
 
         this.refresh = this.refresh.bind(this);
 
@@ -195,6 +197,49 @@ ppixiv.menu_option_toggle = class extends ppixiv.menu_option
             return;
 
         this.value = !this.value;
+    }
+}
+
+ppixiv.menu_option_button = class extends ppixiv.menu_option
+{
+    constructor(options)
+    {
+        super({...options, template: `
+            <div class="menu-toggle box-link">
+                <span class=icon>
+                </span>
+
+                <span class=label style="margin-left: 2px;"></span>
+            </div>
+        `});
+
+        // If an icon was provided, add it.
+        if(options.icon)
+        {
+            let node = helpers.create_ppixiv_inline(options.icon);
+            let icon = this.container.querySelector(".icon");
+            icon.appendChild(node);
+        }
+
+        this._enabled = true;
+        this.container.querySelector(".label").innerText = options.label;
+        this.container.addEventListener("click", (e) => {
+            if(!this._enabled)
+                return;
+
+            this.options.onclick();
+        });
+    }
+
+    set enabled(value)
+    {
+        helpers.set_class(this.container, "disabled", !value);
+        this._enabled = value;
+    }
+
+    get enabled()
+    {
+        return this._enabled;
     }
 }
 
@@ -351,21 +396,3 @@ ppixiv.thumbnail_size_slider_widget = class extends menu_option_slider
         return thumbnail_size_slider_widget.thumbnail_size_for_value(this.slider.value);
     }
 };
-
-ppixiv.menu_option_button = class extends ppixiv.menu_option
-{
-    constructor(options)
-    {
-        super({...options, template: `
-            <div class="menu-toggle box-link">
-                <span class=off style="visibility: hidden;">☐</span> <!-- cheat for spacing -->
-                <span class=label style="margin-left: 2px;"></span>
-            </div>
-        `});
-
-        this.container.querySelector(".label").innerText = options.label;
-        this.container.addEventListener("click", (e) => {
-            this.options.onclick();
-        });
-    }
-}
