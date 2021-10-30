@@ -218,19 +218,26 @@ class menu_option_slider extends ppixiv.menu_option
 {
     constructor({...options})
     {
-        super(options);
+        super({...options, template: `
+            <div class="menu-slider thumbnail-size-box">
+                <div class="box-section">
+                    <span class=label></span>
+                </div>
+                <div class="box-section">
+                    <input class=thumbnail-size type=range>
+                </div>
+            </div>
+        `});
 
         this.oninput = this.oninput.bind(this);
 
-        this.item = helpers.create_from_template(".template-menu-slider");
-        this.item.addEventListener("input", this.oninput);
-        this.item.addEventListener("click", (e) => { e.stopPropagation(); });
-        this.item.querySelector(".label").innerText = options.label;
+        this.container.addEventListener("input", this.oninput);
+        this.container.addEventListener("click", (e) => { e.stopPropagation(); });
+        this.container.querySelector(".label").innerText = options.label;
 
-        this.slider = this.item.querySelector("input");
+        this.slider = this.container.querySelector("input");
         this.slider.min = this.options.min;
         this.slider.max = this.options.max;
-        this.container.appendChild(this.item);
     }
     
     refresh()
