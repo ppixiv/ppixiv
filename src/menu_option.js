@@ -165,7 +165,7 @@ ppixiv.menu_option_button = class extends ppixiv.menu_option
                 <span class=icon>
                 </span>
 
-                <span class=label style="margin-left: 2px;"></span>
+                <span class=label></span>
             </div>
         `});
 
@@ -213,13 +213,9 @@ ppixiv.menu_option_toggle = class extends ppixiv.menu_option_button
 {
     constructor({...options})
     {
-        super({...options});
-
-        // Replace the icon.
-        this.container.querySelector(".icon").innerHTML = `
-            <span hidden class=on>☑</span>
-            <span hidden class=off>☐</span>
-        `;
+        super({...options,
+            icon: "resources/checkbox.svg",
+        });
     }
 
     refresh()
@@ -229,9 +225,9 @@ ppixiv.menu_option_toggle = class extends ppixiv.menu_option_button
         var value = this.value;
         if(this.options.invert_display)
             value = !value;
-        
-        this.container.querySelector(".on").hidden = !value;
-        this.container.querySelector(".off").hidden = value;
+
+        // element.hidden doesn't work on SVG:
+        this.container.querySelector(".checkbox").style.display = value? "":"none";
     }
 
     onclick(e)

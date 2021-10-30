@@ -770,7 +770,8 @@ body.hide-r18g .r18g { display: none; }
     height: 125%;
 }
 
-.popup-menu-box .button {
+.popup-menu-box .button,
+{
     padding: .25em;
     cursor: pointer;
     width: 100%;
@@ -1314,13 +1315,13 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
     background-color: var(--box-link-bg-color);
     user-select: none;
     white-space: nowrap;
-    line-height: 24px;
 
     &.disabled {
         color: var(--box-link-disabled-color);
+        cursor: auto;
     }
 
-    &:hover {
+    &:hover:not(.disabled) {
         background-color: var(--box-link-hover-color);
     }
 
@@ -1336,14 +1337,19 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
         overflow: hidden;
     }
 
+    .label {
+        margin-left: .25em;
+    }
+
     .icon {
         display: inline-block;
-        width: 17px;
-        height: 17px;
-        vertical-align: text-bottom;
+        width: 1em;
+        height: 100%;
+        position: relative;
+        top: 0.125em;
         svg {
-            width: 100%;
-            height: 100%;
+            width: auto;
+            height: 1em;
         }
     }
 }
