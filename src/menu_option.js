@@ -156,24 +156,70 @@ ppixiv.menu_option = class extends widget
     }            
 }
 
-ppixiv.menu_option_toggle = class extends ppixiv.menu_option
+ppixiv.menu_option_button = class extends ppixiv.menu_option
 {
-    constructor({...options})
+    constructor(options)
     {
         super({...options, template: `
             <div class="menu-toggle box-link">
-                <span class=on>☑</span>
-                <span class=off>☐</span>
+                <span class=icon>
+                </span>
+
                 <span class=label style="margin-left: 2px;"></span>
             </div>
         `});
 
         this.onclick = this.onclick.bind(this);
+        this._enabled = true;
 
-        this.container.addEventListener("click", this.onclick);
+        // If an icon was provided, add it.
+        if(options.icon)
+        {
+            let node = helpers.create_ppixiv_inline(options.icon);
+            let icon = this.container.querySelector(".icon");
+            icon.appendChild(node);
+        }
+
         this.container.querySelector(".label").innerText = options.label;
+        this.container.addEventListener("click", this.onclick);
+    }
 
-        this.refresh();
+    refresh()
+    {
+        super.refresh();
+    }
+
+    set enabled(value)
+    {
+        helpers.set_class(this.container, "disabled", !value);
+        this._enabled = value;
+    }
+
+    get enabled()
+    {
+        return this._enabled;
+    }
+
+    onclick(e)
+    {
+        if(!this._enabled)
+            return;
+
+        this.options.onclick();
+    }
+}
+
+ppixiv.menu_option_toggle = class extends ppixiv.menu_option_button
+{
+    constructor({...options})
+    {
+        super({...options});
+
+        // Replace the icon.
+        this.container.querySelector(".icon").innerHTML = `
+            <span hidden class=on>☑</span>
+            <span hidden class=off>☐</span>
+        `;
     }
 
     refresh()
@@ -197,49 +243,6 @@ ppixiv.menu_option_toggle = class extends ppixiv.menu_option
             return;
 
         this.value = !this.value;
-    }
-}
-
-ppixiv.menu_option_button = class extends ppixiv.menu_option
-{
-    constructor(options)
-    {
-        super({...options, template: `
-            <div class="menu-toggle box-link">
-                <span class=icon>
-                </span>
-
-                <span class=label style="margin-left: 2px;"></span>
-            </div>
-        `});
-
-        // If an icon was provided, add it.
-        if(options.icon)
-        {
-            let node = helpers.create_ppixiv_inline(options.icon);
-            let icon = this.container.querySelector(".icon");
-            icon.appendChild(node);
-        }
-
-        this._enabled = true;
-        this.container.querySelector(".label").innerText = options.label;
-        this.container.addEventListener("click", (e) => {
-            if(!this._enabled)
-                return;
-
-            this.options.onclick();
-        });
-    }
-
-    set enabled(value)
-    {
-        helpers.set_class(this.container, "disabled", !value);
-        this._enabled = value;
-    }
-
-    get enabled()
-    {
-        return this._enabled;
     }
 }
 
