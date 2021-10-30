@@ -134,11 +134,6 @@ ppixiv.illust_widget = class extends ppixiv.widget
 
     get illust_id() { return this._illust_id; }
 
-    get visible()
-    {
-        return !this.container.hidden;
-    }
-     
     async refresh()
     {
         // Grab the illust info.
