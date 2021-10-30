@@ -138,36 +138,9 @@ ppixiv.helpers = {
         {
             let src = element.getAttribute("src");
 
-            // Find the resource.
-            let resource = resources[src];
-            if(resource == null)
-            {
-                console.error("Unknown resource \"" + src + "\" in", element);
-                continue;
-            }
-
-            // Parse this element if we haven't done so yet.
-            // If we haven't parsed this 
-            if(!helpers._resource_cache[src])
-            {
-                // resource is HTML.  Parse it by adding it to a <div>.
-                let div = document.createElement("div");
-                div.innerHTML = resource;
-                let node = div.firstElementChild;
-                node.remove();
-
-                // Stash the source path on the node.  This is just for debugging to make
-                // it easy to tell where things came from.
-                node.dataset.ppixivResource = src;
-
-                // Cache the result, so we don't re-parse the node every time we create one.
-                helpers._resource_cache[src] = node;
-            }
-
             // Import the cached node to make a copy, then replace the <ppixiv-inline> element
             // with it.
-            let node = helpers._resource_cache[src];
-            node = document.importNode(node, true);
+            let node = this.create_ppixiv_inline(src);
             element.replaceWith(node);
 
             // Copy attributes from the <ppixiv-inline> node to the newly created node which
@@ -187,7 +160,38 @@ ppixiv.helpers = {
             }
         }
     },
-    
+
+    create_ppixiv_inline(src)
+    {
+        // Parse this element if we haven't done so yet.
+        if(!helpers._resource_cache[src])
+        {
+            // Find the resource.
+            let resource = resources[src];
+            if(resource == null)
+            {
+                console.error("Unknown resource \"" + src + "\" in", element);
+                return null;
+            }
+
+            // resource is HTML.  Parse it by adding it to a <div>.
+            let div = document.createElement("div");
+            div.innerHTML = resource;
+            let node = div.firstElementChild;
+            node.remove();
+
+            // Stash the source path on the node.  This is just for debugging to make
+            // it easy to tell where things came from.
+            node.dataset.ppixivResource = src;
+
+            // Cache the result, so we don't re-parse the node every time we create one.
+            helpers._resource_cache[src] = node;
+        }
+
+        let node = helpers._resource_cache[src];
+        return document.importNode(node, true);
+    },
+
     // SVG has a big problem: it uses IDs to reference its internal assets, and that
     // breaks if you inline the same SVG more than once in a while.  Making them unique
     // at build time doesn't help, since they break again as soon as you clone a template.
