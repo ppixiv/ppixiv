@@ -337,7 +337,7 @@ ppixiv.link_tabs_popup = class extends ppixiv.dialog_widget
 {
     constructor({...options})
     {
-        super({template: "template-link-tabs", ...options});
+        super({template_name: "template-link-tabs", ...options});
 
         this.container.querySelector(".close-button").addEventListener("click", (e) => {
             this.visible = false;
@@ -425,7 +425,7 @@ ppixiv.link_this_tab_popup = class extends ppixiv.dialog_widget
 {
     constructor({...options})
     {
-        super({template: "template-link-this-tab", ...options});
+        super({template_name: "template-link-this-tab", ...options});
 
         this.hide_timer = new helpers.timer(() => { this.visible = false; });
 
@@ -478,7 +478,7 @@ ppixiv.send_image_popup = class extends ppixiv.dialog_widget
 {
     constructor({...options})
     {
-        super({template: "template-send-image", ...options});
+        super({template_name: "template-send-image", ...options});
 
         // Close if the container is clicked, but not if something inside the container is clicked.
         this.container.addEventListener("click", (e) => {
@@ -526,7 +526,7 @@ ppixiv.send_here_popup = class extends ppixiv.dialog_widget
 {
     constructor({...options})
     {
-        super({template: "template-send-here", ...options});
+        super({template_name: "template-send-here", ...options});
 
         this.hide_timer = new helpers.timer(() => { this.visible = false; });
 

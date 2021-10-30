@@ -3,15 +3,25 @@
 // A basic widget base class.
 ppixiv.widget = class
 {
-    constructor({container, template=null, parent=null}={})
+    constructor({container, template=null, template_name=null, parent=null, ...options}={})
     {
         console.assert(container != null);
+        this.options = options;
+
+        // template is the HTML template for this element.
+        if(template)
+        {
+            template = this.create_template(template);
+            let contents = helpers.create_from_template(template);
+            container.appendChild(contents);
+            container = contents;
+        }
 
         // If a template name was given, create an instance of it, add it to
         // the container, then make it our container.
-        if(template)
+        else if(template_name)
         {
-            let contents = helpers.create_from_template("." + template);
+            let contents = helpers.create_from_template("." + template_name);
             container.appendChild(contents);
             container = contents;
         }
@@ -23,6 +33,16 @@ ppixiv.widget = class
         helpers.yield(() => {
             this.refresh();
         });
+    }
+
+    // Create a <template> element from HTML.  The result can be instantiated
+    // with helpers.create_from_template().
+    create_template(template_html)
+    {
+        let template = document.createElement("template");
+        template.innerHTML = template_html;
+        helpers.replace_inlines(template.content);
+        return template;
     }
 
     async refresh()
