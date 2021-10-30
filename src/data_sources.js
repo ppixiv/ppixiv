@@ -2560,6 +2560,8 @@ ppixiv.data_sources.search = class extends data_source
         this.cache_search_title();
     }
 
+    get supports_start_page() { return true; }
+
     get _search_tags()
     {
         return helpers._get_search_tags_from_url(this.url);
