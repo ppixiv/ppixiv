@@ -341,17 +341,19 @@ ppixiv.thumbnail_size_slider_widget = class extends menu_option_slider
     }
 };
 
-class menu_option_button extends ppixiv.menu_option
+ppixiv.menu_option_button = class extends ppixiv.menu_option
 {
     constructor(options)
     {
-        super(options);
+        super({...options, template: `
+            <div class="menu-toggle box-link">
+                <span class=off style="visibility: hidden;">☐</span> <!-- cheat for spacing -->
+                <span class=label style="margin-left: 2px;"></span>
+            </div>
+        `});
 
-        this.item = helpers.create_from_template(".template-menu-button");
-        this.container.appendChild(this.item);
-        this.item.querySelector(".label").innerText = options.label;
-
-        this.item.addEventListener("click", (e) => {
+        this.container.querySelector(".label").innerText = options.label;
+        this.container.addEventListener("click", (e) => {
             this.options.onclick();
         });
     }
