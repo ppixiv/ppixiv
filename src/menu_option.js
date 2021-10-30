@@ -158,14 +158,18 @@ ppixiv.menu_option_toggle = class extends ppixiv.menu_option
 {
     constructor({...options})
     {
-        super(options);
+        super({...options, template: `
+            <div class="menu-toggle box-link">
+                <span class=on>☑</span>
+                <span class=off>☐</span>
+                <span class=label style="margin-left: 2px;"></span>
+            </div>
+        `});
 
         this.onclick = this.onclick.bind(this);
 
-        this.item = helpers.create_from_template(".template-menu-toggle");
-        this.container.appendChild(this.item);
-        this.item.addEventListener("click", this.onclick);
-        this.item.querySelector(".label").innerText = options.label;
+        this.container.addEventListener("click", this.onclick);
+        this.container.querySelector(".label").innerText = options.label;
 
         this.refresh();
     }
@@ -178,8 +182,8 @@ ppixiv.menu_option_toggle = class extends ppixiv.menu_option
         if(this.options.invert_display)
             value = !value;
         
-        this.item.querySelector(".on").hidden = !value;
-        this.item.querySelector(".off").hidden = value;
+        this.container.querySelector(".on").hidden = !value;
+        this.container.querySelector(".off").hidden = value;
     }
 
     onclick(e)
