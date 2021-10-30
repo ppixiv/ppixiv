@@ -35,10 +35,11 @@ ppixiv.image_ui = class extends ppixiv.widget
             parent: this,
             container: this.container.querySelector(".popup-bookmark-tag-dropdown-container"),
         });
-        this.toggle_tag_widget = new toggle_bookmark_tag_list_widget({
+        this.toggle_tag_widget = new toggle_dropdown_menu_widget({
             parent: this,
             container: this.container.querySelector(".button-bookmark-tags"),
             bookmark_tag_widget: this.bookmark_tag_widget,
+            require_image: true,
         });
         this.like_button = new like_button_widget({
             parent: this,

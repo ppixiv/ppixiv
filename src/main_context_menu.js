@@ -474,26 +474,33 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         for(var button of this.menu.querySelectorAll(".button-zoom-level"))
             button.addEventListener("click", this.clicked_zoom_level.bind(this));
 
-        this.send_button = this.menu.querySelector(".button-send-image");
-        this.send_button.addEventListener("click", (e) => {
-            let illust_id = this.effective_illust_id;
-            if(!illust_id)
-                return;
-                
-            main_controller.singleton.send_image_popup.show_for_illust(this.effective_illust_id, this.effective_page);
-            this.hide();
+        this.avatar_widget = new avatar_widget({
+            container: this.menu.querySelector(".avatar-widget-container"),
+            mode: "overlay",
         });
 
         let bookmark_tag_widget = new bookmark_tag_list_widget({
             parent: this,
             container: this.menu.querySelector(".popup-bookmark-tag-dropdown-container"),
         });
+        let more_options_widget = new more_options_dropdown_widget({
+            parent: this,
+            container: this.menu.querySelector(".popup-more-options-container"),
+        });
         this.illust_widgets = [
+            this.avatar_widget,
             bookmark_tag_widget,
-            new toggle_bookmark_tag_list_widget({
+            more_options_widget,
+            new toggle_dropdown_menu_widget({
                 container: this.menu.querySelector(".button-bookmark-tags"),
                 parent: this,
                 bookmark_tag_widget: bookmark_tag_widget,
+                require_image: true,
+            }),
+            new toggle_dropdown_menu_widget({
+                container: this.menu.querySelector(".button-more"),
+                parent: this,
+                bookmark_tag_widget: more_options_widget,
             }),
             new like_button_widget({
                 parent: this,
@@ -512,11 +519,6 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
                 container: this.menu.querySelector(".button-bookmark.public .count")
             }),
         ];
-
-        this.avatar_widget = new avatar_widget({
-            container: this.menu.querySelector(".avatar-widget-container"),
-            mode: "overlay",
-        });
 
         // The bookmark buttons, and clicks in the tag dropdown:
         for(var a of this.menu.querySelectorAll(".button-bookmark"))
@@ -633,10 +635,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         if(!this.visible && illust_id != null)
             return;
 
-        for(let widget of this.illust_widgets)
-            widget.set_illust_id(illust_id, this.effective_page);
-
-        helpers.set_class(this.send_button, "enabled", illust_id != null);
+        this.refresh();
     }
 
     set illust_id(value)
@@ -990,10 +989,6 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
     // Set an alternative user ID to show.  This is effective until the context menu is hidden.
     async _set_temporary_user(user_id)
     {
-        // Clear the avatar widget while we load user info, so we don't show the previous
-        // user's avatar while the new avatar loads.
-        this.avatar_widget.set_user_id(null);
-        
         this._clicked_user_id = user_id;
         this.refresh();
     }
@@ -1031,8 +1026,15 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         for(var element of this.menu.querySelectorAll(".button.requires-zoom"))
             helpers.set_class(element, "enabled", this._is_zoom_ui_enabled);
 
-        // Set the avatar button.
-        this.avatar_widget.set_user_id(this.effective_user_id);
+        // Let widgets know what we have.
+        let illust_id = this.effective_illust_id, page = this.effective_page, user_id = this.effective_user_id;
+        for(let widget of this.illust_widgets)
+        {
+            if(widget.set_illust_id)
+                widget.set_illust_id(illust_id, page);
+            if(widget.set_user_id)
+                widget.set_user_id(user_id);
+        }
 
         if(this._is_zoom_ui_enabled)
         {

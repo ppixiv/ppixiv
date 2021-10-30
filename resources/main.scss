@@ -431,9 +431,11 @@ body.light .whats-new-button.updates > svg {
     cursor: pointer;
 }
 
-.popup-menu-box .menu-toggle {
+.full-width-buttons .box-link
+{
     display: block;
 }
+
 .menu-slider input {
     vertical-align: middle;
     width: 100%;
@@ -1855,16 +1857,6 @@ input.search-tags {
         & > .button-block.shift-left {
             margin-left: -56px;
         }
-
-        .button-send-image {
-            svg .arrow {
-                transition: transform ease-in-out .15s;
-            }
-
-            &.enabled:hover svg .arrow {
-                transform: translate(2px, -2px);
-            }
-        }
     }
 
     .context-menu-image-info {
@@ -1889,6 +1881,18 @@ input.search-tags {
         // Nudge the dropdown to the left by the width of a button-block
         // when it's inside the popup menu.
         right: -100%;
+    }
+}
+
+.popup-bookmark-tag-dropdown {
+    .button-send-image {
+        svg .arrow {
+            transition: transform ease-in-out .15s;
+        }
+
+        &:not(.disabled):hover svg .arrow {
+            transform: translate(2px, -2px);
+        }
     }
 }
 

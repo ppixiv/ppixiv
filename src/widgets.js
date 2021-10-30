@@ -138,12 +138,11 @@ ppixiv.illust_widget = class extends ppixiv.widget
     {
         // Grab the illust info.
         var illust_id = this._illust_id;
-        var illust_data = null;
         let info = { illust_id: this._illust_id };
         if(this._illust_id != null)
         {
             if(this.needed_data == "illust_id")
-                illust_data = illust_id;
+                ; // nothing
             else if(this.needed_data == "thumbnail")
                 info.thumbnail_data = await thumbnail_data.singleton().get_or_load_illust_data(this._illust_id);
             else
@@ -1033,23 +1032,135 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
     }
 }
 
-// The button that shows and hides the tag list.
-ppixiv.toggle_bookmark_tag_list_widget = class extends ppixiv.illust_widget
+ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
+{
+    get needed_data() { return "illust_id"; }
+
+    constructor(options)
+    {
+        super({...options, template: `
+<div class=popup-bookmark-tag-dropdown>
+    <div class="options full-width-buttons"></div>
+</div>
+`});
+
+        this.container.hidden = true;
+
+        let option_box = this.container.querySelector(".options");
+        this.menu_options = [
+            new menu_option_button({
+                container: option_box,
+                parent: this,
+                label: "Similar illustrations",
+                requires_image: true,
+                onclick: () => {
+                    this.parent.hide();
+
+                    let args = new helpers.args(`/bookmark_detail.php?illust_id=${this.illust_id}#ppixiv?recommendations=1`);
+                    helpers.set_page_url(args, true /* add_to_history */, "navigation");
+                }
+            }),
+
+            new menu_option_button({
+                container: option_box,
+                parent: this,
+                label: "Similar artists",
+                requires_user: true,
+                onclick: () => {
+                    this.parent.hide();
+
+                    let args = new helpers.args(`/discovery/users#ppixiv?user_id=${this.user_id}`);
+                    helpers.set_page_url(args, true /* add_to_history */, "navigation");
+                }
+            }),
+
+            new menu_option_button({
+                container: option_box,
+                parent: this,
+                label: "Similar bookmarks",
+                requires_image: true,
+                onclick: () => {
+                    this.parent.hide();
+
+                    let args = new helpers.args(`/bookmark_detail.php?illust_id=${this.illust_id}#ppixiv`);
+                    helpers.set_page_url(args, true /* add_to_history */, "navigation");
+                }
+            }),
+
+            new menu_option_button({
+                container: option_box,
+                parent: this,
+                label: "Send to tab",
+                classes: ["button-send-image"],
+                icon: "resources/send-to-tab.svg",
+                requires_image: true,
+                onclick: () => {
+                    main_controller.singleton.send_image_popup.show_for_illust(this.illust_id, this.page);
+                    this.parent.hide();
+                }
+            }),
+
+            new menu_option_button({
+                container: option_box,
+                parent: this,
+                label: "Link tabs",
+                onclick: () => {
+                    main_controller.singleton.link_tabs_popup.visible = true;
+                    this.parent.hide();
+                }
+            }),
+
+            new menu_option_toggle({
+                container: option_box,
+                parent: this,
+                label: "Linked tabs",
+                setting: "linked_tabs_enabled",
+            }),
+        ];
+
+        // Close if our containing widget is closed.
+        new view_hidden_listener(this.container, (e) => {
+            this.visible = false;
+        });
+    }
+
+    set_user_id(user_id)
+    {
+        this.user_id = user_id;
+        this.refresh();
+    }
+
+    async refresh_internal({ illust_id })
+    {
+        for(let option of this.menu_options)
+        {
+            // Enable or disable buttons that require an image.
+            if(option.options.requires_image)
+                option.enabled = illust_id != null;
+            if(option.options.requires_user)
+                option.enabled = this.user_id != null;
+        }
+    }
+}
+
+// A button in the context menu that shows and hides a dropdown.
+ppixiv.toggle_dropdown_menu_widget = class extends ppixiv.illust_widget
 {
     // We only need an illust ID and no info.
     get needed_data() { return "illust_id"; }
 
-    constructor({bookmark_tag_widget, ...options})
+    constructor({bookmark_tag_widget, require_image=false, ...options})
     {
         super(options);
 
         this.bookmark_tag_widget = bookmark_tag_widget;
+        this.require_image = require_image;
 
         this.container.addEventListener("click", (e) => {
             e.preventDefault();
 
             // Ignore clicks if this button isn't enabled.
-            if(!this.container.classList.contains("enabled"))
+            if(this.require_image && !this.container.classList.contains("enabled"))
                 return;
             
             this.bookmark_tag_widget.visible = !this.bookmark_tag_widget.visible;
@@ -1058,7 +1169,8 @@ ppixiv.toggle_bookmark_tag_list_widget = class extends ppixiv.illust_widget
 
     refresh_internal({ illust_id })
     {
-        helpers.set_class(this.container, "enabled", illust_id != null);
+        if(this.require_image)
+            helpers.set_class(this.container, "enabled", illust_id != null);
     }
 }
 
