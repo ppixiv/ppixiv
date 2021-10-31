@@ -31,6 +31,8 @@ ppixiv.screen_search = class extends ppixiv.screen
         // When a bookmark is modified, refresh the heart icon.
         image_data.singleton().illust_modified_callbacks.register(this.refresh_thumbnail);
 
+        this.create_main_search_menu();
+
         this.thumbnail_dimensions_style = helpers.create_style("");
         document.body.appendChild(this.thumbnail_dimensions_style);
         
@@ -212,6 +214,67 @@ ppixiv.screen_search = class extends ppixiv.screen
         this.refresh_images();
         this.load_needed_thumb_data();
         this.refresh_whats_new_button();
+    }
+
+    create_main_search_menu()
+    {
+        let option_box = this.container.querySelector(".main-search-menu");
+        this.menu_options = [];
+        let options = [
+            { label: "New works", url: "/new_illust.php#ppixiv" },
+            { label: "New works by following", url: "/bookmark_new_illust.php#ppixiv" },
+            [
+                { label: "Bookmarks", url: `/users/${window.global_data.user_id}/bookmarks/artworks#ppixiv` },
+                { label: "all", url: `/users/${window.global_data.user_id}/bookmarks/artworks#ppixiv` },
+                { label: "public", url: `/users/${window.global_data.user_id}/bookmarks/artworks#ppixiv?show-all=0` },
+                { label: "private", url: `/users/${window.global_data.user_id}/bookmarks/artworks?rest=hide#ppixiv?show-all=0` },
+            ],
+            [
+                { label: "Followed users", url: `/users/${window.global_data.user_id}/following#ppixiv` },
+                { label: "public", url: `/users/${window.global_data.user_id}/following#ppixiv` },
+                { label: "private", url: `/users/${window.global_data.user_id}/following?rest=hide#ppixiv` },
+            ],
+
+            { label: "Recommended works", url: "/discovery#ppixiv" },
+            { label: "Recommended users", url: "/discovery/users#ppixiv" },
+            { label: "Search users", url: "/search_user.php#ppixiv" },
+            { label: "Rankings", url: "/ranking.php#ppixiv" },
+            { label: "Recent history", url: "/history.php#ppixiv", classes: ["recent-history-link"] },
+        ];
+
+        let create_option = (option) => {
+            return new menu_option_button({
+                container: option_box,
+                parent: this,
+                no_icon_padding: true,
+                label: option.label,
+                url: option.url,
+                classes: option.classes,
+            })
+        };
+
+        for(let option of options)
+        {
+            if(Array.isArray(option))
+            {
+                let items = [];
+                for(let suboption of option)
+                    items.push(create_option(suboption));
+
+                new menu_option_row({
+                    container: option_box,
+                    parent: this,
+                    items: items,
+                });
+            }
+            else
+                this.menu_options.push(create_option(option));
+        }
+
+        // Move the tag search box back to the bottom.
+        let search = option_box.querySelector(".navigation-search-box");
+        search.remove();
+        option_box.insertAdjacentElement("beforeend", search);
     }
 
     // This is called as the user scrolls and different thumbs are fully onscreen,
@@ -404,22 +467,6 @@ ppixiv.screen_search = class extends ppixiv.screen
                 element_displaying.appendChild(text);
             }
         }
-
-        // Set up bookmark and following search links.
-        for(let link of this.container.querySelectorAll('.following-users-link[data-which="public"]'))
-            link.href = `/users/${window.global_data.user_id}/following#ppixiv`;
-
-        for(let link of this.container.querySelectorAll('.following-users-link[data-which="private"]'))
-            link.href = `/users/${window.global_data.user_id}/following?rest=hide#ppixiv`;
-
-        for(let link of this.container.querySelectorAll('.bookmarks-search-link[data-which="all"]'))
-            link.href = `/users/${window.global_data.user_id}/bookmarks/artworks#ppixiv`;
-
-        for(let link of this.container.querySelectorAll('.bookmarks-search-link[data-which="public"]'))
-            link.href = `/users/${window.global_data.user_id}/bookmarks/artworks#ppixiv?show-all=0`;
-
-        for(let link of this.container.querySelectorAll('.bookmarks-search-link[data-which="private"]'))
-            link.href = `/users/${window.global_data.user_id}/bookmarks/artworks?rest=hide#ppixiv?show-all=0`;
 
         helpers.set_page_title(this.data_source.page_title || "Loading...");
         

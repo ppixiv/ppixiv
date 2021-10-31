@@ -191,16 +191,27 @@ ppixiv.menu_option_row = class extends ppixiv.menu_option
 
 ppixiv.menu_option_button = class extends ppixiv.menu_option
 {
-    constructor(options)
+    constructor({url=null, onclick=null, ...options})
     {
+        // If we've been given a URL, make this a link.  Otherwise, make it a div and
+        // onclick will handle it.
+        let type = "div";
+        let href = "";
+        if(url != null)
+        {
+            type = "a";
+            href = `href="${encodeURI(url)}"`;
+        }
+
         super({...options, template: `
-            <div class="menu-toggle box-link">
+            <${type} ${href} class="menu-toggle box-link">
                 <span class=icon>
                 </span>
                 <span class=label></span>
-            </div>
+            </{type}>
         `});
 
+        this.onclick_handler = onclick;
         this.onclick = this.onclick.bind(this);
         this._enabled = true;
 
@@ -239,13 +250,14 @@ ppixiv.menu_option_button = class extends ppixiv.menu_option
 
     onclick(e)
     {
+        // Don't stopPropagation, so things like dropdown_menu_opener see the click and
+        // know to hide the menu.
         e.preventDefault();
-        e.stopPropagation();
 
         if(!this._enabled)
             return;
 
-        if(this.options.onclick && this.options.onclick(e))
+        if(this.onclick_handler && this.this.onclick_handler(e))
             return;
 
         this.clicked(e);

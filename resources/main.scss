@@ -1412,10 +1412,6 @@ a.box-link, span.box-link
     padding-bottom: 0.5em;
 }
 
-.option-list {
-    display: flex;
-    flex-direction: column;
-}
 .search-options-row > div.active > .box-link {
     background-color: var(--box-link-selected-color);
 }
