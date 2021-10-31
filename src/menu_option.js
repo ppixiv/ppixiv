@@ -5,10 +5,17 @@ ppixiv.menu_option = class extends widget
 {
     static add_settings(container)
     {
+        // Options that we pass to all menu_options:
+        let global_options = {
+            consume_clicks: true,
+            container: container,
+            parent: this,
+        };
+
         if(container.closest(".screen-manga-container"))
         {
             new thumbnail_size_slider_widget({
-                container: container,
+                ...global_options,
                 label: "Thumbnail size",
                 setting: "manga-thumbnail-size",
                 min: 0,
@@ -19,7 +26,7 @@ ppixiv.menu_option = class extends widget
         if(container.closest(".screen-search-container"))
         {
             new thumbnail_size_slider_widget({
-                container: container,
+                ...global_options,
                 label: "Thumbnail size",
                 setting: "thumbnail-size",
                 min: 0,
@@ -28,13 +35,13 @@ ppixiv.menu_option = class extends widget
         }
         
         new menu_option_toggle({
-            container: container,
+            ...global_options,
             label: "Disabled by default",
             setting: "disabled-by-default",
         });
 
         new menu_option_toggle({
-            container: container,
+            ...global_options,
             label: "Hide cursor",
             setting: "no-hide-cursor",
             invert_display: true,
@@ -44,54 +51,54 @@ ppixiv.menu_option = class extends widget
         if(navigator.userAgent.indexOf("Firefox/") == -1)
         {
             new menu_option_toggle({
-                container: container,
+                ...global_options,
                 label: "Hold shift to open context menu",
                 setting: "invert-popup-hotkey",
             });
         }
 
         new menu_option_toggle({
-            container: container,
+            ...global_options,
             label: "Hover to show UI",
             setting: "ui-on-hover",
             onchange: this.update_from_settings,
         });
 
         new menu_option_toggle({
-            container: container,
+            ...global_options,
             label: "Invert scrolling while zoomed",
             setting: "invert-scrolling",
         });
  
         new menu_option_toggle_light_theme({
-            container: container,
+            ...global_options,
             label: "Light mode",
             setting: "theme",
         });
 
         new menu_option_toggle({
-            container: container,
+            ...global_options,
             label: "Show translations",
             setting: "disable-translations",
             invert_display: true,
         });
  
         new menu_option_toggle({
-            container: container,
+            ...global_options,
             label: "Thumbnail panning",
             setting: "disable_thumbnail_panning",
             invert_display: true,
         });
 
         new menu_option_toggle({
-            container: container,
+            ...global_options,
             label: "Thumbnail zooming",
             setting: "disable_thumbnail_zooming",
             invert_display: true,
         });
 
         new menu_option_toggle({
-            container: container,
+            ...global_options,
             label: "Quick view",
             setting: "quick_view",
 
@@ -106,19 +113,36 @@ ppixiv.menu_option = class extends widget
             },
         });
         new menu_option_toggle({
-            container: container,
+            ...global_options,
             label: "Remember recent history",
             setting: "no_recent_history",
             invert_display: true,
         });
-        new menu_option_button({
-            container: container,
-            label: "Link tabs",
-            onclick: () => {
-                main_controller.singleton.link_tabs_popup.visible = true;
-            }
-        });
 
+        new menu_option_row({
+            ...global_options,
+            items: [
+                new menu_option_toggle({
+                    ...global_options,
+                    label: "Linked tabs",
+                    setting: "linked_tabs_enabled",
+                }),
+                new menu_option_button({
+                    ...global_options,
+                    label: "Edit",
+                    classes: ["small-font"],
+                    no_icon_padding: true,
+
+                    // Let this button close the menu.
+                    consume_clicks: false,
+
+                    onclick: (e) => {
+                        main_controller.singleton.link_tabs_popup.visible = true;
+                        return true;
+                    },
+                }),
+            ],
+        });
 
 /*        new menu_option_toggle({
             container: container,
@@ -172,7 +196,6 @@ ppixiv.menu_option_row = class extends ppixiv.menu_option
         let first = true;
         for(let item of items)
         {
-            console.log("xxx", item);
             let item_container = item.container;
             item_container.remove();
             row.appendChild(item_container);
@@ -191,7 +214,7 @@ ppixiv.menu_option_row = class extends ppixiv.menu_option
 
 ppixiv.menu_option_button = class extends ppixiv.menu_option
 {
-    constructor({url=null, onclick=null, ...options})
+    constructor({url=null, onclick=null, consume_clicks=false, ...options})
     {
         // If we've been given a URL, make this a link.  Otherwise, make it a div and
         // onclick will handle it.
@@ -214,6 +237,7 @@ ppixiv.menu_option_button = class extends ppixiv.menu_option
         this.onclick_handler = onclick;
         this.onclick = this.onclick.bind(this);
         this._enabled = true;
+        this.consume_clicks = consume_clicks;
 
         // If an icon was provided, add it.
         if(options.icon)
@@ -250,14 +274,16 @@ ppixiv.menu_option_button = class extends ppixiv.menu_option
 
     onclick(e)
     {
-        // Don't stopPropagation, so things like dropdown_menu_opener see the click and
-        // know to hide the menu.
+        // If consume_clicks is true, stopPropagation to stop the menu we're inside from
+        // closing.
+        if(this.consume_clicks)
+            e.stopPropagation();
         e.preventDefault();
 
         if(!this._enabled)
             return;
 
-        if(this.onclick_handler && this.this.onclick_handler(e))
+        if(this.onclick_handler && this.onclick_handler(e))
             return;
 
         this.clicked(e);

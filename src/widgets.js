@@ -1145,32 +1145,6 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                     this.parent.hide();
                 }
             }),
-
-            new menu_option_row({
-                container: option_box,
-                parent: this,
-                items: [
-                    new menu_option_toggle({
-                        container: option_box,
-                        parent: this,
-                        label: "Linked tabs",
-                        setting: "linked_tabs_enabled",
-                    }),
-                    new menu_option_button({
-                        container: option_box,
-                        parent: this,
-                        label: "Edit",
-                        classes: ["small-font"],
-                        no_icon_padding: true,
-
-                        onclick: (e) => {
-                            main_controller.singleton.link_tabs_popup.visible = true;
-                            this.parent.hide();
-                            return true;
-                        },
-                    }),
-                ],
-            }),
         ];
 
         // Close if our containing widget is closed.
