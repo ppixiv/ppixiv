@@ -934,68 +934,6 @@
             </div>
         </template>
         
-        <!-- The "add tag" popup.  This isn't generalized since this is the only overlay prompt
-             we have right now. -->
-        <style>
-        .tag-entry-popup {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.5);
-        }
-        .tag-entry-popup > .strip {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            height: 100%;
-            justify-content: center;
-        }
-        .tag-entry-popup > .strip > .box {
-            background-color: #222;
-            padding: 10px;
-            color: #eee;
-            position: relative;
-        }
-        body.light .tag-entry-popup > .strip > .box {
-            background-color: #ddd;
-            color: #222;
-        }
-        .tag-entry-popup .close-button {
-            position: absolute;
-            top: 0px;
-            right: 0px;
-            padding: 8px;
-            cursor: pointer;
-        }
-        .tag-entry-popup .tag-input-box {
-            position: relative;
-            display: flex;
-            align-items: center;
-        }
-        .tag-entry-popup .tag-input-box > .add-tag-input {
-            flex: 1;
-            padding: 4px;
-        }
-        .tag-entry-popup .tag-input-box > .submit-button {
-            cursor: pointer;
-            display: inline-block;
-            width: 20px;
-            text-align: center;
-            margin-left: 6px;
-            border: 1px solid white;
-        }
-        body.light .tag-entry-popup .tag-input-box > .submit-button {
-            border-color: #444;
-        }
-        .tag-entry-popup .tag-input-box > .submit-button:hover {
-            background-color: #444;
-        }
-        body.light .tag-entry-popup .tag-input-box > .submit-button:hover {
-            background-color: #aaa;
-        }
-        </style>
         <template class=template-add-tag-prompt>
             <div class="tag-entry-popup">
                 <div class=strip>

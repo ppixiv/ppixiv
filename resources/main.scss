@@ -2338,3 +2338,65 @@ svg.heart-image .delete {
         padding: 1em;
     }
 }
+
+.tag-entry-popup
+{
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+
+    > .strip {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        height: 100%;
+        justify-content: center;
+        > .box {
+            background-color: #222;
+            padding: 10px;
+            color: #eee;
+            position: relative;
+
+            body.light & {
+                background-color: #ddd;
+                color: #222;
+            }
+        }
+    }
+
+    .close-button {
+        position: absolute;
+        top: 0px;
+        right: 0px;
+        padding: 8px;
+        cursor: pointer;
+    }
+
+    .tag-input-box {
+        position: relative;
+        display: flex;
+        align-items: center;
+
+        > .add-tag-input {
+            flex: 1;
+            padding: 4px;
+        }
+        > .submit-button {
+            cursor: pointer;
+            display: inline-block;
+            width: 20px;
+            text-align: center;
+            margin-left: 6px;
+            border: 1px solid white;
+            body.light & { border-color: #444; }
+        }
+
+        > .submit-button:hover {
+            background-color: #444;
+            body.light & { background-color: #aaa; }
+        }
+    }
+}
