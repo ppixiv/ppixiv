@@ -159,19 +159,6 @@ ppixiv.menu_option = class extends widget
             this.container.classList.add(class_name);
 
         this.refresh = this.refresh.bind(this);
-
-        if(this.options.setting)
-            settings.register_change_callback(this.options.setting, this.refresh);
-    }
-
-    get value()
-    {
-        return settings.get(this.options.setting);
-    }
-
-    set value(value)
-    {
-        settings.set(this.options.setting, value);
     }
 
     refresh()
@@ -296,11 +283,15 @@ ppixiv.menu_option_button = class extends ppixiv.menu_option
 
 ppixiv.menu_option_toggle = class extends ppixiv.menu_option_button
 {
-    constructor({...options})
+    constructor({setting=null, ...options})
     {
         super({...options,
             icon: "resources/checkbox.svg",
         });
+
+        this.setting = setting;
+        if(this.setting)
+            settings.register_change_callback(this.setting, this.refresh);
     }
 
     refresh()
@@ -321,6 +312,16 @@ ppixiv.menu_option_toggle = class extends ppixiv.menu_option_button
             return;
 
         this.value = !this.value;
+    }
+
+    get value()
+    {
+        return settings.get(this.setting);
+    }
+
+    set value(value)
+    {
+        settings.set(this.setting, value);
     }
 }
 
