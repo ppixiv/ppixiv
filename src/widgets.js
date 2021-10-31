@@ -132,20 +132,27 @@ ppixiv.illust_widget = class extends ppixiv.widget
     async refresh()
     {
         // Grab the illust info.
-        var illust_id = this._illust_id;
+        let illust_id = this._illust_id;
+        let page = this._page;
         let info = { illust_id: this._illust_id };
         if(this._illust_id != null)
         {
-            if(this.needed_data == "illust_id")
-                ; // nothing
-            else if(this.needed_data == "thumbnail")
+            switch(this.needed_data)
+            {
+            case "illust_id":
+                break; // nothing
+            case "thumbnail":
                 info.thumbnail_data = await thumbnail_data.singleton().get_or_load_illust_data(this._illust_id);
-            else
+                break;
+            default:
                 info.illust_data = await image_data.singleton().get_image_info(this._illust_id);
+                break;
+            }
         }
 
-        // Stop if the ID changed while we were async.
-        if(this._illust_id != illust_id)
+        // Stop if the illust or page changed while we were async.  Check the page here too,
+        // since that can cause needed_data to change.
+        if(this._illust_id != illust_id || this._page != page)
             return;
 
         await this.refresh_internal(info);

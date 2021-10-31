@@ -115,9 +115,8 @@ ppixiv.screen_illust = class extends ppixiv.screen
                 this._hide_image = true;
 
             // Stop showing the user in the context menu, and stop showing the current page.
-            main_context_menu.get.user_id = null;
-            main_context_menu.get.page = null;
-            
+            main_context_menu.get.set_illust(null, null);
+
             this.flashed_page_change = false;
 
             this.stop_displaying_image();
@@ -414,15 +413,13 @@ ppixiv.screen_illust = class extends ppixiv.screen
             return;
         
         // Tell the UI which page is being viewed.
-        var page = this.viewer != null? this.viewer.page:0;
+        let illust_id = this.current_illust_id;
+        let page = this.viewer != null? this.viewer.page:0;
         this.ui.set_displayed_page_info(page);
 
         // Tell the context menu which user is being viewed.
         main_context_menu.get.user_id = this.current_user_id;
-        main_context_menu.get.page = page;
-
-        // Pull out info about the user and illustration.
-        var illust_id = this.current_illust_id;
+        main_context_menu.get.set_illust(illust_id, page);
 
         // Update the disable UI button to point at the current image's illustration page.
         var disable_button = this.container.querySelector(".disable-ui-button");

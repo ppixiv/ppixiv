@@ -638,24 +638,16 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         this.refresh();
     }
 
-    set illust_id(value)
+    set_illust(illust_id, page=null)
     {
-        if(this._illust_id == value)
+        if(this._illust_id == illust_id && this._page == page)
             return;
 
-        this._illust_id = value;
+        this._illust_id = illust_id;
+        this._page = page;
         this._effective_illust_id_changed();
     }
 
-    set page(value)
-    {
-        if(this._page == value)
-            return;
-
-        this._page = value;
-        this._effective_illust_id_changed();
-    }
-   
     // Set the current viewer, or null if none.  If set, we'll activate zoom controls.
     get on_click_viewer()
     {

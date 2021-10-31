@@ -320,7 +320,7 @@ ppixiv.main_controller = class
 
         let new_screen = this.screens[new_screen_name];
 
-        this.context_menu.illust_id = illust_id;
+        this.context_menu.set_illust(illust_id);
         
         this.current_screen_name = new_screen_name;
 
