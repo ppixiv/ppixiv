@@ -128,13 +128,13 @@ ppixiv.image_ui = class extends ppixiv.widget
             return;
 
         // Update widget illust IDs.
-        this.like_button.illust_id = this._illust_id;
-        this.bookmark_tag_widget.illust_id = this._illust_id;
-        this.toggle_tag_widget.illust_id = this._illust_id;
-        this.like_count_widget.illust_id = this._illust_id;
-        this.bookmark_count_widget.illust_id = this._illust_id;
+        this.like_button.set_illust_id(this._illust_id, this.displayed_page);
+        this.bookmark_tag_widget.set_illust_id(this._illust_id, this.displayed_page);
+        this.toggle_tag_widget.set_illust_id(this._illust_id, this.displayed_page);
+        this.like_count_widget.set_illust_id(this._illust_id, this.displayed_page);
+        this.bookmark_count_widget.set_illust_id(this._illust_id, this.displayed_page);
         for(let button of this.bookmark_buttons)
-            button.illust_id = this._illust_id;
+            button.set_illust_id(this._illust_id, this.displayed_page);
     
         this.illust_data = null;
         if(this._illust_id == null)

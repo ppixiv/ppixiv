@@ -122,11 +122,6 @@ ppixiv.illust_widget = class extends ppixiv.widget
         this.refresh();
     }
 
-    set illust_id(illust_id)
-    {
-        this.set_illust_id(illust_id);
-    }
-
     get illust_id() { return this._illust_id; }
 
     async refresh()
