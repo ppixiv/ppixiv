@@ -337,7 +337,31 @@ ppixiv.link_tabs_popup = class extends ppixiv.dialog_widget
 {
     constructor({...options})
     {
-        super({template_name: "template-link-tabs", ...options});
+        super({...options, template: `
+            <div class="link-tab-popup dialog">
+                <div class=content>
+                    <div class=close-button>
+                        <ppixiv-inline src="resources/close-button.svg"></ppixiv-inline>
+                    </div>
+
+                    <div class=header>Link Tabs</div>
+
+                    <div style="text-align: center; width: 100%;">
+                        <ppixiv-inline src="resources/multi-monitor.svg" class=tutorial-monitor></ppixiv-inline>
+                        <div style="margin: 10px 0 15px 0; font-size: 125%;">
+                            Open a 
+                            <img src="ppixiv:resources/activate-icon.png" style="width: 28px; vertical-align: bottom;">
+                            tab on another monitor and click "Link this tab" to send images to it
+                        </div>
+                    </div>
+
+                    <div class="buttons box-button-row" style="margin-top: 1em;">
+                        <div class=toggle-enabled></div>
+                        <div class="unlink-all box-link" hidden><span>Unlink all tabs</span></div>
+                    </div>
+                </div>
+            </div>
+        `});
 
         this.container.querySelector(".close-button").addEventListener("click", (e) => {
             this.visible = false;
@@ -425,7 +449,18 @@ ppixiv.link_this_tab_popup = class extends ppixiv.dialog_widget
 {
     constructor({...options})
     {
-        super({template_name: "template-link-this-tab", ...options});
+        super({...options, template: `
+            <div class="link-this-tab-popup dialog">
+                <div class=content>
+                    <div class="button box-link link-this-tab">
+                        Link this tab
+                    </div>
+                    <div class="button box-link unlink-this-tab">
+                        Unlink this tab
+                    </div>
+                </div>
+            </div>
+        `});
 
         this.hide_timer = new helpers.timer(() => { this.visible = false; });
 
@@ -478,7 +513,17 @@ ppixiv.send_image_popup = class extends ppixiv.dialog_widget
 {
     constructor({...options})
     {
-        super({template_name: "template-send-image", ...options});
+        super({...options, template: `
+            <div class="send-image-popup dialog">
+                <div class=content>
+                    <div>
+                        Click a
+                        <img src="ppixiv:resources/activate-icon.png" style="width: 28px; vertical-align: bottom;">
+                        tab to send the image there
+                    </div>
+                </div>
+            </div>
+        `});
 
         // Close if the container is clicked, but not if something inside the container is clicked.
         this.container.addEventListener("click", (e) => {
@@ -526,7 +571,15 @@ ppixiv.send_here_popup = class extends ppixiv.dialog_widget
 {
     constructor({...options})
     {
-        super({template_name: "template-send-here", ...options});
+        super({...options, template: `
+            <div class="send-image-here-popup dialog">
+                <div class=content>
+                    <div class="button box-link link-this-tab">
+                        Click to send image here
+                    </div>
+                </div>
+            </div>
+        `});
 
         this.hide_timer = new helpers.timer(() => { this.visible = false; });
 

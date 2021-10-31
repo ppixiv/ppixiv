@@ -3,7 +3,11 @@
 // A basic widget base class.
 ppixiv.widget = class
 {
-    constructor({container, template=null, template_name=null, parent=null, ...options}={})
+    constructor({
+        container,
+        template=null,
+        parent=null,
+        ...options}={})
     {
         console.assert(container != null);
         this.options = options;
@@ -13,15 +17,6 @@ ppixiv.widget = class
         {
             template = this.create_template(template);
             let contents = helpers.create_from_template(template);
-            container.appendChild(contents);
-            container = contents;
-        }
-
-        // If a template name was given, create an instance of it, add it to
-        // the container, then make it our container.
-        else if(template_name)
-        {
-            let contents = helpers.create_from_template("." + template_name);
             container.appendChild(contents);
             container = contents;
         }
