@@ -1034,12 +1034,12 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
 
 ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
 {
-    get needed_data() { return "illust_id"; }
+    get needed_data() { return "thumbnail"; }
 
     constructor(options)
     {
         super({...options, template: `
-<div class=popup-bookmark-tag-dropdown>
+<div class=popup-more-options-dropdown>
     <div class="options full-width-buttons"></div>
 </div>
 `});
@@ -1052,6 +1052,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                 container: option_box,
                 parent: this,
                 label: "Similar illustrations",
+                icon: "resources/related-illusts.svg",
                 requires_image: true,
                 onclick: () => {
                     this.parent.hide();
@@ -1065,6 +1066,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                 container: option_box,
                 parent: this,
                 label: "Similar artists",
+                icon: "resources/related-illusts.svg",
                 requires_user: true,
                 onclick: () => {
                     this.parent.hide();
@@ -1078,6 +1080,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                 container: option_box,
                 parent: this,
                 label: "Similar bookmarks",
+                icon: "resources/related-illusts.svg",
                 requires_image: true,
                 onclick: () => {
                     this.parent.hide();
@@ -1100,21 +1103,73 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                 }
             }),
 
+            // XXX: hook into progress bar
             new menu_option_button({
                 container: option_box,
                 parent: this,
-                label: "Link tabs",
+                label: "Download image",
+                icon: "resources/download-icon.svg",
+                hide_if_unavailable: true,
+                requires_image: true,
+                available: () => { return actions.is_download_type_available("image", this.thumbnail_data); },
                 onclick: () => {
-                    main_controller.singleton.link_tabs_popup.visible = true;
+                    actions.download_illust(this.illust_id, null, "image", this._page || 0);
                     this.parent.hide();
                 }
             }),
 
-            new menu_option_toggle({
+            new menu_option_button({
                 container: option_box,
                 parent: this,
-                label: "Linked tabs",
-                setting: "linked_tabs_enabled",
+                label: "Download manga ZIP",
+                icon: "resources/download-manga-icon.svg",
+                hide_if_unavailable: true,
+                requires_image: true,
+                available: () => { return actions.is_download_type_available("ZIP", this.thumbnail_data); },
+                onclick: () => {
+                    actions.download_illust(this.illust_id, null, "ZIP");
+                    this.parent.hide();
+                }
+            }),
+
+            new menu_option_button({
+                container: option_box,
+                parent: this,
+                label: "Download video MKV",
+                icon: "resources/download-icon.svg",
+                hide_if_unavailable: true,
+                requires_image: true,
+                available: () => { return actions.is_download_type_available("MKV", this.thumbnail_data); },
+                onclick: () => {
+                    actions.download_illust(this.illust_id, null, "MKV");
+                    this.parent.hide();
+                }
+            }),
+
+            new menu_option_row({
+                container: option_box,
+                parent: this,
+                items: [
+                    new menu_option_toggle({
+                        container: option_box,
+                        parent: this,
+                        label: "Linked tabs",
+                        setting: "linked_tabs_enabled",
+                    }),
+                    new menu_option_button({
+                        container: option_box,
+                        parent: this,
+                        label: "Edit",
+                        classes: ["small-font"],
+                        no_icon_padding: true,
+
+                        onclick: (e) => {
+                            main_controller.singleton.link_tabs_popup.visible = true;
+                            this.parent.hide();
+                            return true;
+                        },
+                    }),
+                ],
             }),
         ];
 
@@ -1130,15 +1185,27 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
         this.refresh();
     }
 
-    async refresh_internal({ illust_id })
+    async refresh_internal({ illust_id, thumbnail_data })
     {
+        this.thumbnail_data = thumbnail_data;
+
         for(let option of this.menu_options)
         {
+            let enable = true;
+    
             // Enable or disable buttons that require an image.
-            if(option.options.requires_image)
-                option.enabled = illust_id != null;
-            if(option.options.requires_user)
-                option.enabled = this.user_id != null;
+            if(option.options.requires_image && illust_id == null)
+                enable = false;
+            if(option.options.requires_user && this.user_id == null)
+                enable = false;
+            if(enable && option.options.available)
+                enable = option.options.available();
+            option.enabled = enable;
+
+            // Some options are hidden when they're unavailable, because they clutter
+            // the menu too much.
+            if(option.options.hide_if_unavailable)
+                option.container.hidden = !enable;
         }
     }
 }

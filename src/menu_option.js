@@ -136,7 +136,8 @@ ppixiv.menu_option = class extends widget
 
         this.refresh = this.refresh.bind(this);
 
-        settings.register_change_callback(this.options.setting, this.refresh);
+        if(this.options.setting)
+            settings.register_change_callback(this.options.setting, this.refresh);
     }
 
     get value()
@@ -156,6 +157,38 @@ ppixiv.menu_option = class extends widget
     }            
 }
 
+// A container for multiple options on a single row.
+ppixiv.menu_option_row = class extends ppixiv.menu_option
+{
+    constructor({items, ...options})
+    {
+        super({...options, template: `
+            <div class=box-link-row>
+            </div>
+        `});
+
+        // Add items.
+        let row = this.container;
+        let first = true;
+        for(let item of items)
+        {
+            console.log("xxx", item);
+            let item_container = item.container;
+            item_container.remove();
+            row.appendChild(item_container);
+
+            // If we have more than one item, add a flex spacer after the first.            
+            if(first)
+            {
+                first = false;
+                let div = document.createElement("div");
+                div.style.flex = "1";
+                row.appendChild(div);
+            }
+        }
+    }
+}
+
 ppixiv.menu_option_button = class extends ppixiv.menu_option
 {
     constructor(options)
@@ -164,7 +197,6 @@ ppixiv.menu_option_button = class extends ppixiv.menu_option
             <div class="menu-toggle box-link">
                 <span class=icon>
                 </span>
-
                 <span class=label></span>
             </div>
         `});
@@ -179,6 +211,11 @@ ppixiv.menu_option_button = class extends ppixiv.menu_option
             let icon = this.container.querySelector(".icon");
             icon.appendChild(node);
         }
+
+        // If no_icon_padding is set, hide the icon.  This is used when we don't want
+        // icon padding on the left.
+        if(options.no_icon_padding)
+            this.container.querySelector(".icon").hidden = true;
 
         this.container.querySelector(".label").innerText = options.label;
         this.container.addEventListener("click", this.onclick);
@@ -202,10 +239,20 @@ ppixiv.menu_option_button = class extends ppixiv.menu_option
 
     onclick(e)
     {
+        e.preventDefault();
+        e.stopPropagation();
+
         if(!this._enabled)
             return;
 
-        this.options.onclick();
+        if(this.options.onclick && this.options.onclick(e))
+            return;
+
+        this.clicked(e);
+    }
+
+    clicked(e)
+    {
     }
 }
 
@@ -230,11 +277,8 @@ ppixiv.menu_option_toggle = class extends ppixiv.menu_option_button
         this.container.querySelector(".checkbox").style.display = value? "":"none";
     }
 
-    onclick(e)
+    clicked(e)
     {
-        e.preventDefault();
-        e.stopPropagation();
-
         if(this.options && this.options.check && !this.options.check())
             return;
 

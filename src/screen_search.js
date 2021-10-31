@@ -412,13 +412,13 @@ ppixiv.screen_search = class extends ppixiv.screen
         for(let link of this.container.querySelectorAll('.following-users-link[data-which="private"]'))
             link.href = `/users/${window.global_data.user_id}/following?rest=hide#ppixiv`;
 
-        for(let link of this.container.querySelectorAll('.bookmarks-link[data-which="all"]'))
+        for(let link of this.container.querySelectorAll('.bookmarks-search-link[data-which="all"]'))
             link.href = `/users/${window.global_data.user_id}/bookmarks/artworks#ppixiv`;
 
-        for(let link of this.container.querySelectorAll('.bookmarks-link[data-which="public"]'))
+        for(let link of this.container.querySelectorAll('.bookmarks-search-link[data-which="public"]'))
             link.href = `/users/${window.global_data.user_id}/bookmarks/artworks#ppixiv?show-all=0`;
 
-        for(let link of this.container.querySelectorAll('.bookmarks-link[data-which="private"]'))
+        for(let link of this.container.querySelectorAll('.bookmarks-search-link[data-which="private"]'))
             link.href = `/users/${window.global_data.user_id}/bookmarks/artworks?rest=hide#ppixiv?show-all=0`;
 
         helpers.set_page_title(this.data_source.page_title || "Loading...");

@@ -436,18 +436,8 @@ ppixiv.actions = class
 
         // MJPEG only makes sense for videos.
         if(download_type == "MKV")
-        {
-            if(illust_data.illustType != 2)
-                return false;
+            return illust_data.illustType == 2;
 
-            // All of these seem to be JPEGs, but if any are PNG, disable MJPEG exporting.
-            // We could encode to JPEG, but if there are PNGs we should probably add support
-            // for APNG.
-            if(illust_data.ugoiraMetadata.mime_type != "image/jpeg")
-                return false;
-
-            return true;
-        }
         throw "Unknown download type " + download_type;
     };
 

@@ -431,11 +431,6 @@ body.light .whats-new-button.updates > svg {
     cursor: pointer;
 }
 
-.full-width-buttons .box-link
-{
-    display: block;
-}
-
 .menu-slider input {
     vertical-align: middle;
     width: 100%;
@@ -1280,10 +1275,6 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
     }
 
     .search-options-row {
-        display: flex;
-        flex-direction: row;
-        flex-wrap: wrap;
-
         .hover-area {
             top: -10px;
             height: 150%;
@@ -1307,12 +1298,70 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
     }
 }
 
+// A row of box-links inside a menu row.  This is used for menu items that have
+// secondary buttons, like the public and private bookmark search buttons.  For
+// these the main box-link doesn't stretch to fill the row, so it's easy to tell
+// what button you're pressing, and the extra buttons are flush right.
+.box-link-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.5em;
+}
+
+// box-links in horizontal strips.  Add horizontal padding between these.
+.box-button-row {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+
+    .box-link {
+        margin: 0.25em .25em;
+        padding: 0 .5em;
+
+        // Place vertical padding on the contents rather than the box, so clicks are always
+        // within one of the items and not on the small vertical padding around it.
+        //
+        // For box links that are just <a class=box-link>text</a>, the vertical padding is added
+        // in the a.box-link rule.
+        & > * {
+            padding: .25em 0;
+        }
+    }
+}
+
+// box-links that are in a horizontal strip have vertical padding outside the box, to
+// space them apart.  box-links that are in a vertical dropdown menu have their vertical
+// padding inside the button, so there's no empty space between menu items.  The total
+// padding stays the same.
+.full-width-buttons
+{
+    min-width: 12em;
+    .box-link
+    {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+
+        margin-top: 0;
+        margin-bottom: 0;
+        padding: 0 .25em;
+        & > * {
+            padding: .25em 0;
+        }
+    }
+}
+
 .box-link {
-    display: inline-block;
+    display: inline-flex;
     cursor: pointer;
     text-decoration: none;
-    padding: .25em .5em;
-    margin: .25em .25em;
+    margin: 0;
+    align-content: center;
+    align-items: center;
+    height: 2em;
+
     color: var(--box-link-fg-color);
     background-color: var(--box-link-bg-color);
     user-select: none;
@@ -1346,7 +1395,7 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
     .icon {
         display: inline-block;
         width: 1em;
-        height: 100%;
+        // height: 100%;
         position: relative;
         top: 0.125em;
         svg {
@@ -1354,6 +1403,13 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
             height: 1em;
         }
     }
+}
+
+// box-link buttons that are A or SPAN don't have children, so put the padding on the box itself.
+a.box-link, span.box-link
+{
+    padding-top: 0.5em;
+    padding-bottom: 0.5em;
 }
 
 .option-list {
@@ -1896,11 +1952,12 @@ input.search-tags {
     }
 }
 
-.popup-bookmark-tag-dropdown {
+.popup-bookmark-tag-dropdown,
+.popup-more-options-dropdown {
     background-color: var(--frame-bg-color);
     color: var(--frame-fg-color);
     position: absolute;
-    padding: 6px 8px;
+    padding: 8px;
     top: calc(100%);
     border-radius: 0px 0px 4px 4px;
 

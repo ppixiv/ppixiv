@@ -140,18 +140,18 @@
                                 <path d="M 6 21 h 20 v 4 h -20 v -4"/>
                             </svg>
                         </div>
-                        <div class="popup-menu-box">
+                        <div class="popup-menu-box full-width-buttons">
                             <div class=option-list>
                                 <a class=box-link href="/new_illust.php#ppixiv">New works</a>
                                 <a class=box-link href="/bookmark_new_illust.php#ppixiv">New works by following</a>
-                                <div style="display: flex; flex-direction: row; align-items: baseline;">
-                                    <a class="box-link bookmarks-link" data-which=all href=#>Bookmarks</a>
+                                <div class=box-link-row>
+                                    <a class="box-link bookmarks-search-link" data-which=all href=#>Bookmarks</a>
                                     <div style="flex: 1;"></div>
-                                    <a class="box-link small-font bookmarks-link" data-which=all href=#>all</a>
-                                    <a class="box-link small-font bookmarks-link" data-which=public href=#>public</a>
-                                    <a class="box-link small-font bookmarks-link" data-which=private href=#>private</a>
+                                    <a class="box-link small-font bookmarks-search-link" data-which=all href=#>all</a>
+                                    <a class="box-link small-font bookmarks-search-link" data-which=public href=#>public</a>
+                                    <a class="box-link small-font bookmarks-search-link" data-which=private href=#>private</a>
                                 </div>
-                                <div style="display: flex; flex-direction: row; align-items: baseline;">
+                                <div class=box-link-row>
                                     <a class="box-link following-users-link" data-which=public href=#>Followed users</a>
                                     <div style="flex: 1;"></div>
                                     <a class="box-link small-font following-users-link" data-which=public href=#>public</a>
@@ -197,13 +197,13 @@
                     </div>
                 </div>
 
-                <div class="data-source-specific" data-datasource=discovery>
+                <div class="data-source-specific box-button-row" data-datasource=discovery>
                     <a class="box-link popup" data-type=all data-popup="Show all works" href="?mode=all#ppixiv">All</a>
                     <a class="box-link popup" data-type=safe data-popup="Show all-ages works" href="?mode=safe#ppixiv">All ages</a>
                     <a class="box-link popup r18" data-type=r18 data-popup="Show R18 works" href="?mode=r18#ppixiv">R18</a>
                 </div>
 
-                <div class="data-source-specific" data-datasource=new_illust>
+                <div class="data-source-specific box-button-row" data-datasource=new_illust>
                     <a class="box-link popup" data-type=new-illust-type-illust data-popup="Show illustrations" href="#">Illustrations</a>
                     <a class="box-link popup" data-type=new-illust-type-manga data-popup="Show manga only" href="#">Manga</a>
 
@@ -244,7 +244,7 @@
                     </div>
                 </div>
                  
-                <div class="data-source-specific" data-datasource=recent>
+                <div class="data-source-specific box-button-row" data-datasource=recent>
                     <a class="box-link popup" data-type=clear-recents data-popup="Clear recent history" href=#>Clear</a>
                 </div>
                 
@@ -265,36 +265,37 @@
                 </div>                
 
                 <div class="data-source-specific" data-datasource=following>
-                    <div class=follows-public-private>
+                    <div class="follows-public-private box-button-row">
                         <a class="box-link popup" data-type=public-follows data-popup="Show publically followed users" href=#>Public</a>
                         <a class="box-link popup" data-type=private-follows data-popup="Show privately followed users" href=#>Private</a>
                     </div>
 
-                    <div class=bookmark-tag-selection>
+                    <div class="follow-tag-list box-button-row">
                         <span>Follow tags:</span>
-                        <span class=follow-tag-list></span>
                     </div>
                 </div>                
                 
                 <div class="data-source-specific" data-datasource="bookmarks">
-                    <div class=bookmark-tag-selection>
+                    <div class="box-button-row bookmark-tag-list">
                         <span>Bookmark tags:</span>
-                        <span class=bookmark-tag-list></span>
                     </div>
                 </div>
 
-                <div class="data-source-specific" data-datasource="bookmarks_new_illust">
-                    <a class="box-link popup" data-type=bookmarks-new-illust-all data-popup="Show all works" href="#">All</a>
-                    <a class="box-link popup r18" data-type=bookmarks-new-illust-ages-r18 data-popup="Show R18 works" href="#">R18</a>
-                     
-                    <div class=bookmark-tag-selection>
-                        <span>Follow tags:</span>
-                        <span class=follow-new-post-tag-list></span>
+                <div class=data-source-specific data-datasource="bookmarks_new_illust">
+                    <div class=box-button-row>
+                        <a class="box-link popup" data-type=bookmarks-new-illust-all data-popup="Show all works" href="#">All</a>
+                        <a class="box-link popup r18" data-type=bookmarks-new-illust-ages-r18 data-popup="Show R18 works" href="#">R18</a>
+                    </div>
+                    
+                    <div class=box-button-row>
+                        <div class="follow-new-post-tag-list box-button-row">
+                            <span>Follow tags:</span>
+                        </div>
                     </div>
                 </div>
 
                 <div class="data-source-specific" data-datasource=artist>
-                    <div class=search-options-row>
+                    <div class="box-button-row search-options-row">
                         <a class="box-link popup" data-type=artist-works data-popup="Show all works" href=#>Works</a>
                         <a class="box-link popup" data-type=artist-illust data-popup="Show illustrations only" href=#>Illusts</a>
                         <a class="box-link popup" data-type=artist-manga data-popup="Show manga only" href=#>Manga</a>
@@ -327,7 +328,7 @@
 
                     <!-- We don't currently have popup text for these, since it's a little annoying to
                          have it pop over the menu. -->
-                    <div class=search-options-row>
+                    <div class="box-button-row search-options-row">
                         <div class=ages-box>
                             <span class="menu-button box-link">Ages</span>
                             <div class="popup-menu-box">
@@ -365,7 +366,7 @@
                         </div>
 
                         <div class=search-mode-box>
-                            <div class="box-link menu-button">Search mode</div>
+                            <span class="box-link menu-button">Search mode</span>
                             <div class="popup-menu-box">
                                 <div class=option-list>
                                     <a class=box-link data-type=search-all data-default=1 href="?#ppixiv">Tag</a>
@@ -417,9 +418,8 @@
                             </div>
                         </div>
                        
-
                         <div class="time-box premium-only">
-                            <div class="menu-button box-link">Time</div>
+                            <span class="menu-button box-link">Time</span>
                             <div class="popup-menu-box">
                                 <div class=option-list>
                                     <a class=box-link data-type=time-all data-default=1 href="#">All</a>
@@ -701,7 +701,7 @@
                     <div class=image-info hidden></div>
                 </div>
                
-                <div class=tag-list></div>
+                <div class="tag-list box-button-row"></div>
                 <div class=description></div>
             </div>
         </template>
@@ -903,7 +903,7 @@
                     <!-- position: relative positions the popup menu. -->
                     <div class=button-block style="position: relative;">
                         <div class="button button-more enabled" data-popup="More...">
-                            <ppixiv-inline src="resources/tag-icon.svg"></ppixiv-inline>
+                            <ppixiv-inline src="resources/settings-icon.svg"></ppixiv-inline>
                         </div>
                         <div class=popup-more-options-container></div>
                     </div>
@@ -975,9 +975,9 @@
                         </div>
                     </div>
 
-                    <div class=buttons style="margin-top: 1em;">
+                    <div class="buttons box-button-row" style="margin-top: 1em;">
                         <div class=toggle-enabled></div>
-                        <div class="unlink-all box-link" hidden>Unlink all tabs</div>
+                        <div class="unlink-all box-link" hidden><span>Unlink all tabs</span></div>
                     </div>
                 </div>
             </div>

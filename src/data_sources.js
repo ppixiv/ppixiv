@@ -2051,7 +2051,8 @@ class data_source_bookmarks_base extends data_source
         var tag_list = container.querySelector(".bookmark-tag-list");
         let current_tag = this.displaying_tag;
         
-        helpers.remove_elements(tag_list);
+        for(let tag of tag_list.querySelectorAll(".following-tag"))
+            tag.remove();
 
         var add_tag_link = (tag) =>
         {
@@ -2468,7 +2469,8 @@ ppixiv.data_sources.bookmarks_new_illust = class extends data_source
         let current_tag = this.url.searchParams.get("tag") || "All";
 
         var tag_list = container.querySelector(".follow-new-post-tag-list");
-        helpers.remove_elements(tag_list);
+        for(let tag of tag_list.querySelectorAll(".following-tag"))
+            tag.remove();
 
         let add_tag_link = (tag) =>
         {
@@ -3006,8 +3008,8 @@ ppixiv.data_sources.follows = class extends data_source
         this.set_item(container, "private-follows", {rest: "hide"}, {rest: "show"});
 
         var tag_list = container.querySelector(".follow-tag-list");
-        
-        helpers.remove_elements(tag_list);
+        for(let tag of tag_list.querySelectorAll(".following-tag"))
+            tag.remove();
 
         // Refresh the bookmark tag list.  Remove the page number from these buttons.
         let current_url = new URL(this.url);
