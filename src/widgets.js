@@ -7,6 +7,7 @@ ppixiv.widget = class
         container,
         template=null,
         parent=null,
+        visible=true,
         ...options}={})
     {
         console.assert(container != null);
@@ -21,12 +22,28 @@ ppixiv.widget = class
             container = contents;
         }
 
+        container.classList.add("widget");
+
         this.parent = parent;
         this.container = container;
+
+        // If we're visible, we'll unhide below.
+        // grr
+        // this.container.hidden = true;
+
+        this.have_set_initial_visibility = false;
 
         // Let the caller finish, then refresh.
         helpers.yield(() => {
             this.refresh();
+
+            // If we're initially visible, set ourselves visible now.  Skip this if something
+            // else modifies visible first.
+            if(visible && !this.have_set_initial_visibility)
+            {
+                this.have_set_initial_visibility = true;
+                this.visible = true;
+            }
         });
     }
 
@@ -46,21 +63,27 @@ ppixiv.widget = class
 
     get visible()
     {
-        return !this.container.hidden;
+        return this.container.classList.contains("visible-widget");
+    }
+
+    set visible(value)
+    {
+        this.have_set_initial_visibility = true;
+
+        if(value == this.visible)
+            return;
+
+        helpers.set_class(this.container, "visible-widget", value);        
+
+        this.visibility_changed();
     }
 
     // The subclass can override this.
     visibility_changed()
     {
-    }
-
-    set visible(value)
-    {
-        if(value == !this.container.hidden)
-            return;
-
-        if(value)
+        if(this.visible)
         {
+
             console.assert(this.visibility_abort == null);
 
             // Create an AbortController that will be aborted when the widget is hidden.
@@ -71,20 +94,33 @@ ppixiv.widget = class
 
             this.visibility_abort = null;
         }
-
-        this.container.hidden = !value;
-
-        this.visibility_changed();
     }
 }
 
 ppixiv.dialog_widget = class extends ppixiv.widget
 {
     constructor({
+        // Dialogs are hidden by default.
+        visible=false,
         ...options
     })
     {
-        super({...options});
+        super({
+            visible: visible,
+            ...options,
+        });
+    }
+
+
+    visibility_changed()
+    {
+        super.visibility_changed();
+
+        // This disables global key handling and hotkeys.
+        if(this.visible)
+            document.body.dataset.popupOpen = "1";
+        else
+            delete document.body.dataset.popupOpen;
     }
 }
 
@@ -130,8 +166,34 @@ ppixiv.illust_widget = class extends ppixiv.widget
         let illust_id = this._illust_id;
         let page = this._page;
         let info = { illust_id: this._illust_id };
+        
         if(this._illust_id != null)
         {
+            // See if we have the data the widget wants already.
+            info.thumbnail_data = await thumbnail_data.singleton().get_or_load_illust_data(this._illust_id, false /* don't load */);
+            info.illust_data = image_data.singleton().get_image_info_sync(illust_id);
+            let load_needed = false;
+            switch(this.needed_data)
+            {
+            case "thumbnail":
+                info.thumbnail_data = await thumbnail_data.singleton().get_or_load_illust_data(this._illust_id, false /* don't load */);
+                if(info.thumbnail_data == null)
+                    load_needed = true;
+                break;
+            case "illust_info":
+                info.illust_data = image_data.singleton().get_image_info_sync(this._illust_id);
+                if(info.illust_data == null)
+                    load_needed = true;
+                break;
+            }
+
+            // If we need to load data, clear the widget while we load, so we don't show the old
+            // data while we wait for data.  Skip this if we don't need to load, so we don't clear
+            // and reset the widget.  This can give the widget an illust ID without data, which is
+            // OK.
+            if(load_needed)
+                await this.refresh_internal(info);
+
             switch(this.needed_data)
             {
             case "illust_id":
@@ -139,9 +201,11 @@ ppixiv.illust_widget = class extends ppixiv.widget
             case "thumbnail":
                 info.thumbnail_data = await thumbnail_data.singleton().get_or_load_illust_data(this._illust_id);
                 break;
-            default:
+            case "illust_info":
                 info.illust_data = await image_data.singleton().get_image_info(this._illust_id);
                 break;
+            default:
+                throw new Error("Unknown: " + this.needed_data);
             }
         }
 
@@ -251,33 +315,19 @@ ppixiv.click_outside_listener = class
 // Show popup menus when a button is clicked.
 ppixiv.dropdown_menu_opener = class
 {
-    static create_handlers(container, selectors)
+    static create_handlers(container)
     {
-        for(let selector of selectors)
-        {
-            let item = container.querySelector(selector);
-            if(item == null)
-            {
-                console.warn("Couldn't find", selector);
-                continue;
-            }
-            dropdown_menu_opener.create_handler(item);
-        }
+        for(let button of container.querySelectorAll(".popup-menu-box-button"))
+            dropdown_menu_opener.create_handler(button);
     }
 
     // A shortcut for creating an opener for our common button/popup layout.
-    static create_handler(container)
+    static create_handler(button)
     {
-        let button = container.querySelector(".menu-button");
-        let box = container.querySelector(".popup-menu-box");
-        if(button == null)
+        let box = button.nextElementSibling;
+        if(box == null || !box.classList.contains("popup-menu-box"))
         {
-            console.error("Couldn't find menu button for " + container);
-            return;
-        }
-        if(box == null)
-        {
-            console.error("Couldn't find menu box for " + container);
+            console.error("Couldn't find menu box for", button);
             return;
         }
         new dropdown_menu_opener(button, box);
@@ -291,9 +341,17 @@ ppixiv.dropdown_menu_opener = class
         this.button = button;
         this.box = box;
 
+        // Store references between the two parts.
+        this.button.dropdownMenuBox = box;
+        this.box.dropdownMenuButton = button;
+
         this.visible = false;
 
         this.button.addEventListener("click", (e) => { this.button_onclick(e); });
+
+        // We manually position the dropdown, so we need to reposition them if
+        // the window size changes.
+        window.addEventListener("resize", (e) => { this.align_to_button(); });
 
         // Hide popups when any containing view is hidden.
         new view_hidden_listener(this.button, (e) => {
@@ -323,6 +381,8 @@ ppixiv.dropdown_menu_opener = class
 
         if(value)
         {
+            this.align_to_button();
+
             this.listener = new click_outside_listener([this.button, this.box], () => {
                 this.visible = false;
             });
@@ -349,6 +409,29 @@ ppixiv.dropdown_menu_opener = class
 
         // Let the widget know its visibility has changed.
         this.box.dispatchEvent(new Event(value? "popupshown":"popuphidden"));
+    }
+
+    align_to_button()
+    {
+        if(!this.visible)
+            return;
+
+        // Use getBoundingClientRect to figure out the position, since it works
+        // correctly with CSS transforms.  Figure out how far off we are and move
+        // by that amount.  This works regardless of what our relative position is.
+        let {left: box_x, top: box_y} = this.box.getBoundingClientRect(document.body);
+        let {left: button_x, top: button_y, height: box_height} = this.button.getBoundingClientRect(document.body);
+
+        // Align to the bottom of the button.
+        button_y += box_height;
+
+        let move_right_by = button_x - box_x;
+        let move_down_by = button_y - box_y;
+        let x = this.box.offsetLeft + move_right_by;
+        let y = this.box.offsetTop + move_down_by;
+
+        this.box.style.left = `${x}px`;
+        this.box.style.top = `${y}px`;
     }
 
     // Return true if this popup should close when clicking inside it.  If false,
@@ -448,7 +531,43 @@ ppixiv.avatar_widget = class extends widget
     // big: if true, show the big avatar instead of the small one
     constructor(options)
     {
-        super({...options});
+        super({...options, template: `
+            <div class="follow-container">
+                <a href=# class=avatar-link style="position: relative;">
+                    <div class="avatar popup popup-bottom">
+                        <canvas class=main></canvas>
+                        <canvas class=highlight></canvas>
+                    </div>
+
+                    <div class=follow-buttons>
+                        <!-- We either show the following icon if we're already following (which acts as the unfollow
+                            button), or the public and private follow buttons.  The follow button is only shown on hover. -->
+                        <div class="follow-icon follow-button public bottom-left popup popup-bottom" data-popup="Follow publically">
+                            <ppixiv-inline src="resources/eye-icon.svg"></ppixiv-inline>
+                        </div>
+                        <div class="follow-icon follow-button private bottom-right popup popup-bottom" data-popup="Follow privately">
+                            <ppixiv-inline src="resources/eye-icon.svg"></ppixiv-inline>
+                        </div>
+                        <div class="follow-icon following-icon unfollow-button bottom-right popup popup-bottom" data-popup="Unfollow">
+                            <ppixiv-inline src="resources/eye-icon.svg"></ppixiv-inline>
+                        </div>
+                    </div>
+                </a>
+                <div class="popup-menu-box hover-menu-box follow-popup">
+                    <div class=hover-area></div>
+                    <div class=not-following>
+                        <div class="button follow-button public">
+                            Follow
+                        </div>
+                        <div class="button follow-button private">
+                            Follow&nbsp;Privately
+                        </div>
+                        <input class="folder premium-only" placeholder="Folder">
+                        </input>
+                    </div>
+                </div>
+            </div>
+        `});
 
         this.options = options;
         if(this.options.mode != "dropdown" && this.options.mode != "overlay")
@@ -456,14 +575,12 @@ ppixiv.avatar_widget = class extends widget
 
         this.clicked_follow = this.clicked_follow.bind(this);
         this.user_changed = this.user_changed.bind(this);
-        this._visible = true;
 
-        this.root = helpers.create_from_template(".template-avatar");
-        helpers.set_class(this.root, "big", this.options.big);
+        helpers.set_class(this.container, "big", this.options.big);
 
         image_data.singleton().user_modified_callbacks.register(this.user_changed);
 
-        let element_author_avatar = this.root.querySelector(".avatar");
+        let element_author_avatar = this.container.querySelector(".avatar");
 
         this.img = document.createElement("img");
 
@@ -482,17 +599,17 @@ ppixiv.avatar_widget = class extends widget
             ctx.fill();
         });
         
-        this.root.dataset.mode = this.options.mode;
+        this.container.dataset.mode = this.options.mode;
 
         // Show the favorite UI when hovering over the avatar icon.
-        let avatar_popup = this.root; //container.querySelector(".avatar-popup");
+        let avatar_popup = this.container; //container.querySelector(".avatar-popup");
         if(this.options.mode == "dropdown")
         {
             avatar_popup.addEventListener("mouseover", function(e) { helpers.set_class(avatar_popup, "popup-visible", true); }.bind(this));
             avatar_popup.addEventListener("mouseout", function(e) { helpers.set_class(avatar_popup, "popup-visible", false); }.bind(this));
         }
 
-        new creepy_eye_widget(this.root.querySelector(".unfollow-button .eye-image"));
+        new creepy_eye_widget(this.container.querySelector(".unfollow-button .eye-image"));
 
         for(let button of avatar_popup.querySelectorAll(".follow-button.public"))
             button.addEventListener("click", this.clicked_follow.bind(this, false), false);
@@ -504,8 +621,6 @@ ppixiv.avatar_widget = class extends widget
 
         // Follow publically when enter is pressed on the follow folder input.
         helpers.input_handler(avatar_popup.querySelector(".folder"), this.clicked_follow.bind(this, false));
-
-        this.container.appendChild(this.root);
     }
 
     shutdown()
@@ -513,15 +628,12 @@ ppixiv.avatar_widget = class extends widget
         image_data.singleton().user_modified_callbacks.unregister(this.user_changed);
     }
 
-    set visible(value)
+    visibility_changed()
     {
-        if(this._visible == value)
-            return;
-        this._visible = value;
+        super.visibility_changed();
+
         this.refresh();
     }
-
-    get visible() { return this._visible; }
     
     // Refresh when the user changes.
     user_changed(user_id)
@@ -540,14 +652,10 @@ ppixiv.avatar_widget = class extends widget
 
     async refresh()
     {
-        // Only update when we're visible, so we don't load user info until it's needed.
-        if(!this._visible)
-            return;
-
         if(this.user_id == null)
         {
             this.user_data = null;
-            this.root.classList.add("loading");
+            this.container.classList.add("loading");
 
             // Set the avatar image to a blank image, so it doesn't flash the previous image
             // the next time we display it.  It should never do this, since we set a new image
@@ -563,19 +671,19 @@ ppixiv.avatar_widget = class extends widget
             this.img.src = cached_profile_url;
 
         // Set up stuff that we don't need user info for.
-        this.root.querySelector(".avatar-link").href = `/users/${this.user_id}/artworks#ppixiv`;
+        this.container.querySelector(".avatar-link").href = `/users/${this.user_id}/artworks#ppixiv`;
 
         // Hide the popup in dropdown mode, since it covers the dropdown.
         if(this.options.mode == "dropdown")
-            this.root.querySelector(".avatar").classList.remove("popup");
+            this.container.querySelector(".avatar").classList.remove("popup");
 
         // Clear stuff we need user info for, so we don't show old data while loading.
-        helpers.set_class(this.root, "followed", false);
-        this.root.querySelector(".avatar").dataset.popup = "";
-        this.root.querySelector(".follow-buttons").hidden = true;
-        this.root.querySelector(".follow-popup").hidden = true;
+        helpers.set_class(this.container, "followed", false);
+        this.container.querySelector(".avatar").dataset.popup = "";
+        this.container.querySelector(".follow-buttons").hidden = true;
+        this.container.querySelector(".follow-popup").hidden = true;
 
-        this.root.classList.remove("loading");
+        this.container.classList.remove("loading");
 
         let user_data = await image_data.singleton().get_user_info(this.user_id);
         this.user_data = user_data;
@@ -585,12 +693,12 @@ ppixiv.avatar_widget = class extends widget
             return;
         }
 
-        helpers.set_class(this.root, "self", this.user_id == global_data.user_id);
+        helpers.set_class(this.container, "self", this.user_id == global_data.user_id);
 
         // We can't tell if we're followed privately or not, only that we're following.
-        helpers.set_class(this.root, "followed", this.user_data.isFollowed);
+        helpers.set_class(this.container, "followed", this.user_data.isFollowed);
 
-        this.root.querySelector(".avatar").dataset.popup = "View " + this.user_data.name + "'s posts";
+        this.container.querySelector(".avatar").dataset.popup = "View " + this.user_data.name + "'s posts";
 
         // If we don't have an image because we're loaded from a source that doesn't give us them,
         // just hide the avatar image.
@@ -600,8 +708,8 @@ ppixiv.avatar_widget = class extends widget
         else
             this.img.src = helpers.blank_image;
 
-        this.root.querySelector(".follow-buttons").hidden = false;
-        this.root.querySelector(".follow-popup").hidden = false;
+        this.container.querySelector(".follow-buttons").hidden = false;
+        this.container.querySelector(".follow-popup").hidden = false;
     }
     
     async follow(follow_privately)
@@ -712,12 +820,31 @@ ppixiv.tag_widget = class
 // A popup for inputting text.
 //
 // This is currently special purpose for the add tag prompt.
-ppixiv.text_prompt = class
+ppixiv.text_prompt = class extends ppixiv.dialog_widget
 {
-    constructor()
+    constructor({...options}={})
     {
+        super({...options,
+            container: document.body,
+            visible: true,
+            template: `
+            <div class="tag-entry-popup">
+                <div class=strip>
+                    <div class=box>
+                        <div class=close-button>X</div>
+                        <div style="margin-bottom: 4px;">
+                            New tag:
+                        </div>
+                        <div class=tag-input-box>
+                            <input class=add-tag-input>
+                            <span class=submit-button>+</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `});
+        
         this.submit = this.submit.bind(this);
-        this.close = this.close.bind(this);
         this.onkeydown = this.onkeydown.bind(this);
 
         this.result = new Promise((completed, cancelled) => {
@@ -725,29 +852,22 @@ ppixiv.text_prompt = class
             this._cancelled = cancelled;
         });
 
-        this.root = helpers.create_from_template(".template-add-tag-prompt");
-        document.body.appendChild(this.root);
-        this.input = this.root.querySelector("input.add-tag-input");
+        this.input = this.container.querySelector("input.add-tag-input");
         this.input.value = "";
         this.input.focus();
 
-        this.root.querySelector(".close-button").addEventListener("click", this.close);
-        this.root.querySelector(".submit-button").addEventListener("click", this.submit);
+        this.container.querySelector(".close-button").addEventListener("click", (e) => { this.visible = false; });
+        this.container.querySelector(".submit-button").addEventListener("click", this.submit);
 
-        this.root.addEventListener("click", (e) => {
+        this.container.addEventListener("click", (e) => {
             // Clicks that aren't inside the box close the dialog.
             if(e.target.closest(".box") != null)
                 return;
 
             e.preventDefault();
             e.stopPropagation();
-            this.close();
+            this.visible = false;
         });
-
-        window.addEventListener("keydown", this.onkeydown);
-
-        // This disables global key handling and hotkeys.
-        document.body.dataset.popupOpen = "1";
     }
 
     onkeydown(e)
@@ -756,8 +876,7 @@ ppixiv.text_prompt = class
         {
             e.preventDefault();
             e.stopPropagation();
-
-            this.close();
+            this.visible = false;
         }
 
         if(e.key == "Enter")
@@ -768,32 +887,32 @@ ppixiv.text_prompt = class
         }
     }
 
+    visibility_changed()
+    {
+        super.visibility_changed();
+
+        if(this.visible)
+        {
+            window.addEventListener("keydown", this.onkeydown, { signal: this.visibility_abort.signal });
+        }
+        else
+        {
+            // Remove the widget when it's hidden.
+            this.container.remove();
+
+            // If we didn't complete by now, cancel.
+            this._cancelled("Cancelled by user");
+        }
+    }
+
     // Close the popup and call the completion callback with the result.
-    submit(e)
+    submit()
     {
         let result = this.input.value;
-        console.log("submit", result);
-        this._remove();
-
         this._completed(result);
+
+        this.visible = false;
     }
-
-    close()
-    {
-        this._remove();
-
-        // Cancel the promise.  If we're actually submitting a result, 
-        this._cancelled("Cancelled by user");
-    }
-
-    _remove()
-    {
-        window.removeEventListener("keydown", this.onkeydown);
-
-        delete document.body.dataset.popupOpen;
-        this.root.remove();
-    }
-
 }
 
 // Widget for editing bookmark tags.
@@ -801,14 +920,33 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
 {
     get needed_data() { return "illust_id"; }
 
-    constructor(options)
+    constructor({...options})
     {
-        super(options);
+        super({...options, template: `
+            <div class=popup-bookmark-tag-dropdown>
+                <div class=tag-list></div> <!-- tag list is inserted here -->
+                <div class=tag-right-button-strip>
+                    <div class="tag-button popup add-tag" data-popup="Add a different tag" style="padding: 12px 8px; text-align: center;">
+                        <div class=grey-icon>
+                            +
+                        </div>
+                    </div>
+                    <div class="tag-button popup sync-tags" data-popup="Load common tags from bookmarks" style="padding: 4px 8px; ">
+                        <div class=grey-icon>
+                            <ppixiv-inline src="resources/refresh-icon.svg"></ppixiv-inline>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `});
 
-        this.container.hidden = true;
+        this.tag_entry_template = this.create_template(`
+            <div class=popup-bookmark-tag-entry>
+                <span class=tag-name></span>
+            </div>
+        `);
+
         this.displaying_illust_id = null;
-
-        this.container.appendChild(helpers.create_from_template(".template-popup-bookmark-tag-dropdown"));
 
         this.container.addEventListener("click", this.clicked_bookmark_tag.bind(this), true);
 
@@ -855,36 +993,33 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
         super.set_illust_id(illust_id, page);
     }
     
-    get visible()
-    {
-        return !this.container.hidden;
-    }
-    
-    set visible(value) { this._set_tag_dropdown_visible(value); }
-
     // Hide the dropdown without committing anything.  This happens if a bookmark
     // button is pressed to remove a bookmark: if we just close the dropdown normally,
     // we'd readd the bookmark.
-    hide_without_sync()
+    async hide_without_sync()
     {
-        this._set_tag_dropdown_visible(false, true);
+        this.skip_save = true;
+        try {
+            this.visible = false;
+        } finally {
+            this.skip_save = true;
+        }
     }
 
-    async _set_tag_dropdown_visible(value, skip_save)
+    async visibility_changed()
     {
-        if(this.container.hidden == !value)
-            return;
+        super.visibility_changed();
 
-        this.container.hidden = !value;
-
-        if(value)
+        if(this.visible)
         {
             // We only load existing bookmark tags when the tag list is open, so refresh.
             await this.refresh();
         }
         else
         {
-            if(!skip_save)
+            // Note that this.skip_save is set by our caller who isn't async, so
+            // this will only be set until the first time we await.
+            if(!this.skip_save)
             {
                 // Save any selected tags when the dropdown is closed.
                 this.save_current_tags();
@@ -962,10 +1097,9 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
             return lhs.localeCompare(rhs);
         });
 
-        for(let i = 0; i < shown_tags.length; ++i)
+        for(let tag of shown_tags)
         {
-            let tag = shown_tags[i];
-            let entry = helpers.create_from_template(".template-popup-bookmark-tag-entry");
+            let entry = helpers.create_from_template(this.tag_entry_template);
             entry.dataset.tag = tag;
             bookmark_tags.appendChild(entry);
             entry.querySelector(".tag-name").innerText = tag;
@@ -1035,13 +1169,13 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
 
     constructor(options)
     {
-        super({...options, template: `
+        super({...options,
+            visible: false,
+            template: `
 <div class=popup-more-options-dropdown>
-    <div class="options full-width-buttons"></div>
+    <div class="options vertical-list"></div>
 </div>
 `});
-
-        this.container.hidden = true;
 
         let option_box = this.container.querySelector(".options");
         this.menu_options = [
@@ -1108,7 +1242,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                 icon: "resources/download-icon.svg",
                 hide_if_unavailable: true,
                 requires_image: true,
-                available: () => { return actions.is_download_type_available("image", this.thumbnail_data); },
+                available: () => { return this.thumbnail_data && actions.is_download_type_available("image", this.thumbnail_data); },
                 onclick: () => {
                     actions.download_illust(this.illust_id, null, "image", this._page || 0);
                     this.parent.hide();
@@ -1122,7 +1256,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                 icon: "resources/download-manga-icon.svg",
                 hide_if_unavailable: true,
                 requires_image: true,
-                available: () => { return actions.is_download_type_available("ZIP", this.thumbnail_data); },
+                available: () => { return this.thumbnail_data && actions.is_download_type_available("ZIP", this.thumbnail_data); },
                 onclick: () => {
                     actions.download_illust(this.illust_id, null, "ZIP");
                     this.parent.hide();
@@ -1136,7 +1270,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                 icon: "resources/download-icon.svg",
                 hide_if_unavailable: true,
                 requires_image: true,
-                available: () => { return actions.is_download_type_available("MKV", this.thumbnail_data); },
+                available: () => { return this.thumbnail_data && actions.is_download_type_available("MKV", this.thumbnail_data); },
                 onclick: () => {
                     actions.download_illust(this.illust_id, null, "MKV");
                     this.parent.hide();
@@ -1218,7 +1352,7 @@ ppixiv.bookmark_button_widget = class extends ppixiv.illust_widget
 
     constructor({private_bookmark, bookmark_tag_widget, ...options})
     {
-        super(options);
+        super({...options});
 
         this.private_bookmark = private_bookmark;
         this.bookmark_tag_widget = bookmark_tag_widget;

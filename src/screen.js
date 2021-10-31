@@ -3,9 +3,12 @@
 // The base class for our main screens.
 ppixiv.screen = class extends ppixiv.widget
 {
-    constructor(options)
+    constructor({...options})
     {
-        super(options);
+        super({
+            ...options,
+            visible: false,
+        });
 
         // Make our container focusable, so we can give it keyboard focus when we
         // become active.
@@ -43,8 +46,8 @@ ppixiv.screen = class extends ppixiv.widget
     async set_active(active)
     {
         // Show or hide the screen.
-        this.container.hidden = !active;
-        
+        this.visible = active;
+
         if(active)
         {
             // Focus the container, so it receives keyboard events, eg. home/end.

@@ -435,6 +435,8 @@ ppixiv.link_tabs_popup = class extends ppixiv.dialog_widget
 
     visibility_changed()
     {
+        super.visibility_changed();
+
         if(!this.visible)
         {
             SendImage.send_message({ message: "hide-link-tab" });
@@ -500,6 +502,8 @@ ppixiv.link_this_tab_popup = class extends ppixiv.dialog_widget
 
     visibility_changed()
     {
+        super.visibility_changed();
+
         this.hide_timer.clear();
 
         // Hide if we don't see a show-link-tab message for a few seconds, as a
@@ -552,6 +556,8 @@ ppixiv.send_image_popup = class extends ppixiv.dialog_widget
 
     visibility_changed()
     {
+        super.visibility_changed();
+
         if(!this.visible)
         {
             SendImage.send_message({ message: "hide-send-image" });
@@ -607,6 +613,8 @@ ppixiv.send_here_popup = class extends ppixiv.dialog_widget
 
     visibility_changed()
     {
+        super.visibility_changed();
+
         this.hide_timer.clear();
 
         // Hide if we don't see a show-send-image message for a few seconds, as a

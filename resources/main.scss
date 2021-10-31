@@ -725,16 +725,14 @@ body.hide-r18 .r18 { display: none; }
 body.hide-r18g .r18g { display: none; }
 
 .popup-menu-box {
-    position: absolute;
+    position: fixed;
+    left: 0;
+    top: 100%; // bottom of the positioning menu item
     min-width: 10em;
     background-color: var(--frame-bg-color);
     border: 1px solid var(--frame-border-color);
     padding: .25em .5em;
     z-index: 2;
-}
-
-.menu-button {
-    cursor: pointer;
 }
 
 .popup-menu-box.hover-menu-box {
@@ -752,19 +750,6 @@ body.hide-r18g .r18g { display: none; }
     width: 150%;
     height: 200%;
     z-index: -1;
-}
-/* This one is under the bookmark popup.  Extend over the bottom, so the list doesn\'t disappear
- * when deleting a recent bookmark at the bottom of the list, but don\'t extend over the top, so
- * we don\'t block the mouse hovering over other things.
- *
- * Note that the positioning of this is important: we want to fully close the gap between the
- * popup and the bottom that opened it, but we don't want to overlap the button and block it. */
-.navigation-menu-box .hover-area,
-.settings-menu-box .hover-area,
-.image-settings-menu-box .hover-area
-{
-    top: -2px;
-    height: 125%;
 }
 
 .popup-menu-box .button,
@@ -1274,13 +1259,6 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
         text-decoration: none;
     }
 
-    .search-options-row {
-        .hover-area {
-            top: -10px;
-            height: 150%;
-        }
-    }
-
     .right-side-button {
         display: inline-block;
         vertical-align: middle;
@@ -1307,6 +1285,13 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
     flex-direction: row;
     align-items: center;
     gap: 0.5em;
+
+    // Note that the padding on box-links here matches the horizontal padding
+    // on .vertical-list .box-link.
+    > .box-link {
+        padding-left: 0.25em;
+        padding-right: 0.25em;
+    }
 }
 
 // box-links in horizontal strips.  Add horizontal padding between these.
@@ -1335,10 +1320,13 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
 // space them apart.  box-links that are in a vertical dropdown menu have their vertical
 // padding inside the button, so there's no empty space between menu items.  The total
 // padding stays the same.
-.full-width-buttons
+.vertical-list
 {
-    min-width: 12em;
-    .box-link
+    // For box-links directly within the list (most of them), put the horizontal
+    // padding on them.
+    > .box-link { padding: 0 .25em; }
+
+    > .box-link
     {
         display: flex;
         flex-direction: row;
@@ -1346,10 +1334,6 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
 
         margin-top: 0;
         margin-bottom: 0;
-        padding: 0 .25em;
-        & > * {
-            padding: .25em 0;
-        }
     }
 }
 
@@ -1370,6 +1354,9 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
     &.disabled {
         color: var(--box-link-disabled-color);
         cursor: auto;
+
+        // Also prevent disabled links from showing an unfilled URL:
+        pointer-events: none;
     }
 
     &:hover:not(.disabled) {
@@ -1403,6 +1390,11 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
             height: 1em;
         }
     }
+
+    // This is set by set_active_popup_highlight.
+    &.active {
+        background-color: var(--box-link-selected-color);
+    }
 }
 
 // box-link buttons that are A or SPAN don't have children, so put the padding on the box itself.
@@ -1412,9 +1404,6 @@ a.box-link, span.box-link
     padding-bottom: 0.5em;
 }
 
-.search-options-row > div.active > .box-link {
-    background-color: var(--box-link-selected-color);
-}
 .search-box {
     white-space: nowrap;
     margin-bottom: 4px;
@@ -1778,6 +1767,11 @@ input.search-tags {
     border-radius: 2px;
 }
 
+.widget:not(.visible-widget)
+{
+    display: none;
+}
+
 /* The right click context menu for the image view: */
 .popup-context-menu {
     color: #fff;
@@ -1795,14 +1789,18 @@ input.search-tags {
         opacity ease 0.15s,
         transform ease 0.15s;
 
-    &.visible {
-        opacity: 1;
-    }
-
-    &:not(.visible) {
+    // Override the default visible-widget hiding behavior.
+    &:not(.visible-widget)
+    {
+        display: inherit;
         opacity: 0;
         pointer-events: none;
         transform: scale(.85);
+    }
+
+    &.visible-widget
+    {
+        opacity: 1;
     }
 
     & > * {
@@ -2397,6 +2395,22 @@ svg.heart-image .delete {
         > .submit-button:hover {
             background-color: #444;
             body.light & { background-color: #aaa; }
+        }
+    }
+}
+
+.years-ago {
+    padding: .25em;
+    margin: .25em;
+    white-space: nowrap;
+    /* These links are mostly the same as box-link, but since the
+     * menu background is the same as the box-link background color,
+     * shift it a little to make it clear these are buttons. */
+    > a {
+        padding: 4px 10px;
+        background-color: #444;
+        body.light & {
+            background-color: #ccc;
         }
     }
 }

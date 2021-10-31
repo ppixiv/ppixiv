@@ -3,19 +3,139 @@
 // This handles the overlay UI on the illustration page.
 ppixiv.image_ui = class extends ppixiv.widget
 {
-    constructor(container, {progress_bar, ...options})
+    constructor({progress_bar, ...options})
     {
-        super({container, ...options});
+        super({
+            ...options,
+            visible: false,
+            template: `
+<div class=ui-box>
+    <!-- The avatar icon in the top-right.  This is absolutely positioned, since we don't
+            want this to push the rest of the UI down. -->
+    <div class="avatar-popup" style="position: absolute; top: 1em; right: 1em;"></div>
+
+    <!-- The title and author.  The margin-right here is to prevent this from
+            overlapping the absolutely-positioned avatar icon above. -->
+    <div style="display: flex; flex-direction: row; margin-right: 4em;">
+        <div>
+            <span class="title-block">
+                <!-- Put the title and author in separate inline-blocks, to encourage
+                        the browser to wrap between them if possible, putting the author
+                        on its own line if they won\'t both fit, but still allowing the
+                        title to wrap if it\'s too long by itself. -->
+                <span style="display: inline-block;" class="title-font">
+                    <a class="title"></a>
+                </span>
+                <span style="display: inline-block;" class="author-block title-font">
+                    <span style="font-size: 12px;">by</span>
+                    <a class="author"></a>
+                </span>
+                <a class=edit-post href=#>Edit post</a>
+            </span>
+        </div>
+    </div>
+
+    <div class=button-row>
+        <a class="disable-ui-button popup" data-popup="Return to Pixiv" href="#no-ppixiv">
+            <ppixiv-inline src="resources/pixiv-icon.svg"></ppixiv-inline>
+        </a>
+
+        <div class="navigate-out-button popup" data-popup="Show all">
+            <div class="grey-icon icon-button">
+                <ppixiv-inline src="resources/thumbnails-icon.svg"></ppixiv-inline>
+            </div>
+        </div>
+
+        <div class="download-button download-image-button popup" data-download="image" data-popup="Download image">
+            <div class="grey-icon icon-button button enabled">
+                <ppixiv-inline src="resources/download-icon.svg"></ppixiv-inline>
+            </div>
+        </div>
+
+        <div class="download-button download-manga-button popup" data-download="ZIP" data-popup="Download ZIP of all images">
+            <div class="grey-icon icon-button button enabled">
+                <ppixiv-inline src="resources/download-manga-icon.svg"></ppixiv-inline>
+            </div>
+        </div>
+
+        <div class="download-button download-video-button popup" data-download="MKV" data-popup="Download MKV">
+            <div class="grey-icon icon-button button enabled">
+                <ppixiv-inline src="resources/download-icon.svg"></ppixiv-inline>
+            </div>
+        </div>
+
+        <!-- position: relative positions the tag dropdown. -->
+        <div style="position: relative;">
+            <!-- position: relative positions the bookmark count. -->
+            <div class="button button-bookmark public popup" style="position: relative;">
+                <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
+                <div class=count></div>
+            </div>
+
+            <div class=popup-bookmark-tag-dropdown-container></div>
+        </div>
+
+        <div class="button button-bookmark private popup">
+            <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
+        </div>
+        
+        <div style="position: relative;">
+            <div class="button button-bookmark-tags grey-icon popup" data-popup="Bookmark tags">
+                <ppixiv-inline src="resources/tag-icon.svg"></ppixiv-inline>
+                <div style="position: absolute; bottom: 2px; left: 4px;">
+                    <div class=tag-dropdown-arrow hidden></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="button button-like enabled popup" style="position: relative;">
+            <ppixiv-inline src="resources/like-button.svg"></ppixiv-inline>
+
+            <div class=count></div>
+        </div>
+
+        <a class="similar-illusts-button bulb-button popup" data-popup="Similar illustrations" href=#>
+            <div class="grey-icon icon-button">
+                <ppixiv-inline src="resources/related-illusts.svg"></ppixiv-inline>
+            </div>
+        </a>
+
+        <a class="similar-artists-button bulb-button grey-icon popup" data-popup="Similar artists" href=#>
+            <div class="grey-icon icon-button">
+                <ppixiv-inline src="resources/related-illusts.svg"></ppixiv-inline>
+            </div>
+        </a>
+
+        <a class="similar-bookmarks-button bulb-button grey-icon popup" data-popup="Similar bookmarks" href=#>
+            <div class="grey-icon icon-button">
+                <ppixiv-inline src="resources/related-illusts.svg"></ppixiv-inline>
+            </div>
+        </a>
+
+        <div class="image-settings-menu-box settings-menu-box popup" data-popup="Preferences">
+            <div class="grey-icon icon-button popup-menu-box-button">
+                <ppixiv-inline src="resources/settings-icon.svg"></ppixiv-inline>
+            </div>
+            <div hidden class=popup-menu-box></div>
+        </div>
+    </div>
+    <div class=post-info>
+        <div class="post-age popup" hidden></div>
+        <div class=page-count hidden></div>
+        <div class=ugoira-duration hidden></div>
+        <div class=ugoira-frames hidden></div>
+        <div class=image-info hidden></div>
+    </div>
+    
+    <div class="tag-list box-button-row"></div>
+    <div class=description></div>
+</div>
+            `});
 
         this.clicked_download = this.clicked_download.bind(this);
         this.refresh = this.refresh.bind(this);
 
-        this.container = container;
         this.progress_bar = progress_bar;
-        this._visible = false;
-
-        this.ui = helpers.create_from_template(".template-image-ui");
-        this.container.appendChild(this.ui);
 
         this.avatar_widget = new avatar_widget({
             container: this.container.querySelector(".avatar-popup"),
@@ -27,7 +147,7 @@ ppixiv.image_ui = class extends ppixiv.widget
         });
 
         // Set up hover popups.
-        dropdown_menu_opener.create_handlers(this.container, [".image-settings-menu-box"]);
+        dropdown_menu_opener.create_handlers(this.container);
         
         image_data.singleton().illust_modified_callbacks.register(this.refresh);
         
@@ -75,14 +195,12 @@ ppixiv.image_ui = class extends ppixiv.widget
         menu_option.add_settings(settings_menu);
     }
 
-    set visible(value)
+    visibility_changed()
     {
-        if(this._visible == value)
-            return;
-        this._visible = value;
-        this.avatar_widget.visible = value;
+        super.visibility_changed();
 
-        if(value)
+        this.avatar_widget.visible = this.visible;
+        if(this.visible)
             this.refresh();
     }
 
@@ -124,7 +242,7 @@ ppixiv.image_ui = class extends ppixiv.widget
     async refresh()
     {
         // Don't do anything if we're not visible.
-        if(!this._visible)
+        if(!this.visible)
             return;
 
         // Update widget illust IDs.
@@ -145,7 +263,7 @@ ppixiv.image_ui = class extends ppixiv.widget
         let illust_info = await image_data.singleton().get_image_info(illust_id);
 
         // Check if anything changed while we were loading.
-        if(illust_info == null || illust_id != this._illust_id || !this._visible)
+        if(illust_info == null || illust_id != this._illust_id || !this.visible)
             return;
 
         this.illust_data = illust_info;

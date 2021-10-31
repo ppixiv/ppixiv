@@ -230,7 +230,7 @@ ppixiv.actions = class
         // Hide the popup when we show the prompt.
         this.hide_temporarily = true;
 
-        var prompt = new text_prompt();
+        var prompt = new text_prompt({});
         try {
             var tags = await prompt.result;
         } catch(e) {

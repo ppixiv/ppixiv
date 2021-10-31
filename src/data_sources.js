@@ -689,12 +689,17 @@ class data_source
     // Search filters 
     // Set the active class on all top-level dropdowns which have something other than
     // the default selected.
-    set_active_popup_highlight(container, selector_list)
+    set_active_popup_highlight(container)
     {
-        for(var popup of selector_list)
+        for(let button of container.querySelectorAll(".popup-menu-box-button"))
         {
-            var box = container.querySelector(popup);
-            var selected_item = box.querySelector(".selected");
+            // See if this button has a dropdown menu.  This is set up by dropdown_menu_opener.
+            let box = button.dropdownMenuBox;
+            if(box == null)
+                continue;
+
+            // Find the selected item in the dropdown.
+            let selected_item = box.querySelector(".selected");
             if(selected_item == null)
             {
                 // There's no selected item.  If there's no default item then this is normal, but if
@@ -702,35 +707,28 @@ class data_source
                 // a bug.
                 var default_entry_exists = box.querySelector("[data-default]") != null;
                 if(default_entry_exists)
-                    console.warn("Popup", popup, "has no selection");
+                    console.warn("Dropdown", button, "has no selection");
                 continue;
             }
 
-            var selected_default = selected_item.dataset["default"];
+            let selected_default = selected_item.dataset["default"];
+            helpers.set_class(button, "active", !selected_default);
             helpers.set_class(box, "active", !selected_default);
 
-            // Find the dropdown menu button.
-            let menu_button = box.querySelector(".menu-button");
-            if(menu_button == null)
-            {
-                console.warn("Couldn't find menu button for " + box);
-                continue;
-            }
-
             // Store the original text, so we can restore it when the default is selected.
-            if(menu_button.dataset.originalText == null)
-                menu_button.dataset.originalText = menu_button.innerText;
+            if(button.dataset.originalText == null)
+            button.dataset.originalText = button.innerText;
 
             // If an option is selected, replace the menu button text with the selection's label.
             if(selected_default)
-                menu_button.innerText = menu_button.dataset.originalText;
+                button.innerText = button.dataset.originalText;
             else
             {
                 // The short label is used to try to keep these labels from causing the menu buttons to
                 // overflow the container, and for labels like "2 years ago" where the menu text doesn't
                 // make sense.
                 let label = selected_item.dataset.shortLabel;
-                menu_button.innerText = label? label:selected_item.innerText;
+                button.innerText = label? label:selected_item.innerText;
             }
         }
     }
@@ -1185,21 +1183,21 @@ ppixiv.data_sources.rankings = class extends data_source
         // This UI is greyed rather than hidden before we have the dates, so the UI doesn't
         // shift around as we load.
         var yesterday = container.querySelector(".nav-yesterday");
-        helpers.set_class(yesterday.querySelector(".box-link"), "disabled", this.prev_date == null);
+        helpers.set_class(yesterday, "disabled", this.prev_date == null);
         if(this.prev_date)
         {
             let url = new URL(this.url);
             url.searchParams.set("date", this.prev_date);
-            yesterday.querySelector("a").href = url;
+            yesterday.href = url;
         }
 
         var tomorrow = container.querySelector(".nav-tomorrow");
-        helpers.set_class(tomorrow.querySelector(".box-link"), "disabled", this.next_date == null);
+        helpers.set_class(tomorrow, "disabled", this.next_date == null);
         if(this.next_date)
         {
             let url = new URL(this.url);
             url.searchParams.set("date", this.next_date);
-            tomorrow.querySelector("a").href = url;
+            tomorrow.href = url;
         }
 
         // Not all combinations of content and mode exist.  For example, there's no ugoira
@@ -2880,7 +2878,7 @@ ppixiv.data_sources.search = class extends data_source
             set_date_filter("time-years-ago-" + years_ago, start_year, end_year);
         }
 
-        this.set_active_popup_highlight(container, [".ages-box", ".popularity-box", ".type-box", ".search-mode-box", ".size-box", ".aspect-ratio-box", ".bookmarks-box", ".time-box", ".member-tags-box"]);
+        this.set_active_popup_highlight(container);
 
         // The "reset search" button removes everything in the query except search terms, and resets
         // the search type.

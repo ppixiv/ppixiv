@@ -1,21 +1,28 @@
 "use strict";
 
 // Handle showing the search history and tag edit dropdowns.
-ppixiv.tag_search_box_widget = class
+ppixiv.tag_search_box_widget = class extends ppixiv.widget
 {
-    constructor(container)
+    constructor({...options})
     {
+        super(options);
+
         this.input_onfocus = this.input_onfocus.bind(this);
         this.input_onblur = this.input_onblur.bind(this);
         this.container_onmouseenter = this.container_onmouseenter.bind(this);
         this.container_onmouseleave = this.container_onmouseleave.bind(this);
         this.submit_search = this.submit_search.bind(this);
 
-        this.container = container;
         this.input_element = this.container.querySelector(".search-tags");
 
-        this.dropdown_widget = new tag_search_dropdown_widget(container);
-        this.edit_widget = new tag_search_edit_widget(container);
+        this.dropdown_widget = new tag_search_dropdown_widget({
+            container: this.container,
+            input_element: this.container.querySelector(".search-tags"),
+        });
+        this.edit_widget = new tag_search_edit_widget({
+            container: this.container,
+            input_element: this.container.querySelector(".search-tags"),
+        });
 
         this.container.addEventListener("mouseenter", this.container_onmouseenter);
         this.container.addEventListener("mouseleave", this.container_onmouseleave);
@@ -133,17 +140,31 @@ ppixiv.tag_search_box_widget = class
     }
 }
 
-ppixiv.tag_search_dropdown_widget = class
+ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
 {
-    constructor(container)
+    constructor({input_element, ...options})
     {
+        super({...options, template: `
+            <div class=search-history>
+                <!-- This is to make sure there isn't a gap between the input and the dropdown,
+                    so we don't consider the mouse out of the box when it moves from the input
+                    to the autocomplete box. -->
+                <div class=hover-box style="top: -10px; width: 100%; z-index: -1;"></div>
+                    
+                <div class=input-dropdown>
+                    <div class=input-dropdown-list>
+                        <!-- template-tag-dropdown-entry instances will be added here. -->
+                    </div>
+                </div>
+            </div>
+        `});
+
         this.dropdown_onclick = this.dropdown_onclick.bind(this);
         this.input_onkeydown = this.input_onkeydown.bind(this);
         this.input_oninput = this.input_oninput.bind(this);
         this.populate_dropdown = this.populate_dropdown.bind(this);
 
-        this.container = container;
-        this.input_element = this.container.querySelector(".search-tags");
+        this.input_element = input_element;
 
         this.input_element.addEventListener("keydown", this.input_onkeydown);
         this.input_element.addEventListener("input", this.input_oninput);
@@ -151,15 +172,12 @@ ppixiv.tag_search_dropdown_widget = class
         // Refresh the dropdown when the tag search history changes.
         window.addEventListener("recent-tag-searches-changed", this.populate_dropdown);
 
-        // Add the dropdown widget.
-        this.tag_dropdown = helpers.create_from_template(".template-tag-dropdown");
-        this.tag_dropdown.addEventListener("click", this.dropdown_onclick);
-        this.container.appendChild(this.tag_dropdown);
+        this.container.addEventListener("click", this.dropdown_onclick);
 
         this.current_autocomplete_results = [];
 
         // input-dropdown is resizable.  Save the size when the user drags it.
-        this.input_dropdown = this.tag_dropdown.querySelector(".input-dropdown");
+        this.input_dropdown = this.container.querySelector(".input-dropdown");
         let observer = new MutationObserver((mutations) => {
             // resize sets the width.  Use this instead of offsetWidth, since offsetWidth sometimes reads
             // as 0 here.
@@ -171,11 +189,11 @@ ppixiv.tag_search_dropdown_widget = class
         this.input_dropdown.style.width = settings.get("tag-dropdown-width", "400px");
 
         this.shown = false;
-        this.tag_dropdown.hidden = true;
+        this.container.hidden = true;
 
         // Sometimes the popup closes when searches are clicked and sometimes they're not.  Make sure
         // we always close on navigation.
-        this.tag_dropdown.addEventListener("click", (e) => {
+        this.container.addEventListener("click", (e) => {
             if(e.defaultPrevented)
                 return;
             let a = e.target.closest("A");
@@ -209,7 +227,7 @@ ppixiv.tag_search_dropdown_widget = class
     input_onkeydown(e)
     {
         // Only handle inputs when we're open.
-        if(this.tag_dropdown.hidden)
+        if(this.container.hidden)
             return;
 
         switch(e.keyCode)
@@ -226,7 +244,7 @@ ppixiv.tag_search_dropdown_widget = class
 
     input_oninput(e)
     {
-        if(this.tag_dropdown.hidden)
+        if(this.container.hidden)
             return;
         
         // Clear the selection on input.
@@ -247,7 +265,7 @@ ppixiv.tag_search_dropdown_widget = class
         if(!await this.populate_dropdown())
             return;
 
-        this.tag_dropdown.hidden = false;
+            this.container.hidden = false;
     }
 
     hide()
@@ -259,7 +277,7 @@ ppixiv.tag_search_dropdown_widget = class
         // If populate_dropdown is still running, cancel it.
         this.cancel_populate_dropdown();
 
-        this.tag_dropdown.hidden = true;
+        this.container.hidden = true;
 
         // Make sure the input isn't focused.
         this.input_element.blur();
@@ -391,7 +409,7 @@ ppixiv.tag_search_dropdown_widget = class
                 this.abort_autocomplete.abort();
 
             // Clear any old selection.
-            var all_entries = this.tag_dropdown.querySelectorAll(".input-dropdown-list .entry");
+            var all_entries = this.container.querySelectorAll(".input-dropdown-list .entry");
             if(this.selected_idx != null)
                 all_entries[this.selected_idx].classList.remove("selected");
 
@@ -411,7 +429,7 @@ ppixiv.tag_search_dropdown_widget = class
     // Select the next or previous entry in the dropdown.
     move(down)
     {
-        var all_entries = this.tag_dropdown.querySelectorAll(".input-dropdown-list .entry");
+        var all_entries = this.container.querySelectorAll(".input-dropdown-list .entry");
 
         // Stop if there's nothing in the list.
         var total_entries = all_entries.length;
@@ -467,7 +485,7 @@ ppixiv.tag_search_dropdown_widget = class
             return false;
         }
         
-        var list = this.tag_dropdown.querySelector(".input-dropdown-list");
+        var list = this.container.querySelector(".input-dropdown-list");
         helpers.remove_elements(list);
         this.selected_idx = null;
 
@@ -498,29 +516,35 @@ ppixiv.tag_search_dropdown_widget = class
     }
 }
 
-ppixiv.tag_search_edit_widget = class
+ppixiv.tag_search_edit_widget = class extends ppixiv.widget
 {
-    constructor(container)
+    constructor({input_element, ...options})
     {
+        super({...options, template: `
+            <div class=edit-search>
+                <div class=input-dropdown>
+                    <div class=input-dropdown-list>
+                        <!-- template-edit-search-dropdown-entry instances will be added here. -->
+                    </div>
+                </div>
+            </div>
+        `});
+
         this.dropdown_onclick = this.dropdown_onclick.bind(this);
         this.populate_dropdown = this.populate_dropdown.bind(this);
 
-        this.container = container;
-        this.input_element = this.container.querySelector(".search-tags");
+        this.input_element = input_element;
 
         // Refresh the dropdown when the tag search history changes.
         window.addEventListener("recent-tag-searches-changed", this.populate_dropdown);
 
-        // Add the dropdown widget.
-        this.tag_dropdown = helpers.create_from_template(".template-edit-search-dropdown");
-        this.tag_dropdown.addEventListener("click", this.dropdown_onclick);
-        this.container.appendChild(this.tag_dropdown);
+        this.container.addEventListener("click", this.dropdown_onclick);
 
         // Refresh tags if the user edits the search directly.
         this.input_element.addEventListener("input", (e) => { this.refresh_highlighted_tags(); });
 
         // input-dropdown is resizable.  Save the size when the user drags it.
-        this.input_dropdown = this.tag_dropdown.querySelector(".input-dropdown");
+        this.input_dropdown = this.container.querySelector(".input-dropdown");
         let observer = new MutationObserver((mutations) => {
             // resize sets the width.  Use this instead of offsetWidth, since offsetWidth sometimes reads
             // as 0 here.
@@ -532,7 +556,7 @@ ppixiv.tag_search_edit_widget = class
         this.input_dropdown.style.width = settings.get("search-edit-dropdown-width", "400px");
 
         this.shown = false;
-        this.tag_dropdown.hidden = true;
+        this.container.hidden = true;
     }
 
     dropdown_onclick(e)
@@ -564,7 +588,7 @@ ppixiv.tag_search_edit_widget = class
         if(!await this.populate_dropdown())
             return;
 
-        this.tag_dropdown.hidden = false;
+            this.container.hidden = false;
     }
 
     hide()
@@ -576,7 +600,7 @@ ppixiv.tag_search_edit_widget = class
         // If populate_dropdown is still running, cancel it.
         this.cancel_populate_dropdown();
 
-        this.tag_dropdown.hidden = true;
+        this.container.hidden = true;
 
         // Make sure the input isn't focused.
         this.input_element.blur();
@@ -585,7 +609,14 @@ ppixiv.tag_search_edit_widget = class
     // tag_search is a search, like "tag -tag2".  translated_tags is a dictionary of known translations.
     create_entry(tag_search, translated_tags)
     {
-        var entry = helpers.create_from_template(".template-edit-search-dropdown-entry");
+        if(!this.edit_search_dropdown_entry_template)
+            this.edit_search_dropdown_entry_template = this.create_template(`
+                <div class=entry>
+                    <a class=search></a>
+                </div>
+            `);
+            
+        var entry = helpers.create_from_template(this.edit_search_dropdown_entry_template);
         entry.dataset.tag = tag_search;
 
         let translated_tag = translated_tags[tag_search];
@@ -672,7 +703,7 @@ ppixiv.tag_search_edit_widget = class
             return false;
         }
         
-        var list = this.tag_dropdown.querySelector(".input-dropdown-list");
+        var list = this.container.querySelector(".input-dropdown-list");
         helpers.remove_elements(list);
 
         for(var tag of all_tags)
@@ -698,7 +729,7 @@ ppixiv.tag_search_edit_widget = class
     {
         let tags = helpers.split_search_tags(this.input_element.value);
         
-        var list = this.tag_dropdown.querySelector(".input-dropdown-list");
+        var list = this.container.querySelector(".input-dropdown-list");
         for(let tag_entry of list.querySelectorAll("[data-tag]"))
         {
             let tag = tag_entry.dataset.tag;

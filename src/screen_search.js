@@ -17,7 +17,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         this.thumbnail_onclick = this.thumbnail_onclick.bind(this);
         this.submit_user_search = this.submit_user_search.bind(this);
 
-        this.set_active(false, { });
+        //this.set_active(false, { });
         this.thumbnail_templates = {};
 
         window.addEventListener("thumbnailsLoaded", this.thumbs_loaded);
@@ -65,11 +65,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         this.container.querySelector(".search-tags-box .related-tag-list").addEventListener("scroll", function(e) { e.stopPropagation(); }, true);
 
         // Set up hover popups.
-        dropdown_menu_opener.create_handlers(this.container, [
-            ".navigation-menu-box", ".thumbnail-settings-menu-box", ".ages-box", ".popularity-box", ".type-box",
-            ".search-mode-box", ".size-box", ".aspect-ratio-box", ".bookmarks-box", ".time-box", ".member-tags-box",
-            ".search-tags-box",
-        ]);
+        dropdown_menu_opener.create_handlers(this.container);
 
         // As an optimization, start loading image info on mousedown.  We don't navigate until click,
         // but this lets us start loading image info a bit earlier.
@@ -152,10 +148,10 @@ ppixiv.screen_search = class extends ppixiv.screen
         settings.register_change_callback("no_recent_history", this.update_from_settings);
          
         // Create the tag dropdown for the search page input.
-        new tag_search_box_widget(this.container.querySelector(".tag-search-box"));
+        new tag_search_box_widget({ container: this.container.querySelector(".tag-search-box") });
             
         // Create the tag dropdown for the search input in the menu dropdown.
-        new tag_search_box_widget(this.container.querySelector(".navigation-search-box"));
+        new tag_search_box_widget({ container: this.container.querySelector(".navigation-search-box") });
 
         // Handle submitting searches on the user search page.
         this.container.querySelector(".user-search-box .search-submit-button").addEventListener("click", this.submit_user_search);

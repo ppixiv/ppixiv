@@ -81,9 +81,102 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
     // Names for buttons, for storing in this.buttons_down.
     buttons = ["lmb", "rmb", "mmb"];
 
-    constructor(options)
+    constructor({...options})
     {
-        super(options);
+        super({...options, template: `
+            <div class=popup-context-menu>
+                <div class=button-strip>
+                    <div class=button-block>
+                        <div class="button button-return-to-search" data-level=0 data-popup="Return to search">
+                            <ppixiv-inline src="resources/thumbnails-icon.svg"></ppixiv-inline>
+                        </div>
+                    </div>
+
+                    <div class=button-block>
+                        <div class="button button-fullscreen enabled" data-level=0 data-popup="Fullscreen">
+                            <ppixiv-inline src="resources/fullscreen.svg"></ppixiv-inline>
+                        </div>
+                    </div>
+                    <div class=context-menu-image-info>
+                        <div style="flex: 1;"></div>
+                        <div class=page-count hidden></div>
+                        <div class=image-info hidden></div>
+                        <div class="post-age popup" hidden></div>
+                        <div style="flex: 1;"></div>
+                    </div>
+                </div>
+                <div class=button-strip>
+                    <div class="button-block shift-left">
+                        <div class="button button-browser-back enabled" data-level=0 data-popup="Back" style="transform: scaleX(-1);">
+                            <ppixiv-inline src="resources/exit-icon.svg"></ppixiv-inline>
+                        </div>
+                    </div>
+                    <div class=button-block>
+                        <div class="button requires-zoom button-zoom" data-popup="Toggle zoom">
+                            <ppixiv-inline src="resources/zoom-plus.svg"></ppixiv-inline>
+                            <ppixiv-inline src="resources/zoom-minus.svg"></ppixiv-inline>
+                        </div>
+                    </div>
+                    <div class=button-block>
+                        <div class="button requires-zoom button-zoom-level" data-level="cover" data-popup="Zoom to cover">
+                            <ppixiv-inline src="resources/zoom-full.svg"></ppixiv-inline>
+                        </div>
+                    </div>
+                    <div class=button-block>
+                        <div class="button requires-zoom button-zoom-level" data-level="actual" data-popup="Zoom to actual size">
+                            <ppixiv-inline src="resources/zoom-actual.svg"></ppixiv-inline>
+                        </div>
+                    </div>
+                    <!-- position: relative positions the popup menu. -->
+                    <div class=button-block style="position: relative;">
+                        <div class="button button-more enabled" data-popup="More...">
+                            <ppixiv-inline src="resources/settings-icon.svg"></ppixiv-inline>
+                        </div>
+                        <div class=popup-more-options-container></div>
+                    </div>
+                </div>
+                <div class=button-strip>
+                    <div class="button-block shift-left">
+                        <div class="avatar-widget-container"></div>
+                    </div>
+
+                    <!-- position: relative positions the popup menu. -->
+                    <div class=button-block style="position: relative;">
+                        <!-- position: relative positions the bookmark count. -->
+                        <div class="button button-bookmark public" style="position: relative;">
+                            <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
+
+                            <div class=count></div>
+                        </div>
+                    </div>
+
+                    <div class=button-block>
+                        <div class="button button-bookmark private">
+                            <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
+                        </div>
+                    </div>
+                    
+                    <div class=button-block style="position: relative;">
+                        <div class="button button-bookmark-tags" data-popup="Bookmark tags">
+                            <ppixiv-inline src="resources/tag-icon.svg"></ppixiv-inline>
+                        </div>
+                        <div class=popup-bookmark-tag-dropdown-container></div>
+                    </div>
+
+                    <div class=button-block>
+                        <div class="button button-like enabled" style="position: relative;">
+                            <ppixiv-inline src="resources/like-button.svg"></ppixiv-inline>
+
+                            <div class=count></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class=tooltip-display>
+                    <div class=tooltip-display-text></div>
+                </div>
+            </div>
+        `});
 
         this.window_onblur = this.window_onblur.bind(this);
         this.onmouseover = this.onmouseover.bind(this);
@@ -91,29 +184,22 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
         this.onkeyevent = this.onkeyevent.bind(this);
         this.hide = this.hide.bind(this);
         this.cancel_event = this.cancel_event.bind(this);
-
         this.visible = false;
 
         this.pointer_listener = new ppixiv.pointer_listener({
             element: window,
             button_mask: 0b11,
-//            signal: this.quick_view_active.signal,
             callback: this.pointerevent,
         });
         
         window.addEventListener("keydown", this.onkeyevent);
         window.addEventListener("keyup", this.onkeyevent);
 
-        // Create the menu.  The caller will attach event listeners for clicks.
-        this.menu = helpers.create_from_template(".template-context-menu");
-
-        this.container.appendChild(this.menu);
-
         // Work around glitchiness in Chrome's click behavior (if we're in Chrome).
-        new fix_chrome_clicks(this.menu);
+        new fix_chrome_clicks(this.container);
 
-        this.menu.addEventListener("mouseover", this.onmouseover, true);
-        this.menu.addEventListener("mouseout", this.onmouseout, true);
+        this.container.addEventListener("mouseover", this.onmouseover, true);
+        this.container.addEventListener("mouseout", this.onmouseout, true);
 
         // Whether the left and right mouse buttons are pressed:
         this.buttons_down = {};
@@ -267,7 +353,7 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
 
         this.pointer_listener.check();
 
-        this.displayed_menu = this.menu;
+        this.displayed_menu = this.container;
         this.visible = true;
         this.refresh_visibility();
 
@@ -284,7 +370,7 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
         // In toggle mode, close the popup if anything outside is clicked.
         if(this.toggle_mode && this.click_outside_listener == null)
         {
-            this.click_outside_listener = new click_outside_listener([this.menu], () => {
+            this.click_outside_listener = new click_outside_listener([this.container], () => {
                 this.hide();
             });
         }
@@ -349,9 +435,9 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
         var element = this.tooltip_element;
         if(element != null)
             element = element.closest("[data-popup]");
-        this.menu.querySelector(".tooltip-display").hidden = element == null;
+        this.container.querySelector(".tooltip-display").hidden = element == null;
         if(element != null)
-            this.menu.querySelector(".tooltip-display-text").textContent = element.dataset.popup;
+            this.container.querySelector(".tooltip-display-text").textContent = element.dataset.popup;
     }
 
     onmouseover(e)
@@ -362,17 +448,6 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
     onmouseout(e)
     {
         this.show_tooltip_for_element(e.relatedTarget);
-    }
-
-    // Return true if we're visible, ignoring hidden_temporarily.
-    get visible()
-    {
-        return !this.hidden;
-    }
-
-    set visible(value)
-    {
-        this.hidden = !value;
     }
 
     get hide_temporarily()
@@ -386,10 +461,23 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
         this.refresh_visibility();
     }
 
+    // True if the widget is active (eg. RMB is pressed) and we're not hidden
+    // by a zoom.
+    get actually_visible()
+    {
+        return this.visible && !this.hidden_temporarily;
+    }
+
+    visibility_changed()
+    {
+        super.visibility_changed();
+        this.refresh_visibility();
+    }
+
     refresh_visibility()
     {
-        let visible = !this.hidden_temporarily && !this.hidden;
-        helpers.set_class(this.menu, "visible", visible);
+        let visible = this.actually_visible;
+        helpers.set_class(this.container, "visible", visible);
     }
 
     hide()
@@ -402,7 +490,7 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
         this.refresh_visibility();
 
         // Let menus inside the context menu know we're closing.
-        view_hidden_listener.send_viewhidden(this.menu);
+        view_hidden_listener.send_viewhidden(this.container);
         
         this.displayed_menu = null;
         hide_mouse_cursor_on_idle.enable_all();
@@ -433,7 +521,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         return main_context_menu._singleton;
     }
 
-    constructor(options)
+    constructor({...options})
     {
         super(options);
 
@@ -462,66 +550,66 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
             attributes: true, childList: false, subtree: false
         });
 
-        this.menu.querySelector(".button-return-to-search").addEventListener("click", this.clicked_return_to_search.bind(this));
-        this.menu.querySelector(".button-fullscreen").addEventListener("click", this.clicked_fullscreen.bind(this));
-        this.menu.querySelector(".button-zoom").addEventListener("click", this.clicked_zoom_toggle.bind(this));
-        this.menu.querySelector(".button-browser-back").addEventListener("click", (e) => {
+        this.container.querySelector(".button-return-to-search").addEventListener("click", this.clicked_return_to_search.bind(this));
+        this.container.querySelector(".button-fullscreen").addEventListener("click", this.clicked_fullscreen.bind(this));
+        this.container.querySelector(".button-zoom").addEventListener("click", this.clicked_zoom_toggle.bind(this));
+        this.container.querySelector(".button-browser-back").addEventListener("click", (e) => {
             history.back();
         });
 
-        this.menu.addEventListener("click", this.handle_link_click);
+        this.container.addEventListener("click", this.handle_link_click);
 
-        for(var button of this.menu.querySelectorAll(".button-zoom-level"))
+        for(var button of this.container.querySelectorAll(".button-zoom-level"))
             button.addEventListener("click", this.clicked_zoom_level.bind(this));
 
         this.avatar_widget = new avatar_widget({
-            container: this.menu.querySelector(".avatar-widget-container"),
+            container: this.container.querySelector(".avatar-widget-container"),
             mode: "overlay",
         });
 
         let bookmark_tag_widget = new bookmark_tag_list_widget({
             parent: this,
-            container: this.menu.querySelector(".popup-bookmark-tag-dropdown-container"),
+            container: this.container.querySelector(".popup-bookmark-tag-dropdown-container"),
         });
         let more_options_widget = new more_options_dropdown_widget({
             parent: this,
-            container: this.menu.querySelector(".popup-more-options-container"),
+            container: this.container.querySelector(".popup-more-options-container"),
         });
         this.illust_widgets = [
             this.avatar_widget,
             bookmark_tag_widget,
             more_options_widget,
             new toggle_dropdown_menu_widget({
-                container: this.menu.querySelector(".button-bookmark-tags"),
+                container: this.container.querySelector(".button-bookmark-tags"),
                 parent: this,
                 bookmark_tag_widget: bookmark_tag_widget,
                 require_image: true,
             }),
             new toggle_dropdown_menu_widget({
-                container: this.menu.querySelector(".button-more"),
+                container: this.container.querySelector(".button-more"),
                 parent: this,
                 bookmark_tag_widget: more_options_widget,
             }),
             new like_button_widget({
                 parent: this,
-                container: this.menu.querySelector(".button-like"),
+                container: this.container.querySelector(".button-like"),
             }),
             new like_count_widget({
                 parent: this,
-                container: this.menu.querySelector(".button-like .count"),
+                container: this.container.querySelector(".button-like .count"),
             }),
             new context_menu_image_info_widget({
                 parent: this,
-                container: this.menu.querySelector(".context-menu-image-info"),
+                container: this.container.querySelector(".context-menu-image-info"),
             }),
             new bookmark_count_widget({
                 parent: this,
-                container: this.menu.querySelector(".button-bookmark.public .count")
+                container: this.container.querySelector(".button-bookmark.public .count")
             }),
         ];
 
         // The bookmark buttons, and clicks in the tag dropdown:
-        for(var a of this.menu.querySelectorAll(".button-bookmark"))
+        for(var a of this.container.querySelectorAll(".button-bookmark"))
         {
             let private_bookmark = a.classList.contains("private");
             this.illust_widgets.push(new bookmark_button_widget({
@@ -531,7 +619,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
                 bookmark_tag_widget, bookmark_tag_widget
             }));
         }
-        this.element_bookmark_tag_list = this.menu.querySelector(".bookmark-tag-list");
+        this.element_bookmark_tag_list = this.container.querySelector(".bookmark-tag-list");
 
         this.refresh();
     }
@@ -569,16 +657,11 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         helpers.set_page_url(url, true, "Clicked link in context menu");
     }
 
-    set visible(value)
+    visibility_changed(value)
     {
-        if(this.visible == value)
-            return;
+        super.visibility_changed(value);
 
-        super.visible = value;
-        if(this.avatar_widget != null)
-            this.avatar_widget.visible = value;
-
-        if(value)
+        if(this.visible)
             window.addEventListener("wheel", this.onwheel, {
                 capture: true,
 
@@ -589,8 +672,6 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         else
             window.removeEventListener("wheel", this.onwheel, true);
     }
-
-    get visible() { return super.visible; }
 
     // Return the illust ID active in the context menu, or null if none.
     //
@@ -1005,35 +1086,38 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
     // Update selection highlight for the context menu.
     refresh()
     {
-        var view = document.body.dataset.currentView;
-
         // Update the tooltip for the thumbnail toggle button.
         var navigate_out_label = main_controller.singleton.navigate_out_label;
         var title = navigate_out_label != null? ("Return to " + navigate_out_label):"";
-        this.menu.querySelector(".button-return-to-search").dataset.popup = title;
-        helpers.set_class(this.menu.querySelector(".button-return-to-search"), "enabled", navigate_out_label != null);
+        this.container.querySelector(".button-return-to-search").dataset.popup = title;
+        helpers.set_class(this.container.querySelector(".button-return-to-search"), "enabled", navigate_out_label != null);
         this.refresh_tooltip();
 
         // Enable the zoom buttons if we're in the image view and we have an on_click_viewer.
-        for(var element of this.menu.querySelectorAll(".button.requires-zoom"))
+        for(var element of this.container.querySelectorAll(".button.requires-zoom"))
             helpers.set_class(element, "enabled", this._is_zoom_ui_enabled);
 
-        // Let widgets know what we have.
-        let illust_id = this.effective_illust_id, page = this.effective_page, user_id = this.effective_user_id;
-        for(let widget of this.illust_widgets)
+        // If we're visible, tell widgets what we're viewing.  Don't do this if we're not visible, so
+        // they don't load data unnecessarily.  Don't set these back to null if we're hidden, so they
+        // don't blank themselves while we're still fading out.
+        if(this.visible)
         {
-            if(widget.set_illust_id)
-                widget.set_illust_id(illust_id, page);
-            if(widget.set_user_id)
-                widget.set_user_id(user_id);
+            let illust_id = this.effective_illust_id, page = this.effective_page, user_id = this.effective_user_id;
+            for(let widget of this.illust_widgets)
+            {
+                if(widget.set_illust_id)
+                    widget.set_illust_id(illust_id, page);
+                if(widget.set_user_id)
+                    widget.set_user_id(user_id);
+            }
         }
 
         if(this._is_zoom_ui_enabled)
         {
-            helpers.set_class(this.menu.querySelector(".button-zoom"), "selected", this._on_click_viewer.locked_zoom);
+            helpers.set_class(this.container.querySelector(".button-zoom"), "selected", this._on_click_viewer.locked_zoom);
 
             var zoom_level = this._on_click_viewer.zoom_level;
-            for(var button of this.menu.querySelectorAll(".button-zoom-level"))
+            for(var button of this.container.querySelectorAll(".button-zoom-level"))
                 helpers.set_class(button, "selected", this._on_click_viewer.locked_zoom && button.dataset.level == zoom_level);
         }
     }

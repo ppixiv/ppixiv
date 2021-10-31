@@ -11,16 +11,20 @@ ppixiv.screen_illust = class extends ppixiv.screen
         this.refresh_ui = this.refresh_ui.bind(this);
         this.data_source_updated = this.data_source_updated.bind(this);
 
-        this.current_illust_id = -1;
+        this.current_illust_id = null;
         this.latest_navigation_direction_down = true;
 
         this.progress_bar = main_controller.singleton.progress_bar;
 
         // Create a UI box and put it in its container.
         var ui_container = this.container.querySelector(".ui");
-        this.ui = new image_ui(ui_container, {parent: this, progress_bar: this.progress_bar});
+        this.ui = new image_ui({
+            container: ui_container,
+            parent: this,
+            progress_bar: this.progress_bar,
+        });
         
-        var ui_box = this.container.querySelector(".ui-box");
+        var ui_box = this.ui.container;
 
         var ui_visibility_changed = () => {
             // Hide the dropdown tag widget when the hover UI is hidden.
@@ -379,7 +383,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
         this.current_illust_id = null;
 
         this.wanted_illust_page = 0;
-        this.current_illust_id = -1;
+        this.current_illust_id = null;
         this.refresh_ui();
 
         // Tell the preloader that we're not displaying an image anymore.
