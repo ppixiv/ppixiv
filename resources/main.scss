@@ -272,10 +272,6 @@ textarea:focus, input:focus, a:focus {
             display: none;
         }
     }
-
-    .ui-box {
-        pointer-events: none;
-    }
 }
 
 /*
@@ -326,7 +322,14 @@ textarea:focus, input:focus, a:focus {
     }
 }
 
-.ui-box {
+.screen-manga-container .ui-container {
+    width: 600px;
+    max-width: 90%;
+    pointer-events: auto;
+}
+
+.ui-box
+{
     background-color: var(--ui-bg-color);
     color: var(--ui-fg-color);
     border: solid 2px var(--ui-border-color);
@@ -337,50 +340,60 @@ textarea:focus, input:focus, a:focus {
     .author {
         vertical-align: top;
     }
-}
-
-.screen-illust-container .ui-box {
-    margin: .5em;
-}
-
-.screen-manga-container .ui-container {
-    width: 600px;
-    max-width: 90%;
-    pointer-events: auto;
-}
-
-/* Since the UI isn't a popup on the manga page, hide the description and
- * tag list to make it smaller.  These can be viewed while viewing a page. */
-.screen-manga-container .ui-box
-{
-    & > .description,
-    & > .tag-list
+    
+    // Override the default visible-widget hiding behavior.
+    &:not(.visible-widget)
     {
-        display: none;
+        display: inherit !important;
     }
-}
 
-.screen-illust-container .ui-box {
-    transition: transform .25s, opacity .25s;
-    opacity: 0;
-    transform: translate(-50px, 0);
-    pointer-events: none;
-}
+    .screen-illust-container & {
+        transition: transform .25s, opacity .25s;
+        opacity: 0;
+        transform: translate(-50px, 0);
+        pointer-events: none;
+        margin: .5em;
+        
+        /* Show the UI on hover when hide-ui isn't set. */
+        body:not(.hide-ui) & {
+            &.visible-widget
+            {
+                opacity: 1;
+                transform: translate(0, 0);
+                pointer-events: auto;
+            }
+        }
 
-/* Debugging: */
-body.force-ui .screen-illust-container .ui > .ui-box {
-    opacity: 1;
-    transform: translate(0, 0);
-    pointer-events: inherit;
-}
+        /* Debugging: */
+        body.force-ui & {
+            opacity: 1;
+            transform: translate(0, 0);
+            pointer-events: inherit;
+        }
+    }
 
-/* Show the UI on hover when hide-ui isn't set. */
-body:not(.hide-ui) .screen-illust-container {
-    .ui-box.hovering-over-box,
-    .ui-box.hovering-over-sphere {
-        opacity: 1;
-        transform: translate(0, 0);
-        pointer-events: auto;
+    /* Since the UI isn't a popup on the manga page, hide the description and
+    * tag list to make it smaller.  These can be viewed while viewing a page. */
+    .screen-manga-container &
+    {
+        & > .description,
+        & > .tag-list
+        {
+            display: none;
+        }
+    }
+
+    .button > svg {
+        display: block;
+    }
+
+    .button.button-bookmark .count,
+    .button.button-like .count
+    {
+        top: calc(100% - 11px);
+        left: calc(-50px + 50%);
+        width: 100px;
+        pointer-events: none;
     }
 }
 
@@ -1519,16 +1532,12 @@ input.search-tags {
 .member-tags-box .post-tag-list,
 .search-tags-box .related-tag-list {
     max-height: 300px;
-    display: block;
     overflow-x: hidden;
     overflow-y: auto;
     white-space: nowrap;
 }
-.member-tags-box .post-tag-list .following-tag,
-.search-tags-box .related-tag-list .tag {
-//    display: block;
-}
 
+// Adjusts the popup for the tag lists so they don't cover the tag.
 .member-tags-box .post-tag-list .following-tag:hover:after,
 .search-tags-box .related-tag-list .tag:hover:after {
     left: auto;
@@ -2042,21 +2051,6 @@ input.search-tags {
     left: 0;
     width: 100%;
     text-align: center;
-}
-
-.ui-box {
-    .button > svg {
-        display: block;
-    }
-
-    .button.button-bookmark .count,
-    .button.button-like .count
-    {
-        top: calc(100% - 11px);
-        left: calc(-50px + 50%);
-        width: 100px;
-        pointer-events: none;
-    }
 }
 
 /* Nudge the public heart icon up a bit to make room for the bookmark count. 

@@ -1580,7 +1580,7 @@ ppixiv.data_sources.artist = class extends data_source
 
             // Show the post count in the popup.
             a.classList.add("popup");
-            a.dataset.popup = tag_info.cnt;
+            a.dataset.popup = tag_info.cnt != null? tag_info.cnt:"";
 
             let url = new URL(this.url);
             url.hash = "#ppixiv";
