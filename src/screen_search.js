@@ -277,8 +277,8 @@ ppixiv.screen_search = class extends ppixiv.screen
     // to update the page URL.
     first_visible_thumbs_changed()
     {
-        // Find the first thumb that's fully onscreen.
-        let first_thumb = this.container.querySelector(`.thumbnails > [data-id][data-fully-on-screen]`);
+        // Find the first thumb that's fully onscreen.  Ignore elements not specific to a page (load previous results).
+        let first_thumb = this.container.querySelector(`.thumbnails > [data-id][data-fully-on-screen][data-page]`);
         if(!first_thumb)
             return;
 
@@ -763,12 +763,8 @@ ppixiv.screen_search = class extends ppixiv.screen
 
             // If this data source supports a start page and we started after page 1, add the "load more"
             // button at the beginning.
-            //
-            // The page number for this button is the same as the thumbs that follow it, not the
-            // page it'll load if clicked, so scrolling to it doesn't make us think we're scrolled
-            // to that page.
             if(this.data_source.initial_page > 1)
-                images_to_add.splice(0, 0, { id: "special:previous-page", page: this.data_source.initial_page });
+                images_to_add.splice(0, 0, { id: "special:previous-page", page: null });
         }
 
         // Add thumbs.
@@ -1377,7 +1373,8 @@ ppixiv.screen_search = class extends ppixiv.screen
         if(illust_id != null)
             entry.dataset.id = illust_id;
 
-        entry.dataset.page = page;
+        if(page != null)
+            entry.dataset.page = page;
         for(let observer of this.intersection_observers)
             observer.observe(entry);
         return entry;
