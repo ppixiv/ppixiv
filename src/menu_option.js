@@ -406,12 +406,13 @@ class menu_option_slider extends ppixiv.menu_option
 // A widget to control the thumbnail size slider.
 ppixiv.thumbnail_size_slider_widget = class extends menu_option_slider
 {
-    constructor(options)
+    constructor({setting, ...options})
     {
         super(options);
 
         this.onwheel = this.onwheel.bind(this);
         this.onkeydown = this.onkeydown.bind(this);
+        this.setting = setting;
 
         var view = this.container.closest(".screen");
         view.addEventListener("wheel", this.onwheel, { passive: false });
@@ -457,7 +458,7 @@ ppixiv.thumbnail_size_slider_widget = class extends menu_option_slider
 
     get value()
     {
-        var value = super.value;
+        let value = settings.get(this.setting);
         if(typeof(value) != "number" || isNaN(value))
             value = 4;
         return value;
@@ -465,7 +466,7 @@ ppixiv.thumbnail_size_slider_widget = class extends menu_option_slider
     
     set value(value)
     {
-        super.value = value;
+        settings.set(this.setting, value);
     }
 
     static thumbnail_size_for_value(value)

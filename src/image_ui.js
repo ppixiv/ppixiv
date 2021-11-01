@@ -116,7 +116,7 @@ ppixiv.image_ui = class extends ppixiv.widget
             <div class="grey-icon icon-button popup-menu-box-button">
                 <ppixiv-inline src="resources/settings-icon.svg"></ppixiv-inline>
             </div>
-            <div hidden class=popup-menu-box></div>
+            <div hidden class="popup-menu-box vertical-list"></div>
         </div>
     </div>
     <div class=post-info>
