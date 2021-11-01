@@ -754,10 +754,7 @@ ppixiv.tag_widget = class extends ppixiv.widget
 {
     constructor({format_link, ...options})
     {
-        super({...options, template: `
-            <div>
-            </div>
-        `});
+        super({...options});
 
         this.format_link = format_link;
     };
