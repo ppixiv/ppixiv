@@ -2194,9 +2194,9 @@ ppixiv.key_storage = class
         });
     }
 
-    get_store(db)
+    get_store(db, mode="readwrite")
     {
-        let transaction = db.transaction(this.store_name, "readwrite");
+        let transaction = db.transaction(this.store_name, mode);
         return transaction.objectStore(this.store_name);
     }
 
@@ -2236,7 +2236,7 @@ ppixiv.key_storage = class
     async multi_get(keys)
     {
         return await this.db_op(async (db) => {
-            let store = this.get_store(db);
+            let store = this.get_store(db, "readonly");
 
             let promises = [];
             for(let key of keys)

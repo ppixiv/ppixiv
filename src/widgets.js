@@ -783,10 +783,19 @@ ppixiv.tag_widget = class extends ppixiv.widget
         if(this.tags == null)
             return;
 
+        // Short circuit if the tag list isn't changing, since IndexedDB is really slow.
+        if(this.last_tags != null && JSON.stringify(this.last_tags) == JSON.stringify(this.tags))
+            return;
+        this.last_tags = this.tags;
+
         // Look up tag translations.
         let tag_list = this.tags;
         let translated_tags = await tag_translations.get().get_translations(tag_list, "en");
         
+        // Stop if the tag list changed while we were reading tag translations.
+        if(tag_list != this.tags)
+            return;
+
         // Remove any old tag list and create a new one.
         helpers.remove_elements(this.container);
 
