@@ -1000,7 +1000,7 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
         try {
             this.visible = false;
         } finally {
-            this.skip_save = true;
+            this.skip_save = false;
         }
     }
 
