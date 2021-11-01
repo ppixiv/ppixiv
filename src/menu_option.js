@@ -243,11 +243,6 @@ ppixiv.menu_option_button = class extends ppixiv.menu_option
         this.container.addEventListener("click", this.onclick);
     }
 
-    refresh()
-    {
-        super.refresh();
-    }
-
     set enabled(value)
     {
         helpers.set_class(this.container, "disabled", !value);
@@ -265,19 +260,19 @@ ppixiv.menu_option_button = class extends ppixiv.menu_option
         // closing.
         if(this.consume_clicks)
             e.stopPropagation();
-        e.preventDefault();
 
         if(!this._enabled)
+        {
+            // Always preventDefault if we're disabled.
+            e.preventDefault();
             return;
+        }
 
-        if(this.onclick_handler && this.onclick_handler(e))
-            return;
-
-        this.clicked(e);
-    }
-
-    clicked(e)
-    {
+        if(this.onclick_handler)
+        {
+            e.preventDefault();
+            this.onclick_handler(e);
+        }
     }
 }
 
@@ -287,6 +282,12 @@ ppixiv.menu_option_toggle = class extends ppixiv.menu_option_button
     {
         super({...options,
             icon: "resources/checkbox.svg",
+            onclick: (e) => {
+                if(this.options && this.options.check && !this.options.check())
+                    return;
+        
+                this.value = !this.value;
+            },
         });
 
         this.setting = setting;
@@ -304,14 +305,6 @@ ppixiv.menu_option_toggle = class extends ppixiv.menu_option_button
 
         // element.hidden doesn't work on SVG:
         this.container.querySelector(".checkbox").style.display = value? "":"none";
-    }
-
-    clicked(e)
-    {
-        if(this.options && this.options.check && !this.options.check())
-            return;
-
-        this.value = !this.value;
     }
 
     get value()

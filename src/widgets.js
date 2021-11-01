@@ -1178,11 +1178,23 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
 </div>
 `});
 
+        this.menu_options = [];
+    }
+
+    create_menu_options()
+    {
         let option_box = this.container.querySelector(".options");
+        let shared_options = {
+            container: option_box,
+            parent: this,
+        };
+
+        for(let item of this.menu_options)
+            item.container.remove();
+
         this.menu_options = [
             new menu_option_button({
-                container: option_box,
-                parent: this,
+                ...shared_options,
                 label: "Similar illustrations",
                 icon: "resources/related-illusts.svg",
                 requires_image: true,
@@ -1195,8 +1207,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
             }),
 
             new menu_option_button({
-                container: option_box,
-                parent: this,
+                ...shared_options,
                 label: "Similar artists",
                 icon: "resources/related-illusts.svg",
                 requires_user: true,
@@ -1209,8 +1220,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
             }),
 
             new menu_option_button({
-                container: option_box,
-                parent: this,
+                ...shared_options,
                 label: "Similar bookmarks",
                 icon: "resources/related-illusts.svg",
                 requires_image: true,
@@ -1223,8 +1233,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
             }),
 
             new menu_option_button({
-                container: option_box,
-                parent: this,
+                ...shared_options,
                 label: "Send to tab",
                 classes: ["button-send-image"],
                 icon: "resources/send-to-tab.svg",
@@ -1237,8 +1246,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
 
             // XXX: hook into progress bar
             new menu_option_button({
-                container: option_box,
-                parent: this,
+                ...shared_options,
                 label: "Download image",
                 icon: "resources/download-icon.svg",
                 hide_if_unavailable: true,
@@ -1251,8 +1259,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
             }),
 
             new menu_option_button({
-                container: option_box,
-                parent: this,
+                ...shared_options,
                 label: "Download manga ZIP",
                 icon: "resources/download-manga-icon.svg",
                 hide_if_unavailable: true,
@@ -1265,8 +1272,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
             }),
 
             new menu_option_button({
-                container: option_box,
-                parent: this,
+                ...shared_options,
                 label: "Download video MKV",
                 icon: "resources/download-icon.svg",
                 hide_if_unavailable: true,
@@ -1276,6 +1282,13 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                     actions.download_illust(this.illust_id, null, "MKV");
                     this.parent.hide();
                 }
+            }),
+
+            new menu_option_button({
+                ...shared_options,
+                label: "Return to Pixiv",
+                icon: "resources/pixiv-icon.svg",
+                url: "#no-ppixiv",
             }),
         ];
 
@@ -1291,8 +1304,19 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
         this.refresh();
     }
 
+    visibility_changed()
+    {
+        if(this.visible)
+            this.refresh();
+    }
+
     async refresh_internal({ illust_id, thumbnail_data })
     {
+        if(!this.visible)
+            return;
+
+        this.create_menu_options();
+
         this.thumbnail_data = thumbnail_data;
 
         for(let option of this.menu_options)

@@ -862,6 +862,14 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
         padding: 10px;
         pointer-events: auto;
 
+        .disable-ui-button {
+            margin-right: 2px;
+
+            > svg {
+                width: 22px;
+            }
+        }
+        
         .displaying {
             padding-bottom: 4px;
         }
