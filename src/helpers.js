@@ -170,7 +170,7 @@ ppixiv.helpers = {
             let resource = resources[src];
             if(resource == null)
             {
-                console.error("Unknown resource \"" + src + "\" in", element);
+                console.error(`Unknown resource ${src}`);
                 return null;
             }
 
