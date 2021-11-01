@@ -70,10 +70,28 @@ class scroll_handler
     }
 };
 
-ppixiv.manga_thumbnail_widget = class
+ppixiv.manga_thumbnail_widget = class extends ppixiv.widget
 {
-    constructor(container)
+    constructor({...options})
     {
+        super({options, template: `
+            <div class=strip>
+                <div class=manga-thumbnail-arrow data-direction=left>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="100" viewBox="0 0 20 100">
+                        <path d="M 0 50 L 20 0 L 20 100 L 0 50" />
+                    </svg>
+                </div>
+
+                <div class=manga-thumbnails></div>
+
+                <div class=manga-thumbnail-arrow data-direction=right>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="100" viewBox="0 0 20 100">
+                        <path d="M 20 50 L 0 0 L 0 100 L 20 50" />
+                    </svg>
+                </div>
+            </div>
+        `});
+
         this.onclick = this.onclick.bind(this);
         this.onmouseenter = this.onmouseenter.bind(this);
         this.onmouseleave = this.onmouseleave.bind(this);

@@ -143,7 +143,7 @@ ppixiv.image_ui = class extends ppixiv.widget
         });
 
         this.tag_widget = new tag_widget({
-            parent: this.container.querySelector(".tag-list"),
+            container: this.container.querySelector(".tag-list"),
         });
 
         // Set up hover popups.

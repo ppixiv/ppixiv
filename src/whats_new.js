@@ -154,7 +154,7 @@ This can be enabled in preferences, and may become the default in a future relea
     },
 ];
 
-ppixiv.whats_new = class
+ppixiv.whats_new = class extends ppixiv.dialog_widget
 {
     // Return the newest revision that exists in history.  This is always the first
     // history entry.
@@ -180,9 +180,21 @@ ppixiv.whats_new = class
         throw Error("Couldn't find anything interesting");
     }
 
-    constructor(container)
+    constructor({...options})
     {
-        this.container = container;
+        super({...options, visible: true, template: `
+            <div class="whats-new-box dialog">
+                <div class=content>
+                    <div class=scroll>
+                        <div class=header>Updates</div>
+                        <div class=items></div>
+                    </div>
+                    <div class=close-button>
+                        <ppixiv-inline src="resources/close-button.svg"></ppixiv-inline>
+                    </div>
+                </div>
+            </div>
+        `});
 
         this.refresh();
 
@@ -193,15 +205,13 @@ ppixiv.whats_new = class
             if(e.target != this.container)
                 return;
 
-            this.hide();
+            this.visible = false;
         });
 
         // Hide on any state change.
         window.addEventListener("popstate", (e) => {
-            this.hide();
-        });                
-
-        this.show();
+            this.visible = false;
+        });
     }
 
     refresh()
@@ -221,14 +231,15 @@ ppixiv.whats_new = class
         }
     }
 
-    show()
+    visibility_changed()
     {
-        this.container.hidden = false;
-    }
+        super.visibility_changed();
 
-    hide()
-    {
-        this.container.hidden = true;
+        if(!this.visible)
+        {
+            // Remove the widget when it's hidden.
+            this.container.remove();
+        }
     }
 };
 

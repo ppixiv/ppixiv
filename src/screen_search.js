@@ -47,15 +47,15 @@ ppixiv.screen_search = class extends ppixiv.screen
         
         // Create the tag widget used by the search data source.
         this.tag_widget = new tag_widget({
-            parent: this.container.querySelector(".related-tag-list"),
-            format_link: function(tag)
+            container: this.container.querySelector(".related-tag-list"),
+            format_link: (tag) =>
             {
                 // The recommended tag links are already on the search page, and retain other
                 // search settings.
                 let url = page_manager.singleton().get_url_for_tag_search(tag, ppixiv.location);
                 url.searchParams.delete("p");
                 return url.toString();
-            }.bind(this),
+            },
         });
 
         // Don't scroll thumbnails when scrolling tag dropdowns.
@@ -341,7 +341,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         settings.set("whats-new-last-viewed-version", whats_new.latest_history_revision());
         this.refresh_whats_new_button();
 
-        new whats_new(document.body.querySelector(".whats-new-box"));
+        new whats_new({ container: document.body });
     }
 
     /* This scrolls the thumbnail when you hover over it.  It's sort of neat, but it's pretty

@@ -23,6 +23,7 @@ ppixiv.widget = class
         }
 
         container.classList.add("widget");
+        container.widget = this;
 
         this.parent = parent;
         this.container = container;
@@ -406,9 +407,6 @@ ppixiv.dropdown_menu_opener = class
         let top_ui_box = this.box.closest(".top-ui-box");
         if(top_ui_box)
             helpers.set_class(top_ui_box, "force-open", value);
-
-        // Let the widget know its visibility has changed.
-        this.box.dispatchEvent(new Event(value? "popupshown":"popuphidden"));
     }
 
     align_to_button()
@@ -752,28 +750,22 @@ ppixiv.avatar_widget = class extends widget
 };
 
 // A list of tags, with translations in popups where available.
-ppixiv.tag_widget = class
+ppixiv.tag_widget = class extends ppixiv.widget
 {
-    // options:
-    // parent: node to add ourself to (required)
-    // format_link: a function to format a tag to a URL
-    constructor(options)
+    constructor({format_link, ...options})
     {
-        this.options = options;
-        this.container = this.options.parent;
-        this.tag_list_container = this.options.parent.appendChild(document.createElement("div"));
-        this.tag_list_container.classList.add("tag-list-widget");
+        super({...options, template: `
+            <div>
+            </div>
+        `});
 
-        // Refresh when we're opened, in case translations have been turned on or off.
-        this.container.addEventListener("popupshown", (e) => {
-            this.refresh();
-        });
+        this.format_link = format_link;
     };
 
     format_tag_link(tag)
     {
-        if(this.options.format_link)
-            return this.options.format_link(tag);
+        if(this.format_link)
+            return this.format_link(tag);
 
         let search_url = new URL("/tags/" + encodeURIComponent(tag) + "/artworks", ppixiv.location.href);
         search_url.hash = "#ppixiv";
@@ -796,11 +788,11 @@ ppixiv.tag_widget = class
         let translated_tags = await tag_translations.get().get_translations(tag_list, "en");
         
         // Remove any old tag list and create a new one.
-        helpers.remove_elements(this.tag_list_container);
+        helpers.remove_elements(this.container);
 
         for(let tag of tag_list)
         {
-            let a = this.tag_list_container.appendChild(document.createElement("a"));
+            let a = this.container.appendChild(document.createElement("a"));
             a.classList.add("tag");
             a.classList.add("box-link");
 

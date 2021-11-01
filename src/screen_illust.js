@@ -57,7 +57,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
 
         new hide_mouse_cursor_on_idle(this.container.querySelector(".mouse-hidden-box"));
 
-        // this.manga_thumbnails = new manga_thumbnail_widget(this.container.querySelector(".manga-thumbnail-container"));
+        // this.manga_thumbnails = new manga_thumbnail_widget({ container: this.container });
 
         this.container.addEventListener("wheel", this.onwheel, { passive: false });
 
