@@ -3,6 +3,19 @@
 // This should be inside whats_new, but Firefox is in the dark ages and doesn't support class fields.
 let _update_history = [
     {
+        version: 112,
+        text: `
+Added Send to Tab to the context menu, which allows quickly sending an image to
+another tab.
+<p>
+Added a More Options dropdown to the popup menu.  This includes some things that
+were previously only available from the hover UI.  Send to Tab is also in here.
+<p>
+Disabled the "Similar Illustrations" lightbulb button on thumbnails.  It can now be
+accessed from the popup menu, along with a bunch of other ways to get image recommendations.
+        `
+    },
+    {
         version: 110,
         text: `
 Added Quick View.  This views images immediately when the mouse is pressed,
