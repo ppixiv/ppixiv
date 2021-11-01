@@ -119,6 +119,7 @@ ppixiv.menu_option = class extends widget
             invert_display: true,
         });
 
+        if(false)
         new menu_option_row({
             ...global_options,
             items: [
