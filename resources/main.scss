@@ -621,6 +621,7 @@ body.light .whats-new-button.updates > svg {
 
         .folder {
             display: block;
+            width: 100%;
         }
 
         .follow-container.followed & .not-following { display: none; }
@@ -738,7 +739,7 @@ body.hide-r18 .r18 { display: none; }
 body.hide-r18g .r18g { display: none; }
 
 .popup-menu-box {
-    position: fixed;
+    position: absolute;
     left: 0;
     top: 100%; // bottom of the positioning menu item
     min-width: 10em;
