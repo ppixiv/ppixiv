@@ -12,12 +12,12 @@ ppixiv.widget = class
     {
         console.assert(container != null);
         this.options = options;
+        this.templates = {};
 
         // template is the HTML template for this element.
         if(template)
         {
-            template = this.create_template(template);
-            let contents = helpers.create_from_template(template);
+            let contents = this.create_template({html: template});
             container.appendChild(contents);
             container = contents;
         }
@@ -48,14 +48,21 @@ ppixiv.widget = class
         });
     }
 
-    // Create a <template> element from HTML.  The result can be instantiated
-    // with helpers.create_from_template().
-    create_template(template_html)
+    // Create an element from template HTML.  If name isn't null, the HTML will be cached
+    // using name as a key.
+    create_template({name=null, html})
     {
-        let template = document.createElement("template");
-        template.innerHTML = template_html;
-        helpers.replace_inlines(template.content);
-        return template;
+        let template = name? this.templates[name]:null;
+        if(!template)
+        {
+            template = document.createElement("template");
+            template.innerHTML = html;
+            helpers.replace_inlines(template.content);
+            
+            this.templates[name] = template;
+        }
+
+        return helpers.create_from_template(template);
     }
 
     async refresh()
@@ -938,12 +945,6 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
             </div>
         `});
 
-        this.tag_entry_template = this.create_template(`
-            <div class=popup-bookmark-tag-entry>
-                <span class=tag-name></span>
-            </div>
-        `);
-
         this.displaying_illust_id = null;
 
         this.container.addEventListener("click", this.clicked_bookmark_tag.bind(this), true);
@@ -1097,7 +1098,12 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
 
         for(let tag of shown_tags)
         {
-            let entry = helpers.create_from_template(this.tag_entry_template);
+            let entry = this.create_template({name: "tag-entry", html: `
+                <div class=popup-bookmark-tag-entry>
+                    <span class=tag-name></span>
+                </div>
+            `});
+
             entry.dataset.tag = tag;
             bookmark_tags.appendChild(entry);
             entry.querySelector(".tag-name").innerText = tag;

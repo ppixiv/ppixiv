@@ -234,10 +234,14 @@ ppixiv.whats_new = class extends ppixiv.dialog_widget
         // Not really needed, since our contents never change
         helpers.remove_elements(items_box);
 
-        let item_template = document.body.querySelector(".template-version-history-item");
         for(let update of _update_history)
         {
-            let entry = helpers.create_from_template(item_template);
+            let entry = this.create_template({name: "item", html: `
+                <div>
+                    <div class=rev></div>
+                    <div class=text></span>
+                </div>
+            `});
             entry.querySelector(".rev").innerText = "r" + update.version;
             entry.querySelector(".text").innerHTML = update.text;
             items_box.appendChild(entry);

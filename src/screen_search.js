@@ -17,9 +17,6 @@ ppixiv.screen_search = class extends ppixiv.screen
         this.thumbnail_onclick = this.thumbnail_onclick.bind(this);
         this.submit_user_search = this.submit_user_search.bind(this);
 
-        //this.set_active(false, { });
-        this.thumbnail_templates = {};
-
         window.addEventListener("thumbnailsLoaded", this.thumbs_loaded);
         window.addEventListener("focus", this.visible_thumbs_changed);
 
@@ -635,9 +632,49 @@ ppixiv.screen_search = class extends ppixiv.screen
 
             // Guess the link type if one wasn't supplied.
             if(type == null)
-            type = this.find_link_image_type(url);
+                type = this.find_link_image_type(url);
 
-            let entry = helpers.create_from_template(".template-extra-profile-link-button");
+            let entry = this.create_template({name: "extra-link", html: `
+                <div class=extra-profile-link-button>
+                    <a href=# class="extra-link grey-icon bulb-button popup popup-bottom" rel="noreferer noopener">
+                        <span class="default-icon">
+                            <ppixiv-inline src="resources/link-icon.svg"></ppixiv-inline>
+                        </span>
+                        <span class="shopping-cart" hidden>
+                            <ppixiv-inline src="resources/shopping-cart.svg"></ppixiv-inline>
+                        </span>
+                        <span class="twitter-icon" hidden>
+                            <ppixiv-inline src="resources/icon-twitter.svg"></ppixiv-inline>
+                        </span>
+                        <span class="webpage-link" hidden>
+                            <ppixiv-inline src="resources/icon-webpage.svg"></ppixiv-inline>
+                        </span>
+                        <span class="webpage-link" hidden>
+                            <ppixiv-inline src="resources/icon-webpage.svg"></ppixiv-inline>
+                        </span>
+                        <span class="pawoo-icon" hidden>
+                            <ppixiv-inline src="resources/icon-pawoo.svg"></ppixiv-inline>
+                        </span>
+                        <span class="circlems-icon" hidden>
+                            <ppixiv-inline src="resources/icon-circlems.svg"></ppixiv-inline>
+                        </span>
+                        <span class="contact-link" hidden>
+                            <ppixiv-inline src="resources/send-message.svg"></ppixiv-inline>
+                        </span>
+                        <span class="following-link" hidden>
+                            <ppixiv-inline src="resources/followed-users-eye.svg"></ppixiv-inline>
+                        </span>
+                        <span class="bookmarks-link" hidden>
+                            <ppixiv-inline src="resources/icon-bookmarks.svg"></ppixiv-inline>
+                        </span>
+                        <span class="similar-artists" hidden>
+                            <ppixiv-inline src="resources/related-illusts.svg"></ppixiv-inline>
+                        </span>
+                       
+                    </a>
+                </div>
+            `});
+            
             let a = entry.querySelector(".extra-link");
             a.href = url;
 
@@ -1386,16 +1423,71 @@ ppixiv.screen_search = class extends ppixiv.screen
     // is on (whether it's a placeholder or not).
     create_thumb(illust_id, page)
     {
-        let template_type = ".template-thumbnail";
+        let entry = null;
         if(illust_id == "special:previous-page")
-            template_type = ".template-load-previous-results";
+        {
+            entry = this.create_template({ name: "load-previous-results", html: `
+                <div class="thumbnail-load-previous">
+                    <div class=load-previous-buttons>
+                        <a class="load-previous-button load-first-page-link" href=#>
+                            Return to start
+                        </a>
+                        <a class="load-previous-button load-previous-page-link" href=#>
+                            Load previous results
+                        </a>
+                    </div>
+                </div>
+            `});
+        }
+        else
+        {
+            entry = this.create_template({ name: "template-thumbnail", html: `
+                <div class=thumbnail-box>
+                    <div class=thumbnail-inner>
+                        <a class=thumbnail-link href=#>
+                            <img class=thumb>
+                        </a>
 
-        // Cache a reference to the thumbnail template.  We can do this a lot, and this
-        // query takes a lot of page setup time if we run it for each thumb.
-        if(this.thumbnail_templates[template_type] == null)
-            this.thumbnail_templates[template_type] = helpers.get_template(template_type);
-            
-        let entry = helpers.create_from_template(this.thumbnail_templates[template_type]);
+                        <div class=last-viewed-image-marker>
+                            <ppixiv-inline class=last-viewed-image-marker src="resources/last-viewed-image-marker.svg"></ppixiv-inline>
+                        </div>
+
+                        <div class="thumbnail-label" hidden><span class=label></span></div>
+                        <div class=thumbnail-bottom-left>
+                            <div class="heart button-bookmark public bookmarked" hidden>
+                                <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
+                            </div>
+                            <div class="heart button-bookmark private bookmarked" hidden>
+                                <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
+                            </div>
+
+                            <!-- I don't like having no popup here, but it's too intrusive over the thumbnail.
+                                Hopefully the popup over the equivalent button in the image UI is enough to tell
+                                people what this does. -->
+                            <a hidden href=# class="similar-illusts-button bulb-button grey-icon">
+                                <ppixiv-inline src="resources/related-illusts.svg"></ppixiv-inline>
+                            </a>
+                        </div>
+                        
+                        <div class=ugoira-icon hidden>
+                            <ppixiv-inline src="resources/play-button.svg"></ppixiv-inline>
+                        </div>
+                        <a class=page-count-box hidden>
+                            <span class=page-icon>
+                                <img class=regular src="ppixiv:resources/page-icon.png">
+                                <img class=hover src="ppixiv:resources/page-icon-hover.png">
+                            </span>
+                            <span class=page-count>
+                            </span>
+                        </a>
+                        <div class=muted-text>
+                            <span>Muted:</span>
+                            <span class=muted-label></span>
+                        </div>
+                    </div>
+                </div>
+            `});
+        }
 
         // If this is a non-thumb entry, mark it so we ignore it for "nearby thumb" handling, etc.
         if(illust_id == "special:previous-page")

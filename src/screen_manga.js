@@ -258,10 +258,15 @@ ppixiv.screen_manga = class extends ppixiv.screen
 
     create_thumb(page_idx, manga_page)
     {
-        if(this.thumbnail_template == null)
-            this.thumbnail_template = document.body.querySelector(".template-manga-view-thumbnail");
-            
-        var element = helpers.create_from_template(this.thumbnail_template);
+        let element = this.create_template({name: "manga-view-thumbnail", html: `
+            <div class=thumbnail-box>
+                <div class=thumbnail-inner>
+                    <a class=thumbnail-link href=#>
+                        <img class=thumb>
+                    </a>
+                </div>
+            </div>
+        `});
 
         // These URLs should be the 540x540_70 master version, which is a non-squared high-res
         // thumbnail.  These tend to be around 30-40k, so loading a full manga set of them is

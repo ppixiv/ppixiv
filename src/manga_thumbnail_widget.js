@@ -345,7 +345,11 @@ ppixiv.manga_thumbnail_widget = class extends ppixiv.widget
             var url = page_info.urls.small;
 
             var img = document.createElement("img");
-            var entry = helpers.create_from_template(".template-manga-thumbnail");
+            let entry = this.create_template({name: "thumb", html: `
+                <div class=manga-thumbnail-box>
+                    <img class=manga-thumb>
+                </div>
+            `});
             entry.dataset.page = page;
             entry.querySelector("img.manga-thumb").src = url;
             ul.appendChild(entry);

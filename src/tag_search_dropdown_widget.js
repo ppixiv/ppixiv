@@ -355,7 +355,16 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
     // tag_search is a search, like "tag -tag2".  translated_tags is a dictionary of known translations.
     create_entry(tag_search, translated_tags)
     {
-        var entry = helpers.create_from_template(".template-tag-dropdown-entry");
+        let entry = this.create_template({name: "tag-dropdown-entry", html: `
+            <a class=entry href=#>
+                <div class=suggestion-icon>
+                    <ppixiv-inline src="resources/search-result-icon.svg"></ppixiv-inline>
+                </div>
+                
+                <span class=search></span>
+                <span class="remove-history-entry keep-menu-open">X</span>
+            </div>
+        `});
         entry.dataset.tag = tag_search;
 
         let translated_tag = translated_tags[tag_search];
@@ -609,14 +618,11 @@ ppixiv.tag_search_edit_widget = class extends ppixiv.widget
     // tag_search is a search, like "tag -tag2".  translated_tags is a dictionary of known translations.
     create_entry(tag_search, translated_tags)
     {
-        if(!this.edit_search_dropdown_entry_template)
-            this.edit_search_dropdown_entry_template = this.create_template(`
-                <div class=entry>
-                    <a class=search></a>
-                </div>
-            `);
-            
-        var entry = helpers.create_from_template(this.edit_search_dropdown_entry_template);
+        let entry = this.create_template({name: "dropdown-entry", html: `
+            <div class=entry>
+                <a class=search></a>
+            </div>
+        `});
         entry.dataset.tag = tag_search;
 
         let translated_tag = translated_tags[tag_search];
