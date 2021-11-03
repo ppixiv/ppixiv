@@ -4,12 +4,10 @@
 // either a single image or navigate between an image sequence.
 ppixiv.viewer_images = class extends ppixiv.viewer
 {
-    constructor(container, options)
+    constructor(options)
     {
-        super(container);
+        super(options);
 
-        this.container = container;
-        this.options = options || {};
         this.manga_page_bar = options.manga_page_bar;
         this.onkeydown = this.onkeydown.bind(this);
         this.restore_history = false;

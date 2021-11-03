@@ -2,9 +2,9 @@
 
 ppixiv.viewer_ugoira = class extends ppixiv.viewer
 {
-    constructor(container, options)
+    constructor(options)
     {
-        super(container);
+        super(options);
         
         this.refresh_focus = this.refresh_focus.bind(this);
         this.clicked_canvas = this.clicked_canvas.bind(this);
@@ -13,9 +13,6 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
         this.progress = this.progress.bind(this);
         this.seek_callback = this.seek_callback.bind(this);
         this.load = new SentinelGuard(this.load, this);
-
-        this.container = container;
-        this.options = options;
 
         this.seek_bar = options.seek_bar;
         this.seek_bar.set_current_time(0);

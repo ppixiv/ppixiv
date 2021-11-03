@@ -2,10 +2,12 @@
 
 // This is the base class for viewer classes, which are used to view a particular
 // type of content in the main display.
-ppixiv.viewer = class
+ppixiv.viewer = class extends widget
 {
-    constructor(container, illust_id)
+    constructor({illust_id, ...options})
     {
+        super(options);
+
         this.illust_id = illust_id;
         this.active = false;
     }

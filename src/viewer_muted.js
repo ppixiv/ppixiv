@@ -3,11 +3,9 @@
 // This is used to display a muted image.
 ppixiv.viewer_muted = class extends ppixiv.viewer
 {
-    constructor(container, illust_id)
+    constructor(options)
     {
-        super(container, illust_id);
-
-        this.container = container;
+        super(options);
 
         // Create the display.
         this.root = helpers.create_from_template(".template-muted");
