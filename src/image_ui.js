@@ -36,8 +36,8 @@ ppixiv.image_ui = class extends ppixiv.widget
     </div>
 
     <div class=button-row>
-        <a class="disable-ui-button popup" data-popup="Return to Pixiv" href="#no-ppixiv">
-            <ppixiv-inline src="resources/pixiv-icon.svg"></ppixiv-inline>
+        <a class="disable-ui-button popup" data-popup="Return to Pixiv" href="#no-ppixiv" style="height: 26px;">
+            <ppixiv-inline class=grey-icon src="resources/pixiv-icon.svg" style="height: 100%; width: auto;" ></ppixiv-inline>
         </a>
 
         <div class="navigate-out-button popup" data-popup="Show all">
