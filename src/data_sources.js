@@ -2631,33 +2631,39 @@ ppixiv.data_sources.search = class extends data_source
 
     async load_page_internal(page)
     {
-        var query_args = this.url.searchParams;
-        let args = {
-            p: page,
-        };
+        let args = { };
+        this.url.searchParams.forEach((value, key) => { args[key] = value; });
+
+        args.p = page;
 
         // "artworks" and "illustrations" are different on the search page: "artworks" uses "/tag/TAG/artworks",
         // and "illustrations" is "/tag/TAG/illustrations?type=illust_and_ugoira".
         let search_type = this._search_type;
-        let api_search_type = "artworks";
-        if(search_type == "artworks")
+        let search_mode = this.get_url_search_mode();
+        let api_search_type = null;
+        if(search_mode == "all")
         {
             // "artworks" doesn't use the type field.
             api_search_type = "artworks";
         }
-        else
-        if(search_type == "illustrations")
+        else if(search_mode == "illust")
         {
             api_search_type = "illustrations";
             args.type = "illust_and_ugoira";
         }
-        else if(search_type == "manga")
+        else if(search_mode == "manga")
         {
             api_search_type = "manga";
             args.type = "manga";
         }
+        else if(search_mode == "ugoira")
+        {
+            api_search_type = "illustrations";
+            args.type = "ugoira";
+        }
+        else
+            console.error("Invalid search type:", search_type);
 
-        query_args.forEach((value, key) => { args[key] = value; });
         let tag = this._search_tags;
 
         // If we have no tags, we're probably on the "/tags" page, which is just a list of tags.  Don't
