@@ -633,7 +633,7 @@ ppixiv.main_controller = class
         if(global_data != null)
         {
             this.init_global_data(global_data.token, global_data.userData.id, global_data.userData.premium,
-                    global_data.mute, global_data.userData.adult);
+                    global_data.mute, global_data.userData.xRestrict);
         }
         else
         {
