@@ -235,7 +235,7 @@ class illust_id_list
 // Not all data sources have multiple pages.  For example, when we're viewing a regular
 // illustration page, we get all of the author's other illust IDs at once, so we just
 // load all of them as a single page.
-class data_source
+ppixiv.data_source = class
 {
     constructor(url)
     {
@@ -296,10 +296,10 @@ class data_source
     // which data source instance is used.
     static remove_ignored_url_parts(url)
     {
-        // If p=1 is in the query, it's the page number, which doesn't affect the data source.
-        url.searchParams.delete("p");
-
         let args = new helpers.args(url);
+
+        // If p=1 is in the query, it's the page number, which doesn't affect the data source.
+        args.query.delete("p");
 
         // The manga page doesn't affect the data source.
         args.hash.delete("page");

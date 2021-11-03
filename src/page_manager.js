@@ -271,6 +271,9 @@ ppixiv.page_manager = class
             url = new URL("/tags/" + encodeURIComponent(tags) + "/artworks#ppixiv", url);
         }
         
+        // Don't include things like the current page in the URL.
+        url = data_source.remove_ignored_url_parts(url);
+        
         return url;
     }
 }

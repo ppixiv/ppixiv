@@ -759,21 +759,14 @@ ppixiv.avatar_widget = class extends widget
 // A list of tags, with translations in popups where available.
 ppixiv.tag_widget = class extends ppixiv.widget
 {
-    constructor({format_link, ...options})
+    constructor({...options})
     {
         super({...options});
-
-        this.format_link = format_link;
     };
 
     format_tag_link(tag)
     {
-        if(this.format_link)
-            return this.format_link(tag);
-
-        let search_url = new URL("/tags/" + encodeURIComponent(tag) + "/artworks", ppixiv.location.href);
-        search_url.hash = "#ppixiv";
-        return search_url.toString();
+        return page_manager.singleton().get_url_for_tag_search(tag, ppixiv.location);
     };
 
     async set(tags)

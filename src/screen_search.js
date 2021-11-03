@@ -45,14 +45,6 @@ ppixiv.screen_search = class extends ppixiv.screen
         // Create the tag widget used by the search data source.
         this.tag_widget = new tag_widget({
             container: this.container.querySelector(".related-tag-list"),
-            format_link: (tag) =>
-            {
-                // The recommended tag links are already on the search page, and retain other
-                // search settings.
-                let url = page_manager.singleton().get_url_for_tag_search(tag, ppixiv.location);
-                url.searchParams.delete("p");
-                return url.toString();
-            },
         });
 
         // Don't scroll thumbnails when scrolling tag dropdowns.
