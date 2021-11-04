@@ -1170,7 +1170,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
             visible: false,
             template: `
 <div class=popup-more-options-dropdown>
-    <div class="options vertical-list"></div>
+    <div class="options vertical-list" style="min-width: 13em;"></div>
 </div>
 `});
 
@@ -1228,18 +1228,6 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                 }
             }),
 
-            new menu_option_button({
-                ...shared_options,
-                label: "Send to tab",
-                classes: ["button-send-image"],
-                icon: "resources/send-to-tab.svg",
-                requires_image: true,
-                onclick: () => {
-                    main_controller.singleton.send_image_popup.show_for_illust(this.illust_id, this.page);
-                    this.parent.hide();
-                }
-            }),
-
             // XXX: hook into progress bar
             new menu_option_button({
                 ...shared_options,
@@ -1278,6 +1266,44 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                     actions.download_illust(this.illust_id, null, "MKV");
                     this.parent.hide();
                 }
+            }),
+
+            new menu_option_button({
+                ...shared_options,
+                label: "Send to tab",
+                classes: ["button-send-image"],
+                icon: "resources/send-to-tab.svg",
+                requires_image: true,
+                onclick: () => {
+                    main_controller.singleton.send_image_popup.show_for_illust(this.illust_id, this.page);
+                    this.parent.hide();
+                }
+            }),
+
+            new menu_option_row({
+                container: option_box,
+                parent: this,
+                items: [
+                    new menu_option_toggle({
+                        container: option_box,
+                        parent: this,
+                        label: "Linked tabs",
+                        setting: "linked_tabs_enabled",
+                    }),
+                    new menu_option_button({
+                        container: option_box,
+                        parent: this,
+                        label: "Edit",
+                        classes: ["small-font"],
+                        no_icon_padding: true,
+
+                        onclick: (e) => {
+                            main_controller.singleton.link_tabs_popup.visible = true;
+                            this.parent.hide();
+                            return true;
+                        },
+                    }),
+                ],
             }),
 
             new menu_option_button({
