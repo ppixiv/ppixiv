@@ -593,6 +593,11 @@ ppixiv.screen_search = class extends ppixiv.screen
         for(let div of row.querySelectorAll(".extra-profile-link-button"))
             div.remove();
         
+        // Let the data source add more links.  Do this before profile links, so they take
+        // priority if we reach the cap.
+        if(this.data_source != null)
+            this.data_source.add_extra_links(extra_links);
+
         // Find any other links in the user's profile text.
         if(user_info != null)
         {
@@ -602,10 +607,6 @@ ppixiv.screen_search = class extends ppixiv.screen
             for(let link of div.querySelectorAll("a"))
                 extra_links.push(helpers.fix_pixiv_link(link.href));
         }
-
-        // Let the data source add more links.
-        if(this.data_source != null)
-            this.data_source.add_extra_links(extra_links);
 
         let count = 0;
         for(let url of extra_links)
@@ -629,7 +630,7 @@ ppixiv.screen_search = class extends ppixiv.screen
             count++;
 
             // Limit this in case people are putting a million links in their profiles.
-            if(count == 4)
+            if(count == 5)
                 break;
         }
 
