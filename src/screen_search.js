@@ -509,94 +509,85 @@ ppixiv.screen_search = class extends ppixiv.screen
         if(this.viewing_user_id != initial_user_id || !this.active)
             return;
 
-        // Set the bookmarks link.
-        var bookmarks_link = this.container.querySelector(".bookmarks-link");
-        bookmarks_link.hidden = user_info == null;
-        if(user_info != null)
-        {
-            var bookmarks_url = `/users/${user_info.userId}/bookmarks/artworks#ppixiv`;
-            bookmarks_link.href = bookmarks_url;
-            bookmarks_link.dataset.popup = user_info? (`View ${user_info.name}'s bookmarks`):"View bookmarks";
-        }
-
-        // Set the similar artists link.
-        var similar_artists_link = this.container.querySelector(".similar-artists-link");
-        similar_artists_link.hidden = user_info == null;
-        if(user_info)
-            similar_artists_link.href = "/discovery/users#ppixiv?user_id=" + user_info.userId;
-
-        // Set the following link.
-        var following_link = this.container.querySelector(".following-link");
-        following_link.hidden = user_info == null;
-        if(user_info != null)
-        {
-            let following_url = "/users/" + user_info.userId + "/following#ppixiv";
-            following_link.href = following_url;
-            following_link.dataset.popup = user_info? ("View " + user_info.name + "'s followed users"):"View following";
-        }
-
+        // Make a list of links to add to the top corner.
+        //
+        // If we reach our limit for the icons we can fit, we'll cut off at the end, so put
+        // higher-priority links earlier.
         let extra_links = [];
+
+        if(user_info != null)
+        {
+            extra_links.push({
+                url: new URL(`/messages.php?receiver_id=${user_info.userId}`, ppixiv.location),
+                type: ".contact-link",
+                label: "Send a message",
+            });
+            
+            extra_links.push({
+                url: new URL(`/users/${user_info.userId}/following#ppixiv`, ppixiv.location),
+                type: ".following-link",
+                label: `View ${user_info.name}'s followed users`,
+            });
+
+            extra_links.push({
+                url: new URL(`/users/${user_info.userId}/bookmarks/artworks#ppixiv`, ppixiv.location),
+                type: ".bookmarks-link",
+                label: user_info? `View ${user_info.name}'s bookmarks`:`View bookmarks`,
+            });
+
+            extra_links.push({
+                url: new URL(`/discovery/users#ppixiv?user_id=${user_info.userId}#ppixiv`, ppixiv.location),
+                type: ".similar-artists",
+                label: "Similar artists",
+            });
+        }
+
+        // Set the pawoo link.
+        let pawoo_url = user_info?.social?.pawoo?.url;
+        if(pawoo_url != null)
+        {
+            extra_links.push({
+                url: pawoo_url,
+                type: ".pawoo-icon",
+                label: "Pawoo",
+            });
+        }
+
+        // Add the twitter link if there's one in the profile.
+        let twitter_url = user_info?.social?.twitter?.url;
+        if(twitter_url != null)
+        {
+            extra_links.push({
+                url: twitter_url,
+                type: ".twitter-icon",
+            });
+        }
+
+        // Set the circle.ms link.
+        let circlems_url = user_info?.social?.circlems?.url;
+        if(circlems_url != null)
+        {
+            extra_links.push({
+                url: circlems_url,
+                type: ".circlems-icon",
+                label: "Circle.ms",
+            });
+        }
 
         // Set the webpage link.
         //
         // If the webpage link is on a known site, disable the webpage link and add this to the
         // generic links list, so it'll use the specialized icon.
-        var webpage_url = user_info && user_info.webpage;
-        if(webpage_url != null && this.find_link_image_type(webpage_url))
-        {
-            extra_links.push(webpage_url);
-            webpage_url = null;
-        }
-
-        var webpage_link = this.container.querySelector(".webpage-link");
-        webpage_link.hidden = webpage_url == null;
+        let webpage_url = user_info?.webpage;
         if(webpage_url != null)
         {
-            webpage_link.href = webpage_url;
-            webpage_link.dataset.popup = webpage_url;
+            let type = this.find_link_image_type(webpage_url);
+            extra_links.push({
+                url: webpage_url,
+                type: type || ".webpage-link",
+                label: "Webpage",
+            });
         }
-
-        // Set the circle.ms link.
-        var circlems_url = user_info && user_info.social && user_info.social.circlems && user_info.social.circlems.url;
-        var circlems_link = this.container.querySelector(".circlems-icon");
-        circlems_link.hidden = circlems_url == null;
-        if(circlems_url != null)
-            circlems_link.href = circlems_url;
-
-        // Set the twitter link.
-        var twitter_url = user_info && user_info.social && user_info.social.twitter && user_info.social.twitter.url;
-        var twitter_link = this.container.querySelector(".twitter-icon");
-        twitter_link.hidden = twitter_url == null;
-        if(twitter_url != null)
-        {
-            twitter_link.href = twitter_url;
-            var path = new URL(twitter_url).pathname;
-            var parts = path.split("/");
-            twitter_link.dataset.popup = parts.length > 1? ("@" + parts[1]):"Twitter";
-        }
-
-        // Set the pawoo link.
-        var pawoo_url = user_info && user_info.social && user_info.social.pawoo && user_info.social.pawoo.url;
-        var pawoo_link = this.container.querySelector(".pawoo-icon");
-        pawoo_link.hidden = pawoo_url == null;
-        if(pawoo_url != null)
-            pawoo_link.href = pawoo_url;
-
-        // Set the "send a message" link.
-        var contact_link = this.container.querySelector(".contact-link");
-        contact_link.hidden = user_info == null;
-        if(user_info != null)
-            contact_link.href = "/messages.php?receiver_id=" + user_info.userId;
-
-        // Remove any extra buttons that we added earlier.
-        let row = this.container.querySelector(".button-row");
-        for(let div of row.querySelectorAll(".extra-profile-link-button"))
-            div.remove();
-        
-        // Let the data source add more links.  Do this before profile links, so they take
-        // priority if we reach the cap.
-        if(this.data_source != null)
-            this.data_source.add_extra_links(extra_links);
 
         // Find any other links in the user's profile text.
         if(user_info != null)
@@ -604,34 +595,73 @@ ppixiv.screen_search = class extends ppixiv.screen
             let div = document.createElement("div");
             div.innerHTML = user_info.commentHtml;
 
+            let limit = 4;
             for(let link of div.querySelectorAll("a"))
-                extra_links.push(helpers.fix_pixiv_link(link.href));
+            {
+                extra_links.push({url: helpers.fix_pixiv_link(link.href)});
+
+                // Limit these in case people have a ton of links in their profile.
+                limit--;
+                if(limit == 0)
+                    break;
+            }
         }
 
-        let count = 0;
-        for(let url of extra_links)
+        // Let the data source add more links.  For Fanbox links this is usually delayed
+        // since it requires an extra API call, so put this at the end to prevent the other
+        // buttons from shifting around.
+        if(this.data_source != null)
+            this.data_source.add_extra_links(extra_links);
+
+        // Remove any extra buttons that we added earlier.
+        let row = this.container.querySelector(".button-row.user-links");
+        for(let div of row.querySelectorAll(".extra-profile-link-button"))
+            div.remove();
+        
+        let seen_links = {};
+        for(let {url, label, type} of extra_links)
         {
-            url = new URL(url);
+            // Don't add the same link twice if it's in more than one place.
+            if(seen_links[url])
+                continue;
+            seen_links[url] = true;
+
+            try {
+                url = new URL(url);
+            } catch(e) {
+                console.log("Couldn't parse profile URL:", url);
+                continue;
+            }
+
+            // Guess the link type if one wasn't supplied.
+            if(type == null)
+            type = this.find_link_image_type(url);
+
             let entry = helpers.create_from_template(".template-extra-profile-link-button");
             let a = entry.querySelector(".extra-link");
             a.href = url;
-            a.dataset.popup = a.href;
 
-            let link_type = this.find_link_image_type(url);
-            if(link_type != null)
+            // If this is a Twitter link, parse out the ID.  We do this here so this works
+            // both for links in the profile text and the profile itself.
+            if(type == ".twitter-icon")
             {
-                entry.querySelector(".default-icon").hidden = true;
-                entry.querySelector(link_type).hidden = false;
+                let parts = url.pathname.split("/");
+                label = parts.length > 1? ("@" + parts[1]):"Twitter";
             }
 
-            // Put these at the beginning, so they don't change the positioning of the other
-            // icons.
-            row.insertBefore(entry, row.querySelector(".first-icon"));
-            count++;
+            if(label == null)
+                label = a.href;
+            a.dataset.popup = label;
 
-            // Limit this in case people are putting a million links in their profiles.
-            if(count == 5)
-                break;
+            if(type != null)
+            {
+                entry.querySelector(".default-icon").hidden = true;
+                entry.querySelector(type).hidden = false;
+            }
+
+            // Add the node at the start, so earlier links are at the right.  This makes the
+            // more important links less likely to move around.
+            row.insertAdjacentElement("afterbegin", entry);
         }
 
         // Tell the context menu which user is being viewed (if we're viewing a user-specific
@@ -653,7 +683,10 @@ ppixiv.screen_search = class extends ppixiv.screen
                 "skeb.jp",
                 "ko-fi.com",
                 "dmm.co.jp",
-            ]
+            ],
+            ".twitter-icon": [
+                "twitter.com",
+            ],
         };
 
         // Special case for old Fanbox URLs that were under the Pixiv domain.

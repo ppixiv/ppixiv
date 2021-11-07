@@ -887,43 +887,26 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
             color: #bbb;
         }
 
-        .bookmarks-link,
-        .following-link {
-            display: block;
-        }
-
-        .following-link {
+        .bookmarks-link > svg,
+        .following-link > svg {
             width: 32px;
             height: 32px;
         }
 
-        .contact-link {
-            display: block;
+        .contact-link > svg {
             width: 31px;
             height: 31px;
             margin: 0 3px;
         }
 
-        .webpage-link {
-            display: block;
+        .webpage-link > svg {
             margin: 0 2px;
             width: 26px;
             height: 26px;
         }
 
-        .twitter-icon,
-        .pawoo-icon
-        {
-            display: block;
-            width: 32px;
-            height: 32px;
-            margin: 0 0px;
-        }
-
-        .circlems-icon
-        {
-            display: block;
-            margin: 4px 0 0 0;
+        .circlems-icon > svg {
+            margin: 2px 0 0 0;
         }
     }
 

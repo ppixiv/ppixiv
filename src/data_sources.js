@@ -1496,7 +1496,7 @@ ppixiv.data_sources.artist = class extends data_source
     {
         // Add the Fanbox link to the list if we have one.
         if(this.fanbox_url)
-            links.push(this.fanbox_url);
+            links.push({url: this.fanbox_url, label: "Fanbox"});
     }
 
     async load_all_results()
