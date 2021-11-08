@@ -307,6 +307,9 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
         let key = e.key.toUpperCase();
         if(e.key == "Control")
         {
+            if(!settings.get("ctrl_opens_popup"))
+                return;
+
             e.preventDefault();
             e.stopPropagation();
 
@@ -638,6 +641,10 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
     // most people probably use middle-click anyway, so this will have to do.
     handle_link_click(e)
     {
+        // Do nothing if opening the popup while holding ctrl is disabled.
+        if(!settings.get("ctrl_opens_popup"))
+            return;
+
         let a = e.target.closest("A");
         if(a == null)
             return;

@@ -52,10 +52,16 @@ ppixiv.menu_option = class extends widget
         {
             new menu_option_toggle({
                 ...global_options,
-                label: "Hold shift to open context menu",
+                label: "Shift-right-click to show the popup menu",
                 setting: "invert-popup-hotkey",
             });
         }
+
+        new menu_option_toggle({
+            ...global_options,
+            label: "Hold ctrl to show the popup menu",
+            setting: "ctrl_opens_popup",
+        });
 
         new menu_option_toggle({
             ...global_options,
