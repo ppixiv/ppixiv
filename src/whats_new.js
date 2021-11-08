@@ -3,6 +3,15 @@
 // This should be inside whats_new, but Firefox is in the dark ages and doesn't support class fields.
 let _update_history = [
     {
+        version: 117,
+        text: `
+        Added Linked Tabs.  Enable linked tabs in preferences to show images
+on more than one monitor as they're being viewed (try it with a portrait monitor).
+<p>
+        Showing the popup menu when Ctrl is pressed is now optional.
+`,
+    },
+    {
         version: 112,
         text: `
 Added Send to Tab to the context menu, which allows quickly sending an image to
