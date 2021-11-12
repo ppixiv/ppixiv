@@ -66,12 +66,18 @@ ppixiv.seek_bar = class
         this.refresh_visibility();
     }
 
+    get actually_visible()
+    {
+        return this.callback != null && (this.hovering || this.dragging);
+    }
+
     refresh_visibility()
     {
         // Show the seek bar if the mouse is over it, or if we're actively dragging.
         // Only show if we're active.
-        var visible = this.callback != null && (this.hovering || this.dragging);
+        var visible = this.actually_visible;
         helpers.set_class(this.bar, "visible", visible);
+        helpers.set_class(this.container, "visible-widget", visible);
     }
 
     stop_dragging()

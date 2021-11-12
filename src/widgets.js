@@ -71,7 +71,7 @@ ppixiv.widget = class
 
     get visible()
     {
-        return this.container.classList.contains("visible-widget");
+        return this._visible;
     }
 
     set visible(value)
@@ -81,9 +81,19 @@ ppixiv.widget = class
         if(value == this.visible)
             return;
 
-        helpers.set_class(this.container, "visible-widget", value);        
+        this._visible = value;
+        this.refresh_visibility();
 
         this.visibility_changed();
+    }
+
+    // Show or hide the widget.
+    //
+    // By default the widget is visible based on the value of this.visible, but the
+    // subclass can override this.
+    refresh_visibility()
+    {
+        helpers.set_class(this.container, "visible-widget", this._visible);
     }
 
     // The subclass can override this.
@@ -91,7 +101,6 @@ ppixiv.widget = class
     {
         if(this.visible)
         {
-
             console.assert(this.visibility_abort == null);
 
             // Create an AbortController that will be aborted when the widget is hidden.

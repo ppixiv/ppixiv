@@ -480,6 +480,7 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
     refresh_visibility()
     {
         let visible = this.actually_visible;
+        helpers.set_class(this.container, "visible-widget", visible);
         helpers.set_class(this.container, "visible", visible);
     }
 
