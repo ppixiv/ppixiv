@@ -861,7 +861,6 @@ ppixiv.text_prompt = class extends ppixiv.dialog_widget
 
         this.input = this.container.querySelector("input.add-tag-input");
         this.input.value = "";
-        this.input.focus();
 
         this.container.querySelector(".close-button").addEventListener("click", (e) => { this.visible = false; });
         this.container.querySelector(".submit-button").addEventListener("click", this.submit);
@@ -901,6 +900,9 @@ ppixiv.text_prompt = class extends ppixiv.dialog_widget
         if(this.visible)
         {
             window.addEventListener("keydown", this.onkeydown, { signal: this.visibility_abort.signal });
+
+            // Focus when we become visible.
+            this.input.focus();
         }
         else
         {
