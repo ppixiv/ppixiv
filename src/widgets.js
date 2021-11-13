@@ -1053,14 +1053,8 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
         if(illust_id == null || !this.visible)
             return;
 
-        // Figure out how much space we have, and set that as the max-height.  This will
-        // fit the tag scroll box within however much space we have available.
-        let dropdown = this.container.querySelector(".tag-list");
-        let pos = helpers.get_relative_pos(dropdown, document)[1];
-        let tag_box_height = window.innerHeight - pos;
-        tag_box_height -= 10; // a bit of padding so it's not flush against the edge
-        tag_box_height = Math.min(400, tag_box_height);
-        dropdown.style.maxHeight = `${tag_box_height}px`;
+        // Fit the tag scroll box within however much space we have available.
+        helpers.set_max_height(this.container.querySelector(".tag-list"), { max_height: 400, bottom_padding: 10 });
 
         // Create a temporary entry to show loading while we load bookmark details.
         let entry = document.createElement("span");

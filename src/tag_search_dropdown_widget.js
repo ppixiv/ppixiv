@@ -265,7 +265,9 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         if(!await this.populate_dropdown())
             return;
 
-            this.container.hidden = false;
+        this.container.hidden = false;
+
+        helpers.set_max_height(this.input_dropdown);
     }
 
     hide()

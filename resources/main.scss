@@ -1543,11 +1543,6 @@ input.search-tags {
     z-index: 1;
     user-select: none;
 
-    /* This is used for the search tag dropdown, which is in a fixed position at the top of the
-     * screen.  Limit the height to the size of the window minus (roughly) its position. */
-    max-height: 400px;
-    max-height: calc(100vh - 400px);
-
     /* Always show the vertical scrollbar.  Otherwise, the resize handle falls under the buttons
      * when it's not shown. */
     overflow-x: hidden;
