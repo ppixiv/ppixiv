@@ -558,16 +558,15 @@ ppixiv.main_controller = class
         // switching to /artworks.
         var url = new unsafeWindow.URL(url);
         url = helpers.get_url_without_language(url);
-        if(url.pathname.startsWith("/artworks/"))
+        let illust = this.get_illust_at_element(a);
+        if(illust?.illust_id)
         {
-            let parts = url.pathname.split("/");
-            let illust_id = parts[2];
+            let illust_id = illust.illust_id;
             let args = new helpers.args(a.href);
-            var page = args.hash.has("page")? parseInt(args.hash.get("page"))-1: null;
             let screen = args.hash.has("view")? args.hash.get("view"):"illust";
             this.show_illust(illust_id, {
                 screen: screen,
-                page: page,
+                page: illust.page,
                 add_to_history: true
             });
             
