@@ -1529,7 +1529,7 @@ ppixiv.screen_search = class extends ppixiv.screen
             }
             else
             {
-                link.href = "/artworks/" + illust_id + "#ppixiv";
+                link.href = helpers.get_url_for_id(illust_id);
             }
 
             link.dataset.illustId = illust_id;

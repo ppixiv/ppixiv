@@ -283,7 +283,7 @@ ppixiv.screen_manga = class extends ppixiv.screen
         thumb.height = size[1];
         
         var link = element.querySelector("a.thumbnail-link");
-        link.href = "/artworks/" + this.illust_id + "#ppixiv?page=" + (page_idx+1);
+        link.href = helpers.get_url_for_id(this.illust_id, page_idx+1);
         link.dataset.illustId = this.illust_id;
         link.dataset.pageIdx = page_idx;
 

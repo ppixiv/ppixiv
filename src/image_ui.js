@@ -280,7 +280,7 @@ ppixiv.image_ui = class extends ppixiv.widget
 
         var element_title = this.container.querySelector(".title");
         element_title.textContent = illust_info.illustTitle;
-        element_title.href = "/artworks/" + illust_id + "#ppixiv";
+        element_title.href = helpers.get_url_for_id(illust_id);
 
         var element_author = this.container.querySelector(".author");
         element_author.textContent = illust_info.userName;

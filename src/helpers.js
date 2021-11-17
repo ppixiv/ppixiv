@@ -762,7 +762,7 @@ ppixiv.helpers = {
 
             // In Firefox we need to use unsafeWindow.fetch, since window.fetch won't run
             // as the page to get the correct referer.  Work around secondary brain damage:
-            // since it comes from the apge it's in a wrapper object that we need to remove.
+            // since it comes from the page it's in a wrapper object that we need to remove.
             // We shouldn't be seeing Firefox wrapper behavior at all.  It's there to
             // protect the user from us, not us from the page.
             if(json.wrappedJSObject)
@@ -1911,6 +1911,19 @@ ppixiv.helpers = {
         this.adjust_image_url_hostname(url);
 
         return url.toString();
+    },
+
+    // Return the canonical URL for an illust.  For most URLs this is
+    // /artworks/12345.
+    get_url_for_id(illust_id, page=null)
+    {
+        let args = new helpers.args("/", ppixiv.location);
+        args.path  = `/artworks/${illust_id}`;
+
+        if(page != null)
+            args.query.set("page", page);
+
+        return args.url;
     },
 };
 
