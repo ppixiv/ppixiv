@@ -553,8 +553,9 @@ ppixiv.main_controller = class
         e.preventDefault();
         e.stopImmediatePropagation();
 
-        // Search links to images always go to /artworks/#, but if they're clicked in-page we
-        // want to stay on the same search and just show the image, so handle them directly.
+        // If this is a link to an image (usually /artworks/#), navigate to the image directly.
+        // This way, we actually use the URL for the illustration on this data source instead of
+        // switching to /artworks.
         var url = new unsafeWindow.URL(url);
         url = helpers.get_url_without_language(url);
         if(url.pathname.startsWith("/artworks/"))
@@ -737,7 +738,7 @@ ppixiv.main_controller = class
         let illust_element = element.closest("[data-illust-id]");
         if(illust_element)
         {
-            result.illust_id = parseInt(illust_element.dataset.illustId);
+            result.illust_id = illust_element.dataset.illustId;
 
             // If no page is present, set page to null rather than page 0.  This distinguishes image
             // search results which don't refer to a specific page from the manga page display.  Don't
@@ -747,7 +748,7 @@ ppixiv.main_controller = class
 
         let user_element = element.closest("[data-user-id]");
         if(user_element)
-            result.user_id = parseInt(user_element.dataset.userId);
+            result.user_id = user_element.dataset.userId;
 
         return result;
     }
