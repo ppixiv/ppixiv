@@ -1251,19 +1251,39 @@ ppixiv.helpers = {
 
     get_hash_args: function(url)
     {
-        var hash_url = helpers.parse_hash(url);
-        if(hash_url == null)
-            return new unsafeWindow.URLSearchParams();
+        if(!url.hash.startsWith("#ppixiv"))
+            return { path: "", query: new unsafeWindow.URLSearchParams() };
 
-        var query = hash_url.search;
-        if(!query.startsWith("?"))
-            return new unsafeWindow.URLSearchParams();
+        // The hash looks like:
+        //
+        // #ppixiv/a/b/c?foo&bar
+        //
+        // /a/b/c is the hash path.  foo&bar are the hash args.
+        // Parse the hash of the current page as a path.  For example, if
+        // the hash is #ppixiv/foo/bar?baz, parse it as /ppixiv/foo/bar?baz.
+        // The pathname portion of this (with /ppixiv removed) is the hash path,
+        // and the query portion is the hash args.
+        //
+        // If the hash is #ppixiv/abcd, the hash path is "/abcd".
+        // Remove #ppixiv:
+        let hash_path = url.hash.substr(7);
 
-        query = query.substr(1);
+        // See if we have hash args.
+        let idx = hash_path.indexOf('?');
+        let query = null;
+        if(idx != -1)
+        {
+            query = hash_path.substr(idx+1);
+            hash_path = hash_path.substr(0, idx);
+        }
+
+        hash_path = decodeURIComponent(hash_path);
 
         // Use unsafeWindow.URLSearchParams to work around https://bugzilla.mozilla.org/show_bug.cgi?id=1414602.
-        var params = new unsafeWindow.URLSearchParams(query);
-        return params;
+        if(query == null)
+            return { path: hash_path, query: new unsafeWindow.URLSearchParams() };
+        else
+            return { path: hash_path, query: new unsafeWindow.URLSearchParams(query) };
     },
     
     // Replace the given field in the URL path.
@@ -1340,7 +1360,9 @@ ppixiv.helpers = {
 
             this.path = url.pathname;
             this.query = url.searchParams;
-            this.hash = helpers.get_hash_args(url);
+            let { path: hash_path, query: hash_query } = helpers.get_hash_args(url);
+            this.hash = hash_query;
+            this.hash_path = hash_path;
 
             // History state is only available when we come from the current history state,
             // since URLs don't have state.
@@ -1367,8 +1389,15 @@ ppixiv.helpers = {
 
             // Set the hash portion of url to args, as a ppixiv url.
             //
-            // For example, given { a: "1", b: "2" }, set the hash to #ppixiv?a=1&b=2.
+            // For example, if this.hash_path is "a/b/c" and this.hash is { a: "1", b: "2" },
+            // set the hash to #ppixiv/a/b/c?a=1&b=2.
             url.hash = "#ppixiv";
+            if(this.hash_path != "")
+            {
+                if(!this.hash_path.startsWith("/"))
+                    url.hash += "/";
+                url.hash += this.hash_path;
+            }
 
             let hash_string = this.hash.toString();
             if(hash_string != "")
