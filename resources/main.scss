@@ -838,22 +838,38 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
     height: 30px;
 }
 
-/* Search result views.  This is used for both the search view and the manga page list. */
-.search-results {
+// Search result views.  This is used for both the search view and the manga page list.
+// .search-results is the main scroller.
+.search-screen {
     position: absolute;
     width: 100%;
     height: 100%;
     top: 0;
     left: 0;
-    overflow-x: hidden;
-    /* Always show the vertical scrollbar, so we don't relayout as images load. */
-    overflow-y: scroll;
     color: #fff;
+    display: flex;
+    flex-direction: row;
 
-    .thumbnail-ui-box {
+    .search-results {
+        position: relative;
+        width: 100%;
+        height: 100%;
+
+        overflow-x: hidden;
+
+        // Always show the vertical scrollbar, so we don't relayout as images load.
+        overflow-y: scroll;
+    }
+}
+
+.search-results {
+    .thumbnail-ui-box-container {
         width: 50%;
         /* Make sure this doesn't get too narrow, or it'll overlap too much of the thumbnail area. */
         min-width: 800px;
+    }
+    .thumbnail-ui-box {
+        width: 100%;
         background-color: var(--ui-bg-color);
         color: var(--ui-fg-color);
         box-shadow: 0 0 15px 10px var(--ui-shadow-color);

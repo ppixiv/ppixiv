@@ -304,6 +304,8 @@ ppixiv.screen_search = class extends ppixiv.screen
         this.thumbnail_onclick = this.thumbnail_onclick.bind(this);
         this.submit_user_search = this.submit_user_search.bind(this);
 
+        this.scroll_container = this.container.querySelector(".search-results");
+
         window.addEventListener("thumbnailsLoaded", this.thumbs_loaded);
         window.addEventListener("focus", this.visible_thumbs_changed);
 
@@ -448,7 +450,7 @@ ppixiv.screen_search = class extends ppixiv.screen
             this.load_needed_thumb_data();
             this.first_visible_thumbs_changed();
         }, {
-            root: this.container,
+            root: this.scroll_container,
             threshold: 1,
         }));
         
@@ -460,8 +462,7 @@ ppixiv.screen_search = class extends ppixiv.screen
             this.set_visible_thumbs();
             this.load_needed_thumb_data();
         }, {
-            
-            root: this.container,
+            root: this.scroll_container,
 
             // This margin determines how far in advance we load the next page of results.
             rootMargin: "50%",
@@ -473,7 +474,7 @@ ppixiv.screen_search = class extends ppixiv.screen
             
             this.visible_thumbs_changed();
         }, {
-            root: this.container,
+            root: this.scroll_container,
             rootMargin: "0%",
         }));
         
@@ -712,7 +713,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         // restore it now.  Only do this once.
         if(this.data_source.thumbnail_view_scroll_pos != null)
         {
-            this.container.scrollTop = this.data_source.thumbnail_view_scroll_pos;
+            this.scroll_container.scrollTop = this.data_source.thumbnail_view_scroll_pos;
             delete this.data_source.thumbnail_view_scroll_pos;
         }
         else
@@ -721,7 +722,7 @@ ppixiv.screen_search = class extends ppixiv.screen
 
     scroll_to_top()
     {
-        this.container.scrollTop = 0;
+        this.scroll_container.scrollTop = 0;
     }
 
     refresh_ui()
@@ -1044,7 +1045,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         // Only do this if we were previously active, or we're hidden and scrollTop may
         // be 0.
         if(was_active && this.data_source)
-            this.data_source.thumbnail_view_scroll_pos = this.container.scrollTop;
+            this.data_source.thumbnail_view_scroll_pos = this.scroll_container.scrollTop;
 
         await super.set_active(active);
         
@@ -1182,7 +1183,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         // If we have a matching range, save the scroll position relative to it, so if we add
         // new elements at the top, we stay scrolled where we are.  Otherwise, just restore the
         // current scroll position.
-        let save_scroll = new SaveScrollPosition(this.container);
+        let save_scroll = new SaveScrollPosition(this.scroll_container);
         if(first_matching_node)
             save_scroll.save_relative_to(first_matching_node);
 
@@ -1426,7 +1427,6 @@ ppixiv.screen_search = class extends ppixiv.screen
             var search_mode = this.data_source.search_mode;
 
             let { id: thumb_id, type: thumb_type } = helpers.parse_id(illust_id);
-            let thumb_data = {};
 
             // For illustrations, get thumbnail info.  If we don't have it yet, skip the image (leave it pending)
             // and we'll come back once we have it.
@@ -1805,9 +1805,9 @@ ppixiv.screen_search = class extends ppixiv.screen
             return;
 
         // If the item isn't visible, center it.
-        var scroll_pos = this.container.scrollTop;
-        if(thumb.offsetTop < scroll_pos || thumb.offsetTop + thumb.offsetHeight > scroll_pos + this.container.offsetHeight)
-            this.container.scrollTop = thumb.offsetTop + thumb.offsetHeight/2 - this.container.offsetHeight/2;
+        let scroll_pos = this.scroll_container.scrollTop;
+        if(thumb.offsetTop < scroll_pos || thumb.offsetTop + thumb.offsetHeight > scroll_pos + this.scroll_container.offsetHeight)
+            this.scroll_container.scrollTop = thumb.offsetTop + thumb.offsetHeight/2 - this.scroll_container.offsetHeight/2;
     };
 
     pulse_thumbnail(illust_id)

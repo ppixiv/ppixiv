@@ -1705,7 +1705,7 @@ ppixiv.helpers = {
             }
         `;
         if(container_width != null)
-            css += `${top_selector} > .thumbnails { max-width: ${container_width}px; }`;
+            css += `${top_selector} .thumbnails { max-width: ${container_width}px; }`;
         return css;
     },
     
