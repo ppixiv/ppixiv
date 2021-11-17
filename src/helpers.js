@@ -2626,6 +2626,7 @@ ppixiv.pointer_listener = class
         }
         
         this.element.addEventListener("pointerdown", this.onpointerevent, this.event_options);
+        this.element.addEventListener("simulatedpointerdown", this.onpointerevent, this.event_options);
     }
 
     // Register events that we only register while one or more buttons are pressed.
@@ -2790,16 +2791,14 @@ ppixiv.pointer_listener = class
             let new_button_mask = this.buttons_down;
             new_button_mask |= mask;
             let e = new MouseEvent("simulatedpointerdown", {
-                buttons: pointer_listener.buttons,
-                currentTarget: node_under_cursor,
-                target: node_under_cursor,
+                buttons: new_button_mask,
                 pageX: pointer_listener.latest_mouse_position[0],
                 pageY: pointer_listener.latest_mouse_position[1],
                 timestamp: performance.now(),
             });
             e.pointerId = pointer_listener.button_pointer_ids.get(button);
 
-            this.button_changed(new_button_mask, e);
+            this.element.dispatchEvent(e);
         }
     }
 }
