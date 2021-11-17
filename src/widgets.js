@@ -1549,3 +1549,246 @@ ppixiv.like_count_widget = class extends ppixiv.illust_widget
     }
 }
 
+ppixiv.tree_widget = class extends ppixiv.widget
+{
+    constructor({onfocus, onclick, ...options})
+    {
+        super({...options, template: `
+            <div class=tree>
+                <div class=items>
+                </div>
+            </div>
+        `});
+
+        this.items = this.container.querySelector(".items");
+
+        // Create the root item.
+        this.root = new ppixiv.tree_widget_item({
+            parent: this,
+            label: "root",
+            root: true,
+        });
+
+        if(onfocus)
+        {
+            this.container.addEventListener("focus", (e) => {
+                // Find the item that's been focused.
+                let item = e.target.closest(".tree-item");
+                if(item == null)
+                    return;
+
+                this.onfocus(item.widget);
+            }, { capture: true });
+
+            this.container.addEventListener("blur", (e) => {
+                let item = e.target.closest(".tree-item");
+                if(item == null)
+                    return;
+
+                onfocus(null);
+            }, { capture: true });
+        }
+
+        if(onclick)
+        {
+            this.container.addEventListener("mousedown", (e) => {
+                if(e.button != 0)
+                    return;
+
+                // Only handle clicks within the label, not clicks on the expander.
+                let item = e.target.closest(".tree-item > .self > .label");
+                if(item == null)
+                    return;
+
+                item = item.closest(".tree-item");
+                item.widget.select();
+
+                onclick(item.widget);
+            }, { capture: true });
+        }
+
+        // The root node is always expanded.
+        this.root.expanded = true;
+    }
+
+    set_selected_item(item)
+    {
+        if(this.selected_item == item)
+            return;
+
+        this.selected_item = item;
+        for(let node of this.container.querySelectorAll(".tree-item.selected"))
+            node.classList.remove("selected");
+
+        if(item != null)
+            item.container.classList.add("selected");
+    }
+}
+
+ppixiv.tree_widget_item = class extends ppixiv.widget
+{
+    // If root is true, this is the root item being created by a tree_widget.  Our
+    // parent is the tree_widget and our container is tree_widget.items.
+    //
+    // If root is false (all items created by the user) and parent is a tree_widget, our
+    // real parent is the tree_widget's root item.  Otherwise, parent is always another
+    // tree_widget_item.
+    constructor({parent, label, pending=false, onexpand=null, expandable=false, root=false, ...options}={})
+    {
+        // If this isn't a root node and parent is a tree_widget, use the tree_widget's
+        // root node as our parent instead of the tree widget itself.
+        if(!root && parent instanceof ppixiv.tree_widget)
+            parent = parent.root;
+
+        super({...options,
+            // The container is our parent node's item list.
+            container: parent.items,
+            parent: parent,
+            template: `
+            <div class=tree-item>
+                <div class=self tabindex=1>
+                    <div class=expander data-mode="loading">
+                        <span class="expander-button expand">▶</span>
+                        <span class="expander-button loading">⌛</span>
+                        <span class="expander-button none"></span>
+                    </div>
+                    <div class=label></div>
+                </div>
+
+                <div class=items></div>
+            </div>
+        `});
+
+        // If this is the root node, hide .self.
+        if(root)
+            this.container.querySelector(".self").hidden = true;
+
+        helpers.set_class(this.container, "root", root);
+
+        // If our parent is the root node, we're a top-level node.
+        helpers.set_class(this.container, "top", !root && parent.root);
+        helpers.set_class(this.container, "child", !root && !parent.root);
+
+        this.items = this.container.querySelector(".items");
+        this.expander = this.container.querySelector(".expander");
+        this.expand_mode = "expandable";
+        this.is_root = root;
+        this._expandable = expandable;
+        this._expanded = false;
+        this._pending = pending;
+
+        this.expander.addEventListener("click", (e) => {
+            this.expanded = !this.expanded;
+        });
+
+        this.label = this.container.querySelector(".label");
+        this.label.innerText = label;
+
+        this.onexpand = onexpand;
+        this.refresh_expand_mode();
+
+        if(this.parent instanceof ppixiv.tree_widget_item)
+        {
+            this.parent.refresh_expand_mode();
+        }
+    }
+
+    // Return our tree.
+    get tree()
+    {
+        let tree = this.container.closest(".tree");
+        return tree.widget;
+    }
+
+    set expanded(value)
+    {
+        if(this._expanded == value)
+            return;
+
+        this._expanded = value;
+
+        // If we're pending, call onexpand the first time we're expanded so we can
+        // be populated.  We'll stay pending and showing the hourglass until onexpand
+        // completes.
+        if(this._expanded && this._pending)
+        {
+            if(!this.onexpand)
+                throw Error("Pending tree node must have onexpand");
+
+            if(!this.called_onexpand)
+            {
+                this.called_onexpand = true;
+                (async() => {
+                    await this.onexpand(this);
+                    this.pending = false;
+                })();
+            }
+        }
+
+        this.refresh_expand_mode();
+    }
+
+    set expandable(value)
+    {
+        if(this._expandable == value)
+            return;
+        this._expandable = value;
+        this.refresh_expand_mode();
+    }
+
+    set pending(value)
+    {
+        if(this._pending == value)
+            return;
+        this._pending = value;
+        this.refresh_expand_mode();
+    }
+
+    get expanded() { return this._expanded;}
+    get expandable() { return this._expandable; }
+    get pending() { return this._pending; }
+    
+    get displayed_expand_mode()
+    {
+        // If we're not pending and we have no children, show "none".
+        if(!this._pending && this.items.firstElementChild == null)
+            return "none";
+
+        // If we're expanded and pending, show "loading".  We're waiting for onexpand
+        // to finish loading and unset pending.
+        if(this.expanded)
+            return this._pending? "loading":"expanded";
+
+        return "expandable";
+    }
+
+    refresh_expand_mode()
+    {
+        this.expander.dataset.mode = this.displayed_expand_mode;
+        this.expander.dataset.pending = this._pending;
+        this.items.hidden = !this._expanded || this._pending;
+    }
+
+    select()
+    {
+        this.tree.set_selected_item(this);
+    }
+
+    focus()
+    {
+        this.container.querySelector(".self").focus();
+    }
+
+    remove()
+    {
+        if(this.parent == null)
+            return;
+
+        this.parent.items.remove(this.container);
+
+        // Refresh the parent in case we're the last child.
+        this.parent.refresh_expand_mode();
+
+        this.parent = null;
+    }
+};

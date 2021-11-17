@@ -2415,3 +2415,106 @@ svg.heart-image .delete {
         }
     }
 }
+
+.tree 
+{
+    user-select: none;
+    overflow: auto;
+    height: 100%;
+
+    .tree-item
+    {
+        position: relative;
+
+        // If this isn't the root node, add padding to the left of our children.
+        &:not(.root) > .items {
+            margin-left: 1em;
+        }
+
+        .selected > .self > .label
+        {
+            background-color: #003088;
+        }
+
+        > .self {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            height: 2em;
+
+            &:focus
+            {
+                // Hide the default focus outline.
+                outline: none;
+
+                > .label
+                {
+                    //background-color: #880;
+                }
+            }
+
+            > .label
+            {
+                padding: 0.5em;
+                white-space: nowrap;
+            }
+        
+            &.root
+            {
+                display: none;
+            }
+
+            > .expander {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                
+                font-size: 50%;
+                width: 3em;
+                height: 100%;
+
+                & > .expander-button {
+                    // Hide all buttons by default.
+                    display: none;
+                    width: 3em;
+                    text-align: center;
+                    vertical-align: middle;
+                }
+
+                // Modes are "none", "loading", "expandable" and "expanded".
+                &[data-mode="loading"] > .loading
+                {
+                    display: block;
+                }
+
+                &[data-mode="none"] > .none
+                {
+                    display: block;
+                }
+
+                // Dim pending expanders.
+                &[data-pending="true"] > .expand
+                {
+                    opacity: 0.5;
+                }
+
+                &[data-mode="expandable"] > .expand,
+                &[data-mode="expanded"] > .expand
+                {
+                    display: block;
+                }
+
+                .expand
+                {
+                    transform: rotate(0deg);
+                    transition: transform .25s;
+                }
+
+                &[data-mode="expanded"] > .expand
+                {
+                    transform: rotate(90deg);
+                }
+            }
+        }
+    }
+}
