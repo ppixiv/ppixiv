@@ -702,10 +702,7 @@ ppixiv.avatar_widget = class extends widget
         let user_data = await image_data.singleton().get_user_info(this.user_id);
         this.user_data = user_data;
         if(user_data == null)
-        {
-            console.log("Couldn't load user:", this.user_id);
             return;
-        }
 
         helpers.set_class(this.container, "self", this.user_id == global_data.user_id);
 
