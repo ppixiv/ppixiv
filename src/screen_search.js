@@ -1,5 +1,292 @@
 "use strict";
 
+let thumbnail_ui = class extends ppixiv.widget
+{
+    constructor(options)
+    {
+        super({
+            ...options,
+            template: `
+            <div class=thumbnail-ui-box data-context-menu-target=off>
+                <div class="data-source-specific avatar-container" data-datasource="artist illust bookmarks following"></div>
+                <a href=# class="data-source-specific image-for-suggestions" data-datasource=related-illusts>
+                    <!-- A blank image, so we don't load anything: -->
+                    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==">
+                </a>
+
+                <div class=title-with-button-row>
+                    <div class="displaying title-font"></div>
+                    <div style="flex: 1;"></div>
+                    <!-- Links at the top left when viewing a user will be inserted here. -->
+                    <div class="button-row user-links">
+                    </div>
+                </div>
+
+                <div class=button-row>
+                    <a class="disable-ui-button popup" data-popup="Return to Pixiv" href="#no-ppixiv">
+                        <ppixiv-inline class="icon-button grey-icon" src="resources/pixiv-icon.svg"></ppixiv-inline>
+                    </a>
+
+                    <!-- Containing block for :hover highlights on the button: -->
+                    <div>
+                        <div class="grey-icon icon-button popup-menu-box-button popup parent-highlight" data-popup="Search">
+                            <ppixiv-inline src="resources/icon-search.svg"></ppixiv-inline>
+                        </div>
+
+                        <div hidden class="main-search-menu popup-menu-box vertical-list">
+                            <div class="navigation-search-box" style="padding: .25em; margin: .25em;">
+                                <div class=search-box>
+                                    <input class="search-tags keep-menu-open" placeholder=Search>
+
+                                    <span class=search-submit-button>
+                                        <ppixiv-inline src="resources/search-icon.svg"></ppixiv-inline>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="refresh-search-button grey-icon icon-button popup" data-popup="Refresh">
+                        <ppixiv-inline src="resources/refresh-icon.svg"></ppixiv-inline>
+                    </div>
+
+                    <div class="whats-new-button popup" data-popup="What's New" style="margin-right: -2px;">
+                        <ppixiv-inline src="resources/whats-new.svg"></ppixiv-inline>
+                    </div>
+
+                    <div class="settings-menu-box popup" data-popup="Preferences">
+                        <div class="grey-icon parent-highlight icon-button popup-menu-box-button">
+                            <ppixiv-inline src="resources/settings-icon.svg"></ppixiv-inline>
+                        </div>
+                        <div hidden class="popup-menu-box vertical-list">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="data-source-specific box-button-row" data-datasource=discovery>
+                    <a class="box-link popup" data-type=all data-popup="Show all works" href="?mode=all#ppixiv">All</a>
+                    <a class="box-link popup" data-type=safe data-popup="Show all-ages works" href="?mode=safe#ppixiv">All ages</a>
+                    <a class="box-link popup r18" data-type=r18 data-popup="Show R18 works" href="?mode=r18#ppixiv">R18</a>
+                </div>
+
+                <div class="data-source-specific box-button-row" data-datasource=new_illust>
+                    <a class="box-link popup" data-type=new-illust-type-illust data-popup="Show illustrations" href="#">Illustrations</a>
+                    <a class="box-link popup" data-type=new-illust-type-manga data-popup="Show manga only" href="#">Manga</a>
+
+                    <a class="box-link popup" data-type=new-illust-ages-all data-popup="Show all-ages works" href="#">All ages</a>
+                    <a class="box-link popup r18" data-type=new-illust-ages-r18 data-popup="Show R18 works" href="#">R18</a>
+                </div>
+                
+                <div class="data-source-specific" data-datasource=rankings>
+                    <div class=box-button-row>
+                        <a class="nav-tomorrow box-link popup" data-popup="Show the next day" href="#"><span>Next day</span></a>
+                        <span class=nav-today style="margin: 0 0.25em;"></span>
+                        <a class="nav-yesterday box-link popup" data-popup="Show the previous day" href="#"><span>Previous day</span></a>
+                    </div>
+
+                    <div class="checked-links box-button-row">
+                        <a class="box-link popup" data-type=content-all data-popup="Show all works" href="#">All</a>
+                        <a class="box-link popup" data-type=content-illust data-popup="Show illustrations only" href="#">Illustrations</a>
+                        <a class="box-link popup" data-type=content-ugoira data-popup="Show ugoira only" href="#">Ugoira</a>
+                        <a class="box-link popup" data-type=content-manga data-popup="Show manga only" href="#">Manga</a>
+                    </div>
+
+                    <div class="checked-links box-button-row">
+                        <a class="box-link popup" data-type=mode-daily data-popup="Daily rankings" href="#">Daily</a>
+                        <a class="box-link popup r18" data-type=mode-daily-r18 data-popup="Show R18 works (daily only)" href="#">R18</a>
+                        <a class="box-link popup r18g" data-type=mode-r18g data-popup="Show R18G works (weekly only)" href="#">R18G</a>
+                        <a class="box-link popup" data-type=mode-weekly data-popup="Weekly rankings" href="#">Weekly</a>
+                        <a class="box-link popup" data-type=mode-monthly data-popup="Monthly rankings" href="#">Monthly</a>
+                        <a class="box-link popup" data-type=mode-rookie data-popup="Rookie rankings" href="#">Rookie</a>
+                        <a class="box-link popup" data-type=mode-original data-popup="Original rankings" href="#">Original</a>
+                        <a class="box-link popup" data-type=mode-male data-popup="Popular with men" href="#">Male</a>
+                        <a class="box-link popup" data-type=mode-female data-popup="Popular with women" href="#">Female</a>
+                    </div>
+                </div>
+                 
+                <div class="data-source-specific box-button-row" data-datasource=recent>
+                    <a class="box-link popup" data-type=clear-recents data-popup="Clear recent history" href=#>Clear</a>
+                </div>
+                
+                <div class="data-source-specific" data-datasource=bookmarks>
+                    <div class=box-button-row>
+                        <!-- These are hidden if you're viewing somebody else's bookmarks. -->
+                        <span class=bookmarks-public-private style="margin-right: 25px;">
+                            <a class="box-link popup" data-type=all data-popup="Show all bookmarks" href=#>All</a>
+                            <a class="box-link popup" data-type=public data-popup="Show public bookmarks" href=#>Public</a>
+                            <a class="box-link popup" data-type=private data-popup="Show private bookmarks" href=#>Private</a>
+                        </span>
+
+                        <span class=bookmarks-shuffle>
+                            <a class="box-link popup" data-type=order-date data-popup="Show newest bookmarks first" href=#>Newest</a>
+                            <a class="box-link popup" data-type=order-shuffle data-popup="Show in random order" href=#>Shuffle</a>
+                        </span>
+                    </div>
+                </div>                
+
+                <div class="data-source-specific" data-datasource=following>
+                    <div class="follows-public-private box-button-row">
+                        <a class="box-link popup" data-type=public-follows data-popup="Show publically followed users" href=#>Public</a>
+                        <a class="box-link popup" data-type=private-follows data-popup="Show privately followed users" href=#>Private</a>
+                    </div>
+
+                    <div class="follow-tag-list box-button-row">
+                        <span>Follow tags:</span>
+                    </div>
+                </div>                
+                
+                <div class="data-source-specific" data-datasource="bookmarks">
+                    <div class="box-button-row bookmark-tag-list">
+                        <span>Bookmark tags:</span>
+                    </div>
+                </div>
+
+                <div class=data-source-specific data-datasource="bookmarks_new_illust">
+                    <div class=box-button-row>
+                        <a class="box-link popup" data-type=bookmarks-new-illust-all data-popup="Show all works" href="#">All</a>
+                        <a class="box-link popup r18" data-type=bookmarks-new-illust-ages-r18 data-popup="Show R18 works" href="#">R18</a>
+                    </div>
+
+                    <div class=box-button-row>
+                        <div class="follow-new-post-tag-list box-button-row">
+                            <span>Follow tags:</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="data-source-specific" data-datasource=artist>
+                    <div class="box-button-row search-options-row">
+                        <a class="box-link popup" data-type=artist-works data-popup="Show all works" href=#>Works</a>
+                        <a class="box-link popup" data-type=artist-illust data-popup="Show illustrations only" href=#>Illusts</a>
+                        <a class="box-link popup" data-type=artist-manga data-popup="Show manga only" href=#>Manga</a>
+
+                        <div class=member-tags-box>
+                            <div class="box-link popup-menu-box-button">Tags</div>
+                            <div class="popup-menu-box post-tag-list vertical-list"></div>
+                        </div>
+                    </div>
+                </div>
+                 
+                <div class="data-source-specific" data-datasource=search>
+                    <div class="search-page-tag-entry search-box">
+                        <div class="tag-search-box hover-menu-box">
+                            <input class=search-tags placeholder=Tags>
+                            <span class="edit-search-button right-side-button">
+                                <ppixiv-inline src="resources/edit-icon.svg"></ppixiv-inline>
+                            </span>
+
+                            <span class="search-submit-button right-side-button">
+                                <ppixiv-inline src="resources/search-icon.svg"></ppixiv-inline>
+                            </span>
+                        </div>
+
+                        <div class="search-tags-box box-button-row" style="display: inline-block;">
+                            <div class="box-link popup-menu-box-button">Related tags</div>
+                            <div class="popup-menu-box related-tag-list vertical-list"></div>
+                        </div>
+                    </div>
+
+                    <!-- We don't currently have popup text for these, since it's a little annoying to
+                         have it pop over the menu. -->
+                    <div class="box-button-row search-options-row">
+                        <span class="box-link popup-menu-box-button">Ages</span>
+                        <div hidden class="popup-menu-box vertical-list">
+                            <a class=box-link data-type=ages-all data-default=1 href="?mode=all#ppixiv">All</a>
+                            <a class=box-link data-type=ages-safe href="?mode=safe#ppixiv">All ages</a>
+                            <a class="box-link r18" data-type=ages-r18 href="?mode=r18#ppixiv">R18</a>
+                        </div>
+
+                        <span class="box-link popup-menu-box-button">Sort</span>
+                        <div hidden class="popup-menu-box vertical-list">
+                            <a class=box-link data-type=order-newest data-default=1 href="?order=all#ppixiv">Newest</a>
+                            <a class=box-link data-type=order-oldest href="?order=all#ppixiv">Oldest</a>
+                            <a class="box-link premium-only" data-type=order-all href="?order=popular_d#ppixiv">Popularity</a>
+                            <a class="box-link premium-only" data-type=order-male href="?order=popular_male_d#ppixiv" data-short-label="Popular ♂">Popular with men</a>
+                            <a class="box-link premium-only" data-type=order-female href="?order=popular_female_d#ppixiv" data-short-label="Popular ♀">Popular with women</a>
+                        </div>
+
+                        <span class="box-link popup-menu-box-button">Type</span>
+                        <div hidden class="popup-menu-box vertical-list">
+                            <a class=box-link data-type=search-type-all data-default=1 href="?type=all#ppixiv">All</a>
+                            <a class=box-link data-type=search-type-illust data-short-label="Illusts" href="?type=illust#ppixiv">Illustrations</a>
+                            <a class=box-link data-type=search-type-manga href="?type=manga#ppixiv">Manga</a>
+                            <a class=box-link data-type=search-type-ugoira href="?type=ugoira#ppixiv">Ugoira</a>
+                        </div>
+
+                        <span class="box-link popup-menu-box-button">Search mode</span>
+                        <div hidden class="popup-menu-box vertical-list">
+                            <a class=box-link data-type=search-all data-default=1 href="?#ppixiv">Tag</a>
+                            <a class=box-link data-type=search-exact data-short-label="Exact match" href="?s_mode=s_tag_full#ppixiv">Exact tag match</a>
+                            <a class=box-link data-type=search-text href="?s_mode=s_tc#ppixiv">Text search</a>
+                        </div>
+
+                        <span class="box-link popup-menu-box-button">Image size</span>
+                        <div hidden class="popup-menu-box vertical-list">
+                            <a class=box-link data-type=res-all data-default=1 href="#">All</a>
+                            <a class=box-link data-type=res-high href="?wlt=3000&hlt=3000#ppixiv">High-res</a>
+                            <a class=box-link data-type=res-medium href="?wlt=1000&wgt=2999&hlt=1000&hgt=2999#ppixiv">Medium-res</a>
+                            <a class=box-link data-type=res-low href="?wgt=999&hgt=999#ppixiv">Low-res</a>
+                        </div>
+                        
+                        <span class="box-link popup-menu-box-button">Aspect ratio</span>
+                        <div hidden class="popup-menu-box vertical-list">
+                            <a class=box-link data-type=aspect-ratio-all data-default=1 href="?ratio=0.5#ppixiv">All</a>
+                            <a class=box-link data-type=aspect-ratio-landscape href="?ratio=0.5#ppixiv">Landscape</a>
+                            <a class=box-link data-type=aspect-ratio-portrait href="?ratio=-0.5#ppixiv">Portrait</a>
+                            <a class=box-link data-type=aspect-ratio-square href="?ratio=0#ppixiv">Square</a>
+                        </div>
+
+                        <span class="box-link popup-menu-box-button premium-only">Bookmarks</span>
+                        <div hidden class="popup-menu-box vertical-list">
+                            <!-- The Pixiv search form shows 300-499, 500-999 and 1000-.  That's not
+                                 really useful and the query parameters let us filter differently, so we
+                                 replace it with a more useful "minimum bookmarks" filter. -->
+                            <a class=box-link data-type=bookmarks-all data-default=1 href="#ppixiv">All</a>
+                            <a class=box-link data-type=bookmarks-100 href=#>100+</a>
+                            <a class=box-link data-type=bookmarks-250 href=#>250+</a>
+                            <a class=box-link data-type=bookmarks-500 href=#>500+</a>
+                            <a class=box-link data-type=bookmarks-1000 href=#>1000+</a>
+                            <a class=box-link data-type=bookmarks-2500 href=#>2500+</a>
+                            <a class=box-link data-type=bookmarks-5000 href=#>5000+</a>
+                        </div>
+                       
+                        <span class="box-link popup-menu-box-button premium-only">Time</span>
+                        <div hidden class="popup-menu-box vertical-list">
+                            <a class=box-link data-type=time-all data-default=1 href="#">All</a>
+                            <a class=box-link data-type=time-week data-short-label="Weekly" href="#">This week</a>
+                            <a class=box-link data-type=time-month data-short-label="Monthly" href="#">This month</a>
+                            <a class=box-link data-type=time-year data-short-label="Yearly" href="#">This year</a>
+                            <div class=years-ago>
+                                <a class=box-link data-type=time-years-ago-1 data-short-label="1 year" href="#">1</a>
+                                <a class=box-link data-type=time-years-ago-2 data-short-label="2 years" href="#">2</a>
+                                <a class=box-link data-type=time-years-ago-3 data-short-label="3 years" href="#">3</a>
+                                <a class=box-link data-type=time-years-ago-4 data-short-label="4 years" href="#">4</a>
+                                <a class=box-link data-type=time-years-ago-5 data-short-label="5 years" href="#">5</a>
+                                <a class=box-link data-type=time-years-ago-6 data-short-label="6 years" href="#">6</a>
+                                <a class=box-link data-type=time-years-ago-7 data-short-label="7 years" href="#">7</a>
+                                <span>years ago</span>
+                            </div>
+                        </div>
+                        
+                        <a href=# class="reset-search box-link popup" data-popup="Clear all search options">Reset</a>
+                    </div>
+                </div>
+
+                <div class="search-box data-source-specific" data-datasource=search-users>
+                    <div class="user-search-box hover-menu-box">
+                        <input class=search-users placeholder="Search users">
+
+                        <span class="search-submit-button right-side-button">
+                            <ppixiv-inline src="resources/search-icon.svg"></ppixiv-inline>
+                        </span>
+                    </div>
+                </div>
+            </div>
+            `
+        });
+    }
+}
+
 // The search UI.
 ppixiv.screen_search = class extends ppixiv.screen
 {
@@ -27,6 +314,11 @@ ppixiv.screen_search = class extends ppixiv.screen
 
         // When a bookmark is modified, refresh the heart icon.
         image_data.singleton().illust_modified_callbacks.register(this.refresh_thumbnail);
+
+        new thumbnail_ui({
+            parent: this,
+            container: this.container.querySelector(".thumbnail-ui-box-container"),
+        });
 
         this.create_main_search_menu();
 
