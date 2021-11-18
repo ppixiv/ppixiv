@@ -2,3 +2,4 @@ userdir
 output
 chrome
 unused
+**/__pycache__
