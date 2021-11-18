@@ -6,27 +6,35 @@ ppixiv.widget = class
     constructor({
         container,
         template=null,
+        contents=null,
         parent=null,
         visible=true,
         ...options}={})
     {
-        console.assert(container != null);
         this.options = options;
         this.templates = {};
 
-        // template is the HTML template for this element.
+        // We must have either a template or contents.
         if(template)
         {
-            let contents = this.create_template({html: template});
-            container.appendChild(contents);
-            container = contents;
+            console.assert(contents == null);
+            console.assert(container != null);
+            this.container = this.create_template({html: template});
+            container.appendChild(this.container);
+        }
+        else
+        {
+            // contents is a widget that's already created.  The container is always
+            // the parent of contents, so container shouldn't be specified in this mode.
+            console.assert(container == null);
+            console.assert(contents != null);
+            this.container = contents;
         }
 
-        container.classList.add("widget");
-        container.widget = this;
+        this.container.classList.add("widget");
+        this.container.widget = this;
 
         this.parent = parent;
-        this.container = container;
 
         // If we're visible, we'll unhide below.
         // grr

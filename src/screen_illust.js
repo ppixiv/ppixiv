@@ -286,7 +286,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
         {
             let image_container = this.container.querySelector(".image-container");
             this.viewer = new viewer_class({
-                container: image_container,
+                contents: image_container,
                 progress_bar: this.progress_bar.controller(),
                 manga_page_bar: this.manga_page_bar,
                 seek_bar: this.seek_bar,
@@ -337,7 +337,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
         let image_container = this.container.querySelector(".image-container");
         this.remove_viewer();
         this.viewer = new viewer_muted({
-            container: image_container,
+            contents: image_container,
             illust_id: this.current_illust_id,
         });
         this._hide_image = false;

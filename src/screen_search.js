@@ -338,7 +338,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         
         // Create the tag widget used by the search data source.
         this.tag_widget = new tag_widget({
-            container: this.container.querySelector(".related-tag-list"),
+            contents: this.container.querySelector(".related-tag-list"),
         });
 
         // Don't scroll thumbnails when scrolling tag dropdowns.
@@ -431,10 +431,10 @@ ppixiv.screen_search = class extends ppixiv.screen
         settings.register_change_callback("no_recent_history", this.update_from_settings);
          
         // Create the tag dropdown for the search page input.
-        new tag_search_box_widget({ container: this.container.querySelector(".tag-search-box") });
+        new tag_search_box_widget({ contents: this.container.querySelector(".tag-search-box") });
             
         // Create the tag dropdown for the search input in the menu dropdown.
-        new tag_search_box_widget({ container: this.container.querySelector(".navigation-search-box") });
+        new tag_search_box_widget({ contents: this.container.querySelector(".navigation-search-box") });
 
         // Handle submitting searches on the user search page.
         this.container.querySelector(".user-search-box .search-submit-button").addEventListener("click", this.submit_user_search);

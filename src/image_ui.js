@@ -143,7 +143,7 @@ ppixiv.image_ui = class extends ppixiv.widget
         });
 
         this.tag_widget = new tag_widget({
-            container: this.container.querySelector(".tag-list"),
+            contents: this.container.querySelector(".tag-list"),
         });
 
         // Set up hover popups.
@@ -157,21 +157,21 @@ ppixiv.image_ui = class extends ppixiv.widget
         });
         this.toggle_tag_widget = new toggle_dropdown_menu_widget({
             parent: this,
-            container: this.container.querySelector(".button-bookmark-tags"),
+            contents: this.container.querySelector(".button-bookmark-tags"),
             bookmark_tag_widget: this.bookmark_tag_widget,
             require_image: true,
         });
         this.like_button = new like_button_widget({
             parent: this,
-            container: this.container.querySelector(".button-like"),
+            contents: this.container.querySelector(".button-like"),
         });
         this.like_count_widget = new like_count_widget({
             parent: this,
-            container: this.container.querySelector(".button-like .count"),
+            contents: this.container.querySelector(".button-like .count"),
         });
         this.bookmark_count_widget = new bookmark_count_widget({
             parent: this,
-            container: this.container.querySelector(".button-bookmark .count"),
+            contents: this.container.querySelector(".button-bookmark .count"),
         });
 
         // The bookmark buttons, and clicks in the tag dropdown:
@@ -179,7 +179,7 @@ ppixiv.image_ui = class extends ppixiv.widget
         for(var a of this.container.querySelectorAll(".button-bookmark"))
             this.bookmark_buttons.push(new bookmark_button_widget({
                 parent: this,
-                container: a,
+                contents: a,
                 private_bookmark: a.classList.contains("private"),
                 bookmark_tag_widget: this.bookmark_tag_widget,
             }));

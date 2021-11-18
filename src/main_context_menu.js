@@ -583,31 +583,31 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
             bookmark_tag_widget,
             more_options_widget,
             new toggle_dropdown_menu_widget({
-                container: this.container.querySelector(".button-bookmark-tags"),
+                contents: this.container.querySelector(".button-bookmark-tags"),
                 parent: this,
                 bookmark_tag_widget: bookmark_tag_widget,
                 require_image: true,
             }),
             new toggle_dropdown_menu_widget({
-                container: this.container.querySelector(".button-more"),
+                contents: this.container.querySelector(".button-more"),
                 parent: this,
                 bookmark_tag_widget: more_options_widget,
             }),
             new like_button_widget({
                 parent: this,
-                container: this.container.querySelector(".button-like"),
+                contents: this.container.querySelector(".button-like"),
             }),
             new like_count_widget({
                 parent: this,
-                container: this.container.querySelector(".button-like .count"),
+                contents: this.container.querySelector(".button-like .count"),
             }),
             new context_menu_image_info_widget({
                 parent: this,
-                container: this.container.querySelector(".context-menu-image-info"),
+                contents: this.container.querySelector(".context-menu-image-info"),
             }),
             new bookmark_count_widget({
                 parent: this,
-                container: this.container.querySelector(".button-bookmark.public .count")
+                contents: this.container.querySelector(".button-bookmark.public .count")
             }),
         ];
 
@@ -617,7 +617,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
             let private_bookmark = a.classList.contains("private");
             this.illust_widgets.push(new bookmark_button_widget({
                 parent: this,
-                container: a,
+                contents: a,
                 private_bookmark: private_bookmark,
                 bookmark_tag_widget, bookmark_tag_widget
             }));
