@@ -685,6 +685,28 @@ ppixiv.helpers = {
         return to_plural("year", 1, years);
     },
 
+    format_seconds(total_seconds)
+    {
+        total_seconds = Math.floor(total_seconds);
+
+        let result = "";
+        let seconds = total_seconds % 60; total_seconds = Math.floor(total_seconds / 60);
+        let minutes = total_seconds % 60; total_seconds = Math.floor(total_seconds / 60);
+        let hours = total_seconds % 24;
+
+        result = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+        if(hours > 0)
+        {
+            // Pad minutes to two digits if we have hours.
+            result = result.padStart(5, '0');
+
+            result = hours + ":" + result;
+        }
+
+        return result;
+    },
+
     get_extension: function(fn)
     {
         var parts = fn.split(".");

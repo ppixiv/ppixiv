@@ -220,6 +220,41 @@ textarea:focus, input:focus, a:focus {
     }
 }
 
+.video-ui
+{
+    bottom: 0;
+    width: 100%;
+    height: 3em;
+    background-color: rgba(0,0,0,0.5);
+    user-select: none;
+    display: flex;
+    flex-direction: row;
+    color: #ffffff;
+    align-items: center;
+    padding: 0 1em;
+    gap: 10px;
+
+    > .time {
+        font-family: Roboto,Arial,Helvetica,sans-serif;
+        font-size: 1.2em;
+    }
+
+    .volume-slider {
+        width: 100px;
+        height: 100%;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        margin-right: -10px;
+
+        > .volume-line {
+            height: 4px;
+            width: 100px;
+            flex: 1;
+        }
+    }
+}
+
 .title-font {
     font-weight: 700;
     font-size: 20px;

@@ -65,6 +65,11 @@ ppixiv.screen_illust = class extends ppixiv.screen
         this.manga_page_bar = new progress_bar(this.container.querySelector(".ui-box")).controller();
 
         this.seek_bar = new seek_bar(this.container.querySelector(".video-ui-container"));
+        this.video_ui = new ppixiv.video_ui({
+            container: this.container.querySelector(".video-ui-container"),
+            parent: this,
+        });
+        this.video_ui.visible = false;
         new hide_seek_bar(this.container.querySelector(".video-ui-container"));
 
         this.set_active(false, { });
@@ -137,6 +142,8 @@ ppixiv.screen_illust = class extends ppixiv.screen
     // Show an image.  If manga_page is -1, show the last page.
     async show_image(illust_id, manga_page, restore_history)
     {
+        console.assert(illust_id != null);
+
         helpers.set_class(document.body,  "force-ui", unsafeWindow.debug_show_ui);
 
         // Reset the manga page change indicator when we change images.
@@ -292,6 +299,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
                 progress_bar: this.progress_bar.controller(),
                 manga_page_bar: this.manga_page_bar,
                 seek_bar: this.seek_bar,
+                video_ui: this.video_ui,
             });
         }
 

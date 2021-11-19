@@ -42,6 +42,7 @@ source_files = [
     'src/viewer_images.js',
     'src/viewer_muted.js',
     'src/viewer_ugoira.js',
+    'src/viewer_video.js',
     'src/zip_image_player.js',
     'src/screen.js',
     'src/screen_illust.js',
