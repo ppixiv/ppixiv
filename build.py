@@ -25,6 +25,7 @@ source_files = [
     'src/settings.js',
     'src/fix_chrome_clicks.js',
     'src/widgets.js',
+    'src/local_widgets.js',
     'src/menu_option.js',
     'src/main_context_menu.js',
     'src/create_zip.js',
