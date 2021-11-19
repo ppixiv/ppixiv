@@ -422,37 +422,38 @@ ppixiv.thumbnail_data = class
     // userId
     // userName
     // profileImageUrl
-    add_quick_user_data(user_data, source)
+    add_quick_user_data(source_data, source)
     {
         let data = null;
+        let id = source_data.userId;
         if(source == "following")
         {
             data = {
-                userId: user_data.userId,
-                userName: user_data.userName,
-                profileImageUrl: user_data.profileImageUrl,
+                userId: source_data.userId,
+                userName: source_data.userName,
+                profileImageUrl: source_data.profileImageUrl,
             };
         }
         else if(source == "recommendations")
         {
             data = {
-                userId: user_data.userId,
-                userName: user_data.name,
-                profileImageUrl: user_data.imageBig,
+                userId: source_data.userId,
+                userName: source_data.name,
+                profileImageUrl: source_data.imageBig,
             };
         }
         else if(source == "users_bookmarking_illust" || source == "user_search")
         {
             data = {
-                userId: user_data.user_id,
-                userName: user_data.user_name,
-                profileImageUrl: user_data.profile_img,
+                userId: source_data.user_id,
+                userName: source_data.user_name,
+                profileImageUrl: source_data.profile_img,
             };
         }
         else
             throw "Unknown source: " + source;
 
-        this.quick_user_data[data.userId] = data;        
+        this.quick_user_data[id] = data;        
     }
 
     get_quick_user_data(user_id)
