@@ -63,7 +63,9 @@ ppixiv.screen_illust = class extends ppixiv.screen
 
         // A bar showing how far along in an image sequence we are:
         this.manga_page_bar = new progress_bar(this.container.querySelector(".ui-box")).controller();
-        this.seek_bar = new seek_bar(this.container.querySelector(".ugoira-seek-bar"));
+
+        this.seek_bar = new seek_bar(this.container.querySelector(".video-ui-container"));
+        new hide_seek_bar(this.container.querySelector(".video-ui-container"));
 
         this.set_active(false, { });
         this.flashed_page_change = false;

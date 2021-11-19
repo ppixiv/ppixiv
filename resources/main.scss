@@ -166,15 +166,10 @@ textarea:focus, input:focus, a:focus {
 
 /* .seek-bar is the outer seek bar area, which is what can be dragged. */
 .seek-bar {
-    position: absolute;
-    bottom: 0px;
-    left: 0px;
     width: 100%;
-
     box-sizing: content-box;
     height: 12px;
     padding-top: 25px;
-
     cursor: pointer;
 
     .seek-empty {
@@ -186,22 +181,42 @@ textarea:focus, input:focus, a:focus {
         background-color: #F00;
         height: 100%;
     }
+}
 
+// This holds the seek bar and video UI.
+.video-ui-container
+{
+    position: absolute;
+    bottom: 0px;
+    left: 0px;
+    width: 100%;
+
+    transition: transform .25s, opacity .25s;
+    opacity: 0;
+
+    /* Hide the seek bar by default.  Show it when the mouse is visible or .visible is set
+     * (50% height).  Expand it while dragging (100% height). */
     .seek-empty {
         transition: transform .25s;
-        transform: translate(0, 12px);
+        transform: scale(100%, 0%);
+        transform-origin: bottom;
     }
 
-    /* Hide the seek bar by default (move down by 12px).  Show it when the mouse is visible
-     * or .visible is set (move down by 6px).  Expand it while dragging (0px). */
-    .mouse-hidden-box.show-cursor &         .seek-empty,
-                                  &.visible .seek-empty
+    // .mouse-hidden-box.show-cursor means the mouse has moved recently.  &.visible means
+    // the mouse is over the UI, and we'll keep it visible even if the mouse isn't moving.
+    .mouse-hidden-box.show-cursor &,
+    &.visible
     {
-        transform: translate(0, 6px);
+        opacity: 1;
+
+        .seek-empty
+        {
+            transform: scale(100%, 50%);
+        }
     }
 
-    &.dragging .seek-empty {
-        transform: translate(0, 0);
+    .seek-bar.dragging .seek-empty {
+        transform: scale(100%, 100%) !important;
     }
 }
 
