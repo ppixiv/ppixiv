@@ -4,9 +4,8 @@ from pprint import pprint
 
 import aiohttp
 from aiohttp import web
-from aiohttp.web_fileresponse import FileResponse
 
-from . import api, thumbs
+from . import api, misc, thumbs
 
 @web.middleware
 async def check_origin(request, handler):
@@ -43,38 +42,36 @@ def create_handler_for_command(handler):
 
         try:
             result = await handler(info)
-        except api.Error as e:
+        except misc.Error as e:
             result = e.data()
         except Exception as e:
             traceback.print_exception(e)
-            result = { 'success': False, 'code': 'internal-error', 'message': 'Server error' }
+            stack = traceback.format_exception(e)
+            result = { 'success': False, 'code': 'internal-error', 'message': str(e), 'stack': stack }
 
         # Don't use web.JsonResponse.  It doesn't let us control JSON formatting
         # and gives really ugly JSON.
         data = json.dumps(result, indent=4, ensure_ascii=False) + '\n'
-        return web.Response(body=data, content_type='application/json')
+
+        # If this is an error, return 500 with the message in the status line.  This isn't
+        # part of the API, it's just convenient for debugging.
+        status = 200
+        message = 'OK'
+        if not result.get('success'):
+            status = 500
+            message = result.get('message')
+        return web.Response(body=data, status=status, reason=message, content_type='application/json')
 
     return handle
-
-# Serve file requests.
-async def handle_file(request):
-    illust_id = request.match_info['id']
-
-    absolute_path = api.resolve_thumbnail_path(illust_id)
-    if not absolute_path.is_file():
-        raise aiohttp.web.HTTPNotFound()
-
-    return FileResponse(absolute_path, headers={
-        'Cache-Control': 'public, immutable',
-    })
 
 # logging.basicConfig(level=logging.DEBUG)
 
 def go():
     app = web.Application(middlewares=(check_origin,))
 
-    app.router.add_get('/file/{id:.+}', handle_file)
+    app.router.add_get('/file/{id:.+}', thumbs.handle_file)
     app.router.add_get('/thumb/{id:.+}', thumbs.handle_thumb)
+    app.router.add_get('/poster/{id:.+}', thumbs.handle_poster)
 
     # Add a handler for each API call.
     for command, func in api.handlers.items():

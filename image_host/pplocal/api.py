@@ -3,9 +3,15 @@ from PIL import Image
 from datetime import datetime, timezone
 from pprint import pprint
 from collections import OrderedDict, namedtuple
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
-from . import windows_search
+# cv2 is used to get the dimensions of video files.  It ultimately just calls ffmpeg,
+# but it's much faster than running ffprobe in a subprocess.  XXX: are there any usable
+# direct ffmpeg bindings, cv2 is big and its video API is too basic to do anything else
+# with
+import cv2
+
+from . import windows_search, misc, image_paths
 
 handlers = {}
 
@@ -37,104 +43,19 @@ def reg(command):
 # mkv/mp4 support
 # gif -> mkv/mp4
 
-archives = {
-}
-
-def supported_filetype(path):
-    _, ext = os.path.splitext(path)
-    ext = ext.lower()
-    return ext in ('.png', '.jpg', '.jpeg', '.bmp', '.gif')
-
-class Error(Exception):
-    def __init__(self, code, reason):
-        self.code = code
-        self.reason = reason
-    def data(self):
-        return {
-            'success': False,
-            'code': self.code,
-            'reason': self.reason,
-        }
-
-# Given an ID, return the ID without the type prefix.
-def get_base_path(illust_id):
-    # IDs never end with a slash.
-    assert not illust_id.endswith('/'), illust_id
-
-    if illust_id.startswith('file:'):
-        id_path = illust_id[5:]
-    elif illust_id.startswith('folder:'):
-        id_path = illust_id[7:]
-    else:
-        raise Error('not-found', 'Invalid ID "%s"' % illust_id)
-
-    # IDs never start with a slash.
-    if id_path.startswith('/'):
-        raise Error('not-found', 'Invalid ID "%s"' % illust_id)
-
-    return id_path
-
-# Given a folder: or file: ID, return the absolute path to the file or directory.
-# If it isn't valid, raise Error.
-#
-# For performance, this doesn't check if the file exists.
-def resolve_path(illust_id):
-    path = get_base_path(illust_id)
-
-    # Split the archive name from the path.
-    parts = path.split('/')
-    archive = parts[0]
-    path = Path('/'.join(parts[1:]))
-
-    if path.anchor:
-        raise Error('invalid-request', 'Invalid request')
-
-    top_dir = archives.get(archive)
-    if top_dir is None:
-        raise Error('not-found', 'Archive %s doesn\'t exist' % archive)
-    result = top_dir / path
-
-    if '..' in result.parts:
-        raise Error('invalid-request', 'Invalid request')
-    return result
-
 class RequestInfo:
     def __init__(self, request, base_url):
         self.request = request
         self.base_url = base_url
 
-def resolve_thumbnail_path(illust_id):
-    """
-    Return the local path to the file to use as the thumbnail for illust_id.
-
-    If illust_id is a local: file, return the file.  If it's a directory, return
-    the first image in the directory.  If there's no image to use, return None.
-    """
-    absolute_path = resolve_path(illust_id)
-    if not illust_id.startswith('folder:'):
-        return absolute_path
-
-    # Find the first image and use that as the thumbnail.
-    for idx, file in enumerate(os.scandir(absolute_path)):
-        if idx > 50:
-            # In case this is a huge directory with no images, don't look too far.
-            # If there are this many non-images, it's probably not an image directory
-            # anyway.
-            break
-
-        # Ignore nested directories.
-        if file.is_dir(follow_symlinks=False):
-            continue
-
-        # XXX: support videos too
-        if not supported_filetype(file.name):
-            continue
-
-        return absolute_path / file.name
-
-    return absolute_path
-
 def get_image_dimensions(path):
+    filetype = image_paths.file_type(path)
+    if filetype == 'video':
+        video = cv2.VideoCapture(str(path))
+        height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
+        return width, height
+
     try:
         image = Image.open(path)
     except OSError as e:
@@ -144,9 +65,9 @@ def get_image_dimensions(path):
     return image.size
 
 def get_dir_info(illust_id):
-    absolute_path = resolve_path(illust_id)
+    absolute_path = image_paths.resolve_path(illust_id)
     if not os.path.isdir(absolute_path):
-        raise Error('not-found', 'Not a directory')
+        raise misc.Error('not-found', 'Not a directory')
 
     # Use the directory's mtime as the post time.
     mtime = os.stat(absolute_path).st_mtime
@@ -174,18 +95,21 @@ def get_illust_info(illust_id, base_url):
     # Info for an illust never ends with a slash.  Verify this to make sure this doesn't
     # start happening by accident.
     assert not illust_id.endswith('/')
-    absolute_path = resolve_path(illust_id)
+    absolute_path = image_paths.resolve_path(illust_id)
 
     # Ignore this file if it's not a supported file type.
-    if not supported_filetype(illust_id):
-        raise Error('unsupported', 'Unsupported file type')
+    filetype = image_paths.file_type(illust_id)
+    if filetype is None:
+        raise misc.Error('unsupported', 'Unsupported file type')
 
     remote_image_path = base_url + '/file/' + urllib.parse.quote(illust_id, safe='/')
     remote_thumb_path = base_url + '/thumb/' + urllib.parse.quote(illust_id, safe='/')
+    remote_poster_path = base_url + '/poster/' + urllib.parse.quote(illust_id, safe='/')
 
+    # Get the image dimensions.
     size = get_image_dimensions(absolute_path)
     if size is None:
-        raise Error('not-found', 'Image not found')
+        raise misc.Error('unsupported', 'Unsupported file type')
 
     mtime = os.stat(absolute_path).st_mtime
 
@@ -198,6 +122,10 @@ def get_illust_info(illust_id, base_url):
         },
     }]
 
+    # If this is a video, add the poster path.
+    if filetype == 'video':
+        pages[0]['urls']['poster'] = remote_poster_path
+
     modified = datetime.fromtimestamp(mtime, tz=timezone.utc)
     timestamp = modified.isoformat().replace('T', ' ')
     preview_urls = [page['urls']['small'] for page in pages]
@@ -205,7 +133,12 @@ def get_illust_info(illust_id, base_url):
     image_info = {
         'id': illust_id,
         'previewUrls': preview_urls,
-        'illustType': 0, # image
+
+        # Pixiv uses 0 for images, 1 for manga and 2 for their janky MJPEG format.
+        # We use a string "video" for videos instead of assigning another number.  It's
+        # more meaningful, and we're unlikely to collide if they decide to add additional
+        # illustTypes.
+        'illustType': 0 if filetype == 'image' else 'video',
         'illustTitle': os.path.basename(absolute_path),
         'userId': -1,
         'pageCount': len(pages),
@@ -287,6 +220,7 @@ async def api_list(info):
         # Start the request.
         result_generator = api_list_impl(info)
 
+
     # When we're just reading the next page of results from a continued search,
     # skip is 0 and we'll just load a single page.  We'll only loop here if we're
     # skipping ahead to restart a search.
@@ -297,7 +231,6 @@ async def api_list(info):
                 return next(result_generator)
             except StopIteration:
                 # The API results should never raise StopIteration.
-                # XXX
                 assert False
 
         next_results = await asyncio.to_thread(run)
@@ -352,29 +285,16 @@ def api_list_impl(info):
     try:
         illust_id = info.request['id']
     except KeyError:
-        raise Error('invalid-request', 'Invalid request')
+        raise misc.Error('invalid-request', 'Invalid request')
+
+    assert illust_id.startswith('folder:')
 
     search = info.request.get('search')
     limit = int(info.request.get('limit', 50))
 
-    assert illust_id.startswith('folder:')
-
-    # The root directory has no files.
-    if illust_id == 'folder:':
-        yield {
-            'success': True,
-            'files': [],
-        }
-        return
-
-    absolute_path = resolve_path(illust_id)
-
-    # This API is only for listing directories and doesn't do anything with files.
-    if absolute_path.is_file():
-        raise Error('not-found', 'Path is a file')
-
-    if not absolute_path.is_dir():
-        raise Error('not-found', 'Path doesn\'t exist')
+    # If true, this request is for the tree sidebar.  Don't include files, so we can scan
+    # more quickly, and return all results instead of paginating.
+    directories_only = int(info.request.get('directories_only', False))
 
     file_info = []
     def flush(*, last):
@@ -391,86 +311,65 @@ def api_list_impl(info):
         return result
 
     # Yield (filename, is_dir) for this search.
-    def _get_files(path):
-        if search is not None:
-            for file, is_dir in windows_search.search(path, search):
+    def _get_files():
+        if search is None:
+            # The root directory contains each archive path.
+            if illust_id == 'folder:/':
+                for archive in image_paths.archives.keys():
+                    yield Path(illust_id) / archive, True
+                return
+
+            path = image_paths.resolve_path(illust_id, dir_only=True)
+            for path in os.scandir(path):
+                yield Path(illust_id) / path.name, path.is_dir(follow_symlinks=False)
+
+            return
+
+        # Make a list of directories to search.
+        paths_to_search = []
+
+        if illust_id == 'folder:/':
+            for name, archive in image_paths.archives.items():
+                paths_to_search.append(('folder:/' + name, archive))
+        else:
+            absolute_path = image_paths.resolve_path(illust_id, dir_only=True)
+            paths_to_search.append((illust_id, absolute_path))
+
+        for this_illust_id, path in paths_to_search:
+            for file, is_dir in windows_search.search(path, search, include_files=not directories_only):
                 # file is an absolute path.  Get the relative path.
                 file = Path(file).relative_to(path)
-                yield file, is_dir
-        else:
-            for file in os.scandir(path):
-                yield Path(file.name), file.is_dir(follow_symlinks=False)
+                yield this_illust_id / file, is_dir
 
-    for file, is_dir in _get_files(absolute_path):
-        assert '..' not in file.parts
-        this_illust_id = illust_id + '/' + file.as_posix()
+    for this_illust_id, is_dir in _get_files():
+        assert '..' not in this_illust_id.parts
+        this_illust_id = this_illust_id.as_posix()
 
-        if is_dir:
-            entry = get_dir_info(this_illust_id)
-        else:
-            # Replace folder: with file:.
-            this_illust_id = set_scheme(this_illust_id, 'file')
+        try:
+            if is_dir:
+                entry = get_dir_info(this_illust_id)
+            elif not directories_only:
+                # Replace folder: with file:.
+                this_illust_id = set_scheme(this_illust_id, 'file')
 
-            try:
                 entry = get_illust_info(this_illust_id, info.base_url)
-            except Error as e:
+            else:
                 continue
+        except misc.Error as e:
+            continue
 
         file_info.append(entry)
 
-        if len(file_info) >= limit:
+        if not directories_only and len(file_info) >= limit:
             yield flush(last=False)
 
     while True:
         yield flush(last=True)
 
-@reg('/dirs')
-async def api_dirs(info):
-    """
-    Return subfolders of a folder.
-
-    This is used for the sidebar navigation tree.  It only returns folders, and doesn't support
-    searching or incremental results.
-
-    XXX: can this just be done with /list and a flag to say nonincremental
-    """
-    try:
-        illust_id = info.request['id']
-    except KeyError:
-        raise Error('invalid-request', 'Invalid request')
-
-    # If this is the root, just return archives in dir_info.
-    if illust_id == 'folder:':
-        return {
-            'success': True,
-            'subdirs': [{ 'name': 'folder:%s' % archive} for archive in archives.keys()],
-        }
-
-    absolute_path = resolve_path(illust_id)
-
-    # This API is only for listing directories and doesn't do anything with files.
-    if not os.path.isdir(absolute_path):
-        raise Error('not-found', 'Path doesn\'t exist')
-
-    dir_info = []
-    for file in os.scandir(absolute_path):
-        this_illust_id = illust_id + '/' + file.name
-        if not file.is_dir(follow_symlinks=False):
-            continue
-
-        dir_info.append({
-            'name': this_illust_id,
-        })
-
-    return {
-        'success': True,
-        'subdirs': dir_info,
-    }
-
 @reg('/view')
 async def api_illust(info):
     illust_id = info.request['id']
-    absolute_path = resolve_path(illust_id)
+    absolute_path = image_paths.resolve_path(illust_id)
     print(absolute_path)
 
     # XXX

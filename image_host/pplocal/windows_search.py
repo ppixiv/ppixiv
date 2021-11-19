@@ -28,38 +28,47 @@ def search(top, substr, include_dirs=True, include_files=True):
         print('Couldn\'t connect to search: %s' % str(e))
         return
 
-    try:    
-        where = []
-        where.append("scope = '%s'" % escape_sql(top))
-        where.append("CONTAINS(System.FileName, '%s')" % escape_sql(substr))
+    try:
+        with conn:
+            # First search for directories, then files, sorting each by filename.  I haven't
+            # found a functioning way to do this with this pidgin not-really-SQL API.
+            for search_directories in (True, False):
+                if search_directories and not include_dirs:
+                    continue
+                if not search_directories and not include_files:
+                    continue
 
-        if not include_dirs:
-            where.append("System.Kind <> 'Folder'")
-        if not include_files:
-            where.append("System.Kind = 'Folder'")
-        query = """
-            SELECT System.ItemPathDisplay, System.Kind
-            FROM SystemIndex 
-            WHERE %(where)s
-            ORDER BY System.ItemPathDisplay
-        """ % {
-            'where': ' AND '.join(where),
-        }
+                where = []
+                where.append("scope = '%s'" % escape_sql(top))
+                for word in substr.split(' '):
+                    where.append("CONTAINS(System.FileName, '%s')" % escape_sql(word))
 
-        cursor = conn.cursor()
-        cursor.execute(query)
-        try:
-            while True:
-                row = cursor.fetchone()
-                if row is None:
-                    break
+                if search_directories:
+                    where.append("System.ItemType = 'Directory'")
+                else:
+                    where.append("System.ItemType <> 'Directory'")
 
-                path, file_type = row
-                yield path, file_type == ('folder',)
-        finally:
-            cursor.close()
-    finally:
-        conn.close()
+                query = """
+                    SELECT System.ItemPathDisplay
+                    FROM SystemIndex 
+                    WHERE %(where)s
+                    ORDER BY System.FileName ASC
+                """ % {
+                    'where': ' AND '.join(where),
+                }
+
+                with conn.cursor() as cursor:
+                    cursor.execute(query)
+                    while True:
+                        row = cursor.fetchone()
+                        if row is None:
+                            break
+
+                        path, = row
+
+                        yield path, search_directories
+    except Exception as e:
+        print('Windows search error:', e)
 
 def test():
     for path, is_dir in search(Path('e:/'), 'a', include_files=False):
