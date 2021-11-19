@@ -517,7 +517,11 @@ ppixiv.data_source = class
     // This is only used if supports_start_page is true.
     set_start_page(args, page)
     {
-        args.query.set("p", page);
+        // Remove the page for page 1 to keep the initial URL clean.
+        if(page == 1)
+            args.query.delete("p");
+        else
+            args.query.set("p", page);
     }
 
     get_start_page(args)
@@ -3215,7 +3219,6 @@ ppixiv.data_sources.recent = class extends data_source
 {
     get name() { return "recent"; }
 
-    // Implement data_source_fake_pagination:
     async load_page_internal(page)
     {
         // Read illust_ids once and paginate them so we don't return them all at once.
