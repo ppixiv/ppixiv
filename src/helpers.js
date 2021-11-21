@@ -976,6 +976,14 @@ ppixiv.helpers = {
         });
     },
 
+    toggle_fullscreen()
+    {
+        if(!document.fullscreenElement)
+            document.documentElement.requestFullscreen();
+        else
+            document.exitFullscreen();
+    },
+    
     set_recent_bookmark_tags(tags)
     {
         settings.set("recent-bookmark-tags", JSON.stringify(tags));

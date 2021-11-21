@@ -1142,10 +1142,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         e.preventDefault();
         e.stopPropagation();
 
-        if(!document.fullscreenElement)
-            document.documentElement.requestFullscreen();
-        else
-            document.exitFullscreen(); 
+        helpers.toggle_fullscreen();
     }
 
     // "Zoom lock", zoom as if we're holding the button constantly
