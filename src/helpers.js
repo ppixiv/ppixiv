@@ -3153,6 +3153,17 @@ ppixiv.guess_image_url = class
 
     async guess_url(illust_id, page)
     {
+        // If this is a local URL, we always have the image URL and we don't need to guess.
+        let { type } = helpers.parse_id(illust_id);
+        if(type == "file")
+        {
+            let thumb = thumbnail_data.singleton().get_one_thumbnail_info(illust_id);
+            if(thumb?.illustType == "video")
+                return null;
+            else
+                return thumb?.mangaPages[page]?.urls?.original;
+        }
+    
         // If we already have illust info, use it.
         let illust_info = image_data.singleton().get_image_info_sync(illust_id);
         if(illust_info != null)
