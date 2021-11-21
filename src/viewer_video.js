@@ -301,9 +301,10 @@ ppixiv.video_ui = class extends ppixiv.widget
             ...options, template: `
             <div class=video-ui>
                 <div class=play-button>
-                    <ppixiv-inline data-play=play src="resources/video-play.svg"></ppixiv-inline>
-                    <ppixiv-inline data-play=pause src="resources/video-pause.svg"></ppixiv-inline>
+                    <span data-play=pause class="material-icons" style="font-size: 36px;">pause</span>
+                    <span data-play=play class="material-icons" style="font-size: 36px;">play_arrow</span>
                 </div>
+
                 <div class=time></div>
 
                 <div style="flex: 1;"></div>
@@ -312,12 +313,11 @@ ppixiv.video_ui = class extends ppixiv.widget
                     <div class=volume-line></div>
                 </div>
 
-                <ppixiv-inline data-volume=high src="resources/volume-high.svg"></ppixiv-inline>
-                <ppixiv-inline data-volume=low src="resources/volume-low.svg"></ppixiv-inline>
-                <ppixiv-inline data-volume=mute src="resources/volume-mute.svg"></ppixiv-inline>
+                <span data-volume=high class="material-icons" style="font-size: 36px; display: block; width: 40px;">volume_up</span>
+                <span data-volume=mute class="material-icons" style="font-size: 36px; display: block; width: 40px;">volume_off</span>
 
                 <div class=pip-button>
-                    <ppixiv-inline src="resources/picture-in-picture.svg"></ppixiv-inline>
+                    <span class="material-icons" style="font-size: 36px;">picture_in_picture_alt</span>
                 </div>
                 <div class=fullscreen>
                     <ppixiv-inline src="resources/fullscreen.svg"></ppixiv-inline>
