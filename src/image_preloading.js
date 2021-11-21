@@ -44,11 +44,15 @@ class img_preloader extends preloader
         super();
         this.url = url;
         this.onerror = onerror;
+        console.assert(url);
     }
 
     // Start the fetch.  This should only be called once.
     async start()
     {
+        if(this.url == null)
+            return;
+
         let img = document.createElement("img");
         img.src = this.url;
 
@@ -65,10 +69,14 @@ class fetch_preloader extends preloader
     {
         super();
         this.url = url;
+        console.assert(url);
     }
 
     async start()
     {
+        if(this.url == null)
+            return;
+
         let request = helpers.send_pixiv_request({
             url: this.url,
             method: "GET",
@@ -292,7 +300,7 @@ ppixiv.image_preloader = class
         if(muting.singleton.is_muted_user_id(illust_data.userId))
             return [];
 
-        // If this is a video, preload the ZIP.
+        // If this is an animation, preload the ZIP.
         if(illust_data.illustType == 2)
         {
             let results = [];
