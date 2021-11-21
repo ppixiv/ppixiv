@@ -5,7 +5,7 @@ from PIL import Image
 from pathlib import Path
 from shutil import copyfile
 
-from . import video, image_paths
+from . import video, image_paths, misc
 
 resource_path = (Path(__file__) / '../../../resources').resolve()
 
@@ -18,6 +18,8 @@ video_thumb_dir = data_dir / 'video-thumb'
 poster_dir.mkdir(parents=True, exist_ok=True)
 video_thumb_dir.mkdir(parents=True, exist_ok=True)
 
+max_thumbnail_pixels = 500*500
+
 def create_thumb(path):
     # Thumbnail the image.
     #
@@ -28,21 +30,28 @@ def create_thumb(path):
     image = Image.open(path)
 
     total_pixels = image.size[0]*image.size[1]
-    max_thumbnail_pixels = 400*400
     ratio = max_thumbnail_pixels / total_pixels
     ratio = math.pow(ratio, 0.5)
     new_size = int(image.size[0] * ratio), int(image.size[1] * ratio)
-    image.thumbnail(new_size)
 
+    try:
+        image.thumbnail(new_size)
+    except OSError as e:
+        print('Couldn\'t create thumbnail for %s: %s' % (path, str(e)))
+        raise aiohttp.web.HTTPUnsupportedMediaType()
+
+    file_type = 'JPEG'
+    mime_type = 'image/jpeg'
+    
     # Convert to RGB, since we always send thumbnails as JPEG.
     if image.mode != 'RGB':
         image = image.convert('RGB')
 
     # Compress to JPEG.
     f = io.BytesIO()
-    image.save(f, 'JPEG', quality=70)
+    image.save(f, file_type, quality=70)
     f.seek(0)
-    return f
+    return f, mime_type
 
 def get_video_cache_filename(path):
     path_utf8 = str(path).encode('utf-8')
@@ -83,7 +92,7 @@ def create_video_poster(illust_id, path):
         # If the first frame fails, we can't get anything from this video.
         raise aiohttp.web.HTTPUnsupportedMediaType()
 
-    return poster_path
+    return poster_path, 'image/jpeg'
 
 def _extract_video_thumbnail_frame(illust_id, path):
     """
@@ -107,11 +116,11 @@ def _extract_video_thumbnail_frame(illust_id, path):
     return thumb_path
 
 def threaded_create_thumb(illust_id, absolute_path, poster):
-    filetype = image_paths.file_type(absolute_path)
+    filetype = misc.file_type(absolute_path)
     if filetype == 'video':
         if poster:
-            file = create_video_poster(illust_id, absolute_path)
-            return file.read_bytes()
+            file, mime_type = create_video_poster(illust_id, absolute_path)
+            return file.read_bytes(), mime_type
         else:
             thumb_path = _extract_video_thumbnail_frame(illust_id, absolute_path)
 
@@ -121,24 +130,30 @@ def threaded_create_thumb(illust_id, absolute_path, poster):
         return create_thumb(absolute_path)
 
 # Handle:
-# /thumb/{illust_id}
-# /poster/{illust_id} (for videos only)
+# /thumb/{id}
+# /poster/{id} (for videos only)
 async def handle_poster(request):
     return await handle_thumb(request, poster=True)
 
 async def handle_thumb(request, poster=False):
-    illust_id = request.match_info['id']
+    path = request.match_info['path']
+    absolute_path, index = image_paths.resolve_path(path)
+    if absolute_path is None:
+        raise aiohttp.web.HTTPNotFound()
 
-    absolute_path = image_paths.resolve_thumbnail_path(illust_id)
+    if absolute_path.is_dir():
+        entry = index.get(absolute_path) or {}
+        absolute_path = entry.get('directory_thumbnail_path')
+        if absolute_path is None:
+            # The directory exists, but we don't have an image to use as a thumbnail.
+            folder = resource_path / 'folder.svg'
+            return aiohttp.web.FileResponse(folder, headers={
+                'Cache-Control': 'public, immutable',
+            })
 
-    # If this returns a directory, an image couldn't be found to use as a thumbnail.
-    if absolute_path is not None and absolute_path.is_dir():
-        folder = resource_path / 'folder.svg'
-        return aiohttp.web.FileResponse(folder, headers={
-            'Cache-Control': 'public, immutable',
-        })
+        absolute_path = Path(absolute_path)
 
-    if absolute_path is None or not absolute_path.is_file():
+    if not absolute_path.is_file():
         raise aiohttp.web.HTTPNotFound()
 
     # Check cache before generating the thumbnail.
@@ -151,27 +166,26 @@ async def handle_thumb(request, poster=False):
         if modified_time <= if_modified_since:
             raise aiohttp.web.HTTPNotModified()
 
-    if image_paths.file_type(absolute_path) is None:
+    if misc.file_type(absolute_path) is None:
         raise aiohttp.web.HTTPNotFound()
 
     # Generate the thumbnail in a thread.
-    f = await asyncio.to_thread(threaded_create_thumb, illust_id, absolute_path, poster)
+    thumbnail_file, mime_type = await asyncio.to_thread(threaded_create_thumb, path, absolute_path, poster)
 
     # Fill in last-modified from the source file.
     timestamp = datetime.fromtimestamp(mtime, tz=timezone.utc)
     timestamp = timestamp.strftime('%a, %d %b %Y %H:%M:%S %Z')
 
-    return aiohttp.web.Response(body=f, headers={
-        'Content-Type': 'image/jpeg',
+    return aiohttp.web.Response(body=thumbnail_file, headers={
+        'Content-Type': mime_type,
         'Cache-Control': 'public, immutable',
         'Last-Modified': timestamp,
     })
 
 # Serve direct file requests.
 async def handle_file(request):
-    illust_id = request.match_info['id']
-
-    absolute_path = image_paths.resolve_thumbnail_path(illust_id)
+    path = request.match_info['path']
+    absolute_path = image_paths.resolve_thumbnail_path(path)
     if not absolute_path.is_file():
         raise aiohttp.web.HTTPNotFound()
 

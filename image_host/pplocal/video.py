@@ -37,4 +37,10 @@ def extract_frame(input_file, output_file, seek_seconds, exif_description=None):
     return True
 
 if __name__ == '__main__':
-    extract_frame('test.mp4', 'test1.jpg', seek_seconds=10, exif_description='description')
+    print(piexif.__file__)
+    exif_dict = piexif.load(str('005.jpg'))
+    from pprint import pprint
+    print(exif_dict['0th'].get(piexif.ImageIFD.Rating))
+    #exif_dict['0th'][piexif.ImageIFD.ImageDescription] = exif_description.encode('utf-8')
+    #exif_bytes = piexif.dump(exif_dict)
+    #extract_frame('test.mp4', 'test1.jpg', seek_seconds=10, exif_description='description')

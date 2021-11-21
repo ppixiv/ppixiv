@@ -5,7 +5,7 @@ from pprint import pprint
 import aiohttp
 from aiohttp import web
 
-from . import api, misc, thumbs
+from . import api, misc, thumbs, image_paths
 
 @web.middleware
 async def check_origin(request, handler):
@@ -38,7 +38,7 @@ def create_handler_for_command(handler):
         data = await request.json()
 
         base_url = '%s://%s:%i' % (request.url.scheme, request.url.host, request.url.port)
-        info = api.RequestInfo(data, base_url)
+        info = api.RequestInfo(request, data, base_url)
 
         try:
             result = await handler(info)
@@ -66,16 +66,24 @@ def create_handler_for_command(handler):
 
 # logging.basicConfig(level=logging.DEBUG)
 
-def go():
+async def setup():
     app = web.Application(middlewares=(check_origin,))
 
-    app.router.add_get('/file/{id:.+}', thumbs.handle_file)
-    app.router.add_get('/thumb/{id:.+}', thumbs.handle_thumb)
-    app.router.add_get('/poster/{id:.+}', thumbs.handle_poster)
+    app.router.add_get('/file/{type:[^:]+}:{path:.+}', thumbs.handle_file)
+    app.router.add_get('/thumb/{type:[^:]+}:{path:.+}', thumbs.handle_thumb)
+    app.router.add_get('/poster/{type:[^:]+}:{path:.+}', thumbs.handle_poster)
 
+    print('/file/{type:[^:]+}%3A{path:.+}')
     # Add a handler for each API call.
     for command, func in api.handlers.items():
         handler = create_handler_for_command(func)
+        print('/api' + command)
         app.router.add_view('/api' + command, handler)
 
-    web.run_app(app, host='localhost', port=8235, print=None)
+    print('Initializing indexes...')
+    await image_paths.initialize() 
+
+    return app
+
+def go():
+    web.run_app(setup(), host='localhost', port=8235, print=None)

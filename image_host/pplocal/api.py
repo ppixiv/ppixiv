@@ -1,17 +1,10 @@
 import os, urllib, uuid, time, asyncio
-from PIL import Image
 from datetime import datetime, timezone
 from pprint import pprint
 from collections import OrderedDict, namedtuple
 from pathlib import Path, PurePosixPath
 
-# cv2 is used to get the dimensions of video files.  It ultimately just calls ffmpeg,
-# but it's much faster than running ffprobe in a subprocess.  XXX: are there any usable
-# direct ffmpeg bindings, cv2 is big and its video API is too basic to do anything else
-# with
-import cv2
-
-from . import windows_search, misc, image_paths
+from . import windows_search, misc, image_paths, file_index
 
 handlers = {}
 
@@ -44,74 +37,44 @@ def reg(command):
 # gif -> mkv/mp4
 
 class RequestInfo:
-    def __init__(self, request, base_url):
+    def __init__(self, request, data, base_url):
         self.request = request
+        self.data = data
         self.base_url = base_url
 
-def get_image_dimensions(path):
-    filetype = image_paths.file_type(path)
-    if filetype == 'video':
-        video = cv2.VideoCapture(str(path))
-        height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
-        return width, height
-
-    try:
-        image = Image.open(path)
-    except OSError as e:
-        # Skip non-images.
-        return None
-
-    return image.size
-
-def get_dir_info(illust_id):
-    absolute_path = image_paths.resolve_path(illust_id)
-    if not os.path.isdir(absolute_path):
-        raise misc.Error('not-found', 'Not a directory')
-
-    # Use the directory's mtime as the post time.
-    mtime = os.stat(absolute_path).st_mtime
-
-    modified = datetime.fromtimestamp(mtime, tz=timezone.utc)
-    timestamp = modified.isoformat().replace('T', ' ')
-
-    image_info = {
-        'id': illust_id,
-        'createDate': timestamp,
-    }
-
-    return image_info
-
 # Get info for illust_id.
-def get_illust_info(illust_id, base_url):
+def get_illust_info(index, entry, base_url):
     """
     Return illust info.
-
-    If illust_id points at a directory, detect if it can be viewed as a manga page.
     """
+    if entry['is_directory']:
+        # Use the directory's ctime as the post time.
+        ctime = entry['ctime']
+        timestamp = datetime.fromtimestamp(ctime, tz=timezone.utc).isoformat()
 
-    assert illust_id.startswith('file:')
+        image_info = {
+            'id': 'folder:%s' % index.get_public_path(entry['path']),
+            'local_path': str(entry['path']),
+            'createDate': timestamp,
+            'width': entry['width'],
+            'height': entry['height'],
+        }
 
-    # Info for an illust never ends with a slash.  Verify this to make sure this doesn't
-    # start happening by accident.
-    assert not illust_id.endswith('/')
-    absolute_path = image_paths.resolve_path(illust_id)
+        return image_info
 
-    # Ignore this file if it's not a supported file type.
-    filetype = image_paths.file_type(illust_id)
-    if filetype is None:
-        raise misc.Error('unsupported', 'Unsupported file type')
+    illust_id = 'file:%s' % index.get_public_path(entry['path'])
 
-    remote_image_path = base_url + '/file/' + urllib.parse.quote(illust_id, safe='/')
-    remote_thumb_path = base_url + '/thumb/' + urllib.parse.quote(illust_id, safe='/')
-    remote_poster_path = base_url + '/poster/' + urllib.parse.quote(illust_id, safe='/')
+    remote_image_path = base_url + '/file/' + urllib.parse.quote(illust_id, safe='/:')
+    remote_thumb_path = base_url + '/thumb/' + urllib.parse.quote(illust_id, safe='/:')
+    remote_poster_path = base_url + '/poster/' + urllib.parse.quote(illust_id, safe='/:')
 
     # Get the image dimensions.
-    size = get_image_dimensions(absolute_path)
-    if size is None:
-        raise misc.Error('unsupported', 'Unsupported file type')
+    size = entry['width'], entry['height']
+    # XXX misc.get_image_dimensions(absolute_path)
+    # if size is None:
+    #     raise misc.Error('unsupported', 'Unsupported file type')
 
-    mtime = os.stat(absolute_path).st_mtime
+    ctime = entry['ctime']
 
     pages = [{
         'width': size[0],
@@ -123,15 +86,16 @@ def get_illust_info(illust_id, base_url):
     }]
 
     # If this is a video, add the poster path.
+    filetype = misc.file_type_from_ext(entry['path'].suffix)
     if filetype == 'video':
         pages[0]['urls']['poster'] = remote_poster_path
 
-    modified = datetime.fromtimestamp(mtime, tz=timezone.utc)
-    timestamp = modified.isoformat().replace('T', ' ')
+    timestamp = datetime.fromtimestamp(ctime, tz=timezone.utc).isoformat()
     preview_urls = [page['urls']['small'] for page in pages]
 
     image_info = {
         'id': illust_id,
+        'local_path': str(entry['path']),
         'previewUrls': preview_urls,
 
         # Pixiv uses 0 for images, 1 for manga and 2 for their janky MJPEG format.
@@ -139,7 +103,7 @@ def get_illust_info(illust_id, base_url):
         # more meaningful, and we're unlikely to collide if they decide to add additional
         # illustTypes.
         'illustType': 0 if filetype == 'image' else 'video',
-        'illustTitle': os.path.basename(absolute_path),
+        'illustTitle': entry['path'].name,
         'userId': -1,
         'pageCount': len(pages),
         'bookmarkData': None,
@@ -155,14 +119,20 @@ def get_illust_info(illust_id, base_url):
     return image_info
 
 # Return info about a single file.
-@reg('/illust')
+@reg('/illust/{type:[^:]+}:{path:.+}')
 async def api_illust(info):
-    illust_id = info.request['id']
-    image_info = get_illust_info(illust_id, info.base_url)
+    path = PurePosixPath(info.request.match_info['path'])
+    absolute_path, index = image_paths.resolve_path(path)
+
+    entry = index.get(absolute_path)
+    if entry is None:
+        raise misc.Error('not-found', 'File not in index')
+
+    entry = get_illust_info(index, entry, info.base_url)
 
     return {
         'success': True,
-        'illust': image_info,
+        'illust': entry,
     }
 
 # Values of api_list_results can be a dictionary, in which case they're a result
@@ -180,7 +150,7 @@ def cache_api_list_result(uuid, cached_result):
         del api_list_results[key]
 
 # XXX: expire old active requests after a while so we don't keep searches open forever
-@reg('/list')
+@reg('/list/{type:[^:]+}:{path:.+}')
 async def api_list(info):
     """
     /list returns files and folders inside a folder.
@@ -191,7 +161,7 @@ async def api_list(info):
     # page is the UUID of the page we want to load.  skip is the offset from the beginning
     # of the search of the page, which is only used if we can't load page.  It can't be used
     # to seek from page.
-    page = info.request.get('page')
+    page = info.data.get('page')
 
     # Try to load this page.
     cache = api_list_results.get(page, None) if page is not None else None
@@ -215,11 +185,10 @@ async def api_list(info):
         this_page_uuid = str(uuid.uuid4())
         prev_page_uuid = None
         offset = 0
-        skip = int(info.request.get('skip', 0))
+        skip = int(info.data.get('skip', 0))
 
         # Start the request.
         result_generator = api_list_impl(info)
-
 
     # When we're just reading the next page of results from a continued search,
     # skip is 0 and we'll just load a single page.  We'll only loop here if we're
@@ -282,19 +251,23 @@ async def api_list(info):
 # If another page may be available, the 'next' key on the dictionary is true.  If it's
 # false or not present, the request will end.
 def api_list_impl(info):
-    try:
-        illust_id = info.request['id']
-    except KeyError:
-        raise misc.Error('invalid-request', 'Invalid request')
+    path = PurePosixPath(info.request.match_info['path'])
+    limit = int(info.data.get('limit', 50))
 
-    assert illust_id.startswith('folder:')
+    search_options = {
+        'substr': info.data.get('search'),
+        'bookmarked': info.data.get('bookmarked', None),
+    }
 
-    search = info.request.get('search')
-    limit = int(info.request.get('limit', 50))
+    # Remove null values from search_options, so it only contains search filters we're
+    # actually using.
+    for key in list(search_options.keys()):
+        if search_options[key] is None:
+            del search_options[key]
 
     # If true, this request is for the tree sidebar.  Don't include files, so we can scan
     # more quickly, and return all results instead of paginating.
-    directories_only = int(info.request.get('directories_only', False))
+    directories_only = int(info.data.get('directories_only', False))
 
     file_info = []
     def flush(*, last):
@@ -310,54 +283,49 @@ def api_list_impl(info):
 
         return result
 
+    # If we're not searching and listing the root, just list the archives.  This
+    # is a special case since it doesn't come from the filesystem.
+    if not search_options and str(path) == '/':
+        for index in image_paths.indexes.values():
+            image_info = {
+                'id': 'folder:%s' % index.get_public_path(index.path),
+                'local_path': str(index.path),
+                'createDate': datetime.utcfromtimestamp(0).isoformat(),
+            }
+            file_info.append(image_info)
+
+        yield flush(last=True)
+        return
+
+    # Make a list of archives to search.
+    archives_to_search = []
+    if str(path) == '/':
+        # Search all indexes.
+        absolute_path = None
+        archives_to_search = list(image_paths.indexes.values())
+    else:
+        absolute_path, index = image_paths.resolve_path(path)
+        archives_to_search.append(index)
+
     # Yield (filename, is_dir) for this search.
     def _get_files():
-        if search is None:
-            # The root directory contains each archive path.
-            if illust_id == 'folder:/':
-                for archive in image_paths.archives.keys():
-                    yield Path(illust_id) / archive, True
-                return
-
-            path = image_paths.resolve_path(illust_id, dir_only=True)
-            for path in os.scandir(path):
-                yield Path(illust_id) / path.name, path.is_dir(follow_symlinks=False)
-
-            return
-
-        # Make a list of directories to search.
-        paths_to_search = []
-
-        if illust_id == 'folder:/':
-            for name, archive in image_paths.archives.items():
-                paths_to_search.append(('folder:/' + name, archive))
-        else:
-            absolute_path = image_paths.resolve_path(illust_id, dir_only=True)
-            paths_to_search.append((illust_id, absolute_path))
-
-        for this_illust_id, path in paths_to_search:
-            for file, is_dir in windows_search.search(path, search, include_files=not directories_only):
-                # file is an absolute path.  Get the relative path.
-                file = Path(file).relative_to(path)
-                yield this_illust_id / file, is_dir
-
-    for this_illust_id, is_dir in _get_files():
-        assert '..' not in this_illust_id.parts
-        this_illust_id = this_illust_id.as_posix()
-
-        try:
-            if is_dir:
-                entry = get_dir_info(this_illust_id)
-            elif not directories_only:
-                # Replace folder: with file:.
-                this_illust_id = set_scheme(this_illust_id, 'file')
-
-                entry = get_illust_info(this_illust_id, info.base_url)
+        # Search each archive.  Archives usually don't overlap and will short-circuit
+        # if the path doesn't match.
+        for index in archives_to_search:
+            if search_options:
+                for entry in index.search(path=absolute_path, include_files=not directories_only, **search_options):
+                    yield index, entry
             else:
-                continue
-        except misc.Error as e:
-            continue
+                # We have no search, so just list the contents of the directory.
+                for entry in index.list_path(absolute_path):
+                    yield index, entry
 
+    for index, entry in _get_files():
+        is_dir = bool(entry['is_directory'])
+        if directories_only and not is_dir:
+            continue
+        
+        entry = get_illust_info(index, entry, info.base_url)
         file_info.append(entry)
 
         if not directories_only and len(file_info) >= limit:
@@ -366,10 +334,10 @@ def api_list_impl(info):
     while True:
         yield flush(last=True)
 
-@reg('/view')
+@reg('/view/{type:[^:]+}:{path:.+}')
 async def api_illust(info):
-    illust_id = info.request['id']
-    absolute_path = image_paths.resolve_path(illust_id)
+    path = PurePosixPath(info.request.match_info['path'])
+    absolute_path, index = image_paths.resolve_path(path)
     print(absolute_path)
 
     # XXX

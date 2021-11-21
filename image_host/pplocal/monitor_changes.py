@@ -1,0 +1,171 @@
+import asyncio, ctypes, os
+from pathlib import Path
+from ctypes.wintypes import BYTE, DWORD
+kernel32 = ctypes.windll.kernel32
+
+from . import win32
+
+ReadDirectoryChangesW = kernel32.ReadDirectoryChangesW
+
+FILE_NOTIFY_CHANGE_FILE_NAME = 0x00000001
+FILE_NOTIFY_CHANGE_DIR_NAME = 0x00000002
+FILE_NOTIFY_CHANGE_ATTRIBUTES = 0x00000004
+FILE_NOTIFY_CHANGE_SIZE = 0x00000008
+FILE_NOTIFY_CHANGE_LAST_WRITE = 0x00000010
+FILE_NOTIFY_CHANGE_LAST_ACCESS = 0x00000020
+FILE_NOTIFY_CHANGE_CREATION = 0x00000040
+FILE_NOTIFY_CHANGE_SECURITY = 0x00000100
+
+from enum import Enum
+class FileAction(Enum):
+    FILE_ACTION_ADDED = 1
+    FILE_ACTION_REMOVED = 2
+    FILE_ACTION_MODIFIED = 3
+    FILE_ACTION_RENAMED_OLD_NAME = 4
+    FILE_ACTION_RENAMED_NEW_NAME = 5
+
+class FileNotifyInformation(ctypes.Structure):
+    pass
+
+FileNotifyInformation._fields_ = [
+    ('NextEntryOffset', DWORD),
+    ('Action', DWORD),
+    ('FileNameLength', DWORD),
+    # ('FileName', BYTE),
+]
+
+class MonitorChanges:
+    def __init__(self, path: os.PathLike, *, buffer_size=1024*128):
+        self.path = path
+        self.buffer_size = buffer_size
+
+        self.handle = win32.CreateFileW(
+                str(path),
+                win32.FILE_LIST_DIRECTORY,
+                win32.FILE_SHARE_READ|win32.FILE_SHARE_WRITE|win32.FILE_SHARE_DELETE,
+                None, # lpSecurityAttributes
+                win32.OPEN_EXISTING, # dwCreationDisposition
+                win32.FILE_FLAG_BACKUP_SEMANTICS,
+                None)
+
+        if self.handle == -1:
+            raise ctypes.WinError()
+
+    def __del__(self):
+        self.close()
+
+    async def monitor_call(self, func, *args, **kwargs):
+        async for filename, action in self.monitor(*args, **kwargs):
+            await func(filename, action)
+
+    # Yield changes to the directory.
+    #
+    # To stop monitoring, call close() or cancel the coroutine.
+    async def monitor(self, watch_subtree=True):
+        # Open the directory if it's closed.  If we're called and cancelled we'll close the file
+        # handle, 
+        # If we're not monitoring, open the directory.
+        changes = \
+            FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME | FILE_NOTIFY_CHANGE_ATTRIBUTES | \
+            FILE_NOTIFY_CHANGE_SIZE | FILE_NOTIFY_CHANGE_LAST_WRITE | FILE_NOTIFY_CHANGE_CREATION
+
+        # Allocate the buffer locally.  This isn't reused, so if we're cancelled and a
+        # ReadDirectoryChangesW call stays running briefly, we won't make another call
+        # on the same buffer.
+        change_buffer = (BYTE * self.buffer_size)()
+
+        while True:
+            # Run ReadDirectoryChangesW in a thread so it doesn't block the event loop.
+            promise = asyncio.to_thread(self._read_changes, watch_subtree, changes, change_buffer)
+            try:
+                bytes_returned = await promise
+            except asyncio.CancelledError as e:
+                # If we're cancelled, call CancelIoEx to cancel ReadDirectoryChangesW which is
+                # still running in the thread.  We should wait after doing that for it to return,
+                # but I'm not sure how to do that with asyncio.  The handle stays open and we can
+                # be called again until close() is called.
+                win32.CancelIoEx(self.handle, None)
+                return
+            except OSError as e:
+                if e.winerror == win32.ERROR_OPERATION_ABORTED:
+                    # We were aborted by a call to close().
+                    return
+
+                raise
+
+            # Yield all results.
+            offset = 0
+            while True:
+                entry = FileNotifyInformation.from_buffer(change_buffer, offset)
+
+                filename_ptr = ctypes.byref(change_buffer, offset + ctypes.sizeof(FileNotifyInformation))
+                filename = ctypes.wstring_at(filename_ptr, entry.FileNameLength // 2)
+                yield self.path / filename, FileAction(entry.Action)
+
+                # NextEntryOffset is 0 for the last item.
+                if entry.NextEntryOffset == 0:
+                    break
+
+                offset += entry.NextEntryOffset
+
+    def _read_changes(self, watch_subtree, changes, change_buffer):
+        bytes_returned = DWORD()
+        result = ReadDirectoryChangesW(
+            self.handle, # hDirectory
+            change_buffer, # lpBuffer
+            len(change_buffer), # nBufferLength
+            watch_subtree, # bWatchSubtree,
+            changes,
+            ctypes.pointer(bytes_returned), # lpBytesReturned
+            None, #  lpOverlapped
+            None, # lpCompletionRoutine
+        )
+
+        if not result:
+            raise ctypes.WinError()
+
+        return bytes_returned
+
+    def close(self):
+        if not self.handle:
+            return
+
+        # CancelIoEx will cause any running call to ReadDirectoryChangesW to return
+        # with ERROR_OPERATION_ABORTED.
+        win32.CancelIoEx(self.handle, None)
+
+        win32.CloseHandle(self.handle)
+        self.handle = None
+
+monitor = None
+async def test():
+    print('...')
+    await asyncio.sleep(0.5)
+#    monitor.close()
+
+async def go():
+    # global monitor
+    # task = asyncio.create_task(test())
+    
+    monitor = MonitorChanges(Path('f:/stuff/ppixiv'))
+
+    async def changes(filename, action):
+        print('...', filename, action)
+    monitor_promise = monitor.monitor_call(changes)
+    monitor_task = asyncio.create_task(monitor_promise)
+
+#    await asyncio.sleep(1)
+#    monitor_task.cancel()
+    await monitor_task
+
+#    monitor_promise = monitor.monitor_call(changes)
+#    monitor_task = asyncio.create_task(monitor_promise)
+#    await monitor_task
+
+#    async for filename, action in monitor.monitor():
+#        print('->', filename, action)
+
+#    monitor.close()
+
+if __name__ == '__main__':
+    asyncio.run(go())
