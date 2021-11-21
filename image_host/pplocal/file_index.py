@@ -44,7 +44,7 @@ class FileIndex:
         self.monitor_changes = None
         self.db = IndexDatabase(dbpath)
         self.pending_file_updates = {}
-        self.update_pending_files_task = task = asyncio.create_task(self.update_pending_files())
+        self.update_pending_files_task = asyncio.create_task(self.update_pending_files())
 
     def get_relative_path(self, path):
         """
@@ -180,12 +180,12 @@ class FileIndex:
             # The file was removed.
             self.db.delete_record(path=str(path), conn=db_conn)
             return
+        print('go', path)
 
         # Don't proactively monitor everything, or we'll aggressively scan every file.
         # If this is a file we expect Windows indexing to handle, just remove our cache
         # entry.  We'll populate it the next time it's viewed.
         if self.handled_by_windows_index(path):
-            print('Should be handled by Windows indexing:', path)
             self.db.delete_record(path=str(path), conn=db_conn)
             return
 
@@ -234,6 +234,8 @@ class FileIndex:
         We only proactively index files that aren't handled by the Windows index.
         """
         # We always handle directories ourself.
+        # XXX
+        return False
         if path.is_dir():
             return False
             
@@ -241,7 +243,7 @@ class FileIndex:
 
     def cache_file(self, path: os.PathLike, *, direntry: os.DirEntry=None, db_conn=None):
 
-        if not path.is_dir():
+        #if not path.is_dir():
             #print('Skipped directory', path)
             #continue
 
@@ -249,10 +251,11 @@ class FileIndex:
             # with the user working with them.
             # XXX: test if the file is locked by another application, we should queue it and
             # retry later
-            with win32.open_shared(path) as f:
-                print('f', f)
-                print(os.stat(f.fileno()))
-                #self.cache_file(path)
+            # XXX
+            #with win32.open_shared(path) as f:
+            #    print('f', f)
+            #    print(os.stat(f.fileno()))
+            #    #self.cache_file(path)
 
 
 
@@ -274,6 +277,32 @@ class FileIndex:
         return entry
 
     def _create_file_record(self, path: os.PathLike, stat):
+        import piexif
+
+        if False:
+            try:
+                from PIL import Image, ExifTags
+                import PIL
+                print(PIL.__path__)
+                img = Image.open(str(path))
+                exif_dict = img._getexif()
+
+                print('------->', exif_dict)
+                for tag, data in exif_dict.items():
+                    tag_name = ExifTags.TAGS.get(tag)
+                    if not tag_name:
+                        continue
+                    print(tag_name, tag)
+                    if tag_name == 'ImageDescription':
+                        print('desc:', data)
+                # exif_dict['0th'][piexif.ImageIFD.ImageDescription] = exif_description.encode('utf-8')
+
+                #exif_dict = piexif.load(str(path))
+                #print('exif:', path)
+                #pprint(exif_dict)
+            except Exception as e:
+                print('exif error:', path, e)
+
         _, ext = os.path.splitext(path)
         mime_type = misc.mime_type_from_ext(ext)
         data = {
@@ -282,14 +311,17 @@ class FileIndex:
             'parent': str(path.parent),
             'ctime': stat.st_ctime,
             'mtime': stat.st_mtime,
+            'title': path.name,
+            'type': mime_type,
+            
+            # We'll fill these in below if possible.
             'width': None,
             'height': None,
-            'tags': '',
-            'title': path.name,
-            'comment': '',
-            'type': mime_type,
-            'author': '',
+
             # XXX
+            'tags': '',
+            'comment': '',
+            'author': '',
             'bookmarked': False,
         }
 
@@ -308,7 +340,6 @@ class FileIndex:
 
     def _create_directory_record(self, path: os.PathLike, stat):
         directory_metadata = win32.read_directory_metadata(path, self.ntfs_alt_stream_name)
-        pprint(directory_metadata)
         directory_metadata.get('bookmarked')
 
         data = {
@@ -378,27 +409,13 @@ class FileIndex:
         if not path.is_dir():
             return
 
-        # Get files from the Windows index.
-        # ... this doesn't always include all info
-        # read results and then load them from our db, so we can fill in the rest
-        # we don't actually need search to list here at all
-        # populate our db as we do this
-        # XXX: is this worth the bother
-#        print(path)
-#        for entry in windows_search.search(path=path, recurse=False):
-#            yield entry
-
         for direntry in os.scandir(path):
             file_path = path / direntry
 
             # Find the file in cache and cache it if needed.
             entry = self.get(file_path, force_refresh=force_refresh)
-
-            print('------->', entry)
-
             if entry is not None:
                 yield entry
-                continue
 
     def get(self, path, *, force_refresh=False):
         """
@@ -455,20 +472,13 @@ class FileIndex:
             seen_paths.add(entry['path'])
             yield entry
 
-async def periodic():
-    while True:
-#        print('...')
-        await asyncio.sleep(0.1)
-
 async def test():
-    periodic_task = asyncio.create_task(periodic())
-
     # path = Path('e:/images')
     path = Path('f:/stuff/ppixiv/image_host/f')
     index = FileIndex('test', 'test.sqlite', path)
 
     def progress_func(total):
-        print(total)
+        print('Indexing progress:', total)
 
     asyncio.get_event_loop().set_default_executor(executor)
     #await asyncio.get_event_loop().run_in_executor(None, index.refresh)
@@ -484,25 +494,6 @@ async def test():
     
     while True:
         await asyncio.sleep(0.5)
-    
-    periodic_task.cancel()
-
-async def xtest():
-    import ctypes, msvcrt
-
-    with open('foo', 'wb') as f:
-        fd = f.fileno()
-        print(fd)
-        handle = msvcrt.get_osfhandle(fd)
-        # msvcrt.open_osfhandle(handle, mode)
-        print(handle)
-
-
-
-
-
-
-    return
 
 if __name__ == '__main__':
     asyncio.run(test())

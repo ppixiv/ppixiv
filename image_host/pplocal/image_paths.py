@@ -12,7 +12,7 @@ indexes = { }
 
 async def initialize():
     def progress_func(total):
-        print(total)
+        print('Indexing progress:', total)
 
     for name, path in _archives.items():
         index = FileIndex(name, name + '.sqlite', path)

@@ -1,4 +1,4 @@
-import asyncio, aiohttp, io, os, math, hashlib
+import asyncio, aiohttp, io, os, math, hashlib, base64
 from aiohttp.web_fileresponse import FileResponse
 from datetime import datetime, timezone
 from PIL import Image
@@ -8,6 +8,7 @@ from shutil import copyfile
 from . import video, image_paths, misc
 
 resource_path = (Path(__file__) / '../../../resources').resolve()
+blank_image = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=')
 
 data_dir = Path(os.path.dirname(__file__)) / '../data'
 data_dir = data_dir.resolve()
@@ -115,10 +116,10 @@ def _extract_video_thumbnail_frame(illust_id, path):
     copyfile(poster_path, thumb_path)
     return thumb_path
 
-def threaded_create_thumb(illust_id, absolute_path, poster):
+def threaded_create_thumb(illust_id, absolute_path, mode):
     filetype = misc.file_type(absolute_path)
     if filetype == 'video':
-        if poster:
+        if mode =='poster':
             file, mime_type = create_video_poster(illust_id, absolute_path)
             return file.read_bytes(), mime_type
         else:
@@ -133,9 +134,11 @@ def threaded_create_thumb(illust_id, absolute_path, poster):
 # /thumb/{id}
 # /poster/{id} (for videos only)
 async def handle_poster(request):
-    return await handle_thumb(request, poster=True)
+    return await handle_thumb(request, mode='poster')
+async def handle_tree_thumb(request):
+    return await handle_thumb(request, mode='tree-thumb')
 
-async def handle_thumb(request, poster=False):
+async def handle_thumb(request, mode='thumb'):
     path = request.match_info['path']
     absolute_path, index = image_paths.resolve_path(path)
     if absolute_path is None:
@@ -145,12 +148,18 @@ async def handle_thumb(request, poster=False):
         entry = index.get(absolute_path) or {}
         absolute_path = entry.get('directory_thumbnail_path')
         if absolute_path is None:
-            # The directory exists, but we don't have an image to use as a thumbnail.
-            folder = resource_path / 'folder.svg'
-            return aiohttp.web.FileResponse(folder, headers={
-                'Cache-Control': 'public, immutable',
-            })
-
+            if mode == 'thumb':
+                # The directory exists, but we don't have an image to use as a thumbnail.
+                folder = resource_path / 'folder.svg'
+                return aiohttp.web.FileResponse(folder, headers={
+                    'Cache-Control': 'public, immutable',
+                })
+            elif mode == 'tree-thumb':
+                # This is a thumbnail used when hovering over the sidebar.  If we don't have a
+                # thumbnail, return an empty image instead of the folder image.
+                return aiohttp.web.Response(body=blank_image, headers={
+                    'Content-Type': 'image/png',
+                })
         absolute_path = Path(absolute_path)
 
     if not absolute_path.is_file():
@@ -170,7 +179,7 @@ async def handle_thumb(request, poster=False):
         raise aiohttp.web.HTTPNotFound()
 
     # Generate the thumbnail in a thread.
-    thumbnail_file, mime_type = await asyncio.to_thread(threaded_create_thumb, path, absolute_path, poster)
+    thumbnail_file, mime_type = await asyncio.to_thread(threaded_create_thumb, path, absolute_path, mode)
 
     # Fill in last-modified from the source file.
     timestamp = datetime.fromtimestamp(mtime, tz=timezone.utc)
@@ -185,7 +194,7 @@ async def handle_thumb(request, poster=False):
 # Serve direct file requests.
 async def handle_file(request):
     path = request.match_info['path']
-    absolute_path = image_paths.resolve_thumbnail_path(path)
+    absolute_path, index = image_paths.resolve_path(path)
     if not absolute_path.is_file():
         raise aiohttp.web.HTTPNotFound()
 

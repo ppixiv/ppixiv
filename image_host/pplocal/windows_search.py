@@ -8,8 +8,6 @@ except ImportError:
     adodbapi = None
     print('Windows search not available')
 
-print(adodbapi.__file__)
-
 # adodbapi seems to have no way to escape strings, and Search.CollatorDSO doesn't seem
 # to support parameters at all.
 def escape_sql(s):
@@ -103,7 +101,6 @@ def search(*, path=None, exact_path=None, substr=None, bookmarked=None, recurse=
                         break
 
                     path = Path(row['System.ItemPathDisplay'])
-                    print('------->', path)
                     result = {
                         'path': path,
                         'parent': path.parent,

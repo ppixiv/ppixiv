@@ -71,6 +71,7 @@ async def setup():
 
     app.router.add_get('/file/{type:[^:]+}:{path:.+}', thumbs.handle_file)
     app.router.add_get('/thumb/{type:[^:]+}:{path:.+}', thumbs.handle_thumb)
+    app.router.add_get('/tree-thumb/{type:[^:]+}:{path:.+}', thumbs.handle_tree_thumb)
     app.router.add_get('/poster/{type:[^:]+}:{path:.+}', thumbs.handle_poster)
 
     print('/file/{type:[^:]+}%3A{path:.+}')

@@ -284,18 +284,12 @@ class IndexDatabase:
             FROM files
             WHERE path = ?
         """
-
-        import time
-        s=time.time()
         with self.db_pool.get(conn) as conn:
-            print('xxx', conn)
-            e=time.time()
             for row in conn.execute(query, [path]):
                 result = dict(row)
                 del result['id']
                 result['path'] = Path(result['path'])
                 return result
-        print('db', e-s)
 
         return None
 
@@ -343,8 +337,6 @@ class IndexDatabase:
                 'joins': joins,
                 'where': where,
             }
-            print(query)
-            print(params)
 
             for row in conn.execute(query, params):
                 result = dict(row)

@@ -280,7 +280,6 @@ def api_list_impl(info):
         }
 
         file_info = []
-
         return result
 
     # If we're not searching and listing the root, just list the archives.  This
