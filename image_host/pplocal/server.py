@@ -5,8 +5,9 @@ from pprint import pprint
 import aiohttp
 from aiohttp import web
 
-from . import api, thumbs, image_paths
+from . import api, thumbs
 from .util import misc
+from .library import Library
 
 @web.middleware
 async def check_origin(request, handler):
@@ -75,15 +76,13 @@ async def setup():
     app.router.add_get('/tree-thumb/{type:[^:]+}:{path:.+}', thumbs.handle_tree_thumb)
     app.router.add_get('/poster/{type:[^:]+}:{path:.+}', thumbs.handle_poster)
 
-    print('/file/{type:[^:]+}%3A{path:.+}')
     # Add a handler for each API call.
     for command, func in api.handlers.items():
         handler = create_handler_for_command(func)
-        print('/api' + command)
         app.router.add_view('/api' + command, handler)
 
-    print('Initializing indexes...')
-    await image_paths.initialize() 
+    print('Initializing libraries...')
+    await Library.initialize() 
 
     return app
 

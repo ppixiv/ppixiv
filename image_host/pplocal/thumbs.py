@@ -5,8 +5,9 @@ from PIL import Image
 from pathlib import Path
 from shutil import copyfile
 
-from . import video, image_paths
+from . import video
 from .util import misc
+from .library import Library
 
 resource_path = (Path(__file__) / '../../../resources').resolve()
 blank_image = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=')
@@ -29,6 +30,7 @@ def create_thumb(path):
     # very wide images.  If an image is 5000x1000 and we thumbnail to a max of 500x500,
     # it'll result in a 500x100 image, which is unusable.  Instead, use a maximum
     # pixel count.
+    print('......', path)
     image = Image.open(path)
 
     total_pixels = image.size[0]*image.size[1]
@@ -88,7 +90,7 @@ def create_video_poster(illust_id, path):
     """
     poster_path = get_poster_path(path)
     if poster_path.exists():
-        return poster_path
+        return poster_path, 'image/jpeg'
 
     if not video.extract_frame(path, poster_path, seek_seconds=0, exif_description=illust_id):
         # If the first frame fails, we can't get anything from this video.
@@ -131,6 +133,31 @@ def threaded_create_thumb(illust_id, absolute_path, mode):
     else:
         return create_thumb(absolute_path)
 
+def _find_directory_thumbnail(path):
+    """
+    Find the first image in a directory to use as the thumbnail.
+    """
+    for idx, file in enumerate(os.scandir(path)):
+        if idx > 10:
+            # In case this is a huge directory with no images, don't look too far.
+            # If there are this many non-images, it's probably not an image directory
+            # anyway.
+            break
+
+        file = path / file
+
+        # Ignore nested directories.
+        if file.is_dir():
+            continue
+
+        # XXX: handle videos
+        if misc.file_type(file.name) is None:
+            continue
+
+        return file
+
+    return None
+
 # Handle:
 # /thumb/{id}
 # /poster/{id} (for videos only)
@@ -141,13 +168,12 @@ async def handle_tree_thumb(request):
 
 async def handle_thumb(request, mode='thumb'):
     path = request.match_info['path']
-    absolute_path, index = image_paths.resolve_path(path)
+    absolute_path, library = Library.resolve_path(path)
     if absolute_path is None:
         raise aiohttp.web.HTTPNotFound()
 
     if absolute_path.is_dir():
-        entry = index.get(absolute_path) or {}
-        absolute_path = entry.get('directory_thumbnail_path')
+        absolute_path = _find_directory_thumbnail(absolute_path)
         if absolute_path is None:
             if mode == 'thumb':
                 # The directory exists, but we don't have an image to use as a thumbnail.
@@ -161,6 +187,7 @@ async def handle_thumb(request, mode='thumb'):
                 return aiohttp.web.Response(body=blank_image, headers={
                     'Content-Type': 'image/png',
                 })
+
         absolute_path = Path(absolute_path)
 
     if not absolute_path.is_file():
@@ -195,7 +222,7 @@ async def handle_thumb(request, mode='thumb'):
 # Serve direct file requests.
 async def handle_file(request):
     path = request.match_info['path']
-    absolute_path, index = image_paths.resolve_path(path)
+    absolute_path, library = Library.resolve_path(path)
     if not absolute_path.is_file():
         raise aiohttp.web.HTTPNotFound()
 

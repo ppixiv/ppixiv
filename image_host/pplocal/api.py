@@ -4,8 +4,8 @@ from pprint import pprint
 from collections import OrderedDict, namedtuple
 from pathlib import Path, PurePosixPath
 
-from . import image_paths
 from .util import misc
+from .library import Library
 
 handlers = {}
 
@@ -33,7 +33,7 @@ def reg(command):
 #
 # TODO:
 # parallelizing reading image dimensions should speed it up when over a network connection
-# editing archives
+# editing libraries
 # mkv/mp4 support
 # gif -> mkv/mp4
 
@@ -44,7 +44,7 @@ class RequestInfo:
         self.base_url = base_url
 
 # Get info for illust_id.
-def get_illust_info(index, entry, base_url):
+def get_illust_info(library, entry, base_url):
     """
     Return illust info.
     """
@@ -54,7 +54,7 @@ def get_illust_info(index, entry, base_url):
         timestamp = datetime.fromtimestamp(ctime, tz=timezone.utc).isoformat()
 
         image_info = {
-            'id': 'folder:%s' % index.get_public_path(entry['path']),
+            'id': 'folder:%s' % library.get_public_path(entry['path']),
             'local_path': str(entry['path']),
             'createDate': timestamp,
             'width': entry['width'],
@@ -63,7 +63,7 @@ def get_illust_info(index, entry, base_url):
 
         return image_info
 
-    illust_id = 'file:%s' % index.get_public_path(entry['path'])
+    illust_id = 'file:%s' % library.get_public_path(entry['path'])
 
     remote_image_path = base_url + '/file/' + urllib.parse.quote(illust_id, safe='/:')
     remote_thumb_path = base_url + '/thumb/' + urllib.parse.quote(illust_id, safe='/:')
@@ -123,13 +123,13 @@ def get_illust_info(index, entry, base_url):
 @reg('/illust/{type:[^:]+}:{path:.+}')
 async def api_illust(info):
     path = PurePosixPath(info.request.match_info['path'])
-    absolute_path, index = image_paths.resolve_path(path)
+    absolute_path, library = Library.resolve_path(path)
 
-    entry = index.get(absolute_path)
+    entry = library.get(absolute_path)
     if entry is None:
-        raise misc.Error('not-found', 'File not in index')
+        raise misc.Error('not-found', 'File not in library')
 
-    entry = get_illust_info(index, entry, info.base_url)
+    entry = get_illust_info(library, entry, info.base_url)
 
     return {
         'success': True,
@@ -283,13 +283,13 @@ def api_list_impl(info):
         file_info = []
         return result
 
-    # If we're not searching and listing the root, just list the archives.  This
+    # If we're not searching and listing the root, just list the libraries.  This
     # is a special case since it doesn't come from the filesystem.
     if not search_options and str(path) == '/':
-        for index in image_paths.indexes.values():
+        for library in Library.all_libraries.values():
             image_info = {
-                'id': 'folder:%s' % index.get_public_path(index.path),
-                'local_path': str(index.path),
+                'id': 'folder:%s' % library.get_public_path(library.path),
+                'local_path': str(library.path),
                 'createDate': datetime.utcfromtimestamp(0).isoformat(),
             }
             file_info.append(image_info)
@@ -297,35 +297,35 @@ def api_list_impl(info):
         yield flush(last=True)
         return
 
-    # Make a list of archives to search.
-    archives_to_search = []
+    # Make a list of libraries to search.
+    libraries_to_search = []
     if str(path) == '/':
-        # Search all indexes.
+        # Search all libraries.
         absolute_path = None
-        archives_to_search = list(image_paths.indexes.values())
+        libraries_to_search = list(Library.all_libraries.values())
     else:
-        absolute_path, index = image_paths.resolve_path(path)
-        archives_to_search.append(index)
+        absolute_path, library = Library.resolve_path(path)
+        libraries_to_search.append(library)
 
     # Yield (filename, is_dir) for this search.
     def _get_files():
-        # Search each archive.  Archives usually don't overlap and will short-circuit
+        # Search each library.  Libraries usually don't overlap and will short-circuit
         # if the path doesn't match.
-        for index in archives_to_search:
+        for library in libraries_to_search:
             if search_options:
-                for entry in index.search(path=absolute_path, include_files=not directories_only, **search_options):
-                    yield index, entry
+                for entry in library.search(path=absolute_path, include_files=not directories_only, **search_options):
+                    yield library, entry
             else:
                 # We have no search, so just list the contents of the directory.
-                for entry in index.list_path(absolute_path):
-                    yield index, entry
+                for entry in library.list_path(absolute_path):
+                    yield library, entry
 
-    for index, entry in _get_files():
+    for library, entry in _get_files():
         is_dir = bool(entry['is_directory'])
         if directories_only and not is_dir:
             continue
         
-        entry = get_illust_info(index, entry, info.base_url)
+        entry = get_illust_info(library, entry, info.base_url)
         file_info.append(entry)
 
         if not directories_only and len(file_info) >= limit:
@@ -337,7 +337,7 @@ def api_list_impl(info):
 @reg('/view/{type:[^:]+}:{path:.+}')
 async def api_illust(info):
     path = PurePosixPath(info.request.match_info['path'])
-    absolute_path, index = image_paths.resolve_path(path)
+    absolute_path, library = Library.resolve_path(path)
     print(absolute_path)
 
     # XXX

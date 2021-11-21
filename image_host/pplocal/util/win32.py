@@ -100,7 +100,7 @@ def read_directory_metadata(path: os.PathLike, metadata_filename):
             if e.errno != errno.ENOENT:
                 raise
 
-            print('No directory metadata: %s', path)
+            # print('No directory metadata: %s' % path)
             return {}
 
         try:
