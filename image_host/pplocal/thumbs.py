@@ -5,7 +5,8 @@ from PIL import Image
 from pathlib import Path
 from shutil import copyfile
 
-from . import video, image_paths, misc
+from . import video, image_paths
+from .util import misc
 
 resource_path = (Path(__file__) / '../../../resources').resolve()
 blank_image = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=')

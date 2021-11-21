@@ -20,7 +20,7 @@ from pathlib import Path
 from pprint import pprint
 from pathlib import Path, PurePosixPath
 
-from . import monitor_changes, windows_search, misc, win32
+from .util import win32, monitor_changes, windows_search, misc
 from .file_index_storage import IndexDatabase
 
 class RefreshProgress:

@@ -2,13 +2,19 @@
 from pathlib import Path, PurePosixPath
 from pprint import pprint
 
-from . import misc
+from .util import misc
 from .file_index import FileIndex
 
 _archives = {
 }
 
 indexes = { }
+
+# move this into file_index
+# rename file_index
+# archive?
+# album?
+# libraries?
 
 async def initialize():
     def progress_func(total):

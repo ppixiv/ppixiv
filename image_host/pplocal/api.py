@@ -4,7 +4,8 @@ from pprint import pprint
 from collections import OrderedDict, namedtuple
 from pathlib import Path, PurePosixPath
 
-from . import windows_search, misc, image_paths, file_index
+from . import image_paths
+from .util import misc
 
 handlers = {}
 

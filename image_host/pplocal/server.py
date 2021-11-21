@@ -5,7 +5,8 @@ from pprint import pprint
 import aiohttp
 from aiohttp import web
 
-from . import api, misc, thumbs, image_paths
+from . import api, thumbs, image_paths
+from .util import misc
 
 @web.middleware
 async def check_origin(request, handler):
