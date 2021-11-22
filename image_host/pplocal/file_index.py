@@ -1,5 +1,6 @@
 import asyncio, os, re, sqlite3
 from pathlib import Path
+from pprint import pprint
 
 from contextlib import contextmanager
 import threading
@@ -53,12 +54,33 @@ class DatabaseConnectionPool:
             with self.lock:
                 self.connections.append(connection)
 
+class Database:
+    def setup_connection(self, conn):
+        conn.row_factory = sqlite3.Row
+
+    def __init__(self, db_path):
+        """
+        db_path is the path to the database on the filesystem.
+        """
+        self.db_pool = DatabaseConnectionPool(db_path, self.setup_connection)
+        self.db_path = db_path
+
+        # Open the DB now to create it.
+        with self.db_pool.get() as conn:
+            pass
+
+class FileIndexDatabase(Database):
+    def setup_connection(self, conn):
+        super().setup_connection(conn)
+
 # This implements the database storage for library.  It stores similar data to
 # what we get from the Windows index.
 class FileIndex:
     def setup_connection(self, conn):
         conn.row_factory = sqlite3.Row
 
+        # Use WAL.  This means commits won't be transactional across all of our databases,
+        # but they don't need to be, and WAL is significantly faster.
         conn.execute('PRAGMA journal_mode = WAL')
 
         # Why is this on by default?
@@ -69,6 +91,7 @@ class FileIndex:
 
         # Use the fastest sync mode.  Our data is only a cache, so we don't care that much
         # if it loses data during a power loss.
+        # XXX on for user db
         conn.execute('PRAGMA synchronous = OFF;')
 
         # Enable read_uncommitted.  This means that searches will never be blocked by a write
@@ -91,35 +114,33 @@ class FileIndex:
         with self.db_pool.get() as conn:
             pass
 
-    def get_tables(self, conn):
-        result = []
-        for table in conn.execute('SELECT name FROM sqlite_master WHERE type="table"'):
-            result.append(table['name'])
-        return result
-
-    def db_version(self, conn):
-        if 'info' not in self.get_tables(conn):
-            return 0
-
-        for row in conn.execute('select version from info'):
-            return row['version']
-
-        assert False
-
     def upgrade(self, conn):
-        if self.db_version(conn) == 0:
-            with conn:
-                conn.execute('CREATE TABLE info(version)')
-                conn.execute('INSERT INTO info (version) values (?)', (1,))
+        with conn:
+            # If there's no info table, start by just creating it at version 0, so _get_info
+            # and _set_info work.
+            if 'info' not in self.get_tables(conn):
+                conn.execute('''
+                    CREATE TABLE info(
+                        id INTEGER PRIMARY KEY,
+                        version,
+                        last_updated_at NOT NULL
+                    )
+                ''')
+                conn.execute('INSERT INTO info (id, version, last_updated_at) values (1, ?, 0)', (0,))
 
+            if self.get_db_version(conn) == 0:
+                self.set_db_version(1, conn=conn)
+            
                 conn.execute('''
                     CREATE TABLE files(
                         id INTEGER PRIMARY KEY,
                         mtime NOT NULL,
                         ctime NOT NULL,
                         path UNIQUE NOT NULL,
-                        is_directory NOT NULL DEFAULT false,
                         parent NOT NULL,
+                        is_directory NOT NULL DEFAULT false,
+                        inode NOT NULL,
+                        volume_id,
                         width,
                         height,
                         tags NOT NULL,
@@ -135,23 +156,13 @@ class FileIndex:
                 conn.execute('CREATE INDEX files_path on files(path)')
                 conn.execute('CREATE INDEX files_parent on files(lower(parent))')
                 conn.execute('CREATE INDEX files_bookmarked on files(bookmarked) WHERE bookmarked')
+                conn.execute('CREATE INDEX files_file_id on files(inode, volume_id)')
 
-                # The file tag index and the filename word index.  These should be searched with:
+                # This should be searched with:
                 #
                 # SELECT * from file_tags WHERE LOWER(tag) GLOB "pattern*";
                 #
                 # for the best chance that the search can use the tag index.
-#                conn.execute('''
-#                    CREATE TABLE file_tags(
-#                        file_id NOT NULL,
-#                        tag NOT NULL,
-#                        FOREIGN KEY(file_id) REFERENCES files(id) ON DELETE CASCADE
-#                    )
-#                ''')
-#                conn.execute('CREATE INDEX file_tags_file_id on file_tags(file_id)')
-#                conn.execute('CREATE INDEX file_tags_tag on file_tags(lower(tag))')
-
-                # This table indexes words in the filename.
                 conn.execute('''
                     CREATE TABLE file_keywords(
                         file_id NOT NULL,
@@ -162,7 +173,46 @@ class FileIndex:
                 conn.execute('CREATE INDEX file_keyords_file_id on file_keywords(file_id)')
                 conn.execute('CREATE INDEX file_keywords_keyword on file_keywords(lower(keyword))')
 
-        assert self.db_version(conn) == 1
+        assert self.get_db_version(conn) == 1
+
+    def get_tables(self, conn):
+        result = []
+        for table in conn.execute('SELECT name FROM sqlite_master WHERE type="table"'):
+            result.append(table['name'])
+        return result
+
+    def _get_info(self, conn):
+        """
+        Return the one row from the info table.
+        """
+        with self.db_pool.get(conn) as conn:
+            for result in conn.execute('SELECT * FROM info WHERE id = 1'):
+                return result
+            else:
+                raise Exception('No info field in db: %s' % self)
+
+    def _set_info(self, field, value, *, conn=None):
+        with self.db_pool.get(conn) as conn:
+            query = '''
+                UPDATE info
+                    SET %(field)s = ?
+                    WHERE id = 1
+            ''' % {
+                'field': field
+            }
+            conn.execute(query, [value])
+        
+        return self._get_info(conn)['last_updated_at']
+
+    def get_db_version(self, conn):
+        return self._get_info(conn)['version']
+    def set_db_version(self, version, conn):
+        return self._set_info('version', version, conn=conn)
+
+    def get_last_update_time(self, conn=None):
+        return self._get_info(conn)['last_updated_at']
+    def set_last_update_time(self, value, conn=None):
+        self._set_info('last_updated_at', value, conn=conn)
 
     @classmethod
     def split_keywords(self, filename):
@@ -171,9 +221,26 @@ class FileIndex:
         keywords -= { '.', '' }
         return keywords
 
+    def xxxfind_by_entry(self, entry, *, conn=None):
+        """
+        """
+        with self.db_pool.get(conn) as conn:
+            inode = entry['inode']
+            volume = entry['volume']
+
+            for entry in conn.execute('''
+                SELECT * FROM FILES
+                WHERE inode = ? AND volume = ?
+            ''', [inode, volume]):
+                print('Found by inode')
+                return entry
+            # XXX: try filename second
+            return None
+        
     def add_record(self, entry, conn=None):
         """
-        Add a record, returning its ID.
+        Add or update a file record.  Set entry['id'] to the new or updated record's
+        ID.
 
         If a record for this path already exists, it will be replaced.
         """
@@ -196,9 +263,8 @@ class FileIndex:
 
             if existing_record:
                 # The record already exists.  Update all fields except for path and parent,
-                # whichare invariant.  This is much faster than letting INSERT OR REPLACE replace
-                # the record.
-                rowid = existing_record['id']
+                # which are invariant (except for renames which we don't do here)  This is much
+                # faster than letting INSERT OR REPLACE replace the record.
                 fields.remove('path')
                 fields.remove('parent')
                 row = [entry[key] for key in fields]
@@ -217,6 +283,9 @@ class FileIndex:
                 tag_update_needed = False
                 for keyword_field in keyword_fields:
                     tag_update_needed |= existing_record[keyword_field] != entry[keyword_field]
+                
+                # Set the ID in our caller's entry to the existing ID.
+                entry['id'] = existing_record['id']
             else:
                 # The record doesn't exist, so create a new one.
                 tag_update_needed = True
@@ -234,20 +303,13 @@ class FileIndex:
                 cursor.execute(query, row)
                 rowid = cursor.lastrowid
 
-            # Add tags.  Ignore any duplicates.
-    #        tag_list = set(entry['tags'].split(' '))
-    #        tags_to_add = []
-    #        for tag in tag_list:
-    #            tags_to_add.append((rowid, tag))
-    #
-    #        cursor.executemany('''
-    #            INSERT INTO file_tags (file_id, tag) values (?, ?)
-    #        ''', tags_to_add)
+                # Fill in the ID.
+                entry['id'] = rowid
 
             # Only update keywords if needed.
             if tag_update_needed:
                 # Delete old keywords.
-                cursor.execute('DELETE FROM file_keywords WHERE file_id = ?', [rowid])
+                cursor.execute('DELETE FROM file_keywords WHERE file_id = ?', [entry['id']])
 
                 # Split strings that we include in keyword searching.
                 keywords = set()
@@ -259,26 +321,68 @@ class FileIndex:
 
                 keywords_to_add = []
                 for keyword in keywords:
-                    keywords_to_add.append((rowid, keyword))
+                    keywords_to_add.append((entry['id'], keyword))
 
                 cursor.executemany('''
                     INSERT INTO file_keywords (file_id, keyword) values (?, ?)
                 ''', keywords_to_add)
 
             cursor.close()
+        return entry
 
-        return rowid
-
-    def delete_record(self, path, conn):
+    def delete_recursively(self, paths, *, conn=None):
         """
-        Remove path from the database.
+        Remove a list of file paths from the database.
+
+        If this includes directories, all entries for files inside the directory
+        will be removed recursively.
         """
         with self.db_pool.get(conn) as conn:
-            cursor = conn.cursor()
-            cursor.execute('DELETE FROM files WHERE path = ?', [path])
-            cursor.close()
+            # If path includes "/path", we need to delete "/path" and files matching
+            # "/path/*", but not "/path*".
+            # XXX: do this in search below too
+            path_list = [(str(path), str(path) + os.path.sep + '*') for path in paths]
+            count = conn.total_changes
+            conn.executemany('''
+                DELETE FROM files
+                WHERE
+                    LOWER(files.path) = LOWER(?) OR
+                    LOWER(files.path) GLOB LOWER(?)
+            ''', path_list)
+
+            deleted = conn.total_changes - count
+            # print('Deleted %i (%s)' % (deleted, paths))
+
+    def rename(self, old_path, new_path, *, conn=None):
+        with self.db_pool.get(conn) as conn:
+            # Update "path" and "parent" for old_path and all files inside it.
+            print('Renaming "%s" -> "%s"' % (old_path, new_path))
+
+            for entry in self.search(path=str(old_path), recurse=True, substr=None):
+                # path should always be relative to old_path.
+                # parent should too, unless this is old_path itself.
+                path = Path(entry['path'])
+                relative_path = path.relative_to(old_path)
+                entry_new_path = new_path / relative_path
+                if path != old_path:
+                    relative_parent = Path(entry['parent']).relative_to(old_path)
+                    entry_new_parent = new_path / relative_parent
+                else:
+                    entry_new_parent = entry['parent']
+
+                query = '''
+                    UPDATE files
+                        SET path = ?, parent = ?
+                        WHERE id = ?
+                ''' % {
+                    'path': '',
+                    'parent': '',
+                }
+                conn.execute(query, [str(entry_new_path), str(entry_new_parent), entry['id']])
 
     def get(self, path, conn=None):
+        path = str(path)
+
         query = """
             SELECT files.*
             FROM files
@@ -286,16 +390,12 @@ class FileIndex:
         """
         with self.db_pool.get(conn) as conn:
             for row in conn.execute(query, [path]):
-                result = dict(row)
-                del result['id']
-                result['path'] = Path(result['path'])
-                return result
+                return dict(row)
 
         return None
 
     def search(self, *, path=None, recurse=True, substr=None, bookmarked=None, include_files=True, include_dirs=True):
         with self.db_pool.get() as conn:
-            # SELECT * from file_tags WHERE LOWER(tag) GLOB "pattern*";
             where = []
             params = []
                 
@@ -316,13 +416,18 @@ class FileIndex:
             if bookmarked:
                 where.append('files.bookmarked')
 
+            # XXX: very slow for multiple keywords: slower for multiple, should be faster
+            # might be faster to only search for one keyword, then do the rest from the tag list
+            # or search for keywords first, group them manually, then grab the files
             joins = []
             if substr:
-                joins.append('file_keywords')
-                where.append('files.id = file_keywords.file_id')
-                for word in self.split_keywords(substr):
+                for word_idx, word in enumerate(self.split_keywords(substr)):
+                    alias = 'keyword%i' % word_idx
+                    joins.append('file_keywords AS %s' % alias)
+                    where.append('files.id = %s.file_id' % alias)
+                    print('xxx', word)
                     # XXX: the param order here is brittle, but named parameters are awkward too
-                    where.append('lower(file_keywords.keyword) GLOB lower(?)')
+                    where.append('lower(%s.keyword) GLOB lower(?)' % alias)
                     params.append(word)
 
             where = ('WHERE ' + ' AND '.join(where)) if where else ''
@@ -340,37 +445,94 @@ class FileIndex:
 
             for row in conn.execute(query, params):
                 result = dict(row)
-                del result['id']
-                result['path'] = Path(result['path'])
                 yield result
 
 async def test():
-    db = IndexDatabase('index.sqlite')
-    entry = {
-        'path': 'a',
+    try:
+        os.unlink('test.sqlite')
+    except FileNotFoundError:
+        pass
+
+    db = FileIndex('test.sqlite')
+
+    # A base entry for testing.  We don't do anything special with most fields and
+    # it's mostly paths that need testing.
+    test_entry = {
+        # 'path': 'a',
+        # 'parent': 'a',
+
         'mtime': 10,
         'ctime': 10,
         'is_directory': True,
-        'parent': 'a',
+        'inode': 0, 
+        'volume_id': 0,
         'width': 'a',
         'height': 'a',
-        'tags': 'tag1 tag2 tag3',
-        'title': 'title',
-        'comment': 'some comment',
-        'type': 'type',
-        'author': 'an author',
-        'bookmarked': 'a',
+        'tags': '',
+        'title': '',
+        'comment': '',
+        'type': '',
+        'author': '',
+        'bookmarked': False,
+        'directory_thumbnail_path': None,
     }
+    
+    def path_record(path):
+        path = Path(path)
+        entry = test_entry.copy()
+        entry.update({
+            'path': str(path),
+            'parent': str(path.parent),
+        })
+        return entry
 
-    conn = db.begin()
-    db.add_record(entry, conn=conn)
-    db.end(conn)
+    path = Path('f:/foo')
 
-    entry['comment'] = 'foo'
+    # Test adding an entry.
+    entry = path_record(path)
     db.add_record(entry)
+    assert Path(db.get(entry['path'])['path']) == path
 
-    for entry in db.search(): #substr='tag1'):
-        print(entry)
+    # Test deleting an entry.
+    db.delete_recursively([str(path)])
+    entry = db.get(entry['path'])
+    assert entry is None, entry
+
+    # Test adding a directory and a subdirectory.
+    path2 = path / 'bar'
+    db.add_record(path_record(path))
+    db.add_record(path_record(path2))
+    assert Path(db.get(path)['path']) == path, entry
+    assert Path(db.get(path2)['parent'])  == path, entry
+
+    # Test deleting the tree.
+    db.delete_recursively([str(path)])
+    assert db.get(path) is None, entry
+    assert db.get(path2) is None, entry
+
+    # Add directories again.  Add a third unrelated directory that we'll test to
+    # be sure it's unaffected by the rename.
+    db.add_record(path_record(path))
+    db.add_record(path_record(path2))
+    path3 = Path('f:/unrelated')
+    db.add_record(path_record(path3))
+
+    # Rename f:/foo to f:/test.  This will affect entry and entry2.
+    db.rename(path, Path('f:/test'))
+
+    # Test that the entries have been renamed correctly.
+    assert db.get(path) is None, entry
+    assert db.get(path2) is None, entry
+    assert db.get(path3) is not None, entry
+    new_entry = db.get(Path('f:/test'))
+    assert Path(new_entry['path']) == Path('f:/test')
+    assert Path(new_entry['parent']) == Path('f:/')
+
+#    entry['comment'] = 'foo'
+#    db.add_record(entry)
+#
+#    for entry in db.search(): #substr='tag1'):
+#        print(entry)
     return
 
     print('go:')

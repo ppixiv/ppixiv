@@ -4,6 +4,8 @@ import subprocess, piexif
 #
 # Is there a lightweight way of doing this?  FFmpeg is enormous and has
 # nasty licensing.
+#
+# XXX: we should run this as an async that can kill ffmpeg when cancelled
 ffmpeg = './ffmpeg/bin/ffmpeg'
 
 def extract_frame(input_file, output_file, seek_seconds, exif_description=None):
@@ -13,11 +15,10 @@ def extract_frame(input_file, output_file, seek_seconds, exif_description=None):
         '-hide_banner',
         '-ss', str(seek_seconds),
         '-noaccurate_seek',
-        '-loglevel', 'error',
+        '-loglevel', 'error', # XXX
         '-an', # disable audio
         '-i', input_file,
         '-frames:v', '1',
-        # '-vf', 'scale=iw*0.5:ih*0.5',
         '-pix_fmt', 'yuvj420p',
         output_file,
     ])
@@ -28,19 +29,23 @@ def extract_frame(input_file, output_file, seek_seconds, exif_description=None):
         return False
 
     # Set the file's EXIF description.
-    if exif_description is not None:
-        exif_dict = piexif.load(str(output_file))
-        exif_dict['0th'][piexif.ImageIFD.ImageDescription] = exif_description.encode('utf-8')
-        exif_bytes = piexif.dump(exif_dict)
-        piexif.insert(exif_bytes, str(output_file))
+    if False and exif_description is not None:
+        import exif
+        with open(output_file, 'rb') as f:
+            data = f.read()
+
+        print('----------')
+        exif_dict = exif.Image(data)
+        exif_dict.set('image_description', '漢字') #exif_description)
+
+        data = exif_dict.get_file()
+
+        with open(output_file, 'wb') as f:
+            f.write(data)
+
+        #exif_dict = piexif.load(str(output_file))
+        #exif_dict['0th'][piexif.ImageIFD.ImageDescription] = exif_description.encode('utf-8')
+        #exif_bytes = piexif.dump(exif_dict)
+        #piexif.insert(exif_bytes, str(output_file))
 
     return True
-
-if __name__ == '__main__':
-    print(piexif.__file__)
-    exif_dict = piexif.load(str('005.jpg'))
-    from pprint import pprint
-    print(exif_dict['0th'].get(piexif.ImageIFD.Rating))
-    #exif_dict['0th'][piexif.ImageIFD.ImageDescription] = exif_description.encode('utf-8')
-    #exif_bytes = piexif.dump(exif_dict)
-    #extract_frame('test.mp4', 'test1.jpg', seek_seconds=10, exif_description='description')

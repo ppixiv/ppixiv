@@ -48,22 +48,26 @@ def get_illust_info(library, entry, base_url):
     """
     Return illust info.
     """
+    public_path = library.get_public_path(Path(entry['path']))
+    
     if entry['is_directory']:
         # Use the directory's ctime as the post time.
         ctime = entry['ctime']
         timestamp = datetime.fromtimestamp(ctime, tz=timezone.utc).isoformat()
 
         image_info = {
-            'id': 'folder:%s' % library.get_public_path(entry['path']),
+            'id': 'folder:%s' % public_path,
             'local_path': str(entry['path']),
             'createDate': timestamp,
-            'width': entry['width'],
-            'height': entry['height'],
         }
 
         return image_info
 
-    illust_id = 'file:%s' % library.get_public_path(entry['path'])
+    filetype = misc.file_type_from_ext(entry['path'].suffix)
+    if filetype is None:
+        return None
+
+    illust_id = 'file:%s' % public_path
 
     remote_image_path = base_url + '/file/' + urllib.parse.quote(illust_id, safe='/:')
     remote_thumb_path = base_url + '/thumb/' + urllib.parse.quote(illust_id, safe='/:')
@@ -71,10 +75,6 @@ def get_illust_info(library, entry, base_url):
 
     # Get the image dimensions.
     size = entry['width'], entry['height']
-    # XXX misc.get_image_dimensions(absolute_path)
-    # if size is None:
-    #     raise misc.Error('unsupported', 'Unsupported file type')
-
     ctime = entry['ctime']
 
     pages = [{
@@ -87,7 +87,6 @@ def get_illust_info(library, entry, base_url):
     }]
 
     # If this is a video, add the poster path.
-    filetype = misc.file_type_from_ext(entry['path'].suffix)
     if filetype == 'video':
         pages[0]['urls']['poster'] = remote_poster_path
 
@@ -130,6 +129,8 @@ async def api_illust(info):
         raise misc.Error('not-found', 'File not in library')
 
     entry = get_illust_info(library, entry, info.base_url)
+    if entry is None:
+        raise misc.Error('not-found', 'File not in library')
 
     return {
         'success': True,
@@ -317,15 +318,14 @@ def api_list_impl(info):
                     yield library, entry
             else:
                 # We have no search, so just list the contents of the directory.
-                for entry in library.list_path(absolute_path):
+                for entry in library.list_path(absolute_path, include_files=not directories_only):
                     yield library, entry
 
     for library, entry in _get_files():
-        is_dir = bool(entry['is_directory'])
-        if directories_only and not is_dir:
+        entry = get_illust_info(library, entry, info.base_url)
+        if entry is None:
             continue
         
-        entry = get_illust_info(library, entry, info.base_url)
         file_info.append(entry)
 
         if not directories_only and len(file_info) >= limit:

@@ -2,6 +2,7 @@ import asyncio, aiohttp, io, os, math, hashlib, base64
 from aiohttp.web_fileresponse import FileResponse
 from datetime import datetime, timezone
 from PIL import Image
+from PIL.ExifTags import TAGS
 from pathlib import Path
 from shutil import copyfile
 
@@ -23,6 +24,31 @@ video_thumb_dir.mkdir(parents=True, exist_ok=True)
 
 max_thumbnail_pixels = 500*500
 
+def _bake_exif_rotation(image):
+    exif = image.getexif()
+    ORIENTATION = 0x112
+    image_orientation = exif.get(ORIENTATION, 0)
+    if image_orientation <= 1:
+        return image
+
+    flip_mode = [
+        None, # 0: no change
+        None, # 1: no change
+        Image.FLIP_LEFT_RIGHT, # 2
+        Image.ROTATE_180, # 3
+        Image.FLIP_TOP_BOTTOM, # 4
+        Image.TRANSPOSE, # 5
+        Image.ROTATE_270, # 6
+        Image.TRANSVERSE, # 7
+        Image.ROTATE_90, # 6
+    ]
+
+    if image_orientation >= len(flip_mode):
+        print('Unexpected EXIF orientation: %i' % image_orientation)
+        return image
+
+    return image.transpose(flip_mode[image_orientation])
+
 def create_thumb(path):
     # Thumbnail the image.
     #
@@ -30,7 +56,6 @@ def create_thumb(path):
     # very wide images.  If an image is 5000x1000 and we thumbnail to a max of 500x500,
     # it'll result in a 500x100 image, which is unusable.  Instead, use a maximum
     # pixel count.
-    print('......', path)
     image = Image.open(path)
 
     total_pixels = image.size[0]*image.size[1]
@@ -43,6 +68,9 @@ def create_thumb(path):
     except OSError as e:
         print('Couldn\'t create thumbnail for %s: %s' % (path, str(e)))
         raise aiohttp.web.HTTPUnsupportedMediaType()
+
+    # If the image has EXIF rotations, bake them into the thumbnail.
+    image = _bake_exif_rotation(image)
 
     file_type = 'JPEG'
     mime_type = 'image/jpeg'
@@ -150,7 +178,6 @@ def _find_directory_thumbnail(path):
         if file.is_dir():
             continue
 
-        # XXX: handle videos
         if misc.file_type(file.name) is None:
             continue
 

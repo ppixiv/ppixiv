@@ -53,7 +53,15 @@ def create_handler_for_command(handler):
 
         # Don't use web.JsonResponse.  It doesn't let us control JSON formatting
         # and gives really ugly JSON.
-        data = json.dumps(result, indent=4, ensure_ascii=False) + '\n'
+        try:
+            data = json.dumps(result, indent=4, ensure_ascii=False) + '\n'
+        except TypeError as e:
+            # Something in the result isn't serializable.
+            print('Invalid response data:', e)
+            pprint(result)
+
+            result = { 'success': False, 'code': 'internal-error', 'message': str(e) }
+            data = json.dumps(result, indent=4, ensure_ascii=False) + '\n'
 
         # If this is an error, return 500 with the message in the status line.  This isn't
         # part of the API, it's just convenient for debugging.
