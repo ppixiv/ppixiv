@@ -22,6 +22,8 @@ ppixiv.hide_seek_bar = class
                 this.refresh_visibility();
             },
         });
+
+        this.container.visible = false;
     }
 
     mouseover()
@@ -50,25 +52,25 @@ ppixiv.hide_seek_bar = class
     }
 }
 
-ppixiv.seek_bar = class
+ppixiv.seek_bar = class extends widget
 {
-    constructor(container)
+    constructor({...options})
     {
+        super({...options,
+            template: `
+                <div class="seek-bar">
+                    <div class=seek-empty>
+                        <div class=seek-fill></div>
+                    </div>
+                </div>
+            `
+        });
+
         this.mousedown = this.mousedown.bind(this);
         this.mouseup = this.mouseup.bind(this);
         this.mousemove = this.mousemove.bind(this);
 
-        this.container = container;
-
-        this.bar = this.container.appendChild(helpers.create_node('\
-            <div class="seek-bar"> \
-                <div class=seek-empty> \
-                    <div class=seek-fill></div> \
-                </div> \
-            </div> \
-        '));
-
-        this.bar.addEventListener("mousedown", this.mousedown);
+        this.container.addEventListener("mousedown", this.mousedown);
 
         this.current_time = 0;
         this.duration = 1;
@@ -88,7 +90,7 @@ ppixiv.seek_bar = class
 
         e.preventDefault();
         this.dragging = true;
-        helpers.set_class(this.bar, "dragging", this.dragging);
+        helpers.set_class(this.container, "dragging", this.dragging);
 
         // Only listen to mousemove while we're dragging.  Put this on window, so we get drags outside
         // the window.
@@ -104,7 +106,7 @@ ppixiv.seek_bar = class
             return;
 
         this.dragging = false;
-        helpers.set_class(this.bar, "dragging", this.dragging);
+        helpers.set_class(this.container, "dragging", this.dragging);
 
         window.removeEventListener("mousemove", this.mousemove);
         window.removeEventListener("mouseup", this.mouseup);
@@ -127,7 +129,7 @@ ppixiv.seek_bar = class
     set_drag_pos(e)
     {
         // Get the mouse position relative to the seek bar.
-        var bounds = this.bar.getBoundingClientRect();
+        var bounds = this.container.getBoundingClientRect();
         var pos = (e.clientX - bounds.left) / bounds.width;
         pos = Math.max(0, Math.min(1, pos));
         var time = pos * this.duration;
@@ -142,7 +144,7 @@ ppixiv.seek_bar = class
     // is null, remove the callback.
     set_callback(callback)
     {
-        this.bar.hidden = callback == null;
+        this.container.hidden = callback == null;
         if(this.callback == callback)
             return;
 
@@ -168,7 +170,7 @@ ppixiv.seek_bar = class
     refresh()
     {
         var position = this.duration > 0.0001? (this.current_time / this.duration):0;
-        this.bar.querySelector(".seek-fill").style.width = (position * 100) + "%";
+        this.container.querySelector(".seek-fill").style.width = (position * 100) + "%";
     };
 }
 

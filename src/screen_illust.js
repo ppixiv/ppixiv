@@ -64,12 +64,11 @@ ppixiv.screen_illust = class extends ppixiv.screen
         // A bar showing how far along in an image sequence we are:
         this.manga_page_bar = new progress_bar(this.container.querySelector(".ui-box")).controller();
 
-        this.seek_bar = new seek_bar(this.container.querySelector(".video-ui-container"));
+        // Create the video UI, which includes the viewer_ugoira seek bar.
         this.video_ui = new ppixiv.video_ui({
             container: this.container.querySelector(".video-ui-container"),
             parent: this,
         });
-        this.video_ui.visible = false;
         new hide_seek_bar(this.container.querySelector(".video-ui-container"));
 
         this.set_active(false, { });
@@ -298,7 +297,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
                 contents: image_container,
                 progress_bar: this.progress_bar.controller(),
                 manga_page_bar: this.manga_page_bar,
-                seek_bar: this.seek_bar,
+                seek_bar: this.video_ui.seek_bar,
                 video_ui: this.video_ui,
             });
         }

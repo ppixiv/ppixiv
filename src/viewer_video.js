@@ -300,30 +300,41 @@ ppixiv.video_ui = class extends ppixiv.widget
         super({
             ...options, template: `
             <div class=video-ui>
-                <div class=play-button>
-                    <span data-play=pause class="material-icons" style="font-size: 36px;">pause</span>
-                    <span data-play=play class="material-icons" style="font-size: 36px;">play_arrow</span>
+                <div class=seek-bar-container-top></div>
+                <div class=video-ui-strip>
+                    <div class=play-button>
+                        <span data-play=pause class="material-icons" style="font-size: 36px;">pause</span>
+                        <span data-play=play class="material-icons" style="font-size: 36px;">play_arrow</span>
+                    </div>
+
+                    <div class=time></div>
+
+                    <div style="flex: 1;"></div>
+
+                    <div class=volume-slider>
+                        <div class=volume-line></div>
+                    </div>
+
+                    <span data-volume=high class="material-icons" style="font-size: 36px; display: block; width: 40px;">volume_up</span>
+                    <span data-volume=mute class="material-icons" style="font-size: 36px; display: block; width: 40px;">volume_off</span>
+
+                    <div class=pip-button>
+                        <span class="material-icons" style="font-size: 36px;">picture_in_picture_alt</span>
+                    </div>
+                    <div class=fullscreen>
+                        <ppixiv-inline src="resources/fullscreen.svg"></ppixiv-inline>
+                    </div>
                 </div>
-
-                <div class=time></div>
-
-                <div style="flex: 1;"></div>
-
-                <div class=volume-slider>
-                    <div class=volume-line></div>
-                </div>
-
-                <span data-volume=high class="material-icons" style="font-size: 36px; display: block; width: 40px;">volume_up</span>
-                <span data-volume=mute class="material-icons" style="font-size: 36px; display: block; width: 40px;">volume_off</span>
-
-                <div class=pip-button>
-                    <span class="material-icons" style="font-size: 36px;">picture_in_picture_alt</span>
-                </div>
-                <div class=fullscreen>
-                    <ppixiv-inline src="resources/fullscreen.svg"></ppixiv-inline>
-                </div>
+                <div class=seek-bar-container-bottom></div>
             </div>
         `});
+
+        // Add the seek bar.  This moves between seek-bar-container-top and seek-bar-container-bottom.
+        this.seek_bar = new seek_bar({
+            container: this.container.querySelector(".seek-bar-container-top"),
+            parent: this,
+        });
+        this.set_seek_bar_pos();
 
         this.volume_slider = new volume_slider_widget({
             contents: this.container.querySelector(".volume-slider"),
@@ -384,6 +395,9 @@ ppixiv.video_ui = class extends ppixiv.widget
                 return false;
             }
         });
+        document.addEventListener("fullscreenchange", (e) => {
+            this.set_seek_bar_pos();
+        });
 
         this.container.querySelector(".fullscreen").addEventListener("click", () => {
             if(!document.fullscreenElement)
@@ -391,8 +405,22 @@ ppixiv.video_ui = class extends ppixiv.widget
             else
                 document.exitFullscreen();
         });
+
+        this.video_changed(null);
     }
 
+    // Set whether the seek bar is above or below the video UI.
+    set_seek_bar_pos()
+    {
+        let top = document.fullscreenElement == null;
+        // Insert the seek bar into the correct container.
+        this.seek_bar.container.remove();
+        let seek_bar_container = top? ".seek-bar-container-top":".seek-bar-container-bottom";
+        this.container.querySelector(seek_bar_container).appendChild(this.seek_bar.container);
+
+        this.seek_bar.container.dataset.position = top? "top":"bottom";
+    }
+    
     video_changed(player)
     {
         if(this.remove_video_listeners)
@@ -404,8 +432,9 @@ ppixiv.video_ui = class extends ppixiv.widget
         this.player = player;
         this.video = player?.video;
 
-        // Only display when we have a video.
-        this.visible = this.video != null;
+        // Only display the main UI when we have a video.  Don't hide the seek bar, since
+        // it's also used by viewer_ugoira.
+        this.container.querySelector(".video-ui-strip").hidden = this.video == null;
         if(this.video == null)
             return;
 
