@@ -39,15 +39,25 @@ ppixiv.viewer_video = class extends ppixiv.viewer
 
         this.video.autoplay = true;
         this.video.className = "filtering";
-        this.video.style.width = "100%";
+
+        // Don't use object-fit to size the video, since Chrome's PIP display doesn't understand
+        // it and always scales to fill, which is really ugly.  Work around this by setting the
+        // video size to fill without using object-fit.
+        this.video.style.width = "auto";
         this.video.style.height = "100%";
-        this.video.style.objectFit = "contain";
+        this.video.style.display = "block";
+        this.video.style.margin = "0 auto";
+
         this.container.appendChild(this.video);
 
         this.video.addEventListener("timeupdate", this.update_seek_bar);
         this.video.addEventListener("progress", this.update_seek_bar);
         this.video.addEventListener("click", this.clicked_video);
-    
+        this.video.addEventListener("dblclick", (e) => { });
+
+        // In case we start PIP without playing first, switch the poster when PIP starts.
+        this.video.addEventListener("enterpictureinpicture", (e) => { this.switch_poster_to_thumb(); });
+
         // True if we want to play if the window has focus.  We always pause when backgrounded.
         let args = helpers.args.location;
         this.want_playing = !args.state.paused;
@@ -71,7 +81,7 @@ ppixiv.viewer_video = class extends ppixiv.viewer
         this.source = document.createElement("source");
         this.video.appendChild(this.source);
 
-        // Set the video URLs.
+        // Set the video URLs.  
         this.video.poster = this.illust_data.mangaPages[0].urls.poster;
         this.source.src = this.illust_data.mangaPages[0].urls.original;
         this.update_seek_bar();
@@ -85,6 +95,8 @@ ppixiv.viewer_video = class extends ppixiv.viewer
     // Undo load().
     unload()
     {
+        this.illust_data = null;
+
         if(this.source)
         {
             this.source.remove();
@@ -130,6 +142,15 @@ ppixiv.viewer_video = class extends ppixiv.viewer
 
         // Refresh playback, since we pause while the viewer isn't visible.
         this.refresh_focus();
+    }
+
+    // Replace the poster with the thumbnail if we enter PIP.  Chrome displays the poster
+    // in the main window while PIP is active, and the thumbnail is better for that.  It's
+    // low res, but Chrome blurs this image anyway.
+    switch_poster_to_thumb()
+    {
+        if(this.illust_data != null)
+            this.video.poster = this.illust_data.mangaPages[0].urls.small;
     }
 
     update_seek_bar()
@@ -186,7 +207,6 @@ ppixiv.viewer_video = class extends ppixiv.viewer
         case 77: // m
             this.toggle_mute();
             break;
-            /*
         case 32: // space
             e.stopPropagation();
             e.preventDefault();
@@ -194,11 +214,11 @@ ppixiv.viewer_video = class extends ppixiv.viewer
             this.set_want_playing(!this.want_playing);
 
             return;
-            
+
         case 36: // home
             e.stopPropagation();
             e.preventDefault();
-            if(!this.player)
+            if(!this.video)
                 return;
 
             this.video.currentTime = 0;
@@ -207,27 +227,12 @@ ppixiv.viewer_video = class extends ppixiv.viewer
         case 35: // end
             e.stopPropagation();
             e.preventDefault();
-            if(!this.player)
+            if(!this.video)
                 return;
 
             this.pause();
-            this.player.set_current_frame(this.player.get_frame_count() - 1);
+            this.video.currentTime = this.video.duration;
             return;
-
-        case 81: // q
-        case 87: // w
-            e.stopPropagation();
-            e.preventDefault();
-            if(!this.player)
-                return;
-
-            this.pause();
-            var current_frame = this.player.get_current_frame();
-            var next = e.keyCode == 87;
-            var new_frame = current_frame + (next?+1:-1);
-            this.player.set_current_frame(new_frame);
-            return;
-            */
         }
     }
 
@@ -400,10 +405,7 @@ ppixiv.video_ui = class extends ppixiv.widget
         });
 
         this.container.querySelector(".fullscreen").addEventListener("click", () => {
-            if(!document.fullscreenElement)
-                document.documentElement.requestFullscreen();
-            else
-                document.exitFullscreen();
+            helpers.toggle_fullscreen();
         });
 
         this.video_changed(null);
@@ -463,10 +465,10 @@ ppixiv.video_ui = class extends ppixiv.widget
 
     volume_changed()
     {
-        // Update the displayed volume icon.
-        let low_volume = this.video.volume <= 0.5;
-        this.container.querySelector("[data-volume='high']").style.display = !this.video.muted && !low_volume? "":"none";
-        this.container.querySelector("[data-volume='low']").style.display = !this.video.muted && low_volume? "":"none";
+        // Update the displayed volume icon.  When not muted, scale opacity based on the volume.
+        let opacity = (this.video.volume * 0.75) + 0.25;
+        this.container.querySelector("[data-volume='high']").style.display = !this.video.muted? "":"none";
+        this.container.querySelector("[data-volume='high']").style.opacity = opacity;
         this.container.querySelector("[data-volume='mute']").style.display = this.video.muted? "":"none";
 
         // Update the volume slider.  If the video is muted, display 0 instead of the
