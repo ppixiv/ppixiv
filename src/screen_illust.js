@@ -202,7 +202,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
             return;
         }
 
-        console.log(`Showing image ${illust_id} page ${manga_page}`);
+        console.log(`Showing image ${decodeURIComponent(illust_id)} page ${manga_page}`);
 
         helpers.set_title_and_icon(early_illust_data);
         
@@ -282,6 +282,8 @@ ppixiv.screen_illust = class extends ppixiv.screen
         let viewer_class;
         if(early_illust_data.illustType == 2)
             viewer_class = viewer_ugoira;
+        else if(early_illust_data.illustType == "video")
+            viewer_class = viewer_video;
         else
             viewer_class = viewer_images;
 
