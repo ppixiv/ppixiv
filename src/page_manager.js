@@ -123,6 +123,8 @@ ppixiv.page_manager = class
             return data_sources.rankings;
         else if(url.pathname == "/search_user.php")
             return data_sources.search_users;
+        else if(url.pathname.startsWith("/local"))
+            return data_sources.local;
         else
             return null;
     };

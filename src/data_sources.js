@@ -128,7 +128,8 @@ class illust_id_list
                 return null;
 
             // If it's not an illustration, keep looking.
-            if(helpers.parse_id(illust_id).type == "illust")
+            let { type } = helpers.parse_id(illust_id);
+            if(type == "illust" || type == "file")
                 return illust_id;
         }
         return null;
@@ -318,6 +319,9 @@ ppixiv.data_source = class
 
         // This is for overriding muting.
         args.hash.delete("view-muted");
+
+        // Ignore filenames for file: IDs.
+        args.hash.delete("file");
 
         return args.url;
     }
@@ -3257,6 +3261,224 @@ ppixiv.data_sources.recent = class extends data_source
         helpers.set_class(container.querySelector(".box-link[data-type=all]"), "selected", current_mode == "all");
         helpers.set_class(container.querySelector(".box-link[data-type=safe]"), "selected", current_mode == "safe");
         helpers.set_class(container.querySelector(".box-link[data-type=r18]"), "selected", current_mode == "r18");
+    }
+}
+
+
+ppixiv.data_sources.local = class extends data_source
+{
+    get name() { return "local"; }
+
+    constructor(url)
+    {
+        super(url);
+
+        this.reached_end = false;
+        this.prev_page_uuid = null;
+        this.next_page_uuid = null;
+        this.next_page_offset = null;
+        this.search_options = { };
+
+        // The options for the current search, if any.  This is also sent to the navigation
+        // controller.
+        let args = new helpers.args(this.url);
+
+        // XXX: smarter titles
+        this.title = "";
+        if(args.hash.has("search"))
+        {
+            this.search_options.search = args.hash.get("search");
+            this.title = "Search: " + this.search_options.search;
+        }
+
+        if(args.hash.has("bookmarked"))
+        {
+            this.search_options.bookmarked = true;
+            this.title = "Bookmarks";
+        }
+
+        // Clear search_options if it has no keys, to indicate that we're not in a search.
+        if(Object.keys(this.search_options).length == 0)
+            this.search_options = null;
+    }
+
+    get supports_start_page() { return true; }
+
+    async load_page_internal(page)
+    {
+        // If the last result was at the end, stop.
+        if(this.reached_end)
+            return;
+
+        // We should only be called in one of three ways: a start page (any page, but only if we have
+        // nothing loaded), or a page at the start or end of pages we've already loaded.  Figure out which
+        // one this is.  "page" is set to result.next of the last page to load the next page, or result.prev
+        // of the first loaded page to load the previous page.
+        let lowest_page = this.id_list.get_lowest_loaded_page();
+        let highest_page = this.id_list.get_highest_loaded_page();
+        let page_uuid = null;
+        let loading_direction;
+        if(page == lowest_page - 1)
+        {
+            // Load the previous page.
+            page_uuid = this.prev_page_uuid;
+            loading_direction = "backwards";
+        }
+        else if(page == highest_page + 1)
+        {
+            // Load the next page.
+            page_uuid = this.next_page_uuid;
+            loading_direction = "forwards";
+        }
+        else if(this.next_page_offset == null)
+        {
+            loading_direction = "initial";
+        }
+        else
+        {
+            // This isn't our start page, and it doesn't match up with our next or previous page.
+            console.log(`Loaded unexpected page ${page} (${lowest_page}...${highest_page})`);
+            return;
+        }
+    
+        if(this.next_page_offset == null)
+        {
+            // We haven't loaded any pages yet, so we can't resume the search in-place.  Set next_page_offset
+            // to the approximate offset to skip to this page number.
+            this.next_page_offset = this.estimated_items_per_page * (page-1);
+        }
+
+        // Use the search options if we're at the root.  Otherwise, we're navigating inside
+        // the search, so just view the contents of where we navigated to.
+        let current_search_options = this.search_options;
+        let args = new helpers.args(this.url);
+        if(args.hash_path != "/")
+            current_search_options = { }
+
+        // If we have a next_page_uuid, use it to load the next page.
+        let result = await helpers.local_post_request(`/api/list/folder:${args.hash_path}`, {
+            ...current_search_options,
+
+            page: page_uuid,
+            limit: this.estimated_items_per_page,
+
+            // This is used to approximately resume the search if next_page_uuid has expired.
+            skip: this.next_page_offset,
+        });
+
+        if(!result.success)
+        {
+            console.error("Error loading local image:", result);
+            return;
+        }
+
+        // If we got a local path, store it to allow copying it to the clipboard.
+        this.local_path = result.local_path;
+
+        // Update the next and previous page IDs.  If we're loading backwards, always update
+        // the previous page.  If we're loading forwards, always update the next page.  If
+        // either of these are null, update both.
+        if(loading_direction == "backwards" || loading_direction == "initial")
+            this.prev_page_uuid = result.pages.prev;
+
+        if(loading_direction == "forwards" || loading_direction == "initial")
+            this.next_page_uuid = result.pages.next;
+
+        this.next_page_offset = result.next_offset;
+
+        // If next is null, we've reached the end of the results.
+        if(result.pages.next == null)
+            this.reached_end = true;
+
+        // Register results as thumbnail info.
+        thumbnail_data.singleton().loaded_thumbnail_info(result.results, "internal");
+
+        let found_illust_ids = [];
+        for(let thumb of result.results)
+            found_illust_ids.push(thumb.id);
+
+        this.add_page(page, found_illust_ids);
+    };
+
+    get page_title() { return this.get_displaying_text(); }
+    get_displaying_text()
+    {
+        if(this.title)
+            return this.title;
+            
+        // Show the path, with the file: ID prefix removed.
+        let args = new helpers.args(this.url);
+        let { id } = helpers.parse_id(args.hash_path);
+        let parts = id.split('/');
+        return parts[parts.length-1];
+    }
+
+    // Put the illust ID in the hash instead of the path.  Pixiv doesn't care about this,
+    // and this avoids sending the user's filenames to their server as 404s.
+    set_current_illust_id(illust_id, args)
+    {
+        let { type, id } = helpers.parse_id(illust_id);
+        if(type != "file")
+        {
+            // This is a regular ID.  This means the local data source is being used to view
+            // a non-local image.  This doesn't happen often, but allow it.
+            args.hash.set("illust_id", illust_id);
+            args.hash.delete("file");
+            return;
+        }
+
+        // Split the filename from the directory.  The directory goes in the hash path, since
+        // it represents the data source, and the filename goes in hash args.  This way, the
+        // data source stays the same when viewing images.
+        let { directory: directory, filename: filename } = helpers.split_local_id(id);
+        args.hash.delete("illust_id");
+        args.hash.set("file", filename);
+        args.hash_path = directory;
+    }
+
+    get_current_illust_id()
+    {
+        let args = helpers.args.location;
+
+        // If illust_id is in the URL, it's a regular ID.
+        let illust_id = args.hash.get("illust_id");
+        if(illust_id)
+            return illust_id;
+
+        // Combine the hash path and the filename to get the local ID.
+        let file = args.hash.get("file");
+        if(file && args.hash_path != "")
+            return "file:" + args.hash_path + "/" + file;
+        
+        return this.id_list.get_first_id();
+    }
+
+    // Tell the navigation tree widget which search to view.
+    refresh_thumbnail_ui(container)
+    {
+        // Hack to get the local_navigation_widget.  We don't have a good path for
+        // this right now. XXX
+        let box = document.body.querySelector(".local-navigation-box");
+        let navigation_widget = box.firstChild.widget;
+        navigation_widget.set_data_source_search_options(this.search_options, { search_title: this.get_displaying_text() });
+
+        // Show the "show all files" button if we have a search active.  This stays in the same
+        // directory and resets the search.
+        let current_args = helpers.args.location;
+        let new_args = new helpers.args("/", ppixiv.location);
+        new_args.path = current_args.path;
+        new_args.hash_path = current_args.hash_path;
+        container.querySelector(".show-all-files").hidden = this.search_options == null;
+        container.querySelector(".show-all-files").href = new_args.url;
+
+        // Hide the "copy local path" button if we don't have one.
+        container.querySelector(".copy-local-path").hidden = this.local_path == null;
+    }
+
+    copy_link()
+    {
+        // The user clicked the "copy local link" button.
+        navigator.clipboard.writeText(this.local_path);
     }
 }
 
