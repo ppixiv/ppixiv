@@ -313,6 +313,10 @@ ppixiv.image_preloader = class
             return results;
         }
 
+        // If this is a video, preload the poster.
+        if(illust_data.illustType == "video")
+            return [new img_preloader(illust_data.mangaPages[0].urls.poster) ];
+
         // If page is -1, preload the last page.
         if(page == -1)
             page = illust_data.mangaPages.length-1;

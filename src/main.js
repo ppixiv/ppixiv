@@ -429,6 +429,16 @@ ppixiv.main_controller = class
 
         let args = helpers.args.location;
 
+        // If we're told to show a folder: ID, go to the search page instead of the illust page.
+        let { type, id } = helpers.parse_id(illust_id);
+        if(type == "folder")
+        {
+            args.path = "/local/";
+            args.hash_path = id;
+            helpers.set_page_url(args, add_to_history, "navigation");
+            return;
+        }
+
         // Update the URL to display this illust_id.  This stays on the same data source,
         // so displaying an illust won't cause a search to be made in the background or
         // have other side-effects.
@@ -560,7 +570,7 @@ ppixiv.main_controller = class
 
         // If this is a link to an image (usually /artworks/#), navigate to the image directly.
         // This way, we actually use the URL for the illustration on this data source instead of
-        // switching to /artworks.
+        // switching to /artworks.  This also applies to local image IDs, but not folders.
         var url = new unsafeWindow.URL(url);
         url = helpers.get_url_without_language(url);
         let illust = this.get_illust_at_element(a);
@@ -587,10 +597,17 @@ ppixiv.main_controller = class
         // Doing this sync works better, because it 
         console.log("Reloading page to get init data");
 
+        // /local is used as a placeholder path for the local API, and it's a 404
+        // on the actual page.  It doesn't have global data, so load some other arbitrary
+        // page to get it.
+        let url = document.location;
+        if(url.pathname.startsWith('/local'))
+            url = new URL("/discovery", url);
+
         // Some Pixiv pages try to force cache expiry.  We really don't want that to happen
         // here, since we just want to grab the page we're on quickly.  Setting cache: force_cache
         // tells Chrome to give us the cached page even if it's expired.
-        let result = await helpers.load_data_in_iframe(document.location.toString(), {
+        let result = await helpers.load_data_in_iframe(url.toString(), {
             cache: "force-cache",
         });
 

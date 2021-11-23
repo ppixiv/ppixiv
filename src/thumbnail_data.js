@@ -66,11 +66,17 @@ ppixiv.thumbnail_data = class
             var data = this.thumbnail_data[illust_id];
             if(data == null)
             {
-                // If this is a user:user_id instead of an illust ID, make sure we don't request it
-                // as an illust ID.
-                if(illust_id.indexOf(":") != -1)
+                // Don't request user IDs as thumbnail IDs.
+                let { type } = helpers.parse_id(illust_id);
+                if(type == "user")
                     continue;
-                needed_ids.push(illust_id);
+
+                // We don't need to load local thumbnail IDs, since they're always provided by the
+                // data source.  Make sure we don't send these to load_thumbnail_info.
+                if(helpers.is_local(illust_id))
+                    continue;
+
+                needed_ids.push('id:', illust_id);
                 continue;
             }
             result[illust_id] = data;

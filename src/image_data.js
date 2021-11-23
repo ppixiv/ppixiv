@@ -113,6 +113,10 @@ ppixiv.image_data = class
         // user ID and illust type to start those loads.
         console.log("Fetching", illust_id);
 
+        // If this is a local image, use our API to retrieve it.
+        if(helpers.is_local(illust_id))
+            return await this._load_local_image_info(illust_id);
+
         var user_info_promise = null;
         var manga_promise = null;
         var ugoira_promise = null;
@@ -236,6 +240,22 @@ ppixiv.image_data = class
     get_illust_load_error(illust_id) { return this.nonexistant_illist_ids[illust_id]; }
     get_user_load_error(user_id) { return this.nonexistant_user_ids[illust_id]; }
 
+    // Load image info from the local API.
+    async _load_local_image_info(illust_id)
+    {
+        let illust_data = await helpers.local_post_request(`/api/illust/${illust_id}`);
+
+        if(!illust_data.success)
+        {
+            console.error("Error loading image:", illust_data);
+            this.nonexistant_illist_ids[illust_id] = illust_data.message;
+            return null;
+        }
+
+        this.image_data[illust_id] = illust_data.illust;
+        return illust_data.illust;
+    }
+
     // The user request can either return a small subset of data (just the username,
     // profile image URL, etc.), or a larger set with a webpage URL, Twitter, etc.
     // User preloads often only have the smaller set, and we want to use the preload
@@ -305,12 +325,16 @@ ppixiv.image_data = class
     
     async load_user_info(user_id)
     {
+        // -1 is for illustrations with no user, which is used for local images.
+        if(user_id == -1)
+            return null;
+
         // console.log("Fetch user", user_id);
         let result = await helpers.get_request("/ajax/user/" + user_id, {full:1});
         if(result == null || result.error)
         {
             let message = result?.message || "Error loading user";
-            console.log(`Error loading user ${user_id}; ${message}`);
+            console.log(`Error loading user ${user_id}: ${message}`);
             this.nonexistant_user_ids[user_id] = message;
             return null;
         }
@@ -436,6 +460,13 @@ ppixiv.image_data = class
         // Stop if this is already loaded.
         if(this.bookmarked_image_tags[illust_id])
             return this.bookmarked_image_tags[illust_id]; 
+
+        // The local API just puts bookmark info on the illust info.
+        if(helpers.is_local(illust_id))
+        {
+            this.bookmarked_image_tags[illust_id] = thumb.bookmarkData.tags;
+            return this.bookmarked_image_tags[illust_id]; 
+        }
 
         let bookmark_page = await helpers.load_data_in_iframe("/bookmark_add.php?type=illust&illust_id=" + illust_id);
         

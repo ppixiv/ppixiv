@@ -1897,6 +1897,16 @@ ppixiv.helpers = {
         return type == "file" || type == "folder";
     },
 
+    // Given a local ID, return the separated directory and filename.  id is
+    // the id result of helpers.parse_id when type is "file".
+    split_local_id(id)
+    {
+        let idx = id.lastIndexOf("/");
+        let directory = id.substr(0, idx);
+        let filename = id.substr(idx+1);
+        return { directory: directory, filename: filename };
+    },
+
     // Generate a UUID.
     create_uuid()
     {
@@ -1993,7 +2003,28 @@ ppixiv.helpers = {
     get_url_for_id(illust_id, page=null)
     {
         let args = new helpers.args("/", ppixiv.location);
-        args.path  = `/artworks/${illust_id}`;
+
+        // If this is a local file or folder, 
+        let { id, type } = helpers.parse_id(illust_id);
+        if(type == "file" || type == "folder")
+        {
+            // URLs for local files are handled differently.
+            let { directory: directory, filename: filename } = helpers.split_local_id(id);
+            args.path  = `/local/`;
+            if(type == "file")
+            {
+                args.hash_path = directory;
+                args.hash.set("file", filename);
+            }
+            else
+            {
+                args.hash_path = id;
+            }
+        }
+        else
+        {
+            args.path  = `/artworks/${illust_id}`;
+        }
 
         if(page != null)
             args.query.set("page", page);
