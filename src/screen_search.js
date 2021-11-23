@@ -1548,10 +1548,12 @@ ppixiv.screen_search = class extends ppixiv.screen
                 {
                     var pageCountBox = element.querySelector(".page-count-box");
                     pageCountBox.hidden = false;
-                    pageCountBox.href = link.href + "?view=manga";
                     element.querySelector(".page-count-box .page-count").textContent = info.pageCount;
-                }
 
+                    let args = new helpers.args(link.href);
+                    args.hash.set("view", "manga");
+                    pageCountBox.href = args.url;
+                }
             }
 
             helpers.set_class(element, "dot", helpers.tags_contain_dot(info));
