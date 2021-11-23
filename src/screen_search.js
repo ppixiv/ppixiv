@@ -281,6 +281,20 @@ let thumbnail_ui = class extends ppixiv.widget
                         </span>
                     </div>
                 </div>
+
+                <div class="data-source-specific" data-datasource=local>
+                    <div class=local-search style="display: flex; align-items: center; gap: 0.5em;">
+                        <a href=/local/#ppixiv/ class="grey-icon show-all-files">← All</a>
+                        <div class="local-tag-search search-box">
+                            <div class="local-tag-search-box hover-menu-box">
+                                <input class=search-tags placeholder="Search files">
+                            </div>
+                        </div>
+                        <span class="popup grey-icon copy-local-path" data-popup="Copy local path to clipboard" style="cursor: pointer;">
+                            <span class="material-icons">content_copy</span>
+                        </span>
+                    </div>
+                </div>                
             </div>
             `
         });
@@ -438,6 +452,18 @@ ppixiv.screen_search = class extends ppixiv.screen
             
         // Create the tag dropdown for the search input in the menu dropdown.
         new tag_search_box_widget({ contents: this.container.querySelector(".navigation-search-box") });
+
+        // The search history dropdown for local searches.
+        new local_search_box_widget({ contents: this.container.querySelector(".local-tag-search-box") });
+        
+        this.local_nav_widget = new ppixiv.local_navigation_widget({
+            parent: this,
+            container: this.container.querySelector(".local-navigation-box"),
+        });
+    
+        this.container.querySelector(".copy-local-path").addEventListener("click", (e) => {
+            this.data_source.copy_link();
+        });
 
         // Handle submitting searches on the user search page.
         this.container.querySelector(".user-search-box .search-submit-button").addEventListener("click", this.submit_user_search);
@@ -1272,9 +1298,9 @@ ppixiv.screen_search = class extends ppixiv.screen
         {
             if(element.dataset.id != null)
             {
-                // If this is an illustration, add it to wanted_illust_ids so we load its thumbnail
-                // info.  Don't do this if it's a user.
-                if(helpers.parse_id(element.dataset.id).type == "illust")
+                // If this is an illustration, file or folder, add it to wanted_illust_ids so we
+                // load its thumbnail info.  Don't do this if it's a user.
+                if(helpers.parse_id(element.dataset.id).type != "user")
                     wanted_illust_ids.push(element.dataset.id);
             }
         }
@@ -1433,7 +1459,7 @@ ppixiv.screen_search = class extends ppixiv.screen
 
             // For illustrations, get thumbnail info.  If we don't have it yet, skip the image (leave it pending)
             // and we'll come back once we have it.
-            if(thumb_type == "illust")
+            if(thumb_type == "illust" || thumb_type == "file" || thumb_type == "folder")
             {
                 // Get thumbnail info.
                 var info = thumbnail_data.singleton().get_one_thumbnail_info(illust_id);
@@ -1484,7 +1510,7 @@ ppixiv.screen_search = class extends ppixiv.screen
                 continue;
             }
 
-            if(thumb_type != "illust")
+            if(thumb_type != "illust" && thumb_type != "file" && thumb_type != "folder")
                 throw "Unexpected thumb type: " + thumb_type;
 
             // Set this thumb.
@@ -1527,8 +1553,20 @@ ppixiv.screen_search = class extends ppixiv.screen
             //
             // If we're on the followed users page, set these to the artist page instead.
             var link = element.querySelector("a.thumbnail-link");
-            if(search_mode == "users") {
+            if(search_mode == "users")
+            {
                 link.href = "/users/" + info.userId + "#ppixiv";
+            }
+            else if(thumb_type == "folder")
+            {
+                // This is a local directory.  We only expect to see this while on the local
+                // data source.  The folder link retains any search parameters in the URL.
+                let args = new helpers.args(ppixiv.location);
+                console.assert(args.path == "/local/");
+                args.hash_path = thumb_id;
+        
+                let link = element.querySelector("a.thumbnail-link");
+                link.href = args.url;
             }
             else
             {
@@ -1536,7 +1574,8 @@ ppixiv.screen_search = class extends ppixiv.screen
             }
 
             link.dataset.illustId = illust_id;
-            link.dataset.userId = info.userId;
+            if(illust_id != -1)
+                link.dataset.userId = info.userId;
 
             // Don't show this UI when we're in the followed users view.
             if(search_mode == "illusts")
@@ -1572,6 +1611,15 @@ ppixiv.screen_search = class extends ppixiv.screen
             if(search_mode == "users") {
                 label.hidden = false;
                 label.querySelector(".label").innerText = info.userName;
+            }
+            else if(thumb_type == "folder")
+            {
+                // The ID is based on the filename.  Use it to show the directory name in the thumbnail.
+                let parts = illust_id.split("/");
+                let basename = parts[parts.length-1];
+                let label = element.querySelector(".thumbnail-label");
+                label.hidden = false;
+                label.querySelector(".label").innerText = basename;
             } else {
                 label.hidden = true;
             }
@@ -1664,18 +1712,19 @@ ppixiv.screen_search = class extends ppixiv.screen
             if(element == null)
                 return;
 
-            if(element.dataset.id == null)
+            let illust_id = element.dataset.id;
+            if(illust_id == null)
                 return;
 
-            let { type, id } = helpers.parse_id(element.dataset.id);
-            if(type != "illust")
+            let { type } = helpers.parse_id(illust_id);
+            if(type == "user")
                 return;
 
             // Skip this thumb if it's already loading.
-            if(thumbnail_data.singleton().is_id_loaded_or_loading(id))
+            if(thumbnail_data.singleton().is_id_loaded_or_loading(illust_id))
                 return;
 
-            results.push(id);
+            results.push(illust_id);
         }
         
         let onscreen_thumbs = this.container.querySelectorAll(`.thumbnails > [data-id][data-fully-on-screen]`);
