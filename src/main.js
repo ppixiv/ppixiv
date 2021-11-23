@@ -167,6 +167,11 @@ ppixiv.main_controller = class
         await this.load_resource_blobs();
 
         // Create the page from our HTML resource.
+        let font_link = document.createElement("link");
+        font_link.href = "https://fonts.googleapis.com/icon?family=Material+Icons";
+        document.head.appendChild(font_link);
+        font_link.rel = "stylesheet";
+
         document.body.insertAdjacentHTML("beforeend", resources['resources/main.html']);
         helpers.replace_inlines(document.body);
 
