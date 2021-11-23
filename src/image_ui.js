@@ -282,8 +282,12 @@ ppixiv.image_ui = class extends ppixiv.widget
         element_title.textContent = illust_info.illustTitle;
         element_title.href = helpers.get_url_for_id(illust_id);
 
+        // If the author name is empty, hide it instead of leaving it empty.
+        this.container.querySelector(".author-block").hidden = illust_info.userName == "";
         var element_author = this.container.querySelector(".author");
-        element_author.textContent = illust_info.userName;
+        if(illust_info.userName != "")
+            element_author.textContent = illust_info.userName;
+
         element_author.href = `/users/${user_id}#ppixiv`;
         
         this.container.querySelector(".similar-illusts-button").href = "/bookmark_detail.php?illust_id=" + illust_id + "#ppixiv?recommendations=1";
