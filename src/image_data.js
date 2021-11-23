@@ -243,7 +243,7 @@ ppixiv.image_data = class
     // Load image info from the local API.
     async _load_local_image_info(illust_id)
     {
-        let illust_data = await helpers.local_post_request(`/api/illust/${illust_id}`);
+        let illust_data = await local_api.local_post_request(`/api/illust/${illust_id}`);
 
         if(!illust_data.success)
         {

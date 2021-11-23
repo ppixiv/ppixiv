@@ -1,5 +1,5 @@
 # Helpers that don't have dependancies on our other modules.
-import os
+import asyncio, os
 
 # cv2 is used to get the dimensions of video files.  It ultimately just calls ffmpeg,
 # but it's much faster than running ffprobe in a subprocess.  XXX: are there any usable
@@ -102,3 +102,94 @@ class Error(Exception):
             'code': self.code,
             'reason': self.reason,
         }
+
+from PIL import Image, ExifTags
+exif_tag_ids = { value: key for key, value in ExifTags.TAGS.items() }
+
+def read_metadata(f, mime_type):
+    """
+    Parse basic metadata from a file.
+
+    This is currently only implemented for JPEGs.
+    """
+    # PIL's parser for PNGs is very slow, so only support JPEG for now.
+    if mime_type != 'image/jpeg':
+        return { }
+
+    img = Image.open(f)
+
+    exif_dict = img._getexif()
+    if exif_dict is None:
+        exif_dict = { }
+
+    result = { }
+    def get_exif_string_tag(name, exif_name):
+        data = exif_dict.get(exif_tag_ids[exif_name])
+        if not data:
+            return
+
+        try:
+            data = data.decode('UTF-16LE')
+        except UnicodeDecodeError:
+            return
+
+        # These are null-terminated.
+        data = data.rstrip('\u0000')
+        result[name] = data
+
+    get_exif_string_tag('title', 'XPTitle')
+    get_exif_string_tag('comment', 'XPComment')
+    get_exif_string_tag('artist', 'XPAuthor')
+    get_exif_string_tag('tags', 'XPKeywords')
+
+    # XPAuthor is semicolon separated.  Reformat this to comma-separated.
+    if 'artist' in result:
+        result['artist'] = ', '.join(result['artist'].split(';'))
+
+    # Tags is semicolon-separated.  Reformat this to space-separated.
+    if 'tags' in result:
+        result['tags'] = ' '.join(result['tags'].split(';'))
+
+    return result
+
+class AsyncEvent:
+    """
+    A simple async implementation of threading.Event.
+    """
+    def __init__(self):
+        self.waits = set()
+        self._is_set = False
+
+    @property
+    def is_set(self):
+        return self._is_set
+
+    def set(self):
+        self._is_set = True
+
+        # Wake up all waiters.
+        for future in self.waits:
+            if not future.done():
+                future.set_result(True)
+
+    def clear(self):
+        self._is_set = False
+
+    async def wait(self, timeout=None):
+        """
+        Wait up to timeout to be woken up.  Return true if we were woken up,
+        false if we timed out.
+        """
+        if self._is_set:
+            return True
+
+        future = asyncio.get_running_loop().create_future()
+
+        self.waits.add(future)
+        try:
+            await asyncio.wait_for(future, timeout)
+            return True
+        except asyncio.TimeoutError:
+            return False
+        finally:
+            self.waits.remove(future)

@@ -173,7 +173,7 @@ ppixiv.tree_widget = class extends ppixiv.widget
             {
                 // Use /tree-thumb for these thumbnails.  They're the same as the regular thumbs,
                 // but it won't give us a folder image if there's no thumb.
-                let url = new URL(helpers.local_url);
+                let url = new URL(local_api.local_url);
                 url.pathname = "tree-thumb/" + item.path;
                 img.src = url;
                 img.addEventListener("img", (e) => { console.log("error"); img.hidden = true; });
@@ -526,8 +526,9 @@ class local_navigation_widget_item extends ppixiv.tree_widget_item
     {
         if(this.loaded)
             return;
+        this.loaded = true;
 
-        let result = await helpers.local_post_request(`/api/list/${this.path}`, {
+        let result = await local_api.local_post_request(`/api/list/${this.path}`, {
             ...this.search_options,
             id: this.path,
 
@@ -557,8 +558,6 @@ class local_navigation_widget_item extends ppixiv.tree_widget_item
             return await this.load_inner();
         }
         */
-
-        this.loaded = true;
 
         for(let dir of result.results)
         {

@@ -77,8 +77,6 @@ def open_shared(path, mode='r'):
         raise
 
     try:
-        # XXX: Is there a way we can assign the filename to the resulting file, so
-        # exceptions and f.name are still meaningful?
         return open(fd, mode)
     except:
         # If open() fails, close the FD, which will also close the handle.

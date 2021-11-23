@@ -100,7 +100,6 @@ class MonitorChanges:
                 raise
 
             import time
-            print('---------- change at', time.time())
 
             # Yield all results.
             offset = 0
@@ -113,6 +112,7 @@ class MonitorChanges:
 
                 path = self.path / filename
                 action = FileAction(entry.Action)
+                print('---------- change at', time.time(), path, action)
 
                 # RENAMED_OLD_NAME and RENAMED_NEW_NAME are normally received in pairs.
                 # Pair them back up and return them as a single event.

@@ -32,7 +32,7 @@ class Manager:
 
             # XXX
             start = time.time()
-            # await library.refresh(progress=progress_func)
+            await library.refresh(progress=progress_func)
             end = time.time()
             print('Indexing took %.2f seconds' % (end-start))
 

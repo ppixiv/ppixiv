@@ -99,6 +99,9 @@ def get_illust_info(library, entry, base_url):
 
     timestamp = datetime.fromtimestamp(ctime, tz=timezone.utc).isoformat()
     preview_urls = [page['urls']['small'] for page in pages]
+    tags = entry['tags'].split(' ')
+    if '' in tags:
+        tags.remove('')
 
     image_info = {
         'id': illust_id,
@@ -110,7 +113,7 @@ def get_illust_info(library, entry, base_url):
         # more meaningful, and we're unlikely to collide if they decide to add additional
         # illustTypes.
         'illustType': 0 if filetype == 'image' else 'video',
-        'illustTitle': entry['path'].name,
+        'illustTitle': entry['title'],
 
         # We use -1 to indicate no user instead of null.  Pixiv user and illust IDs can
         # be treated as strings or ints, so using null is awkward.
@@ -121,9 +124,9 @@ def get_illust_info(library, entry, base_url):
         'width': size[0],
         'height': size[1],
         'mangaPages': pages,
-        'userName': '',
-        'illustComment': '',
-        'tagList': [],
+        'userName': entry['author'],
+        'illustComment': entry['comment'],
+        'tagList': tags,
     }
 
     return image_info
@@ -415,33 +418,32 @@ async def api_illust(info):
     print(absolute_path)
 
     # XXX
-    if False:
-        import subprocess
-        if os.path.isdir(absolute_path):
-            os.startfile(absolute_path)
-        else:
-            # Work around a Microsoft programmer being braindamaged: everything else in Windows
-            # supports forward slashes in paths, but Explorer is hardcoded to only work with backslashes.
-            # The main application used for navigating files in Windows doesn't know how to parse
-            # pathnames.
-            absolute_path = absolute_path.replace('/', '\\')
+    import subprocess 
+    if os.path.isdir(absolute_path):
+        os.startfile(absolute_path)
+    else:
+        # Work around a Microsoft programmer being braindamaged: everything else in Windows
+        # supports forward slashes in paths, but Explorer is hardcoded to only work with backslashes.
+        # The main application used for navigating files in Windows doesn't know how to parse
+        # pathnames.
+        absolute_path = absolute_path.replace('/', '\\')
 
-            #path = os.path.dirname(absolute_path)
-            #file = os.path.basename(absolute_path)
-            print('->', absolute_path)
+        #path = os.path.dirname(absolute_path)
+        #file = os.path.basename(absolute_path)
+        print('->', absolute_path)
 
-            si = subprocess.STARTUPINFO(dwFlags=subprocess.STARTF_USESHOWWINDOW, wShowWindow=1)
-    #        si.dwFlags = subprocess.STARTF_USESHOWWINDOW
+        si = subprocess.STARTUPINFO(dwFlags=subprocess.STARTF_USESHOWWINDOW, wShowWindow=1)
+#        si.dwFlags = subprocess.STARTF_USESHOWWINDOW
 
-            proc = subprocess.Popen([
-                'explorer.exe',
-                '/select,',
-                absolute_path,
-            ],
-            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
-            startupinfo=si)
-            print(dir(proc))
-            print(proc.pid)
+        proc = subprocess.Popen([
+            'explorer.exe',
+            '/select,',
+            absolute_path,
+        ],
+        creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
+        startupinfo=si)
+        print(dir(proc))
+        print(proc.pid)
 
         # os.startfile(absolute_path)
 

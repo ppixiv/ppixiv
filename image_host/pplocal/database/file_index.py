@@ -109,22 +109,6 @@ class FileIndex(Database):
         keywords -= { '.', '' }
         return keywords
 
-    def xxxfind_by_entry(self, entry, *, conn=None):
-        """
-        """
-        with self.connect(conn) as cursor:
-            inode = entry['inode']
-            volume = entry['volume']
-
-            for entry in cursor.execute('''
-                SELECT * FROM FILES
-                WHERE inode = ? AND volume = ?
-            ''', [inode, volume]):
-                print('Found by inode')
-                return entry
-            # XXX: try filename second
-            return None
-        
     def add_record(self, entry, conn=None):
         """
         Add or update a file record.  Set entry['id'] to the new or updated record's
@@ -225,7 +209,6 @@ class FileIndex(Database):
         with self.connect(conn) as cursor:
             # If path includes "/path", we need to delete "/path" and files matching
             # "/path/*", but not "/path*".
-            # XXX: do this in search below too
             path_list = [(str(path), str(path) + os.path.sep + '*') for path in paths]
             count = cursor.connection.total_changes
             cursor.executemany(f'''
@@ -234,11 +217,9 @@ class FileIndex(Database):
                     LOWER(files.path) = LOWER(?) OR
                     LOWER(files.path) GLOB LOWER(?)
             ''', path_list)
-
             deleted = cursor.connection.total_changes - count
             # print('Deleted %i (%s)' % (deleted, paths))
 
-    # XXX: if we have multiple libraries, we should only do this to the user schema once
     def rename(self, old_path, new_path, *, conn=None):
         """
         Rename files from old_path to new_path.
@@ -251,7 +232,7 @@ class FileIndex(Database):
 
             # Do this for both the index and the user table.
             for schema in (self.schema, self.user_data.schema):
-                for entry in self.search(path=str(old_path), recurse=True, substr=None):
+                for entry in self.search(path=str(old_path)):
                     # path should always be relative to old_path.
                     # parent should too, unless this is old_path itself.
                     path = Path(entry['path'])
@@ -327,7 +308,7 @@ class FileIndex(Database):
                     # path is the top directory to start searching from.  This is done with a
                     # prefix match against the path: listing "C:\ABCD" recursively matches "C:\ABCD\*".
                     where.append(f'lower({self.schema}.files.path) GLOB lower(?)')
-                    params.append(path + '\\*')
+                    params.append(path + os.path.sep + '*')
                 elif mode == self.SearchMode.Subdir:
                     # Only list files directly inside path.
                     where.append(f'lower({self.schema}.files.parent) = lower(?)')

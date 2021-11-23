@@ -74,6 +74,10 @@ def create_handler_for_command(handler):
 
     return handle
 
+async def handle_unknown_api_call(info):
+    name = info.request.match_info['name']
+    return { 'success': False, 'code': 'invalid-request', 'reason': 'Invalid API: /api/%s' % name }
+
 # logging.basicConfig(level=logging.DEBUG)
 
 async def setup():
@@ -89,6 +93,10 @@ async def setup():
     for command, func in api.handlers.items():
         handler = create_handler_for_command(func)
         app.router.add_view('/api' + command, handler)
+
+    # Add a fallback for invalid /api calls.
+    handler = create_handler_for_command(handle_unknown_api_call)
+    app.router.add_view('/api/{name:.*}', handler)
 
     manager = Manager()
     app['manager'] = manager

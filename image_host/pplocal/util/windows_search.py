@@ -1,3 +1,4 @@
+import time
 from pathlib import Path
 from pprint import pprint
 
@@ -42,6 +43,7 @@ def search(*, path=None, exact_path=None, substr=None, bookmarked=None, recurse=
         'System.Comment',
         'System.MIMEType',
         'System.DateModified',
+        'System.DateCreated',
         'System.Kind',
     ]
 
@@ -58,7 +60,6 @@ def search(*, path=None, exact_path=None, substr=None, bookmarked=None, recurse=
         where.append("System.ItemPathDisplay = '%s'" % escape_sql(str(exact_path)))
 
     # Add filters.
-    # XXX: we're looking up files one at a time during glob which is too slow
     if substr is not None:
         for word in substr.split(' '):
             # Note that the double-escaping is required to make substring searches
@@ -109,9 +110,11 @@ def search(*, path=None, exact_path=None, substr=None, bookmarked=None, recurse=
                         'comment': row['System.Comment'] or '',
                         'type': row['System.MIMEType'] or 'application/octet-stream',
 
-                        # XXX: check timezone
-                        'mtime': row['System.DateModified'].timestamp(),
+                        # time.timezone converts these from local time to UTC.
+                        'mtime': row['System.DateModified'].timestamp() - time.timezone,
+                        'ctime': row['System.DateCreated'].timestamp() - time.timezone,
                     }
+                    print(result['mtime'])
 
                     rating = row['System.Rating']
                     result['bookmarked'] = rating is not None and rating >= 50
@@ -128,13 +131,8 @@ def search(*, path=None, exact_path=None, substr=None, bookmarked=None, recurse=
         print('Windows search error:', e)
 
 def test():
-    import time
-    s = time.time()
-    for entry in search(path=Path('E:/images/auto')):
-#    for entry in search(Path('e:/'), substr='a'):
-        print('xxx', entry['path'])
-    e = time.time()
-    print(e-s)
+    for entry in search(path=Path('c:\\')):
+        print(entry['path'])
 
 if __name__ == '__main__':
     test()

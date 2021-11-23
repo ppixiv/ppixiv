@@ -1,7 +1,7 @@
 "use strict";
 
 // Helpers for the local API.
-ppixiv.local_actions = class
+ppixiv.local_api = class
 {
     static async bookmark_add(illust_id, options)
     {
@@ -13,7 +13,7 @@ ppixiv.local_actions = class
         // Remember whether this is a new bookmark or an edit.
         let was_bookmarked = illust_info.bookmarkData != null;
 
-        let result = await helpers.local_post_request(`/api/bookmark/add/${illust_id}`, {
+        let result = await local_api.local_post_request(`/api/bookmark/add/${illust_id}`, {
             ...bookmark_options,
         });
         if(!result.success)
@@ -39,7 +39,7 @@ ppixiv.local_actions = class
             return;
         }
 
-        let result = await helpers.local_post_request(`/api/bookmark/delete/${illust_info.bookmarkData.id}`);
+        let result = await local_api.local_post_request(`/api/bookmark/delete/${illust_info.bookmarkData.id}`);
         if(!result.success)
             return;
 

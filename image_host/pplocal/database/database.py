@@ -1,10 +1,6 @@
 import sqlite3, threading
 from contextlib import contextmanager
 
-# XXX: this is annoying, why is there no way to simply push and pop savepoints
-# without having to keep track of unique names?  we can't put this on the database
-# class since this is per-connection and might cross databases, and for some reason
-# you can't assign data to the transaction itself
 _transactions = {}
 
 @contextmanager
@@ -89,6 +85,11 @@ class Database:
                 connection = self.connections.pop()
             else:
                 connection = self.open_db()
+
+                # Always run the block in a transaction.
+                #cursor = connection.cursor()
+                #cursor.execute('BEGIN')
+                #cursor.close()
 
         try:
             cursor = connection.cursor()

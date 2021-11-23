@@ -14,6 +14,11 @@
 # automatically.  Searches merge results from our index and the Windows index.
 #
 # XXX: how can we detect if indexing is enabled on our directory
+# XXX: use st_ino to figure out directories being moved
+#
+# XXX: how can we prevent ourselves from refreshing from our own metadata changes
+# just remember that we've written to it?
+
 import asyncio, os, typing, time, stat, traceback
 from pathlib import Path
 from pprint import pprint
@@ -21,6 +26,7 @@ from pathlib import Path, PurePosixPath
 
 from .util import win32, monitor_changes, windows_search, misc
 from .database.file_index import FileIndex
+
 
 class Library:
     """
@@ -41,6 +47,7 @@ class Library:
         self.pending_file_updates = {}
         self.pending_directory_refreshes = set()
         self.update_pending_files_task = asyncio.create_task(self.update_pending_files())
+        self.refresh_event = misc.AsyncEvent()
 
     def __str__(self):
         return 'Library(%s: %s)' % (self.library_name, self.path)
@@ -210,21 +217,23 @@ class Library:
         path may be a string.  We'll only convert it to a Path if necessary, since doing this
         for every file is slow.
         """
-        # XXX: use st_ino to figure out directories being moved
-        # XXX: store st_ino on the cache record? seems useful
-        # would need the volume number too
-#        path_stat = path.stat()
-#        print('------>', path_stat.st_ino)
         # If a path was renamed, rename them in the index.  This avoids needing to refresh
         # the whole tree when a directory is simply renamed.
         if action == monitor_changes.FileAction.FILE_ACTION_RENAMED:
-            self.db.rename(old_path, path, conn=db_conn)
-            return
+            # Many applications write a temporary file and then rename it to the new file, which we'll see
+            # as a bunch of writes to a file that we ignore, followed by a rename.  Only treat this as
+            # a rename if we already knew about the original filename.
+            if self.db.get(path=os.fspath(path), conn=db_conn, include_bookmark_info=False) is not None:
+                self.db.rename(old_path, path, conn=db_conn)
+                return
+
+            print('Treating rename as addition because the original filename isn\'t indexed: %s' % path)
+            action = monitor_changes.FileAction.FILE_ACTION_ADDED
 
         # If the file was removed, delete it from the database.  If this is a directory, this
         # will remove everything underneath it.
         if action in (monitor_changes.FileAction.FILE_ACTION_REMOVED, monitor_changes.FileAction.FILE_ACTION_RENAMED_OLD_NAME):
-            print('File removed: %s', path)
+            print('File removed: %s' % path)
             self.db.delete_recursively([path], conn=db_conn)
             return
 
@@ -235,45 +244,25 @@ class Library:
         if path.is_dir() and action == monitor_changes.FileAction.FILE_ACTION_ADDED:
             print('Queued refresh for added directory: %s' % path)
             self.pending_directory_refreshes.add(path)
+            self.refresh_event.set()
             return
-        #metadata = win32.read_metadata(path, self.ntfs_alt_stream_name)
-
-#        import msvcrt
-#        if path.is_dir():
-#            handle = win32.open_handle_shared(os.fspath(path), mode='r')
-#            win32.query_object_basic_info(handle)
-#            win32.CloseHandle(handle)
-
-        #print(metadata)
 
         # Don't proactively index everything, or we'll aggressively scan every file.
-        # If this is a file we expect Windows indexing to handle, ignore it.  We'll
-        # populate it the next time it's viewed.
         if not path.is_dir() and misc.file_type(path.name) == 'image':
             return
 
-        # If queue is true, queue the file to be updated.  This is true when we're updating
-        # from file monitoring, since we often get multiple change notifications for the same
-        # # file at once.
         # If this is a FileAction from file monitoring, queue the update.  We often get multiple
         # change notifications at once, so we queued these to avoid refreshing over and over.
         if action != 'refresh':
             print('Queued update for modified file:', path, action)
-            self.pending_file_updates[path] = time.time()
+            wait_for = 1
+            self.pending_file_updates[path] = time.time() + wait_for
+            self.refresh_event.set()
             return
 
-        # This is a direct refresh.  If this file is already cached and the mtime hasn't
-        # changed, we don't need to re-index it.  Disable include_bookmark_info here to
+        # Read the file to trigger a refresh.  Disable include_bookmark_info here to
         # simplify the search, since this is a hot path.
-        entry = self.db.get(path=os.fspath(path), conn=db_conn, include_bookmark_info=False)
-
-        path_stat = path.stat()
-        if entry is not None and abs(entry['mtime'] - path_stat.st_mtime) < 1:
-            # print('File already cached: %s' % path)
-            return entry
-
-        # print('Caching: %s' % os.fspath(path))
-        return self.cache_file(path, db_conn=db_conn)
+        return self.db.get(path=os.fspath(path), conn=db_conn, include_bookmark_info=False)
 
     async def update_pending_files(self):
         """
@@ -288,8 +277,6 @@ class Library:
                     self._touch_last_update_time()
 
                 # See if there are any directory refreshes pending.
-                #
-                #
                 if self.pending_directory_refreshes:
                     path = self.pending_directory_refreshes.pop()
                     print('Refreshing new directory: %s' % path)
@@ -305,20 +292,30 @@ class Library:
                 # Note that pending_file_updates can contain directories.  A directory in
                 # pending_directory_refreshes means a full refresh is needed, but if it's in
                 # pending_file_updates, we're just refreshing the directory itself.
-                wait_for = 1
                 now = time.time()
-                for path, modified_at in self.pending_file_updates.items():
-                    delta = now - modified_at
-                    if delta >= wait_for:
-                        del self.pending_file_updates[path]
-                        break
-                else:
-                    # XXX: would be better to sleep with a wakeup, so we never wake up if nothing is happening
-                    await asyncio.sleep(.25)
+                paths_to_update = []
+                min_time_to_update = 3600
+                for path, update_at in self.pending_file_updates.items():
+                    time_until_update = update_at - now
+                    if time_until_update <= 0:
+                        paths_to_update.append(path)
+                    else:
+                        min_time_to_update = min(min_time_to_update, time_until_update + 0.01)
+
+                if not paths_to_update:
+                    # There's nothing ready to update.  Wait for min_time_to_update to wait
+                    # until a file is ready.
+                    await self.refresh_event.wait(min_time_to_update)
+                    self.refresh_event.clear()
                     continue
 
-                print('Update modified file:', path)
-                self.cache_file(path)
+                # Remove the paths from pending_file_updates and update them.
+                for path in paths_to_update:
+                    del self.pending_file_updates[path]
+
+                for path in paths_to_update:
+                    print('Update modified file:', path)
+                    self.get(path, include_bookmark_info=False)
 
             except Exception as e:
                 traceback.print_exc()
@@ -331,26 +328,19 @@ class Library:
         This is called periodically while we're running, so if we're shut down we can
         tell when we were last running.  This lets us optimize the initial index refresh.
         """
-        #print(self.get_last_update_time(conn=conn))
-        #print(self.get_last_update_time(conn=conn))
         now = time.time()
         with self.db.connect(db_conn) as db_conn:
             last = self.db.get_last_update_time(conn=db_conn)
-            # XXX higher
-            if now > last + 60:
+            if now > last + 600:
                 print('Updating last update time')
                 self.db.set_last_update_time(now, conn=db_conn)
 
-
     def cache_file(self, path: os.PathLike, *, db_conn=None):
-        # XXX
-#        metadata = win32.read_metadata(path, self.ntfs_alt_stream_name)
+        # Create the appropriate entry type.
         if path.is_dir():
             entry = self._create_directory_record(path)
         else:
             entry = self._create_file_record(path)
-#        print(path, metadata.get('bookmarked'))
-
 
         if entry is None:
             return None
@@ -359,11 +349,7 @@ class Library:
 
         return entry
 
-    # We could also handle ZIPs here.  XXX
     def _create_file_record(self, path: os.PathLike):
-        # pip install exif
-        import exif
-
         mime_type = misc.mime_type(os.fspath(path))
         if mime_type is None:
             # This file type isn't supported.
@@ -374,64 +360,17 @@ class Library:
         # Call stat directly instead of using path.stat(), since we need the inode and it's
         # not present on path.stat() on Windows.  This is slower, but we're on a slow path
         # anyway.
-        # XXX
         stat = os.stat(path)
 
-        artist = ''
-        tags = ''
-        comment = ''
-        title = path.name
-        bookmarked = False
+        # Open the file with all share modes active, so we don't lock the file and interfere
+        # with the user working with the file.
+        with win32.open_shared(path, 'rb') as f:
+            metadata = misc.read_metadata(f, mime_type)
 
-        # XXX: if we open the file
-        if False and not path.is_dir():
-            # Open the file with all share modes active, so we don't lock the file and interfere
-            # with the user working with them.
-            # XXX: test if the file is locked by another application, we should queue it and
-            # retry later
-            # XXX
-
-            # bluh: ratings are in XMP, not EXIF
-            # why is everything stupid
-
-            # this works for JPEG (and TIFF, but who cares), but surely we can get this
-            # without reading the whole file
-            if mime_type == 'image/jpeg':
-                try:
-                    with win32.open_shared(path, 'rb') as f:
-                        data = f.read()
-
-                    exif_data = exif.Image(data)
-                    artist = exif_data.artist
-                    tags = exif_data.xp_keywords
-                    comment = exif_data.xp_comment
-                    title = exif_data.image_description
-
-                except Exception as e:
-                    print('exif failed:', path)
-
-
-        if False:
-            try:
-                from PIL import Image, ExifTags
-                img = Image.open(str(path))
-                exif_dict = img._getexif()
-
-                for tag, data in exif_dict.items():
-                    tag_name = ExifTags.TAGS.get(tag)
-                    if not tag_name:
-                        continue
-                    print(tag_name, tag)
-                    if tag_name == 'ImageDescription':
-                        print('desc:', data)
-                
-                # exif_dict['0th'][piexif.ImageIFD.ImageDescription] = exif_description.encode('utf-8')
-
-                #exif_dict = piexif.load(str(path))
-                #print('exif:', path)
-                #pprint(exif_dict)
-            except Exception as e:
-                print('exif error:', path, e)
+        title = metadata.get('title', path.name)
+        comment = metadata.get('comment', '')
+        artist = metadata.get('artist', '')
+        tags = metadata.get('tags', '')
 
         data = {
             'path': str(path),
@@ -443,15 +382,14 @@ class Library:
             'volume_id': win32.get_volume_serial_number(path),
             'title': title,
             'type': mime_type,
+            'tags': tags,
+            'comment': comment,
+            'author': artist,
+            'author': artist,
             
             # We'll fill these in below if possible.
             'width': None,
             'height': None,
-
-            # XXX
-            'tags': tags,
-            'comment': comment,
-            'author': artist,
         }
 
         size = misc.get_image_dimensions(path)
@@ -460,9 +398,6 @@ class Library:
             data['height'] = size[1]
 
         return data
-
-    # XXX: how can we prevent ourselves from refreshing from our own metadata changes
-    # just remember that we've written to it?
 
     def _create_directory_record(self, path: os.PathLike):
         path = Path(path)
@@ -534,7 +469,7 @@ class Library:
             if entry is not None:
                 yield entry
 
-    def get(self, path, *, force_refresh=False):
+    def get(self, path, *, force_refresh=False, check_mtime=True, include_bookmark_info=True):
         """
         Return the entry for path.  If the path isn't cached, populate the cache entry.
 
@@ -548,7 +483,15 @@ class Library:
 
         entry = None
         if not force_refresh:
-            entry = self.db.get(path=str(path))
+            entry = self.db.get(path=str(path), include_bookmark_info=include_bookmark_info)
+
+        if entry is not None and check_mtime:
+            # Check if cache is out of date.  This can be disabled to avoid the stat.
+            path_stat = path.stat()
+            if abs(entry['mtime'] - path_stat.st_mtime) >= 1:
+                # print('File already cached: %s' % path)
+                entry = None
+
         if entry is None:
             entry = self.cache_file(path)
 

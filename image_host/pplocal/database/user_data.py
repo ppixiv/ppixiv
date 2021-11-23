@@ -84,8 +84,6 @@ class UserData(Database):
         Bookmarks can exist for paths that don't currently exist, but can only be
         edited.  New bookmarks can only be created for files that exist.
         """
-        # XXX: should be able to specify connect(conn, lock=True) to open a write
-        # transaction immediately
         with self.connect(conn) as cursor:
             old_changes = cursor.connection.total_changes
 
@@ -94,8 +92,7 @@ class UserData(Database):
                 if path is None:
                     raise Exception('At least one of a bookmark ID or path must be specified')
 
-                # We were given a path and no bookmark ID.  See if the path already
-                # exist.
+                # We were given a path and no bookmark ID.  See if the path already exists.
                 query = f"SELECT * FROM {self.schema}.files WHERE path = ?"
                 for row in cursor.execute(query, [str(path)]):
                     # Edit this bookmark.
@@ -168,8 +165,8 @@ class UserData(Database):
         """
         Delete a bookmark.  Return true if a bookmark was deleted.
         """
-        # XXX: if we store other user data here, just change bookmarked to false rather
-        # than deleting it
+        # If we store other user data here we'd just change bookmarked to false rather
+        # than deleting it, but for now bookmarking is all we're using this for.
         with self.connect(conn) as cursor:
             old_changes = cursor.connection.total_changes
             query = f'''DELETE FROM {self.schema}.files WHERE user_file_id = ?'''

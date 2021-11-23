@@ -79,7 +79,7 @@ ppixiv.actions = class
     static async bookmark_add(illust_id, options)
     {
         if(helpers.is_local(illust_id))
-            return await local_actions.bookmark_add(illust_id, options);
+            return await local_api.bookmark_add(illust_id, options);
 
         if(options == null)
             options = {};
@@ -157,7 +157,7 @@ ppixiv.actions = class
     static async bookmark_remove(illust_id)
     {
         if(helpers.is_local(illust_id))
-            return await local_actions.bookmark_remove(illust_id);
+            return await local_api.bookmark_remove(illust_id);
 
         let illust_info = await thumbnail_data.singleton().get_or_load_illust_data(illust_id);
         if(illust_info.bookmarkData == null)

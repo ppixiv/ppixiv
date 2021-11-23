@@ -3356,7 +3356,7 @@ ppixiv.data_sources.local = class extends data_source
             current_search_options = { }
 
         // If we have a next_page_uuid, use it to load the next page.
-        let result = await helpers.local_post_request(`/api/list/folder:${args.hash_path}`, {
+        let result = await local_api.local_post_request(`/api/list/folder:${args.hash_path}`, {
             ...current_search_options,
 
             page: page_uuid,
