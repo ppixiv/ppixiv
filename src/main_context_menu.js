@@ -619,7 +619,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
                 parent: this,
                 contents: a,
                 private_bookmark: private_bookmark,
-                bookmark_tag_widget, bookmark_tag_widget
+                bookmark_tag_widget: bookmark_tag_widget,
             }));
         }
         this.element_bookmark_tag_list = this.container.querySelector(".bookmark-tag-list");

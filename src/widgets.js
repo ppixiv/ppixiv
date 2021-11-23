@@ -37,9 +37,6 @@ ppixiv.widget = class
         this.parent = parent;
 
         // If we're visible, we'll unhide below.
-        // grr
-        // this.container.hidden = true;
-
         this.have_set_initial_visibility = false;
 
         // Let the caller finish, then refresh.
@@ -1420,8 +1417,13 @@ ppixiv.bookmark_button_widget = class extends ppixiv.illust_widget
         image_data.singleton().illust_modified_callbacks.register(this.refresh.bind(this));
     }
 
-    refresh_internal({ thumbnail_data })
+    refresh_internal({ illust_id, thumbnail_data })
     {
+        // If this is a local image, we won't have a bookmark count, so set local-image
+        // to remove our padding for it.  We can get illust_id before thumbnail_data.
+        let is_local = illust_id != null && helpers.is_local(illust_id);
+        helpers.set_class(this.container,  "has-like-count", !is_local);
+
         let bookmarked = thumbnail_data?.bookmarkData != null;
         let our_bookmark_type = thumbnail_data?.bookmarkData?.private == this.private_bookmark;
 

@@ -2135,7 +2135,7 @@ input.search-tags {
 
 /* Nudge the public heart icon up a bit to make room for the bookmark count. 
  * Only do this on the popup menu, not image-ui. */
-.popup-context-menu .button.button-bookmark.public > svg
+.popup-context-menu .button.button-bookmark.public.has-like-count > svg
 {
     margin-top: -10px;
 }

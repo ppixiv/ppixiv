@@ -1880,6 +1880,13 @@ ppixiv.helpers = {
             id: actual_id,
         }
     },
+    
+    // Return true if illust_id is an ID for the local API.
+    is_local(illust_id)
+    {
+        let { type } = helpers.parse_id(illust_id);
+        return type == "file" || type == "folder";
+    },
 
     // Generate a UUID.
     create_uuid()
