@@ -8,7 +8,6 @@ from shutil import copyfile
 
 from . import video
 from .util import misc
-from .library import Library
 
 resource_path = (Path(__file__) / '../../../resources').resolve()
 blank_image = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=')
@@ -194,8 +193,9 @@ async def handle_tree_thumb(request):
     return await handle_thumb(request, mode='tree-thumb')
 
 async def handle_thumb(request, mode='thumb'):
+#    print(request.app['manager'])
     path = request.match_info['path']
-    absolute_path, library = Library.resolve_path(path)
+    absolute_path, library = request.app['manager'].resolve_path(path)
     if absolute_path is None:
         raise aiohttp.web.HTTPNotFound()
 
@@ -249,7 +249,7 @@ async def handle_thumb(request, mode='thumb'):
 # Serve direct file requests.
 async def handle_file(request):
     path = request.match_info['path']
-    absolute_path, library = Library.resolve_path(path)
+    absolute_path, library = request.app['manager'].resolve_path(path)
     if not absolute_path.is_file():
         raise aiohttp.web.HTTPNotFound()
 

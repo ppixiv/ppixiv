@@ -15,20 +15,12 @@
 #
 # XXX: how can we detect if indexing is enabled on our directory
 import asyncio, os, typing, time, stat, traceback
-from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from pprint import pprint
 from pathlib import Path, PurePosixPath
 
 from .util import win32, monitor_changes, windows_search, misc
-from .file_index import FileIndex
-
-executor = ThreadPoolExecutor()
-
-_library_paths = {
-}
-
-libraries = { }
+from .database.file_index import FileIndex
 
 class Library:
     """
@@ -39,51 +31,13 @@ class Library:
     """
     ntfs_alt_stream_name = 'pplocal.json'
 
-    @classmethod
-    async def initialize(cls):
-        for name, path in _library_paths.items():
-            def progress_func(total):
-                print('Indexing progress for %s: %i' % (path, total))
-
-            library = Library(name, name + '.sqlite', path)
-            libraries[name] = library
-            print('Initializing library: %s' % path)
-            library.monitor()
-
-            # XXX
-            start = time.time()
-            await library.refresh(progress=progress_func)
-            end = time.time()
-            print('Indexing took %.2f seconds' % (end-start))
-
-    @classmethod
-    def resolve_path(cls, path):
-        """
-        Given a folder: or file: ID, return the absolute path to the file or directory
-        and the library it's in.  If the path isn't in a library, raise Error.
-        """
-        path = PurePosixPath(path)
-        if '..' in path.parts:
-            raise misc.Error('invalid-request', 'Invalid request')
-
-        library_name, path = Library.split_library_name_and_path(path)
-        library = libraries.get(library_name)
-        if library is None:
-            raise misc.Error('not-found', 'Library %s doesn\'t exist' % library_name)
-
-        return library.path / path, library
-
-    @classmethod
-    @property
-    def all_libraries(cls):
-        return libraries
-
-    def __init__(self, library_name, dbpath, path: os.PathLike):
+    def __init__(self, library_name, dbpath, path: os.PathLike, user_data):
         path = path.resolve()
         self.library_name = library_name
         self.path = path
         self.monitor_changes = None
-        self.db = FileIndex(dbpath)
+        self.user_data = user_data
+        self.db = FileIndex(dbpath, user_data=user_data)
         self.pending_file_updates = {}
         self.pending_directory_refreshes = set()
         self.update_pending_files_task = asyncio.create_task(self.update_pending_files())
@@ -172,11 +126,11 @@ class Library:
         # the whole traversal, since that keeps the transaction open for too long and
         # blocks anything else from happening.
         directories = []
-        with self.db.db_pool.get() as db_conn:
+        with self.db.connect() as db_conn:
             # print('Refreshing: %s' % path)
 
             # Make a list of file IDs that were cached in this directory before we refreshed it.
-            stale_file_paths = {entry['path'] for entry in self.db.search(path=str(path), recurse=False)}
+            stale_file_paths = {entry['path'] for entry in self.db.search(path=str(path), mode=self.db.SearchMode.Subdir, include_bookmark_info=False)}
 
             # If this is the top-level directory, refresh it too unless it's our root.
             if _level == 0 and path != self.path:
@@ -309,8 +263,9 @@ class Library:
             return
 
         # This is a direct refresh.  If this file is already cached and the mtime hasn't
-        # changed, we don't need to re-index it.
-        entry = self.db.get(path=os.fspath(path), conn=db_conn)
+        # changed, we don't need to re-index it.  Disable include_bookmark_info here to
+        # simplify the search, since this is a hot path.
+        entry = self.db.get(path=os.fspath(path), conn=db_conn, include_bookmark_info=False)
 
         path_stat = path.stat()
         if entry is not None and abs(entry['mtime'] - path_stat.st_mtime) < 1:
@@ -379,7 +334,7 @@ class Library:
         #print(self.get_last_update_time(conn=conn))
         #print(self.get_last_update_time(conn=conn))
         now = time.time()
-        with self.db.db_pool.get(db_conn) as db_conn:
+        with self.db.connect(db_conn) as db_conn:
             last = self.db.get_last_update_time(conn=db_conn)
             # XXX higher
             if now > last + 60:
@@ -388,6 +343,7 @@ class Library:
 
 
     def cache_file(self, path: os.PathLike, *, db_conn=None):
+        # XXX
 #        metadata = win32.read_metadata(path, self.ntfs_alt_stream_name)
         if path.is_dir():
             entry = self._create_directory_record(path)
@@ -398,8 +354,6 @@ class Library:
 
         if entry is None:
             return None
-
-        entry['bookmarked'] = False # XXX metadata.get('bookmarked', False)
 
         self.db.add_record(entry, conn=db_conn)
 
@@ -498,7 +452,6 @@ class Library:
             'tags': tags,
             'comment': comment,
             'author': artist,
-            'bookmarked': bookmarked,
         }
 
         size = misc.get_image_dimensions(path)
@@ -593,9 +546,6 @@ class Library:
         except ValueError:
             return None
 
-        # XXX: if we're coming from windows search, pass in the search result and populate
-        # width and height from cache, etc. if possible
-        # that only makes sense if it lets us avoid reading the file entirely
         entry = None
         if not force_refresh:
             entry = self.db.get(path=str(path))
@@ -618,30 +568,47 @@ class Library:
         entry['path'] = Path(entry['path'])
         entry['parent'] = Path(entry['parent'])
 
-    def search(self, *, path=None, substr=None, bookmarked=None, include_files=True, include_dirs=True, force_refresh=False, use_windows_search=True):
+    def search(self, *,
+        path=None,
+        substr=None,
+        bookmarked=None,
+        bookmark_tags=None,
+        include_files=True, include_dirs=True,
+        force_refresh=False,
+        use_windows_search=True):
         if path is None:
             path = self.path
 
         search_options = { }
         if substr is not None: search_options['substr'] = substr
         if bookmarked: search_options['bookmarked'] = True
+        if bookmark_tags: search_options['bookmark_tags'] = bookmark_tags
 
         # We can get results from the Windows search and our own index.  Keep track of
-        # what we've returned, so we don't return the same file from both.
+        # what we've returned, so we don't return the same file from both.  If we're searching
+        # bookmarks, don't use Windows search, since it doesn't know about our bookmarks and
+        # our index will return them.
         seen_paths = set()
-        if use_windows_search:
+        if use_windows_search and not bookmarked and not bookmark_tags:
             # Check the Windows index.
             for result in windows_search.search(path=str(path), **search_options):
                 entry = self.get(result['path'], force_refresh=force_refresh)
-                seen_paths.add(entry['path'])
+                if entry is None:
+                    continue
+
+                if str(entry['path']) in seen_paths:
+                    continue
+                seen_paths.add(str(entry['path']))
+
+                self._convert_to_path(entry)
                 yield entry
 
         # Search our library.
         for entry in self.db.search(path=str(path), **search_options, include_files=include_files, include_dirs=include_dirs):
-            if entry['path'] in seen_paths:
+            if str(entry['path']) in seen_paths:
                 continue
 
-            seen_paths.add(entry['path'])
+            seen_paths.add(str(entry['path']))
 
             self._convert_to_path(entry)
             yield entry
@@ -654,6 +621,8 @@ async def test():
     def progress_func(total):
         print('Indexing progress:', total)
 
+    from concurrent.futures import ThreadPoolExecutor
+    executor = ThreadPoolExecutor()
     asyncio.get_event_loop().set_default_executor(executor)
     #await asyncio.get_event_loop().run_in_executor(None, index.refresh)
 

@@ -7,7 +7,7 @@ from aiohttp import web
 
 from . import api, thumbs
 from .util import misc
-from .library import Library
+from .manager import Manager
 
 @web.middleware
 async def check_origin(request, handler):
@@ -79,6 +79,7 @@ def create_handler_for_command(handler):
 async def setup():
     app = web.Application(middlewares=(check_origin,))
 
+    # Set up routes.
     app.router.add_get('/file/{type:[^:]+}:{path:.+}', thumbs.handle_file)
     app.router.add_get('/thumb/{type:[^:]+}:{path:.+}', thumbs.handle_thumb)
     app.router.add_get('/tree-thumb/{type:[^:]+}:{path:.+}', thumbs.handle_tree_thumb)
@@ -89,10 +90,14 @@ async def setup():
         handler = create_handler_for_command(func)
         app.router.add_view('/api' + command, handler)
 
-    print('Initializing libraries...')
-    await Library.initialize() 
+    manager = Manager()
+    app['manager'] = manager
+    await manager.init()
 
     return app
 
-def go():
+def run():
     web.run_app(setup(), host='localhost', port=8235, print=None)
+
+if __name__ == '__main__':
+    run()

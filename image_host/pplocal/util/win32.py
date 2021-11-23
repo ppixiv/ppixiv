@@ -1,7 +1,7 @@
 import ctypes, os, msvcrt, traceback, errno, json
-from ctypes.wintypes import BYTE, DWORD
+from ctypes import wintypes
 
-kernel32 = ctypes.windll.kernel32
+kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
 
 CreateFileW = kernel32.CreateFileW
 CloseHandle = kernel32.CloseHandle
@@ -27,13 +27,7 @@ TRUNCATE_EXISTING = 5
 
 ERROR_OPERATION_ABORTED = 995
 
-def open_shared(path, mode='r'):
-    """
-    Open a file with all FILE_SHARE flags enabled.  This lets us index and update
-    files without locking them, so our background process doesn't interfere with the
-    user.
-    """
-    # We always open in binary mode.
+def open_handle_shared(path, mode='r'):
     open_mode = mode.replace('b', '')
     if open_mode == 'r':
         access = GENERIC_READ
@@ -59,11 +53,20 @@ def open_shared(path, mode='r'):
 
         None, # lpSecurityAttributes
         disposition,
-        FILE_ATTRIBUTE_NORMAL|FILE_FLAG_RANDOM_ACCESS,
+        FILE_ATTRIBUTE_NORMAL|FILE_FLAG_RANDOM_ACCESS|FILE_FLAG_BACKUP_SEMANTICS,
         None)
 
     if handle == -1:
         raise ctypes.WinError()
+    return handle
+
+def open_shared(path, mode='r'):
+    """
+    Open a file with all FILE_SHARE flags enabled.  This lets us index and update
+    files without locking them, so our background process doesn't interfere with the
+    user.
+    """
+    handle = open_handle_shared(path, mode)
 
     try:
         fd = msvcrt.open_osfhandle(handle, os.O_RDONLY)
@@ -82,12 +85,12 @@ def open_shared(path, mode='r'):
         os.close(fd)
         raise
 
-def read_directory_metadata(path: os.PathLike, metadata_filename):
+def read_metadata(path: os.PathLike, metadata_filename):
     """
     If this is a directory, see if we've stored metadata in our NTFS
     stream.  This is the only way to associate data with a directory.
     """
-    stream_filename = str(path) + ':' + metadata_filename
+    stream_filename = os.fspath(path) + ':' + metadata_filename
 
     try:
         # Open this file shared, since opening this file will prevent modifying
@@ -120,7 +123,7 @@ def read_directory_metadata(path: os.PathLike, metadata_filename):
         traceback.print_exc()
         return {}
 
-def write_directory_metadata(path: os.PathLike, metadata_filename, data):
+def write_metadata(path: os.PathLike, metadata_filename, data):
     """
     Save data to the given directory's metadata.
     """
@@ -128,3 +131,37 @@ def write_directory_metadata(path: os.PathLike, metadata_filename, data):
     stream_filename = str(path) + ':' + metadata_filename
     with open_shared(stream_filename, mode='w') as f:
         f.write(json_data)
+
+kernel32.GetVolumeInformationW.argtypes = \
+    wintypes.LPCWSTR, wintypes.LPWSTR, wintypes.DWORD, wintypes.LPDWORD, \
+    wintypes.LPDWORD, wintypes.LPDWORD, wintypes.LPWSTR, wintypes.DWORD
+kernel32.GetVolumeInformationW.restype = wintypes.BOOL
+
+_volume_id_cache = {}
+def get_volume_serial_number(root):
+    """
+    Get the serial number for a drive.
+    """
+    if not root.is_absolute():
+        raise OSError('Path %s is not absolute' % root)
+
+    if root in _volume_id_cache:
+        return _volume_id_cache[root]
+
+    root = root.drive + '\\'
+    serial_number = wintypes.DWORD()
+    result = kernel32.GetVolumeInformationW(root, None, 0, ctypes.byref(serial_number), None, None, None, 0)
+    if not result:
+        print('Couldn\'t get volume ID for %s: %s' % (str(root), ctypes.WinError(ctypes.get_last_error())))
+        return None
+
+    _volume_id_cache[root] = serial_number.value
+    return serial_number.value
+
+from pathlib import Path
+def go():
+    serial = get_volume_serial_number(Path('c:\\'))
+    print(serial)
+
+if __name__ == '__main__':
+    go()

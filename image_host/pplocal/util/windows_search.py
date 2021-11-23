@@ -66,14 +66,7 @@ def search(*, path=None, exact_path=None, substr=None, bookmarked=None, recurse=
             # seems to be efficient at prefix and suffix matches.
             where.append("""CONTAINS(System.FileName, '"*%s*"')""" % escape_sql(word))
 
-    # We only use Windows search for images.  It'll return videos, but it doesn't give
-    # us video dimensions, so we use our own index for that.
-    # XXX: but it gives us other metadata that's a pain to get, piexif won't handle
-    # mp4s
-    # will need to figure out accessing those anyway
-    # XXX: add videos
-    where.append("(System.ItemType <> 'Directory' OR System.Kind = 'picture' OR System.Kind = 'video')")
-    #where.append("System.Kind = 'picture'")
+    where.append("(System.ItemType = 'Directory' OR System.Kind = 'picture' OR System.Kind = 'video')")
 
     # System.Rating is null for no rating, and 1, 25, 50, 75, 99 for 1, 2, 3, 4, 5
     # stars.  It's a bit weird, but we only use it for bookmarking.  Any image with 50 or

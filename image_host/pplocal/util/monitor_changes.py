@@ -1,4 +1,4 @@
-import asyncio, ctypes, os
+import asyncio, ctypes, os, traceback
 from pathlib import Path
 from ctypes.wintypes import BYTE, DWORD
 kernel32 = ctypes.windll.kernel32
@@ -23,6 +23,7 @@ class FileAction(Enum):
     FILE_ACTION_MODIFIED = 3
     FILE_ACTION_RENAMED_OLD_NAME = 4
     FILE_ACTION_RENAMED_NEW_NAME = 5
+    FILE_ACTION_RENAMED = 1000
 
 class FileNotifyInformation(ctypes.Structure):
     pass
@@ -55,8 +56,11 @@ class MonitorChanges:
         self.close()
 
     async def monitor_call(self, func, *args, **kwargs):
-        async for filename, action in self.monitor(*args, **kwargs):
-            await func(filename, action)
+        async for (path, old_path), action in self.monitor(*args, **kwargs):
+            try:
+                await func(path, old_path, action)
+            except Exception as e:
+                traceback.print_exc()
 
     # Yield changes to the directory.
     #
@@ -75,10 +79,12 @@ class MonitorChanges:
         change_buffer = (BYTE * self.buffer_size)()
 
         while True:
+            print('---------- waiting')
+
             # Run ReadDirectoryChangesW in a thread so it doesn't block the event loop.
             promise = asyncio.to_thread(self._read_changes, watch_subtree, changes, change_buffer)
             try:
-                bytes_returned = await promise
+                await promise
             except asyncio.CancelledError as e:
                 # If we're cancelled, call CancelIoEx to cancel ReadDirectoryChangesW which is
                 # still running in the thread.  We should wait after doing that for it to return,
@@ -93,14 +99,35 @@ class MonitorChanges:
 
                 raise
 
+            import time
+            print('---------- change at', time.time())
+
             # Yield all results.
             offset = 0
+            rename_old_path = None
             while True:
                 entry = FileNotifyInformation.from_buffer(change_buffer, offset)
 
                 filename_ptr = ctypes.byref(change_buffer, offset + ctypes.sizeof(FileNotifyInformation))
                 filename = ctypes.wstring_at(filename_ptr, entry.FileNameLength // 2)
-                yield self.path / filename, FileAction(entry.Action)
+
+                path = self.path / filename
+                action = FileAction(entry.Action)
+
+                # RENAMED_OLD_NAME and RENAMED_NEW_NAME are normally received in pairs.
+                # Pair them back up and return them as a single event.
+                if action == FileAction.FILE_ACTION_RENAMED_OLD_NAME:
+                    rename_old_path = path
+                elif action == FileAction.FILE_ACTION_RENAMED_NEW_NAME:
+                    if rename_old_path is None:
+                        print('Received FILE_ACTION_RENAMED_NEW_NAME without FILE_ACTION_RENAMED_OLD_NAME')
+                    else:
+                        yield (path, rename_old_path), FileAction.FILE_ACTION_RENAMED
+                        rename_old_path = None
+                else:
+                    rename_old_path = None
+
+                    yield (path, None), FileAction(action)
 
                 # NextEntryOffset is 0 for the last item.
                 if entry.NextEntryOffset == 0:
@@ -147,10 +174,10 @@ async def go():
     # global monitor
     # task = asyncio.create_task(test())
     
-    monitor = MonitorChanges(Path('f:/stuff/ppixiv'))
+    monitor = MonitorChanges(Path('f:/stuff/ppixiv/image_host/temp'))
 
-    async def changes(filename, action):
-        print('...', filename, action)
+    async def changes(path, old_path, action):
+        print('...', path, old_path, action)
     monitor_promise = monitor.monitor_call(changes)
     monitor_task = asyncio.create_task(monitor_promise)
 

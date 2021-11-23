@@ -5,7 +5,6 @@ from collections import OrderedDict, namedtuple
 from pathlib import Path, PurePosixPath
 
 from .util import misc
-from .library import Library
 
 handlers = {}
 
@@ -42,6 +41,7 @@ class RequestInfo:
         self.request = request
         self.data = data
         self.base_url = base_url
+        self.manager = request.app['manager']
 
 # Get info for illust_id.
 def get_illust_info(library, entry, base_url):
@@ -50,15 +50,28 @@ def get_illust_info(library, entry, base_url):
     """
     public_path = library.get_public_path(Path(entry['path']))
     
+    illust_id = '%s:%s' % ('folder' if entry['is_directory'] else 'file', public_path)
+
+    # The URLs that this file might have:
+    remote_image_path = base_url + '/file/' + urllib.parse.quote(illust_id, safe='/:')
+    remote_thumb_path = base_url + '/thumb/' + urllib.parse.quote(illust_id, safe='/:')
+    remote_poster_path = base_url + '/poster/' + urllib.parse.quote(illust_id, safe='/:')
+
     if entry['is_directory']:
+        # Directories return a subset of file info.
+        #
         # Use the directory's ctime as the post time.
         ctime = entry['ctime']
         timestamp = datetime.fromtimestamp(ctime, tz=timezone.utc).isoformat()
 
         image_info = {
-            'id': 'folder:%s' % public_path,
+            'id': illust_id,
             'local_path': str(entry['path']),
             'createDate': timestamp,
+            'bookmarkData': _bookmark_data(entry),
+            'previewUrls': [remote_thumb_path],
+            'userId': -1,
+            'tagList': [],
         }
 
         return image_info
@@ -66,12 +79,6 @@ def get_illust_info(library, entry, base_url):
     filetype = misc.file_type_from_ext(entry['path'].suffix)
     if filetype is None:
         return None
-
-    illust_id = 'file:%s' % public_path
-
-    remote_image_path = base_url + '/file/' + urllib.parse.quote(illust_id, safe='/:')
-    remote_thumb_path = base_url + '/thumb/' + urllib.parse.quote(illust_id, safe='/:')
-    remote_poster_path = base_url + '/poster/' + urllib.parse.quote(illust_id, safe='/:')
 
     # Get the image dimensions.
     size = entry['width'], entry['height']
@@ -104,9 +111,12 @@ def get_illust_info(library, entry, base_url):
         # illustTypes.
         'illustType': 0 if filetype == 'image' else 'video',
         'illustTitle': entry['path'].name,
+
+        # We use -1 to indicate no user instead of null.  Pixiv user and illust IDs can
+        # be treated as strings or ints, so using null is awkward.
         'userId': -1,
         'pageCount': len(pages),
-        'bookmarkData': None,
+        'bookmarkData': _bookmark_data(entry),
         'createDate': timestamp,
         'width': size[0],
         'height': size[1],
@@ -118,11 +128,70 @@ def get_illust_info(library, entry, base_url):
 
     return image_info
 
+def _bookmark_data(entry):
+    """
+    We encode bookmark info in a similar way to Pixiv to make it simpler to work
+    with them both in the UI.
+    """
+    if not entry.get('bookmarked'):
+        return None
+
+    return {
+        'id': entry['user_file_id'],
+        'tags': entry['bookmark_tags'].split(' '),
+        'private': False,
+    }
+
+@reg('/bookmark/add/{type:[^:]+}:{path:.+}')
+async def api_bookmark_add(info):
+    """
+    Add a bookmark.  If a bookmark already exists, it will be edited and not replaced.
+    """
+    path = PurePosixPath(info.request.match_info['path'])
+    tags = info.data.get('tags', None)
+    if tags is not None:
+        tags = ' '.join(tags)
+
+    # Look up the path.
+    absolute_path, _ = info.manager.resolve_path(path)
+    _, bookmark_id = info.manager.user_data.bookmark_edit(path=absolute_path, tags=tags)
+
+    bookmark_info = info.manager.user_data.bookmark_get(bookmark_id)
+    return { 'success': True, 'bookmark_id': bookmark_id, 'bookmark': _bookmark_data(bookmark_info) }
+
+@reg('/bookmark/edit/{bookmark_id:.+}')
+async def api_bookmark_edit(info):
+    """
+    Edit a bookmark by ID.
+
+    This can edit bookmarks for paths that don't exist in the library.
+    """
+    bookmark_id = info.request.match_info['bookmark_id']
+    tags = info.data.get('tags', None)
+    if tags is not None:
+        tags = ' '.join(tags)
+
+    found, _ = info.manager.user_data.bookmark_edit(bookmark_id=bookmark_id, tags=tags)
+    if not found:
+        raise misc.Error('not-found', 'Bookmark ID doesn\'t exist: %s' % bookmark_id)
+
+    bookmark_info = info.manager.user_data.bookmark_get(bookmark_id)
+    return { 'success': True, 'bookmark': bookmark_info }
+
+@reg('/bookmark/delete/{bookmark_id:.+}')
+async def api_bookmark_delete(info):
+    """
+    Delete a bookmark by ID.
+    """
+    bookmark_id = info.request.match_info['bookmark_id']
+    result = info.manager.user_data.bookmark_delete(bookmark_id)
+    return { 'success': True, 'deleted': result }
+
 # Return info about a single file.
 @reg('/illust/{type:[^:]+}:{path:.+}')
 async def api_illust(info):
     path = PurePosixPath(info.request.match_info['path'])
-    absolute_path, library = Library.resolve_path(path)
+    absolute_path, library = info.manager.resolve_path(path)
 
     entry = library.get(absolute_path)
     if entry is None:
@@ -259,6 +328,7 @@ def api_list_impl(info):
     search_options = {
         'substr': info.data.get('search'),
         'bookmarked': info.data.get('bookmarked', None),
+        'bookmark_tags': info.data.get('bookmark_tags', None),
     }
 
     # Remove null values from search_options, so it only contains search filters we're
@@ -287,13 +357,17 @@ def api_list_impl(info):
     # If we're not searching and listing the root, just list the libraries.  This
     # is a special case since it doesn't come from the filesystem.
     if not search_options and str(path) == '/':
-        for library in Library.all_libraries.values():
+        for library in info.manager.all_libraries:
+            # This is a dummy entry that has enough info for get_illust_info to return
+            # usable directory info for the library root.
             image_info = {
-                'id': 'folder:%s' % library.get_public_path(library.path),
-                'local_path': str(library.path),
-                'createDate': datetime.utcfromtimestamp(0).isoformat(),
+                'path': library.path,
+                'is_directory': 'True',
+                'ctime': 0,
+                'mtime': 0,
             }
-            file_info.append(image_info)
+            entry = get_illust_info(library, image_info, info.base_url)
+            file_info.append(entry)
 
         yield flush(last=True)
         return
@@ -303,9 +377,9 @@ def api_list_impl(info):
     if str(path) == '/':
         # Search all libraries.
         absolute_path = None
-        libraries_to_search = list(Library.all_libraries.values())
+        libraries_to_search = info.manager.all_libraries
     else:
-        absolute_path, library = Library.resolve_path(path)
+        absolute_path, library = info.manager.resolve_path(path)
         libraries_to_search.append(library)
 
     # Yield (filename, is_dir) for this search.
@@ -337,7 +411,7 @@ def api_list_impl(info):
 @reg('/view/{type:[^:]+}:{path:.+}')
 async def api_illust(info):
     path = PurePosixPath(info.request.match_info['path'])
-    absolute_path, library = Library.resolve_path(path)
+    absolute_path, library = info.manager.resolve_path(path)
     print(absolute_path)
 
     # XXX
