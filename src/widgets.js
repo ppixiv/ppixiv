@@ -263,6 +263,8 @@ ppixiv.message_widget = class
 
     show(message)
     {
+        console.assert(message != null);
+
         this.clear_timer();
 
         this.container.querySelector(".message").innerHTML = message;
