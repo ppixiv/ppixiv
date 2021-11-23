@@ -1,3 +1,5 @@
+"use strict";
+
 // Widgets only used for local file navigation.
 
 ppixiv.tree_widget = class extends ppixiv.widget
@@ -123,8 +125,13 @@ ppixiv.tree_widget = class extends ppixiv.widget
     // a horizontal scroller, and lets us display a quick thumbnail.
     set_hover(item)
     {
+        let img = this.thumb_popup.querySelector("img");
+
         if(item == null)
         {
+            // Remove the hover, and clear the image so it doesn't flicker the next time
+            // we display it.
+            img.src = helpers.blank_image;
             this.label_popup.remove();
             this.thumb_popup.remove();
             return;
@@ -145,7 +152,6 @@ ppixiv.tree_widget = class extends ppixiv.widget
             let label_center = top + height/2;
             let below_middle = label_center > window.innerHeight/2;
 
-            let img = this.thumb_popup.querySelector("img");
             if(below_middle)
             {
                 // Align the bottom of the image to the top of the label.
@@ -159,9 +165,20 @@ ppixiv.tree_widget = class extends ppixiv.widget
                 this.thumb_popup.style.transform = "";
             }
 
-            let url = new URL(helpers.local_url);
-            url.pathname = "thumb/" + item.path;
-            img.src = url;
+            // Don't show a thumb for roots.  Searches don't have thumbnails, and it's not useful
+            // for most others.
+            img.hidden = item.is_root;
+            img.crossOriginMode = "use-credentials";
+            if(!item.is_root)
+            {
+                // Use /tree-thumb for these thumbnails.  They're the same as the regular thumbs,
+                // but it won't give us a folder image if there's no thumb.
+                let url = new URL(helpers.local_url);
+                url.pathname = "tree-thumb/" + item.path;
+                img.src = url;
+                img.addEventListener("img", (e) => { console.log("error"); img.hidden = true; });
+            }
+            
             document.body.appendChild(this.thumb_popup);
         }
 
@@ -257,11 +274,52 @@ ppixiv.tree_widget_item = class extends ppixiv.widget
             this.expanded = !this.expanded;
         });
 
-        this.container.querySelector(".label").addEventListener("dblclick", (e) => {
+        this.container.querySelector(".label").addEventListener("dblclick", async (e) => {
             e.preventDefault();
             e.stopImmediatePropagation();
 
             this.expanded = !this.expanded;
+
+            // Double-clicking the tree expands the node.  It also causes it to be viewed due
+            // to the initial single-click.  However, if you double-click a directory that's
+            // full of images, the natural thing for it to do is to view the first image.  If
+            // we don't do that, every time you view a directory you have to click it in the
+            // tree, then click the first image in the search.
+            //
+            // Try to do this intelligently.  If the directory we're loading is almost all images,
+            // navigate to the first image.  Otherwise, just let the click leave us viewing the
+            // directory.  This way, double-clicking a directory that has a bunch of other directories
+            // in it will just expand the node, but double-clicking a directory which is a collection
+            // of images will view the images.
+            //
+            // If we do this, we'll do both navigations: first to the directory and then to the image.
+            // That's useful, so if we display the image but you really did want the directory view,
+            // you can just back out once.
+            console.log("exp", this.expanded);
+            
+            // Wait for contents to be loaded so we can see if there are any children.
+            await this.load_contents();
+            console.log("loaded", this.child_nodes.length);
+
+            // If there are any children that we just expanded, stop.
+            if(this.child_nodes.length != 0)
+                return;
+
+            // The dblclick should have set the data source to this entry.  Grab the
+            // data source.
+            let data_source = main_controller.singleton.data_source;
+            console.log("data_source", data_source);
+            if(!data_source.is_page_loaded_or_loading(1))
+            {
+                console.log("wait for load");
+                await data_source.load_page(1);
+            }
+
+            // Navigate to the first image on the first page.
+            let illust_ids = data_source.id_list.illust_ids_by_page.get(1);
+            console.log("illust", illust_ids);
+            if(illust_ids != null)
+                main_controller.singleton.show_illust(illust_ids[0], {add_to_history: true, source: "dblclick"});
         });
 
         this.label = this.container.querySelector(".label");
@@ -306,23 +364,31 @@ ppixiv.tree_widget_item = class extends ppixiv.widget
         // If we're pending, call onexpand the first time we're expanded so we can
         // be populated.  We'll stay pending and showing the hourglass until onexpand
         // completes.
-        if(this._expanded && this._pending)
-        {
-            if(!this.called_onexpand)
-            {
-                this.called_onexpand = true;
-                this.load_promise = (async() => {
-                    try {
-                        await this.onexpand();
-                    } finally {
-                        this.pending = false;
-                        this.load_promise = null;
-                    }
-                })();
-            }
-        }
+        if(this._expanded)
+            this.load_contents();
 
         this.refresh_expand_mode();
+    }
+    
+    async load_contents()
+    {
+        // Stop if we're already loaded.
+        if(!this._pending)
+            return;
+
+        // Start a load if one isn't already running.
+        if(this.load_promise == null)
+        {
+            // Start the load.
+            this.load_promise = this.onexpand();
+
+            this.load_promise.finally(() => {
+                this.pending = false;
+                this.load_promise = null;
+            });
+        }
+
+        return await this.load_promise;
     }
 
     set expandable(value)
@@ -461,7 +527,7 @@ class local_navigation_widget_item extends ppixiv.tree_widget_item
         if(this.loaded)
             return;
 
-        let result = await helpers.local_post_request("/api/list", {
+        let result = await helpers.local_post_request(`/api/list/${this.path}`, {
             ...this.search_options,
             id: this.path,
 
@@ -516,8 +582,7 @@ class local_navigation_widget_item extends ppixiv.tree_widget_item
 }
 
 // A tree view for navigation with the local image API.
-// XXX: highlight the current path
-// XXX: keyboard navigation
+// XXX: keyboard navigation?
 ppixiv.local_navigation_widget = class extends ppixiv.tree_widget
 {
     constructor({...options}={})
@@ -525,6 +590,8 @@ ppixiv.local_navigation_widget = class extends ppixiv.tree_widget
         super({...options,
             add_root: false,
         });
+
+        this.load_path = new SentinelGuard(this.load_path, this);
 
         // Root local_navigation_widget_items will be stored here when
         // set_data_source_search_options is called.  Until that happens, we have
@@ -617,11 +684,10 @@ ppixiv.local_navigation_widget = class extends ppixiv.tree_widget
     }
 
     // Load and expand each component of path.
-    // XXX: try to find the path underneath the current selection first?
-    // unless the user clicks somewhere else
-    // XXX: stop if the selection changes
-    // load_path(null)
-    async load_path(path)
+    //
+    // This call is guarded, so if we're called again from another navigation,
+    // we won't keep loading and changing the selection.
+    async load_path(signal, path)
     {
         // Stop if we don't have a root yet.
         if(this.root == null)
@@ -629,6 +695,7 @@ ppixiv.local_navigation_widget = class extends ppixiv.tree_widget
 
         // Wait until the root is loaded, if needed.
         await this.root.load();
+        signal.check();
         
         // Split apart the path.
         let parts = path.split("/");
@@ -667,6 +734,7 @@ ppixiv.local_navigation_widget = class extends ppixiv.tree_widget
             // If the node is loading, wait for the load to finish.
             if(node.load_promise)
                 await node.load_promise;
+            signal.check();
         }
     }
 
@@ -675,6 +743,10 @@ ppixiv.local_navigation_widget = class extends ppixiv.tree_widget
     {
         let { id } = helpers.parse_id(illust_id);
         let args = new helpers.args(ppixiv.location);
+        args.query.delete("p");
+
+        // Hide the hover thumbnail on click to get it out of the way.
+        this.set_hover(null);
 
         // Don't navigate if we're already here.
         if(args.hash_path == id)
@@ -688,38 +760,41 @@ ppixiv.local_navigation_widget = class extends ppixiv.tree_widget
     }
 };
 
+// This stores searches like helpers.add_recent_search_tag.  It's simpler, since this
+// is the only place these searches are added.
+function add_recent_local_search(tag)
+{
+    var recent_tags = settings.get("local_searches") || [];
+    var idx = recent_tags.indexOf(tag);
+    if(idx != -1)
+        recent_tags.splice(idx, 1);
+    recent_tags.unshift(tag);
+
+    settings.set("local_searches", recent_tags);
+    window.dispatchEvent(new Event("recent-local-searches-changed"));
+}
+
+function remove_recent_local_search(search)
+{
+    // Remove tag from the list.  There should normally only be one.
+    var recent_tags = settings.get("local_searches") || [];
+    while(1)
+    {
+        var idx = recent_tags.indexOf(search);
+        if(idx == -1)
+            break;
+        recent_tags.splice(idx, 1);
+    }
+    settings.set("local_searches", recent_tags);
+    window.dispatchEvent(new Event("recent-local-searches-changed"));
+}
+
+
 // local_search_box_widget and local_search_dropdown_widget are dumb copy-pastes
 // of tag_search_box_widget and tag_search_dropdown_widget.  They're simpler and
 // much less used, and it didn't seem worth creating a shared base class for these.
 ppixiv.local_search_box_widget = class extends ppixiv.widget
 {
-    // This stores searches like helpers.add_recent_search_tag.  It's simpler, since this
-    // is the only place these searches are added.
-    add_recent_local_search(tag)
-    {
-        var recent_tags = settings.get("local_searches") || [];
-        var idx = recent_tags.indexOf(tag);
-        if(idx != -1)
-            recent_tags.splice(idx, 1);
-        recent_tags.unshift(tag);
-
-        settings.set("local_searches", recent_tags);
-    }
-
-    remove_recent_local_search(search)
-    {
-        // Remove tag from the list.  There should normally only be one.
-        var recent_tags = settings.get("local_searches") || [];
-        while(1)
-        {
-            var idx = recent_tags.indexOf(search);
-            if(idx == -1)
-                break;
-            recent_tags.splice(idx, 1);
-        }
-        settings.set("local_searches", recent_tags);
-    }
-
     constructor({...options})
     {
         super(options);
@@ -765,7 +840,7 @@ ppixiv.local_search_box_widget = class extends ppixiv.widget
             return;
 
         // Add this tag to the recent search list.
-        this.add_recent_local_search(tags);
+        add_recent_local_search(tags);
 
         // If we're submitting by pressing enter on an input element, unfocus it and
         // close any widgets inside it (tag dropdowns).
@@ -805,11 +880,15 @@ ppixiv.local_search_dropdown_widget = class extends ppixiv.widget
 
         this.dropdown_onclick = this.dropdown_onclick.bind(this);
         this.window_onclick = this.window_onclick.bind(this);
+        this.populate_dropdown = this.populate_dropdown.bind(this);
 
         this.input_element = input_element;
 
         // While we're open, we'll close if the user clicks outside focus_parent.
         this.focus_parent = focus_parent;
+
+        // Refresh the dropdown when the search history changes.
+        window.addEventListener("recent-local-searches-changed", this.populate_dropdown);
 
         this.container.addEventListener("click", this.dropdown_onclick);
 
@@ -859,8 +938,9 @@ ppixiv.local_search_dropdown_widget = class extends ppixiv.widget
             // Clicked X to remove a tag from history.
             e.stopPropagation();
             e.preventDefault();
-            var tag = e.target.closest(".entry").dataset.tag;
-            helpers.remove_recent_local_search(tag);
+
+            let tag = e.target.closest(".entry").dataset.tag;
+            remove_recent_local_search(tag);
             return;
         }
 
