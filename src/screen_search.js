@@ -374,11 +374,14 @@ ppixiv.screen_search = class extends ppixiv.screen
         this.container.querySelector(".whats-new-button").addEventListener("click", this.whats_new.bind(this));
         this.container.querySelector(".thumbnails").addEventListener("click", this.thumbnail_onclick);
 
-        // Handle quick_view.
+        // Handle quick view.
         new ppixiv.pointer_listener({
             element: this.container.querySelector(".thumbnails"),
             button_mask: 0b1,
             callback: (e) => {
+                if(!e.pressed)
+                    return;
+
                 let a = e.target.closest("A");
                 if(a == null)
                     return;
