@@ -1,6 +1,7 @@
 {
     "search.useIgnoreFiles": false,
     "files.exclude": {
+        "**/__pycache__": true,
         "chrome": true,
         "output": true,
         "unused": true
