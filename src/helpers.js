@@ -1781,6 +1781,15 @@ ppixiv.helpers = {
     // thumb is in a 2:1 landscape box, we'll adjust the min and max aspect ratio accordingly.
     set_thumbnail_panning_direction(thumb, width, height, container_aspect_ratio)
     {
+        // Disable panning if we don't have the image size.  Local directory thumbnails
+        // don't tell us the dimensions in advance.
+        if(width == null || height == null)
+        {
+            helpers.set_class(thumb, "vertical-panning", false);
+            helpers.set_class(thumb, "horizontal-panning", false);
+            return;
+        }
+
         var aspect_ratio = width / height;
         aspect_ratio /= container_aspect_ratio;
         var min_aspect_for_pan = 1.1;
