@@ -213,11 +213,12 @@ ppixiv.main_controller = class
 
     window_onpopstate(e)
     {
-        // A special case for the bookmarks data source.  It changes its page in the URL to mark
-        // how far the user has scrolled.  We don't want this to trigger a data source change.
+        // When the data sources supports_start_page, the page in the URL is changed as
+        // the user scrolls.  This doesn't trigger a data source change.
+        // XXX: can we handle this generically with get_canonical_url
         if(this.temporarily_ignore_onpopstate)
         {
-            console.log("Not navigating for internal page change");
+            // console.log("Not navigating for internal page change");
             return;
         }
 
