@@ -67,7 +67,7 @@ ppixiv.image_ui = class extends ppixiv.widget
         <!-- position: relative positions the tag dropdown. -->
         <div style="position: relative;">
             <!-- position: relative positions the bookmark count. -->
-            <div class="button button-bookmark public popup" style="position: relative;">
+            <div class="button button-bookmark public popup" data-bookmark-type=public style="position: relative;">
                 <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
                 <div class=count></div>
             </div>
@@ -75,7 +75,7 @@ ppixiv.image_ui = class extends ppixiv.widget
             <div class=popup-bookmark-tag-dropdown-container></div>
         </div>
 
-        <div class="button button-bookmark private popup">
+        <div class="button button-bookmark private popup" data-bookmark-type=private>
             <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
         </div>
         
@@ -176,11 +176,11 @@ ppixiv.image_ui = class extends ppixiv.widget
 
         // The bookmark buttons, and clicks in the tag dropdown:
         this.bookmark_buttons = [];
-        for(var a of this.container.querySelectorAll(".button-bookmark"))
+        for(let a of this.container.querySelectorAll("[data-bookmark-type]"))
             this.bookmark_buttons.push(new bookmark_button_widget({
                 parent: this,
                 contents: a,
-                private_bookmark: a.classList.contains("private"),
+                bookmark_type: a.dataset.bookmarkType,
                 bookmark_tag_widget: this.bookmark_tag_widget,
             }));
 

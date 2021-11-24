@@ -1407,11 +1407,11 @@ ppixiv.bookmark_button_widget = class extends ppixiv.illust_widget
 {
     get needed_data() { return "thumbnail"; }
 
-    constructor({private_bookmark, bookmark_tag_widget, ...options})
+    constructor({bookmark_type, bookmark_tag_widget, ...options})
     {
         super({...options});
 
-        this.private_bookmark = private_bookmark;
+        this.bookmark_type = bookmark_type;
         this.bookmark_tag_widget = bookmark_tag_widget;
 
         this.container.addEventListener("click", this.clicked_bookmark.bind(this));
@@ -1427,7 +1427,8 @@ ppixiv.bookmark_button_widget = class extends ppixiv.illust_widget
         helpers.set_class(this.container,  "has-like-count", !is_local);
 
         let bookmarked = thumbnail_data?.bookmarkData != null;
-        let our_bookmark_type = thumbnail_data?.bookmarkData?.private == this.private_bookmark;
+        let private_bookmark = this.bookmark_type == "private";
+        let our_bookmark_type = thumbnail_data?.bookmarkData?.private == private_bookmark;
 
         // Set up the bookmark buttons.
         helpers.set_class(this.container,  "enabled",     thumbnail_data != null);
@@ -1435,12 +1436,13 @@ ppixiv.bookmark_button_widget = class extends ppixiv.illust_widget
         helpers.set_class(this.container,  "will-delete", our_bookmark_type);
         
         // Set the tooltip.
-        let type_string = this.private_bookmark? "private":"public";
         this.container.dataset.popup =
             thumbnail_data == null? "":
-            !bookmarked? (this.private_bookmark? "Bookmark privately":"Bookmark image"):
+            !bookmarked && this.bookmark_type == "folder"? "Bookmark folder":
+            !bookmarked && this.bookmark_type == "private"? "Bookmark privately":
+            !bookmarked && this.bookmark_type == "public"? "Bookmark image":
             our_bookmark_type? "Remove bookmark":
-            "Change bookmark to " + type_string;
+            "Change bookmark to " + this.bookmark_type;
     }
     
     // Clicked one of the top-level bookmark buttons or the tag list.
@@ -1475,7 +1477,8 @@ ppixiv.bookmark_button_widget = class extends ppixiv.illust_widget
         // If the image is bookmarked and the same privacy button was clicked, remove the bookmark.
         let illust_data = await thumbnail_data.singleton().get_or_load_illust_data(this._illust_id);
         
-        if(illust_data.bookmarkData && illust_data.bookmarkData.private == this.private_bookmark)
+        let private_bookmark = this.bookmark_type == "private";
+        if(illust_data.bookmarkData && illust_data.bookmarkData.private == private_bookmark)
         {
             await actions.bookmark_remove(this._illust_id);
 
@@ -1493,7 +1496,7 @@ ppixiv.bookmark_button_widget = class extends ppixiv.illust_widget
 
         // Add or edit the bookmark.
         await actions.bookmark_add(this._illust_id, {
-            private: this.private_bookmark,
+            private: private_bookmark,
             tags: tag_list,
         });
     }
