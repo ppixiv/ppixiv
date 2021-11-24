@@ -1,5 +1,4 @@
 import time
-from .database.user_data import UserData
 from pathlib import Path, PurePosixPath
 
 from .util import misc
@@ -12,27 +11,32 @@ class Manager:
     """
     This class can be accessed as request.app['manager'].
     """
-    def __init__(self):
+    def __init__(self, app):
+        self.app = app
         self.libraries = {}
 
+        app.on_shutdown.append(self.shutdown)
+
+    async def shutdown(self, app):
+        print('Shutting down')
+        for library in self.libraries.values():
+            library.stop_monitoring()
+        
     async def init(self):
         print('Initializing libraries...')
-        # await Library.initialize()
-
-        self.user_data = UserData(db_path='user.sqlite', schema='user')
 
         for name, path in _library_paths.items():
             def progress_func(total):
                 print('Indexing progress for %s: %i' % (path, total))
 
-            library = Library(name, name + '.sqlite', path, user_data=self.user_data)
+            library = Library(name, name + '.sqlite', path)
             self.libraries[name] = library
             print('Initializing library: %s' % path)
             library.monitor()
 
             # XXX
             start = time.time()
-            await library.refresh(progress=progress_func)
+            # await library.refresh(progress=progress_func)
             end = time.time()
             print('Indexing took %.2f seconds' % (end-start))
 

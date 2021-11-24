@@ -1,9 +1,11 @@
 #!/usr/bin/python
-import json, logging, traceback
+import asyncio, json, logging, traceback, urllib, time
 from pprint import pprint
 
 import aiohttp
 from aiohttp import web
+from aiohttp.abc import AbstractAccessLogger
+from aiohttp.web_log import AccessLogger
 
 from . import api, thumbs
 from .util import misc
@@ -78,7 +80,8 @@ async def handle_unknown_api_call(info):
     name = info.request.match_info['name']
     return { 'success': False, 'code': 'invalid-request', 'reason': 'Invalid API: /api/%s' % name }
 
-# logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
+logging.captureWarnings(True)
 
 async def setup():
     app = web.Application(middlewares=(check_origin,))
@@ -98,14 +101,32 @@ async def setup():
     handler = create_handler_for_command(handle_unknown_api_call)
     app.router.add_view('/api/{name:.*}', handler)
 
-    manager = Manager()
+    # Start our manager.
+    manager = Manager(app)
     app['manager'] = manager
     await manager.init()
 
     return app
 
+class AccessLogger(AbstractAccessLogger):
+    """
+    A more readable access log.
+    """
+    def __init__(self, *args):
+        self.logger = logging.getLogger('request')
+
+    def log(self, request, response, duration) -> None:
+        path = urllib.parse.unquote(request.path_qs)
+        start_time = time.time() - duration
+        self.logger.info('%f %i (%i): %s' % (start_time, response.status, response.body_length, path))
+
 def run():
-    web.run_app(setup(), host='localhost', port=8235, print=None)
+    web.run_app(setup(),
+        host='localhost',
+        port=8235,
+        print=None,
+        access_log_format='%t "%r" %s %b',
+        access_log_class=AccessLogger)
 
 if __name__ == '__main__':
     run()

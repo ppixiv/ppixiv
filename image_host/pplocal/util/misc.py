@@ -62,13 +62,14 @@ def mime_type(path):
     ext = _get_ext(path)
     return mime_type_from_ext(ext)
 
-def get_image_dimensions(path):
-    filetype = file_type(path)
+def get_image_dimensions(path, mime_type):
     # XXX: We get the wrong result here for videos that aren't 1:1, we need the DAR resolution
     # and this gives the pixel resolution.  CV2 isn't a good library for this, but haven't
     # found a good one
-    if filetype == 'video':
-        video = cv2.VideoCapture(str(path))
+    # XXX: this also doesn't support being given a file object
+    if mime_type.startswith('video/'):
+        return None
+        video = cv2.VideoCapture(path)
         height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
         width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
         return width, height
@@ -82,7 +83,7 @@ def get_image_dimensions(path):
     # If this is a JPEG, see if this image is rotated by 90 or 270 degrees
     # and swap the dimensions if needed.  Don't do this for PNGs, since PIL
     # will load the whole image.
-    if path.suffix.lower() in ('.jpg', '.jpeg'):
+    if mime_type == 'image/jpeg':
         exif = image.getexif()
         ORIENTATION = 0x112
         image_orientation = exif.get(ORIENTATION, 0)

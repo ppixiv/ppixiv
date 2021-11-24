@@ -1,4 +1,5 @@
 import subprocess
+import asyncio
 
 # This handles extracting a frame from videos for thumbnails and posters.
 #
@@ -8,9 +9,8 @@ import subprocess
 # XXX: we should run this as an async that can kill ffmpeg when cancelled
 ffmpeg = './ffmpeg/bin/ffmpeg'
 
-def extract_frame(input_file, output_file, seek_seconds, exif_description=None):
-    result = subprocess.call([
-        ffmpeg,
+async def extract_frame(input_file, output_file, seek_seconds, exif_description=None):
+    process = await asyncio.create_subprocess_exec(ffmpeg,
         '-y',
         '-hide_banner',
         '-ss', str(seek_seconds),
@@ -21,7 +21,9 @@ def extract_frame(input_file, output_file, seek_seconds, exif_description=None):
         '-frames:v', '1',
         '-pix_fmt', 'yuvj420p',
         output_file,
-    ])
+    )
+    result = await process.wait()
+    print(result)
 
     # If the file is shorter than seek_seconds, ffmpeg will return success and just
     # not create the file.

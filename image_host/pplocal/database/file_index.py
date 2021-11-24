@@ -7,28 +7,21 @@ from pprint import pprint
 # This implements the database storage for library.  It stores similar data to
 # what we get from the Windows index.
 class FileIndex(Database):
-    def __init__(self, db_path, *, schema='files', user_data):
+    def __init__(self, db_path, *, schema='files'):
         """
         db_path is the path to the database on the filesystem.
-
-        user_data is a UserData database.
         """
-        self.user_data = user_data
-
         super().__init__(db_path, schema=schema)
 
     def open_db(self):
         conn = super().open_db()
 
-        # Use the fastest sync mode for the main DB.  This data is only a cache, so we don't care
-        # # that much# if it loses data during a power loss.  Use normal sync for the user DB.
+        # Use the fastest sync mode.  This data is only a cache, so we don't care
+        # that much if it loses data during a power loss.
         conn.execute(f'PRAGMA {self.schema}.synchronous = OFF;')
 
         # Do first-time initialization and any migrations.
         self.upgrade(conn=conn)
-
-        # Attach the user database.
-        self.user_data.attach(conn)
 
         return conn
 
@@ -57,13 +50,12 @@ class FileIndex(Database):
                     conn.execute(f'''
                         CREATE TABLE {self.schema}.files(
                             id INTEGER PRIMARY KEY,
+                            populated NOT NULL DEFAULT true,
                             mtime NOT NULL,
                             ctime NOT NULL,
                             path UNIQUE NOT NULL,
                             parent NOT NULL,
                             is_directory NOT NULL DEFAULT false,
-                            inode NOT NULL,
-                            volume_id,
                             width,
                             height,
                             tags NOT NULL,
@@ -71,13 +63,14 @@ class FileIndex(Database):
                             comment NOT NULL,
                             type NOT NULL,
                             author NOT NULL,
+                            bookmarked NOT NULL DEFAULT FALSE,
+                            bookmark_tags NOT NULL DEFAULT "",
                             directory_thumbnail_path
                         )
                     ''')
 
                     conn.execute(f'CREATE INDEX {self.schema}.files_path on files(lower(path))')
                     conn.execute(f'CREATE INDEX {self.schema}.files_parent on files(lower(parent))')
-                    conn.execute(f'CREATE INDEX {self.schema}.files_file_id on files(inode, volume_id)')
 
                     # This should be searched with:
                     #
@@ -93,6 +86,21 @@ class FileIndex(Database):
                     ''')
                     conn.execute(f'CREATE INDEX {self.schema}.file_keyords_file_id on file_keywords(file_id)')
                     conn.execute(f'CREATE INDEX {self.schema}.file_keywords_keyword on file_keywords(lower(keyword))')
+
+                    # This should be searched with:
+                    #
+                    # SELECT * from bookmark_tags WHERE LOWER(tag) GLOB "pattern*";
+                    #
+                    # for the best chance that the search can use the tag index.
+                    conn.execute(f'''
+                        CREATE TABLE {self.schema}.bookmark_tags(
+                            file_id NOT NULL,
+                            tag NOT NULL,
+                            FOREIGN KEY(file_id) REFERENCES files(id) ON DELETE CASCADE
+                        )
+                    ''')
+                    conn.execute(f'CREATE INDEX {self.schema}.bookmark_tags_file_id on bookmark_tags(file_id)')
+                    conn.execute(f'CREATE INDEX {self.schema}.bookmark_tags_tag on bookmark_tags(lower(tag))')
 
         assert self.get_db_version(conn=conn) == 1
 
@@ -142,23 +150,28 @@ class FileIndex(Database):
                 sets = ['%s = ?' % field for field in fields]
                 query = f'''
                     UPDATE {self.schema}.files
-                        SET %(sets)s
+                        SET {', '.join(sets)}
                         WHERE path = ?
-                ''' % {
-                    'sets': ', '.join(sets),
-                }
+                '''
                 cursor.execute(query, row)
 
                 # If any field in keyword_fields has changed, we need to update the keyword index.
-                tag_update_needed = False
+                keyword_update_needed = False
                 for keyword_field in keyword_fields:
-                    tag_update_needed |= existing_record[keyword_field] != entry[keyword_field]
+                    keyword_update_needed |= existing_record[keyword_field] != entry[keyword_field]
+
+                # If the tag list changed, we need to update the tag index.
+                tag_update_needed = existing_record['bookmark_tags'] != entry['bookmark_tags']
                 
                 # Set the ID in our caller's entry to the existing ID.
                 entry['id'] = existing_record['id']
             else:
                 # The record doesn't exist, so create a new one.
-                tag_update_needed = True
+                keyword_update_needed = True
+
+                # If this entry is bookmarked, update its tag index.  Since this is a new entry,
+                # we can skip this if it's not bookmarked.
+                tag_update_needed = entry['bookmarked']
 
                 row = [entry[key] for key in fields]
 
@@ -176,8 +189,8 @@ class FileIndex(Database):
                 # Fill in the ID.
                 entry['id'] = rowid
 
-            # Only update keywords if needed.
-            if tag_update_needed:
+            # Update search keywords if needed.
+            if keyword_update_needed:
                 # Delete old keywords.
                 cursor.execute(f'DELETE FROM {self.schema}.file_keywords WHERE file_id = ?', [entry['id']])
 
@@ -196,6 +209,24 @@ class FileIndex(Database):
                 cursor.executemany(f'''
                     INSERT INTO {self.schema}.file_keywords (file_id, keyword) values (?, ?)
                 ''', keywords_to_add)
+
+            # Update tags if needed.
+            if tag_update_needed:
+                # Delete old tags.
+                cursor.execute(f'DELETE FROM {self.schema}.bookmark_tags WHERE file_id = ?', [entry['id']])
+
+                # Split the tag list.
+                tags = set(entry['bookmark_tags'].split(' '))
+                if '' in tags:
+                    tags.remove('')
+
+                tags_to_add = []
+                for tag in tags:
+                    tags_to_add.append((entry['id'], tag))
+
+                cursor.executemany(f'''
+                    INSERT INTO {self.schema}.bookmark_tags (file_id, tag) values (?, ?)
+                ''', tags_to_add)
 
         return entry
 
@@ -230,37 +261,35 @@ class FileIndex(Database):
             # Update "path" and "parent" for old_path and all files inside it.
             print('Renaming "%s" -> "%s"' % (old_path, new_path))
 
-            # Do this for both the index and the user table.
-            for schema in (self.schema, self.user_data.schema):
-                for entry in self.search(path=str(old_path)):
-                    # path should always be relative to old_path.
-                    # parent should too, unless this is old_path itself.
-                    path = Path(entry['path'])
-                    relative_path = path.relative_to(old_path)
-                    entry_new_path = new_path / relative_path
-                    if path != old_path:
-                        relative_parent = Path(entry['parent']).relative_to(old_path)
-                        entry_new_parent = new_path / relative_parent
-                    else:
-                        entry_new_parent = entry['parent']
+            for entry in self.search(path=str(old_path)):
+                # path should always be relative to old_path.
+                # parent should too, unless this is old_path itself.
+                path = Path(entry['path'])
+                relative_path = path.relative_to(old_path)
+                entry_new_path = new_path / relative_path
+                if path != old_path:
+                    relative_parent = Path(entry['parent']).relative_to(old_path)
+                    entry_new_parent = new_path / relative_parent
+                else:
+                    entry_new_parent = entry['parent']
 
-                    query = f'''
-                        UPDATE {schema}.files
-                            SET path = ?, parent = ?
-                            WHERE id = ?
-                    ''' % {
-                        'path': '',
-                        'parent': '',
-                    }
-                    cursor.execute(query, [str(entry_new_path), str(entry_new_parent), entry['id']])
+                query = f'''
+                    UPDATE {self.schema}.files
+                        SET path = ?, parent = ?
+                        WHERE id = ?
+                ''' % {
+                    'path': '',
+                    'parent': '',
+                }
+                cursor.execute(query, [str(entry_new_path), str(entry_new_parent), entry['id']])
 
-    def get(self, path, *, include_bookmark_info=True, conn=None):
+    def get(self, path, *, conn=None):
         """
         Return the entry for the given path, or None if it doesn't exist.
 
         This is just a wrapper for search.
         """
-        for result in self.search(path=path, mode=self.SearchMode.Exact, include_bookmark_info=include_bookmark_info):
+        for result in self.search(path=path, mode=self.SearchMode.Exact):
             return result
 
         return None
@@ -280,21 +309,14 @@ class FileIndex(Database):
 
         substr=None,
 
-        # If true, only return bookmarked files.  Searching for unbookmarked files
-        # isn't supported.
-        bookmarked=False,
+        # If set, return only bookmarked or unbookmarked files.
+        bookmarked=None,
 
-        # This can be an array of bookmark tags to filter for.  Implies bookmarked.
+        # If set, this is an array of bookmark tags to filter for.
         bookmark_tags=None,
 
-        include_bookmark_info=True,
         include_files=True, include_dirs=True
     ):
-        if bookmark_tags:
-            bookmarked = True
-        if bookmarked and bookmark_tags is None:
-            bookmark_tags = []
-
         with self.connect() as cursor:
             select_columns = []
             where = []
@@ -325,41 +347,24 @@ class FileIndex(Database):
             if not include_dirs:
                 where.append(f'not {self.schema}.files.is_directory')
 
-            if bookmarked or include_bookmark_info:
-                # Join to the user data table to search for bookmarks.  Bookmarks are by
-                # path, not by ID.  Left join the bookmark constrains, so this doesn't filter
-                # out unbookmarked files.  If we want that, we'll do it below in the
-                # user_files.bookmarked filter.
-                joins.append(f'''
-                    LEFT JOIN {self.user_data.schema}.files AS user_files
-                    ON lower(user_files.path) = lower({self.schema}.files.path)
-                ''')
-                
+            if bookmarked is not None:
                 if bookmarked:
-                    where.append(f'user_files.bookmarked')
+                    where.append(f'{self.schema}.files.bookmarked')
+                else:
+                    where.append(f'not {self.schema}.files.bookmarked')
 
                 # If we're searching bookmark tags, join the bookmark tag table.
-                if bookmark_tags or include_bookmark_info:
+                if bookmark_tags:
                     joins.append(f'''
-                        LEFT JOIN {self.user_data.schema}.bookmark_tags
-                        ON {self.user_data.schema}.bookmark_tags.bookmark_id = user_files.user_file_id
+                        LEFT JOIN {self.schema}.bookmark_tags
+                        ON {self.schema}.bookmark_tags.file_id = {self.schema}.files.id
                     ''')
 
-                # Add each tag.
-                if bookmark_tags and False:
+                    # Add each tag.
                     for tag in bookmark_tags:
-                        where.append(f'lower({self.user_data.schema}.bookmark_tags.tag) = lower(?)')
+                        where.append(f'lower({self.schema}.bookmark_tags.tag) = lower(?)')
                         params.append(tag)
             
-                # If the caller wants bookmark info, add it to the results.
-                if include_bookmark_info:
-                    select_columns.append('user_files.user_file_id AS user_file_id')
-                    select_columns.append('user_files.bookmarked')
-                    select_columns.append('user_files.bookmark_tags')
-
-            # XXX: very slow for multiple keywords: slower for multiple, should be faster
-            # might be faster to only search for one keyword, then do the rest from the tag list
-            # or search for keywords first, group them manually, then grab the files
             if substr:
                 for word_idx, word in enumerate(self.split_keywords(substr)):
                     # Each keyword match requires a separate join.
@@ -367,8 +372,10 @@ class FileIndex(Database):
                     joins.append(f'JOIN {self.schema}.file_keywords AS %s' % alias)
                     where.append('files.id = %s.file_id' % alias)
 
-                    where.append('lower(%s.keyword) GLOB lower(?)' % alias)
-                    params.append(word)
+                    # We need to lowercase the string ourself and not say "GLOB lower(?)" for this
+                    # to use the keyword index.
+                    where.append('lower(%s.keyword) GLOB ?' % alias)
+                    params.append(word.lower())
 
             where = ('WHERE ' + ' AND '.join(where)) if where else ''
             joins = (' '.join(joins)) if joins else ''
@@ -407,11 +414,10 @@ async def test():
         # 'path': 'a',
         # 'parent': 'a',
 
+        'populated': True,
         'mtime': 10,
         'ctime': 10,
         'is_directory': True,
-        'inode': 0, 
-        'volume_id': 0,
         'width': 'a',
         'height': 'a',
         'tags': '',

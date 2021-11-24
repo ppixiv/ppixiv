@@ -156,10 +156,56 @@ def get_volume_serial_number(root):
     _volume_id_cache[root] = serial_number.value
     return serial_number.value
 
-from pathlib import Path
+class FILE_BASIC_INFO(ctypes.Structure):
+    _fields_ = [
+        ('CreationTime', wintypes.LARGE_INTEGER),
+        ('LastAccessTime', wintypes.LARGE_INTEGER),
+        ('LastWriteTime', wintypes.LARGE_INTEGER),
+        ('ChangeTime', wintypes.LARGE_INTEGER),
+        ('FileAttributes', wintypes.DWORD),
+    ]
+
+SetFileInformationByHandle = kernel32.SetFileInformationByHandle
+GetFileInformationByHandleEx = kernel32.GetFileInformationByHandleEx
+
+FileBasicInfo = 0
+FILE_ATTRIBUTE_HIDDEN = 2
+
 def go():
+    from pathlib import Path
     serial = get_volume_serial_number(Path('c:\\'))
     print(serial)
+
+def set_file_hidden(file, hide=True):
+    """
+    Show or hide a file.
+
+    This sets or clears the FILE_ATTRIBUTE_HIDDEN file attribute.  The file must
+    be open for writing.
+    """
+    # For some reason, Windows won't let us open a file for overwrite when its
+    # hidden bit is set.
+    info = FILE_BASIC_INFO()
+    handle = msvcrt.get_osfhandle(file.fileno())
+    if not GetFileInformationByHandleEx(handle, FileBasicInfo, ctypes.byref(info), ctypes.sizeof(info)):
+        raise ctypes.WinError(ctypes.get_last_error())
+
+    original_attributes = info.FileAttributes
+    if hide:
+        info.FileAttributes |= FILE_ATTRIBUTE_HIDDEN
+    else:
+        info.FileAttributes &= ~FILE_ATTRIBUTE_HIDDEN
+
+    if info.FileAttributes == original_attributes:
+        return
+
+    if not SetFileInformationByHandle(handle, FileBasicInfo, ctypes.byref(info), ctypes.sizeof(info)):
+        raise ctypes.WinError(ctypes.get_last_error())
+
+def go():
+    with open('test.txt', 'r+b') as f:
+        set_file_hidden(f, hide=False)
+
 
 if __name__ == '__main__':
     go()

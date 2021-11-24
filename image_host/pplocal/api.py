@@ -140,7 +140,6 @@ def _bookmark_data(entry):
         return None
 
     return {
-        'id': entry['user_file_id'],
         'tags': entry['bookmark_tags'].split(' '),
         'private': False,
     }
@@ -156,39 +155,22 @@ async def api_bookmark_add(info):
         tags = ' '.join(tags)
 
     # Look up the path.
-    absolute_path, _ = info.manager.resolve_path(path)
-    _, bookmark_id = info.manager.user_data.bookmark_edit(path=absolute_path, tags=tags)
+    absolute_path, library = info.manager.resolve_path(path)
+    entry = library.bookmark_edit(absolute_path, set_bookmark=True, tags=tags)
+    return { 'success': True, 'bookmark': _bookmark_data(entry) }
 
-    bookmark_info = info.manager.user_data.bookmark_get(bookmark_id)
-    return { 'success': True, 'bookmark_id': bookmark_id, 'bookmark': _bookmark_data(bookmark_info) }
-
-@reg('/bookmark/edit/{bookmark_id:.+}')
-async def api_bookmark_edit(info):
-    """
-    Edit a bookmark by ID.
-
-    This can edit bookmarks for paths that don't exist in the library.
-    """
-    bookmark_id = info.request.match_info['bookmark_id']
-    tags = info.data.get('tags', None)
-    if tags is not None:
-        tags = ' '.join(tags)
-
-    found, _ = info.manager.user_data.bookmark_edit(bookmark_id=bookmark_id, tags=tags)
-    if not found:
-        raise misc.Error('not-found', 'Bookmark ID doesn\'t exist: %s' % bookmark_id)
-
-    bookmark_info = info.manager.user_data.bookmark_get(bookmark_id)
-    return { 'success': True, 'bookmark': bookmark_info }
-
-@reg('/bookmark/delete/{bookmark_id:.+}')
+@reg('/bookmark/delete/{type:[^:]+}:{path:.+}')
 async def api_bookmark_delete(info):
     """
     Delete a bookmark by ID.
     """
-    bookmark_id = info.request.match_info['bookmark_id']
-    result = info.manager.user_data.bookmark_delete(bookmark_id)
-    return { 'success': True, 'deleted': result }
+    path = PurePosixPath(info.request.match_info['path'])
+    
+    # Look up the path.
+    absolute_path, library = info.manager.resolve_path(path)
+    library.bookmark_edit(absolute_path, set_bookmark=False)
+
+    return { 'success': True }
 
 # Return info about a single file.
 @reg('/illust/{type:[^:]+}:{path:.+}')

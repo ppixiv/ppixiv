@@ -1,13 +1,16 @@
-import time
+# This gives an interface to Windows Search, returning results similar to
+# os.scandir.
+
+import time, os, stat
 from pathlib import Path
 from pprint import pprint
 
 # Get this from pywin32, not from adodbapi:
 try:
     import adodbapi
-except ImportError:
+except ImportError as e:
     adodbapi = None
-    print('Windows search not available')
+    print('Windows search not available: %s' % e)
 
 # adodbapi seems to have no way to escape strings, and Search.CollatorDSO doesn't seem
 # to support parameters at all.
@@ -19,9 +22,141 @@ def escape_sql(s):
         result += c
     return result
 
-conn = None
+FILE_ATTRIBUTE_READONLY = 0x01
+FILE_ATTRIBUTE_DIRECTORY = 0x10
 
-def search(*, path=None, exact_path=None, substr=None, bookmarked=None, recurse=True):
+class SearchDirEntryStat:
+    """
+    This is an os.stat_result for SearchDirEntry.
+
+    We don't use os.stat_result itself, since we want to calculate a few fields
+    on-demand to avoid overhead when they aren't used.
+    """
+    def __init__(self, data):
+        self._data = data
+
+        self.st_size = data['System.Size']
+        self._st_atime = None
+        self._st_ctime = None
+        self._st_mtime = None
+
+        # System.FileAttributes is WIN32_FIND_DATA.dwFileAttributes.  Convert
+        # it to st_mode in the same way Python does.
+        attr = data['System.FileAttributes']
+        if attr & FILE_ATTRIBUTE_DIRECTORY:
+            mode = stat.S_IFDIR | 0o111
+        else:
+            mode = stat.S_IFREG
+
+        if attr & FILE_ATTRIBUTE_READONLY:
+            mode |= 0o444
+        else:
+            mode |= 0o666
+
+        self.st_mode = mode
+
+    def __repr__(self):
+        fields = []
+        for field in ('st_mode', 'st_ino', 'st_dev', 'st_size', 'st_atime', 'st_mtime', 'st_ctime'):
+            fields.append('%s=%s' % (field, getattr(self, field)))
+        return f'SearchDirEntryStat({ ", ".join(fields) })'
+
+    # These fields aren't available.
+    @property
+    def st_ino(self): return 0
+    @property
+    def st_nlink(self): return 1
+    @property
+    def st_uid(self): return 0
+    @property
+    def st_gid(self): return 0
+        
+    # The only related field is System.VolumeId, but that's not the same
+    # as BY_HANDLE_FILE_INFORMATION.dwVolumeSerialNumber.
+    @property
+    def st_dev(self): return 0
+
+    # adodbapi's parsing for these timestamps is pretty slow and is the overwhelming
+    # bottleneck if we parse it for all files.  Since most callers don't use all of
+    # these, parse them on demand.
+    #
+    # time.timezone converts these from local time to UTC.
+    @property
+    def st_atime(self):
+        if self._st_atime is not None:
+            return self._st_atime
+
+        self._st_atime = self._data['System.DateAccessed'].timestamp() - time.timezone
+        return self._st_atime
+
+    @property
+    def st_ctime(self):
+        if self._st_ctime is not None:
+            return self._st_ctime
+
+        self._st_ctime = self._data['System.DateCreated'].timestamp() - time.timezone
+        return self._st_ctime
+
+    @property
+    def st_mtime(self):
+        if self._st_mtime is not None:
+            return self._st_mtime
+
+        self._st_mtime = self._data['System.DateModified'].timestamp() - time.timezone
+        return self._st_mtime
+
+class SearchDirEntry(os.PathLike):
+    """
+    A DirEntry-like class for search results.
+
+    This doesn't implement follow_symlinks, but accepts the parameter for
+    compatibility with DirEntry.
+    """
+    def __init__(self, data):
+        self._data = data
+        self._path = data['System.ItemPathDisplay']
+        self._stat = None
+
+    @property
+    def path(self):
+        return self._path
+
+    @property
+    def name(self):
+        return os.path.basename(self._path)
+
+    @property
+    def inode(self):
+        return None
+
+    def is_dir(self, *, follow_symlinks=True):
+        return self._data['System.ItemType'] == 'Directory'
+
+    def is_file(self, *, follow_symlinks=True):
+        return self._data['System.ItemType'] != 'Directory'
+
+    @property
+    def is_symlink(self):
+        return False
+
+    def stat(self, *, follow_symlinks=True):
+        if self._stat is not None:
+            return self._stat
+
+        self._stat = SearchDirEntryStat(self._data)
+        return self._stat
+
+    @property
+    def data(self):
+        pass
+
+    def __fspath__(self):
+        return _path
+
+    def __repr__(self):
+        return 'SearchDirEntry(%s)' % self._path
+
+def search(*, path=None, exact_path=None, substr=None, bookmarked=None, recurse=True, contents=None, sort_results=True):
     if adodbapi is None:
         return
 
@@ -32,8 +167,16 @@ def search(*, path=None, exact_path=None, substr=None, bookmarked=None, recurse=
         return
 
     select = [
+        # These fields are required for SearchDirEntry.
         'System.ItemPathDisplay',
         'System.ItemType',
+        'System.DateAccessed',
+        'System.DateModified',
+        'System.DateCreated',
+        'System.FileAttributes',
+        'System.Size',
+
+        # The rest are optional.
         'System.Rating',
         'System.Image.HorizontalSize',
         'System.Image.VerticalSize',
@@ -42,9 +185,6 @@ def search(*, path=None, exact_path=None, substr=None, bookmarked=None, recurse=
         'System.Title',
         'System.Comment',
         'System.MIMEType',
-        'System.DateModified',
-        'System.DateCreated',
-        'System.Kind',
     ]
 
     where = []
@@ -54,10 +194,13 @@ def search(*, path=None, exact_path=None, substr=None, bookmarked=None, recurse=
         if recurse:
             where.append("scope = '%s'" % escape_sql(str(path)))
         else:
-            where.append("System.ItemFolderPathDisplay = '%s'" % escape_sql(str(path)))
+            where.append("directory = '%s'" % escape_sql(str(path)))
 
     if exact_path is not None:
         where.append("System.ItemPathDisplay = '%s'" % escape_sql(str(exact_path)))
+    if contents:
+        print(contents)
+        where.append("""CONTAINS(System.Search.Contents, '"%s"')""" % escape_sql(str(contents)))
 
     # Add filters.
     if substr is not None:
@@ -67,7 +210,7 @@ def search(*, path=None, exact_path=None, substr=None, bookmarked=None, recurse=
             # seems to be efficient at prefix and suffix matches.
             where.append("""CONTAINS(System.FileName, '"*%s*"')""" % escape_sql(word))
 
-    where.append("(System.ItemType = 'Directory' OR System.Kind = 'picture' OR System.Kind = 'video')")
+    # where.append("(System.ItemType = 'Directory' OR System.Kind = 'picture' OR System.Kind = 'video')")
 
     # System.Rating is null for no rating, and 1, 25, 50, 75, 99 for 1, 2, 3, 4, 5
     # stars.  It's a bit weird, but we only use it for bookmarking.  Any image with 50 or
@@ -75,15 +218,19 @@ def search(*, path=None, exact_path=None, substr=None, bookmarked=None, recurse=
     if bookmarked:
         where.append("System.Rating >= 50")
 
-    query = """
-        SELECT %(select)s
+    # If sorT_results is true, sort directories first, then alphabetical.  This is
+    # useful but makes the search slower.
+    order = ''
+    if sort_results:
+        order = "ORDER BY System.FolderNameDisplay, System.FileName ASC"
+
+    query = f"""
+        SELECT {', '.join(select)}
         FROM SystemIndex 
-        WHERE %(where)s
-        ORDER BY System.FolderNameDisplay, System.FileName ASC
-    """ % {
-        'select': ', '.join(select),
-        'where': ' AND '.join(where),
-    }
+        WHERE {' AND '.join(where)}
+        {order}
+    """
+#    print(query)
 
     try:
         with conn:
@@ -94,45 +241,51 @@ def search(*, path=None, exact_path=None, substr=None, bookmarked=None, recurse=
                     if row is None:
                         break
 
-                    path = Path(row['System.ItemPathDisplay'])
-                    result = {
-                        'path': path,
-                        'parent': path.parent,
-                        'is_directory': row['System.ItemType'] == 'Directory',
-                        'width': row['System.Image.HorizontalSize'],
-                        'height': row['System.Image.VerticalSize'],
+                    entry = SearchDirEntry(row)
+                    yield entry
 
-                        # Windows returns tags as an array and allows spaces in tags.  Nobody does
-                        # that anymore: flatten it to a space-separated list and assume there are no
-                        # spaces.
-                        'tags': ' '.join(row['System.Keywords'] or ()),
-                        'title': row['System.Title'] or '',
-                        'comment': row['System.Comment'] or '',
-                        'type': row['System.MIMEType'] or 'application/octet-stream',
-
-                        # time.timezone converts these from local time to UTC.
-                        'mtime': row['System.DateModified'].timestamp() - time.timezone,
-                        'ctime': row['System.DateCreated'].timestamp() - time.timezone,
-                    }
-                    print(result['mtime'])
-
-                    rating = row['System.Rating']
-                    result['bookmarked'] = rating is not None and rating >= 50
-
-                    author = row['System.ItemAuthors']
-                    if author is None:
-                        result['author'] = ''
-                    else:
-                        result['author'] = ', '.join(author)
-
-                    yield result
+#                    path = Path(row['System.ItemPathDisplay'])
+#                    result = {
+#                        'path': path,
+#                        'parent': path.parent,
+#                        'width': row['System.Image.HorizontalSize'],
+#                        'height': row['System.Image.VerticalSize'],
+#
+#                        # Windows returns tags as an array and allows spaces in tags.  Nobody does
+#                        # that anymore: flatten it to a space-separated list and assume there are no
+#                        # spaces.
+#                        'tags': ' '.join(row['System.Keywords'] or ()),
+#                        'title': row['System.Title'] or '',
+#                        'comment': row['System.Comment'] or '',
+#                        'type': row['System.MIMEType'] or 'application/octet-stream',
+#                    }
+#
+#                    rating = row['System.Rating']
+#                    result['bookmarked'] = rating is not None and rating >= 50
+#
+#                    author = row['System.ItemAuthors']
+#                    if author is None:
+#                        result['author'] = ''
+#                    else:
+#                        result['author'] = ', '.join(author)
 
     except Exception as e:
+        pass
         print('Windows search error:', e)
 
 def test():
-    for entry in search(path=Path('c:\\')):
-        print(entry['path'])
+    # XXX
+    path=Path(r'F:\stuff\ppixiv\image_host\temp2')
+    for entry in search(path=path, contents='PPIXIVLOCALDATA'):
+        if entry is None:
+            continue
+
+        print('got', entry)
+        entry.stat()
+        print(entry.stat())
+        st = os.stat(entry.path)
+        # print(entry.is_file())
+        # print(entry.is_dir())
 
 if __name__ == '__main__':
     test()

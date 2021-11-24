@@ -26,14 +26,12 @@ class FileAction(Enum):
     FILE_ACTION_RENAMED = 1000
 
 class FileNotifyInformation(ctypes.Structure):
-    pass
-
-FileNotifyInformation._fields_ = [
-    ('NextEntryOffset', DWORD),
-    ('Action', DWORD),
-    ('FileNameLength', DWORD),
-    # ('FileName', BYTE),
-]
+    _fields_ = [
+        ('NextEntryOffset', DWORD),
+        ('Action', DWORD),
+        ('FileNameLength', DWORD),
+        # ('FileName', BYTE),
+    ]
 
 class MonitorChanges:
     def __init__(self, path: os.PathLike, *, buffer_size=1024*128):
@@ -79,8 +77,6 @@ class MonitorChanges:
         change_buffer = (BYTE * self.buffer_size)()
 
         while True:
-            print('---------- waiting')
-
             # Run ReadDirectoryChangesW in a thread so it doesn't block the event loop.
             promise = asyncio.to_thread(self._read_changes, watch_subtree, changes, change_buffer)
             try:
@@ -112,7 +108,6 @@ class MonitorChanges:
 
                 path = self.path / filename
                 action = FileAction(entry.Action)
-                print('---------- change at', time.time(), path, action)
 
                 # RENAMED_OLD_NAME and RENAMED_NEW_NAME are normally received in pairs.
                 # Pair them back up and return them as a single event.

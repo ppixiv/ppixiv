@@ -39,7 +39,7 @@ ppixiv.local_api = class
             return;
         }
 
-        let result = await local_api.local_post_request(`/api/bookmark/delete/${illust_info.bookmarkData.id}`);
+        let result = await local_api.local_post_request(`/api/bookmark/delete/${illust_id}`);
         if(!result.success)
             return;
 

@@ -48,7 +48,7 @@ def _bake_exif_rotation(image):
 
     return image.transpose(flip_mode[image_orientation])
 
-def create_thumb(path):
+def threaded_create_thumb(path):
     # Thumbnail the image.
     #
     # Don't use PIL's built-in behavior of clamping the size.  It works poorly for
@@ -111,7 +111,7 @@ def get_thumbnail_path(path):
 # The first frame is often blank due to fade-ins and doesn't make a good thumbnail,
 # so extract a frame a few seconds in to use as the thumb.  If that fails, it may be
 # a very short video, so use the poster image instead.
-def create_video_poster(illust_id, path):
+async def create_video_poster(illust_id, path):
     """
     Extract a poster from a video file and return the path to the poster.
     """
@@ -119,13 +119,13 @@ def create_video_poster(illust_id, path):
     if poster_path.exists():
         return poster_path, 'image/jpeg'
 
-    if not video.extract_frame(path, poster_path, seek_seconds=0, exif_description=illust_id):
+    if not await video.extract_frame(path, poster_path, seek_seconds=0, exif_description=illust_id):
         # If the first frame fails, we can't get anything from this video.
         raise aiohttp.web.HTTPUnsupportedMediaType()
 
     return poster_path, 'image/jpeg'
 
-def _extract_video_thumbnail_frame(illust_id, path):
+async def _extract_video_thumbnail_frame(illust_id, path):
     """
     Extract the frame to be used for the thumbnail from a video file and return its path.
 
@@ -135,30 +135,30 @@ def _extract_video_thumbnail_frame(illust_id, path):
     if thumb_path.exists():
         return thumb_path
 
-    if video.extract_frame(path, thumb_path, seek_seconds=10, exif_description=illust_id):
+    if await video.extract_frame(path, thumb_path, seek_seconds=10, exif_description=illust_id):
         return thumb_path
 
     # If we couldn't extract a frame later on, the video may not be that long.
     # Extract the thumbnail if we haven't already, and just use that.
-    create_video_poster(illust_id, path)
+    await create_video_poster(illust_id, path)
 
     poster_path = get_poster_path(path)
     copyfile(poster_path, thumb_path)
     return thumb_path
 
-def threaded_create_thumb(illust_id, absolute_path, mode):
+async def create_thumb(illust_id, absolute_path, mode):
     filetype = misc.file_type(absolute_path)
     if filetype == 'video':
         if mode =='poster':
-            file, mime_type = create_video_poster(illust_id, absolute_path)
+            file, mime_type = await create_video_poster(illust_id, absolute_path)
             return file.read_bytes(), mime_type
         else:
-            thumb_path = _extract_video_thumbnail_frame(illust_id, absolute_path)
+            thumb_path = await _extract_video_thumbnail_frame(illust_id, absolute_path)
 
             # Create the thumbnail in the same way we create image thumbs.
-            return create_thumb(thumb_path)
+            return await asyncio.to_thread(threaded_create_thumb, thumb_path)
     else:
-        return create_thumb(absolute_path)
+        return await asyncio.to_thread(threaded_create_thumb, absolute_path)
 
 def _find_directory_thumbnail(path):
     """
@@ -234,7 +234,7 @@ async def handle_thumb(request, mode='thumb'):
         raise aiohttp.web.HTTPNotFound()
 
     # Generate the thumbnail in a thread.
-    thumbnail_file, mime_type = await asyncio.to_thread(threaded_create_thumb, path, absolute_path, mode)
+    thumbnail_file, mime_type = await create_thumb(path, absolute_path, mode)
 
     # Fill in last-modified from the source file.
     timestamp = datetime.fromtimestamp(mtime, tz=timezone.utc)
