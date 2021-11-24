@@ -57,13 +57,20 @@ ppixiv.context_menu_image_info_widget = class extends ppixiv.illust_widget
         // If we're on the first page then we only requested early info, and we can use the dimensions
         // on it.  Otherwise, we have full info and we'll get dimensions from mangaPages.
         var info = "";
+        let width = null, height = null;
         if(page == 0)
-            info += illust_data.width + "x" + illust_data.height;
+        {
+            width = illust_data.width;
+            height = illust_data.height;
+        }
         else
         {
-            let page_info = illust_data.mangaPages[page];
-            info += page_info.width + "x" + page_info.height;
+            width = illust_data.mangaPages[page].width;
+            height = illust_data.mangaPages[page].height;
         }
+
+        if(width != null && height != null)
+            info += width + "x" + height;
         set_info(".image-info", info);
 
         let seconds_old = (new Date() - new Date(illust_data.createDate)) / 1000;
