@@ -3,6 +3,25 @@
 // Helpers for the local API.
 ppixiv.local_api = class
 {
+    // Run a search against the local API.
+    //
+    // The results will be registered as thumbnail info and returned.
+    static async list(path="", {...options})
+    {
+        let result = await local_api.local_post_request(`/api/list/${path}`, {
+            ...options,
+        });
+
+        if(!result.success)
+        {
+            console.error("Error reading directory:", result);
+            return;
+        }
+
+        thumbnail_data.singleton().loaded_thumbnail_info(result.results, "internal");
+        return result;
+    }
+
     static async bookmark_add(illust_id, options)
     {
         let illust_info = await thumbnail_data.singleton().get_or_load_illust_data(illust_id);
@@ -26,7 +45,12 @@ ppixiv.local_api = class
             bookmarkData: result.bookmark
         });
 
-        message_widget.singleton.show(was_bookmarked? "Bookmark edited":"Bookmarked");
+        let { type } = helpers.parse_id(illust_id);
+        
+        message_widget.singleton.show(
+            was_bookmarked? "Bookmark edited":
+            type == "folder"? "Bookmarked folder":"Bookmarked",
+        );
         image_data.singleton().call_illust_modified_callbacks(illust_id);
     }
 

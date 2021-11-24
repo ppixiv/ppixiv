@@ -15,6 +15,8 @@ ppixiv.tree_widget = class extends ppixiv.widget
             </div>
         `});
 
+        this.illust_modified = this.illust_modified.bind(this);
+
         this.label_popup = this.create_template({html: `
             <div class=tree-popup>
                 <div class=label></div>
@@ -43,6 +45,9 @@ ppixiv.tree_widget = class extends ppixiv.widget
             capture: true,
         });
     
+        // Listen to illust changes so we can refresh nodes.
+        image_data.singleton().illust_modified_callbacks.register(this.illust_modified);
+
         // Create the root item.  This is tree_widget_item or a subclass.
         if(add_root)
         {
@@ -53,6 +58,18 @@ ppixiv.tree_widget = class extends ppixiv.widget
             });
 
             this.set_root(root);
+        }
+    }
+
+    illust_modified(illust_id)
+    {
+        if(this.root == null)
+            return;
+
+        for(let node of Object.values(this.root.nodes))
+        {
+            if(node.illust_changed)
+                node.illust_changed(illust_id);
         }
     }
     
@@ -189,7 +206,7 @@ ppixiv.tree_widget = class extends ppixiv.widget
 
             // Match the padding of the label.
             this.label_popup.style.padding = getComputedStyle(label).padding;
-            this.label_popup.querySelector(".label").innerText = item.label.innerText;
+            this.label_popup.querySelector(".label").innerText = item.label;
             document.body.appendChild(this.label_popup);
         }
     }
@@ -229,12 +246,16 @@ ppixiv.tree_widget_item = class extends ppixiv.widget
             container: parent.items,
             parent: parent,
             template: `
-            <div class=tree-item>
+            <div class=tree-item data-context-menu-target>
                 <div class=self tabindex=1>
                     <div class=expander data-mode="loading">
                         <span class="expander-button expand">▶</span>
                         <span class="expander-button loading">⌛</span>
                         <span class="expander-button none"></span>
+                    </div>
+
+                    <div class="button-bookmark public enabled bookmarked" hidden>
+                        <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
                     </div>
                     <div class=label></div>
                 </div>
@@ -262,6 +283,7 @@ ppixiv.tree_widget_item = class extends ppixiv.widget
         this._expandable = expandable;
         this._expanded = false;
         this._pending = pending;
+        this._label = label;
 
         // Our root node:
         this.root_node = root? this:this.parent.root_node;
@@ -295,11 +317,9 @@ ppixiv.tree_widget_item = class extends ppixiv.widget
             // If we do this, we'll do both navigations: first to the directory and then to the image.
             // That's useful, so if we display the image but you really did want the directory view,
             // you can just back out once.
-            console.log("exp", this.expanded);
-            
+            //
             // Wait for contents to be loaded so we can see if there are any children.
             await this.load_contents();
-            console.log("loaded", this.child_nodes.length);
 
             // If there are any children that we just expanded, stop.
             if(this.child_nodes.length != 0)
@@ -308,32 +328,24 @@ ppixiv.tree_widget_item = class extends ppixiv.widget
             // The dblclick should have set the data source to this entry.  Grab the
             // data source.
             let data_source = main_controller.singleton.data_source;
-            console.log("data_source", data_source);
             if(!data_source.is_page_loaded_or_loading(1))
-            {
-                console.log("wait for load");
                 await data_source.load_page(1);
-            }
 
             // Navigate to the first image on the first page.
             let illust_ids = data_source.id_list.illust_ids_by_page.get(1);
-            console.log("illust", illust_ids);
             if(illust_ids != null)
                 main_controller.singleton.show_illust(illust_ids[0], {add_to_history: true, source: "dblclick"});
         });
 
-        this.label = this.container.querySelector(".label");
-        this.label.innerText = label;
-
         this.container.querySelector(".label").addEventListener("mousedown", (e) => {
-        if(e.button != 0)
-                return;
+            if(e.button != 0)
+                    return;
 
-        e.preventDefault();
-        e.stopImmediatePropagation();
+            e.preventDefault();
+            e.stopImmediatePropagation();
 
-        this.select();
-        this.onclick();
+            this.select();
+            this.onclick();
         }, { capture: true });
 
         this.refresh_expand_mode();
@@ -342,6 +354,17 @@ ppixiv.tree_widget_item = class extends ppixiv.widget
         {
             this.parent.refresh_expand_mode();
         }
+
+        // Refresh the label.
+        this.refresh();
+    }
+
+    get label() { return this._label; }
+
+    refresh()
+    {
+        let label = this.container.querySelector(".label");
+        label.innerText = this.label;
     }
 
     // This is called if pending is set to true the first time the node is expanded.
@@ -481,6 +504,14 @@ class local_navigation_widget_item extends ppixiv.tree_widget_item
         else
             this.path = path;
 
+        // Set the ID on the item to let the popup menu know what it is.  Don't do
+        // this for top-level libraries ("folder:/images"), since they can't be
+        // bookmarked.
+        let { id } = helpers.parse_id(this.path);
+        let is_library = id.indexOf("/", 1) == -1;
+        if(!is_library)
+            this.container.dataset.illustId = this.path;
+
         if(options.root)
         {
             // As we load nodes in this tree, we'll index them by ID here.
@@ -489,6 +520,29 @@ class local_navigation_widget_item extends ppixiv.tree_widget_item
         }
 
         this.search_options = search_options;
+    }
+
+    // This is called by the tree when an illust changes to let us refresh, so we don't need
+    // to register an illust change callback for every node.
+    // XXX: need a way to refresh these
+    // do this once at the tree level:
+    // image_data.singleton().illust_modified_callbacks.register(this.refresh);
+    illust_changed(illust_id)
+    {
+        // Refresh if we're displaying the illust that changed.
+        if(illust_id == this.path)
+            this.refresh();
+    }
+
+    // In addition to the label, refresh the bookmark icon.
+    refresh()
+    {
+        super.refresh();
+
+        // Show or hide the bookmark icon.
+        let info = thumbnail_data.singleton().get_one_thumbnail_info(this.path);
+        let bookmarked = info?.bookmarkData != null;
+        this.container.querySelector(".button-bookmark").hidden = !bookmarked;
     }
 
     async onexpand()
@@ -528,7 +582,7 @@ class local_navigation_widget_item extends ppixiv.tree_widget_item
             return;
         this.loaded = true;
 
-        let result = await local_api.local_post_request(`/api/list/${this.path}`, {
+        let result = await local_api.list(this.path, {
             ...this.search_options,
             id: this.path,
 
@@ -539,10 +593,7 @@ class local_navigation_widget_item extends ppixiv.tree_widget_item
         });
 
         if(!result.success)
-        {
-            console.error("Error reading directory:", result);
             return;
-        }
 
         // If this is the top-level item, this is a list of archives.  If we have only one
         // archive, populate the top level with the top leve of the archive instead, so we
@@ -562,7 +613,7 @@ class local_navigation_widget_item extends ppixiv.tree_widget_item
         for(let dir of result.results)
         {
             // Strip "folder:" off of the name, and use the basename of that as the label.
-            let {type, id: label} = helpers.parse_id(dir.id);
+            let {type, id: label } = helpers.parse_id(dir.id);
             if(type != "folder")
                 continue;
     

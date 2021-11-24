@@ -3374,7 +3374,7 @@ ppixiv.data_sources.local = class extends data_source
             current_search_options = { }
 
         // If we have a next_page_uuid, use it to load the next page.
-        let result = await local_api.local_post_request(`/api/list/folder:${args.hash_path}`, {
+        let result = await local_api.list(`folder:${args.hash_path}`, {
             ...current_search_options,
 
             page: page_uuid,
@@ -3385,10 +3385,7 @@ ppixiv.data_sources.local = class extends data_source
         });
 
         if(!result.success)
-        {
-            console.error("Error loading local image:", result);
             return;
-        }
 
         // If we got a local path, store it to allow copying it to the clipboard.
         this.local_path = result.local_path;
@@ -3407,9 +3404,6 @@ ppixiv.data_sources.local = class extends data_source
         // If next is null, we've reached the end of the results.
         if(result.pages.next == null)
             this.reached_end = true;
-
-        // Register results as thumbnail info.
-        thumbnail_data.singleton().loaded_thumbnail_info(result.results, "internal");
 
         let found_illust_ids = [];
         for(let thumb of result.results)
