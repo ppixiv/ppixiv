@@ -1,7 +1,7 @@
 import os, urllib, uuid, time, asyncio
 from datetime import datetime, timezone
 from pprint import pprint
-from collections import OrderedDict, namedtuple
+from collections import OrderedDict, namedtuple, defaultdict
 from pathlib import Path, PurePosixPath
 
 from .util import misc
@@ -172,6 +172,22 @@ async def api_bookmark_delete(info):
 
     return { 'success': True }
 
+@reg('/bookmark/tags')
+async def api_illust(info):
+    """
+    Return a dictionary of the user's bookmark tags and the number of
+    bookmarks for each tag.
+    """
+    results = defaultdict(int)
+    for library in info.manager.all_libraries:
+        for key, count in library.get_all_bookmark_tags().items():
+            results[key] += count
+
+    return {
+        'success': True,
+        'tags': results,
+    }
+
 # Return info about a single file.
 @reg('/illust/{type:[^:]+}:{path:.+}')
 async def api_illust(info):
@@ -314,6 +330,7 @@ def api_list_impl(info):
         'substr': info.data.get('search'),
         'bookmarked': info.data.get('bookmarked', None),
         'bookmark_tags': info.data.get('bookmark_tags', None),
+        'media_type': info.data.get('media_type', None),
     }
 
     # Remove null values from search_options, so it only contains search filters we're

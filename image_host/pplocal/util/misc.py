@@ -1,5 +1,6 @@
 # Helpers that don't have dependancies on our other modules.
 import asyncio, os
+from PIL import Image, ExifTags
 
 # cv2 is used to get the dimensions of video files.  It ultimately just calls ffmpeg,
 # but it's much faster than running ffprobe in a subprocess.  XXX: are there any usable
@@ -7,8 +8,6 @@ import asyncio, os
 # with
 import cv2
 
-from PIL import Image
-from PIL.ExifTags import TAGS
 
 image_types = {
     '.png': 'image/png',
@@ -104,7 +103,6 @@ class Error(Exception):
             'reason': self.reason,
         }
 
-from PIL import Image, ExifTags
 exif_tag_ids = { value: key for key, value in ExifTags.TAGS.items() }
 
 def read_metadata(f, mime_type):

@@ -78,9 +78,8 @@ class MonitorChanges:
 
         while True:
             # Run ReadDirectoryChangesW in a thread so it doesn't block the event loop.
-            promise = asyncio.to_thread(self._read_changes, watch_subtree, changes, change_buffer)
             try:
-                await promise
+                await asyncio.to_thread(self._read_changes, watch_subtree, changes, change_buffer)
             except asyncio.CancelledError as e:
                 # If we're cancelled, call CancelIoEx to cancel ReadDirectoryChangesW which is
                 # still running in the thread.  We should wait after doing that for it to return,
@@ -93,9 +92,15 @@ class MonitorChanges:
                     # We were aborted by a call to close().
                     return
 
-                raise
+                if e.winerror == 87:
+                    # ERROR_INVALID_FUNCTION means this path doesn't support monitoring.
+                    # The most common cause is probably that it's an SMB mount that doesn't
+                    # support it.
+                    print('File monitoring not supported on volume: %s' % self.path)
+                else:
+                    print('Error monitoring %s: %s' % (self.path, e.strerror))
 
-            import time
+                return
 
             # Yield all results.
             offset = 0

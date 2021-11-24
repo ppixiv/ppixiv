@@ -156,7 +156,18 @@ class SearchDirEntry(os.PathLike):
     def __repr__(self):
         return 'SearchDirEntry(%s)' % self._path
 
-def search(*, path=None, exact_path=None, substr=None, bookmarked=None, recurse=True, contents=None, sort_results=True):
+def search(*,
+        path=None,
+        exact_path=None,
+        substr=None,
+        bookmarked=None,
+        recurse=True,
+        contents=None,
+        media_type=None, # "images" or "videos"
+        sort_results=True,
+        include_files=True,
+        include_dirs=True,
+    ):
     if adodbapi is None:
         return
 
@@ -210,6 +221,16 @@ def search(*, path=None, exact_path=None, substr=None, bookmarked=None, recurse=
             # seems to be efficient at prefix and suffix matches.
             where.append("""CONTAINS(System.FileName, '"*%s*"')""" % escape_sql(word))
 
+    if not include_files:
+        where.append("System.ItemType = 'Directory'")
+    if not include_dirs:
+        where.append("System.ItemType != 'Directory'")
+
+    if media_type == 'images':
+        where.append("System.Kind = 'picture'")
+    elif media_type == 'videos':
+        where.append("System.Kind = 'video'")
+
     # where.append("(System.ItemType = 'Directory' OR System.Kind = 'picture' OR System.Kind = 'video')")
 
     # System.Rating is null for no rating, and 1, 25, 50, 75, 99 for 1, 2, 3, 4, 5
@@ -230,58 +251,25 @@ def search(*, path=None, exact_path=None, substr=None, bookmarked=None, recurse=
         WHERE {' AND '.join(where)}
         {order}
     """
-#    print(query)
+    print(query)
 
     try:
         with conn:
             with conn.cursor() as cursor:
                 cursor.execute(query)
-                while True:
-                    row = cursor.fetchone()
-                    if row is None:
-                        break
-
+                for row in cursor:
                     entry = SearchDirEntry(row)
                     yield entry
 
-#                    path = Path(row['System.ItemPathDisplay'])
-#                    result = {
-#                        'path': path,
-#                        'parent': path.parent,
-#                        'width': row['System.Image.HorizontalSize'],
-#                        'height': row['System.Image.VerticalSize'],
-#
-#                        # Windows returns tags as an array and allows spaces in tags.  Nobody does
-#                        # that anymore: flatten it to a space-separated list and assume there are no
-#                        # spaces.
-#                        'tags': ' '.join(row['System.Keywords'] or ()),
-#                        'title': row['System.Title'] or '',
-#                        'comment': row['System.Comment'] or '',
-#                        'type': row['System.MIMEType'] or 'application/octet-stream',
-#                    }
-#
-#                    rating = row['System.Rating']
-#                    result['bookmarked'] = rating is not None and rating >= 50
-#
-#                    author = row['System.ItemAuthors']
-#                    if author is None:
-#                        result['author'] = ''
-#                    else:
-#                        result['author'] = ', '.join(author)
-
     except Exception as e:
-        pass
         print('Windows search error:', e)
 
 def test():
-    # XXX
-    path=Path(r'F:\stuff\ppixiv\image_host\temp2')
-    for entry in search(path=path, contents='PPIXIVLOCALDATA'):
+    path=Path(r'F:\stuff\ppixiv\image_host')
+    for entry in search(path=path, contents='test'):
         if entry is None:
             continue
 
-        print('got', entry)
-        entry.stat()
         print(entry.stat())
         st = os.stat(entry.path)
         # print(entry.is_file())

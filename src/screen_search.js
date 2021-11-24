@@ -283,7 +283,7 @@ let thumbnail_ui = class extends ppixiv.widget
                 </div>
 
                 <div class="data-source-specific" data-datasource=local>
-                    <div class=local-search style="display: flex; align-items: center; gap: 0.5em;">
+                    <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.5em;">
                         <a href=/local/#ppixiv/ class="grey-icon show-all-files">← All</a>
                         <div class="local-tag-search search-box">
                             <div class="local-tag-search-box hover-menu-box">
@@ -293,6 +293,23 @@ let thumbnail_ui = class extends ppixiv.widget
                         <span class="popup grey-icon copy-local-path" data-popup="Copy local path to clipboard" style="cursor: pointer;">
                             <span class="material-icons">content_copy</span>
                         </span>
+
+                        <div class=box-button-row>
+                            <a class="box-link popup" data-type=local-bookmarks-all data-popup="Show all works" href="#">All</a>
+                            <a class="box-link popup" data-type=local-bookmarks-only data-popup="Show bookmarks" href="#">Bookmarks</a>
+                        </div>
+
+                        <div class="box-button-row search-options-row">
+                            <span class="box-link popup-menu-box-button">Type</span>
+                            <div hidden class="popup-menu-box vertical-list">
+                                <a class=box-link data-type=local-type-all data-default=1 href="#ppixiv">All</a>
+                                <a class=box-link data-type=local-type-videos href="#ppixiv">Videos</a>
+                                <a class=box-link data-type=local-type-images href="#ppixiv">Images</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="box-button-row local-bookmark-tag-list">
+                        <span>Bookmark tags:</span>
                     </div>
                 </div>                
             </div>

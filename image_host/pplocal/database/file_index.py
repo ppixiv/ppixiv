@@ -61,7 +61,7 @@ class FileIndex(Database):
                             tags NOT NULL,
                             title NOT NULL,
                             comment NOT NULL,
-                            type NOT NULL,
+                            mime_type NOT NULL,
                             author NOT NULL,
                             bookmarked NOT NULL DEFAULT FALSE,
                             bookmark_tags NOT NULL DEFAULT "",
@@ -71,6 +71,10 @@ class FileIndex(Database):
 
                     conn.execute(f'CREATE INDEX {self.schema}.files_path on files(lower(path))')
                     conn.execute(f'CREATE INDEX {self.schema}.files_parent on files(lower(parent))')
+                    conn.execute(f'CREATE INDEX {self.schema}.files_mime_type on files(mime_type)')
+
+                    # This is used to find untagged bookmarks.  Tag searches use the bookmark_tag table below.
+                    conn.execute(f'CREATE INDEX {self.schema}.files_untagged_bookmarks on files(bookmark_tags) WHERE bookmark_tags == "" AND bookmarked')
 
                     # This should be searched with:
                     #
@@ -309,15 +313,19 @@ class FileIndex(Database):
 
         substr=None,
 
+        # "images" or "videos":
+        media_type=None,
+
         # If set, return only bookmarked or unbookmarked files.
         bookmarked=None,
 
         # If set, this is an array of bookmark tags to filter for.
         bookmark_tags=None,
 
-        include_files=True, include_dirs=True
+        include_files=True, include_dirs=True,
+        conn=None
     ):
-        with self.connect() as cursor:
+        with self.connect(conn) as cursor:
             select_columns = []
             where = []
             params = []
@@ -346,6 +354,10 @@ class FileIndex(Database):
                 where.append(f'{self.schema}.files.is_directory')
             if not include_dirs:
                 where.append(f'not {self.schema}.files.is_directory')
+            if media_type is not None:
+                assert media_type in ('videos', 'images')
+                where.append(f'{self.schema}.mime_type GLOB ?')
+                params.append('video/*' if media_type == 'videos' else 'image/*')
 
             if bookmarked is not None:
                 if bookmarked:
@@ -353,17 +365,24 @@ class FileIndex(Database):
                 else:
                     where.append(f'not {self.schema}.files.bookmarked')
 
-                # If we're searching bookmark tags, join the bookmark tag table.
-                if bookmark_tags:
-                    joins.append(f'''
-                        LEFT JOIN {self.schema}.bookmark_tags
-                        ON {self.schema}.bookmark_tags.file_id = {self.schema}.files.id
-                    ''')
+                # If we're searching bookmark tags, join the bookmark tag table.  Note that
+                # a blank value of bookmark_tags means 
+                if bookmark_tags is not None:
+                    print('xxxxxxx search "%s"' % bookmark_tags)
+                    if bookmark_tags == '':
+                        # Search for untagged bookmarks using the files_untagged_bookmarks index.
+                        where.append(f'bookmark_tags == ""')
+                        where.append(f'bookmarked')
+                    else:
+                        joins.append(f'''
+                            LEFT JOIN {self.schema}.bookmark_tags
+                            ON {self.schema}.bookmark_tags.file_id = {self.schema}.files.id
+                        ''')
 
-                    # Add each tag.
-                    for tag in bookmark_tags:
-                        where.append(f'lower({self.schema}.bookmark_tags.tag) = lower(?)')
-                        params.append(tag)
+                        # Add each tag.
+                        for tag in bookmark_tags.split(' '):
+                            where.append(f'lower({self.schema}.bookmark_tags.tag) = lower(?)')
+                            params.append(tag)
             
             if substr:
                 for word_idx, word in enumerate(self.split_keywords(substr)):
@@ -395,6 +414,33 @@ class FileIndex(Database):
                 result = dict(row)
                 yield result
 
+    def get_all_bookmark_tags(self, *, conn=None):
+        """
+        Return a list of all bookmark tags.
+        """
+        with self.connect(conn) as cursor:
+            # Get tag counts:
+            results = {}
+            query = f"""
+                SELECT tag, count(tag) FROM bookmark_tags
+                GROUP BY tag
+            """
+            for row in cursor.execute(query):
+                print(row.keys())
+                tag = row['tag']
+                results[tag] = row['count(tag)']
+
+            # Get the number of untagged bookmarks.  This search uses the files_untagged_bookmarks
+            # index.
+            query = f"""
+                SELECT count(*) FROM files
+                WHERE bookmark_tags == "" AND bookmarked
+            """
+            for row in cursor.execute(query):
+                results[''] = row['count(*)']
+
+            return results
+
 async def test():
     try:
         os.unlink('test.sqlite')
@@ -423,7 +469,7 @@ async def test():
         'tags': '',
         'title': '',
         'comment': '',
-        'type': '',
+        'mime_type': '',
         'author': '',
         'directory_thumbnail_path': None,
     }

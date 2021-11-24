@@ -1,12 +1,12 @@
 import subprocess
 import asyncio
 
-# This handles extracting a frame from videos for thumbnails and posters.
+# This handles extracting a frame from videos for thumbnails and posters,
+# and extracting the display resolution of videos.
 #
 # Is there a lightweight way of doing this?  FFmpeg is enormous and has
-# nasty licensing.
-#
-# XXX: we should run this as an async that can kill ffmpeg when cancelled
+# nasty licensing.  We only need to support WebM and MP4, since those are
+# the only formats that browsers will display anyway.
 ffmpeg = './ffmpeg/bin/ffmpeg'
 
 async def extract_frame(input_file, output_file, seek_seconds, exif_description=None):
@@ -22,8 +22,15 @@ async def extract_frame(input_file, output_file, seek_seconds, exif_description=
         '-pix_fmt', 'yuvj420p',
         output_file,
     )
+    try:
+        result = await process.wait()
+    except:
+        # create_subprocess_exec doesn't kill the process on cancellation.  Make
+        # sure it goes away.
+        process.kill()
+        raise
+
     result = await process.wait()
-    print(result)
 
     # If the file is shorter than seek_seconds, ffmpeg will return success and just
     # not create the file.

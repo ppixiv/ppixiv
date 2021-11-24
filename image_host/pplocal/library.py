@@ -405,7 +405,7 @@ class Library:
             'ctime': stat.st_ctime,
             'mtime': stat.st_mtime,
             'title': title,
-            'type': mime_type,
+            'mime_type': mime_type,
             'tags': tags,
             'comment': comment,
             'author': artist,
@@ -416,10 +416,6 @@ class Library:
         return data
 
     def _create_directory_record(self, path: os.PathLike):
-        #self._save_directory_metadata(path, {
-        #    'test': True
-        #})
-
         stat = path.stat()
 
         data = {
@@ -429,7 +425,7 @@ class Library:
             'ctime': stat.st_ctime,
             'mtime': stat.st_mtime,
             'title': path.name,
-            'type': 'application/folder',
+            'mime_type': 'application/folder',
 
             # We currently don't support these for directories:
             'tags': '',
@@ -624,29 +620,25 @@ class Library:
 
     def search(self, *,
         path=None,
-        substr=None,
-        bookmarked=None,
-        bookmark_tags=None,
-        include_files=True,
-        include_dirs=True,
         force_refresh=False,
-        use_windows_search=True):
+        use_windows_search=True,
+        **search_options):
         if path is None:
             path = self.path
 
-        search_options = { }
-        if substr is not None: search_options['substr'] = substr
-        if bookmarked: search_options['bookmarked'] = True
-        if bookmark_tags: search_options['bookmark_tags'] = bookmark_tags
-        search_options['include_dirs'] = include_dirs
-        search_options['include_files'] = include_files
+        # Including files and directories doesn't filter anything.  Remove these, so they
+        # don't force us into the search path unnecessarily.
+        if search_options.get('include_files'):
+            del search_options['include_files']
+        if search_options.get('include_dirs'):
+            del search_options['include_dirs']
 
         # We can get results from the Windows search and our own index.  Keep track of
         # what we've returned, so we don't return the same file from both.  If we're searching
         # bookmarks, don't use Windows search, since it doesn't know about our bookmarks and
         # our index will return them.
         seen_paths = set()
-        if use_windows_search and not bookmarked and not bookmark_tags:
+        if use_windows_search and not search_options.get('bookmarked') and search_options.get('bookmark_tags') is None and False: # XXX
             # Check the Windows index.
             for result in windows_search.search(path=str(path), **search_options):
                 if result.path in seen_paths:
@@ -665,7 +657,6 @@ class Library:
             if str(entry['path']) in seen_paths:
                 continue
 
-            print('db entry', entry)
             seen_paths.add(str(entry['path']))
 
             self._convert_to_path(entry)
@@ -693,6 +684,9 @@ class Library:
 
         # Update the file in the index.
         return self.cache_file(path, file_metadata=file_metadata)
+
+    def get_all_bookmark_tags(self):
+        return self.db.get_all_bookmark_tags()
 
 async def test():
     # path = Path('e:/images')

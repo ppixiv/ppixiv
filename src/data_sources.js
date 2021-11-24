@@ -585,7 +585,7 @@ ppixiv.data_source = class
     // need to know this to figure out whether an item is selected or not.
     //
     // If a key begins with #, it's placed in the hash rather than the query.
-    set_item(container, type, fields, default_values)
+    set_item(container, type, fields, default_values, { current_url=null }={})
     {
         var link = container.querySelector("[data-type='" + type + "']");
         if(link == null)
@@ -594,11 +594,15 @@ ppixiv.data_source = class
             return;
         }
 
+        // The URL the button is relative to:
+        if(current_url == null)
+            current_url = this.url;
+
         // This button is selected if all of the keys it sets are present in the URL.
         var button_is_selected = true;
 
         // Adjust the URL for this button.
-        let url = new URL(this.url);
+        let url = new URL(current_url);
 
         // Don't include the page number in search buttons, so clicking a filter goes
         // back to page 1.
@@ -3278,6 +3282,7 @@ ppixiv.data_sources.local = class extends data_source
         this.next_page_uuid = null;
         this.next_page_offset = null;
         this.search_options = { };
+        this.bookmark_tag_counts = null;
 
         // The options for the current search, if any.  This is also sent to the navigation
         // controller.
@@ -3291,10 +3296,21 @@ ppixiv.data_sources.local = class extends data_source
             this.title = "Search: " + this.search_options.search;
         }
 
-        if(args.hash.has("bookmarked"))
+        if(args.hash.has("bookmarks"))
         {
             this.search_options.bookmarked = true;
             this.title = "Bookmarks";
+        }
+
+        if(args.hash.has("bookmark-tag"))
+        {
+            this.search_options.bookmark_tags = args.hash.get("bookmark-tag");
+            this.title = "Bookmarks";
+        }
+
+        if(args.hash.has("type"))
+        {
+            this.search_options.media_type = args.hash.get("type");
         }
 
         // Clear search_options if it has no keys, to indicate that we're not in a search.
@@ -3310,6 +3326,8 @@ ppixiv.data_sources.local = class extends data_source
         if(this.reached_end)
             return;
 
+        this.fetch_bookmark_tag_counts();
+        
         // We should only be called in one of three ways: a start page (any page, but only if we have
         // nothing loaded), or a page at the start or end of pages we've already loaded.  Figure out which
         // one this is.  "page" is set to result.next of the last page to load the next page, or result.prev
@@ -3473,6 +3491,107 @@ ppixiv.data_sources.local = class extends data_source
 
         // Hide the "copy local path" button if we don't have one.
         container.querySelector(".copy-local-path").hidden = this.local_path == null;
+
+        // These search buttons return to the root.
+        current_args.hash_path = "/";
+
+        this.set_item(container, "local-bookmarks-all", {"#bookmarks": null}, null, { current_url: current_args.url });
+        this.set_item(container, "local-bookmarks-only", {"#bookmarks": 1}, null, { current_url: current_args.url });
+
+        this.set_item(container, "local-type-all", {"#type": null}, null, { current_url: current_args.url });
+        this.set_item(container, "local-type-videos", {"#type": "videos"}, null, { current_url: current_args.url });
+        this.set_item(container, "local-type-images", {"#type": "images"}, null, { current_url: current_args.url });
+
+        this.set_active_popup_highlight(container);
+        this.refresh_bookmark_tag_list(container);
+    }
+
+    refresh_bookmark_tag_list(container)
+    {
+        // Clear the tag list.
+        let tag_list = container.querySelector(".local-bookmark-tag-list");
+        for(let tag of tag_list.querySelectorAll(".following-tag"))
+            tag.remove();
+
+        // Hide the bookmark box if we're not showing bookmarks.
+        tag_list.hidden = !helpers.args.location.hash.has("bookmarks");
+
+        // Stop if we don't have the tag list yet.
+        if(this.bookmark_tag_counts == null)
+            return;
+
+        let add_tag_link = (tag) =>
+        {
+            let tag_count = this.bookmark_tag_counts[tag];
+
+            let a = document.createElement("a");
+            a.classList.add("box-link");
+            a.classList.add("following-tag");
+
+            let tag_name = tag;
+            if(tag_name == null)
+                tag_name = "All";
+            else if(tag_name == "")
+                tag_name = "Untagged";
+            a.innerText = tag_name;
+
+            // Show the bookmark count in the popup.
+            if(tag_count != null)
+            {
+                a.classList.add("popup");
+                a.dataset.popup = tag_count + (tag_count == 1? " bookmark":" bookmarks");
+            }
+
+            let args = helpers.args.location;
+
+            let current_tag = args.hash.get("bookmark-tag");
+            if(tag == current_tag)
+                a.classList.add("selected");
+
+            args.hash_path = "/";
+            if(tag == null)
+                args.hash.delete("bookmark-tag");
+            else
+                args.hash.set("bookmark-tag", tag);
+            args.query.delete("p");
+            a.href = args.url.toString();
+            tag_list.appendChild(a);
+        };
+
+        add_tag_link(null); // All
+        add_tag_link(""); // Uncategorized
+        for(var tag of Object.keys(this.bookmark_tag_counts))
+        {
+            // Skip uncategorized, which is always placed at the beginning.
+            if(tag == "")
+                continue;
+
+            if(this.bookmark_tag_counts[tag] == 0)
+                continue;
+
+            add_tag_link(tag);
+        }
+    }
+
+    async fetch_bookmark_tag_counts()
+    {
+        if(this.fetched_bookmark_tag_counts)
+            return;
+        this.fetched_bookmark_tag_counts = true;
+
+        // We don't need to do this if we're not showing bookmarks.
+        if(!helpers.args.location.hash.has("bookmarks"))
+            return;
+
+        let result = await local_api.local_post_request(`/api/bookmark/tags`);
+        if(!result.success)
+        {
+            console.log("Error fetching bookmark tag counts");
+            return;
+        }
+
+        this.bookmark_tag_counts = result.tags;
+        this.call_update_listeners();
     }
 
     copy_link()
