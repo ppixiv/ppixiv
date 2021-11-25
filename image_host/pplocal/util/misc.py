@@ -3,7 +3,7 @@ import asyncio, os
 from PIL import Image, ExifTags
 from pprint import pprint
 
-from .video_metadata import mp4
+from .video_metadata import mp4, mkv
 
 image_types = {
     '.png': 'image/png',
@@ -76,8 +76,14 @@ def read_metadata(f, mime_type):
 
     This is currently only implemented for JPEGs.
     """
-    if mime_type == 'video/mp4':
-        data = mp4.parse(f)
+    if not mime_type.startswith('video/'):
+        if mime_type == 'video/mp4':
+            data = mp4.parse(f)
+        elif mime_type in ('video/webm', 'video/x-matroska'):
+            data = mkv.parse(f)
+        else:
+            return { }
+
         return {
             'width': data.get('width'),
             'height': data.get('height'),

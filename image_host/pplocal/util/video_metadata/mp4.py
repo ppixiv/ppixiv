@@ -161,16 +161,16 @@ class parse_mp4_metadata:
 
 def parse(f):
     try:
-        data = parse_mp4_metadata(f)
-        return data.data
+        result = parse_mp4_metadata(f)
+        return result.data
     except Exception as e:
         print('Error reading MP4 metadata from %s: %s' % (f, e))
         return { }
 
 def test():
     with open('test.mp4', 'rb') as f:
-        data = parse_mp4_metadata(f)
-        pprint(data.data)
+        result = parse_mp4_metadata(f)
+        pprint(result.data)
 
 if __name__ == '__main__':
     test()
