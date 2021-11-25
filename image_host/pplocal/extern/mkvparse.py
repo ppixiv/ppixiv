@@ -716,7 +716,8 @@ def mkvparse(f, handler):
                 elif tt==0x12: d['type']='button'
                 elif tt==0x20: d['type']='control'
                 if 'TrackTimestampScale' in d:
-                    sys.stderr.write("mkvparse: Warning: TrackTimestampScale is not supported\n")
+                    pass
+                    # sys.stderr.write("mkvparse: Warning: TrackTimestampScale is not supported\n")
                 if 'ContentEncodings' in d:
                     try:
                         compr = dict(d["ContentEncodings"][1][0][1][1][0][1][1])
