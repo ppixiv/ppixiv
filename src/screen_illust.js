@@ -49,6 +49,8 @@ ppixiv.screen_illust = class extends ppixiv.screen
         image_data.singleton().illust_modified_callbacks.register(this.refresh_ui);
         settings.register_change_callback("recent-bookmark-tags", this.refresh_ui);
 
+        this.image_container = this.container.querySelector(".image-container");
+
         // Remove the "flash" class when the page change indicator's animation finishes.
         let page_change_indicator = this.container.querySelector(".page-change-indicator");
         page_change_indicator.addEventListener("animationend", (e) => {
@@ -99,11 +101,11 @@ ppixiv.screen_illust = class extends ppixiv.screen
 
     get _hide_image()
     {
-        return this.container.querySelector(".image-container").hidden;
+        return this.image_container.hidden;
     }
     set _hide_image(value)
     {
-        this.container.querySelector(".image-container").hidden = value;
+        this.image_container.hidden = value;
     }
     
     async set_active(active, { illust_id, page, data_source, restore_history })
@@ -294,7 +296,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
 
         if(this.viewer == null)
         {
-            let image_container = this.container.querySelector(".image-container");
+            let image_container = this.image_container;
             this.viewer = new viewer_class({
                 contents: image_container,
                 progress_bar: this.progress_bar.controller(),
@@ -345,10 +347,9 @@ ppixiv.screen_illust = class extends ppixiv.screen
             this.manga_thumbnails.set_illust_info(null);
 
         // If the image is muted, load a dummy viewer.
-        let image_container = this.container.querySelector(".image-container");
         this.remove_viewer();
         this.viewer = new viewer_muted({
-            contents: image_container,
+            contents: this.image_container,
             illust_id: this.current_illust_id,
         });
         this._hide_image = false;
