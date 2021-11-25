@@ -1,13 +1,9 @@
 # Helpers that don't have dependancies on our other modules.
 import asyncio, os
 from PIL import Image, ExifTags
+from pprint import pprint
 
-# cv2 is used to get the dimensions of video files.  It ultimately just calls ffmpeg,
-# but it's much faster than running ffprobe in a subprocess.  XXX: are there any usable
-# direct ffmpeg bindings, cv2 is big and its video API is too basic to do anything else
-# with
-import cv2
-
+from .video_metadata import mp4
 
 image_types = {
     '.png': 'image/png',
@@ -61,37 +57,6 @@ def mime_type(path):
     ext = _get_ext(path)
     return mime_type_from_ext(ext)
 
-def get_image_dimensions(path, mime_type):
-    # XXX: We get the wrong result here for videos that aren't 1:1, we need the DAR resolution
-    # and this gives the pixel resolution.  CV2 isn't a good library for this, but haven't
-    # found a good one
-    # XXX: this also doesn't support being given a file object
-    if mime_type.startswith('video/'):
-        return None
-        video = cv2.VideoCapture(path)
-        height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
-        return width, height
-
-    try:
-        image = Image.open(path)
-    except OSError as e:
-        # Skip non-images.
-        return None
-
-    # If this is a JPEG, see if this image is rotated by 90 or 270 degrees
-    # and swap the dimensions if needed.  Don't do this for PNGs, since PIL
-    # will load the whole image.
-    if mime_type == 'image/jpeg':
-        exif = image.getexif()
-        ORIENTATION = 0x112
-        image_orientation = exif.get(ORIENTATION, 0)
-        rotated = image_orientation >= 5
-        if rotated:
-            return image.size[1], image.size[0]
-
-    return image.size
-
 class Error(Exception):
     def __init__(self, code, reason):
         self.code = code
@@ -111,43 +76,73 @@ def read_metadata(f, mime_type):
 
     This is currently only implemented for JPEGs.
     """
-    # PIL's parser for PNGs is very slow, so only support JPEG for now.
-    if mime_type != 'image/jpeg':
+    if mime_type == 'video/mp4':
+        data = mp4.parse(f)
+        return {
+            'width': data.get('width'),
+            'height': data.get('height'),
+            'title': data.get('tag/nam') or '',
+            'comment': data.get('tag/cmt') or '',
+            'artist': data.get('tag/ART') or '',
+            'tags': '',
+        }
+
+    if not mime_type.startswith('image/'):
         return { }
 
-    img = Image.open(f)
-
-    exif_dict = img._getexif()
-    if exif_dict is None:
-        exif_dict = { }
-
     result = { }
-    def get_exif_string_tag(name, exif_name):
-        data = exif_dict.get(exif_tag_ids[exif_name])
-        if not data:
-            return
 
-        try:
-            data = data.decode('UTF-16LE')
-        except UnicodeDecodeError:
-            return
+    try:
+        img = Image.open(f)
+    except IOError as e:
+        print('Couldn\'t read metadata from %s: %s' % (f, e))
+        return { }
 
-        # These are null-terminated.
-        data = data.rstrip('\u0000')
-        result[name] = data
+    result['width'] = img.size[0]
+    result['height'] = img.size[1]
 
-    get_exif_string_tag('title', 'XPTitle')
-    get_exif_string_tag('comment', 'XPComment')
-    get_exif_string_tag('artist', 'XPAuthor')
-    get_exif_string_tag('tags', 'XPKeywords')
+    # PIL's parser for PNGs is very slow, so only support metadata from JPEG for now.
+    if mime_type == 'image/jpeg':
+        exif_dict = img._getexif()
+        if exif_dict is None:
+            exif_dict = { }
 
-    # XPAuthor is semicolon separated.  Reformat this to comma-separated.
-    if 'artist' in result:
-        result['artist'] = ', '.join(result['artist'].split(';'))
+        result = { }
+        def get_exif_string_tag(name, exif_name):
+            data = exif_dict.get(exif_tag_ids[exif_name])
+            if not data:
+                return
 
-    # Tags is semicolon-separated.  Reformat this to space-separated.
-    if 'tags' in result:
-        result['tags'] = ' '.join(result['tags'].split(';'))
+            try:
+                data = data.decode('UTF-16LE')
+            except UnicodeDecodeError:
+                return
+
+            # These are null-terminated.
+            data = data.rstrip('\u0000')
+            result[name] = data
+
+        get_exif_string_tag('title', 'XPTitle')
+        get_exif_string_tag('comment', 'XPComment')
+        get_exif_string_tag('artist', 'XPAuthor')
+        get_exif_string_tag('tags', 'XPKeywords')
+
+        # XPAuthor is semicolon separated.  Reformat this to comma-separated.
+        if 'artist' in result:
+            result['artist'] = ', '.join(result['artist'].split(';'))
+
+        # Tags is semicolon-separated.  Reformat this to space-separated.
+        if 'tags' in result:
+            result['tags'] = ' '.join(result['tags'].split(';'))
+
+        # See if this image is rotated by 90 or 270 degrees and swap the dimensions
+        # if needed.
+        exif = img.getexif()
+        ORIENTATION = 0x112
+        image_orientation = exif.get(ORIENTATION, 0)
+        rotated = image_orientation >= 5
+        if rotated:
+            result['width'], result['height'] = result['height'], result['width']
 
     return result
 

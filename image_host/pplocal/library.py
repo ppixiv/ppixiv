@@ -15,7 +15,7 @@
 #
 # XXX: how can we detect if indexing is enabled on our directory
 
-import asyncio, os, typing, time, stat, traceback, json
+import asyncio, os, typing, time, stat, traceback, json, sys
 from pathlib import Path
 from pprint import pprint
 from pathlib import Path, PurePosixPath
@@ -55,7 +55,6 @@ class Library:
         data_dir = top_data_dir / self.library_name
         self._data_dir = data_dir.resolve()
         self._data_dir.mkdir(parents=True, exist_ok=True)
-        print(data_dir)
 
         # Open our database.
         dbpath = self.data_dir / 'index.sqlite'
@@ -436,18 +435,16 @@ class Library:
         # with the user working with the file.
         with win32.open_shared(os.fspath(path), 'rb') as f:
             media_metadata = misc.read_metadata(f, mime_type)
-
-            size = misc.get_image_dimensions(f, mime_type)
-            if size is not None:
-                width, height = size
-            else:
-                width = None
-                height = None
-
-        title = media_metadata.get('title', path.name)
+                
+        width = media_metadata.get('width')
+        height = media_metadata.get('height')
+        title = media_metadata.get('title', '')
         comment = media_metadata.get('comment', '')
         artist = media_metadata.get('artist', '')
         tags = media_metadata.get('tags', '')
+
+        if not title:
+            title = path.name
 
         data = {
             'path': os.fspath(path),
