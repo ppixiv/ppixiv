@@ -190,7 +190,7 @@ ppixiv.tree_widget = class extends ppixiv.widget
             {
                 // Use /tree-thumb for these thumbnails.  They're the same as the regular thumbs,
                 // but it won't give us a folder image if there's no thumb.
-                let url = new URL(local_api.local_url);
+                let url = local_api.local_url;
                 url.pathname = "tree-thumb/" + item.path;
                 img.src = url;
                 img.addEventListener("img", (e) => { console.log("error"); img.hidden = true; });
@@ -264,6 +264,8 @@ ppixiv.tree_widget_item = class extends ppixiv.widget
             </div>
         `});
 
+        this.ondblclick = this.ondblclick.bind(this);
+
         // If this is the root node, hide .self, and add .root so our children
         // aren't indented.
         if(root && hide_if_root)
@@ -296,46 +298,7 @@ ppixiv.tree_widget_item = class extends ppixiv.widget
             this.expanded = !this.expanded;
         });
 
-        this.container.querySelector(".label").addEventListener("dblclick", async (e) => {
-            e.preventDefault();
-            e.stopImmediatePropagation();
-
-            this.expanded = !this.expanded;
-
-            // Double-clicking the tree expands the node.  It also causes it to be viewed due
-            // to the initial single-click.  However, if you double-click a directory that's
-            // full of images, the natural thing for it to do is to view the first image.  If
-            // we don't do that, every time you view a directory you have to click it in the
-            // tree, then click the first image in the search.
-            //
-            // Try to do this intelligently.  If the directory we're loading is almost all images,
-            // navigate to the first image.  Otherwise, just let the click leave us viewing the
-            // directory.  This way, double-clicking a directory that has a bunch of other directories
-            // in it will just expand the node, but double-clicking a directory which is a collection
-            // of images will view the images.
-            //
-            // If we do this, we'll do both navigations: first to the directory and then to the image.
-            // That's useful, so if we display the image but you really did want the directory view,
-            // you can just back out once.
-            //
-            // Wait for contents to be loaded so we can see if there are any children.
-            await this.load_contents();
-
-            // If there are any children that we just expanded, stop.
-            if(this.child_nodes.length != 0)
-                return;
-
-            // The dblclick should have set the data source to this entry.  Grab the
-            // data source.
-            let data_source = main_controller.singleton.data_source;
-            if(!data_source.is_page_loaded_or_loading(1))
-                await data_source.load_page(1);
-
-            // Navigate to the first image on the first page.
-            let illust_ids = data_source.id_list.illust_ids_by_page.get(1);
-            if(illust_ids != null)
-                main_controller.singleton.show_illust(illust_ids[0], {add_to_history: true, source: "dblclick"});
-        });
+        this.container.querySelector(".label").addEventListener("dblclick", this.ondblclick);
 
         this.container.querySelector(".label").addEventListener("mousedown", (e) => {
             if(e.button != 0)
@@ -487,6 +450,56 @@ ppixiv.tree_widget_item = class extends ppixiv.widget
 
         this.parent = null;
     }
+
+    async ondblclick(e)
+    {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+
+        console.log("ondblclick");
+        this.expanded = !this.expanded;
+
+        // Double-clicking the tree expands the node.  It also causes it to be viewed due
+        // to the initial single-click.  However, if you double-click a directory that's
+        // full of images, the natural thing for it to do is to view the first image.  If
+        // we don't do that, every time you view a directory you have to click it in the
+        // tree, then click the first image in the search.
+        //
+        // Try to do this intelligently.  If the directory we're loading is almost all images,
+        // navigate to the first image.  Otherwise, just let the click leave us viewing the
+        // directory.  This way, double-clicking a directory that has a bunch of other directories
+        // in it will just expand the node, but double-clicking a directory which is a collection
+        // of images will view the images.
+        //
+        // If we do this, we'll do both navigations: first to the directory and then to the image.
+        // That's useful, so if we display the image but you really did want the directory view,
+        // you can just back out once.
+        //
+        // Wait for contents to be loaded so we can see if there are any children.
+        console.log("loading on dblclick");
+        await this.load_contents();
+
+        // If there are any children that we just expanded, stop.
+        console.log("loaded, length:", this.child_nodes.length);
+        if(this.child_nodes.length != 0)
+            return;
+
+        // The dblclick should have set the data source to this entry.  Grab the
+        // data source.
+        let data_source = main_controller.singleton.data_source;
+        console.log("data source for double click:", data_source);
+
+        // Load the first page.  This will overlap with the search loading it, and
+        // will wait on the same request.
+        if(!data_source.id_list.is_page_loaded(1))
+            await data_source.load_page(1);
+
+        // Navigate to the first image on the first page.
+        let illust_ids = data_source.id_list.illust_ids_by_page.get(1);
+        console.log("files for double click:", illust_ids?.length);
+        if(illust_ids != null)
+            main_controller.singleton.show_illust(illust_ids[0], {add_to_history: true, source: "dblclick"});
+    }
 };
 
 class local_navigation_widget_item extends ppixiv.tree_widget_item
@@ -497,6 +510,9 @@ class local_navigation_widget_item extends ppixiv.tree_widget_item
             expandable: true,
             pending: true,
         });
+
+        this.options = options;
+        this.search_options = search_options;
 
         // If this is the root node, fill in the path.
         if(options.root)
@@ -518,8 +534,6 @@ class local_navigation_widget_item extends ppixiv.tree_widget_item
             this.nodes = {};
             this.nodes[path] = this;
         }
-
-        this.search_options = search_options;
     }
 
     // This is called by the tree when an illust changes to let us refresh, so we don't need
@@ -592,7 +606,7 @@ class local_navigation_widget_item extends ppixiv.tree_widget_item
             directories_only: true,
         });
 
-        if(!result.success)
+        if(result == null)
             return;
 
         // If this is the top-level item, this is a list of archives.  If we have only one
@@ -627,6 +641,11 @@ class local_navigation_widget_item extends ppixiv.tree_widget_item
 
             // Store ourself on the root node's node list.
             this.root_node.nodes[child.path] = child;
+
+            // If we're the root, expand our children as they load, so the default tree
+            // isn't just one unexpanded library.
+            if(!this.search_options && this.path == "folder:/")
+                child.expanded = true;
         }
     }
 }
@@ -869,6 +888,16 @@ ppixiv.local_search_box_widget = class extends ppixiv.widget
         new view_hidden_listener(this.input_element, (e) => {
             this.dropdown_widget.hide();
         });
+        
+        window.addEventListener("popstate", (e) => { this.refresh_from_location(); });
+        this.refresh_from_location();
+    }
+
+    // SEt the text box from the current URL.
+    refresh_from_location()
+    {
+        let args = helpers.args.location;
+        this.input_element.value = args.hash.get("search") || "";
     }
 
     // Show the dropdown when the input is focused.  Hide it when the input is both
@@ -1066,5 +1095,61 @@ ppixiv.local_search_dropdown_widget = class extends ppixiv.widget
             entry.classList.add("history");
             list.appendChild(entry);
         }
+    }
+}
+
+// A button to show an image in Explorer.
+//
+// This requires view_in_explorer.pyw be set up.
+ppixiv.view_in_explorer_widget = class extends ppixiv.illust_widget
+{
+    get needed_data() { return "thumbnail"; }
+
+    constructor({...options})
+    {
+        super({...options});
+
+        this.enabled = false;
+
+        // Ignore clicks on the button if it's disabled.
+        this.container.addEventListener("click", (e) => {
+            if(this.enabled)
+                return;
+
+            e.preventDefault();
+            e.stopPropagation();
+        });
+    }
+
+    refresh_internal({ illust_id, thumbnail_data })
+    {
+        // Hide the button if we're not on a local image.
+        this.container.closest(".button-container").hidden = !helpers.is_local(illust_id);
+        
+        let path = thumbnail_data?.localPath;
+        this.enabled = thumbnail_data?.localPath != null;
+        helpers.set_class(this.container.querySelector("A.button"), "enabled", this.enabled);
+        if(path == null)
+            return;
+
+        path = path.replace(/\\/g, "/");
+
+        // We have to work around some extreme jankiness in the URL API.  If we create our
+        // URL directly and then try to fill in the pathname, it won't let us change it.  We
+        // have to create a file URL, fill in the pathname, then replace the scheme after
+        // converting to a string.  Web!
+        let url = new URL("file:///");
+        url.pathname = path;
+        url = url.toString();
+        url = url.replace("file:", "viewinexplorer:")
+
+        //let url = "viewinexplorer:///" + encodeURI(path);
+        let a = this.container.querySelector("A.local-link");
+        a.href = url;
+
+        // Set the popup for the type of ID.
+        let { type } = helpers.parse_id(illust_id);
+        let popup = type == "file"? "View file in Explorer":"View folder in Explorer";
+        a.dataset.popup = popup;
     }
 }

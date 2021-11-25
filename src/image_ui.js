@@ -65,7 +65,7 @@ ppixiv.image_ui = class extends ppixiv.widget
         </div>
 
         <!-- position: relative positions the tag dropdown. -->
-        <div style="position: relative;">
+        <div class=button-container style="position: relative;">
             <!-- position: relative positions the bookmark count. -->
             <div class="button button-bookmark public popup" data-bookmark-type=public style="position: relative;">
                 <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
@@ -75,7 +75,7 @@ ppixiv.image_ui = class extends ppixiv.widget
             <div class=popup-bookmark-tag-dropdown-container></div>
         </div>
 
-        <div class="button button-bookmark private popup" data-bookmark-type=private>
+        <div class="button button-bookmark private popup button-container" data-bookmark-type=private>
             <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
         </div>
         
@@ -88,7 +88,7 @@ ppixiv.image_ui = class extends ppixiv.widget
             </div>
         </div>
 
-        <div class="button button-like enabled popup" style="position: relative;">
+        <div class="button button-like enabled popup button-container" style="position: relative;">
             <ppixiv-inline src="resources/like-button.svg"></ppixiv-inline>
 
             <div class=count></div>

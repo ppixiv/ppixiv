@@ -3384,7 +3384,7 @@ ppixiv.data_sources.local = class extends data_source
             skip: this.next_page_offset,
         });
 
-        if(!result.success)
+        if(result == null)
             return;
 
         // If we got a local path, store it to allow copying it to the clipboard.

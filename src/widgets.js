@@ -1423,8 +1423,14 @@ ppixiv.bookmark_button_widget = class extends ppixiv.illust_widget
     {
         // If this is a local image, we won't have a bookmark count, so set local-image
         // to remove our padding for it.  We can get illust_id before thumbnail_data.
-        let is_local = illust_id != null && helpers.is_local(illust_id);
+        let is_local =  helpers.is_local(illust_id);
         helpers.set_class(this.container,  "has-like-count", !is_local);
+
+        let { type } = helpers.parse_id(illust_id);
+
+        // Hide the private bookmark button for local IDs.
+        if(this.bookmark_type == "private")
+            this.container.closest(".button-container").hidden = is_local;
 
         let bookmarked = thumbnail_data?.bookmarkData != null;
         let private_bookmark = this.bookmark_type == "private";
@@ -1440,6 +1446,7 @@ ppixiv.bookmark_button_widget = class extends ppixiv.illust_widget
             thumbnail_data == null? "":
             !bookmarked && this.bookmark_type == "folder"? "Bookmark folder":
             !bookmarked && this.bookmark_type == "private"? "Bookmark privately":
+            !bookmarked && this.bookmark_type == "public" && type == "folder"? "Bookmark folder":
             !bookmarked && this.bookmark_type == "public"? "Bookmark image":
             our_bookmark_type? "Remove bookmark":
             "Change bookmark to " + this.bookmark_type;
@@ -1532,6 +1539,9 @@ ppixiv.like_button_widget = class extends ppixiv.illust_widget
 
     async refresh_internal({ illust_id })
     {
+        // Hide the like button for local IDs.
+        this.container.closest(".button-container").hidden = helpers.is_local(illust_id);
+
         let liked_recently = this._illust_id != null? image_data.singleton().get_liked_recently(this._illust_id):false;
         helpers.set_class(this.container, "liked", liked_recently);
         helpers.set_class(this.container, "enabled", !liked_recently);

@@ -3,6 +3,42 @@
 // Helpers for the local API.
 ppixiv.local_api = class
 {
+    static get local_url()
+    {
+        let url = settings.get("local_api_url");
+        if(url == null)
+            return null;
+        return new URL(url);
+    }
+
+    static async local_post_request(pathname, data={}, options={})
+    {
+        let url = ppixiv.local_api.local_url;
+        if(url == null)
+            throw Error("Local API isn't enabled");
+
+        url.pathname = pathname;
+        var result = await helpers.send_pixiv_request({
+            method: "POST",
+            url: url.toString(),
+            responseType: "json",
+            data: JSON.stringify(data),
+            signal: options.signal,
+        });
+    
+        // If the result isn't valid JSON, we'll get a null result.
+        if(result == null)
+            result = { error: true, message: "Invalid response" };
+    
+        return result;
+    }   
+
+    // Return true if the local API is enabled.
+    static is_enabled()
+    {
+        return ppixiv.local_api.local_url != null;
+    }
+
     // Run a search against the local API.
     //
     // The results will be registered as thumbnail info and returned.
@@ -14,8 +50,8 @@ ppixiv.local_api = class
 
         if(!result.success)
         {
-            console.error("Error reading directory:", result);
-            return;
+            console.error("Error reading directory:", result.reason);
+            return null;
         }
 
         thumbnail_data.singleton().loaded_thumbnail_info(result.results, "internal");

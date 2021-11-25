@@ -148,7 +148,7 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
                     </div>
 
                     <!-- position: relative positions the popup menu. -->
-                    <div class=button-block style="position: relative;">
+                    <div class="button-block button-container" style="position: relative;">
                         <!-- position: relative positions the bookmark count. -->
                         <div class="button button-bookmark public" data-bookmark-type=public style="position: relative;">
                             <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
@@ -157,10 +157,16 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
                         </div>
                     </div>
 
-                    <div class=button-block>
+                    <div class="button-block button-container">
                         <div class="button button-bookmark private" data-bookmark-type=private>
                             <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
                         </div>
+                    </div>
+                    
+                    <div class="button-block view-in-explorer button-container" hidden>
+                        <a href=# class="button private popup local-link">
+                            <span class="material-icons">description</span>                        
+                        </a>
                     </div>
                     
                     <div class=button-block style="position: relative;">
@@ -170,7 +176,7 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
                         <div class=popup-bookmark-tag-dropdown-container></div>
                     </div>
 
-                    <div class=button-block>
+                    <div class="button-block button-container">
                         <div class="button button-like enabled" style="position: relative;">
                             <ppixiv-inline src="resources/like-button.svg"></ppixiv-inline>
 
@@ -585,6 +591,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
             parent: this,
             container: this.container.querySelector(".popup-more-options-container"),
         });
+
         this.illust_widgets = [
             this.avatar_widget,
             bookmark_tag_widget,
@@ -617,6 +624,11 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
                 contents: this.container.querySelector(".button-bookmark.public .count")
             }),
         ];
+
+        this.illust_widgets.push(new view_in_explorer_widget({
+            parent: this,
+            contents: this.container.querySelector(".view-in-explorer"),
+        }));
 
         // The bookmark buttons, and clicks in the tag dropdown:
         for(let a of this.container.querySelectorAll("[data-bookmark-type]"))

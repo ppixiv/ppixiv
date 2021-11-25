@@ -1881,6 +1881,9 @@ ppixiv.helpers = {
     // Return the type of the ID and the underlying illust or user ID.
     parse_id(id)
     {
+        if(id == null)
+            return { }
+
         let parts = id.split(":");
         let type = parts.length < 2?  "illust": parts[0];
         let actual_id = parts.length < 2? id: parts[1];
