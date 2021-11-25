@@ -12,15 +12,6 @@ from .util import misc
 resource_path = (Path(__file__) / '../../../resources').resolve()
 blank_image = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=')
 
-data_dir = Path(os.path.dirname(__file__)) / '../data'
-data_dir = data_dir.resolve()
-
-poster_dir = data_dir / 'video-posters'
-video_thumb_dir = data_dir / 'video-thumb'
-
-poster_dir.mkdir(parents=True, exist_ok=True)
-video_thumb_dir.mkdir(parents=True, exist_ok=True)
-
 max_thumbnail_pixels = 500*500
 
 def _bake_exif_rotation(image):
@@ -89,18 +80,23 @@ def get_video_cache_filename(path):
     path_hash = hashlib.sha1(path_utf8).hexdigest()
     return '%s.jpg' % path_hash
 
-def get_poster_path(path):
+def _get_poster_path(path, data_dir):
+    poster_dir = data_dir / 'video-posters'
+    poster_dir.mkdir(parents=True, exist_ok=True)
+
     # Use a hash of the path to cache the extracted frame.
     cache_filename = get_video_cache_filename(path)
     poster_dir.mkdir(parents=True, exist_ok=True)
     return poster_dir / cache_filename
 
-def get_thumbnail_path(path):
+def _get_thumbnail_path(path, data_dir):
+    video_thumb_dir = data_dir / 'video-thumb'
+    video_thumb_dir.mkdir(parents=True, exist_ok=True)
+
     # Use a hash of the path to cache the extracted frame.
     cache_filename = get_video_cache_filename(path)
     video_thumb_dir.mkdir(parents=True, exist_ok=True)
     return video_thumb_dir / cache_filename
-
 
 # Extract images from videos.  The ID is stored in the EXIF description so we can
 # identify them later.
@@ -111,11 +107,11 @@ def get_thumbnail_path(path):
 # The first frame is often blank due to fade-ins and doesn't make a good thumbnail,
 # so extract a frame a few seconds in to use as the thumb.  If that fails, it may be
 # a very short video, so use the poster image instead.
-async def create_video_poster(illust_id, path):
+async def _create_video_poster(illust_id, path, data_dir):
     """
     Extract a poster from a video file and return the path to the poster.
     """
-    poster_path = get_poster_path(path)
+    poster_path = _get_poster_path(path, data_dir)
     if poster_path.exists():
         return poster_path, 'image/jpeg'
 
@@ -125,13 +121,13 @@ async def create_video_poster(illust_id, path):
 
     return poster_path, 'image/jpeg'
 
-async def _extract_video_thumbnail_frame(illust_id, path):
+async def _extract_video_thumbnail_frame(illust_id, path, data_dir):
     """
     Extract the frame to be used for the thumbnail from a video file and return its path.
 
     This will also cache the video poster if it's needed to create the poster.
     """
-    thumb_path = get_thumbnail_path(path)
+    thumb_path = _get_thumbnail_path(path, data_dir)
     if thumb_path.exists():
         return thumb_path
 
@@ -140,20 +136,20 @@ async def _extract_video_thumbnail_frame(illust_id, path):
 
     # If we couldn't extract a frame later on, the video may not be that long.
     # Extract the thumbnail if we haven't already, and just use that.
-    await create_video_poster(illust_id, path)
+    await _create_video_poster(illust_id, path, data_dir)
 
-    poster_path = get_poster_path(path)
+    poster_path = _get_poster_path(path, data_dir)
     copyfile(poster_path, thumb_path)
     return thumb_path
 
-async def create_thumb(illust_id, absolute_path, mode):
+async def create_thumb(illust_id, absolute_path, mode, *, data_dir):
     filetype = misc.file_type(absolute_path)
     if filetype == 'video':
         if mode =='poster':
-            file, mime_type = await create_video_poster(illust_id, absolute_path)
+            file, mime_type = await _create_video_poster(illust_id, absolute_path, data_dir)
             return file.read_bytes(), mime_type
         else:
-            thumb_path = await _extract_video_thumbnail_frame(illust_id, absolute_path)
+            thumb_path = await _extract_video_thumbnail_frame(illust_id, absolute_path, data_dir)
 
             # Create the thumbnail in the same way we create image thumbs.
             return await asyncio.to_thread(threaded_create_thumb, thumb_path)
@@ -198,7 +194,7 @@ async def handle_thumb(request, mode='thumb'):
     absolute_path, library = request.app['manager'].resolve_path(path)
     if absolute_path is None:
         raise aiohttp.web.HTTPNotFound()
-
+    
     if absolute_path.is_dir():
         absolute_path = _find_directory_thumbnail(absolute_path)
         if absolute_path is None:
@@ -233,8 +229,10 @@ async def handle_thumb(request, mode='thumb'):
     if misc.file_type(absolute_path) is None:
         raise aiohttp.web.HTTPNotFound()
 
+    data_dir = library.data_dir
+
     # Generate the thumbnail in a thread.
-    thumbnail_file, mime_type = await create_thumb(path, absolute_path, mode)
+    thumbnail_file, mime_type = await create_thumb(path, absolute_path, mode, data_dir=data_dir)
 
     # Fill in last-modified from the source file.
     timestamp = datetime.fromtimestamp(mtime, tz=timezone.utc)

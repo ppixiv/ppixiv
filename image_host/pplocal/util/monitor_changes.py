@@ -39,7 +39,8 @@ class MonitorChanges:
         self.buffer_size = buffer_size
 
         self.handle = win32.CreateFileW(
-                str(path),
+                # \\?\ enables long filename support.
+                '\\\\?\\' + str(path),
                 win32.FILE_LIST_DIRECTORY,
                 win32.FILE_SHARE_READ|win32.FILE_SHARE_WRITE|win32.FILE_SHARE_DELETE,
                 None, # lpSecurityAttributes
@@ -48,7 +49,7 @@ class MonitorChanges:
                 None)
 
         if self.handle == -1:
-            raise ctypes.WinError()
+            raise ctypes.WinError(ctypes.get_last_error())
 
     def __del__(self):
         self.close()
@@ -58,6 +59,7 @@ class MonitorChanges:
             try:
                 await func(path, old_path, action)
             except Exception as e:
+                print('Error monitoring %s' % self.path)
                 traceback.print_exc()
 
     # Yield changes to the directory.
@@ -164,35 +166,15 @@ class MonitorChanges:
         win32.CloseHandle(self.handle)
         self.handle = None
 
-monitor = None
-async def test():
-    print('...')
-    await asyncio.sleep(0.5)
-#    monitor.close()
-
 async def go():
-    # global monitor
-    # task = asyncio.create_task(test())
-    
-    monitor = MonitorChanges(Path('f:/stuff/ppixiv/image_host/temp'))
+    monitor = MonitorChanges(Path('f:/'))
 
     async def changes(path, old_path, action):
         print('...', path, old_path, action)
     monitor_promise = monitor.monitor_call(changes)
     monitor_task = asyncio.create_task(monitor_promise)
 
-#    await asyncio.sleep(1)
-#    monitor_task.cancel()
     await monitor_task
-
-#    monitor_promise = monitor.monitor_call(changes)
-#    monitor_task = asyncio.create_task(monitor_promise)
-#    await monitor_task
-
-#    async for filename, action in monitor.monitor():
-#        print('->', filename, action)
-
-#    monitor.close()
 
 if __name__ == '__main__':
     asyncio.run(go())

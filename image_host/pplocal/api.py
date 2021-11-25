@@ -1,7 +1,7 @@
 import os, urllib, uuid, time, asyncio
 from datetime import datetime, timezone
 from pprint import pprint
-from collections import OrderedDict, namedtuple, defaultdict
+from collections import defaultdict
 from pathlib import Path, PurePosixPath
 
 from .util import misc
@@ -66,7 +66,7 @@ def get_illust_info(library, entry, base_url):
 
         image_info = {
             'id': illust_id,
-            'local_path': str(entry['path']),
+            'localPath': str(entry['path']),
             'createDate': timestamp,
             'bookmarkData': _bookmark_data(entry),
             'previewUrls': [remote_thumb_path],
@@ -105,7 +105,7 @@ def get_illust_info(library, entry, base_url):
 
     image_info = {
         'id': illust_id,
-        'local_path': str(entry['path']),
+        'localPath': str(entry['path']),
         'previewUrls': preview_urls,
 
         # Pixiv uses 0 for images, 1 for manga and 2 for their janky MJPEG format.
@@ -207,21 +207,6 @@ async def api_illust(info):
         'illust': entry,
     }
 
-# Values of api_list_results can be a dictionary, in which case they're a result
-# cached from a previous call.  They can also be a function, which is called to
-# retrieve the next page, which is used to continue previous searches.
-api_list_results = OrderedDict()
-
-cached_result = namedtuple('cached_result', ('result', 'prev_uuid', 'next_offset'))
-def cache_api_list_result(uuid, cached_result):
-    api_list_results[uuid] = cached_result
-
-    # Delete old cached entries.
-    while len(api_list_results) > 10:
-        key = list(api_list_results.keys())[0]
-        del api_list_results[key]
-
-# XXX: expire old active requests after a while so we don't keep searches open forever
 @reg('/list/{type:[^:]+}:{path:.+}')
 async def api_list(info):
     """
@@ -236,7 +221,7 @@ async def api_list(info):
     page = info.data.get('page')
 
     # Try to load this page.
-    cache = api_list_results.get(page, None) if page is not None else None
+    cache = info.manager.get_api_list_result(page)
 
     # If we found the page and it's a dictionary, it's a cached result.  Just return it.
     if cache is not None and isinstance(cache.result, dict):
@@ -271,7 +256,8 @@ async def api_list(info):
             try:
                 return next(result_generator)
             except StopIteration:
-                # The API results should never raise StopIteration.
+                # The only time api_list_impl will stop iterating is if it's cancelled.
+                # This shouldn't happen in the middle of an API call that's using it.
                 assert False
 
         next_results = await asyncio.to_thread(run)
@@ -291,16 +277,16 @@ async def api_list(info):
 
         # Cache this page.  If this is a continued search, this will replace the
         # generator.
-        res = cached_result(result=next_results, prev_uuid=prev_page_uuid, next_offset=offset)
-        cache_api_list_result(this_page_uuid, res)
+        res = info.manager.cached_result(result=next_results, prev_uuid=prev_page_uuid, next_offset=offset)
+        info.manager.cache_api_list_result(this_page_uuid, res)
 
         # If the search says that there's another page, create a UUID for it and
         # store the request generator.
         if next_results.get('next'):
             next_results['pages']['next'] = str(uuid.uuid4())
 
-            res = cached_result(result=result_generator, prev_uuid=this_page_uuid, next_offset=offset)
-            cache_api_list_result(next_results['pages']['next'], res)
+            res = info.manager.cached_result(result=result_generator, prev_uuid=this_page_uuid, next_offset=offset)
+            info.manager.cache_api_list_result(next_results['pages']['next'], res)
 
         # Update skip for the number of results we've seen.  Only skip whole pages: if you
         # skip 50 results and the first two pages have 40 results each, we'll skip the
@@ -315,6 +301,16 @@ async def api_list(info):
             break
 
     return next_results
+
+class ResumableRequest:
+    def __init__(self, info):
+        self.info = info
+
+    def get(self):
+        pass
+
+    pass
+
 
 # A paginated request generator continually yields the next page of results
 # as a { 'results': [...] } dictionary.  When there are no more results, continually

@@ -158,7 +158,13 @@ class SearchDirEntry(os.PathLike):
 
 def search(*,
         path=None,
+
+        # If set, return only the file with this exact path.
         exact_path=None,
+
+        # Filter for files with this exact basename:
+        filename=None,
+
         substr=None,
         bookmarked=None,
         recurse=True,
@@ -210,9 +216,10 @@ def search(*,
     if exact_path is not None:
         where.append("System.ItemPathDisplay = '%s'" % escape_sql(str(exact_path)))
     if contents:
-        print(contents)
         where.append("""CONTAINS(System.Search.Contents, '"%s"')""" % escape_sql(str(contents)))
-
+    if filename is not None:
+        where.append("System.FileName = '%s'" % escape_sql(str(filename)))
+        
     # Add filters.
     if substr is not None:
         for word in substr.split(' '):
@@ -251,7 +258,6 @@ def search(*,
         WHERE {' AND '.join(where)}
         {order}
     """
-    print(query)
 
     try:
         with conn:

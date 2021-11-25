@@ -86,15 +86,11 @@ class Database:
             else:
                 connection = self.open_db()
 
-                # Always run the block in a transaction.
-                #cursor = connection.cursor()
-                #cursor.execute('BEGIN')
-                #cursor.close()
-
         try:
             cursor = connection.cursor()
             yield cursor
             cursor.close()
+
             connection.commit()
         finally:
             connection.rollback()

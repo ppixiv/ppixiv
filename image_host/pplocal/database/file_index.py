@@ -261,9 +261,18 @@ class FileIndex(Database):
 
         This is done when we detect a filesystem rename.
         """
-        with self.connect(conn) as cursor:
+        with self.connect(conn) as conn:
             # Update "path" and "parent" for old_path and all files inside it.
             print('Renaming "%s" -> "%s"' % (old_path, new_path))
+
+            if old_path == new_path:
+                return
+                
+            # Make sure the old path doesn't exist.  We could use UPDATE OR REPLACE
+            # below, but that would only remove conflicting files.  If the new path
+            # exists in the database, the entire directory is stale and should be
+            # removed.
+            self.delete_recursively([new_path], conn=conn)
 
             for entry in self.search(path=str(old_path)):
                 # path should always be relative to old_path.
@@ -278,14 +287,14 @@ class FileIndex(Database):
                     entry_new_parent = entry['parent']
 
                 query = f'''
-                    UPDATE {self.schema}.files
+                    UPDATE OR REPLACE {self.schema}.files
                         SET path = ?, parent = ?
                         WHERE id = ?
                 ''' % {
                     'path': '',
                     'parent': '',
                 }
-                cursor.execute(query, [str(entry_new_path), str(entry_new_parent), entry['id']])
+                conn.execute(query, [str(entry_new_path), str(entry_new_parent), entry['id']])
 
     def get(self, path, *, conn=None):
         """

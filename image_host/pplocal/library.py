@@ -21,6 +21,7 @@ from pprint import pprint
 from pathlib import Path, PurePosixPath
 
 from .util import win32, monitor_changes, windows_search, misc
+from . import metadata_storage
 from .database.file_index import FileIndex
 
 class Library:
@@ -30,18 +31,37 @@ class Library:
     This handles a single root directory.  To index multiple directories, create
     multiple libraries.
     """
+    # XXX: what should we name this
     ntfs_alt_stream_name = 'pplocal.json'
 
-    def __init__(self, library_name, dbpath, path: os.PathLike):
-        path = path.resolve()
+    def __init__(self, library_name, path, *, local_data=False):
         self.library_name = library_name
-        self.path = path
+        self.path = path.resolve()
         self.monitor_changes = None
-        self.db = FileIndex(dbpath)
         self.pending_file_updates = {}
         self.pending_directory_refreshes = set()
-        self.update_pending_files_task = asyncio.create_task(self.update_pending_files())
         self.refresh_event = misc.AsyncEvent()
+        
+        # Figure out where to put our files.  We can put it in AppData for a regular
+        # installation, but it's convenient to have it in a local directory for
+        # development.
+        if local_data:
+            # Get AppData/Local.
+            local_data = Path(os.getenv('LOCALAPPDATA'))
+            top_data_dir = local_data / 'ppixiv'
+        else:
+            top_data_dir = Path(os.path.dirname(__file__)) / '../data'
+        
+        data_dir = top_data_dir / self.library_name
+        self._data_dir = data_dir.resolve()
+        self._data_dir.mkdir(parents=True, exist_ok=True)
+        print(data_dir)
+
+        # Open our database.
+        dbpath = self.data_dir / 'index.sqlite'
+        self.db = FileIndex(dbpath)
+
+        self.update_pending_files_task = asyncio.create_task(self.update_pending_files())
 
     def __str__(self):
         return 'Library(%s: %s)' % (self.library_name, self.path)
@@ -49,6 +69,13 @@ class Library:
     def shutdown(self):
         pass
     
+    @property
+    def data_dir(self):
+        """
+        Return the top directory we use for storing data related to this library.
+        """
+        return self._data_dir
+
     def get_relative_path(self, path):
         """
         Given an absolute filesystem path, return the path relative to this library.
@@ -96,6 +123,28 @@ class Library:
         path = PurePosixPath('/'.join(path.parts[2:]))
         return library_name, path
 
+    async def quick_refresh(self, path=None):
+        """
+        Do a quick refresh of the library.
+
+        This uses Windows Search to find directories with our metadata, and refreshes just
+        those directories.
+        """
+        # XXX: this won't remove stale files
+        # delete_recursively for bookmarks only?
+        # bleh: windows index misses files sometimes
+        if path is None:
+            path = self.path
+        else:
+            path = Path(path)
+
+        for result in windows_search.search(path=str(path), filename=metadata_storage.metadata_filename):
+            # Refresh the directory this metadata file is in.
+            path = Path(result.path)
+            path = path.parent
+            print('refresh:', path)
+            await self.refresh(path=path, recurse=False)
+
     async def refresh(self, *,
             path=None,
             recurse=True,
@@ -137,11 +186,11 @@ class Library:
             stale_file_paths = {os.fspath(entry['path']) for entry in self.db.search(path=str(path), mode=self.db.SearchMode.Subdir)}
 
             # Load metadata for this directory, so we only read it once and not per file.
-            metadata = self._load_directory_metadata(path)
+            metadata = metadata_storage.load_directory_metadata(path)
 
             # If this is the top-level directory, refresh it too unless it's our root.
             if _level == 0 and path != self.path:
-                self.handle_update(path, action='refresh', db_conn=db_conn, metadata=metadata.get('.', {}))
+                self.handle_update(path, action='refresh', db_conn=db_conn, file_metadata=metadata.get('.', {}))
 
             # Don't convert direntry.path to a Path here.  It's too slow.
             for direntry in os.scandir(path):
@@ -215,7 +264,7 @@ class Library:
         action is either a monitor_changes.FileAction, or 'refresh' if this is from our
         refresh.
 
-        If file_metadata is set, it's the file_metadata for this file.  See _load_file_metadata.
+        If file_metadata is set, it's the file_metadata for this file.  See metadata_storage.
 
         path may be a string.  We'll only convert it to a Path if necessary, since doing this
         for every file is slow.
@@ -224,7 +273,7 @@ class Library:
         # these.  If we allow them to be edited externally, we'd need to figure out
         # a way to tell if changes we're seeing are ones we made, or else we'd trigger
         # refreshes endlessly.
-        if path.name == self._metadata_filename:
+        if path.name == metadata_storage.metadata_filename:
             return
         
         # If a path was renamed, rename them in the index.  This avoids needing to refresh
@@ -286,7 +335,9 @@ class Library:
                 if not self.pending_file_updates and not self.pending_directory_refreshes:
                     self._touch_last_update_time()
 
-                # See if there are any directory refreshes pending.
+                # See if there are any directory refreshes pending.  We can't use a quick
+                # refresh here, since we often get here before Windows's indexing has caught
+                # up.
                 if self.pending_directory_refreshes:
                     path = self.pending_directory_refreshes.pop()
                     print('Refreshing new directory: %s' % path)
@@ -360,7 +411,7 @@ class Library:
         # that share the same data.
         if file_metadata is None:
             print('Reading metadata for', os.fspath(path))
-            file_metadata = self._load_file_metadata(Path(path))
+            file_metadata = metadata_storage.load_file_metadata(Path(path))
 
         # Import bookmarks.
         entry['bookmarked'] = file_metadata.get('bookmarked', False)
@@ -435,105 +486,6 @@ class Library:
 
         return data
 
-    def _load_directory_metadata(self, directory_path, filename=None):
-        """
-        Get stored metadata for files in path.  This currently only stores bookmarks.
-        If no metadata is available, return an empty dictionary.
-
-        If filename is set, return metadata for just that file.
-
-        This is a hidden file in the directory which stores metadata for all files
-        in the directory, as well as the directory itself.  This has a bunch of
-        advantages over putting the data in each file:
-
-        - Every file format has its own way of storing metadata, and there are no
-        robust libraries that handle all of them.
-        - We don't have to modify the user's files, so there's no chance of us screwing
-        up and causing data loss.
-        - Opening each file during a refresh is extremely slow. It's much faster to
-        have a single file that we only read once per directory scan.
-        - We can use Windows Search to search this data if we format it properly.  Use
-        a file extension that it indexes by default (we use .txt), and we can insert
-        keywords in the file that we can search for.  Windows Search will index metadata
-        for some file types, but it's hit-or-miss (it handles JPEGs much better than PNGs).
-        """
-        try:
-            # return just the data for this file?
-            # need it all to rewrite
-            metadata_filename = os.fspath(directory_path) + "/" + self._metadata_filename
-            with open(metadata_filename, 'rt', encoding='utf-8') as f:
-                data = f.read()
-                result = json.loads(data)
-                result = result['data']
-                if filename is not None:
-                    return result.get(filename, {})
-                else:
-                    return result
-        except FileNotFoundError:
-            return { }
-        except json.decoder.JSONDecodeError as e:
-            print('Error reading metadata from %s: %s' % (directory_path, e))
-            return { }
-
-    def _save_directory_metadata(self, path, data):
-        metadata_filename = os.fspath(path) + "/" + self._metadata_filename
-        # If there's no data, delete the metadata file if it exists.
-        if not data:
-            try:
-                os.unlink(metadata_filename)
-            except FileNotFoundError:
-                pass
-            return
-        
-        data = {
-            'identifier': 'ppixivmetadatafile',
-            'version': 1,
-            'data': data,
-        }
-        json_data = json.dumps(data, indent=4) + '\n'
-
-        # If the file is hidden, Windows won't let us overwrite it, which doesn't
-        # make much sense.  We have to open it for writing (but not overwrite) and
-        # unset the hidden bit.
-        try:
-            with open(metadata_filename, 'r+t', encoding='utf-8') as f:
-                win32.set_file_hidden(f, hide=False)
-        except FileNotFoundError:
-            pass
-
-        with open(metadata_filename, 'w+t', encoding='utf-8') as f:
-            f.write(json_data)
-
-            # Hide the file so we don't clutter the user's directory if possible.
-            win32.set_file_hidden(f)
-
-    def _load_file_metadata(self, path):
-        # If path is a directory, read the metadata file inside it.  If it's a file,
-        # read the metadata file in the same directory.
-        directory_path = path if path.is_dir() else path.parent
-        filename = '.' if path.is_dir() else path.name
-
-        metadata = self._load_directory_metadata(directory_path)
-        return metadata.get(filename, {})
-
-    def _save_file_metadata(self, path, data):
-        directory_path = path if path.is_dir() else path.parent
-        filename = '.' if path.is_dir() else path.name
-
-        # Read the full metadata so we can replace this file.
-        metadata = self._load_directory_metadata(directory_path)
-
-        # If data is empty, remove this record.
-        if not data:
-            if filename in metadata:
-                del metadata[filename]
-        else:
-            metadata[filename] = data
-
-        self._save_directory_metadata(directory_path, metadata)
-
-    _metadata_filename = '.ppixivbookmark.json.txt'
-
     def list_path(self, path, force_refresh=False, include_files=True, include_dirs=True):
         """
         Return all files inside path non-recursively.
@@ -548,7 +500,7 @@ class Library:
             return
 
         # Load metadata for this directory, so we only read it once and not per file.
-        metadata = self._load_directory_metadata(path)
+        metadata = metadata_storage.load_directory_metadata(path)
 
         for direntry in os.scandir(path):
             is_dir = direntry.is_dir(follow_symlinks=False)
@@ -573,7 +525,7 @@ class Library:
         """
         Return the entry for path.  If the path isn't cached, populate the cache entry.
 
-        If file_metadata is set, it's the metadata for this file.  See _load_file_metadata.
+        If file_metadata is set, it's the metadata for this file.  See metadata_storage.
         This is only used if we need to cache the file.
 
         If force_refresh is true, always repopulate the cache entry.
@@ -638,7 +590,7 @@ class Library:
         # bookmarks, don't use Windows search, since it doesn't know about our bookmarks and
         # our index will return them.
         seen_paths = set()
-        if use_windows_search and not search_options.get('bookmarked') and search_options.get('bookmark_tags') is None and False: # XXX
+        if use_windows_search and not search_options.get('bookmarked') and search_options.get('bookmark_tags') is None:
             # Check the Windows index.
             for result in windows_search.search(path=str(path), **search_options):
                 if result.path in seen_paths:
@@ -671,7 +623,7 @@ class Library:
         path = Path(path)
         
         # Update the bookmark metadata file.
-        file_metadata = self._load_file_metadata(path)
+        file_metadata = metadata_storage.load_file_metadata(path)
         if set_bookmark:
             file_metadata['bookmarked'] = True
             if tags is not None:
@@ -680,7 +632,7 @@ class Library:
             if 'bookmarked' in file_metadata: del file_metadata['bookmarked']
             if 'bookmark_tags' in file_metadata: del file_metadata['bookmark_tags']
 
-        self._save_file_metadata(path, file_metadata)
+        metadata_storage.save_file_metadata(path, file_metadata)
 
         # Update the file in the index.
         return self.cache_file(path, file_metadata=file_metadata)

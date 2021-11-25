@@ -43,7 +43,7 @@ def open_handle_shared(path, mode='r'):
         disposition = CREATE_ALWAYS
 
     handle = CreateFileW(
-        str(path),
+        '\\\\?\\' + str(path),
         access,
 
         # Don't lock the file in any way.  We're accessing files in the background
@@ -57,7 +57,7 @@ def open_handle_shared(path, mode='r'):
         None)
 
     if handle == -1:
-        raise ctypes.WinError()
+        raise ctypes.WinError(ctypes.get_last_error())
     return handle
 
 def open_shared(path, mode='r'):
