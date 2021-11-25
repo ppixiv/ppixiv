@@ -51,6 +51,11 @@ ppixiv.screen_illust = class extends ppixiv.screen
 
         this.image_container = this.container.querySelector(".image-container");
 
+        // Fullscreen on double-click.
+        this.image_container.addEventListener("dblclick", () => {
+            helpers.toggle_fullscreen();
+        });
+
         // Remove the "flash" class when the page change indicator's animation finishes.
         let page_change_indicator = this.container.querySelector(".page-change-indicator");
         page_change_indicator.addEventListener("animationend", (e) => {
