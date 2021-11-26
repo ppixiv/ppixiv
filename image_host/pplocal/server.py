@@ -78,9 +78,34 @@ async def handle_unknown_api_call(info):
 logging.basicConfig(level=logging.INFO)
 logging.captureWarnings(True)
 
+_running_requests = {}
+
+# Work around some aiohttp weirdness.  For some reason, although it runs handlers
+# in a task, it doesn't cancel the tasks on shutdown.  Apparently we're supposed
+# to keep track of requests and cancel them ourselves.  This seems like the framework's
+# job, I don't know why this is pushed onto the application.
+#
+# register_request_middleware registers running requests, and the shutdown_requests
+# shutdown handler cancels them.  Setting this up is a bit messy since on_shutdown
+# and middlewares are registered in completely different ways.
+@web.middleware
+async def register_request_middleware(request, handler):
+    try:
+        _running_requests[request.task] = request
+        return await handler(request)
+    finally:
+        del _running_requests[request.task]
+
+async def shutdown_requests(app):
+    print('shutdown_requests')
+
+    for task, request in dict(_running_requests).items():
+        task.cancel()
+
 async def setup():
-    app = web.Application()
+    app = web.Application(middlewares=[register_request_middleware])
     app.on_response_prepare.append(check_origin)
+    app.on_shutdown.append(shutdown_requests)
 
     # Set up routes.
     app.router.add_get('/file/{type:[^:]+}:{path:.+}', thumbs.handle_file)
