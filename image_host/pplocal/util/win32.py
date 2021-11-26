@@ -43,6 +43,7 @@ def open_handle_shared(path, mode='r'):
         disposition = CREATE_ALWAYS
 
     handle = CreateFileW(
+        # \\?\ enables long filename support.
         '\\\\?\\' + str(path),
         access,
 
