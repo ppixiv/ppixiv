@@ -301,7 +301,7 @@ ppixiv.image_preloader = class
             return [];
 
         // If this is an animation, preload the ZIP.
-        if(illust_data.illustType == 2)
+        if(illust_data.illustType == 2 && !helpers.is_local(illust_data.id))
         {
             let results = [];
             results.push(new fetch_preloader(illust_data.ugoiraMetadata.originalSrc));

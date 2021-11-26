@@ -351,7 +351,7 @@ ppixiv.image_ui = class extends ppixiv.widget
         set_info(".image-info", info);
 
         var duration = "";
-        if(illust_data.illustType == 2)
+        if(illust_data.ugoiraMetadata)
         {
             var seconds = 0;
             for(var frame of illust_data.ugoiraMetadata.frames)
@@ -361,7 +361,7 @@ ppixiv.image_ui = class extends ppixiv.widget
             duration += seconds == 1? " second":" seconds";
         }
         set_info(".ugoira-duration", duration);
-        set_info(".ugoira-frames", illust_data.illustType == 2? (illust_data.ugoiraMetadata.frames.length + " frames"):"");
+        set_info(".ugoira-frames", illust_data.ugoiraMetadata? (illust_data.ugoiraMetadata.frames.length + " frames"):"");
 
         // Add the page count for manga.
         var page_text = "";

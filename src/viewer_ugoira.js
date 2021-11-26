@@ -56,17 +56,34 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
         // Load full data.
         this.illust_data = await image_data.singleton().get_image_info(this.illust_id);
         signal.check();
-        this.create_preview_images(this.illust_data.urls.small, this.illust_data.urls.original);
+
+        // illust_data.urls for Pixiv, mangaPages[0] for local.
+        let urls = this.illust_data.urls || this.illust_data.mangaPages[0].urls;
+        this.create_preview_images(urls.small, urls.original);
 
         // This can be used to abort ZipImagePlayer's download.
         this.abort_controller = new AbortController;
+
+        let source = null;
+        let local = helpers.is_local(this.illust_id);
+        if(helpers.is_local(this.illust_id))
+        {
+            // The local API returns a separate path for these, since it doesn't have
+            // illust_data.ugoiraMetadata.
+            source = this.illust_data.mangaPages[0].urls.mjpeg_zip;
+        }
+        else
+        {
+            source = this.illust_data.ugoiraMetadata.originalSrc;
+        }
 
         // Create the player.
         this.player = new ZipImagePlayer({
             metadata: this.illust_data.ugoiraMetadata,
             autoStart: false,
-            source: this.illust_data.ugoiraMetadata.originalSrc,
-            mime_type: this.illust_data.ugoiraMetadata.mime_type,
+            source: source,
+            local: local,
+            mime_type: this.illust_data.ugoiraMetadata?.mime_type,
             signal: this.abort_controller.signal,
             autosize: true,
             canvas: this.canvas,

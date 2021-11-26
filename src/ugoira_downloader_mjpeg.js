@@ -5,7 +5,8 @@
 // Other than having to wrangle the MKV format, this is easy: the source files appear to always
 // be JPEGs, so we don't need to do any conversions and the encoding is completely lossless (other
 // than the loss Pixiv forces by reencoding everything to JPEG).  The result is standard and plays
-// in eg. VLC, but it's not a WebM file and browsers don't support it.
+// in eg. VLC, but it's not a WebM file and browsers don't support it.  These can also be played
+// when reading from the local API, since it'll decode these videos and turn them back into a ZIP.
 ppixiv.ugoira_downloader_mjpeg = class
 {
     constructor(illust_data, progress)

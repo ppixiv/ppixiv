@@ -182,28 +182,16 @@ ppixiv.ZipImagePlayer = class
 
         this.dead = false;
         this.context = options.canvas.getContext("2d");
-        this.frame_count = this.op.metadata.frames.length;
 
         // The frame that we want to be displaying:
         this.frame = 0;
         this.failed = false;
 
-        // Make a list of timestamps for each frame.
+        // These aren't available until load() completes.
         this.frameTimestamps = [];
-        let milliseconds = 0;
-        let last_frame_time = 0;
-        for(let frame of this.op.metadata.frames)
-        {
-            this.frameTimestamps.push(milliseconds);
-            milliseconds += frame.delay;
-            last_frame_time = frame.delay;
-        }
-        this.total_length = milliseconds;
-
-        // The duration to display on the seek bar.  This doesn't include the duration of the
-        // final frame.  We can't seek to the actual end of the video past the end of the last
-        // frame, and the end of the seek bar represents the beginning of the last frame.
-        this.seekable_length = milliseconds - last_frame_time;
+        this.total_length = 0;
+        this.frame_count = 0;
+        this.seekable_length = 0;
 
         this.frame_data = [];
         this.frame_images = [];
@@ -224,6 +212,48 @@ ppixiv.ZipImagePlayer = class
         this.downloader = new ZipImageDownloader(this.op.source, {
             signal: this.op.signal,
         });
+
+        if(this.op.local)
+        {
+            // For local files, the first file in the ZIP contains the metadata.
+            let data;
+            try {
+                data = await this.downloader.get_next_frame();
+            } catch(e) {
+                // This will usually be cancellation.
+                console.info("Error downloading file", e);
+                return;
+            }
+
+            // Is there really no "decode databuffer to string with encoding" API?
+            data = new Uint8Array(data);
+            data = String.fromCharCode.apply(null, data);
+            data = JSON.parse(data);
+
+            this.frame_metadata = data;
+        }
+        else
+        {
+            this.frame_metadata = this.op.metadata.frames;
+        }
+
+        // Make a list of timestamps for each frame.
+        this.frameTimestamps = [];
+        let milliseconds = 0;
+        let last_frame_time = 0;
+        for(let frame of this.frame_metadata)
+        {
+            this.frameTimestamps.push(milliseconds);
+            milliseconds += frame.delay;
+            last_frame_time = frame.delay;
+        }
+        this.total_length = milliseconds;
+        this.frame_count = this.frame_metadata.length;
+
+        // The duration to display on the seek bar.  This doesn't include the duration of the
+        // final frame.  We can't seek to the actual end of the video past the end of the last
+        // frame, and the end of the seek bar represents the beginning of the last frame.
+        this.seekable_length = milliseconds - last_frame_time;
 
         let frame = 0;
         while(1)
@@ -246,7 +276,7 @@ ppixiv.ZipImagePlayer = class
             // we read the file as it comes in, but we won't burst decode every frame right at the
             // start.  This is important if the video ZIP is coming out of cache, since the browser
             // can't cache the image decodes and we'll cause a big burst of CPU load.
-            let mime_type = this.op.metadata.mime_type || "image/png";
+            let mime_type = this.op.metadata?.mime_type || "image/jpeg";
             let blob = new Blob([file], {type: mime_type});
             this.frame_data.push(blob);
 
@@ -376,7 +406,7 @@ ppixiv.ZipImagePlayer = class
         if(this.paused)
             return;
 
-        let meta = this.op.metadata.frames[this.frame];
+        let meta = this.frame_metadata[this.frame];
         this.pending_frame_metadata = meta;
         this.refresh_timer();
     }
@@ -401,7 +431,7 @@ ppixiv.ZipImagePlayer = class
 
     get_frame_duration()
     {
-        let meta = this.op.metadata.frames[this.frame];
+        let meta = this.frame_metadata[this.frame];
         return meta.delay;
     }
 
@@ -513,7 +543,7 @@ ppixiv.ZipImagePlayer = class
         // We don't actually need to check all frames, but there's no need to optimize this.
         let closest_frame = null;
         let closest_error = null;
-        for(let frame = 0; frame < this.op.metadata.frames.length; ++frame)
+        for(let frame = 0; frame < this.frame_metadata.length; ++frame)
         {
             // Only seek to images that we've downloaded.  If we reach a frame we don't have
             // yet, stop.
