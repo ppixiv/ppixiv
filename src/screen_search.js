@@ -564,10 +564,11 @@ ppixiv.screen_search = class extends ppixiv.screen
             { label: "Search users", url: "/search_user.php#ppixiv" },
             { label: "Rankings", url: "/ranking.php#ppixiv" },
             { label: "Recent history", url: "/history.php#ppixiv", classes: ["recent-history-link"] },
+            { label: "Local search", url: "/local/#ppixiv/", local: true },
         ];
 
         let create_option = (option) => {
-            return new menu_option_button({
+            let button = new menu_option_button({
                 container: option_box,
                 parent: this,
                 no_icon_padding: true,
@@ -575,6 +576,11 @@ ppixiv.screen_search = class extends ppixiv.screen
                 url: option.url,
                 classes: option.classes,
             })
+
+            // Hide the local search menu option if it's not enabled.
+            if(option.local && !local_api.is_enabled())
+                button.container.hidden = true;
+            return button;
         };
 
         for(let option of options)
