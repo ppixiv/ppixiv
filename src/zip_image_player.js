@@ -153,7 +153,19 @@ ppixiv.ZipImageDownloader = class
         await this.reader.read(extra_size);
 
         // Read the file.
-        return await this.reader.read(file_size);
+        let result = await this.reader.read(file_size);
+
+        // Read past the data descriptor if this file has one.
+        let flags = view.getUint16(6, true);
+        if(flags & 8)
+        {
+            let descriptor = await this.reader.read(16);
+            let descriptor_view = new DataView(descriptor);
+            if(descriptor_view.getUint32(0, true) != 0x08074b50)
+                throw Error("Unrecognized file");
+        }
+
+        return result;
     }
 };
 
