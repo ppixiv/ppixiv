@@ -724,7 +724,7 @@ ppixiv.helpers = {
         return str.join("&");
     },
 
-    send_request: function(options)
+    send_request: async function(options)
     {
         if(options == null)
             options = {};
@@ -755,7 +755,14 @@ ppixiv.helpers = {
             data.headers = headers;
         }
 
-        return fetch(options.url, data);
+        try {
+            return await fetch(options.url, data);
+        } catch(e) {
+            console.error("Error loading %s", options.url);
+            if(options.data)
+                console.error("Data:", options.data);
+            return null;
+        }
     },
 
     // Send a request with the referer, cookie and CSRF token filled in.
@@ -775,6 +782,8 @@ ppixiv.helpers = {
         }
 
         let result = await helpers.send_request(options);
+        if(result == null)
+            return null;
 
         // Return the requested type.  If we don't know the type, just return the
         // request promise itself.
