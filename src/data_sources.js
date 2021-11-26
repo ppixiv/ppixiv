@@ -3308,6 +3308,18 @@ ppixiv.data_sources.local = class extends data_source
             this.title = "Bookmarks";
         }
 
+        if(!this.title)
+        {
+            // Show the path, with the file: ID prefix removed.
+            let args = new helpers.args(this.url);
+            let { id } = helpers.parse_id(args.hash_path);
+            let parts = id.split('/');
+            this.title = parts[parts.length-1];
+        }
+
+        if(!this.title)
+            this.title = "Local files";
+
         if(args.hash.has("type"))
         {
             this.search_options.media_type = args.hash.get("type");
@@ -3415,14 +3427,7 @@ ppixiv.data_sources.local = class extends data_source
     get page_title() { return this.get_displaying_text(); }
     get_displaying_text()
     {
-        if(this.title)
-            return this.title;
-            
-        // Show the path, with the file: ID prefix removed.
-        let args = new helpers.args(this.url);
-        let { id } = helpers.parse_id(args.hash_path);
-        let parts = id.split('/');
-        return parts[parts.length-1];
+        return this.title;
     }
 
     // Put the illust ID in the hash instead of the path.  Pixiv doesn't care about this,
