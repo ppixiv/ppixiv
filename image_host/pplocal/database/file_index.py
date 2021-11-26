@@ -70,8 +70,8 @@ class FileIndex(Database):
                         )
                     ''')
 
-                    conn.execute(f'CREATE INDEX {self.schema}.files_path on files(lower(path))')
-                    conn.execute(f'CREATE INDEX {self.schema}.files_parent on files(lower(parent))')
+                    conn.execute(f'CREATE INDEX {self.schema}.files_path on files(path)')
+                    conn.execute(f'CREATE INDEX {self.schema}.files_parent on files(parent)')
                     conn.execute(f'CREATE INDEX {self.schema}.files_mime_type on files(mime_type)')
 
                     # This is used to find untagged bookmarks.  Tag searches use the bookmark_tag table below.
@@ -250,8 +250,8 @@ class FileIndex(Database):
             cursor.executemany(f'''
                 DELETE FROM {self.schema}.files
                 WHERE
-                    LOWER(files.path) = LOWER(?) OR
-                    LOWER(files.path) GLOB LOWER(?)
+                    files.path = ? OR
+                    files.path GLOB ?
             ''', path_list)
             deleted = cursor.connection.total_changes - count
             # print('Deleted %i (%s)' % (deleted, paths))
@@ -347,15 +347,15 @@ class FileIndex(Database):
                 if mode == self.SearchMode.Recursive:
                     # path is the top directory to start searching from.  This is done with a
                     # prefix match against the path: listing "C:\ABCD" recursively matches "C:\ABCD\*".
-                    where.append(f'lower({self.schema}.files.path) GLOB lower(?)')
+                    where.append(f'{self.schema}.files.path GLOB ?')
                     params.append(path + os.path.sep + '*')
                 elif mode == self.SearchMode.Subdir:
                     # Only list files directly inside path.
-                    where.append(f'lower({self.schema}.files.parent) = lower(?)')
+                    where.append(f'{self.schema}.files.parent = ?')
                     params.append(path)
                 elif mode == self.SearchMode.Exact:
                     # Only list path itself.
-                    where.append(f'lower({self.schema}.files.path) = lower(?)')
+                    where.append(f'{self.schema}.files.path = ?')
                     params.append(path)
                 else:
                     assert False
