@@ -442,6 +442,7 @@ class Library:
         comment = media_metadata.get('comment', '')
         artist = media_metadata.get('artist', '')
         tags = media_metadata.get('tags', '')
+        codec = media_metadata.get('codec', '')
 
         if not title:
             title = path.name
@@ -459,6 +460,7 @@ class Library:
             'author': artist,
             'width': width,
             'height': height,
+            'codec': codec,
         }
 
         return data

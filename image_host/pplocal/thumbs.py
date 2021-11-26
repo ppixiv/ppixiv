@@ -7,12 +7,23 @@ from pathlib import Path
 from shutil import copyfile
 
 from . import video
-from .util import misc
+from .util import misc, mjpeg_mkv_to_zip
 
 resource_path = (Path(__file__) / '../../../resources').resolve()
 blank_image = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=')
 
 max_thumbnail_pixels = 500*500
+
+# Serve direct file requests.
+async def handle_file(request):
+    path = request.match_info['path']
+    absolute_path, library = request.app['manager'].resolve_path(path)
+    if not absolute_path.is_file():
+        raise aiohttp.web.HTTPNotFound()
+
+    return FileResponse(absolute_path, headers={
+        'Cache-Control': 'public, immutable',
+    })
 
 def _bake_exif_rotation(image):
     exif = image.getexif()
@@ -244,13 +255,40 @@ async def handle_thumb(request, mode='thumb'):
         'Last-Modified': timestamp,
     })
 
-# Serve direct file requests.
-async def handle_file(request):
+async def handle_mjpeg(request):
+    """
+    Handle /mjpeg-zip requests.
+    """
     path = request.match_info['path']
     absolute_path, library = request.app['manager'].resolve_path(path)
+
     if not absolute_path.is_file():
         raise aiohttp.web.HTTPNotFound()
 
-    return FileResponse(absolute_path, headers={
-        'Cache-Control': 'public, immutable',
-    })
+    # Check cache.
+    mtime = os.stat(absolute_path).st_mtime
+    if_modified_since = request.if_modified_since
+    if if_modified_since is not None:
+        modified_time = datetime.fromtimestamp(mtime, timezone.utc)
+        modified_time = modified_time.replace(microsecond=0)
+
+        if modified_time <= if_modified_since:
+            raise aiohttp.web.HTTPNotModified()
+
+    with open(absolute_path, 'rb') as f:
+        # Get frame durations.  This is where we expect an exception to be thrown if
+        # the file isn't an MJPEG, so we do this before creating our response.
+        frame_durations = mjpeg_mkv_to_zip.get_frame_durations(f)
+
+        response = aiohttp.web.StreamResponse(status=200, headers={
+            'Content-Type': 'application/x-zip-compressed',
+            'Cache-Control': 'public, immutable',
+        })
+        response.enable_chunked_encoding()
+        await response.prepare(request)
+
+        async for data in mjpeg_mkv_to_zip.create_ugoira(f, frame_durations):
+            await response.write(data)
+
+        await response.write_eof()
+    

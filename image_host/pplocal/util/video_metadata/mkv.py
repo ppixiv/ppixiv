@@ -1,15 +1,9 @@
-#!/usr/bin/env python
 import sys
 from ...extern import mkvparse
 
-import sys
-import binascii
-import datetime
-
-# This is thrown from 
 class _ShortCircuitParsing(Exception): pass
 
-class MatroskaUser(mkvparse.MatroskaHandler):      
+class MatroskaHandler(mkvparse.MatroskaHandler):      
     def __init__(self):
         self.data = { }
         self.got_track_info = False
@@ -19,6 +13,9 @@ class MatroskaUser(mkvparse.MatroskaHandler):
         for track in self.tracks.values():
             if track['type'] != 'video':
                 continue
+            codec = track.get('CodecID')
+            if codec is not None:
+                self.data['codec'] = codec[1]
 
             video = track.get('Video')
             track_idx, track_info = video
@@ -35,7 +32,6 @@ class MatroskaUser(mkvparse.MatroskaHandler):
                 height = track_info.get('PixelHeight')
             if height is not None:
                 self.data['height'] = height[1]
-            from pprint import pprint
 
             self.got_track_info = True
             self.check_termination()
@@ -62,19 +58,9 @@ class MatroskaUser(mkvparse.MatroskaHandler):
         if self.got_track_info and self.got_segment_info:
             raise _ShortCircuitParsing()
 
-    def frame(self, track_id, timestamp, data, more_laced_frames, duration, keyframe, invisible, discardable):
-        addstr=""
-        if duration:
-            addstr="dur=%.6f"%duration
-        if keyframe: addstr+=" key"
-        if invisible: addstr+=" invis"
-        if discardable: addstr+=" disc"
-        print("Frame for %d ts=%.06f l=%d %s len=%d data=%s..." %
-                (track_id, timestamp, more_laced_frames, addstr, len(data), binascii.hexlify(data[0:10])))
-
 def parse(f):
     try:
-        result = MatroskaUser()
+        result = MatroskaHandler()
         try:
             mkvparse.mkvparse(f, result)
         except _ShortCircuitParsing:
@@ -86,7 +72,6 @@ def parse(f):
         return { }
 
 if __name__ == '__main__':
-    result = MatroskaUser()
     with open('testing.mkv', 'rb') as f:
         result = parse(f)
         print(result)

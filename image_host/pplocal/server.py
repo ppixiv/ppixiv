@@ -11,8 +11,7 @@ from . import api, thumbs
 from .util import misc
 from .manager import Manager
 
-@web.middleware
-async def check_origin(request, handler):
+async def check_origin(request, response):
     """
     Check the Origin header and add CORS headers.
     """
@@ -20,16 +19,12 @@ async def check_origin(request, handler):
     if origin is not None and origin != 'https://www.pixiv.net':
         raise aiohttp.web.HTTPUnauthorized()
 
-    resp = await handler(request)
-
     if origin:
-        resp.headers['Access-Control-Allow-Origin'] = origin
-        resp.headers['Access-Control-Allow-Methods'] = 'POST, GET, OPTIONS'
-        resp.headers['Access-Control-Allow-Headers'] = '*'
-        resp.headers['Access-Control-Expose-Headers'] = '*'
-        resp.headers['Access-Control-Max-Age'] = '1000000'
-
-    return resp
+        response.headers['Access-Control-Allow-Origin'] = origin
+        response.headers['Access-Control-Allow-Methods'] = 'POST, GET, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = '*'
+        response.headers['Access-Control-Expose-Headers'] = '*'
+        response.headers['Access-Control-Max-Age'] = '1000000'
 
 def create_handler_for_command(handler):
     async def handle(request):
@@ -84,13 +79,15 @@ logging.basicConfig(level=logging.INFO)
 logging.captureWarnings(True)
 
 async def setup():
-    app = web.Application(middlewares=(check_origin,))
+    app = web.Application()
+    app.on_response_prepare.append(check_origin)
 
     # Set up routes.
     app.router.add_get('/file/{type:[^:]+}:{path:.+}', thumbs.handle_file)
     app.router.add_get('/thumb/{type:[^:]+}:{path:.+}', thumbs.handle_thumb)
     app.router.add_get('/tree-thumb/{type:[^:]+}:{path:.+}', thumbs.handle_tree_thumb)
     app.router.add_get('/poster/{type:[^:]+}:{path:.+}', thumbs.handle_poster)
+    app.router.add_get('/mjpeg-zip/{type:[^:]+}:{path:.+}', thumbs.handle_mjpeg)
 
     # Add a handler for each API call.
     for command, func in api.handlers.items():

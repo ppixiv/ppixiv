@@ -76,7 +76,7 @@ def read_metadata(f, mime_type):
 
     This is currently only implemented for JPEGs.
     """
-    if not mime_type.startswith('video/'):
+    if mime_type.startswith('video/'):
         if mime_type == 'video/mp4':
             data = mp4.parse(f)
         elif mime_type in ('video/webm', 'video/x-matroska'):
@@ -91,6 +91,7 @@ def read_metadata(f, mime_type):
             'comment': data.get('tag/cmt') or '',
             'artist': data.get('tag/ART') or '',
             'tags': '',
+            'codec': data.get('codec'),
         }
 
     if not mime_type.startswith('image/'):
