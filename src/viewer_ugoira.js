@@ -9,7 +9,7 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
         this.refresh_focus = this.refresh_focus.bind(this);
         this.clicked_canvas = this.clicked_canvas.bind(this);
         this.onkeydown = this.onkeydown.bind(this);
-        this.drew_frame = this.drew_frame.bind(this);
+        this.ontimeupdate = this.ontimeupdate.bind(this);
         this.progress = this.progress.bind(this);
         this.seek_callback = this.seek_callback.bind(this);
         this.load = new SentinelGuard(this.load, this);
@@ -91,8 +91,9 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
             loop: true,
             debug: false,
             progress: this.progress,
-            drew_frame: this.drew_frame,
         });            
+
+        this.player.video_interface.addEventListener("timeupdate", this.ontimeupdate, { signal: this.abort_controller.signal });
 
         this.video_ui.video_changed({player: this, video: this.player.video_interface});
 
@@ -102,7 +103,7 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
     // Undo load().
     unload()
     {
-        // Cancel the player's download.
+        // Cancel the player's download and remove event listeners.
         if(this.abort_controller)
         {
             this.abort_controller.abort();
@@ -234,7 +235,7 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
 
     // Once we draw a frame, hide the preview and show the canvas.  This avoids
     // flicker when the first frame is drawn.
-    drew_frame()
+    ontimeupdate()
     {
         if(this.preview_img1)
             this.preview_img1.hidden = true;

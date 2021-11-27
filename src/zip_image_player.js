@@ -434,15 +434,6 @@ ppixiv.ZipImagePlayer = class
 
         this.video_interface.dispatchEvent(new Event("timeupdate"));
 
-        // If the user wants to know when the frame is ready, call it.
-        // XXX: use timeupdate
-        if(this.op.drew_frame)
-        {
-            helpers.yield(() => {
-                this.op.drew_frame(null);
-            });
-        }
-        
         if(this.paused)
             return;
 
