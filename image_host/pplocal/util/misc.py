@@ -114,7 +114,6 @@ def read_metadata(f, mime_type):
         if exif_dict is None:
             exif_dict = { }
 
-        result = { }
         def get_exif_string_tag(name, exif_name):
             data = exif_dict.get(exif_tag_ids[exif_name])
             if not data:

@@ -2,7 +2,7 @@ import time
 from pathlib import Path, PurePosixPath
 from collections import OrderedDict, namedtuple
 
-from .util import misc
+from .util import misc, paths
 from .library import Library
 
 _library_paths = {
@@ -57,21 +57,24 @@ class Manager:
     def all_libraries(self):
         return self.libraries.values()
 
-    def resolve_path(self, path):
+    def resolve_path(self, relative_path):
         """
         Given a folder: or file: ID, return the absolute path to the file or directory
         and the library it's in.  If the path isn't in a library, raise Error.
         """
-        path = PurePosixPath(path)
-        if '..' in path.parts:
+        relative_path = PurePosixPath(relative_path)
+        if '..' in relative_path.parts:
             raise misc.Error('invalid-request', 'Invalid request')
 
-        library_name, path = Library.split_library_name_and_path(path)
+        library_name, path_inside_library = Library.split_library_name_and_path(relative_path)
         library = self.libraries.get(library_name)
         if library is None:
             raise misc.Error('not-found', 'Library %s doesn\'t exist' % library_name)
 
-        return library.path / path, library
+        path = library.path / path_inside_library
+        path = paths.open(path)
+
+        return path, library
     
     # Values of api_list_results can be a dictionary, in which case they're a result
     # cached from a previous call.  They can also be a function, which is called to

@@ -3,12 +3,10 @@ from .util import win32
 
 metadata_filename = '.ppixivbookmark.json.txt'
 
-def load_directory_metadata(directory_path, filename=None):
+def load_directory_metadata(path):
     """
     Get stored metadata for files in path.  This currently only stores bookmarks.
     If no metadata is available, return an empty dictionary.
-
-    If filename is set, return metadata for just that file.
 
     This is a hidden file in the directory which stores metadata for all files
     in the directory, as well as the directory itself.  This has a bunch of
@@ -26,25 +24,24 @@ def load_directory_metadata(directory_path, filename=None):
     for some file types, but it's hit-or-miss (it handles JPEGs much better than PNGs).
     """
     try:
-        # return just the data for this file?
-        # need it all to rewrite
-        this_metadata_filename = os.fspath(directory_path) + "/" + metadata_filename
+        directory_path = path.filesystem_parent
+        this_metadata_filename = os.fspath(directory_path / metadata_filename)
+
         with open(this_metadata_filename, 'rt', encoding='utf-8') as f:
             data = f.read()
             result = json.loads(data)
             result = result['data']
-            if filename is not None:
-                return result.get(filename, {})
-            else:
-                return result
+            return result
     except FileNotFoundError:
         return { }
     except json.decoder.JSONDecodeError as e:
-        print('Error reading metadata from %s: %s' % (directory_path, e))
+        print('Error reading metadata from %s: %s' % (this_metadata_filename, e))
         return { }
 
 def save_directory_metadata(path, data):
-    this_metadata_filename = os.fspath(path) + "/" + metadata_filename
+    directory_path = path.filesystem_parent
+    this_metadata_filename = os.fspath(directory_path / metadata_filename)
+
     # If there's no data, delete the metadata file if it exists.
     if not data:
         try:
@@ -58,7 +55,7 @@ def save_directory_metadata(path, data):
         'version': 1,
         'data': data,
     }
-    json_data = json.dumps(data, indent=4) + '\n'
+    json_data = json.dumps(data, indent=4, ensure_ascii=False) + '\n'
 
     # If the file is hidden, Windows won't let us overwrite it, which doesn't
     # make much sense.  We have to open it for writing (but not overwrite) and
@@ -75,27 +72,32 @@ def save_directory_metadata(path, data):
         # Hide the file so we don't clutter the user's directory if possible.
         win32.set_file_hidden(f)
 
-def load_file_metadata(path):
-    # If path is a directory, read the metadata file inside it.  If it's a file,
-    # read the metadata file in the same directory.
-    directory_path = path if path.is_dir() else path.parent
-    filename = '.' if path.is_dir() else path.name
+def load_file_metadata(path, *, directory_metadata=None):
+    """
+    Return metadata for the given path.
 
-    metadata = load_directory_metadata(directory_path)
-    return metadata.get(filename, {})
+    If metadata for the parent directory has already been loaded with
+    load_directory_metadata, it can be specified with directory_metadata
+    to avoid loading it repeatedly while scanning directories.
+    """
+    filename = path.relative_to(path.filesystem_parent)
 
-def save_file_metadata(path, data):
-    directory_path = path if path.is_dir() else path.parent
-    filename = '.' if path.is_dir() else path.name
+    if directory_metadata is None:
+        directory_metadata = load_directory_metadata(path)
+    return directory_metadata.get(str(filename), {})
+
+def save_file_metadata(path, data, *, directory_metadata=None):
+    filename = path.relative_to(path.filesystem_parent)
 
     # Read the full metadata so we can replace this file.
-    metadata = load_directory_metadata(directory_path)
+    if directory_metadata is None:
+        directory_metadata = load_directory_metadata(path)
 
     # If data is empty, remove this record.
     if not data:
-        if filename in metadata:
-            del metadata[filename]
+        if str(filename) in directory_metadata:
+            del directory_metadata[str(filename)]
     else:
-        metadata[filename] = data
+        directory_metadata[str(filename)] = data
 
-    save_directory_metadata(directory_path, metadata)
+    save_directory_metadata(path, directory_metadata)

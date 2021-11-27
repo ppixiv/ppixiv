@@ -43,9 +43,8 @@ async def extract_frame(input_file, output_file, seek_seconds, exif_description=
         with open(output_file, 'rb') as f:
             data = f.read()
 
-        print('----------')
         exif_dict = exif.Image(data)
-        exif_dict.set('image_description', '漢字') #exif_description)
+        exif_dict.set('image_description', exif_description)
 
         data = exif_dict.get_file()
 

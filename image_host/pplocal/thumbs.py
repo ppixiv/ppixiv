@@ -21,8 +21,10 @@ async def handle_file(request):
     if not absolute_path.is_file():
         raise aiohttp.web.HTTPNotFound()
 
+    mime_type = misc.mime_type_from_ext(absolute_path.suffix)
     return FileResponse(absolute_path, headers={
         'Cache-Control': 'public, immutable',
+        'Content-Type': mime_type,
     })
 
 def _bake_exif_rotation(image):
@@ -57,7 +59,13 @@ def threaded_create_thumb(path):
     # very wide images.  If an image is 5000x1000 and we thumbnail to a max of 500x500,
     # it'll result in a 500x100 image, which is unusable.  Instead, use a maximum
     # pixel count.
-    image = Image.open(path)
+    with path.open('rb') as f:
+        try:
+            image = Image.open(f)
+            image.load()
+        except OSError as e:
+            print('Couldn\'t read %s to create thumbnail: %s' % (path, e))
+            return None, None
 
     total_pixels = image.size[0]*image.size[1]
     ratio = max_thumbnail_pixels / total_pixels
@@ -154,7 +162,7 @@ async def _extract_video_thumbnail_frame(illust_id, path, data_dir):
     return thumb_path
 
 async def create_thumb(illust_id, absolute_path, mode, *, data_dir):
-    filetype = misc.file_type(absolute_path)
+    filetype = misc.file_type(str(absolute_path))
     if filetype == 'video':
         if mode =='poster':
             file, mime_type = await _create_video_poster(illust_id, absolute_path, data_dir)
@@ -171,14 +179,12 @@ def _find_directory_thumbnail(path):
     """
     Find the first image in a directory to use as the thumbnail.
     """
-    for idx, file in enumerate(os.scandir(path)):
+    for idx, file in enumerate(path.iterdir()):
         if idx > 10:
             # In case this is a huge directory with no images, don't look too far.
             # If there are this many non-images, it's probably not an image directory
             # anyway.
             break
-
-        file = path / file
 
         # Ignore nested directories.
         if file.is_dir():
@@ -200,7 +206,6 @@ async def handle_tree_thumb(request):
     return await handle_thumb(request, mode='tree-thumb')
 
 async def handle_thumb(request, mode='thumb'):
-#    print(request.app['manager'])
     path = request.match_info['path']
     absolute_path, library = request.app['manager'].resolve_path(path)
     if absolute_path is None:
@@ -222,13 +227,11 @@ async def handle_thumb(request, mode='thumb'):
                     'Content-Type': 'image/png',
                 })
 
-        absolute_path = Path(absolute_path)
-
     if not absolute_path.is_file():
         raise aiohttp.web.HTTPNotFound()
 
     # Check cache before generating the thumbnail.
-    mtime = os.stat(absolute_path).st_mtime
+    mtime = absolute_path.stat().st_mtime
     if_modified_since = request.if_modified_since
     if if_modified_since is not None:
         modified_time = datetime.fromtimestamp(mtime, timezone.utc)
@@ -237,13 +240,15 @@ async def handle_thumb(request, mode='thumb'):
         if modified_time <= if_modified_since:
             raise aiohttp.web.HTTPNotModified()
 
-    if misc.file_type(absolute_path) is None:
+    if misc.file_type(os.fspath(absolute_path)) is None:
         raise aiohttp.web.HTTPNotFound()
 
     data_dir = library.data_dir
 
     # Generate the thumbnail in a thread.
     thumbnail_file, mime_type = await create_thumb(path, absolute_path, mode, data_dir=data_dir)
+    if thumbnail_file is None:
+        raise aiohttp.web.HTTPNotFound()
 
     # Fill in last-modified from the source file.
     timestamp = datetime.fromtimestamp(mtime, tz=timezone.utc)
@@ -266,7 +271,7 @@ async def handle_mjpeg(request):
         raise aiohttp.web.HTTPNotFound()
 
     # Check cache.
-    mtime = os.stat(absolute_path).st_mtime
+    mtime = absolute_path.stat().st_mtime
     if_modified_since = request.if_modified_since
     if if_modified_since is not None:
         modified_time = datetime.fromtimestamp(mtime, timezone.utc)
@@ -275,7 +280,7 @@ async def handle_mjpeg(request):
         if modified_time <= if_modified_since:
             raise aiohttp.web.HTTPNotModified()
 
-    with open(absolute_path, 'rb') as f:
+    with absolute_path.open('rb') as f:
         # Get frame durations.  This is where we expect an exception to be thrown if
         # the file isn't an MJPEG, so we do this before creating our response.
         frame_durations = mjpeg_mkv_to_zip.get_frame_durations(f)

@@ -378,7 +378,6 @@ class FileIndex(Database):
                 # If we're searching bookmark tags, join the bookmark tag table.  Note that
                 # a blank value of bookmark_tags means 
                 if bookmark_tags is not None:
-                    print('xxxxxxx search "%s"' % bookmark_tags)
                     if bookmark_tags == '':
                         # Search for untagged bookmarks using the files_untagged_bookmarks index.
                         where.append(f'bookmark_tags == ""')

@@ -108,7 +108,6 @@ def get_illust_info(library, entry, base_url):
     if is_mjpeg:
         pages[0]['urls']['mjpeg_zip'] = remote_mjpeg_path
 
-
     timestamp = datetime.fromtimestamp(ctime, tz=timezone.utc).isoformat()
     preview_urls = [page['urls']['small'] for page in pages]
     tags = entry['tags'].split(' ')
@@ -168,6 +167,7 @@ async def api_bookmark_add(info):
 
     # Look up the path.
     absolute_path, library = info.manager.resolve_path(path)
+
     entry = library.bookmark_edit(absolute_path, set_bookmark=True, tags=tags)
     return { 'success': True, 'bookmark': _bookmark_data(entry) }
 

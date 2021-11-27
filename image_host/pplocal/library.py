@@ -23,6 +23,7 @@ from pathlib import Path, PurePosixPath
 from .util import win32, monitor_changes, windows_search, misc
 from . import metadata_storage
 from .database.file_index import FileIndex
+from .util import paths
 
 class Library:
     """
@@ -36,7 +37,7 @@ class Library:
 
     def __init__(self, library_name, path, *, local_data=False):
         self.library_name = library_name
-        self.path = path.resolve()
+        self.path = paths.open(path.resolve())
         self.monitor_changes = None
         self.pending_file_updates = {}
         self.pending_directory_refreshes = set()
@@ -141,7 +142,6 @@ class Library:
             # Refresh the directory this metadata file is in.
             path = Path(result.path)
             path = path.parent
-            print('refresh:', path)
             await self.refresh(path=path, recurse=False)
 
     async def refresh(self, *,
@@ -163,7 +163,7 @@ class Library:
         if path is None:
             path = self.path
         else:
-            path = Path(path)
+            path = path
 
         # Make sure path is inside this library.
         path.relative_to(self.path)
@@ -185,11 +185,11 @@ class Library:
             stale_file_paths = {os.fspath(entry['path']) for entry in self.db.search(path=str(path), mode=self.db.SearchMode.Subdir)}
 
             # Load metadata for this directory, so we only read it once and not per file.
-            metadata = metadata_storage.load_directory_metadata(path)
+            directory_metadata = metadata_storage.load_directory_metadata(path)
 
             # If this is the top-level directory, refresh it too unless it's our root.
             if _level == 0 and path != self.path:
-                self.handle_update(path, action='refresh', db_conn=db_conn, file_metadata=metadata.get('.', {}))
+                self.handle_update(path, action='refresh', db_conn=db_conn, directory_metadata=directory_metadata)
 
             # Don't convert direntry.path to a Path here.  It's too slow.
             for direntry in os.scandir(path):
@@ -199,7 +199,7 @@ class Library:
                         progress(_progress_counter[0])
 
                 # Update this entry.
-                self.handle_update(direntry, action='refresh', db_conn=db_conn, file_metadata=metadata.get(direntry.name, {}))
+                self.handle_update(direntry, action='refresh', db_conn=db_conn, directory_metadata=directory_metadata)
 
                 # Remove this path from stale_file_paths, so we know it's not stale.
                 if direntry.path in stale_file_paths:
@@ -232,7 +232,7 @@ class Library:
         if self.monitor_changes is not None:
             return
 
-        self.monitor_changes = monitor_changes.MonitorChanges(self.path)
+        self.monitor_changes = monitor_changes.MonitorChanges(self.path.path)
         self.monitor_promise = asyncio.create_task(self.monitor_changes.monitor_call(self.monitored_file_changed))
         print('Started monitoring: %s' % self.path)
 
@@ -251,7 +251,7 @@ class Library:
     async def monitored_file_changed(self, path, old_path, action):
         self.handle_update(path=path, old_path=old_path, action=action)
 
-    def handle_update(self, path, action, *, old_path=None, db_conn=None, file_metadata=None):
+    def handle_update(self, path, action, *, old_path=None, db_conn=None, directory_metadata=None):
         """
         This is called to update a changed path.  This can be called during an explicit
         refresh, or from file monitoring.
@@ -263,11 +263,13 @@ class Library:
         action is either a monitor_changes.FileAction, or 'refresh' if this is from our
         refresh.
 
-        If file_metadata is set, it's the file_metadata for this file.  See metadata_storage.
+        If directory_metadata is set, it's the metadata for this file.  See metadata_storage.
 
         path may be a string.  We'll only convert it to a Path if necessary, since doing this
         for every file is slow.
         """
+        path = paths.open(path)
+        
         # Ignore changes to metadata files.  We assume we're the only ones changing
         # these.  If we allow them to be edited externally, we'd need to figure out
         # a way to tell if changes we're seeing are ones we made, or else we'd trigger
@@ -307,7 +309,8 @@ class Library:
 
         # Don't proactively index everything, or we'll aggressively scan every file.  Skip images
         # that can be found with Windows search.  Don't skip images with metadata (bookmarks).
-        if not path.is_dir() and misc.file_type(path.name) == 'image' and not file_metadata:
+        has_metadata = directory_metadata and metadata_storage.load_file_metadata(path, directory_metadata=directory_metadata)
+        if not path.is_dir() and misc.file_type(path.name) == 'image' and not has_metadata:
             return
 
         # If this is a FileAction from file monitoring, queue the update.  We often get multiple
@@ -320,7 +323,7 @@ class Library:
             return
 
         # Read the file to trigger a refresh.
-        return self.get(path=path, conn=db_conn, file_metadata=file_metadata)
+        return self.get(path=path, conn=db_conn, directory_metadata=directory_metadata)
 
     async def update_pending_files(self):
         """
@@ -395,7 +398,7 @@ class Library:
                 print('Updating last update time')
                 self.db.set_last_update_time(now, conn=db_conn)
 
-    def cache_file(self, path: os.PathLike, *, file_metadata=None, conn=None):
+    def cache_file(self, path: os.PathLike, *, directory_metadata=None, conn=None):
         # Create the appropriate entry type.
         if path.is_dir():
             entry = self._create_directory_record(path)
@@ -408,9 +411,7 @@ class Library:
         # If we weren't given metadata, read it now.  During batch refreshes
         # we'll always be given the metadata, since we're reading lots of files
         # that share the same data.
-        if file_metadata is None:
-            print('Reading metadata for', os.fspath(path))
-            file_metadata = metadata_storage.load_file_metadata(Path(path))
+        file_metadata = metadata_storage.load_file_metadata(path, directory_metadata=directory_metadata)
 
         # Import bookmarks.
         entry['bookmarked'] = file_metadata.get('bookmarked', False)
@@ -426,14 +427,14 @@ class Library:
             # This file type isn't supported.
             return None
         
-        # Call stat directly instead of using path.stat(), since we need the inode and it's
+        # Call direct_stat directly instead of path.stat(), since we need the inode and it's
         # not present on path.stat() on Windows.  This is slower, but we're on a slow path
         # anyway.
-        stat = path.stat()
+        stat = path.direct_stat()
 
         # Open the file with all share modes active, so we don't lock the file and interfere
         # with the user working with the file.
-        with win32.open_shared(os.fspath(path), 'rb') as f:
+        with path.open('rb', shared=True) as f:
             media_metadata = misc.read_metadata(f, mime_type)
                 
         width = media_metadata.get('width')
@@ -491,21 +492,18 @@ class Library:
         """
         # Stop if path isn't inside self.path.  The file isn't in this library.
         try:
-            path.relative_to(self.path)
+            path.filesystem_path.relative_to(self.path)
         except ValueError:
             return
 
-        if not path.is_dir():
-            return
-
         # Load metadata for this directory, so we only read it once and not per file.
-        metadata = metadata_storage.load_directory_metadata(path)
+        directory_metadata = metadata_storage.load_directory_metadata(path)
 
-        for direntry in os.scandir(path):
-            is_dir = direntry.is_dir(follow_symlinks=False)
+        for child in path.iterdir():
+            is_dir = child.is_dir()
 
             # Skip unsupported files.
-            if not is_dir and misc.file_type(direntry.name) is None:
+            if not is_dir and misc.file_type(child.name) is None:
                 continue
 
             if not include_dirs and is_dir:
@@ -513,23 +511,20 @@ class Library:
             if not include_files and not is_dir:
                 continue
 
-            file_path = Path(direntry.path)
-
             # Find the file in cache and cache it if needed.
-            entry = self.get(file_path, force_refresh=force_refresh, file_metadata=metadata.get(direntry.name, {}))
+            entry = self.get(child, force_refresh=force_refresh, directory_metadata=directory_metadata)
             if entry is not None:
                 yield entry
 
-    def get(self, path, *, force_refresh=False, check_mtime=True, file_metadata=None, conn=None):
+    def get(self, path, *, force_refresh=False, check_mtime=True, directory_metadata=None, conn=None):
         """
         Return the entry for path.  If the path isn't cached, populate the cache entry.
 
-        If file_metadata is set, it's the metadata for this file.  See metadata_storage.
+        If directory_metadata is set, it's the metadata for this file.  See metadata_storage.
         This is only used if we need to cache the file.
 
         If force_refresh is true, always repopulate the cache entry.
         """
-        # Stop if path isn't inside self.path.  The file isn't in this library.
 
         entry = None
         if not force_refresh:
@@ -551,7 +546,7 @@ class Library:
             except ValueError:
                 return None
 
-            entry = self.cache_file(path, conn=conn, file_metadata=file_metadata)
+            entry = self.cache_file(path, conn=conn, directory_metadata=directory_metadata)
 
         if entry is None:
             return None
@@ -592,11 +587,12 @@ class Library:
         if use_windows_search and not search_options.get('bookmarked') and search_options.get('bookmark_tags') is None:
             # Check the Windows index.
             for result in windows_search.search(path=str(path), **search_options):
+                print(result)
                 if result.path in seen_paths:
                     continue
                 seen_paths.add(result.path)
 
-                entry = self.get(Path(result.path), force_refresh=force_refresh)
+                entry = self.get(paths.open(Path(result.path)), force_refresh=force_refresh)
                 if entry is None:
                     continue
 
@@ -619,10 +615,10 @@ class Library:
 
         Returns the updated index entry.
         """
-        path = Path(path)
-        
         # Update the bookmark metadata file.
-        file_metadata = metadata_storage.load_file_metadata(path)
+        directory_metadata = metadata_storage.load_directory_metadata(path)
+        file_metadata = metadata_storage.load_file_metadata(path, directory_metadata=directory_metadata)
+
         if set_bookmark:
             file_metadata['bookmarked'] = True
             if tags is not None:
@@ -634,7 +630,7 @@ class Library:
         metadata_storage.save_file_metadata(path, file_metadata)
 
         # Update the file in the index.
-        return self.cache_file(path, file_metadata=file_metadata)
+        return self.cache_file(path, directory_metadata=directory_metadata)
 
     def get_all_bookmark_tags(self):
         return self.db.get_all_bookmark_tags()
