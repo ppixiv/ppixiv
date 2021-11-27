@@ -47,7 +47,7 @@ class FilesystemPath(PathBase):
         self.direntry = direntry
 
     def __str__(self):
-        return f'FilesystemPath({self._path})'
+        return str(self._path)
 
     def __hash__(self):
         return hash(str(self))
@@ -117,10 +117,7 @@ class FilesystemPath(PathBase):
 
     @property
     def filesystem_parent(self):
-        if self._path.is_dir():
-            return self._path
-        else:
-            return self._path.parent
+        return self._path.parent
 
     def stat(self):
         if self.direntry is not None:

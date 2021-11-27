@@ -129,20 +129,22 @@ class Library:
 
         This uses Windows Search to find directories with our metadata, and refreshes just
         those directories.
+
+        This currently doesn't remove bookmarks from the database that no longer exist.
+        XXX clear bookmarks that we don't find
         """
-        # XXX: this won't remove stale files
-        # delete_recursively for bookmarks only?
-        # bleh: windows index misses files sometimes
         if path is None:
             path = self.path
         else:
             path = Path(path)
 
-        for result in windows_search.search(path=str(path), filename=metadata_storage.metadata_filename):
-            # Refresh the directory this metadata file is in.
-            path = Path(result.path)
-            path = path.parent
-            await self.refresh(path=path, recurse=False)
+        with self.db.connect() as db_conn:
+            # Find all metadata files.
+            for result in windows_search.search(path=str(path), filename=metadata_storage.metadata_filename):
+                # Refresh just files with metadata.
+                path = Path(result.path)
+                for path in metadata_storage.get_files_with_metadata(path):
+                    self.handle_update(path, action='refresh', db_conn=db_conn)
 
     async def refresh(self, *,
             path=None,
@@ -184,12 +186,9 @@ class Library:
             # Make a list of file IDs that were cached in this directory before we refreshed it.
             stale_file_paths = {os.fspath(entry['path']) for entry in self.db.search(path=str(path), mode=self.db.SearchMode.Subdir)}
 
-            # Load metadata for this directory, so we only read it once and not per file.
-            directory_metadata = metadata_storage.load_directory_metadata(path)
-
             # If this is the top-level directory, refresh it too unless it's our root.
             if _level == 0 and path != self.path:
-                self.handle_update(path, action='refresh', db_conn=db_conn, directory_metadata=directory_metadata)
+                self.handle_update(path, action='refresh', db_conn=db_conn)
 
             # Don't convert direntry.path to a Path here.  It's too slow.
             for direntry in os.scandir(path):
@@ -199,7 +198,7 @@ class Library:
                         progress(_progress_counter[0])
 
                 # Update this entry.
-                self.handle_update(direntry, action='refresh', db_conn=db_conn, directory_metadata=directory_metadata)
+                self.handle_update(direntry, action='refresh', db_conn=db_conn)
 
                 # Remove this path from stale_file_paths, so we know it's not stale.
                 if direntry.path in stale_file_paths:
@@ -214,7 +213,8 @@ class Library:
             if stale_file_paths:
                 print('%i files were removed from %s' % (len(stale_file_paths), path))
                 print(stale_file_paths)
-                self.db.delete_recursively(stale_file_paths, conn=db_conn)
+                # XXX
+                #self.db.delete_recursively(stale_file_paths, conn=db_conn)
 
         # Recurse to subdirectories.
         for file_path, direntry in directories:
@@ -251,7 +251,7 @@ class Library:
     async def monitored_file_changed(self, path, old_path, action):
         self.handle_update(path=path, old_path=old_path, action=action)
 
-    def handle_update(self, path, action, *, old_path=None, db_conn=None, directory_metadata=None):
+    def handle_update(self, path, action, *, old_path=None, db_conn=None):
         """
         This is called to update a changed path.  This can be called during an explicit
         refresh, or from file monitoring.
@@ -262,8 +262,6 @@ class Library:
 
         action is either a monitor_changes.FileAction, or 'refresh' if this is from our
         refresh.
-
-        If directory_metadata is set, it's the metadata for this file.  See metadata_storage.
 
         path may be a string.  We'll only convert it to a Path if necessary, since doing this
         for every file is slow.
@@ -289,7 +287,7 @@ class Library:
 
             print('Treating rename as addition because the original filename isn\'t indexed: %s' % path)
             action = monitor_changes.FileAction.FILE_ACTION_ADDED
-
+        
         # If the file was removed, delete it from the database.  If this is a directory, this
         # will remove everything underneath it.
         if action in (monitor_changes.FileAction.FILE_ACTION_REMOVED, monitor_changes.FileAction.FILE_ACTION_RENAMED_OLD_NAME):
@@ -309,9 +307,10 @@ class Library:
 
         # Don't proactively index everything, or we'll aggressively scan every file.  Skip images
         # that can be found with Windows search.  Don't skip images with metadata (bookmarks).
-        has_metadata = directory_metadata and metadata_storage.load_file_metadata(path, directory_metadata=directory_metadata)
+        has_metadata = metadata_storage.load_file_metadata(path)
         if not path.is_dir() and misc.file_type(path.name) == 'image' and not has_metadata:
             return
+
 
         # If this is a FileAction from file monitoring, queue the update.  We often get multiple
         # change notifications at once, so we queued these to avoid refreshing over and over.
@@ -323,7 +322,7 @@ class Library:
             return
 
         # Read the file to trigger a refresh.
-        return self.get(path=path, conn=db_conn, directory_metadata=directory_metadata)
+        return self.get(path=path, conn=db_conn)
 
     async def update_pending_files(self):
         """
@@ -398,7 +397,7 @@ class Library:
                 print('Updating last update time')
                 self.db.set_last_update_time(now, conn=db_conn)
 
-    def cache_file(self, path: os.PathLike, *, directory_metadata=None, conn=None):
+    def cache_file(self, path: os.PathLike, *, conn=None):
         # Create the appropriate entry type.
         if path.is_dir():
             entry = self._create_directory_record(path)
@@ -411,7 +410,7 @@ class Library:
         # If we weren't given metadata, read it now.  During batch refreshes
         # we'll always be given the metadata, since we're reading lots of files
         # that share the same data.
-        file_metadata = metadata_storage.load_file_metadata(path, directory_metadata=directory_metadata)
+        file_metadata = metadata_storage.load_file_metadata(path)
 
         # Import bookmarks.
         entry['bookmarked'] = file_metadata.get('bookmarked', False)
@@ -496,8 +495,6 @@ class Library:
         except ValueError:
             return
 
-        # Load metadata for this directory, so we only read it once and not per file.
-        directory_metadata = metadata_storage.load_directory_metadata(path)
 
         for child in path.iterdir():
             is_dir = child.is_dir()
@@ -512,16 +509,13 @@ class Library:
                 continue
 
             # Find the file in cache and cache it if needed.
-            entry = self.get(child, force_refresh=force_refresh, directory_metadata=directory_metadata)
+            entry = self.get(child, force_refresh=force_refresh)
             if entry is not None:
                 yield entry
 
-    def get(self, path, *, force_refresh=False, check_mtime=True, directory_metadata=None, conn=None):
+    def get(self, path, *, force_refresh=False, check_mtime=True, conn=None):
         """
         Return the entry for path.  If the path isn't cached, populate the cache entry.
-
-        If directory_metadata is set, it's the metadata for this file.  See metadata_storage.
-        This is only used if we need to cache the file.
 
         If force_refresh is true, always repopulate the cache entry.
         """
@@ -546,7 +540,7 @@ class Library:
             except ValueError:
                 return None
 
-            entry = self.cache_file(path, conn=conn, directory_metadata=directory_metadata)
+            entry = self.cache_file(path, conn=conn)
 
         if entry is None:
             return None
@@ -616,8 +610,7 @@ class Library:
         Returns the updated index entry.
         """
         # Update the bookmark metadata file.
-        directory_metadata = metadata_storage.load_directory_metadata(path)
-        file_metadata = metadata_storage.load_file_metadata(path, directory_metadata=directory_metadata)
+        file_metadata = metadata_storage.load_file_metadata(path)
 
         if set_bookmark:
             file_metadata['bookmarked'] = True
@@ -630,7 +623,7 @@ class Library:
         metadata_storage.save_file_metadata(path, file_metadata)
 
         # Update the file in the index.
-        return self.cache_file(path, directory_metadata=directory_metadata)
+        return self.cache_file(path)
 
     def get_all_bookmark_tags(self):
         return self.db.get_all_bookmark_tags()

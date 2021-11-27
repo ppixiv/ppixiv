@@ -1,9 +1,14 @@
-import json, os
+import copy, json, os
 from .util import win32
 
 metadata_filename = '.ppixivbookmark.json.txt'
 
-def load_directory_metadata(path):
+# A mapping from metadata filenames to their contents.
+#
+# Note that we always deep copy these objects before returning them to callers.
+_metadata_cache = {}
+
+def load_directory_metadata(directory_path):
     """
     Get stored metadata for files in path.  This currently only stores bookmarks.
     If no metadata is available, return an empty dictionary.
@@ -24,13 +29,16 @@ def load_directory_metadata(path):
     for some file types, but it's hit-or-miss (it handles JPEGs much better than PNGs).
     """
     try:
-        directory_path = path.filesystem_parent
         this_metadata_filename = os.fspath(directory_path / metadata_filename)
+        result = _metadata_cache.get(this_metadata_filename)
+        if result is not None:
+            return copy.deepcopy(result)
 
         with open(this_metadata_filename, 'rt', encoding='utf-8') as f:
             data = f.read()
             result = json.loads(data)
             result = result['data']
+            _metadata_cache[this_metadata_filename] = result
             return result
     except FileNotFoundError:
         return { }
@@ -38,8 +46,7 @@ def load_directory_metadata(path):
         print('Error reading metadata from %s: %s' % (this_metadata_filename, e))
         return { }
 
-def save_directory_metadata(path, data):
-    directory_path = path.filesystem_parent
+def save_directory_metadata(directory_path, data):
     this_metadata_filename = os.fspath(directory_path / metadata_filename)
 
     # If there's no data, delete the metadata file if it exists.
@@ -48,8 +55,13 @@ def save_directory_metadata(path, data):
             os.unlink(this_metadata_filename)
         except FileNotFoundError:
             pass
+
+        if this_metadata_filename in _metadata_cache:
+            del _metadata_cache[this_metadata_filename]
         return
-    
+
+    _metadata_cache[this_metadata_filename] = copy.deepcopy(data)
+
     data = {
         'identifier': 'ppixivmetadatafile',
         'version': 1,
@@ -72,7 +84,7 @@ def save_directory_metadata(path, data):
         # Hide the file so we don't clutter the user's directory if possible.
         win32.set_file_hidden(f)
 
-def load_file_metadata(path, *, directory_metadata=None):
+def load_file_metadata(path):
     """
     Return metadata for the given path.
 
@@ -80,18 +92,18 @@ def load_file_metadata(path, *, directory_metadata=None):
     load_directory_metadata, it can be specified with directory_metadata
     to avoid loading it repeatedly while scanning directories.
     """
-    filename = path.relative_to(path.filesystem_parent)
+    directory_path = path.filesystem_parent
+    filename = path.relative_to(directory_path)
 
-    if directory_metadata is None:
-        directory_metadata = load_directory_metadata(path)
+    directory_metadata = load_directory_metadata(directory_path)
     return directory_metadata.get(str(filename), {})
 
-def save_file_metadata(path, data, *, directory_metadata=None):
-    filename = path.relative_to(path.filesystem_parent)
+def save_file_metadata(path, data):
+    directory_path = path.filesystem_parent
+    filename = path.relative_to(directory_path)
 
     # Read the full metadata so we can replace this file.
-    if directory_metadata is None:
-        directory_metadata = load_directory_metadata(path)
+    directory_metadata = load_directory_metadata(directory_path)
 
     # If data is empty, remove this record.
     if not data:
@@ -100,4 +112,16 @@ def save_file_metadata(path, data, *, directory_metadata=None):
     else:
         directory_metadata[str(filename)] = data
 
-    save_directory_metadata(path, directory_metadata)
+    save_directory_metadata(directory_path, directory_metadata)
+
+def get_files_with_metadata(metadata_path):
+    """
+    Given the filename to a metadata file, return paths to the files the metadata
+    file contains.
+    """
+    assert metadata_path.name == metadata_filename
+    directory_path = metadata_path.parent
+    directory_metadata = load_directory_metadata(directory_path)
+
+    return [(directory_path / filename) for filename in directory_metadata.keys()]
+

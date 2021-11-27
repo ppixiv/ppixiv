@@ -159,12 +159,13 @@ class ZipPath(PathBase):
         entry = self._get_our_entry(required=True)
         mode = stat.S_IFDIR if entry.is_dir else stat.S_IFREG
         mtime = entry.mtime.timestamp()
+        mtime_ns = int(mtime*1000000000)
         return os.stat_result((
             mode, 0, 0, 1, 0, 0, entry.size,
             mtime, mtime, mtime, # int atime, mtime, ctime
             mtime, mtime, mtime, # float atime, mtime, ctime
-            mtime*1000000000, mtime*1000000000, mtime*1000000000, # atime_ns, mtime_ns, ctime_ns
-            ))
+            mtime_ns, mtime_ns, mtime_ns, # atime_ns, mtime_ns, ctime_ns
+        ))
 
     def direct_stat(self):
         return os.stat(self.zip.path)
