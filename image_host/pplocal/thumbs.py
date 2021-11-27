@@ -7,7 +7,7 @@ from pathlib import Path
 from shutil import copyfile
 
 from . import video
-from .util import misc, mjpeg_mkv_to_zip
+from .util import misc, mjpeg_mkv_to_zip, gif_to_zip
 
 resource_path = (Path(__file__) / '../../../resources').resolve()
 blank_image = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=')
@@ -293,10 +293,18 @@ async def handle_mjpeg(request):
         if modified_time <= if_modified_since:
             raise aiohttp.web.HTTPNotModified()
 
+    mime_type = misc.mime_type_from_ext(absolute_path.suffix)
+
     with absolute_path.open('rb') as f:
-        # Get frame durations.  This is where we expect an exception to be thrown if
-        # the file isn't an MJPEG, so we do this before creating our response.
-        frame_durations = mjpeg_mkv_to_zip.get_frame_durations(f)
+        # We can convert MJPEG MKVs and GIFs to animation ZIPs.
+        if mime_type == 'video/x-matroska':
+            # Get frame durations.  This is where we expect an exception to be thrown if
+            # the file isn't an MJPEG, so we do this before creating our response.
+            frame_durations = mjpeg_mkv_to_zip.get_frame_durations(f)
+            generator = mjpeg_mkv_to_zip.create_ugoira(f, frame_durations)
+        elif mime_type == 'image/gif':
+            frame_durations = gif_to_zip.get_frame_durations(f)
+            generator = gif_to_zip.create_ugoira(f, frame_durations)
 
         response = aiohttp.web.StreamResponse(status=200, headers={
             'Content-Type': 'application/x-zip-compressed',
@@ -305,8 +313,7 @@ async def handle_mjpeg(request):
         response.enable_chunked_encoding()
         await response.prepare(request)
 
-        async for data in mjpeg_mkv_to_zip.create_ugoira(f, frame_durations):
+        async for data in generator:
             await response.write(data)
 
         await response.write_eof()
-    

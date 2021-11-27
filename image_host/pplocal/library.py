@@ -144,7 +144,12 @@ class Library:
                 # Refresh just files with metadata.
                 path = Path(result.path)
                 for path in metadata_storage.get_files_with_metadata(path):
-                    self.handle_update(path, action='refresh', db_conn=db_conn)
+                    try:
+                        self.handle_update(path, action='refresh', db_conn=db_conn)
+                    except FileNotFoundError as e:
+                        print('Bookmarked file %s doesn\'t exist' % path)
+                        continue
+
 
     async def refresh(self, *,
             path=None,
@@ -426,10 +431,7 @@ class Library:
             # This file type isn't supported.
             return None
         
-        # Call direct_stat directly instead of path.stat(), since we need the inode and it's
-        # not present on path.stat() on Windows.  This is slower, but we're on a slow path
-        # anyway.
-        stat = path.direct_stat()
+        stat = path.stat()
 
         # Open the file with all share modes active, so we don't lock the file and interfere
         # with the user working with the file.
@@ -443,6 +445,7 @@ class Library:
         artist = media_metadata.get('artist', '')
         tags = media_metadata.get('tags', '')
         codec = media_metadata.get('codec', '')
+        animation = media_metadata.get('animation', False)
 
         if not title:
             title = path.name
@@ -461,6 +464,7 @@ class Library:
             'width': width,
             'height': height,
             'codec': codec,
+            'animation': animation,
         }
 
         return data

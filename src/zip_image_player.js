@@ -169,6 +169,42 @@ ppixiv.ZipImageDownloader = class
     }
 };
 
+
+// This gives a small subset of HTMLVideoPlayer's API to control the video, so
+// video_ui can work with this in the same way as a regular video.
+class ZipVideoInterface extends EventTarget
+{
+    constructor(player)
+    {
+        super();
+        this.player = player;
+    }
+
+    // This is to tell video_ui to hide audio controls, since we have no audio.  Somehow
+    // there's no interface on HTMLVideoElement for this.
+    get hide_audio_controls() { return true; }
+
+    get paused() { return this.player.paused; }
+
+    get duration()
+    {
+        // Expose the seekable duration rather than the full duration, since it looks
+        // weird if you seek to the end of the seek bar and the time isn't at the end.
+        //
+        // Some crazy person decided to use NaN as a sentinel for unknown duration instead
+        // of null, so mimic that.
+        let result = this.player.get_seekable_duration();
+        if(result == null)
+            return NaN;
+        else
+            return result;
+    }
+
+    get currentTime() { return this.player.get_current_frame_time(); }
+    play() { return this.player.play(); }
+    pause() { return this.player.pause(); }
+}
+
 ppixiv.ZipImagePlayer = class
 {
     constructor(options)
@@ -176,6 +212,7 @@ ppixiv.ZipImagePlayer = class
         this.next_frame = this.next_frame.bind(this);
 
         this.op = options;
+        this.interface = new ZipVideoInterface(this);
 
         // If true, continue playback when we get more data.
         this.waiting_for_frame = true;
@@ -191,7 +228,7 @@ ppixiv.ZipImagePlayer = class
         this.frameTimestamps = [];
         this.total_length = 0;
         this.frame_count = 0;
-        this.seekable_length = 0;
+        this.seekable_length = null;
 
         this.frame_data = [];
         this.frame_images = [];
@@ -395,7 +432,10 @@ ppixiv.ZipImagePlayer = class
                                 this.op.canvas.height);
         this.context.drawImage(image, 0, 0);
 
+        this.video_interface.dispatchEvent(new Event("timeupdate"));
+
         // If the user wants to know when the frame is ready, call it.
+        // XXX: use timeupdate
         if(this.op.drew_frame)
         {
             helpers.yield(() => {
@@ -460,6 +500,8 @@ ppixiv.ZipImagePlayer = class
         if(this.paused) {
             this.paused = false;
             this.display_frame();
+
+            this.video_interface.dispatchEvent(new Event("play"));
         }
     }
 
@@ -471,7 +513,25 @@ ppixiv.ZipImagePlayer = class
         if(!this.paused) {
             this.unset_timer();
             this.paused = true;
+
+            this.video_interface.dispatchEvent(new Event("pause"));
         }
+    }
+
+    set_pause(value)
+    {
+        if(this.dead)
+            return;
+        if(this.paused = value)
+            return;
+
+        this.context.canvas.paused = this.paused;
+        this.paused = value;
+    }
+
+    get video_interface()
+    {
+        return this.interface;
     }
 
     toggle_pause()
@@ -529,12 +589,16 @@ ppixiv.ZipImagePlayer = class
 
     get_seekable_duration()
     {
-        return this.seekable_length / 1000;
+        if(this.seekable_length == null)
+            return null;
+        else
+            return this.seekable_length / 1000;
     }
 
     get_current_frame_time()
     {
-        return this.frameTimestamps[this.frame] / 1000;
+        let timestamp = this.frameTimestamps[this.frame];
+        return timestamp == null? null: timestamp / 1000;
     }
 
     // Set the video to the closest frame to the given time.

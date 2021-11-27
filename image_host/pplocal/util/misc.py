@@ -1,5 +1,5 @@
 # Helpers that don't have dependancies on our other modules.
-import asyncio, os
+import asyncio, os, io, struct
 from PIL import Image, ExifTags
 from pprint import pprint
 
@@ -92,6 +92,10 @@ def read_metadata(f, mime_type):
             'artist': data.get('tag/ART') or '',
             'tags': '',
             'codec': data.get('codec'),
+
+            # "animation" means we'll use the ZIP animation format for the file rather
+            # than treat it as a video, since browsers don't support MJPEG.
+            'animation': data.get('codec') == 'V_MJPEG',
         }
 
     if not mime_type.startswith('image/'):
@@ -107,6 +111,10 @@ def read_metadata(f, mime_type):
 
     result['width'] = img.size[0]
     result['height'] = img.size[1]
+
+    # If this is a GIF, remember that it's an animation.
+    if mime_type == 'image/gif':
+        result['animation'] = img.is_animated
 
     # PIL's parser for PNGs is very slow, so only support metadata from JPEG for now.
     if mime_type == 'image/jpeg':
@@ -193,3 +201,38 @@ class AsyncEvent:
             return False
         finally:
             self.waits.remove(future)
+
+class DataStream:
+    """
+    A dummy stream to receive data from zipfile and push it into a queue.
+    """
+    def __init__(self, queue):
+        self.queue = queue
+        self.data = io.BytesIO()
+
+    def write(self, data):
+        self.data.write(data)
+        return len(data)
+
+    def fix_file_size(self, file_size):
+        """
+        Work around a Python bug.  If zipfile is given a non-seekable stream, it
+        writes 0 as the file size in the local file header.  That's unavoidable
+        if you're streaming data in, but it makes no sense when you give it the
+        whole file at once, and results in creating ZIPs which are unstreamable.
+        We require streamable ZIPs, so we have to fix the header.
+
+        This is called after writing each file, so the local file header for the
+        latest file is at the beginning of self.data.
+        """
+        with self.data.getbuffer() as buffer:
+            struct.pack_into('<L', buffer, 22, file_size)
+
+        # Flush the file, so the next file starts at the beginning of self.data
+        # so we can find it for the next call.
+        self.flush()
+
+    def flush(self):
+        self.queue.put(self.data.getvalue())
+        self.data.seek(0)
+        self.data.truncate()

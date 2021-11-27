@@ -84,6 +84,23 @@ def save_directory_metadata(directory_path, data):
         # Hide the file so we don't clutter the user's directory if possible.
         win32.set_file_hidden(f)
 
+def _directory_path_for_file(path):
+    """
+    Given a path, return the directory its metadata file is in and the filename
+    of the file inside it.
+    """
+    if path.real_file and path.is_dir():
+        # If this is a directory on disk, put the metadata for the directory itself inside
+        # the directory instead of in the parent directory.  Don't do this for ZIPs (which
+        # are "directories" but we don't write files into them).
+        directory_path = path
+    else:
+        # Put data about the file in the containing directory.
+        directory_path = path.filesystem_parent
+
+    filename = path.relative_to(directory_path)
+    return directory_path, filename
+
 def load_file_metadata(path):
     """
     Return metadata for the given path.
@@ -92,15 +109,13 @@ def load_file_metadata(path):
     load_directory_metadata, it can be specified with directory_metadata
     to avoid loading it repeatedly while scanning directories.
     """
-    directory_path = path.filesystem_parent
-    filename = path.relative_to(directory_path)
+    directory_path, filename = _directory_path_for_file(path)
 
     directory_metadata = load_directory_metadata(directory_path)
     return directory_metadata.get(str(filename), {})
 
 def save_file_metadata(path, data):
-    directory_path = path.filesystem_parent
-    filename = path.relative_to(directory_path)
+    directory_path, filename = _directory_path_for_file(path)
 
     # Read the full metadata so we can replace this file.
     directory_metadata = load_directory_metadata(directory_path)

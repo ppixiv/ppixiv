@@ -152,6 +152,10 @@ class ZipPath(PathBase):
         return Path(self.zip.path)
 
     @property
+    def real_file(self):
+        return None
+
+    @property
     def filesystem_parent(self):
         return self.zip.path.parent
 
@@ -166,9 +170,6 @@ class ZipPath(PathBase):
             mtime, mtime, mtime, # float atime, mtime, ctime
             mtime_ns, mtime_ns, mtime_ns, # atime_ns, mtime_ns, ctime_ns
         ))
-
-    def direct_stat(self):
-        return os.stat(self.zip.path)
 
     def iterdir(self):
         entry = self.zip.directory.get(self._path)

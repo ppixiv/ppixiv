@@ -87,7 +87,7 @@ ppixiv.viewer_video = class extends ppixiv.viewer
         this.update_seek_bar();
 
         // Tell the video UI about the video.
-        this.video_ui.video_changed(this);
+        this.video_ui.video_changed({player: this, video: this.video});
 
         this.refresh_focus();
     }
@@ -119,7 +119,7 @@ ppixiv.viewer_video = class extends ppixiv.viewer
 
         if(this.video_ui)
         {
-            this.video_ui.video_changed(null);
+            this.video_ui.video_changed();
             this.video_ui = null;
         }
 
@@ -408,7 +408,7 @@ ppixiv.video_ui = class extends ppixiv.widget
             helpers.toggle_fullscreen();
         });
 
-        this.video_changed(null);
+        this.video_changed();
     }
 
     // Set whether the seek bar is above or below the video UI.
@@ -423,7 +423,7 @@ ppixiv.video_ui = class extends ppixiv.widget
         this.seek_bar.container.dataset.position = top? "top":"bottom";
     }
     
-    video_changed(player)
+    video_changed({player=null, video=null}={})
     {
         if(this.remove_video_listeners)
         {
@@ -432,7 +432,7 @@ ppixiv.video_ui = class extends ppixiv.widget
         }
 
         this.player = player;
-        this.video = player?.video;
+        this.video = video;
 
         // Only display the main UI when we have a video.  Don't hide the seek bar, since
         // it's also used by viewer_ugoira.
@@ -452,6 +452,9 @@ ppixiv.video_ui = class extends ppixiv.widget
         this.video.addEventListener("loadedmetadata", (e) => { this.time_changed(); }, { signal: this.remove_video_listeners.signal });
         this.video.addEventListener("progress", (e) => { this.time_changed(); }, { signal: this.remove_video_listeners.signal });
 
+        // Hide the PIP button if the browser or this video doesn't support it.
+        this.container.querySelector(".pip-button").hidden = this.video.requestPictureInPicture == null;
+        
         this.pause_changed();
         this.volume_changed();
         this.time_changed();
@@ -465,15 +468,25 @@ ppixiv.video_ui = class extends ppixiv.widget
 
     volume_changed()
     {
-        // Update the displayed volume icon.  When not muted, scale opacity based on the volume.
-        let opacity = (this.video.volume * 0.75) + 0.25;
-        this.container.querySelector("[data-volume='high']").style.display = !this.video.muted? "":"none";
-        this.container.querySelector("[data-volume='high']").style.opacity = opacity;
-        this.container.querySelector("[data-volume='mute']").style.display = this.video.muted? "":"none";
+        if(this.video.hide_audio_controls)
+        {
+            for(let element of this.container.querySelectorAll("[data-volume]"))
+                element.style.display = "none";
+            this.volume_slider.container.hidden = true;
+        }
+        else
+        {
+            // Update the displayed volume icon.  When not muted, scale opacity based on the volume.
+            let opacity = (this.video.volume * 0.75) + 0.25;
+            this.container.querySelector("[data-volume='high']").style.display = !this.video.muted? "":"none";
+            this.container.querySelector("[data-volume='high']").style.opacity = opacity;
+            this.container.querySelector("[data-volume='mute']").style.display = this.video.muted? "":"none";
 
-        // Update the volume slider.  If the video is muted, display 0 instead of the
-        // underlying volume.
-        this.volume_slider.set_value(this.video.muted? 0:this.video.volume);
+            // Update the volume slider.  If the video is muted, display 0 instead of the
+            // underlying volume.
+            this.volume_slider.container.hidden = false;
+            this.volume_slider.set_value(this.video.muted? 0:this.video.volume);
+        }
     }
 
     time_changed()
@@ -481,15 +494,27 @@ ppixiv.video_ui = class extends ppixiv.widget
         if(this.video == null)
             return;
 
-        if(isNaN(this.video.duration))
+        let duration = this.video.duration;
+        let now = this.video.currentTime;
+        if(isNaN(duration))
         {
             this.time.innerText = "";
             return;
         }
 
-        let current_time = helpers.format_seconds(this.video.currentTime);
-        let duration = helpers.format_seconds(this.video.duration);
-        this.time.innerText = `${current_time} / ${duration}`;
+        if(duration < 10)
+        {
+            let fmt = (total_seconds) => {
+                let seconds = Math.floor(total_seconds);
+                let ms = (total_seconds * 1000) % 1000;
+                return "" + seconds + "." + ms.toString().padStart(3, '0');
+            };
+            this.time.innerText = `${fmt(now)} / ${fmt(duration)}`;
+        }
+        else
+        {
+            this.time.innerText = `${helpers.format_seconds(now)} / ${helpers.format_seconds(duration)}`;
+        }
     }
 }
 

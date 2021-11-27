@@ -44,6 +44,14 @@ class PathBase:
     def with_name(self, name): raise NotImplemented
 
     @property
+    def real_file(self):
+        """
+        If this is an actual file on the filesystem, return its Path.  Otherwise,
+        return None.
+        """
+        raise NotImplemented
+
+    @property
     def filesystem_path(self):
         """
         Return a Path object for the file on disk containing this file.
@@ -66,17 +74,6 @@ class PathBase:
     def stat(self):
         """
         Return stat_result.
-
-        If a DirEntry is available, that stat will be returned to avoid extra file I/O.
-        If a complete stat is required, see direct_stat().
-        """
-        raise NotImplemented
-
-    def direct_stat(self):
-        """
-        Return the most complete stat_result available.
-
-        This ignores DirEntry and makes an os.stat() call if required.
         """
         raise NotImplemented
 

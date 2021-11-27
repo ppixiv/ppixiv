@@ -57,7 +57,7 @@ class SearchDirEntryStat:
 
     def __repr__(self):
         fields = []
-        for field in ('st_mode', 'st_ino', 'st_dev', 'st_size', 'st_atime', 'st_mtime', 'st_ctime'):
+        for field in ('st_mode', 'st_dev', 'st_size', 'st_atime', 'st_mtime', 'st_ctime'):
             fields.append('%s=%s' % (field, getattr(self, field)))
         return f'SearchDirEntryStat({ ", ".join(fields) })'
 
@@ -124,10 +124,6 @@ class SearchDirEntry(os.PathLike):
     @property
     def name(self):
         return os.path.basename(self._path)
-
-    @property
-    def inode(self):
-        return None
 
     def is_dir(self, *, follow_symlinks=True):
         return self._data['System.ItemType'] == 'Directory'

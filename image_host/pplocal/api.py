@@ -51,7 +51,7 @@ def get_illust_info(library, entry, base_url):
     public_path = library.get_public_path(Path(entry['path']))
     
     illust_id = '%s:%s' % ('folder' if entry['is_directory'] else 'file', public_path)
-    is_mjpeg = entry.get('codec') == 'V_MJPEG'
+    is_animation = entry.get('animation')
 
     # The URLs that this file might have:
     remote_image_path = base_url + '/file/' + urllib.parse.quote(illust_id, safe='/:')
@@ -59,7 +59,7 @@ def get_illust_info(library, entry, base_url):
     remote_poster_path = base_url + '/poster/' + urllib.parse.quote(illust_id, safe='/:')
     remote_mjpeg_path = base_url + '/mjpeg-zip/' + urllib.parse.quote(illust_id, safe='/:')
 
-    if is_mjpeg:
+    if is_animation:
         # For MJPEGs, use the poster as the "original" image.  The video is retrieved
         # with mjpeg-zip.
         remote_image_path = remote_poster_path
@@ -71,9 +71,15 @@ def get_illust_info(library, entry, base_url):
         ctime = entry['ctime']
         timestamp = datetime.fromtimestamp(ctime, tz=timezone.utc).isoformat()
 
+        # If this is a ZIP, remove the extension from the title.
+        title = os.path.basename(illust_id)
+        if title.lower().endswith('.zip'):
+            title = title[:-4]
+
         image_info = {
             'id': illust_id,
             'localPath': str(entry['path']),
+            'illustTitle': title,
             'createDate': timestamp,
             'bookmarkData': _bookmark_data(entry),
             'previewUrls': [remote_thumb_path],
@@ -105,7 +111,7 @@ def get_illust_info(library, entry, base_url):
         pages[0]['urls']['poster'] = remote_poster_path
 
     # If this is an MJPEG, reteurn the path to the transformed ZIP.
-    if is_mjpeg:
+    if is_animation:
         pages[0]['urls']['mjpeg_zip'] = remote_mjpeg_path
 
     timestamp = datetime.fromtimestamp(ctime, tz=timezone.utc).isoformat()
@@ -123,7 +129,7 @@ def get_illust_info(library, entry, base_url):
         # We use a string "video" for videos instead of assigning another number.  It's
         # more meaningful, and we're unlikely to collide if they decide to add additional
         # illustTypes.
-        'illustType': 0 if filetype == 'image' else 2 if is_mjpeg else 'video',
+        'illustType': 2 if is_animation else 0 if filetype == 'image' else 'video',
         'illustTitle': entry['title'],
 
         # We use -1 to indicate no user instead of null.  Pixiv user and illust IDs can

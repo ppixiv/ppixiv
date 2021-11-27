@@ -14,6 +14,7 @@ import io, json, sys, zipfile, struct, os
 from io import BytesIO
 from .synchronous_queue_task import SynchronousQueueTask
 from ..extern import mkvparse
+from .misc import DataStream
 from pprint import pprint
 
 class ExportMJPEG(mkvparse.MatroskaHandler):      
@@ -88,46 +89,13 @@ def get_frame_durations(file):
 
     return frame_durations
 
-# A dummy stream to receive data from zipfile and push it into a queue.
-class _DataStream:
-    def __init__(self, queue):
-        self.queue = queue
-        self.data = io.BytesIO()
-
-    def write(self, data):
-        self.data.write(data)
-        return len(data)
-
-    def fix_file_size(self, file_size):
-        """
-        Work around a Python bug.  If zipfile is given a non-seekable stream, it
-        writes 0 as the file size in the local file header.  That's unavoidable
-        if you're streaming data in, but it makes no sense when you give it the
-        whole file at once, and results in creating ZIPs which are unstreamable.
-        We require streamable ZIPs, so we have to fix the header.
-
-        This is called after writing each file, so the local file header for the
-        latest file is at the beginning of self.data.
-        """
-        with self.data.getbuffer() as buffer:
-            struct.pack_into('<L', buffer, 22, file_size)
-
-        # Flush the file, so the next file starts at the beginning of self.data
-        # so we can find it for the next call.
-        self.flush()
-
-    def flush(self):
-        self.queue.put(self.data.getvalue())
-        self.data.seek(0)
-        self.data.truncate()
-
 def _create_ugoira_into_queue(file, queue, frame_durations):
     """
     Create the ZIP, pushing the ZIP data into the given SynchronousQueueTask.
     """
 
     # Create the ZIP.
-    output_stream = _DataStream(queue)
+    output_stream = DataStream(queue)
     zip = zipfile.ZipFile(output_stream, 'w')
 
     try:
@@ -180,7 +148,7 @@ async def test():
     output_stream = BytesIO()
     with open('testing.mkv', 'rb') as file:
         frame_durations = get_frame_durations(file)
-        async for data in create_ugoira(file):
+        async for data in create_ugoira(file, frame_durations):
             print('...', len(data))
 
 #    buf = output_stream.getbuffer()

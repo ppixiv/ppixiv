@@ -2,7 +2,7 @@
 
 ppixiv.viewer_ugoira = class extends ppixiv.viewer
 {
-    constructor(options)
+    constructor({video_ui, seek_bar, ...options})
     {
         super(options);
         
@@ -14,7 +14,8 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
         this.seek_callback = this.seek_callback.bind(this);
         this.load = new SentinelGuard(this.load, this);
 
-        this.seek_bar = options.seek_bar;
+        this.video_ui = video_ui;
+        this.seek_bar = seek_bar;
         this.seek_bar.set_current_time(0);
         this.seek_bar.set_callback(this.seek_callback);
 
@@ -93,6 +94,8 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
             drew_frame: this.drew_frame,
         });            
 
+        this.video_ui.video_changed({player: this, video: this.player.video_interface});
+
         this.refresh_focus();
     }
 
@@ -136,6 +139,12 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
 
         // If this.load() is running, cancel it.
         this.load.abort();
+
+        if(this.video_ui)
+        {
+            this.video_ui.video_changed();
+            this.video_ui = null;
+        }
 
         if(this.seek_bar)
         {
@@ -236,7 +245,6 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
         if(this.seek_bar)
         {
             // Update the seek bar.
-            var frame_time = this.player.get_current_frame_time();
             this.seek_bar.set_current_time(this.player.get_current_frame_time());
             this.seek_bar.set_duration(this.player.get_seekable_duration());
         }

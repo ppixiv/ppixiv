@@ -66,7 +66,8 @@ class FileIndex(Database):
                             bookmarked NOT NULL DEFAULT FALSE,
                             bookmark_tags NOT NULL DEFAULT "",
                             directory_thumbnail_path,
-                            codec
+                            codec,
+                            animation NOT NULL DEFAULT FALSE
                         )
                     ''')
 

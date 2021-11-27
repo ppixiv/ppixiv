@@ -112,6 +112,16 @@ class FilesystemPath(PathBase):
         return FilesystemPath(self._path.with_name(name))
 
     @property
+    def real_file(self):
+        # If this is a ZIP, we're treating it like a directory and listing its contents
+        # lists the files inside the ZIP.  Don't return the path to the ZIP on disk when
+        # we're doing this.  For example, metadata_storage depends on this.
+        if self._is_zip():
+            return None
+
+        return self._path
+
+    @property
     def filesystem_path(self):
         return self._path
 
@@ -122,11 +132,7 @@ class FilesystemPath(PathBase):
     def stat(self):
         if self.direntry is not None:
             return self.direntry.stat()
-        else:
-            return self.direct_stat()
-
-    def direct_stat(self):
-        if self.stat_cache is not None:
+        elif self.stat_cache is not None:
             return self.stat_cache
         else:
             self.stat_cache = self._path.stat()
