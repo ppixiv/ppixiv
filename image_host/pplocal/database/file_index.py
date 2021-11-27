@@ -74,6 +74,7 @@ class FileIndex(Database):
                     conn.execute(f'CREATE INDEX {self.schema}.files_path on files(path)')
                     conn.execute(f'CREATE INDEX {self.schema}.files_parent on files(parent)')
                     conn.execute(f'CREATE INDEX {self.schema}.files_mime_type on files(mime_type)')
+                    conn.execute(f'CREATE INDEX {self.schema}.files_animation on files(animation) WHERE animation')
 
                     # This is used to find untagged bookmarks.  Tag searches use the bookmark_tag table below.
                     conn.execute(f'CREATE INDEX {self.schema}.files_untagged_bookmarks on files(bookmark_tags) WHERE bookmark_tags == "" AND bookmarked')
@@ -333,6 +334,10 @@ class FileIndex(Database):
         # If set, this is an array of bookmark tags to filter for.
         bookmark_tags=None,
 
+        # If set, only match this exact file ID in the database.  This is used to
+        # check if a loaded entry matches other search filters.
+        file_id=None,
+
         include_files=True, include_dirs=True,
         conn=None
     ):
@@ -367,8 +372,16 @@ class FileIndex(Database):
                 where.append(f'not {self.schema}.files.is_directory')
             if media_type is not None:
                 assert media_type in ('videos', 'images')
-                where.append(f'{self.schema}.mime_type GLOB ?')
-                params.append('video/*' if media_type == 'videos' else 'image/*')
+
+                if media_type == 'videos':
+                    # Include animation, so searching for videos includes animated GIFs.
+                    where.append(f'({self.schema}.mime_type GLOB "video/*" OR animation)')
+                elif media_type == 'images':
+                    where.append(f'{self.schema}.mime_type GLOB "image/*"')
+
+            if file_id is not None:
+                where.append(f'{self.schema}.files.id = ?')
+                params.append(file_id)
 
             if bookmarked is not None:
                 if bookmarked:
@@ -423,6 +436,14 @@ class FileIndex(Database):
             for row in cursor.execute(query, params):
                 result = dict(row)
                 yield result
+
+    def id_matches_search(self, file_id, **search_options):
+        """
+        Return true if the given file ID matches the search options.
+        """
+        for entry in self.search(file_id=file_id, **search_options):
+            return True
+        return False
 
     def get_all_bookmark_tags(self, *, conn=None):
         """

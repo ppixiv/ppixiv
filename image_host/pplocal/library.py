@@ -585,7 +585,6 @@ class Library:
         if use_windows_search and not search_options.get('bookmarked') and search_options.get('bookmark_tags') is None:
             # Check the Windows index.
             for result in windows_search.search(path=str(path), **search_options):
-                print(result)
                 if result.path in seen_paths:
                     continue
                 seen_paths.add(result.path)
@@ -594,8 +593,13 @@ class Library:
                 if entry is None:
                     continue
 
-                self._convert_to_path(entry)
-                yield entry
+                # Not all search options are supported by Windows indexing.  For example, we
+                # can search for GIFs, but we can't filter for animated GIFs.  Re-check the
+                # entry to see if it matches the search.
+                if self.db.id_matches_search(entry['id'], **search_options):
+                    yield entry
+                else:
+                    print('Discarded Windows search result that doesn\'t match: %s' % entry['path'])
         
         # Search our library.
         for entry in self.db.search(path=str(path), **search_options):

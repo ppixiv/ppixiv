@@ -232,7 +232,9 @@ def search(*,
     if media_type == 'images':
         where.append("System.Kind = 'picture'")
     elif media_type == 'videos':
-        where.append("System.Kind = 'video'")
+        # Include GIFs when searching for videos.  We can't filter for animated GIFs here,
+        # so include them and let the caller finish filtering them.
+        where.append("(System.Kind = 'video' OR System.ItemType = '.gif')")
 
     # where.append("(System.ItemType = 'Directory' OR System.Kind = 'picture' OR System.Kind = 'video')")
 
