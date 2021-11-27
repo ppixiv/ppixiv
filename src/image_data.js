@@ -252,6 +252,8 @@ ppixiv.image_data = class
             return null;
         }
 
+        local_api.adjust_illust_info(illust_data.illust);
+
         this.image_data[illust_id] = illust_data.illust;
         return illust_data.illust;
     }

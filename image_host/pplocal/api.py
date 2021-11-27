@@ -97,25 +97,21 @@ def get_illust_info(library, entry, base_url):
     size = entry['width'], entry['height']
     ctime = entry['ctime']
 
-    pages = [{
-        'width': size[0],
-        'height': size[1],
-        'urls': {
-            'original': remote_image_path,
-            'small': remote_thumb_path,
-        },
-    }]
+    urls = {
+        'original': remote_image_path,
+        'small': remote_thumb_path,
+    }
 
     # If this is a video, add the poster path.
     if filetype == 'video':
-        pages[0]['urls']['poster'] = remote_poster_path
+        urls['poster'] = remote_poster_path
 
     # If this is an MJPEG, reteurn the path to the transformed ZIP.
     if is_animation:
-        pages[0]['urls']['mjpeg_zip'] = remote_mjpeg_path
+        urls['mjpeg_zip'] = remote_mjpeg_path
 
     timestamp = datetime.fromtimestamp(ctime, tz=timezone.utc).isoformat()
-    preview_urls = [page['urls']['small'] for page in pages]
+    preview_urls = [urls['small']]
     tags = entry['tags'].split(' ')
     if '' in tags:
         tags.remove('')
@@ -135,12 +131,11 @@ def get_illust_info(library, entry, base_url):
         # We use -1 to indicate no user instead of null.  Pixiv user and illust IDs can
         # be treated as strings or ints, so using null is awkward.
         'userId': -1,
-        'pageCount': len(pages),
         'bookmarkData': _bookmark_data(entry),
         'createDate': timestamp,
+        'urls': urls,
         'width': size[0],
         'height': size[1],
-        'mangaPages': pages,
         'userName': entry['author'],
         'illustComment': entry['comment'],
         'tagList': tags,

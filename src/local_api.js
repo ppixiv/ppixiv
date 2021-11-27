@@ -39,6 +39,19 @@ ppixiv.local_api = class
         return ppixiv.local_api.local_url != null;
     }
 
+    // Fill in some redundant fields in.  The local API doesn't use mangaPages,
+    // but we fill it in from urls so we can treat it the same way.
+    static adjust_illust_info(illust)
+    {
+        illust.mangaPages = [{
+            width: illust.width,
+            height: illust.height,
+            urls: illust.urls,
+        }];
+
+        illust.pageCount = 1;
+    }
+
     // Run a search against the local API.
     //
     // The results will be registered as thumbnail info and returned.
@@ -53,6 +66,9 @@ ppixiv.local_api = class
             console.error("Error reading directory:", result.reason);
             return null;
         }
+
+        for(let illust of result.results)
+            ppixiv.local_api.adjust_illust_info(illust);
 
         thumbnail_data.singleton().loaded_thumbnail_info(result.results, "internal");
         return result;
