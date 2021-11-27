@@ -52,6 +52,16 @@ def _bake_exif_rotation(image):
 
     return image.transpose(flip_mode[image_orientation])
 
+def _image_is_transparent(img):
+    if img.mode == 'P':
+        return img.info.get('transparency', -1) != -1
+    elif img.mode == 'RGBA':
+        extrema = img.getextrema()
+        if extrema[3][0] < 255:
+            return True
+    else:
+        return False
+
 def threaded_create_thumb(path):
     # Thumbnail the image.
     #
@@ -81,14 +91,17 @@ def threaded_create_thumb(path):
     # If the image has EXIF rotations, bake them into the thumbnail.
     image = _bake_exif_rotation(image)
 
-    file_type = 'JPEG'
-    mime_type = 'image/jpeg'
+    # If the image is transparent, save it as PNG.  Otherwise, save it as JPEG.
+    if _image_is_transparent(image):
+        file_type = 'PNG'
+        mime_type = 'image/png'
+    else:
+        file_type = 'JPEG'
+        mime_type = 'image/jpeg'
+        if image.mode not in ('RGB', 'L'):
+            image = image.convert('RGB')
     
-    # Convert to RGB, since we always send thumbnails as JPEG.
-    if image.mode != 'RGB':
-        image = image.convert('RGB')
-
-    # Compress to JPEG.
+    # Compress the image.
     f = io.BytesIO()
     image.save(f, file_type, quality=70)
     f.seek(0)
