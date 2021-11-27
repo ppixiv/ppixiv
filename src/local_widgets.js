@@ -627,15 +627,14 @@ class local_navigation_widget_item extends ppixiv.tree_widget_item
         for(let dir of result.results)
         {
             // Strip "folder:" off of the name, and use the basename of that as the label.
-            let {type, id: label } = helpers.parse_id(dir.id);
+            let {type } = helpers.parse_id(dir.id);
             if(type != "folder")
                 continue;
     
             // Don't propagate search_options to children.
-            label = label.replace(/.*\//, "");
             let child = new local_navigation_widget_item({
                 parent: this,
-                label: label,
+                label: dir.illustTitle,
                 path: dir.id,
             });
 
