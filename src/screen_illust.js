@@ -583,7 +583,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
             if(next_page == null)
             {
                 // We should normally know which page the illustration we're currently viewing is on.
-                console.warn("Don't know the next page for illust", navigate_from_illust_id);
+                console.log("Don't know the next page for illust", navigate_from_illust_id);
                 new_illust_id = this.data_source.id_list.get_first_id();
                 if(new_illust_id != null)
                     return { illust_id: new_illust_id };

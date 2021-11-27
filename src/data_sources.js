@@ -693,12 +693,6 @@ ppixiv.data_source = class
         link.href = url.toString();
     };
     
-    // Highlight search menu popups if any entry other than the default in them is
-    // selected.
-    //
-    // selector_list is a list of selectors for each menu item.  If any of them are
-    // selected and don't have the data-default attribute, set .active on the popup.
-    // Search filters 
     // Set the active class on all top-level dropdowns which have something other than
     // the default selected.
     set_active_popup_highlight(container)
@@ -714,12 +708,9 @@ ppixiv.data_source = class
             let selected_item = box.querySelector(".selected");
             if(selected_item == null)
             {
-                // There's no selected item.  If there's no default item then this is normal, but if
-                // there's a default item, it should have been selected by default, so this is probably
-                // a bug.
-                var default_entry_exists = box.querySelector("[data-default]") != null;
-                if(default_entry_exists)
-                    console.warn("Dropdown", button, "has no selection");
+                // There's no selected item.  If there's no default item then this is normal.  If
+                // not, this should just be an item for a different data source that isn't being
+                // refreshed right now.
                 continue;
             }
 
@@ -3444,13 +3435,26 @@ ppixiv.data_sources.local = class extends data_source
             return;
         }
 
-        // Split the filename from the directory.  The directory goes in the hash path, since
-        // it represents the data source, and the filename goes in hash args.  This way, the
-        // data source stays the same when viewing images.
-        let { directory: directory, filename: filename } = helpers.split_local_id(id);
         args.hash.delete("illust_id");
-        args.hash.set("file", filename);
-        args.hash_path = directory;
+
+        // If this is a file in the directory we're currently viewing, put the filename in the
+        // hash.  If it's not underneath this directory, make it an absolute path.  This way,
+        // the data source stays the same when we view files, even if we're viewing something
+        // far off (eg. if we're viewing bookmarks).
+        let our_args = new helpers.args(this.url);
+        let our_path = our_args.hash_path;
+        if(!our_path.endsWith("/"))
+            our_path += "/";
+
+        if(id.startsWith(our_path))
+        {
+            let relative_path = id.substr(our_path.length);
+            args.hash.set("file", relative_path);
+        }
+        else
+        {
+            args.hash.set("file", id);
+        }
     }
 
     get_current_illust_id()
@@ -3464,8 +3468,18 @@ ppixiv.data_sources.local = class extends data_source
 
         // Combine the hash path and the filename to get the local ID.
         let file = args.hash.get("file");
-        if(file && args.hash_path != "")
-            return "file:" + args.hash_path + "/" + file;
+        if(file)
+        {
+            // The file path can be relative or absolute.  See set_current_illust_id.
+            if(!file.startsWith("/"))
+            {
+                let parent = args.hash_path;
+                if(!parent.endsWith("/"))
+                    parent = parent + "/";
+                file = parent + file;
+            }
+            return "file:" + file;
+        }
         
         return this.id_list.get_first_id();
     }
