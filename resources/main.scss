@@ -882,6 +882,7 @@ body.hide-r18g .r18g { display: none; }
         position: fixed;
         top: auto;
         bottom: 100%;
+        left: 0;
         transition: transform ease-out .2s;
 
         /* Normally pointer-events is disabled above, so the sides of the UI box don't cover clicks.
