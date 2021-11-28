@@ -1,163 +1,293 @@
 "use strict";
 
-// Simple menu settings widgets.
-ppixiv.menu_option = class extends widget
+
+ppixiv.settings_dialog = class extends ppixiv.dialog_widget
 {
-    static add_settings(container)
+    constructor({...options})
     {
+        super({...options, visible: true, template: `
+            <div class="settings-dialog dialog">
+                <div class=content>
+                    <div class=scroll>
+                        <div class=header>Settings</div>
+                        <div class=items style="
+                            display: flex;
+                            flex-direction: column;
+                        "></div>
+                    </div>
+
+                    <div class=close-button>
+                        <ppixiv-inline src="resources/close-button.svg"></ppixiv-inline>
+                    </div>
+                </div>
+            </div>
+        `});
+
+        this.container.querySelector(".close-button").addEventListener("click", (e) => { this.hide(); });
+
+        this.add_settings();
+
+        // Close if the container is clicked, but not if something inside the container is clicked.
+        this.container.addEventListener("click", (e) => {
+            if(e.target != this.container)
+                return;
+
+            this.visible = false;
+        });
+
+        // Hide on any state change.
+        window.addEventListener("popstate", (e) => {
+            this.visible = false;
+        });
+    }
+
+    visibility_changed()
+    {
+        super.visibility_changed();
+
+        if(!this.visible)
+        {
+            // Remove the widget when it's hidden.
+            this.container.remove();
+        }
+    }
+
+    add_settings()
+    {
+        let container = this.container.querySelector(".scroll .items")
+
         // Options that we pass to all menu_options:
         let global_options = {
-            consume_clicks: true,
             container: container,
             parent: this,
+            classes: ["settings-row"],
         };
 
-        if(container.closest(".screen-manga-container"))
-        {
-            new thumbnail_size_slider_widget({
-                ...global_options,
-                label: "Thumbnail size",
-                setting: "manga-thumbnail-size",
-                min: 0,
-                max: 7,
-            });
-        }
-
-        if(container.closest(".screen-search-container"))
-        {
-            new thumbnail_size_slider_widget({
-                ...global_options,
-                label: "Thumbnail size",
-                setting: "thumbnail-size",
-                min: 0,
-                max: 7,
-            });
-        }
+        // Each settings widget.  Doing it this way lets us move widgets around in the
+        // menu without moving big blocks of code around.
+        let settings_widgets = {
+            thumbnail_size: () => {
+                let thumb_size_slider = new menu_option_button({
+                    ...global_options,
+                    label: "Thumbnail size",
+                    show_checkbox: false,
+                });
         
-        new menu_option_toggle({
-            ...global_options,
-            label: "Disabled by default",
-            setting: "disabled-by-default",
-        });
-
-        new menu_option_toggle({
-            ...global_options,
-            label: "Hide cursor",
-            setting: "no-hide-cursor",
-            invert_display: true,
-        });
-
-        // Firefox's contextmenu behavior is broken, so hide this option.
-        if(navigator.userAgent.indexOf("Firefox/") == -1)
-        {
-            new menu_option_toggle({
-                ...global_options,
-                label: "Shift-right-click to show the popup menu",
-                setting: "invert-popup-hotkey",
-            });
-        }
-
-        new menu_option_toggle({
-            ...global_options,
-            label: "Hold ctrl to show the popup menu",
-            setting: "ctrl_opens_popup",
-        });
-
-        new menu_option_toggle({
-            ...global_options,
-            label: "Hover to show UI",
-            setting: "ui-on-hover",
-            onchange: this.update_from_settings,
-        });
-
-        new menu_option_toggle({
-            ...global_options,
-            label: "Invert scrolling while zoomed",
-            setting: "invert-scrolling",
-        });
- 
-        new menu_option_toggle_light_theme({
-            ...global_options,
-            label: "Light mode",
-            setting: "theme",
-        });
-
-        new menu_option_toggle({
-            ...global_options,
-            label: "Show translations",
-            setting: "disable-translations",
-            invert_display: true,
-        });
- 
-        new menu_option_toggle({
-            ...global_options,
-            label: "Thumbnail panning",
-            setting: "disable_thumbnail_panning",
-            invert_display: true,
-        });
-
-        new menu_option_toggle({
-            ...global_options,
-            label: "Thumbnail zooming",
-            setting: "disable_thumbnail_zooming",
-            invert_display: true,
-        });
-
-        new menu_option_toggle({
-            ...global_options,
-            label: "Quick view",
-            setting: "quick_view",
-
-            check: () => {
-                // Only enable changing this option when using a mouse.  It has no effect
-                // on touchpads.
-                if(ppixiv.pointer_listener.pointer_type == "mouse")
-                    return true;
-
-                message_widget.singleton.show("Quick View is only supported when using a mouse.");
-                return false;
+                thumb_size_slider.container.querySelector(".buttons").hidden = false;
+                thumb_size_slider.container.querySelector(".buttons").style.flexGrow = .5;
+                return new thumbnail_size_slider_widget({
+                    ...global_options,
+                    parent: thumb_size_slider,
+                    container: thumb_size_slider.container.querySelector(".buttons"),
+                    setting: "thumbnail-size",
+                    min: 0,
+                    max: 7,
+                });
             },
-        });
-        new menu_option_toggle({
-            ...global_options,
-            label: "Remember recent history",
-            setting: "no_recent_history",
-            invert_display: true,
-        });
 
-        new menu_option_row({
-            ...global_options,
-            items: [
+            manga_thumbnail_size: () => {
+                let manga_size_slider = new menu_option_button({
+                    ...global_options,
+                    label: "Thumbnail size (manga)",
+                    show_checkbox: false,
+                });
+        
+                manga_size_slider.container.querySelector(".buttons").hidden = false;
+                manga_size_slider.container.querySelector(".buttons").style.flexGrow = .5;
+                return new thumbnail_size_slider_widget({
+                    ...global_options,
+                    parent: manga_size_slider,
+                    container: manga_size_slider.container.querySelector(".buttons"),
+                    setting: "manga-thumbnail-size",
+                    min: 0,
+                    max: 7,
+                });
+            },
+
+            disabled_by_default: () => {
+                return new menu_option_toggle({
+                    ...global_options,
+                    label: "Disabled by default",
+                    setting: "disabled-by-default",
+                    explanation_enabled: "Go to Pixiv by default.",
+                    explanation_disabled: "Go here by default.",
+                });
+            },
+    
+            no_hide_cursor: () => {
+                return new menu_option_toggle({
+                    ...global_options,
+                    label: "Hide cursor",
+                    setting: "no-hide-cursor",
+                    invert_display: true,
+                    explanation_enabled: "Hide the cursor while the mouse isn't moving.",
+                    explanation_disabled: "Don't hide the cursor while the mouse isn't moving.",
+                });
+            },
+    
+            invert_popup_hotkey: () => {
+                return new menu_option_toggle({
+                    ...global_options,
+                    label: "Shift-right-click to show the popup menu",
+                    setting: "invert-popup-hotkey",
+                    explanation_enabled: "Shift-right-click to open the popup menu",
+                    explanation_disabled: "Right click opens the popup menu",
+                });
+            },
+
+            ctrl_opens_popup: () => {
+                    return new menu_option_toggle({
+                    ...global_options,
+                    label: "Hold ctrl to show the popup menu",
+                    setting: "ctrl_opens_popup",
+                    explanation_enabled: "Pressing Ctrl shows the popup menu (for laptops)",
+                });
+            },
+
+            ui_on_hover: () => {
                 new menu_option_toggle({
+                    ...global_options,
+                    label: "Hover to show search box",
+                    setting: "ui-on-hover",
+                    onchange: this.update_from_settings,
+                    explanation_enabled: "Only show the search box when hovering over it",
+                    explanation_disabled: "Always show the search box",
+                });
+            },
+
+            invert_scrolling: () => {
+                return new menu_option_toggle({
+                    ...global_options,
+                    label: "Invert scrolling while zoomed",
+                    setting: "invert-scrolling",
+                    explanation_enabled: "Dragging down moves the image down",
+                    explanation_disabled: "Dragging down moves the image up",
+                });
+            },
+
+            theme: () => {
+                return new menu_option_toggle_light_theme({
+                    ...global_options,
+                    label: "Light mode",
+                    setting: "theme",
+                    explanation_enabled: "FLASHBANG",
+                });
+            },
+    
+            disable_translations: () => {
+                return new menu_option_toggle({
+                    ...global_options,
+                    label: "Show translations",
+                    setting: "disable-translations",
+                    invert_display: true,
+                    explanation_enabled: "Show tag translations when available",
+                    explanation_disabled: "Don't show tag translations",
+                });
+            },
+    
+            disable_thumbnail_panning: () => {
+                return new menu_option_toggle({
+                    ...global_options,
+                    label: "Pan thumbnails while hovering over them",
+                    setting: "disable_thumbnail_panning",
+                    invert_display: true,
+                });
+            },
+    
+            disable_thumbnail_zooming: () => {
+                return new menu_option_toggle({
+                    ...global_options,
+                    label: "Zoom out thumbnails while hovering over them",
+                    setting: "disable_thumbnail_zooming",
+                    invert_display: true,
+                });
+            },
+    
+            quick_view: () => {
+                return new menu_option_toggle({
+                    ...global_options,
+                    label: "Quick view",
+                    setting: "quick_view",
+                    explanation_enabled: "Navigate to images immediately when the mouse button is pressed",
+    
+                    check: () => {
+                        // Only enable changing this option when using a mouse.  It has no effect
+                        // on touchpads.
+                        if(ppixiv.pointer_listener.pointer_type == "mouse")
+                            return true;
+    
+                        message_widget.singleton.show("Quick View is only supported when using a mouse.");
+                        return false;
+                    },
+                });
+            },
+    
+            no_recent_history: () => {
+                return new menu_option_toggle({
+                    ...global_options,
+                    label: "Remember recent history",
+                    setting: "no_recent_history",
+                    invert_display: true,
+                    explanation_enabled: "Remember recently seen thumbnails",
+                    explanation_disabled: "Don't remember recently seen thumbnails",
+                });
+            },
+        
+            linked_tabs_enabled: () => {
+                let linked_tabs = new menu_option_toggle({
                     ...global_options,
                     label: "Linked tabs",
                     setting: "linked_tabs_enabled",
-                }),
-                new menu_option_button({
+                    explanation_enabled: "View images in multiple tabs",
+                    explanation_disabled: "View images in multiple tabs",
+                });
+                
+                linked_tabs.container.querySelector(".buttons").hidden = false;
+                return new menu_option_button({
                     ...global_options,
+                    parent: linked_tabs,
+                    container: linked_tabs.container.querySelector(".buttons"),
                     label: "Edit",
-                    classes: ["small-font"],
-                    no_icon_padding: true,
-
-                    // Let this button close the menu.
-                    consume_clicks: false,
-
+                    classes: ["button"],
+                    show_checkbox: false,
+    
                     onclick: (e) => {
+                        this.visible = false;
+    
                         main_controller.singleton.link_tabs_popup.visible = true;
                         return true;
                     },
-                }),
-            ],
-        });
+                });
+            },
+        };
 
-/*        new menu_option_toggle({
-            container: container,
-            label: "Touchpad mode",
-            setting: "touchpad-mode",
-        }); */
+        settings_widgets.thumbnail_size();
+        settings_widgets.manga_thumbnail_size();
+        settings_widgets.disabled_by_default();
+        settings_widgets.no_hide_cursor();
 
+        // Firefox's contextmenu behavior is broken, so hide this option.
+        if(navigator.userAgent.indexOf("Firefox/") == -1)
+            settings_widgets.invert_popup_hotkey();
+
+        settings_widgets.ctrl_opens_popup();
+        settings_widgets.ui_on_hover();
+        settings_widgets.invert_scrolling();
+        settings_widgets.theme();
+        settings_widgets.disable_translations();
+        settings_widgets.disable_thumbnail_panning();
+        settings_widgets.disable_thumbnail_zooming();
+        settings_widgets.quick_view();
+        settings_widgets.linked_tabs_enabled();
+
+        // Hidden for now (not very useful)
+        // settings_widgets.no_recent_history();
     }
+};
 
+// Simple menu settings widgets.
+ppixiv.menu_option = class extends widget
+{
     constructor({classes=[], ...options})
     {
         super(options);
@@ -207,7 +337,13 @@ ppixiv.menu_option_row = class extends ppixiv.menu_option
 
 ppixiv.menu_option_button = class extends ppixiv.menu_option
 {
-    constructor({url=null, onclick=null, consume_clicks=false, ...options})
+    constructor({
+        url=null,
+        onclick=null,
+        show_checkbox=true,
+        explanation_enabled=null,
+        explanation_disabled=null,
+        ...options})
     {
         // If we've been given a URL, make this a link.  Otherwise, make it a div and
         // onclick will handle it.
@@ -221,16 +357,21 @@ ppixiv.menu_option_button = class extends ppixiv.menu_option
 
         super({...options, template: `
             <${type} ${href} class="menu-toggle box-link">
-                <span class=icon>
-                </span>
-                <span class=label></span>
+                <div class=label-box>
+                    <span class=label></span>
+                    <span class=explanation hidden></span>
+                </div>
+                <div class=buttons hidden></div>
+                <span class=icon></span>
             </{type}>
         `});
 
-        this.onclick_handler = onclick;
         this.onclick = this.onclick.bind(this);
+
+        this.onclick_handler = onclick;
         this._enabled = true;
-        this.consume_clicks = consume_clicks;
+        this.explanation_enabled = explanation_enabled;
+        this.explanation_disabled = explanation_disabled;
 
         // If an icon was provided, add it.
         if(options.icon)
@@ -240,10 +381,11 @@ ppixiv.menu_option_button = class extends ppixiv.menu_option
             icon.appendChild(node);
         }
 
-        // If no_icon_padding is set, hide the icon.  This is used when we don't want
-        // icon padding on the left.
-        if(options.no_icon_padding)
+        if(!show_checkbox)
             this.container.querySelector(".icon").hidden = true;
+
+        if(this.onclick_handler != null)
+            this.container.classList.add("clickable");
 
         this.container.querySelector(".label").innerText = options.label;
         this.container.addEventListener("click", this.onclick);
@@ -311,6 +453,12 @@ ppixiv.menu_option_toggle = class extends ppixiv.menu_option_button
 
         // element.hidden doesn't work on SVG:
         this.container.querySelector(".checkbox").style.display = value? "":"none";
+
+        // Update the explanation text.
+        let text = value? this.explanation_enabled:this.explanation_disabled;
+        let explanation = this.container.querySelector(".explanation");
+        explanation.hidden = text == null;
+        explanation.innerText = text;
     }
 
     get value()
@@ -346,12 +494,7 @@ class menu_option_slider extends ppixiv.menu_option
     {
         super({...options, template: `
             <div class="menu-slider thumbnail-size-box">
-                <div class="box-section">
-                    <span class=label></span>
-                </div>
-                <div class="box-section">
-                    <input class=thumbnail-size type=range>
-                </div>
+                <input class=thumbnail-size type=range>
             </div>
         `});
 
@@ -359,7 +502,6 @@ class menu_option_slider extends ppixiv.menu_option
 
         this.container.addEventListener("input", this.oninput);
         this.container.addEventListener("click", (e) => { e.stopPropagation(); });
-        this.container.querySelector(".label").innerText = options.label;
 
         this.slider = this.container.querySelector("input");
         this.slider.min = this.options.min;
@@ -409,13 +551,7 @@ ppixiv.thumbnail_size_slider_widget = class extends menu_option_slider
     {
         super(options);
 
-        this.onwheel = this.onwheel.bind(this);
-        this.onkeydown = this.onkeydown.bind(this);
         this.setting = setting;
-
-        var view = this.container.closest(".screen");
-        view.addEventListener("wheel", this.onwheel, { passive: false });
-        view.addEventListener("keydown", this.onkeydown);
 
         this.refresh();
     }
@@ -423,36 +559,10 @@ ppixiv.thumbnail_size_slider_widget = class extends menu_option_slider
     get min_value() { return this.options.min; }
     get max_value() { return this.options.max; }
 
-    onkeydown(e)
-    {
-        var zoom = helpers.is_zoom_hotkey(e);
-        if(zoom != null)
-        {
-            e.preventDefault();
-            e.stopImmediatePropagation();
-            this.move(zoom < 0);
-        }
-    }
-
-    onwheel(e)
-    {
-        if(!e.ctrlKey)
-            return;
-
-        e.preventDefault();
-        e.stopImmediatePropagation();
-
-        this.move(e.deltaY > 0);
-    }
-
     // Increase or decrease zoom.
     move(down)
     {
-        var value = this._slider_value;
-        value += down?-1:+1;
-        value = helpers.clamp(value, 0, 5);
-        this._slider_value = value;
-        this.value = this._slider_value;
+        settings.adjust_zoom(this.setting, down);
     }
 
     get value()

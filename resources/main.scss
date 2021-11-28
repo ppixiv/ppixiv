@@ -531,6 +531,7 @@ body.light .whats-new-button.updates > svg {
     width: 100%;
     padding: 0;
     margin: 0;
+    cursor: pointer;
 }
 
 .popup.avatar-popup:hover:after {
@@ -2656,5 +2657,78 @@ svg.heart-image .delete {
         object-fit: contain;
         width: 100%;
         height: 100%;
+    }
+}
+
+.settings-dialog
+{
+
+    .content {
+        width: 80%;
+        height: 80%;
+    }
+    
+    .close-button {
+        position: absolute;
+        top: 5px;
+        right: -40px;
+        color: var(--button-color);
+        background-color: var(--ui-bg-color);
+        padding: 4px;
+        border-radius: 5px;
+        cursor: pointer;
+        &:hover {
+            color: var(--button-highlight-color);
+        }
+        & > svg {
+            display: block;
+        }
+    }
+    
+    .settings-row {
+        padding: 0.5em 1em;
+        gap: 1em;
+    }
+
+    .box-link {
+        // Disable some regular box-link styles:
+        height: auto;
+        background-color: inherit;
+    
+        // Extra buttons (the linked tabs "edit" button):
+        > .buttons > .box-link {
+            padding: 0.35em .75em;
+        }
+
+        &.button {
+            background-color: var(--box-link-bg-color);
+        }
+
+        &.clickable:hover:not(.disabled) {
+            background-color: var(--box-link-hover-color);
+        }
+
+        // If this isn't a clickable row, such as a slider, disable effects on hover.
+        &:not(.clickable):hover {
+            cursor: inherit;
+            background: none;
+        }
+
+        .label-box {
+            margin-left: .25em;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: .25em;
+            .label {
+                padding-top: .25em; // adjust for descenders
+                margin: 0; // disable regular margin
+            }
+
+            .explanation {
+                font-size: 16px;
+                opacity: 0.75;
+            }
+        }
     }
 }

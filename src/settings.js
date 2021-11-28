@@ -127,6 +127,21 @@ ppixiv.settings = class
     {
         settings.get_change_callback_list(key).unregister(callback);
     }
+
+    // Adjust a zoom setting up or down.
+    static adjust_zoom(setting, down)
+    {
+        let value = settings.get(setting);
+        if(typeof(value) != "number" || isNaN(value))
+            value = 4;
+
+        value += down?-1:+1;
+        value = helpers.clamp(value, 0, 5);
+        this._slider_value = value;
+        this.value = this._slider_value;
+
+        settings.set(setting, value);
+    }
 }
 
 // Register settings.

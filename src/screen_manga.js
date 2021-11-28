@@ -36,6 +36,27 @@ ppixiv.screen_manga = class extends ppixiv.screen
 
         settings.register_change_callback("manga-thumbnail-size", this.refresh_ui);
         
+        // Zoom the thumbnails on ctrl-mousewheel:
+        this.container.addEventListener("wheel", (e) => {
+            if(!e.ctrlKey)
+                return;
+    
+            e.preventDefault();
+            e.stopImmediatePropagation();
+    
+            settings.adjust_zoom("manga-thumbnail-size", e.deltaY > 0);
+        }, { passive: false });
+            
+        this.container.addEventListener("keydown", (e) => {
+            let zoom = helpers.is_zoom_hotkey(e);
+            if(zoom != null)
+            {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                settings.adjust_zoom("manga-thumbnail-size", zoom < 0);
+            }
+        });
+
         // Create a style for our thumbnail style.
         this.thumbnail_dimensions_style = helpers.create_style("");
         document.body.appendChild(this.thumbnail_dimensions_style);

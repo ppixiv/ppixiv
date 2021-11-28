@@ -112,11 +112,10 @@ ppixiv.image_ui = class extends ppixiv.widget
             </div>
         </a>
 
-        <div class="image-settings-menu-box settings-menu-box popup" data-popup="Preferences">
-            <div class="grey-icon icon-button popup-menu-box-button">
+        <div class="image-settings-menu-box popup" data-popup="Preferences">
+            <div class="grey-icon icon-button preferences-button">
                 <ppixiv-inline src="resources/settings-icon.svg"></ppixiv-inline>
             </div>
-            <div hidden class="popup-menu-box vertical-list"></div>
         </div>
     </div>
     <div class=post-info>
@@ -191,8 +190,9 @@ ppixiv.image_ui = class extends ppixiv.widget
             main_controller.singleton.navigate_out();
         }.bind(this));
 
-        var settings_menu = this.container.querySelector(".settings-menu-box > .popup-menu-box");
-        menu_option.add_settings(settings_menu);
+        this.container.querySelector(".preferences-button").addEventListener("click", (e) => {
+            new ppixiv.settings_dialog({ container: document.body });
+        });
     }
 
     visibility_changed()

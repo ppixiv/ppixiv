@@ -55,7 +55,7 @@ let thumbnail_ui = class extends ppixiv.widget
                     </div>
 
                     <div class="settings-menu-box popup" data-popup="Preferences">
-                        <div class="grey-icon parent-highlight icon-button popup-menu-box-button">
+                        <div class="grey-icon parent-highlight icon-button preferences-button">
                             <ppixiv-inline src="resources/settings-icon.svg"></ppixiv-inline>
                         </div>
                         <div hidden class="popup-menu-box vertical-list">
@@ -450,7 +450,9 @@ ppixiv.screen_search = class extends ppixiv.screen
 
         var settings_menu = this.container.querySelector(".settings-menu-box > .popup-menu-box");
 
-        menu_option.add_settings(settings_menu);
+        this.container.querySelector(".preferences-button").addEventListener("click", (e) => {
+            new ppixiv.settings_dialog({ container: document.body });
+        });
 
         settings.register_change_callback("thumbnail-size", () => {
             // refresh_images first to update thumbnail_dimensions_style.
@@ -463,7 +465,28 @@ ppixiv.screen_search = class extends ppixiv.screen
         settings.register_change_callback("ui-on-hover", this.update_from_settings);
         settings.register_change_callback("no-hide-cursor", this.update_from_settings);
         settings.register_change_callback("no_recent_history", this.update_from_settings);
-         
+
+        // Zoom the thumbnails on ctrl-mousewheel:
+        this.container.addEventListener("wheel", (e) => {
+            if(!e.ctrlKey)
+                return;
+    
+            e.preventDefault();
+            e.stopImmediatePropagation();
+    
+            settings.adjust_zoom("thumbnail-size", e.deltaY > 0);
+        }, { passive: false });
+            
+        this.container.addEventListener("keydown", (e) => {
+            let zoom = helpers.is_zoom_hotkey(e);
+            if(zoom != null)
+            {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                settings.adjust_zoom("thumbnail-size", zoom < 0);
+            }
+        });
+
         // Create the tag dropdown for the search page input.
         new tag_search_box_widget({ contents: this.container.querySelector(".tag-search-box") });
             
