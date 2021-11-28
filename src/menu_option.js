@@ -158,7 +158,7 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
             invert_scrolling: () => {
                 return new menu_option_toggle({
                     ...global_options,
-                    label: "Invert scrolling while zoomed",
+                    label: "Invert image panning",
                     setting: "invert-scrolling",
                     explanation_enabled: "Dragging down moves the image down",
                     explanation_disabled: "Dragging down moves the image up",
@@ -166,10 +166,12 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
             },
 
             theme: () => {
-                return new menu_option_toggle_light_theme({
+                return new menu_option_toggle({
                     ...global_options,
                     label: "Light mode",
                     setting: "theme",
+                    on_value: "light",
+                    off_value: "dark",
                     explanation_enabled: "FLASHBANG",
                 });
             },
@@ -177,11 +179,9 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
             disable_translations: () => {
                 return new menu_option_toggle({
                     ...global_options,
-                    label: "Show translations",
+                    label: "Show tag translations when available",
                     setting: "disable-translations",
                     invert_display: true,
-                    explanation_enabled: "Show tag translations when available",
-                    explanation_disabled: "Don't show tag translations",
                 });
             },
     
@@ -234,9 +234,9 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
             },
     
             view_mode: () => {
-                return new menu_option_toggle({
+                new menu_option_toggle({
                     ...global_options,
-                    label: "Pan back to the top when changing images",
+                    label: "Return to the top when changing images",
                     setting: "view_mode",
                     on_value: "manga",
                     off_value: "illust",
@@ -253,7 +253,7 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
                 });
                 
                 linked_tabs.container.querySelector(".buttons").hidden = false;
-                return new menu_option_button({
+                return new menu_option_nested_button({
                     ...global_options,
                     parent: linked_tabs,
                     container: linked_tabs.container.querySelector(".buttons"),
@@ -273,6 +273,13 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
 
         settings_widgets.thumbnail_size();
         settings_widgets.manga_thumbnail_size();
+
+        settings_widgets.disable_translations();
+        settings_widgets.disable_thumbnail_panning();
+        settings_widgets.disable_thumbnail_zooming();
+        settings_widgets.quick_view();
+        settings_widgets.linked_tabs_enabled();
+
         settings_widgets.disabled_by_default();
         settings_widgets.no_hide_cursor();
 
@@ -284,13 +291,8 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
         settings_widgets.ui_on_hover();
         settings_widgets.invert_scrolling();
         settings_widgets.theme();
-        settings_widgets.disable_translations();
-        settings_widgets.disable_thumbnail_panning();
-        settings_widgets.disable_thumbnail_zooming();
-        settings_widgets.quick_view();
 
         settings_widgets.view_mode();
-        settings_widgets.linked_tabs_enabled();
 
         // Hidden for now (not very useful)
         // settings_widgets.no_recent_history();
@@ -436,6 +438,31 @@ ppixiv.menu_option_button = class extends ppixiv.menu_option
     }
 }
 
+// A simpler button, used for sub-buttons such as "Edit".
+ppixiv.menu_option_nested_button = class extends ppixiv.menu_option
+{
+    constructor({
+        onclick=null,
+        ...options})
+    {
+        super({...options, template: `
+            <div class="box-link clickable">
+                <div class=label-box>
+                    <span class=label></span>
+                </div>
+            </div>
+        `});
+
+        this.container.querySelector(".label").innerText = options.label;
+        this.container.addEventListener("click", (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+    
+            onclick(e);
+        });
+    }
+}
+
 ppixiv.menu_option_toggle = class extends ppixiv.menu_option_button
 {
     constructor({
@@ -491,22 +518,6 @@ ppixiv.menu_option_toggle = class extends ppixiv.menu_option_button
     set value(value)
     {
         settings.set(this.setting, value? this.on_value:this.off_value);
-    }
-}
-
-// A special case for the theme, which is just a light/dark toggle but stored
-// as a string.
-class menu_option_toggle_light_theme extends menu_option_toggle
-{
-    get value()
-    {
-        var value = super.value;
-        return value == "light";
-    }
-
-    set value(value)
-    {
-        super.value = value? "light":"dark";
     }
 }
 
