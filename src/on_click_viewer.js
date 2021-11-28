@@ -236,6 +236,8 @@ ppixiv.on_click_viewer = class
         let screen_height = Math.max(this.container_height, 1);
         let aspect = (screen_width/this.original_width) > (screen_height/this.original_height)? "portrait":"landscape";
 
+        // Illustration viewing mode:
+        //
         // If this.set_initial_image_position is true, then we're changing pages in the same illustration
         // and already have a position.  If the images are similar, it's useful to keep the same position,
         // so you can alternate between variants of an image and have them stay in place.  However, if
@@ -250,6 +252,12 @@ ppixiv.on_click_viewer = class
         // the second call.
         if(this.set_initial_image_position && aspect != this.initial_image_position_aspect)
             this.set_initial_image_position = false;
+
+        // If view_mode is "manga", always reset to the top.  It's better for reading top-to-bottom
+        // than preserving the pan position.
+        if(settings.get("view_mode") == "manga")
+            this.set_initial_image_position = false;
+            
         if(this.set_initial_image_position)
             return;
 

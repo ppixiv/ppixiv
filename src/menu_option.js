@@ -232,7 +232,17 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
                     explanation_disabled: "Don't remember recently seen thumbnails",
                 });
             },
-        
+    
+            view_mode: () => {
+                return new menu_option_toggle({
+                    ...global_options,
+                    label: "Pan back to the top when changing images",
+                    setting: "view_mode",
+                    on_value: "manga",
+                    off_value: "illust",
+                });
+            },
+    
             linked_tabs_enabled: () => {
                 let linked_tabs = new menu_option_toggle({
                     ...global_options,
@@ -278,6 +288,8 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
         settings_widgets.disable_thumbnail_panning();
         settings_widgets.disable_thumbnail_zooming();
         settings_widgets.quick_view();
+
+        settings_widgets.view_mode();
         settings_widgets.linked_tabs_enabled();
 
         // Hidden for now (not very useful)
@@ -426,7 +438,15 @@ ppixiv.menu_option_button = class extends ppixiv.menu_option
 
 ppixiv.menu_option_toggle = class extends ppixiv.menu_option_button
 {
-    constructor({setting=null, ...options})
+    constructor({
+        setting=null,
+
+        // Most settings are just booleans, but this can be used to toggle between
+        // string keys.  This can make adding more values to the option easier later
+        // on.  A default value should be set in settings.js if this is used.
+        on_value=true,
+        off_value=false,
+        ...options})
     {
         super({...options,
             icon: "resources/checkbox.svg",
@@ -439,6 +459,8 @@ ppixiv.menu_option_toggle = class extends ppixiv.menu_option_button
         });
 
         this.setting = setting;
+        this.on_value = on_value;
+        this.off_value = off_value;
         if(this.setting)
             settings.register_change_callback(this.setting, this.refresh);
     }
@@ -463,12 +485,12 @@ ppixiv.menu_option_toggle = class extends ppixiv.menu_option_button
 
     get value()
     {
-        return settings.get(this.setting);
+        return settings.get(this.setting) == this.on_value;
     }
 
     set value(value)
     {
-        settings.set(this.setting, value);
+        settings.set(this.setting, value? this.on_value:this.off_value);
     }
 }
 

@@ -150,4 +150,5 @@ ppixiv.settings.configure("zoom-level", { sticky: true });
 ppixiv.settings.configure("linked_tabs", { session: true });
 ppixiv.settings.configure("linked_tabs_enabled", { session: true, default_value: true });
 ppixiv.settings.configure("volume", { default_value: 1 });
+ppixiv.settings.configure("view_mode", { default_value: "illust" });
 
