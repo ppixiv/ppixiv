@@ -267,6 +267,8 @@ class FileIndex(Database):
         with self.connect(conn) as conn:
             # Update "path" and "parent" for old_path and all files inside it.
             print('Renaming "%s" -> "%s"' % (old_path, new_path))
+            old_path = Path(old_path)
+            new_path = Path(new_path)
 
             if old_path == new_path:
                 return
@@ -278,11 +280,13 @@ class FileIndex(Database):
             self.delete_recursively([new_path], conn=conn)
 
             for entry in self.search(path=str(old_path)):
-                # path should always be relative to old_path.
-                # parent should too, unless this is old_path itself.
+                # path should always be relative to old_path: this is a path inside
+                # the path we searched for.
                 path = Path(entry['path'])
                 relative_path = path.relative_to(old_path)
                 entry_new_path = new_path / relative_path
+
+                # parent should always be inside old_path, unless this is old_path itself.
                 if path != old_path:
                     relative_parent = Path(entry['parent']).relative_to(old_path)
                     entry_new_parent = new_path / relative_parent
@@ -353,8 +357,10 @@ class FileIndex(Database):
                 if mode == self.SearchMode.Recursive:
                     # path is the top directory to start searching from.  This is done with a
                     # prefix match against the path: listing "C:\ABCD" recursively matches "C:\ABCD\*".
-                    where.append(f'{self.schema}.files.path GLOB ?')
+                    # Directories don't end in a slash, so Include the directory itself explicitly.
+                    where.append(f'({self.schema}.files.path GLOB ? OR {self.schema}.files.path = ?)')
                     params.append(path + os.path.sep + '*')
+                    params.append(path)
                 elif mode == self.SearchMode.Subdir:
                     # Only list files directly inside path.
                     where.append(f'{self.schema}.files.parent = ?')
@@ -503,6 +509,7 @@ async def test():
         'mime_type': '',
         'author': '',
         'directory_thumbnail_path': None,
+        'bookmarked': False,
     }
     
     def path_record(path):
@@ -530,13 +537,13 @@ async def test():
     path2 = path / 'bar'
     db.add_record(path_record(path))
     db.add_record(path_record(path2))
-    assert Path(db.get(path)['path']) == path, entry
-    assert Path(db.get(path2)['parent'])  == path, entry
+    assert Path(db.get(str(path))['path']) == path, entry
+    assert Path(db.get(str(path2))['parent'])  == path, entry
 
     # Test deleting the tree.
     db.delete_recursively([str(path)])
-    assert db.get(path) is None, entry
-    assert db.get(path2) is None, entry
+    assert db.get(str(path)) is None, entry
+    assert db.get(str(path2)) is None, entry
 
     # Add directories again.  Add a third unrelated directory that we'll test to
     # be sure it's unaffected by the rename.
@@ -546,13 +553,13 @@ async def test():
     db.add_record(path_record(path3))
 
     # Rename f:/foo to f:/test.  This will affect entry and entry2.
-    db.rename(path, Path('f:/test'))
+    db.rename(str(path), str(Path('f:/test')))
 
     # Test that the entries have been renamed correctly.
-    assert db.get(path) is None, entry
-    assert db.get(path2) is None, entry
-    assert db.get(path3) is not None, entry
-    new_entry = db.get(Path('f:/test'))
+    assert db.get(str(path)) is None, entry
+    assert db.get(str(path2)) is None, entry
+    assert db.get(str(path3)) is not None, entry
+    new_entry = db.get(str(Path('f:/test')))
     assert Path(new_entry['path']) == Path('f:/test')
     assert Path(new_entry['parent']) == Path('f:/')
 
