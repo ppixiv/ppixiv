@@ -304,7 +304,7 @@ class Library:
         # moved into our tree.  If an existing directory is moved in, we'll only receive this
         # one notification, so we need to refresh contents recursively.  This can be a long
         # task, so add it to pending_directory_refreshes and let the refresh task handle it.
-        if path.is_dir() and action == monitor_changes.FileAction.FILE_ACTION_ADDED:
+        if path.is_real_dir() and action == monitor_changes.FileAction.FILE_ACTION_ADDED:
             print('Queued refresh for added directory: %s' % path)
             self.pending_directory_refreshes.add(path)
             self.refresh_event.set()

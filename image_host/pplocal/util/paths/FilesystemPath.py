@@ -100,6 +100,9 @@ class FilesystemPath(PathBase):
         if self._is_zip():
             return True
 
+        return self.is_real_dir()
+
+    def is_real_dir(self):
         if self.direntry is not None:
             return self.direntry.is_dir(follow_symlinks=False)
         else:

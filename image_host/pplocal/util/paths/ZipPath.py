@@ -264,7 +264,14 @@ class ZipPath(PathBase):
         if entry is None:
             return False
         return entry.is_dir
-        
+
+    def is_real_dir(self):
+        # The root directory corresponds to the file on disk.
+        if self._path == _root:
+            return False
+        else:
+            return self.is_dir()
+
     def with_name(self, name):
         return ZipPath(shared_zip=self.zip, at=self._path.with_name(name))
 

@@ -40,6 +40,16 @@ class PathBase:
     def is_file(self): raise NotImplemented
     def is_dir(self): raise NotImplemented
 
+    def is_real_dir(self):
+        """
+        This is like is_dir, but returns false if this is a ZIP.
+
+        is_dir() treats ZIPs like directories, since they can be opened like one
+        and treated transparently.  is_real_dir can be used to see if a path is a
+        real filesystem directory.
+        """
+        return self.is_dir()
+
     def with_name(self, name): raise NotImplemented
 
     @property
