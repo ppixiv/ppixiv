@@ -1,5 +1,5 @@
 #!/usr/bin/python
-import asyncio, json, logging, traceback, urllib, time
+import asyncio, json, logging, traceback, urllib, time, io
 from pprint import pprint
 
 import aiohttp
@@ -59,6 +59,9 @@ def create_handler_for_command(handler):
 
             result = { 'success': False, 'code': 'internal-error', 'message': str(e) }
             data = json.dumps(result, indent=4, ensure_ascii=False) + '\n'
+
+        data = data.encode('utf-8')
+        data = io.BytesIO(data)
 
         # If this is an error, return 500 with the message in the status line.  This isn't
         # part of the API, it's just convenient for debugging.
