@@ -36,12 +36,12 @@ let thumbnail_ui = class extends ppixiv.widget
                         <div hidden class="main-search-menu popup-menu-box vertical-list">
                             <div class="navigation-search-box" style="padding: .25em; margin: .25em;">
                                 <div class=search-box>
-                                    <span class="search-tags input-padding-box">
+                                    <span class="input-field-container" style="width: 100%;">
                                         <input class="keep-menu-open" placeholder=Search>
-                                    </span>
 
-                                    <span class=search-submit-button>
-                                        <ppixiv-inline src="resources/search-icon.svg"></ppixiv-inline>
+                                        <span class="right-side-button search-submit-button">
+                                            <span class="material-icons">search</span>                                            
+                                        </span>
                                     </span>
                                 </div>
                             </div>
@@ -172,14 +172,14 @@ let thumbnail_ui = class extends ppixiv.widget
                 <div class="data-source-specific" data-datasource=search>
                     <div>
                         <div class="search-box tag-search-box">
-                            <div class="search-tags hover-menu-box">
+                            <div class="input-field-container hover-menu-box">
                                 <input placeholder=Tags>
                                 <span class="edit-search-button right-side-button">
                                     <ppixiv-inline src="resources/edit-icon.svg"></ppixiv-inline>
                                 </span>
 
                                 <span class="search-submit-button right-side-button">
-                                    <ppixiv-inline src="resources/search-icon.svg"></ppixiv-inline>
+                                    <span class="material-icons">search</span>                                            
                                 </span>
                             </div>
 
@@ -277,11 +277,10 @@ let thumbnail_ui = class extends ppixiv.widget
                 </div>
 
                 <div class="search-box data-source-specific" data-datasource=search-users>
-                    <div class="user-search-box hover-menu-box">
+                    <div class="user-search-box input-field-container hover-menu-box">
                         <input class=search-users placeholder="Search users">
-
                         <span class="search-submit-button right-side-button">
-                            <ppixiv-inline src="resources/search-icon.svg"></ppixiv-inline>
+                            <span class="material-icons">search</span>                                            
                         </span>
                     </div>
                 </div>

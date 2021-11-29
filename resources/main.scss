@@ -1362,22 +1362,6 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
     .following-tag {
         text-decoration: none;
     }
-
-    .right-side-button {
-        display: inline-block;
-        vertical-align: middle;
-        cursor: pointer;
-        user-select: none;
-
-        & > svg
-        {
-            vertical-align: middle;
-        }
-    }
-
-    .edit-search-button {
-        margin-left: -58px; /* overlap the input */
-    }
 }
 
 // A row of box-links inside a menu row.  This is used for menu items that have
@@ -1522,24 +1506,43 @@ a.box-link, span.box-link
     position: relative;
 }
 
-input.search-users {
-    font-size: 1.2em;
+.input-field-container {
+    background-color: white;
     padding: 6px 10px;
-    vertical-align: middle;
-    padding-right: 30px; /* extra space for the submit button */
-}
-.user-search-box .search-submit-button {
-    margin-left: -30px; /* overlap the input */
-}
-input.search-tags {
-    font-size: 1.2em;
-    padding: 6px 10px;
-    vertical-align: middle;
-}
 
-/* Search box in the search page: */
-.tag-search-box input.search-tags {
-    padding-right: 60px; /* extra space for the submit button */
+    // Let the input box flex to fill our width, so the box stays the same size
+    // and doesn't change if right-side-buttons are shown or hidden.
+    display: inline-flex;
+    gap: 0.25em;
+
+    // Set a default width, so input has something to stretch to and stay a consistent
+    // size if buttons are hidden.
+    width: 300px;
+
+    > input {
+        background: none;
+        border: none;
+        font-size: 1.2em;
+        vertical-align: middle;
+        flex: 1;
+
+        // Remove the default min-width.
+        min-width: 0;
+    }
+
+    // Buttons to the right of the input box:
+    > .right-side-button {
+        display: inline-block;
+        vertical-align: middle;
+        cursor: pointer;
+        user-select: none;
+        color: black;
+
+        & > svg
+        {
+            vertical-align: middle;
+        }
+    }
 }
 
 .search-submit-button {

@@ -862,7 +862,7 @@ ppixiv.local_search_box_widget = class extends ppixiv.widget
         this.input_onfocus = this.input_onfocus.bind(this);
         this.submit_search = this.submit_search.bind(this);
 
-        this.input_element = this.container.querySelector(".search-tags > input");
+        this.input_element = this.container.querySelector(".input-field-container > input");
 
         this.dropdown_widget = new local_search_dropdown_widget({
             container: this.container,
