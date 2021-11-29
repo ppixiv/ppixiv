@@ -3272,53 +3272,7 @@ ppixiv.data_sources.local = class extends data_source
         this.prev_page_uuid = null;
         this.next_page_uuid = null;
         this.next_page_offset = null;
-        this.search_options = { };
         this.bookmark_tag_counts = null;
-
-        // The options for the current search, if any.  This is also sent to the navigation
-        // controller.
-        let args = new helpers.args(this.url);
-
-        // XXX: smarter titles
-        this.title = "";
-        if(args.hash.has("search"))
-        {
-            this.search_options.search = args.hash.get("search");
-            this.title = "Search: " + this.search_options.search;
-        }
-
-        if(args.hash.has("bookmarks"))
-        {
-            this.search_options.bookmarked = true;
-            this.title = "Bookmarks";
-        }
-
-        if(args.hash.has("bookmark-tag"))
-        {
-            this.search_options.bookmark_tags = args.hash.get("bookmark-tag");
-            this.title = "Bookmarks";
-        }
-
-        if(!this.title)
-        {
-            // Show the path, with the file: ID prefix removed.
-            let args = new helpers.args(this.url);
-            let { id } = helpers.parse_id(args.hash_path);
-            let parts = id.split('/');
-            this.title = parts[parts.length-1];
-        }
-
-        if(!this.title)
-            this.title = "Local files";
-
-        if(args.hash.has("type"))
-        {
-            this.search_options.media_type = args.hash.get("type");
-        }
-
-        // Clear search_options if it has no keys, to indicate that we're not in a search.
-        if(Object.keys(this.search_options).length == 0)
-            this.search_options = null;
     }
 
     get supports_start_page() { return true; }
@@ -3369,17 +3323,20 @@ ppixiv.data_sources.local = class extends data_source
             this.next_page_offset = this.estimated_items_per_page * (page-1);
         }
 
-        // Use the search options if we're at the root.  Otherwise, we're navigating inside
+        // Use the search options if there's no path.  Otherwise, we're navigating inside
         // the search, so just view the contents of where we navigated to.
-        let current_search_options = this.search_options;
         let args = new helpers.args(this.url);
-        if(args.hash_path != "/")
-            current_search_options = { }
+        let { search_options } = local_api.get_search_options_for_args(args);
+        let folder_id = local_api.get_local_id_from_args(args, { get_folder: true });
+        if(args.hash.get("path") != null)
+        {
+            search_options = { }
+        }
 
-        // If we have a next_page_uuid, use it to load the next page.
-        let result = await local_api.list(`folder:${args.hash_path}`, {
-            ...current_search_options,
+        let result = await local_api.list(folder_id, {
+            ...search_options,
 
+            // If we have a next_page_uuid, use it to load the next page.
             page: page_uuid,
             limit: this.estimated_items_per_page,
 
@@ -3418,43 +3375,25 @@ ppixiv.data_sources.local = class extends data_source
     get page_title() { return this.get_displaying_text(); }
     get_displaying_text()
     {
-        return this.title;
+        // If we have a path inside a search, show the path, since we're not showing the
+        // top-level search.  Otherwise, get the search title.
+        let args = new helpers.args(this.url);
+        if(args.hash.get("path") != null)
+        {
+            let folder_id = local_api.get_local_id_from_args(args, { get_folder: true });
+            return helpers.get_path_suffix(helpers.parse_id(folder_id).id);
+        }
+        else
+        {
+            return local_api.get_search_options_for_args(args).title;
+        }
     }
 
     // Put the illust ID in the hash instead of the path.  Pixiv doesn't care about this,
     // and this avoids sending the user's filenames to their server as 404s.
     set_current_illust_id(illust_id, args)
     {
-        let { type, id } = helpers.parse_id(illust_id);
-        if(type != "file")
-        {
-            // This is a regular ID.  This means the local data source is being used to view
-            // a non-local image.  This doesn't happen often, but allow it.
-            args.hash.set("illust_id", illust_id);
-            args.hash.delete("file");
-            return;
-        }
-
-        args.hash.delete("illust_id");
-
-        // If this is a file in the directory we're currently viewing, put the filename in the
-        // hash.  If it's not underneath this directory, make it an absolute path.  This way,
-        // the data source stays the same when we view files, even if we're viewing something
-        // far off (eg. if we're viewing bookmarks).
-        let our_args = new helpers.args(this.url);
-        let our_path = our_args.hash_path;
-        if(!our_path.endsWith("/"))
-            our_path += "/";
-
-        if(id.startsWith(our_path))
-        {
-            let relative_path = id.substr(our_path.length);
-            args.hash.set("file", relative_path);
-        }
-        else
-        {
-            args.hash.set("file", id);
-        }
+        local_api.get_args_for_id(illust_id, args);
     }
 
     get_current_illust_id()
@@ -3466,20 +3405,9 @@ ppixiv.data_sources.local = class extends data_source
         if(illust_id)
             return illust_id;
 
-        // Combine the hash path and the filename to get the local ID.
-        let file = args.hash.get("file");
-        if(file)
-        {
-            // The file path can be relative or absolute.  See set_current_illust_id.
-            if(!file.startsWith("/"))
-            {
-                let parent = args.hash_path;
-                if(!parent.endsWith("/"))
-                    parent = parent + "/";
-                file = parent + file;
-            }
-            return "file:" + file;
-        }
+        illust_id = local_api.get_local_id_from_args(args);
+        if(illust_id != null)
+            return illust_id;
         
         return this.id_list.get_first_id();
     }
@@ -3487,26 +3415,19 @@ ppixiv.data_sources.local = class extends data_source
     // Tell the navigation tree widget which search to view.
     refresh_thumbnail_ui(container)
     {
-        // Hack to get the local_navigation_widget.  We don't have a good path for
-        // this right now. XXX
-        let box = document.body.querySelector(".local-navigation-box");
-        let navigation_widget = box.firstChild.widget;
-        navigation_widget.set_data_source_search_options(this.search_options, { search_title: this.get_displaying_text() });
+        let current_args = helpers.args.location;
+        let { search_options } = local_api.get_search_options_for_args(helpers.args.location);
 
         // Show the "show all files" button if we have a search active.  This stays in the same
         // directory and resets the search.
-        let current_args = helpers.args.location;
         let new_args = new helpers.args("/", ppixiv.location);
         new_args.path = current_args.path;
         new_args.hash_path = current_args.hash_path;
-        container.querySelector(".show-all-files").hidden = this.search_options == null;
+        container.querySelector(".show-all-files").hidden = search_options == null;
         container.querySelector(".show-all-files").href = new_args.url;
 
         // Hide the "copy local path" button if we don't have one.
         container.querySelector(".copy-local-path").hidden = this.local_path == null;
-
-        // These search buttons return to the root.
-        current_args.hash_path = "/";
 
         this.set_item(container, "local-bookmarks-all", {"#bookmarks": null}, null, { current_url: current_args.url });
         this.set_item(container, "local-bookmarks-only", {"#bookmarks": 1}, null, { current_url: current_args.url });
@@ -3561,7 +3482,7 @@ ppixiv.data_sources.local = class extends data_source
             if(tag == current_tag)
                 a.classList.add("selected");
 
-            args.hash_path = "/";
+            args.hash.delete("path");
             if(tag == null)
                 args.hash.delete("bookmark-tag");
             else

@@ -1612,9 +1612,8 @@ ppixiv.screen_search = class extends ppixiv.screen
             {
                 // This is a local directory.  We only expect to see this while on the local
                 // data source.  The folder link retains any search parameters in the URL.
-                let args = new helpers.args(ppixiv.location);
-                console.assert(args.path == "/local/");
-                args.hash_path = thumb_id;
+                let args = helpers.args.location;
+                local_api.get_args_for_id(illust_id, args);
         
                 let link = element.querySelector("a.thumbnail-link");
                 link.href = args.url;

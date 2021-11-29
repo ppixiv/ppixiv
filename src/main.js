@@ -430,14 +430,18 @@ ppixiv.main_controller = class
 
         let args = helpers.args.location;
 
-        // If we're told to show a folder: ID, go to the search page instead of the illust page.
-        let { type, id } = helpers.parse_id(illust_id);
-        if(type == "folder")
+        // Check if this is a local ID.
+        if(helpers.is_local(illust_id))
         {
-            args.path = "/local/";
-            args.hash_path = id;
-            helpers.set_page_url(args, add_to_history, "navigation");
-            return;
+            local_api.get_args_for_id(illust_id, args);
+
+            // If we're told to show a folder: ID, go to the search page instead of the illust page.
+            let { type } = helpers.parse_id(illust_id);
+            if(type == "folder")
+            {
+                helpers.set_page_url(args, add_to_history, "navigation");
+                return;
+            }
         }
 
         // Update the URL to display this illust_id.  This stays on the same data source,

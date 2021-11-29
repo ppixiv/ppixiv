@@ -513,12 +513,7 @@ class local_navigation_widget_item extends ppixiv.tree_widget_item
 
         this.options = options;
         this.search_options = search_options;
-
-        // If this is the root node, fill in the path.
-        if(options.root)
-            this.path = "folder:/";
-        else
-            this.path = path;
+        this.path = path;
 
         // Set the ID on the item to let the popup menu know what it is.  Don't do
         // this for top-level libraries ("folder:/images"), since they can't be
@@ -668,41 +663,46 @@ ppixiv.local_navigation_widget = class extends ppixiv.tree_widget
 
         // Set current_search_options to a sentinel so we'll always set it on the
         // first call to set_data_source_search_options.
+        this.current_search_root = null;
         this.current_search_options = new Object();
 
         window.addEventListener("popstate", (e) => {
+            this.set_root_from_url();
             this.refresh_selection();
         });
+
+        this.set_root_from_url();
         this.refresh_selection();
     }
 
-    // The data source calls this to tell us the current search parameters, which
-    // we also use to fill the tree.  For viewing the directory tree, search_options
-    // is { }.
-    set_data_source_search_options(search_options, { search_title })
+    // Choose a tree root for the current URL, creating one if needed.
+    set_root_from_url()
     {
-        if(this.current_search_options == search_options)
-            return;
+        let args = helpers.args.location;
+        let { search_options, title } = local_api.get_search_options_for_args(args);
+        let search_root = local_api.get_search_root_from_args(args, search_options);
 
         // Note that search_options is null if we're showing the regular tree and no
         // search is active.
+        this.current_search_root = search_root;
         this.current_search_options = search_options;
 
         // Use a JSON serialization as a key.  This always serializes in the same way.
-        let search_options_json = JSON.stringify(search_options);
+        // Each combination of search_root and search_options is a separate root.
+        let search_options_json = JSON.stringify({root: search_root, search_options: search_options});
         if(this.roots[search_options_json] == null)
         {
+            console.log("create root", search_root);
             // Create this tree.
             this.roots[search_options_json] = new local_navigation_widget_item({
                 parent: this,
-                label: search_title? search_title:"Root",
+                label: title? title:"Root",
                 root: true,
 
                 // Hide the root node if there's no search, so the file tree roots are at the top.
                 hide_if_root: !this.showing_search,
+                path: search_root,
 
-                // Searches always start at the root.
-                path: "folder:/",
                 search_options: search_options,
             });
         }
@@ -731,19 +731,15 @@ ppixiv.local_navigation_widget = class extends ppixiv.tree_widget
             return;
 
         // If we're not on a /local/ search, just deselect.
-        let args = new helpers.args(ppixiv.location);
+        let args = helpers.args.location;
         if(args.path != "/local/")
         {
             this.set_selected_item(null);
             return;
         }
 
-        // If node doesn't have a node, load its parents.
-        await this.load_path(args.hash_path);
-
-        // If we loaded the path, select it.
-        let selected_id = "folder:" + args.hash_path;
-        let node = this.root.nodes[selected_id];
+        // Load the path if possible and select it.
+        let node = await this.load_path(args);
         if(node)
         {
             node.select();
@@ -755,7 +751,7 @@ ppixiv.local_navigation_widget = class extends ppixiv.tree_widget
     //
     // This call is guarded, so if we're called again from another navigation,
     // we won't keep loading and changing the selection.
-    async load_path(signal, path)
+    async load_path(signal, args)
     {
         // Stop if we don't have a root yet.
         if(this.root == null)
@@ -764,9 +760,12 @@ ppixiv.local_navigation_widget = class extends ppixiv.tree_widget
         // Wait until the root is loaded, if needed.
         await this.root.load();
         signal.check();
-        
+
+        let illust_id = local_api.get_local_id_from_args(args, { get_folder: true });
+        let { id } = helpers.parse_id(illust_id);
+
         // Split apart the path.
-        let parts = path.split("/");
+        let parts = id.split("/");
 
         // Discard the last component.  We only need to load the directory containing the
         // path, not the directory itself.
@@ -779,6 +778,7 @@ ppixiv.local_navigation_widget = class extends ppixiv.tree_widget
         // we're trying to load /a/b/c/d/e and the search node points to /a/b/c, we skip
         // /a and /a/b which aren't in the tree and start loading from there.
         let current_path = "";
+        let node = null;
         for(let part of parts)
         {
             // Append this path component to current_path.
@@ -789,7 +789,7 @@ ppixiv.local_navigation_widget = class extends ppixiv.tree_widget
             current_path += part;
 
             // If this directory exists in the tree, it'll be in nodes by now.
-            let node = this.root.nodes[current_path];
+            node = this.root.nodes[current_path];
             if(node == null)
             {
                 // console.log("Path doesn't exist:", current_path);
@@ -804,27 +804,19 @@ ppixiv.local_navigation_widget = class extends ppixiv.tree_widget
                 await node.load_promise;
             signal.check();
         }
+
+        return this.root.nodes[illust_id];
     }
 
     // Navigate to illust_id, which should be an entry in the current tree.
     show_item(illust_id)
     {
-        let { id } = helpers.parse_id(illust_id);
         let args = new helpers.args(ppixiv.location);
-        args.query.delete("p");
+        local_api.get_args_for_id(illust_id, args);
+        helpers.set_page_url(args, true /* add_to_history */, "navigation");
 
         // Hide the hover thumbnail on click to get it out of the way.
         this.set_hover(null);
-
-        // Don't navigate if we're already here.
-        if(args.hash_path == id)
-            return;
-        
-        // We expect to be on the local data source when this is called.
-        console.assert(args.path == "/local/");
-        args.hash_path = id;
-
-        helpers.set_page_url(args, true /* add_to_history */, "navigation");
     }
 };
 
@@ -870,11 +862,11 @@ ppixiv.local_search_box_widget = class extends ppixiv.widget
         this.input_onfocus = this.input_onfocus.bind(this);
         this.submit_search = this.submit_search.bind(this);
 
-        this.input_element = this.container.querySelector(".search-tags");
+        this.input_element = this.container.querySelector(".search-tags > input");
 
         this.dropdown_widget = new local_search_dropdown_widget({
             container: this.container,
-            input_element: this.container.querySelector(".search-tags"),
+            input_element: this.container,
             focus_parent: this.container,
         });
 
@@ -911,14 +903,13 @@ ppixiv.local_search_box_widget = class extends ppixiv.widget
 
     submit_search(e)
     {
-        // This can be sent to either the search page search box or the one in the
-        // navigation dropdown.  Figure out which one we're on.
-        var tags = this.input_element.value.trim();
+        let tags = this.input_element.value.trim();
         if(tags.length == 0)
-            return;
+            tags = null;
 
         // Add this tag to the recent search list.
-        add_recent_local_search(tags);
+        if(tags)
+            add_recent_local_search(tags);
 
         // If we're submitting by pressing enter on an input element, unfocus it and
         // close any widgets inside it (tag dropdowns).
@@ -931,8 +922,10 @@ ppixiv.local_search_box_widget = class extends ppixiv.widget
         // Run the search.  We expect to be on the local data source when this is called.
         let args = new helpers.args(ppixiv.location);
         console.assert(args.path == "/local/");
-        args.hash_path = "/";
-        args.hash.set("search", tags);
+        if(tags)
+            args.hash.set("search", tags);
+        else
+            args.hash.delete("search");
         helpers.set_page_url(args, true /* add_to_history */, "navigation");
     }
 }
