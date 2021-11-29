@@ -77,7 +77,7 @@ class Library:
         return self._data_dir
 
     def get_relative_path(self, path):
-        """
+        r"""
         Given an absolute filesystem path, return the path relative to this library.
 
         For example, if this is "images" pointing to "C:\SomeImages" and path is
@@ -91,7 +91,7 @@ class Library:
             return None
 
     def get_public_path(self, path):
-        """
+        r"""
         Given an absolute filesystem path inside this library, return the API path.
         
         For example, if this is "images" pointing to "C:\SomeImages" and path is
