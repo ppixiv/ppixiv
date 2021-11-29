@@ -506,7 +506,7 @@ ppixiv.video_ui = class extends ppixiv.widget
         {
             let fmt = (total_seconds) => {
                 let seconds = Math.floor(total_seconds);
-                let ms = (total_seconds * 1000) % 1000;
+                let ms = Math.round((total_seconds * 1000) % 1000);
                 return "" + seconds + "." + ms.toString().padStart(3, '0');
             };
             this.time.innerText = `${fmt(now)} / ${fmt(duration)}`;
