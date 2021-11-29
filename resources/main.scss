@@ -1393,8 +1393,8 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
     // Note that the padding on box-links here matches the horizontal padding
     // on .vertical-list .box-link.
     > .box-link {
-        padding-left: 0.25em;
-        padding-right: 0.25em;
+        padding-left: 0.5em;
+        padding-right: 0.5em;
     }
 }
 
@@ -1405,7 +1405,7 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
     flex-wrap: wrap;
     align-items: center;
 
-    .box-link {
+    > .box-link {
         margin: 0.25em .25em;
         padding: 0 .5em;
 
@@ -1428,7 +1428,7 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
 {
     // For box-links directly within the list (most of them), put the horizontal
     // padding on them.
-    > .box-link { padding: 0 .25em; }
+    > .box-link { padding: 0 .5em; }
 
     > .box-link
     {
@@ -1446,6 +1446,7 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
     cursor: pointer;
     text-decoration: none;
     margin: 0;
+    padding: 0 .75em;
     align-content: center;
     align-items: center;
     height: 2em;
@@ -1480,10 +1481,10 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
     }
 
     .label {
-        margin-left: .25em;
+        // margin-left: .25em;
     }
 
-    .icon {
+    > .icon {
         display: inline-block;
         width: 1em;
         // height: 100%;
@@ -1554,6 +1555,7 @@ input.search-tags {
         margin-left: -30px; /* overlap the search box */
     }
     input.search-tags {
+        width: 100%;
         padding-right: 30px; /* extra space for the submit button */
     }
 }
