@@ -13,15 +13,15 @@ ppixiv.tag_search_box_widget = class extends ppixiv.widget
         this.container_onmouseleave = this.container_onmouseleave.bind(this);
         this.submit_search = this.submit_search.bind(this);
 
-        this.input_element = this.container.querySelector(".search-tags");
+        this.input_element = this.container.querySelector(".search-tags > input");
 
         this.dropdown_widget = new tag_search_dropdown_widget({
             container: this.container,
-            input_element: this.container.querySelector(".search-tags"),
+            input_element: this.container,
         });
         this.edit_widget = new tag_search_edit_widget({
             container: this.container,
-            input_element: this.container.querySelector(".search-tags"),
+            input_element: this.container,
         });
 
         this.container.addEventListener("mouseenter", this.container_onmouseenter);
@@ -164,7 +164,8 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         this.input_oninput = this.input_oninput.bind(this);
         this.populate_dropdown = this.populate_dropdown.bind(this);
 
-        this.input_element = input_element;
+        // Find the <input>.
+        this.input_element = input_element.querySelector("input");
 
         this.input_element.addEventListener("keydown", this.input_onkeydown);
         this.input_element.addEventListener("input", this.input_oninput);
@@ -544,7 +545,7 @@ ppixiv.tag_search_edit_widget = class extends ppixiv.widget
         this.dropdown_onclick = this.dropdown_onclick.bind(this);
         this.populate_dropdown = this.populate_dropdown.bind(this);
 
-        this.input_element = input_element;
+        this.input_element = input_element.querySelector("input");
 
         // Refresh the dropdown when the tag search history changes.
         window.addEventListener("recent-tag-searches-changed", this.populate_dropdown);

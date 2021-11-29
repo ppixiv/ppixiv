@@ -36,7 +36,9 @@ let thumbnail_ui = class extends ppixiv.widget
                         <div hidden class="main-search-menu popup-menu-box vertical-list">
                             <div class="navigation-search-box" style="padding: .25em; margin: .25em;">
                                 <div class=search-box>
-                                    <input class="search-tags keep-menu-open" placeholder=Search>
+                                    <span class="search-tags input-padding-box">
+                                        <input class="keep-menu-open" placeholder=Search>
+                                    </span>
 
                                     <span class=search-submit-button>
                                         <ppixiv-inline src="resources/search-icon.svg"></ppixiv-inline>
@@ -168,21 +170,23 @@ let thumbnail_ui = class extends ppixiv.widget
                 </div>
                  
                 <div class="data-source-specific" data-datasource=search>
-                    <div class="search-page-tag-entry search-box">
-                        <div class="tag-search-box hover-menu-box">
-                            <input class=search-tags placeholder=Tags>
-                            <span class="edit-search-button right-side-button">
-                                <ppixiv-inline src="resources/edit-icon.svg"></ppixiv-inline>
-                            </span>
+                    <div>
+                        <div class="search-box tag-search-box">
+                            <div class="search-tags hover-menu-box">
+                                <input placeholder=Tags>
+                                <span class="edit-search-button right-side-button">
+                                    <ppixiv-inline src="resources/edit-icon.svg"></ppixiv-inline>
+                                </span>
 
-                            <span class="search-submit-button right-side-button">
-                                <ppixiv-inline src="resources/search-icon.svg"></ppixiv-inline>
-                            </span>
-                        </div>
+                                <span class="search-submit-button right-side-button">
+                                    <ppixiv-inline src="resources/search-icon.svg"></ppixiv-inline>
+                                </span>
+                            </div>
 
-                        <div class="search-tags-box box-button-row" style="display: inline-block;">
-                            <div class="box-link popup-menu-box-button">Related tags</div>
-                            <div class="popup-menu-box related-tag-list vertical-list"></div>
+                            <div class="search-tags-box box-button-row" style="display: inline-block;">
+                                <div class="box-link popup-menu-box-button">Related tags</div>
+                                <div class="popup-menu-box related-tag-list vertical-list"></div>
+                            </div>
                         </div>
                     </div>
 
@@ -285,11 +289,12 @@ let thumbnail_ui = class extends ppixiv.widget
                 <div class="data-source-specific" data-datasource=local>
                     <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.5em;">
                         <a href=/local/#ppixiv/ class="grey-icon show-all-files">← All</a>
-                        <div class="local-tag-search search-box">
-                            <div class="local-tag-search-box hover-menu-box">
-                                <input class=search-tags placeholder="Search files">
+                        <div class="search-box local-tag-search-box">
+                            <div class="search-tags hover-menu-box">
+                                <input placeholder="Search files">
                             </div>
                         </div>
+
                         <span class="popup grey-icon copy-local-path" data-popup="Copy local path to clipboard" style="cursor: pointer;">
                             <span class="material-icons">content_copy</span>
                         </span>

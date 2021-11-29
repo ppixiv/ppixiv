@@ -2733,7 +2733,7 @@ ppixiv.data_sources.search = class extends data_source
         // Fill the search box with the current tag.
         var query_args = this.url.searchParams;
         let tag = this._search_tags;
-        container.querySelector(".search-page-tag-entry .search-tags").value = tag;
+        container.querySelector(".tag-search-box .search-tags > input").value = tag;
     }
 
     // Return the search mode, which is selected by the "Type" search option.  This generally
