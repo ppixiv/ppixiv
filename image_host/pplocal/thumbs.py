@@ -224,6 +224,7 @@ async def handle_thumb(request, mode='thumb'):
     if absolute_path is None:
         raise aiohttp.web.HTTPNotFound()
     
+    # If this is a directory, look for an image inside it to display.
     if absolute_path.is_dir():
         absolute_path = _find_directory_thumbnail(absolute_path)
         if absolute_path is None:

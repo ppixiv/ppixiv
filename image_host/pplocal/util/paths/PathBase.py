@@ -1,4 +1,3 @@
-
 class PathBase:
     """
     A base class which wraps the various path APIs to make them more consistent.
@@ -85,6 +84,6 @@ class PathBase:
 
     def open(self, mode='r', *, shared=True):
         """
-        Open the file without taking filesystem locks.
+        Open the file.  If shared is true, disable filesystem locking.
         """
         raise NotImplemented

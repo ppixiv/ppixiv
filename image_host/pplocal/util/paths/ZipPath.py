@@ -1,18 +1,28 @@
 import os, stat, zipfile
 from collections import namedtuple
 from pathlib import Path, PurePosixPath
-from datetime import datetime
+from datetime import datetime, timezone
 from pprint import pprint
 
 from .PathBase import PathBase
 
 
 ZipPathInfo = namedtuple('ZipPathInfo', (
-    'name', # The basename of the file
-    'zip_path', # The original path of the file inside the ZIP, which is needed to open it
+    # The basename of the file:
+    'name',
+
+    # The ZipInfo object for this file, or None for directories.  This allows us
+    # to open files without ZipFile re-parsing the central directory each time.
+    'zipinfo',
+
+    # The original path of the file inside the ZIP, which is needed to open it.
+    # This is None for directories.
+    'zip_path',
     'size',
     'is_dir',
-    'mtime'))
+    'timestamp'))
+
+_root = Path('/')
 
 class SharedZipFile:
     """
@@ -24,51 +34,161 @@ class SharedZipFile:
     def __init__(self, path):
         self.path = path
         self._directory = None
-        self._zip = None
+        self._cached_root_entry = None
+        self._cached_zipfile = None
 
-    def _open_zip(self):
-        if self._zip is not None:
+    # We have to jump some monkey patching hoops to get ZipFile to work the way we want.
+    #
+    # - We're inside Path-like objects.  We want to be able to open files from inside the
+    # ZIP from them.  However, the caller isn't expected to close those, so they shouldn't
+    # keep the file open by themselves.  Only explicitly opening the ZIP or a file inside
+    # the ZIP should open the file, since those do get closed explicitly.
+    # - We often need to open the ZIP to get the directory, eg. if somebody calls is_file
+    # on something inside the ZIP, then close it and reopen it later if the caller then
+    # opens the file.  This is easy to do efficiently: keep the ZIP index entry around,
+    # so you don't have to parse the ZIP again when you reopen it.  However, ZipFile doesn't
+    # do this: you can pass a ZipInfo to open(), but it'll still re-parse the directory
+    # over and over every time you reopen it.  It should only do it on demand.
+    #
+    # Work around this by keeping a single ZipFile object around.  When we need to close the
+    # file, set ZipFile.fp to None, and when we reopen it, set it back to the file.
+    #
+    # Also, opened files inside ZIPs are independant of the ZIP itself.  If we return one
+    # from open_file, clear ZipFile.fp so they don't share files, and patch ZipExtFile.close
+    # to close the file.
+    #
+    # This gives us filesystem access that isn't threadsafe, but at least keeps opened
+    # files independant and avoids continually re-parsing the ZIP.  This is enough of a
+    # mess that it's probably worth forking off ZipFile and refactoring it.
+    def zipfile(self, shared=True):
+        """
+        Return an opened ZipFile.  The caller should close it when finished.
+        """
+        file = self.path.open('rb', shared=shared)
+
+        # If we've never opened the ZIP before, create the ZipFile.  Otherwise,
+        # point it at our file.
+        if self._cached_zipfile is None:
+            try:
+                self._cached_zipfile = zipfile.ZipFile(file)
+            except:
+                file.close()
+                raise
+        else:
+            self._cached_zipfile.fp = file
+
+        # Patch ZipFile.close to close the file.
+        orig_close = self._cached_zipfile.close
+        def close():
+            if self._cached_zipfile.fp is not None:
+                self._cached_zipfile.fp.close()
+                self._cached_zipfile.fp = None
+
+            orig_close()
+        self._cached_zipfile.close = close
+
+        return self._cached_zipfile
+
+    def open_file(self, zipinfo, mode, shared=True):
+        """
+        Open a file given its ZipInfo.
+        """
+        # Somehow, zipfile.Path.open supports the binary flag, but ZipFile.open doesn't
+        # (it only opens in binary).  Meanwhile, asyncio.base_events refuses to work
+        # with files that don't have "b" in the mode, which is really ugly behavior
+        # since it takes a minor problem and turns it into a big one.  It should only
+        # log a warning, not break the application.
+        #
+        # Work around this mess by overwriting the mode on the opened file.
+        real_mode = mode
+        mode = mode.replace('b', '')
+
+        zipfile = self.zipfile(shared=shared)
+        file = zipfile.open(zipinfo, mode)
+
+        if file is None:
+            zipfile.close()
             return
 
-        self._zip = zipfile.ZipFile(self.path.open('rb'))
+        # Steal the file from zipfile, and patch ZipExtFile to close it.
+        assert zipfile.fp is not None
+        assert zipfile.fp is file._fileobj._file
+        zipfile.fp = None
+
+        # Patch ZipExtFile.close to close the file.
+        orig_close = file.close
+        def close():
+            if file._fileobj._file is not None:
+                file._fileobj._file.close()
+                file._fileobj._file = None
+
+            orig_close()
+        file.close = close
+
+        file.mode = real_mode
+        return file
+
+    @property
+    def directory(self):
+        """
+        Return the ZIP directory.  This will open and read the ZIP the first time
+        it's called.
+        """
+        if self._directory is not None:
+            return self._directory
+
+        with self.zipfile() as zip:
+            infolist = list(zip.infolist())
 
         # Create a directory hierarchy.
         directory = {}
-        
-        for entry in self._zip.infolist():
+
+        # Add the entry for the root of the ZIP.  This would be added below, this
+        # just makes sure the directory entry for the root is the same as root_entry.
+        directory[_root.parent] = {_root.name: self.root_entry}
+
+        for entry in infolist:
             filename = '/' / Path(entry.filename)
 
             time = datetime(*entry.date_time)
-            entry = ZipPathInfo(filename.name, entry.filename, entry.file_size, entry.is_dir(), time)
+            entry = ZipPathInfo(filename.name, entry, entry.filename, entry.file_size, entry.is_dir(), time)
 
             while True:
                 # Add this path to its parent.
                 parent = directory.setdefault(filename.parent, {})
+
+                # If the file already exists, we've reached a parent directory that we've
+                # already created, so we can stop.
+                if filename.name in parent:
+                    break
+
                 parent[filename.name] = entry
 
                 # Move up the hierarchy to make sure all parent directories exist. If this
-                # creates a directory entry, use this file's mtime as the directory's
-                # mtime.  Stop if we've reached the root.
+                # creates a directory entry, use this file's timestamp as the directory's
+                # timestamp.  Stop if we've reached the root.
                 parent = filename.parent
                 if parent == filename:
                     break
 
                 filename = parent
-                entry = ZipPathInfo(str(filename.name), None, 0, True, entry.mtime)
+                entry = ZipPathInfo(str(filename.name), None, None, 0, True, entry.timestamp)
 
         self._directory = directory
-
-        return self._zip
-
-    @property
-    def zipfile(self):
-        self._open_zip()
-        return self._zip
-
-    @property
-    def directory(self):
-        self._open_zip()
         return self._directory
+
+    @property
+    def root_entry(self):
+        """
+        Return the ZipPathInfo for the root directory of the ZIP.
+        """
+        if self._cached_root_entry is None:
+            # Use the ZIP's ctime as the root's timestamp.
+            ctime = self.path.stat().st_ctime
+            timestamp = datetime.fromtimestamp(ctime, tz=timezone.utc)
+            self._cached_root_entry = ZipPathInfo('', None, None, 0, True, timestamp)
+
+        return self._cached_root_entry
 
 class ZipPath(PathBase):
     """
@@ -82,6 +202,7 @@ class ZipPath(PathBase):
     def __init__(self, *, shared_zip, at='/'):
         self.zip = shared_zip
         self._path = Path(at)
+        self._root_entry = None
 
     @classmethod
     def open_zip(cls, path):
@@ -162,13 +283,13 @@ class ZipPath(PathBase):
     def stat(self):
         entry = self._get_our_entry(required=True)
         mode = stat.S_IFDIR if entry.is_dir else stat.S_IFREG
-        mtime = entry.mtime.timestamp()
-        mtime_ns = int(mtime*1000000000)
+        timestamp = entry.timestamp.timestamp()
+        timestamp_ns = int(timestamp*1000000000)
         return os.stat_result((
             mode, 0, 0, 1, 0, 0, entry.size,
-            mtime, mtime, mtime, # int atime, mtime, ctime
-            mtime, mtime, mtime, # float atime, mtime, ctime
-            mtime_ns, mtime_ns, mtime_ns, # atime_ns, mtime_ns, ctime_ns
+            timestamp, timestamp, timestamp, # int atime, mtime, ctime
+            timestamp, timestamp, timestamp, # float atime, mtime, ctime
+            timestamp_ns, timestamp_ns, timestamp_ns, # atime_ns, mtime_ns, ctime_ns
         ))
 
     def iterdir(self):
@@ -189,6 +310,12 @@ class ZipPath(PathBase):
         Return the SharedZipFile directory entry for this file, or None if it
         doesn't exist.
         """
+        # If this is the root, it's the ZIP itself.  Return this directly, so we can
+        # handle queries about the root directory without opening and parsing the file.
+        # For example, is_dir() should return True without spending time parsing the file.
+        if self._path == _root:
+            return self.zip.root_entry
+
         parent_path = self._path.parent
         parent_entry = self.zip.directory.get(parent_path)
         if parent_entry is None:
@@ -202,18 +329,16 @@ class ZipPath(PathBase):
         return result
 
     def open(self, mode='r', *, shared=True):
-        entry = self._get_our_entry(required=True)
+        """
+        Open a file in the ZIP.
+        """
+        # ZipFile supports this, but we don't use it and the patching going on
+        # in open_file probably won't work.
+        if 'w' in mode:
+            raise IOError('Writing not supported for ZIPs')
 
-        # Somehow, zipfile.Path.open supports the binary flag, but ZipFile.open doesn't
-        # (it only opens in binary).  Meanwhile, asyncio.base_events refuses to work
-        # with files that don't have "b" in the mode, which is really ugly behavior
-        # since it takes a minor problem and turns it into a big one.  It should only
-        # log a warning, not break the application.
-        #
-        # Work around this mess by overwriting the mode on the opened file.
-        real_mode = mode
-        mode = mode.replace('b', '')
-            
-        file = self.zip.zipfile.open(entry.zip_path, mode)
-        file.mode = real_mode
-        return file
+        entry = self._get_our_entry(required=True)
+        if entry is None:
+            raise FileNotFoundError('File not found: %s' % self._path)
+
+        return self.zip.open_file(entry.zipinfo, mode, shared=shared)
