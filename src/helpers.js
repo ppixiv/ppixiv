@@ -1462,20 +1462,20 @@ ppixiv.helpers = {
 
         var old_url = ppixiv.location.toString();
 
-        // If the state wouldn't change at all, don't set it, so we don't add junk to
-        // history if the same link is clicked repeatedly.  Comparing state via JSON
-        // is OK here since JS will maintain key order.
-        if(args.url.toString() == old_url && JSON.stringify(args.state) == JSON.stringify(history.state))
-            return;
-
         // Use the history state from args if it exists.
         let history_data = {
-            ...args.state
+            ...args.state,
+            index: helpers.current_history_state_index(),
         };
+
+        // If the state wouldn't change at all, don't set it, so we don't add junk to
+        // history if the same link is clicked repeatedly.  Comparing state via JSON
+        // is OK here since JS will maintain key order.  
+        if(args.url.toString() == old_url && JSON.stringify(history_data) == JSON.stringify(history.state))
+            return;
 
         // history.state.index is incremented whenever we navigate forwards, so we can
         // tell in onpopstate whether we're navigating forwards or backwards.
-        history_data.index = helpers.current_history_state_index();
         if(add_to_history)
             history_data.index++;
 
