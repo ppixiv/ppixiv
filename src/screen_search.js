@@ -613,6 +613,7 @@ ppixiv.screen_search = class extends ppixiv.screen
                 label: option.label,
                 url: option.url,
                 classes: option.classes,
+                show_checkbox: false,
             })
 
             // Hide the local search menu option if it's not enabled.
