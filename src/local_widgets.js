@@ -31,20 +31,6 @@ ppixiv.tree_widget = class extends ppixiv.widget
 
         this.items = this.container.querySelector(".items");
 
-        this.container.addEventListener("mouseenter", (e) => {
-            let item = this.get_widget_from_element(e.target);
-            this.set_hover(item);
-        }, {
-            capture: true,
-        });
-
-        this.container.addEventListener("mouseleave", (e) => {
-            let item = this.get_widget_from_element(e.target);
-            this.set_hover(item);
-        }, {
-            capture: true,
-        });
-    
         // Listen to illust changes so we can refresh nodes.
         image_data.singleton().illust_modified_callbacks.register(this.illust_modified);
 
@@ -298,9 +284,10 @@ ppixiv.tree_widget_item = class extends ppixiv.widget
             this.expanded = !this.expanded;
         });
 
-        this.container.querySelector(".label").addEventListener("dblclick", this.ondblclick);
+        let label_element = this.container.querySelector(".label");
+        label_element.addEventListener("dblclick", this.ondblclick);
 
-        this.container.querySelector(".label").addEventListener("mousedown", (e) => {
+        label_element.addEventListener("mousedown", (e) => {
             if(e.button != 0)
                     return;
 
@@ -310,6 +297,18 @@ ppixiv.tree_widget_item = class extends ppixiv.widget
             this.select();
             this.onclick();
         }, { capture: true });
+
+        label_element.addEventListener("mouseover", (e) => {
+            this.tree.set_hover(this);
+        }, {
+            capture: false,
+        });
+
+        label_element.addEventListener("mouseout", (e) => {
+            this.tree.set_hover(null);
+        }, {
+            capture: false,
+        });
 
         this.refresh_expand_mode();
 
