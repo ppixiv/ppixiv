@@ -287,10 +287,17 @@ let thumbnail_ui = class extends ppixiv.widget
 
                 <div class="data-source-specific" data-datasource=local>
                     <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.5em;">
-                        <a href=/local/#ppixiv/ class="grey-icon show-all-files">← All</a>
                         <div class="search-box local-tag-search-box">
-                            <div class="search-tags hover-menu-box">
+                            <div class="input-field-container hover-menu-box">
                                 <input placeholder="Search files">
+
+                                <span class="clear-local-search-button right-side-button">
+                                    <span class="material-icons" style="display: block; color: black;">clear</span>                                
+                                </span>
+
+                                <span class="submit-local-search-button right-side-button">
+                                    <span class="material-icons" style="display: block; color: black;">search</span>                                
+                                </span>
                             </div>
                         </div>
 
@@ -500,6 +507,10 @@ ppixiv.screen_search = class extends ppixiv.screen
         // The search history dropdown for local searches.
         new local_search_box_widget({ contents: this.container.querySelector(".local-tag-search-box") });
         
+        new close_search_widget({
+            parent: this,
+            container: this.container.querySelector(".local-navigation-box"),
+        });
         this.local_nav_widget = new ppixiv.local_navigation_widget({
             parent: this,
             container: this.container.querySelector(".local-navigation-box"),

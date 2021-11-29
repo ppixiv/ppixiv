@@ -871,6 +871,19 @@ ppixiv.local_search_box_widget = class extends ppixiv.widget
         });
 
         this.input_element.addEventListener("focus", this.input_onfocus);
+        this.input_element.addEventListener("submit", this.submit_search);
+        this.clear_search_button = this.container.querySelector(".clear-local-search-button");
+        this.clear_search_button.addEventListener("click", (e) => {
+            this.input_element.value = "";
+            this.input_element.dispatchEvent(new Event("submit"));
+        });
+        this.container.querySelector(".submit-local-search-button").addEventListener("click", (e) => {
+            this.input_element.dispatchEvent(new Event("submit"));
+        });
+
+        this.input_element.addEventListener("input", (e) => {
+            this.refresh_clear_button_visibility();
+        });
 
         // Search submission:
         helpers.input_handler(this.input_element, this.submit_search);
@@ -882,6 +895,7 @@ ppixiv.local_search_box_widget = class extends ppixiv.widget
         
         window.addEventListener("popstate", (e) => { this.refresh_from_location(); });
         this.refresh_from_location();
+        this.refresh_clear_button_visibility();
     }
 
     // SEt the text box from the current URL.
@@ -889,6 +903,12 @@ ppixiv.local_search_box_widget = class extends ppixiv.widget
     {
         let args = helpers.args.location;
         this.input_element.value = args.hash.get("search") || "";
+        this.refresh_clear_button_visibility();
+    }
+
+    refresh_clear_button_visibility()
+    {
+        this.clear_search_button.hidden = this.input_element.value == "";
     }
 
     // Show the dropdown when the input is focused.  Hide it when the input is both
@@ -1145,3 +1165,37 @@ ppixiv.view_in_explorer_widget = class extends ppixiv.illust_widget
         a.dataset.popup = popup;
     }
 }
+
+ppixiv.close_search_widget = class extends ppixiv.widget
+{
+    constructor({input_element, focus_parent, ...options})
+    {
+        super({...options, template: `
+            <div class="close-local-search box-link">
+                <span class="material-icons" style="transform: scale(-1, 1)">exit_to_app</span>
+                <span style="padding-top: 1px;">Close search</span>
+            </div>
+        `});
+
+        window.addEventListener("popstate", (e) => {
+            this.refresh_search_active();
+        });
+        this.refresh_search_active();
+
+        this.container.addEventListener("click", (e) => {
+            // Get the URL for the current folder and set it to a new URL, so it removes search
+            // parameters.
+            let illust_id = local_api.get_local_id_from_args(helpers.args.location, { get_folder: true });
+            let args = new helpers.args("/", ppixiv.location);
+            local_api.get_args_for_id(illust_id, args);
+            helpers.set_page_url(args, true, "navigation");
+        });
+    }
+
+    refresh_search_active()
+    {
+        let search_active = local_api.get_search_options_for_args(helpers.args.location).search_options != null;
+        this.visible = search_active;
+    }
+}
+

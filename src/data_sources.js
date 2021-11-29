@@ -3418,14 +3418,6 @@ ppixiv.data_sources.local = class extends data_source
         let current_args = helpers.args.location;
         let { search_options } = local_api.get_search_options_for_args(helpers.args.location);
 
-        // Show the "show all files" button if we have a search active.  This stays in the same
-        // directory and resets the search.
-        let new_args = new helpers.args("/", ppixiv.location);
-        new_args.path = current_args.path;
-        new_args.hash_path = current_args.hash_path;
-        container.querySelector(".show-all-files").hidden = search_options == null;
-        container.querySelector(".show-all-files").href = new_args.url;
-
         // Hide the "copy local path" button if we don't have one.
         container.querySelector(".copy-local-path").hidden = this.local_path == null;
 
