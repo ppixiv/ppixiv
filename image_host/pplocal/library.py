@@ -316,8 +316,10 @@ class Library:
 
         # Don't proactively index everything, or we'll aggressively scan every file.  Skip images
         # that can be found with Windows search.  Don't skip images with metadata (bookmarks).
+        # Check has_metadata to short circuit this check early, so is_dir() doesn't read ZIP
+        # directories unnecessarily.
         has_metadata = metadata_storage.has_file_metadata(path)
-        if not path.is_dir() and misc.file_type(path.name) == 'image' and not has_metadata:
+        if not has_metadata and not path.is_dir() and misc.file_type(path.name) == 'image':
             return
 
         # If this is a FileAction from file monitoring, queue the update.  We often get multiple
@@ -459,6 +461,7 @@ class Library:
             'parent': str(Path(path).parent),
             'ctime': stat.st_ctime,
             'mtime': stat.st_mtime,
+            'filesystem_mtime': path.filesystem_file.stat().st_mtime,
             'title': title,
             'mime_type': mime_type,
             'tags': tags,
@@ -481,6 +484,7 @@ class Library:
             'parent': str(Path(path).parent),
             'ctime': stat.st_ctime,
             'mtime': stat.st_mtime,
+            'filesystem_mtime': path.filesystem_file.stat().st_mtime,
             'title': path.name,
             'mime_type': 'application/folder',
 
@@ -532,9 +536,10 @@ class Library:
             entry = self.db.get(path=os.fspath(path), conn=conn)
 
         if entry is not None and check_mtime:
-            # Check if cache is out of date.
-            path_stat = path.stat()
-            if abs(entry['mtime'] - path_stat.st_mtime) >= 1:
+            # Check if cache is out of date.  If this is a ZIP, we're checking the mtime
+            # of the ZIP itself, so we don't read the ZIP directory here.
+            path_stat = path.filesystem_file.stat()
+            if abs(entry['filesystem_mtime'] - path_stat.st_mtime) >= 1:
                 # print('File cache out of date: %s' % path)
                 entry = None
 

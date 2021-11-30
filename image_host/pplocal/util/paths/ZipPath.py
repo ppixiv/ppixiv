@@ -266,11 +266,9 @@ class ZipPath(PathBase):
         return entry.is_dir
 
     def is_real_dir(self):
+        # ZIPs and files inside ZIPS are never real filesystem directories.
         # The root directory corresponds to the file on disk.
-        if self._path == _root:
-            return False
-        else:
-            return self.is_dir()
+        return False
 
     def with_name(self, name):
         return ZipPath(shared_zip=self.zip, at=self._path.with_name(name))
@@ -278,6 +276,10 @@ class ZipPath(PathBase):
     @property
     def filesystem_path(self):
         return Path(self.zip.path)
+
+    @property
+    def filesystem_file(self):
+        return self.zip.path
 
     @property
     def real_file(self):

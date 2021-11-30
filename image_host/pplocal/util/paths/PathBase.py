@@ -42,7 +42,7 @@ class PathBase:
 
     def is_real_dir(self):
         """
-        This is like is_dir, but returns false if this is a ZIP.
+        This is like is_dir, but returns false if this is a ZIP or inside a ZIP.
 
         is_dir() treats ZIPs like directories, since they can be opened like one
         and treated transparently.  is_real_dir can be used to see if a path is a
@@ -79,6 +79,15 @@ class PathBase:
         is contained in.
         """
         raise NotImplemented()
+
+    @property
+    def filesystem_file(self):
+        """
+        Return the filesystem on disk.
+
+        For regular files, this returns itself.  For files inside ZIPs, returns the ZIP.
+        """
+        return self
 
     def stat(self):
         """
