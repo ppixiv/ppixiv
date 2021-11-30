@@ -499,23 +499,23 @@ class Library:
         except ValueError:
             return
 
+        with self.db.connect() as conn:
+            for child in path.iterdir():
+                is_dir = child.is_dir()
 
-        for child in path.iterdir():
-            is_dir = child.is_dir()
+                # Skip unsupported files.
+                if not is_dir and misc.file_type(child.name) is None:
+                    continue
 
-            # Skip unsupported files.
-            if not is_dir and misc.file_type(child.name) is None:
-                continue
+                if not include_dirs and is_dir:
+                    continue
+                if not include_files and not is_dir:
+                    continue
 
-            if not include_dirs and is_dir:
-                continue
-            if not include_files and not is_dir:
-                continue
-
-            # Find the file in cache and cache it if needed.
-            entry = self.get(child, force_refresh=force_refresh)
-            if entry is not None:
-                yield entry
+                # Find the file in cache and cache it if needed.
+                entry = self.get(child, force_refresh=force_refresh, conn=conn)
+                if entry is not None:
+                    yield entry
 
     def get(self, path, *, force_refresh=False, check_mtime=True, conn=None):
         """
