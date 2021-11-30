@@ -758,7 +758,11 @@ ppixiv.helpers = {
         try {
             return await fetch(options.url, data);
         } catch(e) {
-            console.error("Error loading %s", options.url);
+            // Don't log an error if we were intentionally aborted.
+            if(data.signal.aborted)
+                return null;
+                
+            console.error("Error loading %s", options.url, e);
             if(options.data)
                 console.error("Data:", options.data);
             return null;
