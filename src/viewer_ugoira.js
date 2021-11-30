@@ -113,6 +113,8 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
         // Send a finished progress callback if we were still loading.
         this.progress(null);
 
+        this.canvas.hidden = true;
+
         if(this.player)
         {
             this.player.pause(); 
