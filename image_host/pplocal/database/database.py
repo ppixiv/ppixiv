@@ -21,6 +21,8 @@ def transaction(conn):
     retry command 2, commit the transaction without it, or raise the exception
     to continue rolling back.
     """
+    assert isinstance(conn, sqlite3.Connection), conn
+    
     count = _transactions.get(conn)
     if count is None:
         count = 1
@@ -67,19 +69,12 @@ class Database:
     @contextmanager
     def connect(self, existing_connection=None):
         """
-        Yield a cursor.
-
-        The cursor will be committed on completion, or rolled back on exception.
-        See DatabaseConnectionPool.get().
+        Yield a pooled connection, committing it on completion or rolling back on exception.
         """
-        if existing_connection:
-            # The caller already has a connection, probably passed in from its caller.
-            # Just wrap the block in a savepoint.
-            with transaction(existing_connection):
-                yield existing_connection
+        if existing_connection is not None:
+            yield existing_connection
             return
 
-        connection = None
         with self.lock:
             if self.connections:
                 connection = self.connections.pop()
@@ -87,16 +82,25 @@ class Database:
                 connection = self.open_db()
 
         try:
-            cursor = connection.cursor()
-            yield cursor
-            cursor.close()
-
+            yield connection
             connection.commit()
         finally:
             connection.rollback()
 
             with self.lock:
                 self.connections.append(connection)
+
+    @contextmanager
+    def cursor(self, conn=None):
+        with self.connect(conn) as conn:
+            assert isinstance(conn, sqlite3.Connection), conn
+
+            with transaction(conn):
+                cursor = conn.cursor()
+                try:
+                    yield cursor
+                finally:
+                    cursor.close()
 
     def open_db(self):
         # Connect to an in-memory database.  We don't use this, but you can't specify the schema
@@ -139,14 +143,14 @@ class Database:
         """
         Return the one row from the info table.
         """
-        with self.connect(conn) as conn:
-            for result in conn.execute(f'SELECT * FROM {self.schema}.info WHERE id = 1'):
+        with self.cursor(conn) as cursor:
+            for result in cursor.execute(f'SELECT * FROM {self.schema}.info WHERE id = 1'):
                 return result
             else:
                 raise Exception('No info field in db: %s' % self)
 
-    def _set_info(self, field, value, *, conn=None):
-        with self.connect(conn) as conn:
+    def _set_info(self, field, value, *, conn):
+        with self.cursor(conn) as cursor:
             query = f'''
                 UPDATE {self.schema}.info
                     SET %(field)s = ?
@@ -154,7 +158,7 @@ class Database:
             ''' % {
                 'field': field
             }
-            conn.execute(query, [value])
+            cursor.execute(query, [value])
 
     def get_db_version(self, *, conn=None):
         return self._get_info(conn=conn)['version']

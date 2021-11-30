@@ -112,9 +112,9 @@ class FileIndex(Database):
         assert self.get_db_version(conn=conn) == 1
 
     # Helpers for the file index:
-    def get_last_update_time(self, conn=None):
+    def get_last_update_time(self, *, conn=None):
         return self._get_info(conn=conn)['last_updated_at']
-    def set_last_update_time(self, value, conn=None):
+    def set_last_update_time(self, value, *, conn=None):
         self._set_info('last_updated_at', value, conn=conn)
 
     @classmethod
@@ -124,14 +124,14 @@ class FileIndex(Database):
         keywords -= { '.', '' }
         return keywords
 
-    def add_record(self, entry, conn=None):
+    def add_record(self, entry, *, conn=None):
         """
         Add or update a file record.  Set entry['id'] to the new or updated record's
         ID.
 
         If a record for this path already exists, it will be replaced.
         """
-        with self.connect(conn) as cursor:
+        with self.cursor(conn) as cursor:
             fields = list(entry.keys())
 
             # These fields are included in the keyword index.
@@ -244,7 +244,7 @@ class FileIndex(Database):
         If this includes directories, all entries for files inside the directory
         will be removed recursively.
         """
-        with self.connect(conn) as cursor:
+        with self.cursor(conn) as cursor:
             # If path includes "/path", we need to delete "/path" and files matching
             # "/path/*", but not "/path*".
             path_list = [(str(path), str(path) + os.path.sep + '*') for path in paths]
@@ -264,7 +264,7 @@ class FileIndex(Database):
 
         This is done when we detect a filesystem rename.
         """
-        with self.connect(conn) as conn:
+        with self.cursor(conn) as cursor:
             # Update "path" and "parent" for old_path and all files inside it.
             print('Renaming "%s" -> "%s"' % (old_path, new_path))
             old_path = Path(old_path)
@@ -279,7 +279,7 @@ class FileIndex(Database):
             # removed.
             self.delete_recursively([new_path], conn=conn)
 
-            for entry in self.search(path=str(old_path)):
+            for entry in self.search(path=str(old_path), conn=conn):
                 # path should always be relative to old_path: this is a path inside
                 # the path we searched for.
                 path = Path(entry['path'])
@@ -301,7 +301,7 @@ class FileIndex(Database):
                     'path': '',
                     'parent': '',
                 }
-                conn.execute(query, [str(entry_new_path), str(entry_new_parent), entry['id']])
+                cursor.execute(query, [str(entry_new_path), str(entry_new_parent), entry['id']])
 
     def get(self, path, *, conn=None):
         """
@@ -309,7 +309,7 @@ class FileIndex(Database):
 
         This is just a wrapper for search.
         """
-        for result in self.search(path=path, mode=self.SearchMode.Exact):
+        for result in self.search(path=path, mode=self.SearchMode.Exact, conn=conn):
             return result
 
         return None
@@ -345,7 +345,7 @@ class FileIndex(Database):
         include_files=True, include_dirs=True,
         conn=None
     ):
-        with self.connect(conn) as cursor:
+        with self.cursor(conn) as cursor:
             select_columns = []
             where = []
             params = []
@@ -443,11 +443,11 @@ class FileIndex(Database):
                 result = dict(row)
                 yield result
 
-    def id_matches_search(self, file_id, **search_options):
+    def id_matches_search(self, file_id, conn=None, **search_options):
         """
         Return true if the given file ID matches the search options.
         """
-        for entry in self.search(file_id=file_id, **search_options):
+        for entry in self.search(file_id=file_id, **search_options, conn=conn):
             return True
         return False
 
@@ -455,7 +455,7 @@ class FileIndex(Database):
         """
         Return a list of all bookmark tags.
         """
-        with self.connect(conn) as cursor:
+        with self.cursor(conn) as cursor:
             # Get tag counts:
             results = {}
             query = f"""
