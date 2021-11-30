@@ -299,7 +299,7 @@ class ZipPath(PathBase):
             timestamp_ns, timestamp_ns, timestamp_ns, # atime_ns, mtime_ns, ctime_ns
         ))
 
-    def iterdir(self):
+    def scandir(self):
         entry = self.zip.directory.get(self._path)
         if entry is None:
             return

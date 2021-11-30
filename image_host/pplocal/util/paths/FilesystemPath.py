@@ -141,7 +141,7 @@ class FilesystemPath(PathBase):
             self.stat_cache = self._path.stat()
             return self.stat_cache
 
-    def iterdir(self):
+    def scandir(self):
         for path in os.scandir(self._path):
             yield FilesystemPath(Path(path.path), direntry=path)
 

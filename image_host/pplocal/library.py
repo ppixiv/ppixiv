@@ -23,7 +23,7 @@ from pathlib import Path, PurePosixPath
 from .util import win32, monitor_changes, windows_search, misc
 from . import metadata_storage
 from .database.file_index import FileIndex
-from .util import paths
+from .util.paths import open_path, PathBase
 
 class Library:
     """
@@ -37,7 +37,7 @@ class Library:
 
     def __init__(self, library_name, path, *, local_data=False):
         self.library_name = library_name
-        self.path = paths.open(path.resolve())
+        self.path = open_path(path.resolve())
         self.monitor_changes = None
         self.pending_file_updates = {}
         self.pending_directory_refreshes = set()
@@ -142,7 +142,8 @@ class Library:
             # Find all metadata files.
             for result in windows_search.search(path=str(path), filename=metadata_storage.metadata_filename):
                 # Refresh just files with metadata.
-                path = Path(result.path)
+                path = open_path(result.path)
+
                 for path in metadata_storage.get_files_with_metadata(path):
                     try:
                         self.handle_update(path, action='refresh', db_conn=db_conn)
@@ -170,6 +171,7 @@ class Library:
         if path is None:
             path = self.path
         else:
+            assert isinstance(path, PathBase)
             path = path
 
         # Make sure path is inside this library.
@@ -195,23 +197,22 @@ class Library:
             if _level == 0 and path != self.path:
                 self.handle_update(path, action='refresh', db_conn=db_conn)
 
-            # Don't convert direntry.path to a Path here.  It's too slow.
-            for direntry in os.scandir(path):
+            for child in path.scandir():
                 if progress is not None:
                     _progress_counter[0] += 1
                     if (_progress_counter[0] % _call_progress_each) == 0:
                         progress(_progress_counter[0])
 
                 # Update this entry.
-                self.handle_update(direntry, action='refresh', db_conn=db_conn)
+                self.handle_update(child, action='refresh', db_conn=db_conn)
 
                 # Remove this path from stale_file_paths, so we know it's not stale.
-                if direntry.path in stale_file_paths:
-                    stale_file_paths.remove(os.fspath(direntry.path))
+                if child.path in stale_file_paths:
+                    stale_file_paths.remove(os.fspath(child.path))
 
                 # If this is a directory, queue its contents.
-                if recurse and direntry.is_dir(follow_symlinks=False):
-                    directories.append((direntry.path, direntry))
+                if recurse and child.is_dir():
+                    directories.append(child)
 
             # Delete any entries for files and directories inside this path that no longer
             # exist.  This will also remove file records recursively if this includes directories.
@@ -222,7 +223,7 @@ class Library:
                 #self.db.delete_recursively(stale_file_paths, conn=db_conn)
 
         # Recurse to subdirectories.
-        for file_path, direntry in directories:
+        for file_path in directories:
             await self.refresh(path=file_path, recurse=True, progress=progress, _level=_level+1,
                 _call_progress_each=_call_progress_each, _progress_counter=_progress_counter)
 
@@ -254,6 +255,7 @@ class Library:
         print('Stopped monitoring: %s' % self.path)
 
     async def monitored_file_changed(self, path, old_path, action):
+        path = open_path(path)
         self.handle_update(path=path, old_path=old_path, action=action)
 
     def handle_update(self, path, action, *, old_path=None, db_conn=None):
@@ -271,7 +273,7 @@ class Library:
         path may be a string.  We'll only convert it to a Path if necessary, since doing this
         for every file is slow.
         """
-        path = paths.open(path)
+        assert isinstance(path, PathBase)
         
         # Ignore changes to metadata files.  We assume we're the only ones changing
         # these.  If we allow them to be edited externally, we'd need to figure out
@@ -295,10 +297,12 @@ class Library:
         
         # If the file was removed, delete it from the database.  If this is a directory, this
         # will remove everything underneath it.
-        if action in (monitor_changes.FileAction.FILE_ACTION_REMOVED, monitor_changes.FileAction.FILE_ACTION_RENAMED_OLD_NAME):
+        if action == monitor_changes.FileAction.FILE_ACTION_REMOVED:
             print('File removed: %s' % path)
             self.db.delete_recursively([path], conn=db_conn)
             return
+
+        assert action in (monitor_changes.FileAction.FILE_ACTION_ADDED, monitor_changes.FileAction.FILE_ACTION_MODIFIED, 'refresh')
 
         # If we receive FILE_ACTION_ADDED for a directory, a directory was either created or
         # moved into our tree.  If an existing directory is moved in, we'll only receive this
@@ -312,15 +316,14 @@ class Library:
 
         # Don't proactively index everything, or we'll aggressively scan every file.  Skip images
         # that can be found with Windows search.  Don't skip images with metadata (bookmarks).
-        has_metadata = metadata_storage.load_file_metadata(path)
+        has_metadata = metadata_storage.has_file_metadata(path)
         if not path.is_dir() and misc.file_type(path.name) == 'image' and not has_metadata:
             return
-
 
         # If this is a FileAction from file monitoring, queue the update.  We often get multiple
         # change notifications at once, so we queued these to avoid refreshing over and over.
         if action != 'refresh':
-            print('Queued update for modified file:', path, action)
+            # print('Queued update for modified file:', path, action)
             wait_for = 1
             self.pending_file_updates[path] = time.time() + wait_for
             self.refresh_event.set()
@@ -500,7 +503,7 @@ class Library:
             return
 
         with self.db.connect() as conn:
-            for child in path.iterdir():
+            for child in path.scandir():
                 is_dir = child.is_dir()
 
                 # Skip unsupported files.
@@ -529,10 +532,10 @@ class Library:
             entry = self.db.get(path=os.fspath(path), conn=conn)
 
         if entry is not None and check_mtime:
-            # Check if cache is out of date.  This can be disabled to avoid the stat.
+            # Check if cache is out of date.
             path_stat = path.stat()
             if abs(entry['mtime'] - path_stat.st_mtime) >= 1:
-                # print('File already cached: %s' % path)
+                # print('File cache out of date: %s' % path)
                 entry = None
 
         if entry is None:
@@ -590,7 +593,7 @@ class Library:
                         continue
                     seen_paths.add(result.path)
 
-                    entry = self.get(paths.open(Path(result.path)), force_refresh=force_refresh)
+                    entry = self.get(open_path(Path(result.path)), force_refresh=force_refresh)
                     if entry is None:
                         continue
 

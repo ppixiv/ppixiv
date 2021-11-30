@@ -86,7 +86,7 @@ class PathBase:
         """
         raise NotImplemented
 
-    def iterdir(self):
+    def scandir(self):
         """
         Iterate over the files in this directory.
         """

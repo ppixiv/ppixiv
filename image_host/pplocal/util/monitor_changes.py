@@ -21,6 +21,8 @@ class FileAction(Enum):
     FILE_ACTION_ADDED = 1
     FILE_ACTION_REMOVED = 2
     FILE_ACTION_MODIFIED = 3
+
+    # These two are combined into FILE_ACTION_RENAMED, so they're never returned directly.  
     FILE_ACTION_RENAMED_OLD_NAME = 4
     FILE_ACTION_RENAMED_NEW_NAME = 5
     FILE_ACTION_RENAMED = 1000

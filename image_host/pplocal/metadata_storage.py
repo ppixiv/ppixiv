@@ -1,5 +1,6 @@
 import copy, json, os
 from .util import win32
+from .util.paths import open_path
 
 metadata_filename = '.ppixivbookmark.json.txt'
 
@@ -8,7 +9,7 @@ metadata_filename = '.ppixivbookmark.json.txt'
 # Note that we always deep copy these objects before returning them to callers.
 _metadata_cache = {}
 
-def load_directory_metadata(directory_path):
+def load_directory_metadata(directory_path, return_copy=True):
     """
     Get stored metadata for files in path.  This currently only stores bookmarks.
     If no metadata is available, return an empty dictionary.
@@ -32,7 +33,9 @@ def load_directory_metadata(directory_path):
         this_metadata_filename = os.fspath(directory_path / metadata_filename)
         result = _metadata_cache.get(this_metadata_filename)
         if result is not None:
-            return copy.deepcopy(result)
+            if return_copy:
+                result = copy.deepcopy(result)
+            return result
 
         with open(this_metadata_filename, 'rt', encoding='utf-8') as f:
             data = f.read()
@@ -41,9 +44,11 @@ def load_directory_metadata(directory_path):
             _metadata_cache[this_metadata_filename] = result
             return result
     except FileNotFoundError:
+        _metadata_cache[this_metadata_filename] = { }
         return { }
     except json.decoder.JSONDecodeError as e:
         print('Error reading metadata from %s: %s' % (this_metadata_filename, e))
+        _metadata_cache[this_metadata_filename] = { }
         return { }
 
 def save_directory_metadata(directory_path, data):
@@ -101,7 +106,7 @@ def _directory_path_for_file(path):
     filename = path.relative_to(directory_path)
     return directory_path, filename
 
-def load_file_metadata(path):
+def load_file_metadata(path, *, return_copy=True):
     """
     Return metadata for the given path.
 
@@ -111,8 +116,14 @@ def load_file_metadata(path):
     """
     directory_path, filename = _directory_path_for_file(path)
 
-    directory_metadata = load_directory_metadata(directory_path)
+    directory_metadata = load_directory_metadata(directory_path, return_copy=return_copy)
     return directory_metadata.get(str(filename), {})
+
+def has_file_metadata(path):
+    """
+    Return true if path has metadata.
+    """
+    return len(load_file_metadata(path, return_copy=False)) != 0
 
 def save_file_metadata(path, data):
     directory_path, filename = _directory_path_for_file(path)
@@ -138,5 +149,5 @@ def get_files_with_metadata(metadata_path):
     directory_path = metadata_path.parent
     directory_metadata = load_directory_metadata(directory_path)
 
-    return [(directory_path / filename) for filename in directory_metadata.keys()]
+    return [open_path(directory_path / filename) for filename in directory_metadata.keys()]
 

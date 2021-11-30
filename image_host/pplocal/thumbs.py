@@ -192,7 +192,7 @@ def _find_directory_thumbnail(path):
     """
     Find the first image in a directory to use as the thumbnail.
     """
-    for idx, file in enumerate(path.iterdir()):
+    for idx, file in enumerate(path.scandir()):
         if idx > 10:
             # In case this is a huge directory with no images, don't look too far.
             # If there are this many non-images, it's probably not an image directory

@@ -2,7 +2,8 @@ import time
 from pathlib import Path, PurePosixPath
 from collections import OrderedDict, namedtuple
 
-from .util import misc, paths
+from .util import misc
+from .util.paths import open_path
 from .library import Library
 
 _library_paths = {
@@ -72,7 +73,7 @@ class Manager:
             raise misc.Error('not-found', 'Library %s doesn\'t exist' % library_name)
 
         path = library.path / path_inside_library
-        path = paths.open(path)
+        path = open_path(path)
 
         return path, library
     
