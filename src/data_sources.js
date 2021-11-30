@@ -320,8 +320,9 @@ ppixiv.data_source = class
         // This is for overriding muting.
         args.hash.delete("view-muted");
 
-        // Ignore filenames for file: IDs.
+        // Ignore filenames for local IDs.
         args.hash.delete("file");
+        args.hash.delete("path");
 
         return args.url;
     }
