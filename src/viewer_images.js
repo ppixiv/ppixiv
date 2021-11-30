@@ -13,6 +13,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         this.restore_history = false;
 
         this.load = new SentinelGuard(this.load, this);
+        this.displaying_image = null;
 
         // Create a click and drag viewer for the image.
         this.on_click_viewer = new on_click_viewer(this.container);
@@ -87,6 +88,8 @@ ppixiv.viewer_images = class extends ppixiv.viewer
             this.on_click_viewer = null;
         }
 
+        this.displaying_image = null;
+
         main_context_menu.get.on_click_viewer = null;
     }
 
@@ -116,10 +119,9 @@ ppixiv.viewer_images = class extends ppixiv.viewer
             return;
         }
 
-        if(this.on_click_viewer &&
-            current_image.url == this.on_click_viewer.url &&
-            current_image.preview_url == this.on_click_viewer.preview_url)
+        if(this.displaying_image == current_image.url)
             return;
+        this.displaying_image = current_image.url;
 
         // Create the new image and pass it to the viewer.
         this.url = current_image.url || current_image.preview_url;
