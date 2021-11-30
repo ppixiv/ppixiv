@@ -577,39 +577,40 @@ class Library:
         if search_options.get('include_dirs'):
             del search_options['include_dirs']
 
-        # We can get results from the Windows search and our own index.  Keep track of
-        # what we've returned, so we don't return the same file from both.  If we're searching
-        # bookmarks, don't use Windows search, since it doesn't know about our bookmarks and
-        # our index will return them.
-        seen_paths = set()
-        if use_windows_search and not search_options.get('bookmarked') and search_options.get('bookmark_tags') is None:
-            # Check the Windows index.
-            for result in windows_search.search(path=str(path), **search_options):
-                if result.path in seen_paths:
+        with self.db.connect() as conn:
+            # We can get results from the Windows search and our own index.  Keep track of
+            # what we've returned, so we don't return the same file from both.  If we're searching
+            # bookmarks, don't use Windows search, since it doesn't know about our bookmarks and
+            # our index will return them.
+            seen_paths = set()
+            if use_windows_search and not search_options.get('bookmarked') and search_options.get('bookmark_tags') is None:
+                # Check the Windows index.
+                for result in windows_search.search(path=str(path), **search_options):
+                    if result.path in seen_paths:
+                        continue
+                    seen_paths.add(result.path)
+
+                    entry = self.get(paths.open(Path(result.path)), force_refresh=force_refresh)
+                    if entry is None:
+                        continue
+
+                    # Not all search options are supported by Windows indexing.  For example, we
+                    # can search for GIFs, but we can't filter for animated GIFs.  Re-check the
+                    # entry to see if it matches the search.
+                    if self.db.id_matches_search(entry['id'], conn=conn, **search_options):
+                        yield entry
+                    else:
+                        print('Discarded Windows search result that doesn\'t match: %s' % entry['path'])
+            
+            # Search our library.
+            for entry in self.db.search(path=str(path), conn=conn, **search_options):
+                if str(entry['path']) in seen_paths:
                     continue
-                seen_paths.add(result.path)
 
-                entry = self.get(paths.open(Path(result.path)), force_refresh=force_refresh)
-                if entry is None:
-                    continue
+                seen_paths.add(str(entry['path']))
 
-                # Not all search options are supported by Windows indexing.  For example, we
-                # can search for GIFs, but we can't filter for animated GIFs.  Re-check the
-                # entry to see if it matches the search.
-                if self.db.id_matches_search(entry['id'], **search_options):
-                    yield entry
-                else:
-                    print('Discarded Windows search result that doesn\'t match: %s' % entry['path'])
-        
-        # Search our library.
-        for entry in self.db.search(path=str(path), **search_options):
-            if str(entry['path']) in seen_paths:
-                continue
-
-            seen_paths.add(str(entry['path']))
-
-            self._convert_to_path(entry)
-            yield entry
+                self._convert_to_path(entry)
+                yield entry
 
     def bookmark_edit(self, path, set_bookmark, tags=None):
         """
