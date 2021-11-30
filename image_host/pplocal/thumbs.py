@@ -318,7 +318,9 @@ async def handle_mjpeg(request):
         try:
             await response.write_eof()
         finally:
-            # Wait for the thread that's writing the file to exit.
+            # Wait for the thread that's writing the file to exit.  If the connection
+            # is being cancelled then output_file will be closed by Response, which will
+            # also cause the thread to exit.
             await task
         
         return response

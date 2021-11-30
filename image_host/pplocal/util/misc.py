@@ -1,5 +1,6 @@
 # Helpers that don't have dependancies on our other modules.
 import asyncio, concurrent, os, io, struct, os, threading, time
+from contextlib import contextmanager
 from PIL import Image, ExifTags
 from pprint import pprint
 
@@ -210,6 +211,9 @@ class FixedZipPipe:
     on seek and always return 0 from tell(), which completely breaks ZipFile.
     It's a known bug and nobody seems to care that a core API is broken.
 
+    It also returns EINVAL instead of EPIPE if the other side is closed, which
+    is confusing.
+
     - If zipfile is given a non-seekable stream, it writes 0 as the file size
     in the local file header.  That's unavoidable if you're streaming data,
     but it makes no sense with writestr(), which receives the whole file at
@@ -252,3 +256,25 @@ class FixedZipPipe:
     def about_to_write_file(self, size):
         self.next_write_is_local_file_header = size
         pass
+
+@contextmanager
+def WriteZip(zip):
+    """
+    A fixed context handler for ZipFile.
+
+    ZipFile's __exit__ doesn't check whether it's being called with an exception
+    and blindly calls close(), which causes ugly chains of exceptions: a write
+    throws an exception, then ZipFile tries to close the file during exception
+    handling, which also throws an exception.
+
+    We can't just not call close() on exception, or ZipFile does something else
+    it shouldn't: it tries to write to the file in __del__.  That causes random
+    writes to files and exceptions during GC later on.  Fix this by clearing its
+    file on exception.
+    """
+    try:
+        yield zip
+        zip.close()
+    except:
+        zip.fp = None
+        raise

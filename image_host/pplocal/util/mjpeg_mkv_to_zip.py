@@ -10,10 +10,10 @@
 # this data from it being split into two calls, we stash the metadata in a file
 # in the ZIP instead.
 
-import asyncio, io, json, sys, zipfile, struct, os
+import asyncio, errno, io, json, sys, zipfile, struct, os
 from io import BytesIO
 from ..extern import mkvparse
-from .misc import FixedZipPipe
+from .misc import FixedZipPipe, WriteZip
 from pprint import pprint
 
 class ExportMJPEG(mkvparse.MatroskaHandler):      
@@ -90,32 +90,40 @@ def get_frame_durations(file):
 
 def _create_ugoira(file, output_file, frame_durations):
     # Be sure that we always close output_file, or the request will deadlock.
-    with output_file:
-        zip = zipfile.ZipFile(output_file, 'w')
-        with zip:
-            # Add the metadata file.
-            frame_delays = []
-            for frame_no, duration in enumerate(frame_durations):
-                frame_delays.append({
-                    'file': '%06i.jpg' % frame_no,
-                    'delay': duration,
-                })
+    try:
+        with output_file:
+            zip = zipfile.ZipFile(output_file, 'w')
+            with WriteZip(zip) as zip:
+                # Add the metadata file.
+                frame_delays = []
+                for frame_no, duration in enumerate(frame_durations):
+                    frame_delays.append({
+                        'file': '%06i.jpg' % frame_no,
+                        'delay': duration,
+                    })
 
-            metadata = json.dumps(frame_delays, indent=4).encode('utf-8')
-            output_file.about_to_write_file(len(metadata))
-            zip.writestr('metadata.json', metadata, compress_type=zipfile.ZIP_STORED)
+                metadata = json.dumps(frame_delays, indent=4).encode('utf-8')
+                output_file.about_to_write_file(len(metadata))
+                zip.writestr('metadata.json', metadata, compress_type=zipfile.ZIP_STORED)
 
-            # Add each file.
-            frame_no = 0
-            def retrieve_frame(frame, timestamp):
-                nonlocal frame_no
-                output_file.about_to_write_file(len(frame))
-                zip.writestr('%06i.jpg' % frame_no, frame, compress_type=zipfile.ZIP_STORED)
-                frame_no += 1
+                # Add each file.
+                frame_no = 0
+                def retrieve_frame(frame, timestamp):
+                    nonlocal frame_no
+                    output_file.about_to_write_file(len(frame))
+                    zip.writestr('%06i.jpg' % frame_no, frame, compress_type=zipfile.ZIP_STORED)
+                    frame_no += 1
 
-            result = ExportMJPEG(frame_callback=retrieve_frame)
-            mkvparse.mkvparse(file, result)
-    
+                result = ExportMJPEG(frame_callback=retrieve_frame)
+                mkvparse.mkvparse(file, result)
+    except OSError as e:
+        # We'll get EPIPE if the other side of the pipe is closed because the connection
+        # was closed.  Don't raise these as errors.
+        if e.errno in (errno.EPIPE, errno.EINVAL):
+            pass
+        else:
+            raise
+
 async def create_ugoira(file, frame_durations):
     readfd, writefd = os.pipe()
     read = os.fdopen(readfd, 'rb', buffering=0)

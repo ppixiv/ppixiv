@@ -10,10 +10,10 @@
 # this data from it being split into two calls, we stash the metadata in a file
 # in the ZIP instead.
 
-import asyncio, json, sys, zipfile, os
+import asyncio, errno, json, sys, zipfile, os
 from PIL import Image
 from io import BytesIO
-from .misc import FixedZipPipe
+from .misc import FixedZipPipe, WriteZip
 from pprint import pprint
 
 class NotAnimatedError(ValueError): pass
@@ -43,48 +43,56 @@ def get_frame_durations(file):
     return frame_durations
 
 def _create_ugoira(file, output_file, frame_durations):
-    # Be sure that we always close output_file, or the request will deadlock.
-    with output_file:
-        img = Image.open(file)
-
-        # Create the ZIP.
-        zip = zipfile.ZipFile(output_file, 'w')
-        with zip:
-            # Add the metadata file.
-            frame_delays = []
-            for frame_no, duration in enumerate(frame_durations):
-                # Match browser behavior for frames that have delays that are too low.
-                if duration < 20:
-                    duration = 100
-
-                frame_delays.append({
-                    'file': '%06i.jpg' % frame_no,
-                    'delay': duration,
-                })
-
-            metadata = json.dumps(frame_delays, indent=4).encode('utf-8')
-            output_file.about_to_write_file(len(metadata))
-            zip.writestr('metadata.json', metadata, compress_type=zipfile.ZIP_STORED)
+    try:
+        # Be sure that we always close output_file, or the request will deadlock.
+        with output_file:
             img = Image.open(file)
 
-            # If there's a transparency index, use PNG so we can preserve transparency.
-            transparent = img.info.get('transparency', -1) != -1
+            # Create the ZIP.
+            zip = zipfile.ZipFile(output_file, 'w')
+            with WriteZip(zip):
+                # Add the metadata file.
+                frame_delays = []
+                for frame_no, duration in enumerate(frame_durations):
+                    # Match browser behavior for frames that have delays that are too low.
+                    if duration < 20:
+                        duration = 100
 
-            # Add each file.
-            for frame_no in range(img.n_frames):
-                img.seek(frame_no)
-                frame = img
+                    frame_delays.append({
+                        'file': '%06i.jpg' % frame_no,
+                        'delay': duration,
+                    })
 
-                buffer = BytesIO()
-                if transparent:
-                    frame.save(buffer, 'PNG')
-                else:
-                    frame = frame.convert('RGB')
-                    frame.save(buffer, 'JPEG')
-                frame = buffer.getvalue()
+                metadata = json.dumps(frame_delays, indent=4).encode('utf-8')
+                output_file.about_to_write_file(len(metadata))
+                zip.writestr('metadata.json', metadata, compress_type=zipfile.ZIP_STORED)
+                img = Image.open(file)
 
-                output_file.about_to_write_file(len(frame))
-                zip.writestr('%06i.jpg' % frame_no, frame, compress_type=zipfile.ZIP_STORED)
+                # If there's a transparency index, use PNG so we can preserve transparency.
+                transparent = img.info.get('transparency', -1) != -1
+
+                # Add each file.
+                for frame_no in range(img.n_frames):
+                    img.seek(frame_no)
+                    frame = img
+
+                    buffer = BytesIO()
+                    if transparent:
+                        frame.save(buffer, 'PNG')
+                    else:
+                        frame = frame.convert('RGB')
+                        frame.save(buffer, 'JPEG')
+                    frame = buffer.getvalue()
+
+                    output_file.about_to_write_file(len(frame))
+                    zip.writestr('%06i.jpg' % frame_no, frame, compress_type=zipfile.ZIP_STORED)
+    except OSError as e:
+        # We'll get EPIPE if the other side of the pipe is closed because the connection
+        # was closed.  Don't raise these as errors.
+        if e.errno in (errno.EPIPE, errno.EINVAL):
+            pass
+        else:
+            raise
 
 def create_ugoira(file, frame_durations):
     readfd, writefd = os.pipe()
