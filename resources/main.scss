@@ -168,40 +168,6 @@ textarea:focus, input:focus, a:focus {
     z-index: 100;
 }
 
-/* .seek-bar is the outer seek bar area, which is what can be dragged. */
-.seek-bar {
-    width: 100%;
-    box-sizing: content-box;
-    height: 12px;
-    cursor: pointer;
-
-    // If we're above the video UI, add some padding to make the seek bar easier to click.
-    // If we're below, don't do this so we're flush against the bottom of the video UI.
-    &[data-position="top"] { padding-top: 25px; }
-
-    .seek-empty {
-        height: 100%;
-        background-color: rgba(0,0,0,0.25);
-    }
-
-    &[data-position="bottom"] {
-        // The seek bar is very narrow when below the video UI.  This is only used when in
-        // fullscreen, and it's assumed that you can just move the mouse to the bottom of the
-        // screen.
-        height: 4px;
-
-        // If we're below the video UI, set the empty background to the same as the video UI.
-        > .seek-empty {
-            background-color: rgba(0,0,0,0.5);
-        }
-    }
-
-    .seek-fill {
-        background-color: #F00;
-        height: 100%;
-    }
-}
-
 // This holds the seek bar and video UI.
 .video-ui-container
 {
@@ -213,16 +179,65 @@ textarea:focus, input:focus, a:focus {
     transition: transform .25s, opacity .25s;
     opacity: 0;
 
-    // Hide the seek bar by default.  Show it when the mouse is visible or .visible is set
-    // (50% height).  Expand it while dragging (100% height).
-    //
-    // If the seek bar is at the bottom, disable vertical scaling since we're flush against
-    // the bottom of the video UI.
-    .seek-bar[data-position="top"] .seek-empty
-    {
-        transition: transform .25s;
-        transform: scale(100%, 0%);
-        transform-origin: bottom;
+    .seek-bar {
+        width: 100%;
+        box-sizing: content-box;
+        height: 12px;
+        cursor: pointer;
+        position: relative;
+
+        // If we're above the video UI, add some padding to make the seek bar easier to click.
+        // If we're below, don't do this so we're flush against the bottom of the video UI.
+        &[data-position="top"] { padding-top: 25px; }
+
+        // Hide the seek bar by default.  Show it when the mouse is visible or .visible is set
+        // (50% height).  Expand it while dragging (100% height).
+        //
+        // If the seek bar is at the bottom, disable vertical scaling since we're flush against
+        // the bottom of the video UI.
+        &[data-position="top"] > .seek-parts
+        {
+            transition: transform .25s;
+            transform: scale(100%, 0%);
+            transform-origin: bottom;
+        }
+
+        &[data-position="bottom"] {
+            // The seek bar is very narrow when below the video UI.  This is only used when in
+            // fullscreen, and it's assumed that you can just move the mouse to the bottom of the
+            // screen.
+            height: 4px;
+
+            // If we're below the video UI, set the empty background to the same as the video UI.
+            > .seek-parts > [data-seek-part="empty"] {
+                background-color: rgba(0,0,0,0.5);
+            }
+        }
+
+        // Scale to full size during drags.
+        &.dragging > .seek-parts {
+            transform: scale(100%, 100%) !important;
+        }
+
+        > .seek-parts {
+            width: 100%;
+            height: 100%;
+
+            > [data-seek-part]
+            {
+                height: 100%;
+                position: absolute;
+                left: 0;
+                top: 0;
+            }
+
+            > [data-seek-part="fill"] { background-color: #F00; }
+            > [data-seek-part="loaded"] { background-color: #A00; }
+            > [data-seek-part="empty"] {
+                background-color: rgba(0,0,0,0.25);
+                width: 100%;
+            }
+        }
     }
 
     // .mouse-hidden-box.show-cursor means the mouse has moved recently.  &.visible means
@@ -232,14 +247,10 @@ textarea:focus, input:focus, a:focus {
     {
         opacity: 1;
 
-        & .seek-bar[data-position="top"] .seek-empty
+        .seek-bar[data-position="top"] > .seek-parts
         {
             transform: scale(100%, 50%);
         }
-    }
-
-    .seek-bar.dragging .seek-empty {
-        transform: scale(100%, 100%) !important;
     }
 }
 

@@ -59,8 +59,10 @@ ppixiv.seek_bar = class extends widget
         super({...options,
             template: `
                 <div class="seek-bar">
-                    <div class=seek-empty>
-                        <div class=seek-fill></div>
+                    <div class=seek-parts>
+                        <div data-seek-part=empty class=seek-empty></div>
+                        <div data-seek-part=loaded class=seek-loaded></div>
+                        <div data-seek-part=fill class=seek-fill></div>
                     </div>
                 </div>
             `
@@ -74,6 +76,7 @@ ppixiv.seek_bar = class extends widget
 
         this.current_time = 0;
         this.duration = 1;
+        this.amount_loaded = 1;
         this.refresh();
         this.set_callback(null);
     };
@@ -167,10 +170,21 @@ ppixiv.seek_bar = class extends widget
         this.refresh();
     };
 
+    // Set the amount of the video that's loaded.  If 1 or greater, the loading indicator will be
+    // hidden.
+    set_loaded(value)
+    {
+        this.amount_loaded = value;
+        this.refresh();
+    }
+
     refresh()
     {
-        var position = this.duration > 0.0001? (this.current_time / this.duration):0;
+        let position = this.duration > 0.0001? (this.current_time / this.duration):0;
         this.container.querySelector(".seek-fill").style.width = (position * 100) + "%";
+
+        let loaded = this.amount_loaded < 1? this.amount_loaded:0;
+        this.container.querySelector(".seek-loaded").style.width = (loaded * 100) + "%";
     };
 }
 

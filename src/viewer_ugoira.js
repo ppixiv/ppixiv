@@ -229,8 +229,12 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
 
     progress(value)
     {
-        if(this.options.progress_bar)
-            this.options.progress_bar.set(value);
+        if(this.seek_bar)
+        {
+            if(value == null)
+                value = 1;
+            this.seek_bar.set_loaded(value);
+        }
     }
 
     // Once we draw a frame, hide the preview and show the canvas.  This avoids
