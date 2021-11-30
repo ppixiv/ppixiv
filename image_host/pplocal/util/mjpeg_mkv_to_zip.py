@@ -10,11 +10,10 @@
 # this data from it being split into two calls, we stash the metadata in a file
 # in the ZIP instead.
 
-import io, json, sys, zipfile, struct, os
+import asyncio, io, json, sys, zipfile, struct, os
 from io import BytesIO
-from .synchronous_queue_task import SynchronousQueueTask
 from ..extern import mkvparse
-from .misc import DataStream
+from .misc import FixedZipPipe
 from pprint import pprint
 
 class ExportMJPEG(mkvparse.MatroskaHandler):      
@@ -89,71 +88,41 @@ def get_frame_durations(file):
 
     return frame_durations
 
-def _create_ugoira_into_queue(file, queue, frame_durations):
-    """
-    Create the ZIP, pushing the ZIP data into the given SynchronousQueueTask.
-    """
+def _create_ugoira(file, output_file, frame_durations):
+    # Be sure that we always close output_file, or the request will deadlock.
+    with output_file:
+        zip = zipfile.ZipFile(output_file, 'w')
+        with zip:
+            # Add the metadata file.
+            frame_delays = []
+            for frame_no, duration in enumerate(frame_durations):
+                frame_delays.append({
+                    'file': '%06i.jpg' % frame_no,
+                    'delay': duration,
+                })
 
-    # Create the ZIP.
-    output_stream = DataStream(queue)
-    zip = zipfile.ZipFile(output_stream, 'w')
+            metadata = json.dumps(frame_delays, indent=4).encode('utf-8')
+            output_file.about_to_write_file(len(metadata))
+            zip.writestr('metadata.json', metadata, compress_type=zipfile.ZIP_STORED)
 
-    try:
-        # Add the metadata file.
-        frame_delays = []
-        for frame_no, duration in enumerate(frame_durations):
-            frame_delays.append({
-                'file': '%06i.jpg' % frame_no,
-                'delay': duration,
-            })
+            # Add each file.
+            frame_no = 0
+            def retrieve_frame(frame, timestamp):
+                nonlocal frame_no
+                output_file.about_to_write_file(len(frame))
+                zip.writestr('%06i.jpg' % frame_no, frame, compress_type=zipfile.ZIP_STORED)
+                frame_no += 1
 
-        metadata = json.dumps(frame_delays, indent=4).encode('utf-8')
-        zip.writestr('metadata.json', metadata, compress_type=zipfile.ZIP_STORED)
-        output_stream.fix_file_size(len(metadata))
-
-        # Add each file.
-        frame_no = 0
-        def retrieve_frame(frame, timestamp):
-            nonlocal frame_no
-            zip.writestr('%06i.jpg' % frame_no, frame, compress_type=zipfile.ZIP_STORED)
-            output_stream.fix_file_size(len(frame))
-            frame_no += 1
-
-        result = ExportMJPEG(frame_callback=retrieve_frame)
-        mkvparse.mkvparse(file, result)
-    finally:
-        # Always close the zip even on exception, or zipfile will close it when it's
-        # GC'd, which can make a mess during error handling.
-        zip.close()
+            result = ExportMJPEG(frame_callback=retrieve_frame)
+            mkvparse.mkvparse(file, result)
     
 async def create_ugoira(file, frame_durations):
-    # SynchronousQueueTask runs _create_ugoira_into_queue in a thread.
-    queue = SynchronousQueueTask(maxsize=1)
-    queue.run(_create_ugoira_into_queue, file, queue, frame_durations)
+    readfd, writefd = os.pipe()
+    read = os.fdopen(readfd, 'rb', buffering=0)
+    write = os.fdopen(writefd, 'wb', buffering=1024*256)
 
-    try:
-        while True:
-            # Wait for data.
-            data = await queue.get()
-            if data is None:
-                break
+    write = FixedZipPipe(write)
 
-            # Yield this block for output.
-            yield data
-    finally:
-        # Make sure the task is shut down.
-        await queue.cancel()
-
-async def test():
-    output_stream = BytesIO()
-    with open('testing.mkv', 'rb') as file:
-        frame_durations = get_frame_durations(file)
-        async for data in create_ugoira(file, frame_durations):
-            print('...', len(data))
-
-#    buf = output_stream.getbuffer()
-#    with open('foo.zip', 'wb') as f:
-#        f.write(buf)
-
-if __name__ == '__main__':
-    asyncio.run(test())
+    promise = asyncio.to_thread(_create_ugoira, file, write, frame_durations)
+    promise = asyncio.create_task(promise)
+    return read, promise

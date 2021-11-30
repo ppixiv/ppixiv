@@ -1,5 +1,5 @@
 # Helpers that don't have dependancies on our other modules.
-import asyncio, os, io, struct
+import asyncio, concurrent, os, io, struct, os, threading, time
 from PIL import Image, ExifTags
 from pprint import pprint
 
@@ -202,37 +202,53 @@ class AsyncEvent:
         finally:
             self.waits.remove(future)
 
-class DataStream:
+class FixedZipPipe:
     """
-    A dummy stream to receive data from zipfile and push it into a queue.
+    Work around two Python bugs:
+
+    - os.pipe is badly broken on Windows.  They don't throw an exception
+    on seek and always return 0 from tell(), which completely breaks ZipFile.
+    It's a known bug and nobody seems to care that a core API is broken.
+
+    - If zipfile is given a non-seekable stream, it writes 0 as the file size
+    in the local file header.  That's unavoidable if you're streaming data,
+    but it makes no sense with writestr(), which receives the whole file at
+    once.  It results in unstreamable ZIPs, and we need streamable ZIPs.
+    We fix this by calling about_to_write_file with the file size right before
+    writing the file, and then replacing the file size in the local file header
+    on the next write() call.
     """
-    def __init__(self, queue):
-        self.queue = queue
-        self.data = io.BytesIO()
+    def __init__(self, file):
+        self.pos = 0
+        self.file = file
+        self.next_write_is_local_file_header = None
 
     def write(self, data):
-        self.data.write(data)
-        return len(data)
+        if self.next_write_is_local_file_header is not None:
+            assert len(data) >= 26
+            size = struct.pack('<L', self.next_write_is_local_file_header)
+            data = data[0:22] + size + data[26:]
 
-    def fix_file_size(self, file_size):
-        """
-        Work around a Python bug.  If zipfile is given a non-seekable stream, it
-        writes 0 as the file size in the local file header.  That's unavoidable
-        if you're streaming data in, but it makes no sense when you give it the
-        whole file at once, and results in creating ZIPs which are unstreamable.
-        We require streamable ZIPs, so we have to fix the header.
+            self.next_write_is_local_file_header = None
 
-        This is called after writing each file, so the local file header for the
-        latest file is at the beginning of self.data.
-        """
-        with self.data.getbuffer() as buffer:
-            struct.pack_into('<L', buffer, 22, file_size)
+        bytes = self.file.write(data)
+        self.pos += bytes
+    
+    def tell(self):
+        return self.pos
 
-        # Flush the file, so the next file starts at the beginning of self.data
-        # so we can find it for the next call.
-        self.flush()
+    def close(self):
+        self.file.close()
+
+    def __enter__(self):
+        return self.file.__enter__()
+
+    def __exit__(self, *args):
+        return self.file.__exit__(*args)
 
     def flush(self):
-        self.queue.put(self.data.getvalue())
-        self.data.seek(0)
-        self.data.truncate()
+        self.file.flush()
+
+    def about_to_write_file(self, size):
+        self.next_write_is_local_file_header = size
+        pass

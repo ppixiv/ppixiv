@@ -10,10 +10,10 @@
 # this data from it being split into two calls, we stash the metadata in a file
 # in the ZIP instead.
 
-import asyncio, json, sys, zipfile, os, queue
+import asyncio, json, sys, zipfile, os
 from PIL import Image
 from io import BytesIO
-from .misc import DataStream
+from .misc import FixedZipPipe
 from pprint import pprint
 
 class NotAnimatedError(ValueError): pass
@@ -42,82 +42,57 @@ def get_frame_durations(file):
 
     return frame_durations
 
-async def create_ugoira(file, frame_durations):
-    """
-    Create the ZIP, pushing the ZIP data into the given SynchronousQueueTask.
-    """
-    output_queue = queue.Queue()
-
-    img = Image.open(file)
-
-    # Create the ZIP.
-    output_stream = DataStream(output_queue)
-    zip = zipfile.ZipFile(output_stream, 'w')
-
-    try:
-        # Add the metadata file.
-        frame_delays = []
-        for frame_no, duration in enumerate(frame_durations):
-            # Match browser behavior for frames that have delays that are too low.
-            if duration < 20:
-                duration = 100
-
-            frame_delays.append({
-                'file': '%06i.jpg' % frame_no,
-                'delay': duration,
-            })
-
-        metadata = json.dumps(frame_delays, indent=4).encode('utf-8')
-        zip.writestr('metadata.json', metadata, compress_type=zipfile.ZIP_STORED)
-        output_stream.fix_file_size(len(metadata))
+def _create_ugoira(file, output_file, frame_durations):
+    # Be sure that we always close output_file, or the request will deadlock.
+    with output_file:
         img = Image.open(file)
 
-        # If there's a transparency index, use PNG so we can preserve transparency.
-        transparent = img.info.get('transparency', -1) != -1
+        # Create the ZIP.
+        zip = zipfile.ZipFile(output_file, 'w')
+        with zip:
+            # Add the metadata file.
+            frame_delays = []
+            for frame_no, duration in enumerate(frame_durations):
+                # Match browser behavior for frames that have delays that are too low.
+                if duration < 20:
+                    duration = 100
 
-        # Add each file.
-        for frame_no in range(img.n_frames):
-            img.seek(frame_no)
-            frame = img
+                frame_delays.append({
+                    'file': '%06i.jpg' % frame_no,
+                    'delay': duration,
+                })
 
-            buffer = BytesIO()
-            if transparent:
-                frame.save(buffer, 'PNG')
-            else:
-                frame = frame.convert('RGB')
-                frame.save(buffer, 'JPEG')
-            frame = buffer.getvalue()
+            metadata = json.dumps(frame_delays, indent=4).encode('utf-8')
+            output_file.about_to_write_file(len(metadata))
+            zip.writestr('metadata.json', metadata, compress_type=zipfile.ZIP_STORED)
+            img = Image.open(file)
 
-            zip.writestr('%06i.jpg' % frame_no, frame, compress_type=zipfile.ZIP_STORED)
-            output_stream.fix_file_size(len(frame))
+            # If there's a transparency index, use PNG so we can preserve transparency.
+            transparent = img.info.get('transparency', -1) != -1
 
-            # Flush the frame that was just written to the ZIP.
-            while not output_queue.empty():
-                data = output_queue.get()
-                yield data
+            # Add each file.
+            for frame_no in range(img.n_frames):
+                img.seek(frame_no)
+                frame = img
 
-        zip.close()
+                buffer = BytesIO()
+                if transparent:
+                    frame.save(buffer, 'PNG')
+                else:
+                    frame = frame.convert('RGB')
+                    frame.save(buffer, 'JPEG')
+                frame = buffer.getvalue()
 
-    finally:
-        # Always close the zip even on exception, or zipfile will close it when it's
-        # GC'd, which can make a mess during error handling.
-        zip.close()
+                output_file.about_to_write_file(len(frame))
+                zip.writestr('%06i.jpg' % frame_no, frame, compress_type=zipfile.ZIP_STORED)
 
-    # Flush the end of the file.
-    while not output_queue.empty():
-        data = output_queue.get()
-        yield data
+def create_ugoira(file, frame_durations):
+    readfd, writefd = os.pipe()
+    read = os.fdopen(readfd, 'rb', buffering=0)
+    write = os.fdopen(writefd, 'wb', buffering=1024*256)
 
-async def test():
-    output_stream = BytesIO()
-    with open('testing.gif', 'rb') as file:
-        frame_durations = get_frame_durations(file)
-        async for data in create_ugoira(file, frame_durations):
-            print('...', len(data))
+    write = FixedZipPipe(write)
 
-#    buf = output_stream.getbuffer()
-#    with open('foo.zip', 'wb') as f:
-#        f.write(buf)
-
-if __name__ == '__main__':
-    asyncio.run(test())
+    promise = asyncio.to_thread(_create_ugoira, file, write, frame_durations)
+    promise = asyncio.create_task(promise)
+    return read, promise

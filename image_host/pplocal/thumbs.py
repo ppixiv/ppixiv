@@ -302,19 +302,23 @@ async def handle_mjpeg(request):
             # Get frame durations.  This is where we expect an exception to be thrown if
             # the file isn't an MJPEG, so we do this before creating our response.
             frame_durations = mjpeg_mkv_to_zip.get_frame_durations(f)
-            generator = mjpeg_mkv_to_zip.create_ugoira(f, frame_durations)
+            output_file, task = await mjpeg_mkv_to_zip.create_ugoira(f, frame_durations)
         elif mime_type == 'image/gif':
             frame_durations = gif_to_zip.get_frame_durations(f)
-            generator = gif_to_zip.create_ugoira(f, frame_durations)
+            output_file, task = gif_to_zip.create_ugoira(f, frame_durations)
 
-        response = aiohttp.web.StreamResponse(status=200, headers={
+        response = aiohttp.web.Response(status=200, headers={
             'Content-Type': 'application/x-zip-compressed',
             'Cache-Control': 'public, immutable',
         })
         response.enable_chunked_encoding()
         await response.prepare(request)
+        response.body = output_file
 
-        async for data in generator:
-            await response.write(data)
-
-        await response.write_eof()
+        try:
+            await response.write_eof()
+        finally:
+            # Wait for the thread that's writing the file to exit.
+            await task
+        
+        return response
