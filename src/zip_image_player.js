@@ -96,6 +96,10 @@ ppixiv.ZipImageDownloader = class
             signal: this.signal,
         });        
 
+        // If this fails, the error was already logged.  The most common cause is being cancelled.
+        if(response == null)
+            return null;
+
         // We could also figure out progress from frame numbers, but doing it with the actual
         // amount downloaded is more accurate, and the server always gives us content-length.
         this.total_length = response.headers.get("Content-Length");
