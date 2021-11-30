@@ -677,7 +677,11 @@ ppixiv.local_navigation_widget = class extends ppixiv.tree_widget
     // Choose a tree root for the current URL, creating one if needed.
     set_root_from_url()
     {
+        // Don't load a root if we're not currently on local search.
         let args = helpers.args.location;
+        if(args.path != "/local/")
+            return;
+
         let { search_options, title } = local_api.get_search_options_for_args(args);
         let search_root = local_api.get_search_root_from_args(args, search_options);
 
@@ -691,7 +695,6 @@ ppixiv.local_navigation_widget = class extends ppixiv.tree_widget
         let search_options_json = JSON.stringify({root: search_root, search_options: search_options});
         if(this.roots[search_options_json] == null)
         {
-            console.log("create root", search_root);
             // Create this tree.
             this.roots[search_options_json] = new local_navigation_widget_item({
                 parent: this,
