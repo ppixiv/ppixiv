@@ -19,7 +19,7 @@ ppixiv.viewer_video = class extends ppixiv.viewer
         this.seek_callback = this.seek_callback.bind(this);
 
         this.video_ui = video_ui;
-        this.seek_bar = options.seek_bar;
+        this.seek_bar = video_ui.seek_bar;
         this.seek_bar.set_current_time(0);
         this.seek_bar.set_callback(this.seek_callback);
 

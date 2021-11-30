@@ -306,7 +306,6 @@ ppixiv.screen_illust = class extends ppixiv.screen
                 contents: image_container,
                 progress_bar: this.progress_bar.controller(),
                 manga_page_bar: this.manga_page_bar,
-                seek_bar: this.video_ui.seek_bar,
                 video_ui: this.video_ui,
             });
         }
