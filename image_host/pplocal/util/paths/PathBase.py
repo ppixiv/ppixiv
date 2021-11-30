@@ -6,19 +6,19 @@ class PathBase:
     """
     @property
     def path(self):
-        raise NotImplemented
+        raise NotImplemented()
 
     @property
     def name(self):
         """
         Return the basename of the path.
         """
-        raise NotImplemented
+        raise NotImplemented()
 
     # These are the same as on Path.
-    def __fspath__(self): raise NotImplemented
-    def __truediv__(self, name): raise NotImplemented
-    def exists(self): raise NotImplemented
+    def __fspath__(self): raise NotImplemented()
+    def __truediv__(self, name): raise NotImplemented()
+    def exists(self): raise NotImplemented()
 
     def relative_to(self, path):
         return self.path.relative_to(path)
@@ -32,13 +32,13 @@ class PathBase:
         return self.path.parent
 
     @property
-    def suffix(self): raise NotImplemented
+    def suffix(self): raise NotImplemented()
 
     @property
     def parts(self): return self.path.parts
 
-    def is_file(self): raise NotImplemented
-    def is_dir(self): raise NotImplemented
+    def is_file(self): raise NotImplemented()
+    def is_dir(self): raise NotImplemented()
 
     def is_real_dir(self):
         """
@@ -50,7 +50,7 @@ class PathBase:
         """
         return self.is_dir()
 
-    def with_name(self, name): raise NotImplemented
+    def with_name(self, name): raise NotImplemented()
 
     @property
     def real_file(self):
@@ -58,7 +58,7 @@ class PathBase:
         If this is an actual file on the filesystem, return its Path.  Otherwise,
         return None.
         """
-        raise NotImplemented
+        raise NotImplemented()
 
     @property
     def filesystem_path(self):
@@ -67,7 +67,7 @@ class PathBase:
 
         For regular paths, this is the same as path.  For ZIPs, this is the ZIP.
         """
-        raise NotImplemented
+        raise NotImplemented()
 
     @property
     def filesystem_parent(self):
@@ -78,22 +78,22 @@ class PathBase:
         it's the directory itself.  For files inside ZIPs, it's the directory the ZIP
         is contained in.
         """
-        raise NotImplemented
+        raise NotImplemented()
 
     def stat(self):
         """
         Return stat_result.
         """
-        raise NotImplemented
+        raise NotImplemented()
 
     def scandir(self):
         """
         Iterate over the files in this directory.
         """
-        raise NotImplemented
+        raise NotImplemented()
 
     def open(self, mode='r', *, shared=True):
         """
         Open the file.  If shared is true, disable filesystem locking.
         """
-        raise NotImplemented
+        raise NotImplemented()
