@@ -308,25 +308,25 @@ ppixiv.video_ui = class extends ppixiv.widget
                 <div class=seek-bar-container-top></div>
                 <div class=video-ui-strip>
                     <div class=play-button>
-                        <span data-play=pause class="material-icons" style="font-size: 36px;">pause</span>
-                        <span data-play=play class="material-icons" style="font-size: 36px;">play_arrow</span>
+                        <span data-play=pause class="material-icons button" style="font-size: 36px;">pause</span>
+                        <span data-play=play class="material-icons button" style="font-size: 36px;">play_arrow</span>
                     </div>
 
                     <div class=time></div>
 
                     <div style="flex: 1;"></div>
 
-                    <div class=volume-slider>
+                    <div class="volume-slider button">
                         <div class=volume-line></div>
                     </div>
 
-                    <span data-volume=high class="material-icons" style="font-size: 36px; display: block; width: 40px;">volume_up</span>
-                    <span data-volume=mute class="material-icons" style="font-size: 36px; display: block; width: 40px;">volume_off</span>
+                    <span data-volume=high class="material-icons button" style="font-size: 36px; display: block; width: 40px;">volume_up</span>
+                    <span data-volume=mute class="material-icons button" style="font-size: 36px; display: block; width: 40px;">volume_off</span>
 
-                    <div class=pip-button>
+                    <div class="pip-button button">
                         <span class="material-icons" style="font-size: 36px;">picture_in_picture_alt</span>
                     </div>
-                    <div class=fullscreen>
+                    <div class="fullscreen button">
                         <ppixiv-inline src="resources/fullscreen.svg"></ppixiv-inline>
                     </div>
                 </div>

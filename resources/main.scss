@@ -276,6 +276,10 @@ textarea:focus, input:focus, a:focus {
         // Tweak the vertical alignment for centering.
         padding-top: 4px;
 
+        .button {
+            cursor: pointer;
+        }
+
         > .time {
             font-family: Roboto,Arial,Helvetica,sans-serif;
             font-size: 1.2em;
