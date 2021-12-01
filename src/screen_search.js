@@ -1641,7 +1641,7 @@ ppixiv.screen_search = class extends ppixiv.screen
             // Don't show this UI when we're in the followed users view.
             if(search_mode == "illusts")
             {
-                if(info.illustType == 2)
+                if(info.illustType == 2 || info.illustType == "video")
                     element.querySelector(".ugoira-icon").hidden = false;
 
                 if(info.pageCount > 1)
