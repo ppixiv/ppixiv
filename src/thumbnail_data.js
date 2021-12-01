@@ -459,7 +459,7 @@ ppixiv.thumbnail_data = class
         else
             throw "Unknown source: " + source;
 
-        this.quick_user_data[id] = data;        
+        this.quick_user_data[data.userId] = data;        
     }
 
     get_quick_user_data(user_id)
