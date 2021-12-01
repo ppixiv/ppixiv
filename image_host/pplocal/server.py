@@ -22,7 +22,7 @@ async def check_origin(request, response):
     if origin:
         response.headers['Access-Control-Allow-Origin'] = origin
         response.headers['Access-Control-Allow-Methods'] = 'POST, GET, OPTIONS'
-        response.headers['Access-Control-Allow-Headers'] = '*'
+        response.headers['Access-Control-Allow-Headers'] = 'Accept, Cache-Control, If-None-Match, If-Modified-Since, Origin, Range, X-Requested-With'
         response.headers['Access-Control-Expose-Headers'] = '*'
         response.headers['Access-Control-Max-Age'] = '1000000'
 
