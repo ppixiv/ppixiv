@@ -209,6 +209,11 @@ ppixiv.image_data = class
         {
             var ugoira_result = await ugoira_promise;
             illust_data.ugoiraMetadata = ugoira_result.body;
+
+            // Switch the data URL to i-cf..pximg.net.
+            let url = new URL(illust_data.ugoiraMetadata.originalSrc);
+            helpers.adjust_image_url_hostname(url);
+            illust_data.ugoiraMetadata.originalSrc = url.toString();
         }
 
         // If this is a single-page image, create a dummy single-entry mangaPages array.  This lets
