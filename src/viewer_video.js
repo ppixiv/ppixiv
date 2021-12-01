@@ -52,8 +52,7 @@ ppixiv.viewer_video = class extends ppixiv.viewer
 
         this.video.addEventListener("timeupdate", this.update_seek_bar);
         this.video.addEventListener("progress", this.update_seek_bar);
-        this.video.addEventListener("click", this.clicked_video);
-        this.video.addEventListener("dblclick", (e) => { });
+        this.container.addEventListener("click", this.clicked_video);
 
         // In case we start PIP without playing first, switch the poster when PIP starts.
         this.video.addEventListener("enterpictureinpicture", (e) => { this.switch_poster_to_thumb(); });
