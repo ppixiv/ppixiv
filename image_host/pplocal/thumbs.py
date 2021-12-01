@@ -264,15 +264,14 @@ async def handle_thumb(request, mode='thumb'):
     if thumbnail_file is None:
         raise aiohttp.web.HTTPNotFound()
 
-    # Fill in last-modified from the source file.
-    timestamp = datetime.fromtimestamp(mtime, tz=timezone.utc)
-    timestamp = timestamp.strftime('%a, %d %b %Y %H:%M:%S %Z')
-
-    return aiohttp.web.Response(body=thumbnail_file, headers={
+    response = aiohttp.web.Response(body=thumbnail_file, headers={
         'Content-Type': mime_type,
         'Cache-Control': 'public, immutable',
-        'Last-Modified': timestamp,
     })
+
+    # Fill in last-modified from the source file.
+    response.last_modified = mtime
+    return response
 
 async def handle_mjpeg(request):
     """
@@ -308,9 +307,10 @@ async def handle_mjpeg(request):
             output_file, task = gif_to_zip.create_ugoira(f, frame_durations)
 
         response = aiohttp.web.Response(status=200, headers={
-            'Content-Type': 'application/x-zip-compressed',
+            'Content-Type': 'application/zip',
             'Cache-Control': 'public, immutable',
         })
+        response.last_modified = mtime
         response.enable_chunked_encoding()
         await response.prepare(request)
         response.body = output_file
