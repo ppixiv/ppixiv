@@ -140,6 +140,7 @@ def get_illust_info(library, entry, base_url):
         'userName': entry['author'],
         'illustComment': entry['comment'],
         'tagList': tags,
+        'duration': entry['duration'],
     }
 
     return image_info

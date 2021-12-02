@@ -501,6 +501,7 @@ class Library:
         tags = media_metadata.get('tags', '')
         codec = media_metadata.get('codec', '')
         animation = media_metadata.get('animation', False)
+        duration = media_metadata.get('duration')
 
         if not title:
             title = path.name
@@ -522,6 +523,7 @@ class Library:
             'height': height,
             'codec': codec,
             'animation': animation,
+            'duration': duration,
         }
 
         return data

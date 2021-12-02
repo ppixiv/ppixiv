@@ -93,6 +93,7 @@ def read_metadata(f, mime_type):
             'artist': data.get('tag/ART') or '',
             'tags': '',
             'codec': data.get('codec'),
+            'duration': data.get('duration'),
 
             # "animation" means we'll use the ZIP animation format for the file rather
             # than treat it as a video, since browsers don't support MJPEG.

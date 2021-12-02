@@ -74,7 +74,10 @@ class FileIndex(Database):
                             bookmark_tags NOT NULL DEFAULT "",
                             directory_thumbnail_path,
                             codec,
-                            animation NOT NULL DEFAULT FALSE
+                            animation NOT NULL DEFAULT FALSE,
+
+                            -- If this is a video or an animation, this is the duration in seconds if known.
+                            duration
                         )
                     ''')
 
