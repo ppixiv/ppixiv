@@ -809,7 +809,9 @@ class Library:
 
             def get_shuffled_results():
                 for result in all_results:
-                    yield get_entry_from_result(result)
+                    entry = get_entry_from_result(result)
+                    if entry is not None:
+                        yield entry
 
             final_search = get_shuffled_results()
         else:
@@ -817,11 +819,15 @@ class Library:
             # get_results_from_search iterate through those and yield entries.
             def get_results_from_index():
                 for result in index_search_iter:
-                    yield get_entry_from_result(result)
+                    entry = get_entry_from_result(result)
+                    if entry is not None:
+                        yield entry
 
             def get_results_from_search():
                 for result in windows_search_iter:
-                    yield get_entry_from_result(result)
+                    entry = get_entry_from_result(result)
+                    if entry is not None:
+                        yield entry
 
             # Create the iterators for both searches.
             search_results_iter = get_results_from_search()
