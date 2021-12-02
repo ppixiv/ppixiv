@@ -39,8 +39,17 @@ def load_directory_metadata(directory_path, return_copy=True):
 
         with open(this_metadata_filename, 'rt', encoding='utf-8') as f:
             data = f.read()
-            result = json.loads(data)
-            result = result['data']
+            try:
+                result = json.loads(data)
+            except ValueError as e:
+                print('Metadata file %s is corrupt: %s' % (this_metadata_filename, str(e)))
+                result = {}
+
+            result = result.get('data', { })
+            if not isinstance(result, dict):
+                print('Metadata file %s is corrupt: data isn\'t a dictionary' % this_metadata_filename)
+                result = { }
+
             _metadata_cache[this_metadata_filename] = result
             return result
     except FileNotFoundError:
@@ -115,9 +124,14 @@ def load_file_metadata(path, *, return_copy=True):
     to avoid loading it repeatedly while scanning directories.
     """
     directory_path, filename = _directory_path_for_file(path)
-
     directory_metadata = load_directory_metadata(directory_path, return_copy=return_copy)
-    return directory_metadata.get(str(filename), {})
+
+    result = directory_metadata.get(str(filename), {})
+    if not isinstance(result, dict):
+        print('Metadata for %s is corrupt' % path)
+        result = {}
+
+    return result
 
 def has_file_metadata(path):
     """

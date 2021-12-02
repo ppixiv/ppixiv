@@ -56,7 +56,13 @@ class FileIndex(Database):
                             filesystem_mtime NOT NULL,
                             path UNIQUE NOT NULL,
                             parent NOT NULL,
+
+                            -- The basename of the path, in lowercase.  This is for the 'normal' sort order. 
+                            filesystem_name NOT NULL,
+
+                            -- This is true for ZIPs, which we treat like directories.
                             is_directory NOT NULL DEFAULT false,
+
                             width,
                             height,
                             tags NOT NULL,
@@ -76,6 +82,9 @@ class FileIndex(Database):
                     conn.execute(f'CREATE INDEX {self.schema}.files_parent on files(parent)')
                     conn.execute(f'CREATE INDEX {self.schema}.files_mime_type on files(mime_type)')
                     conn.execute(f'CREATE INDEX {self.schema}.files_animation on files(animation) WHERE animation')
+
+                    # This index is for the "normal" sort order.  See library.sort_orders.
+                    conn.execute(f'CREATE INDEX {self.schema}.files_sort_normal on files(is_directory DESC, filesystem_name ASC)')
 
                     # This is used to find untagged bookmarks.  Tag searches use the bookmark_tag table below.
                     conn.execute(f'CREATE INDEX {self.schema}.files_untagged_bookmarks on files(bookmark_tags) WHERE bookmark_tags == "" AND bookmarked')
@@ -148,11 +157,12 @@ class FileIndex(Database):
             existing_record = result[0] if result else None
 
             if existing_record:
-                # The record already exists.  Update all fields except for path and parent,
-                # which are invariant (except for renames which we don't do here)  This is much
-                # faster than letting INSERT OR REPLACE replace the record.
+                # The record already exists.  Update all fields except for path, parent, and
+                # filesystem_name name, which are invariant (except for renames which we don't
+                # do here)  This is much faster than letting INSERT OR REPLACE replace the record.
                 fields.remove('path')
                 fields.remove('parent')
+                fields.remove('filesystem_name')
                 row = [entry[key] for key in fields]
                 row.append(entry['path'])
                 sets = ['%s = ?' % field for field in fields]
@@ -279,7 +289,7 @@ class FileIndex(Database):
             # exists in the database, the entire directory is stale and should be
             # removed.
             self.delete_recursively([new_path], conn=conn)
-
+            
             for entry in self.search(path=str(old_path), conn=conn):
                 # path should always be relative to old_path: this is a path inside
                 # the path we searched for.
@@ -294,15 +304,22 @@ class FileIndex(Database):
                 else:
                     entry_new_parent = entry['parent']
 
+                entry_new_filesystem_name = new_path.name.lower()
+
                 query = f'''
                     UPDATE OR REPLACE {self.schema}.files
-                        SET path = ?, parent = ?
+                        SET path = ?, parent = ?, filesystem_name = ?
                         WHERE id = ?
                 ''' % {
                     'path': '',
                     'parent': '',
                 }
-                cursor.execute(query, [str(entry_new_path), str(entry_new_parent), entry['id']])
+                cursor.execute(query, [
+                    str(entry_new_path),              # path
+                    str(entry_new_parent),            # parent
+                    str(entry_new_filesystem_name),   # filesystem_name
+                    entry['id'],                      # WHERE id
+                ])
 
     def get(self, path, *, conn=None):
         """
@@ -342,6 +359,9 @@ class FileIndex(Database):
         # If set, only match this exact file ID in the database.  This is used to
         # check if a loaded entry matches other search filters.
         file_id=None,
+
+        # An SQL ORDER BY statement to order results.  See library.sort_orders.
+        order=None,
 
         include_files=True, include_dirs=True,
         conn=None
@@ -426,6 +446,9 @@ class FileIndex(Database):
                     where.append('lower(%s.keyword) GLOB ?' % alias)
                     params.append(word.lower())
 
+            if order is None:
+                order = ''
+
             where = ('WHERE ' + ' AND '.join(where)) if where else ''
             joins = (' '.join(joins)) if joins else ''
 
@@ -434,6 +457,7 @@ class FileIndex(Database):
                 FROM {self.schema}.files AS files
                 {joins}
                 {where}
+                {order}
             """
 #            print(query)
 #            for row in cursor.execute('EXPLAIN QUERY PLAN ' + query, params):
@@ -442,7 +466,12 @@ class FileIndex(Database):
 
             for row in cursor.execute(query, params):
                 result = dict(row)
-                yield result
+                try:
+                    yield result
+                except GeneratorExit:
+                    # GeneratorExit is normal.  Return rather than raising it to commit
+                    # the transaction.
+                    return
 
     def id_matches_search(self, file_id, conn=None, **search_options):
         """
@@ -464,7 +493,6 @@ class FileIndex(Database):
                 GROUP BY tag
             """
             for row in cursor.execute(query):
-                print(row.keys())
                 tag = row['tag']
                 results[tag] = row['count(tag)']
 
@@ -499,6 +527,7 @@ async def test():
         # 'parent': 'a',
 
         'populated': True,
+        'filesystem_name': 'name',
         'mtime': 10,
         'ctime': 10,
         'filesystem_mtime': 10,

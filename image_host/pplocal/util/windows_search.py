@@ -1,7 +1,8 @@
 # This gives an interface to Windows Search, returning results similar to
 # os.scandir.
 
-import time, os, stat
+import asyncio, time, os, stat
+from adodbapi import ado_consts
 from pathlib import Path
 from pprint import pprint
 
@@ -152,6 +153,9 @@ class SearchDirEntry(os.PathLike):
     def __repr__(self):
         return 'SearchDirEntry(%s)' % self._path
 
+# This is yielded as a result if the query times out.
+class SearchTimeout: pass
+
 def search(*,
         path=None,
 
@@ -166,18 +170,39 @@ def search(*,
         recurse=True,
         contents=None,
         media_type=None, # "images" or "videos"
-        sort_results=True,
+
+        # If None, a default timeout will be used.  If the request times out, an error
+        # will be thrown.
+        #
+        # If 0, no timeout will be used.
+        #
+        # If positive, the given timeout will be used.  If the search times out, a
+        # result of SearchTimeout will be yielded and no exception will be raised.
+        timeout=None,
+
+        # An SQL ORDER BY statement to order results.  See library.sort_orders.
+        order=None,
         include_files=True,
         include_dirs=True,
     ):
     if adodbapi is None:
         return
 
+    yield_timeouts = (timeout is not None)
+    if timeout is None:
+        timeout = 10
+
     try:
-        conn = adodbapi.connect('Provider=Search.CollatorDSO; Extended Properties="Application=Windows"')
+        conn = adodbapi.connect('Provider=Search.CollatorDSO; Extended Properties="Application=Windows"', timeout=timeout)
     except Exception as e:
         print('Couldn\'t connect to search: %s' % str(e))
         return
+
+    # For some reason, adodbapi defaults to adUseClient, which is extraordinarily
+    # slow: if you make a request that matches 100k files, it reads the entire record
+    # set before seeing any of them.  Switch this to adUseServer to get a normal
+    # database cursor.
+    conn.connector.CursorLocation = ado_consts.adUseServer
 
     select = [
         # These fields are required for SearchDirEntry.
@@ -246,9 +271,8 @@ def search(*,
 
     # If sorT_results is true, sort directories first, then alphabetical.  This is
     # useful but makes the search slower.
-    order = ''
-    if sort_results:
-        order = "ORDER BY System.FolderNameDisplay, System.FileName ASC"
+    if order is None:
+        order = ''
 
     query = f"""
         SELECT {', '.join(select)}
@@ -257,6 +281,8 @@ def search(*,
         {order}
     """
 
+    start_time = time.time()
+    timed_out = False
     try:
         with conn:
             with conn.cursor() as cursor:
@@ -266,11 +292,35 @@ def search(*,
                     yield entry
 
     except Exception as e:
-        print('Windows search error:', e)
+        # How do we figure out if this exception is from a timeout?  The HResult in the
+        # exception is just "Exception occurred".  Make a guess by comparing the duration
+        # to what we expect the timeout to be.  The timeout is an integer, so it can never
+        # be less than one full second.
+        if timeout != 0:
+            runtime = time.time() - start_time
+            if runtime >= timeout - 0.5:
+                # Exit the exception handler before yielding the timeout, so any exceptions
+                # during that yield don't cause nested exceptions.
+                timed_out = True
+        else:
+            print('Windows search error:', e)
+
+    # If the user explicitly requested a timeout, return SearchTimeout to let him know that
+    # the results were incomplete.  If no timeout was requested, raise an exception.  The
+    # caller isn't explicitly handling timeouts, so treat this as an error to prevent possibly
+    # incomplete results from being committed to the database.
+    if timed_out:
+        print(f'Windows Search probably timed out.  Timeout: {timeout} Time elapsed: {runtime}')
+        if yield_timeouts:
+            yield SearchTimeout
+        else:
+            raise Exception('The search timed out')
 
 def test():
     path=Path(r'F:\stuff\ppixiv\image_host')
-    for entry in search(path=path, contents='test'):
+    for idx, entry in enumerate(search(path=path, timeout=1)):
+        if entry is SearchTimeout:
+            print('Timed out')
         if entry is None:
             continue
 

@@ -315,16 +315,6 @@ async def api_list(info):
 
     return next_results
 
-class ResumableRequest:
-    def __init__(self, info):
-        self.info = info
-
-    def get(self):
-        pass
-
-    pass
-
-
 # A paginated request generator continually yields the next page of results
 # as a { 'results': [...] } dictionary.  When there are no more results, continually
 # yield empty results.
@@ -333,14 +323,16 @@ class ResumableRequest:
 # false or not present, the request will end.
 def api_list_impl(info):
     path = PurePosixPath(info.request.match_info['path'])
-    limit = int(info.data.get('limit', 50))
 
+    # Regular search options:
     search_options = {
         'substr': info.data.get('search'),
         'bookmarked': info.data.get('bookmarked', None),
         'bookmark_tags': info.data.get('bookmark_tags', None),
         'media_type': info.data.get('media_type', None),
     }
+
+    sort_order = info.data.get('order', 'default')
 
     # Remove null values from search_options, so it only contains search filters we're
     # actually using.
@@ -399,21 +391,23 @@ def api_list_impl(info):
         # if the path doesn't match.
         for library in libraries_to_search:
             if search_options:
-                for entry in library.search(path=absolute_path, include_files=not directories_only, **search_options):
-                    yield library, entry
+                for entries in library.search(path=absolute_path, include_files=not directories_only, sort_order=sort_order, **search_options):
+                    yield library, entries
             else:
                 # We have no search, so just list the contents of the directory.
-                for entry in library.list_path(absolute_path, include_files=not directories_only):
-                    yield library, entry
+                for entries in library.list(absolute_path, include_files=not directories_only, sort_order=sort_order):
+                    yield library, entries
 
-    for library, entry in _get_files():
-        entry = get_illust_info(library, entry, info.base_url)
-        if entry is None:
-            continue
+    # This receives blocks of results.  Convert it to the API format and yield the whole
+    # block.
+    for library, entries in _get_files():
+        for entry in entries:
+            entry = get_illust_info(library, entry, info.base_url)
+            if entry is not None:
+                file_info.append(entry)
         
-        file_info.append(entry)
-
-        if not directories_only and len(file_info) >= limit:
+        # If we're listing directories only, wait until we have all results.
+        if not directories_only and file_info:
             yield flush(last=False)
 
     while True:

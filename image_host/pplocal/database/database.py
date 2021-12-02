@@ -1,4 +1,4 @@
-import sqlite3, threading
+import asyncio, sqlite3, threading, traceback, time
 from contextlib import contextmanager
 
 _transactions = {}
@@ -33,10 +33,29 @@ def transaction(conn):
         conn.execute('SAVEPOINT %s' % savepoint_name)
         yield
         conn.execute('RELEASE SAVEPOINT %s' % savepoint_name)
+    except BaseException as e:
+        # If we see something like GeneratorExit here, something went wrong.  Log
+        # these, since it's extremely confusing if we silently roll back the transaction
+        # like a normal exception, because these exceptions won't be logged otherwise.
+        # GeneratorExit in particular can be raised if a generator stops being iterated,
+        # and should return to commit the exception rather than just letting GeneratorExit
+        # be raised.
+        if isinstance(BaseException, (Exception, KeyboardInterrupt, asyncio.CancelledError)):
+            raise
+        if isinstance(BaseException, Exception):
+            raise
+
+        print('BaseException caused database rollback')
+        import traceback
+        traceback.print_exc()
+
+        # Still roll back the transaction.
+        conn.execute('ROLLBACK TRANSACTION TO SAVEPOINT %s' % savepoint_name)
+        conn.execute('RELEASE SAVEPOINT %s' % savepoint_name)
+        raise
     except:
         # On exception, roll back the changes within the savepoint, then commit the
         # now empty savepoint to remove it.
-        conn.execute('ROLLBACK TRANSACTION TO SAVEPOINT %s' % savepoint_name)
         conn.execute('ROLLBACK TRANSACTION TO SAVEPOINT %s' % savepoint_name)
         conn.execute('RELEASE SAVEPOINT %s' % savepoint_name)
         raise
@@ -67,9 +86,13 @@ class Database:
             pass
 
     @contextmanager
-    def connect(self, existing_connection=None):
+    def connect(self, existing_connection=None, write=False):
         """
         Yield a pooled connection, committing it on completion or rolling back on exception.
+
+        If write is true, the connection will be opened with BEGIN IMMEDIATE TRANSACTION
+        active.
+
         """
         if existing_connection is not None:
             yield existing_connection
@@ -81,9 +104,21 @@ class Database:
             else:
                 connection = self.open_db()
 
+        started_at = time.time()
+        if write:
+            connection.execute('BEGIN IMMEDIATE TRANSACTION')
+        else:
+            connection.execute('BEGIN TRANSACTION')
+
         try:
             yield connection
             connection.commit()
+
+            took = time.time() - started_at
+            if took > 1:
+                print('Database transaction took a long time')
+                traceback.print_stack()
+
         finally:
             connection.rollback()
 
@@ -105,7 +140,7 @@ class Database:
     def open_db(self):
         # Connect to an in-memory database.  We don't use this, but you can't specify the schema
         # for the initial database, and we want to give a schema name to all of our databases.
-        conn = sqlite3.connect(':memory:', check_same_thread=False)
+        conn = sqlite3.connect(':memory:', check_same_thread=False, timeout=5)
 
         # Attach our database.
         self.attach(conn)

@@ -15,7 +15,7 @@
 #
 # XXX: how can we detect if indexing is enabled on our directory
 
-import asyncio, os, typing, time, stat, traceback, json, sys
+import asyncio, itertools, os, typing, time, stat, traceback, json, sys, heapq, natsort, random
 from pathlib import Path
 from pprint import pprint
 from pathlib import Path, PurePosixPath
@@ -25,6 +25,42 @@ from . import metadata_storage
 from .database.file_index import FileIndex
 from .util.paths import open_path, PathBase
 
+# Sort orders that we can use for listing and searching.
+#
+# Search sorts need to be handled in three places: our database, Windows search, and directly
+# to allow us to merge the other two together.  The searches must match exactly, or merging
+# will fail.
+#
+# Filesystem ("fs") sorts are used by Library.list, and sort BasePaths.  This lets us sort items
+# before retrieving their entries.
+sort_orders = {
+    # Normal sorting puts directories first, then sorts by path.
+    #
+    # This is constrained by Windows search, which isn't very robust.  We want to sort directories
+    # first, then use the path as a secondary search.
+    #
+    # Windows search won't do that.  It has System.FolderNameDisplay which is intended for
+    # sorting directories first, but it's not implemented well.  It's the basename of the path
+    # for directories, which makes it impossible to have secondary sorts.  It should be a boolean,
+    # so it can be used as a partial sort.
+    #
+    # It does treat ZIPs as directories.  That's unexpected, but it's what we want, so we'll take
+    # it.
+    'normal': {
+        'windows': 'ORDER BY System.FolderNameDisplay, System.ItemPathDisplay ASC',
+        'entry': lambda entry: (not entry['is_directory'], entry['filesystem_name'].lower()),
+        'index': 'ORDER BY is_directory DESC, filesystem_name ASC',
+        'fs': lambda entry: (not entry.is_dir(), entry.name),
+    },
+
+    # A natural sort.  This also puts directories first, but sorts numbered files much better.
+    # This isn't supported for searching, but it's mostly useful for viewing single directories.
+    # This is the default sort for Library.list.
+    'natural': {
+        'fs': lambda entry: (not entry.is_dir(), *natsort.natsort_key(entry.name)),
+    }
+}
+
 class Library:
     """
     Handle indexing and searching for a directory tree.
@@ -32,9 +68,6 @@ class Library:
     This handles a single root directory.  To index multiple directories, create
     multiple libraries.
     """
-    # XXX: what should we name this
-    ntfs_alt_stream_name = 'pplocal.json'
-
     def __init__(self, library_name, path, *, local_data=False):
         self.library_name = library_name
         self.path = open_path(path.resolve())
@@ -461,6 +494,7 @@ class Library:
             'parent': str(Path(path).parent),
             'ctime': stat.st_ctime,
             'mtime': stat.st_mtime,
+            'filesystem_name': path.name.lower(),
             'filesystem_mtime': path.filesystem_file.stat().st_mtime,
             'title': title,
             'mime_type': mime_type,
@@ -480,6 +514,7 @@ class Library:
 
         data = {
             'path': os.fspath(path),
+            'filesystem_name': path.filesystem_file.name.lower(),
             'is_directory': True,
             'parent': str(Path(path).parent),
             'ctime': stat.st_ctime,
@@ -496,7 +531,15 @@ class Library:
 
         return data
 
-    def list_path(self, path, force_refresh=False, include_files=True, include_dirs=True):
+    def list(self,
+        path,
+        *,
+        sort_order='default',
+        force_refresh=False,
+        include_files=True,
+        include_dirs=True,
+        batch_size=50,
+    ):
         """
         Return all files inside path non-recursively.
         """
@@ -506,31 +549,66 @@ class Library:
         except ValueError:
             return
 
-        with self.db.connect() as conn:
-            for child in path.scandir():
-                is_dir = child.is_dir()
+        if sort_order == 'default':
+            sort_order = 'natural'
 
-                # Skip unsupported files.
-                if not is_dir and misc.file_type(child.name) is None:
-                    continue
+        # Create a scandir iterator.
+        scandir_results = path.scandir()
 
-                if not include_dirs and is_dir:
-                    continue
-                if not include_files and not is_dir:
-                    continue
+        # If we have a sort order, read the full results and sort.  If we aren't sorting,
+        # leave iter as an iterator so we'll read it incrementally.
+        if sort_order == 'shuffle':
+            scandir_results = list(scandir_results)
+            random.shuffle(scandir_results)
+        elif sort_order is not None and sort_orders.get(sort_order):
+            order = sort_orders[sort_order]
+            sorted_results = list(scandir_results)
+            sorted_results.sort(key=order['fs'])
 
-                # Find the file in cache and cache it if needed.
-                entry = self.get(child, force_refresh=force_refresh, conn=conn)
-                if entry is not None:
-                    yield entry
+            # Convert back to an iterator.
+            scandir_results = iter(sorted_results)
 
+        results = []
+        while True:
+            # This will start a database transaction.  We'll only hold it until we finish
+            # this batch, and commit it before yielding results, so we don't keep a write
+            # lock during the yield.
+            with self.db.connect() as conn:
+                for child in scandir_results:
+                    is_dir = child.is_dir()
+
+                    # Skip unsupported files.
+                    if not is_dir and misc.file_type(child.name) is None:
+                        continue
+
+                    if not include_dirs and is_dir:
+                        continue
+                    if not include_files and not is_dir:
+                        continue
+
+                    # Find the file in cache and cache it if needed.
+                    entry = self.get(child, force_refresh=force_refresh, conn=conn)
+                    if entry is not None:
+                        results.append(entry)
+
+                    # If we have a full batch, stop iterating and return it.
+                    if len(results) >= batch_size:
+                        break
+
+            # If we exited the loop and have no results, we're at the end.
+            if not len(results):
+                break
+            
+            # Yield these results, then continue reading the iterator.
+            yield results
+            results = []
+            
     def get(self, path, *, force_refresh=False, check_mtime=True, conn=None):
         """
         Return the entry for path.  If the path isn't cached, populate the cache entry.
 
         If force_refresh is true, always repopulate the cache entry.
         """
-
         entry = None
         if not force_refresh:
             entry = self.db.get(path=os.fspath(path), conn=conn)
@@ -570,55 +648,188 @@ class Library:
         entry['path'] = Path(entry['path'])
         entry['parent'] = Path(entry['parent'])
 
+    # Searching is a bit tricky.  We have a few things we want to do:
+    #
+    # - Read both Windows Search and our index, returning results from both.
+    # - Windows Search needs to be read incrementally, since it might be a very
+    # large search.
+    # - Yield data in batches.  Open a database connection while reading a batch,
+    # so we save any new cached data in a single transaction, but don't keep the
+    # transaction open while yielding, or we can hold a write lock indefinitely.
+    # - If sorting is enabled, request sorted data from both Windows and our index,
+    # and merge the two together as we go.
+    #
+    # See Library.list  for a simpler example of batching.
+    #
+    # We use separate database connections for windows_search and our index search.
+    # The windows_search iterator can write to the database, so we need to close and
+    # commit that connection when we yield results.  Our index search never writes to
+    # the database (we're reading already cached entries), and we can't close the
+    # read connection for db.search.
+    #
+    # Note that while we must match the sort order, it's normal for the two searches
+    # to match differently, such as having different keyword matching.
     def search(self, *,
         path=None,
         force_refresh=False,
         use_windows_search=True,
+        sort_order='normal',
+        batch_size=50,
         **search_options):
         if path is None:
             path = self.path
 
-        # Including files and directories doesn't filter anything.  Remove these, so they
-        # don't force us into the search path unnecessarily.
-        if search_options.get('include_files'):
-            del search_options['include_files']
-        if search_options.get('include_dirs'):
-            del search_options['include_dirs']
+        if sort_order == 'default':
+            sort_order = 'normal'
 
-        with self.db.connect() as conn:
-            # We can get results from the Windows search and our own index.  Keep track of
-            # what we've returned, so we don't return the same file from both.  If we're searching
-            # bookmarks, don't use Windows search, since it doesn't know about our bookmarks and
-            # our index will return them.
-            seen_paths = set()
-            if use_windows_search and not search_options.get('bookmarked') and search_options.get('bookmark_tags') is None:
-                # Check the Windows index.
-                for result in windows_search.search(path=str(path), **search_options):
-                    if result.path in seen_paths:
-                        continue
-                    seen_paths.add(result.path)
+        sort_order_info = sort_orders.get(sort_order)
 
-                    entry = self.get(open_path(Path(result.path)), force_refresh=force_refresh)
+        # if the sort order is shuffle, disable sorting within the actual searches.
+        shuffle = sort_order == 'shuffle'
+        if shuffle:
+            sort_order_info = None
+
+        # A sort order needs these keys to be used with searching.
+        if sort_order_info is not None:
+            for key in ('entry', 'index', 'windows'):
+                if key not in sort_order_info:
+                    print(f'Sort "{sort_order}" not supported for searching')
+                    sort_order_info = sort_orders['normal']
+                    break
+
+        # Normally, disable the timeout for the Windows search.  The search cursor is kept
+        # between page loads and the user might take a long time before loading the next
+        # page, and if we use a timeout, the query will time out while it waits.  Set a
+        # timeout if shuffling is enabled, since we'll be reading the whole result set at
+        # once and it might match tons of files.
+        #
+        # We don't actually want the request to get stuck if a request is made that takes
+        # a very long time, but we don't have a way to cancel it currently.
+        windows_search_timeout = 5 if shuffle else 0
+
+        # Don't use Windows search when searching bookmarks, since it doesn't know about them.
+        if search_options.get('bookmarked') or search_options.get('bookmark_tags') is not None:
+            use_windows_search = False
+
+        # Create the Windows search.
+        if use_windows_search:
+            order = sort_order_info['windows'] if sort_order_info else None
+            windows_search_iter = windows_search.search(path=str(path), order=order, timeout=windows_search_timeout, **search_options)
+        else:
+            windows_search_iter = []
+
+        # Create the index search.
+        #
+        # This intentionally doesn't use the same connection as the Windows search
+        # iterator, since this is read-only and we keep the connection running until
+        # we've completely returned all results.
+        order = sort_order_info['index'] if sort_order_info else None
+        index_search_iter = self.db.search(path=str(path), conn=None, order=order, **search_options)
+
+        # This is set while the iterate_windows_search iterator is being called, and unset between
+        # batches.  It's always set when get_entry_from_result is called.
+        windows_search_conn = None
+
+        # We can get the same results from Windows search and our own index.  
+        seen_paths = set()
+
+        def get_entry_from_result(result):
+            if result is windows_search.SearchTimeout:
+                # This is just a signal that the Windows search timed out.  We only enable timeouts
+                # for shuffled searches, in case they match tons of results.
+                return None
+            elif isinstance(result, windows_search.SearchDirEntry):
+                # print('Search result from Windows:', result.path)
+                if result.path in seen_paths:
+                    return
+                seen_paths.add(result.path)
+
+                assert windows_search_conn is not None
+                entry = self.get(open_path(Path(result.path)), force_refresh=force_refresh, conn=windows_search_conn)
+                if entry is None:
+                    return None
+
+                # Not all search options are supported by Windows indexing.  For example, we
+                # can search for GIFs, but we can't filter for animated GIFs.  Re-check the
+                # entry to see if it matches the search.
+                if not self.db.id_matches_search(entry['id'], conn=windows_search_conn, **search_options):
+                    print('Discarded Windows search result that doesn\'t match: %s' % entry['path'])
+                    return None
+
+                self._convert_to_path(entry)
+                return entry
+            else:
+                # print('Search result from database:', entry['id'], entry['filesystem_name'])
+                if str(result['path']) in seen_paths:
+                    return
+                seen_paths.add(str(result['path']))
+
+                self._convert_to_path(result)
+                return result
+
+        if shuffle:
+            # If we're shuffling, read both iterators all the way through and shuffle them.
+            # This is set up so we only run the search and don't call Library.get() at this
+            # point, so we only run file caching for results as we return them.
+            all_results = list(windows_search_iter) + list(index_search_iter)
+            random.shuffle(all_results)
+
+            def get_shuffled_results():
+                for result in all_results:
+                    yield get_entry_from_result(result)
+
+            final_search = get_shuffled_results()
+        else:
+            # We now have our two generators to run the searches.  get_results_from_index and
+            # get_results_from_search iterate through those and yield entries.
+            def get_results_from_index():
+                for result in index_search_iter:
+                    yield get_entry_from_result(result)
+
+            def get_results_from_search():
+                for result in windows_search_iter:
+                    yield get_entry_from_result(result)
+
+            # Create the iterators for both searches.
+            search_results_iter = get_results_from_search()
+            index_results_iter = get_results_from_index()
+
+            # If we're sorting, use heapq.merge to merge the two together.  Otherwise, just chain them.
+            if sort_order_info:
+                merge_key = sort_order_info['entry']
+                final_search = heapq.merge(search_results_iter, index_results_iter, key=merge_key)
+            else:
+                final_search = itertools.chain(search_results_iter, index_results_iter)
+
+        # Iterate over the final search, returning it in batches.
+        results = []
+        while True:
+            # Open a connection while we're running the iterator.  This will remain open for
+            # the duration of the batch, and be closed while we yield results.
+            connection = self.db.connect()
+            with self.db.connect(write=True) as connection:
+                windows_search_conn = connection
+
+                for entry in final_search:
                     if entry is None:
                         continue
 
-                    # Not all search options are supported by Windows indexing.  For example, we
-                    # can search for GIFs, but we can't filter for animated GIFs.  Re-check the
-                    # entry to see if it matches the search.
-                    if self.db.id_matches_search(entry['id'], conn=conn, **search_options):
-                        yield entry
-                    else:
-                        print('Discarded Windows search result that doesn\'t match: %s' % entry['path'])
+                    # print('got entry', entry)
+                    results.append(entry)
+
+                    # If we have a full batch, stop iterating and return it.
+                    if len(results) >= batch_size:
+                        break
             
-            # Search our library.
-            for entry in self.db.search(path=str(path), conn=conn, **search_options):
-                if str(entry['path']) in seen_paths:
-                    continue
+            windows_search_conn = None
 
-                seen_paths.add(str(entry['path']))
+            # If we exited the loop and have no results, we're at the end.
+            if not len(results):
+                return
 
-                self._convert_to_path(entry)
-                yield entry
+            # Yield these results, then continue reading the iterator.
+            yield results
+            results = []
 
     def bookmark_edit(self, path, set_bookmark, tags=None):
         """
