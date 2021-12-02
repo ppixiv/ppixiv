@@ -40,12 +40,11 @@ def transaction(conn):
         # GeneratorExit in particular can be raised if a generator stops being iterated,
         # and should return to commit the exception rather than just letting GeneratorExit
         # be raised.
-        if isinstance(BaseException, (Exception, KeyboardInterrupt, asyncio.CancelledError)):
-            raise
-        if isinstance(BaseException, Exception):
+        if isinstance(e, (Exception, KeyboardInterrupt, asyncio.CancelledError)):
             raise
 
-        print('BaseException caused database rollback')
+        print('BaseException %s caused database rollback' % e.__class__)
+        print(e)
         import traceback
         traceback.print_exc()
 

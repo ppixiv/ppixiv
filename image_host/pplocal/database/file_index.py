@@ -290,7 +290,7 @@ class FileIndex(Database):
             # removed.
             self.delete_recursively([new_path], conn=conn)
             
-            for entry in self.search(path=str(old_path), conn=conn):
+            for entry in self.search(paths=[str(old_path)], conn=conn):
                 # path should always be relative to old_path: this is a path inside
                 # the path we searched for.
                 path = Path(entry['path'])
@@ -327,7 +327,7 @@ class FileIndex(Database):
 
         This is just a wrapper for search.
         """
-        for result in self.search(path=path, mode=self.SearchMode.Exact, conn=conn):
+        for result in self.search(paths=[path], mode=self.SearchMode.Exact, conn=conn):
             return result
 
         return None
@@ -338,7 +338,7 @@ class FileIndex(Database):
         Exact = 3,
 
     def search(self, *,
-        path=None,
+        paths=None,
 
         # SearchMode.Recursive: Search recursively starting at path.
         # SearchMode.Subdir: List the contents of path non-recursively.
@@ -374,24 +374,29 @@ class FileIndex(Database):
 
             select_columns.append('files.*')
 
-            if path is not None:
-                if mode == self.SearchMode.Recursive:
-                    # path is the top directory to start searching from.  This is done with a
-                    # prefix match against the path: listing "C:\ABCD" recursively matches "C:\ABCD\*".
-                    # Directories don't end in a slash, so Include the directory itself explicitly.
-                    where.append(f'({self.schema}.files.path GLOB ? OR {self.schema}.files.path = ?)')
-                    params.append(path + os.path.sep + '*')
-                    params.append(path)
-                elif mode == self.SearchMode.Subdir:
-                    # Only list files directly inside path.
-                    where.append(f'{self.schema}.files.parent = ?')
-                    params.append(path)
-                elif mode == self.SearchMode.Exact:
-                    # Only list path itself.
-                    where.append(f'{self.schema}.files.path = ?')
-                    params.append(path)
-                else:
-                    assert False
+            if paths:
+                path_conds = []
+                for path in paths:
+                    if mode == self.SearchMode.Recursive:
+                        # paths are top directories to start searching from.  This is done with a
+                        # prefix match against the path: listing "C:\ABCD" recursively matches "C:\ABCD\*".
+                        # Directories don't end in a slash, so Include the directory itself explicitly.
+                        path_conds.append(f'({self.schema}.files.path GLOB ? OR {self.schema}.files.path = ?)')
+                        params.append(path + os.path.sep + '*')
+                        params.append(path)
+                    elif mode == self.SearchMode.Subdir:
+                        # Only list files directly inside path.
+                        path_conds.append(f'{self.schema}.files.parent = ?')
+                        params.append(path)
+                    elif mode == self.SearchMode.Exact:
+                        # Only list path itself.
+                        path_conds.append(f'{self.schema}.files.path = ?')
+                        params.append(path)
+                    else:
+                        assert False
+
+                assert path_conds
+                where.append(f"({' OR '.join(path_conds)})")
 
             if not include_files:
                 where.append(f'{self.schema}.files.is_directory')

@@ -1,4 +1,4 @@
-import time
+import asyncio, os, time
 from pathlib import Path, PurePosixPath
 from collections import OrderedDict, namedtuple
 
@@ -15,15 +15,30 @@ class Manager:
     """
     def __init__(self, app):
         self.app = app
-        self.libraries = {}
         self.api_list_results = OrderedDict()
+
+        # Figure out where to put our files.  We can put it in AppData for a regular
+        # installation, but it's convenient to have it in a local directory for
+        # development.
+        local_data = False
+        if local_data:
+            # Get AppData/Local.
+            local_data = Path(os.getenv('LOCALAPPDATA'))
+            data_dir = local_data / 'ppixiv'
+        else:
+            data_dir = Path(os.path.dirname(__file__)) / '../data'
+        
+        self._data_dir = data_dir.resolve()
+        self._data_dir.mkdir(parents=True, exist_ok=True)
+
+        self.library = Library(self._data_dir)
 
         app.on_shutdown.append(self.shutdown)
 
     async def shutdown(self, app):
         print('Shutting down')
-        for library in self.libraries.values():
-            library.stop_monitoring()
+        for name in list(self.library.mounts.keys()):
+            await self.library.unmount(name)
         
     async def init(self):
         print('Initializing libraries...')
@@ -42,21 +57,16 @@ class Manager:
             def progress_func(total):
                 print('Indexing progress for %s: %i' % (path, total))
 
-            library = Library(name, path)
-            self.libraries[name] = library
+            self.library.mount(path, name)
+
             print('Initializing library: %s' % path)
-            library.monitor()
 
             # Run a quick refresh at startup.
             start = time.time()
-            await library.quick_refresh()
+            await self.library.quick_refresh()
             # await library.refresh(progress=progress_func)
             end = time.time()
             print('Indexing took %.2f seconds' % (end-start))
-
-    @property
-    def all_libraries(self):
-        return self.libraries.values()
 
     def resolve_path(self, relative_path):
         """
@@ -68,14 +78,14 @@ class Manager:
             raise misc.Error('invalid-request', 'Invalid request')
 
         library_name, path_inside_library = Library.split_library_name_and_path(relative_path)
-        library = self.libraries.get(library_name)
-        if library is None:
+        mount = self.library.mounts.get(library_name)
+        if mount is None:
             raise misc.Error('not-found', 'Library %s doesn\'t exist' % library_name)
 
-        path = library.path / path_inside_library
+        path = Path(mount) / path_inside_library
         path = open_path(path)
 
-        return path, library
+        return path, self.library
     
     # Values of api_list_results can be a dictionary, in which case they're a result
     # cached from a previous call.  They can also be a function, which is called to
@@ -87,10 +97,8 @@ class Manager:
         # Delete old cached entries.
         # XXX: we can keep more cached results than this, but we should expire
         # old active requests after a while so we don't keep searches open forever
-        # XXX: let windows searches complete and just queue them, so the cursor doesn't
-        # stay open
         uuids = list(self.api_list_results.keys())
-        max_cache_entries = 10
+        max_cache_entries = 25
         uuids = uuids[:-max_cache_entries]
         for erase_uuid in uuids:
             assert erase_uuid != uuid

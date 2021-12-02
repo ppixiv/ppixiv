@@ -5,6 +5,7 @@ from collections import defaultdict
 from pathlib import Path, PurePosixPath
 
 from .util import misc
+from .util.paths import open_path
 
 handlers = {}
 
@@ -186,15 +187,14 @@ async def api_bookmark_delete(info):
     return { 'success': True }
 
 @reg('/bookmark/tags')
-async def api_illust(info):
+async def api_bookmark_tags(info):
     """
     Return a dictionary of the user's bookmark tags and the number of
     bookmarks for each tag.
     """
     results = defaultdict(int)
-    for library in info.manager.all_libraries:
-        for key, count in library.get_all_bookmark_tags().items():
-            results[key] += count
+    for key, count in info.manager.library.get_all_bookmark_tags().items():
+        results[key] += count
 
     return {
         'success': True,
@@ -265,6 +265,7 @@ async def api_list(info):
     # skipping ahead to restart a search.
     while True:
         # Get the next page of results.  Run this in a thread.
+        # XXX: run_in_executor so this can be async
         def run():
             try:
                 return next(result_generator)
@@ -357,52 +358,32 @@ def api_list_impl(info):
         file_info = []
         return result
 
-    # If we're not searching and listing the root, just list the libraries.  This
-    # is a special case since it doesn't come from the filesystem.
+    # If we're not searching and listing the root, just list the libraries.
     if not search_options and str(path) == '/':
-        for library in info.manager.all_libraries:
-            # This is a dummy entry that has enough info for get_illust_info to return
-            # usable directory info for the library root.
-            image_info = {
-                'path': library.path,
-                'is_directory': 'True',
-                'ctime': 0,
-                'mtime': 0,
-            }
-            entry = get_illust_info(library, image_info, info.base_url)
-            file_info.append(entry)
+        for entry in info.manager.library.get_mountpoint_entries():
+            info = get_illust_info(info.manager.library, entry, info.base_url)
+            file_info.append(info)
 
         yield flush(last=True)
         return
 
-    # Make a list of libraries to search.
-    libraries_to_search = []
-    if str(path) == '/':
-        # Search all libraries.
-        absolute_path = None
-        libraries_to_search = info.manager.all_libraries
-    else:
+    # Make a list of paths to search.
+    paths_to_search = None
+    if str(path) != '/':
         absolute_path, library = info.manager.resolve_path(path)
-        libraries_to_search.append(library)
+        paths_to_search = [absolute_path]
 
-    # Yield (filename, is_dir) for this search.
-    def _get_files():
-        # Search each library.  Libraries usually don't overlap and will short-circuit
-        # if the path doesn't match.
-        for library in libraries_to_search:
-            if search_options:
-                for entries in library.search(path=absolute_path, include_files=not directories_only, sort_order=sort_order, **search_options):
-                    yield library, entries
-            else:
-                # We have no search, so just list the contents of the directory.
-                for entries in library.list(absolute_path, include_files=not directories_only, sort_order=sort_order):
-                    yield library, entries
+    if search_options:
+        entry_iterator = info.manager.library.search(paths=paths_to_search, include_files=not directories_only, sort_order=sort_order, **search_options)
+    else:
+        # We have no search, so just list the contents of the directory.
+        entry_iterator = info.manager.library.list(paths=paths_to_search, include_files=not directories_only, sort_order=sort_order)
 
     # This receives blocks of results.  Convert it to the API format and yield the whole
     # block.
-    for library, entries in _get_files():
+    for entries in entry_iterator:
         for entry in entries:
-            entry = get_illust_info(library, entry, info.base_url)
+            entry = get_illust_info(info.manager.library, entry, info.base_url)
             if entry is not None:
                 file_info.append(entry)
         

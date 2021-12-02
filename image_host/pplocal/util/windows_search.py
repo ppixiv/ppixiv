@@ -157,7 +157,7 @@ class SearchDirEntry(os.PathLike):
 class SearchTimeout: pass
 
 def search(*,
-        path=None,
+        paths=None,
 
         # If set, return only the file with this exact path.
         exact_path=None,
@@ -226,13 +226,21 @@ def search(*,
     ]
 
     where = []
-    if path is not None:
+
+    # We never make searches without having either a list of paths or an exact
+    # path, since that would search the entire filesystem.
+    assert paths or exact_path
+    if paths:
         # If we're recursing, limit the search with scope.  If not, filter on
         # the parent directory.
+        parts = []
         if recurse:
-            where.append("scope = '%s'" % escape_sql(str(path)))
+            for path in paths:
+                parts.append("scope = '%s'" % escape_sql(str(path)))
         else:
-            where.append("directory = '%s'" % escape_sql(str(path)))
+            for path in paths:
+                parts.append("directory = '%s'" % escape_sql(str(path)))
+        where.append(f"({ ' OR '.join(parts) })")
 
     if exact_path is not None:
         where.append("System.ItemPathDisplay = '%s'" % escape_sql(str(exact_path)))
@@ -318,7 +326,7 @@ def search(*,
 
 def test():
     path=Path(r'F:\stuff\ppixiv\image_host')
-    for idx, entry in enumerate(search(path=path, timeout=1)):
+    for idx, entry in enumerate(search(paths=[path], timeout=1)):
         if entry is SearchTimeout:
             print('Timed out')
         if entry is None:

@@ -68,37 +68,38 @@ class Library:
     This handles a single root directory.  To index multiple directories, create
     multiple libraries.
     """
-    def __init__(self, library_name, path, *, local_data=False):
-        self.library_name = library_name
-        self.path = open_path(path.resolve())
-        self.monitor_changes = None
+    def __init__(self, data_dir):
+        self.mounts = {}
         self.pending_file_updates = {}
         self.pending_directory_refreshes = set()
         self.refresh_event = misc.AsyncEvent()
-        
-        # Figure out where to put our files.  We can put it in AppData for a regular
-        # installation, but it's convenient to have it in a local directory for
-        # development.
-        if local_data:
-            # Get AppData/Local.
-            local_data = Path(os.getenv('LOCALAPPDATA'))
-            top_data_dir = local_data / 'ppixiv'
-        else:
-            top_data_dir = Path(os.path.dirname(__file__)) / '../data'
-        
-        data_dir = top_data_dir / self.library_name
-        self._data_dir = data_dir.resolve()
-        self._data_dir.mkdir(parents=True, exist_ok=True)
+        self.monitors = {}
+        self._data_dir = data_dir
 
         # Open our database.
         dbpath = self.data_dir / 'index.sqlite'
         self.db = FileIndex(dbpath)
 
-        self.update_pending_files_task = asyncio.create_task(self.update_pending_files())
+        self.update_pending_files_task = asyncio.create_task(self.update_pending_files(), name='LibraryUpdate')
 
-    def __str__(self):
-        return 'Library(%s: %s)' % (self.library_name, self.path)
-        
+    def mount(self, path, name=None):
+        path = open_path(path)
+        if name is None:
+            name = path.name
+
+        assert name not in self.mounts
+        self.mounts[name] = path
+
+        self.monitor(name)
+
+    async def unmount(self, name):
+        if name not in self.mounts:
+            print('unmount(%s): Path wasn\'t mounted' % name)
+            return
+
+        del self.mounts[name]
+        await self.stop_monitoring(name)
+
     def shutdown(self):
         pass
     
@@ -109,20 +110,6 @@ class Library:
         """
         return self._data_dir
 
-    def get_relative_path(self, path):
-        r"""
-        Given an absolute filesystem path, return the path relative to this library.
-
-        For example, if this is "images" pointing to "C:\SomeImages" and path is
-        "C:\SomeImages\path\image.jpg", return "path/image.jpg".
-
-        Return None if path isn't inside this library.
-        """
-        try:
-            return path.relative_to(self.path)
-        except ValueError:
-            return None
-
     def get_public_path(self, path):
         r"""
         Given an absolute filesystem path inside this library, return the API path.
@@ -132,11 +119,25 @@ class Library:
 
         Return None if path isn't inside this library.
         """
-        relative_path = self.get_relative_path(path)
-        if relative_path is None:
-            return None
+        for mount_name, mount_path in self.mounts.items():
+            try:
+                relative_path = path.relative_to(mount_path)
+            except ValueError:
+                continue
 
-        return PurePosixPath('/' + self.library_name) / relative_path
+            return PurePosixPath('/' + mount_name) / relative_path
+        return None
+
+    def get_mount_for_path(self, path):
+        for mount_name, mount_path in self.mounts.items():
+            try:
+                path.filesystem_path.relative_to(mount_path)
+            except ValueError:
+                continue
+
+            return mount_name
+
+        return None
 
     @classmethod
     def split_library_name_and_path(cls, path):
@@ -156,7 +157,7 @@ class Library:
         path = PurePosixPath('/'.join(path.parts[2:]))
         return library_name, path
 
-    async def quick_refresh(self, path=None):
+    async def quick_refresh(self, paths=None):
         """
         Do a quick refresh of the library.
 
@@ -166,23 +167,24 @@ class Library:
         This currently doesn't remove bookmarks from the database that no longer exist.
         XXX clear bookmarks that we don't find
         """
-        if path is None:
-            path = self.path
+        if paths is None:
+            paths = self.mounts
         else:
-            path = Path(path)
+            paths = [Path(path) for path in paths]
 
-        with self.db.connect() as db_conn:
-            # Find all metadata files.
-            for result in windows_search.search(path=str(path), filename=metadata_storage.metadata_filename):
-                # Refresh just files with metadata.
-                path = open_path(result.path)
+        for path in paths.values():
+            with self.db.connect() as db_conn:
+                # Find all metadata files.
+                for result in windows_search.search(paths=[str(path)], filename=metadata_storage.metadata_filename):
+                    # Refresh just files with metadata.
+                    path = open_path(result.path)
 
-                for path in metadata_storage.get_files_with_metadata(path):
-                    try:
-                        self.handle_update(path, action='refresh', db_conn=db_conn)
-                    except FileNotFoundError as e:
-                        print('Bookmarked file %s doesn\'t exist' % path)
-                        continue
+                    for path in metadata_storage.get_files_with_metadata(path):
+                        try:
+                            self.handle_update(path, action='refresh', db_conn=db_conn)
+                        except FileNotFoundError as e:
+                            print('Bookmarked file %s doesn\'t exist' % path)
+                            continue
 
 
     async def refresh(self, *,
@@ -202,13 +204,18 @@ class Library:
         processed.
         """
         if path is None:
-            path = self.path
-        else:
-            assert isinstance(path, PathBase)
-            path = path
+            for path in self.mounts.values():
+                await self.refresh(path=path, recurse=recurse, progress=progress,
+                    _call_progress_each=_call_progress_each, _progress_counter=_progress_counter)
+            return
+
+        assert isinstance(path, PathBase)
+        path = path
 
         # Make sure path is inside this library.
-        path.relative_to(self.path)
+        if self.get_mount_for_path(path) is None:
+            print('Path %s isn\'t mounted' % path)
+            return
 
         if progress is not None and _progress_counter is None:
             _progress_counter = [0]
@@ -224,10 +231,10 @@ class Library:
             # print('Refreshing: %s' % path)
 
             # Make a list of file IDs that were cached in this directory before we refreshed it.
-            stale_file_paths = {os.fspath(entry['path']) for entry in self.db.search(path=str(path), mode=self.db.SearchMode.Subdir)}
+            stale_file_paths = {os.fspath(entry['path']) for entry in self.db.search(paths=[str(path)], mode=self.db.SearchMode.Subdir)}
 
             # If this is the top-level directory, refresh it too unless it's our root.
-            if _level == 0 and path != self.path:
+            if _level == 0 and path in self.mounts.values():
                 self.handle_update(path, action='refresh', db_conn=db_conn)
 
             for child in path.scandir():
@@ -244,7 +251,7 @@ class Library:
                     stale_file_paths.remove(os.fspath(child.path))
 
                 # If this is a directory, queue its contents.
-                if recurse and child.is_dir():
+                if recurse and child.is_real_dir():
                     directories.append(child)
 
             # Delete any entries for files and directories inside this path that no longer
@@ -264,28 +271,38 @@ class Library:
         if _level == 0 and progress:
             progress(_progress_counter[0])
 
-    def monitor(self):
+    def monitor(self, mount):
         """
         Begin monitoring our directory for changes that need to be indexed.
         """
-        if self.monitor_changes is not None:
+        if self.monitors.get(mount) is not None:
             return
 
-        self.monitor_changes = monitor_changes.MonitorChanges(self.path.path)
-        self.monitor_promise = asyncio.create_task(self.monitor_changes.monitor_call(self.monitored_file_changed))
-        print('Started monitoring: %s' % self.path)
+        path = self.mounts.get(mount)
+        if path is None:
+            raise ValueError('Mount doesn\'t exist: %s' % mount)
 
-    def stop_monitoring(self):
+        monitor = monitor_changes.MonitorChanges(path.path)
+        task = asyncio.create_task(monitor.monitor_call(self.monitored_file_changed), name='MonitorChanges(%s)' % (mount))
+        self.monitors[mount] = task
+        print('Started monitoring: %s' % path)
+
+    async def stop_monitoring(self, mount):
         """
         Stop monitoring for changes.
         """
-        if self.monitor_changes is None:
+        task = self.monitors.pop(mount)
+        if task is not None:
             return
 
-        self.monitor_promise.cancel()
-        self.monitor_promise = None
-        self.monitor_changes = None
-        print('Stopped monitoring: %s' % self.path)
+        path = self.mounts.get(mount)
+        if path is None:
+            raise ValueError('Mount doesn\'t exist: %s' % mount)
+
+        task.cancel()
+        await task
+
+        print('Stopped monitoring: %s' % path)
 
     async def monitored_file_changed(self, path, old_path, action):
         path = open_path(path)
@@ -532,7 +549,7 @@ class Library:
         return data
 
     def list(self,
-        path,
+        paths,
         *,
         sort_order='default',
         force_refresh=False,
@@ -541,19 +558,22 @@ class Library:
         batch_size=50,
     ):
         """
-        Return all files inside path non-recursively.
+        Return all files inside each path non-recursively.
         """
-        # Stop if path isn't inside self.path.  The file isn't in this library.
-        try:
-            path.filesystem_path.relative_to(self.path)
-        except ValueError:
-            return
+        if not paths:
+            paths = self.mounts.values()
+
+        # Remove any paths that aren't mounted.
+        paths = [path for path in paths if self.get_mount_for_path(path)]
 
         if sort_order == 'default':
             sort_order = 'natural'
 
-        # Create a scandir iterator.
-        scandir_results = path.scandir()
+        # Run scandir for each path, and chain them together into a single iterator.
+        iterators = []
+        for path in paths:
+            iterators.append(path.scandir())
+        scandir_results = itertools.chain(*iterators)
 
         # If we have a sort order, read the full results and sort.  If we aren't sorting,
         # leave iter as an iterator so we'll read it incrementally.
@@ -574,7 +594,7 @@ class Library:
             # This will start a database transaction.  We'll only hold it until we finish
             # this batch, and commit it before yielding results, so we don't keep a write
             # lock during the yield.
-            with self.db.connect() as conn:
+            with self.db.connect(write=True) as conn:
                 for child in scandir_results:
                     is_dir = child.is_dir()
 
@@ -604,6 +624,18 @@ class Library:
             yield results
             results = []
             
+    def get_mountpoint_entries(self):
+        """
+        Return entries for each mountpoint.
+        """
+        results = []
+        with self.db.connect() as conn:
+            for mount_name, mount_path in self.mounts.items():
+                entry = self.get(mount_path, conn=conn)
+                assert entry is not None
+                results.append(entry)
+        return results
+
     def get(self, path, *, force_refresh=False, check_mtime=True, conn=None):
         """
         Return the entry for path.  If the path isn't cached, populate the cache entry.
@@ -626,10 +658,8 @@ class Library:
             # The file needs to be cached.  Check that the path is actually inside this
             # library.  For performance, we only do this here so we avoid the Path constructor
             # when it's not needed.  Up to here, it may be a DirEntry.
-            try:
-                Path(path).relative_to(self.path)
-            except ValueError:
-                return None
+            if self.get_mount_for_path(path) is None:
+                return
 
             entry = self.cache_file(path, conn=conn)
 
@@ -671,14 +701,16 @@ class Library:
     # Note that while we must match the sort order, it's normal for the two searches
     # to match differently, such as having different keyword matching.
     def search(self, *,
-        path=None,
+        paths=None,
         force_refresh=False,
         use_windows_search=True,
         sort_order='normal',
         batch_size=50,
         **search_options):
-        if path is None:
-            path = self.path
+        if not paths:
+            paths = self.mounts.values()
+
+        assert paths
 
         if sort_order == 'default':
             sort_order = 'normal'
@@ -715,7 +747,7 @@ class Library:
         # Create the Windows search.
         if use_windows_search:
             order = sort_order_info['windows'] if sort_order_info else None
-            windows_search_iter = windows_search.search(path=str(path), order=order, timeout=windows_search_timeout, **search_options)
+            windows_search_iter = windows_search.search(paths=[str(path) for path in paths], order=order, timeout=windows_search_timeout, **search_options)
         else:
             windows_search_iter = []
 
@@ -725,7 +757,7 @@ class Library:
         # iterator, since this is read-only and we keep the connection running until
         # we've completely returned all results.
         order = sort_order_info['index'] if sort_order_info else None
-        index_search_iter = self.db.search(path=str(path), conn=None, order=order, **search_options)
+        index_search_iter = self.db.search(paths=[str(path) for path in paths], conn=None, order=order, **search_options)
 
         # This is set while the iterate_windows_search iterator is being called, and unset between
         # batches.  It's always set when get_entry_from_result is called.
@@ -807,7 +839,6 @@ class Library:
         while True:
             # Open a connection while we're running the iterator.  This will remain open for
             # the duration of the batch, and be closed while we yield results.
-            connection = self.db.connect()
             with self.db.connect(write=True) as connection:
                 windows_search_conn = connection
 
