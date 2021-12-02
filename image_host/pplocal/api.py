@@ -334,6 +334,8 @@ def api_list_impl(info):
     }
 
     sort_order = info.data.get('order', 'default')
+    if not sort_order:
+        sort_order = 'default'
 
     # Remove null values from search_options, so it only contains search filters we're
     # actually using.
