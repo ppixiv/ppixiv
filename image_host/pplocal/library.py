@@ -560,6 +560,7 @@ class Library:
         if sort_order == 'shuffle':
             scandir_results = list(scandir_results)
             random.shuffle(scandir_results)
+            scandir_results = iter(scandir_results)
         elif sort_order is not None and sort_orders.get(sort_order):
             order = sort_orders[sort_order]
             sorted_results = list(scandir_results)
