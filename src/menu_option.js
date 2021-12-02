@@ -67,41 +67,43 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
         // menu without moving big blocks of code around.
         let settings_widgets = {
             thumbnail_size: () => {
-                let thumb_size_slider = new menu_option_button({
+                let button = new menu_option_button({
                     ...global_options,
                     label: "Thumbnail size",
-                    show_checkbox: false,
+                    buttons: [
+                        new thumbnail_size_slider_widget({
+                            ...global_options,
+                            parent: this,
+                            container: this.container,
+                            setting: "thumbnail-size",
+                            classes: ["size-slider"],
+                            min: 0,
+                            max: 7,
+                        }),
+                    ],
                 });
         
-                thumb_size_slider.container.querySelector(".buttons").hidden = false;
-                thumb_size_slider.container.querySelector(".buttons").style.flexGrow = .5;
-                return new thumbnail_size_slider_widget({
-                    ...global_options,
-                    parent: thumb_size_slider,
-                    container: thumb_size_slider.container.querySelector(".buttons"),
-                    setting: "thumbnail-size",
-                    min: 0,
-                    max: 7,
-                });
+                button.container.querySelector(".size-slider").style.flexGrow = .5;
             },
 
             manga_thumbnail_size: () => {
-                let manga_size_slider = new menu_option_button({
+                let button = new menu_option_button({
                     ...global_options,
                     label: "Thumbnail size (manga)",
-                    show_checkbox: false,
+                    buttons: [
+                        new thumbnail_size_slider_widget({
+                            ...global_options,
+                            parent: this,
+                            container: this.container,
+                            setting: "manga-thumbnail-size",
+                            classes: ["size-slider"],
+                            min: 0,
+                            max: 7,
+                        }),
+                    ],
                 });
         
-                manga_size_slider.container.querySelector(".buttons").hidden = false;
-                manga_size_slider.container.querySelector(".buttons").style.flexGrow = .5;
-                return new thumbnail_size_slider_widget({
-                    ...global_options,
-                    parent: manga_size_slider,
-                    container: manga_size_slider.container.querySelector(".buttons"),
-                    setting: "manga-thumbnail-size",
-                    min: 0,
-                    max: 7,
-                });
+                button.container.querySelector(".size-slider").style.flexGrow = .5;
             },
 
             disabled_by_default: () => {
@@ -244,29 +246,28 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
             },
     
             linked_tabs_enabled: () => {
-                let linked_tabs = new menu_option_toggle({
+                new menu_option_toggle({
                     ...global_options,
                     label: "Linked tabs",
                     setting: "linked_tabs_enabled",
                     explanation_enabled: "View images in multiple tabs",
                     explanation_disabled: "View images in multiple tabs",
-                });
-                
-                linked_tabs.container.querySelector(".buttons").hidden = false;
-                return new menu_option_nested_button({
-                    ...global_options,
-                    parent: linked_tabs,
-                    container: linked_tabs.container.querySelector(".buttons"),
-                    label: "Edit",
-                    classes: ["button"],
-                    show_checkbox: false,
-    
-                    onclick: (e) => {
-                        this.visible = false;
-    
-                        main_controller.singleton.link_tabs_popup.visible = true;
-                        return true;
-                    },
+                    buttons: [
+                        new menu_option_nested_button({
+                            ...global_options,
+                            parent: this,
+                            container: this.container,
+                            label: "Edit",
+                            classes: ["button"],
+            
+                            onclick: (e) => {
+                                this.visible = false;
+            
+                                main_controller.singleton.link_tabs_popup.visible = true;
+                                return true;
+                            },
+                        }),
+                    ],
                 });
             },
         };
@@ -354,9 +355,9 @@ ppixiv.menu_option_button = class extends ppixiv.menu_option
     constructor({
         url=null,
         onclick=null,
-        show_checkbox=true,
         explanation_enabled=null,
         explanation_disabled=null,
+        buttons=[],
         ...options})
     {
         // If we've been given a URL, make this a link.  Otherwise, make it a div and
@@ -371,12 +372,12 @@ ppixiv.menu_option_button = class extends ppixiv.menu_option
 
         super({...options, template: `
             <${type} ${href} class="menu-toggle box-link">
+                <span class=icon hidden></span>
                 <div class=label-box>
                     <span class=label></span>
                     <span class=explanation hidden></span>
                 </div>
-                <div class=buttons hidden></div>
-                <span class=icon></span>
+                <div style="flex: 1;"></div>
             </{type}>
         `});
 
@@ -390,13 +391,31 @@ ppixiv.menu_option_button = class extends ppixiv.menu_option
         // If an icon was provided, add it.
         if(options.icon)
         {
-            let node = helpers.create_ppixiv_inline(options.icon);
+            // This can be a resource name, or an element, usually created with helpers.create_icon.
+            let node = options.icon;
+            if(!(node instanceof HTMLElement))
+                node = helpers.create_ppixiv_inline(node);
+
             let icon = this.container.querySelector(".icon");
             icon.appendChild(node);
+            icon.hidden = false;
         }
 
-        if(!show_checkbox)
-            this.container.querySelector(".icon").hidden = true;
+        // Add items.
+        for(let item of buttons)
+        {
+            // Move the button in.
+            let item_container = item.container;
+            item_container.remove();
+            this.container.appendChild(item_container);
+        }
+
+        // If a button was provided, add it.
+        if(options.button)
+        {
+            let node = helpers.create_ppixiv_inline(options.button);
+            this.container.appendChild(node);
+        }
 
         if(this.onclick_handler != null)
             this.container.classList.add("clickable");
@@ -467,6 +486,7 @@ ppixiv.menu_option_toggle = class extends ppixiv.menu_option_button
 {
     constructor({
         setting=null,
+        buttons=[],
 
         // Most settings are just booleans, but this can be used to toggle between
         // string keys.  This can make adding more values to the option easier later
@@ -476,7 +496,8 @@ ppixiv.menu_option_toggle = class extends ppixiv.menu_option_button
         ...options})
     {
         super({...options,
-            icon: "resources/checkbox.svg",
+            button: "resources/checkbox.svg",
+            buttons: buttons,
             onclick: (e) => {
                 if(this.options && this.options.check && !this.options.check())
                     return;

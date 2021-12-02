@@ -305,10 +305,7 @@ let thumbnail_ui = class extends ppixiv.widget
                             <span class="material-icons">content_copy</span>
                         </span>
 
-                        <div class=box-button-row>
-                            <a class="box-link popup" data-type=local-bookmarks-all data-popup="Show all works" href="#">All</a>
-                            <a class="box-link popup" data-type=local-bookmarks-only data-popup="Show bookmarks" href="#">Bookmarks</a>
-                        </div>
+                        <a class="box-link popup" data-type=local-bookmarks-only data-popup="Show bookmarks" href="#">Bookmarks</a>
 
                         <div class="box-button-row search-options-row">
                             <span class="box-link popup-menu-box-button">Type</span>
@@ -318,6 +315,10 @@ let thumbnail_ui = class extends ppixiv.widget
                                 <a class=box-link data-type=local-type-images href="#ppixiv">Images</a>
                             </div>
                         </div>
+
+                        <a class="box-link local-shuffle popup" data-popup="Shuffle" href="#" data-type=local-shuffle>
+                            <span class="material-icons">shuffle</span>
+                        </a>
                     </div>
                     <div class="box-button-row local-bookmark-tag-list">
                         <span>Bookmark tags:</span>
@@ -613,7 +614,6 @@ ppixiv.screen_search = class extends ppixiv.screen
                 label: option.label,
                 url: option.url,
                 classes: option.classes,
-                show_checkbox: false,
             })
 
             // Hide the local search menu option if it's not enabled.
@@ -1628,6 +1628,8 @@ ppixiv.screen_search = class extends ppixiv.screen
         
                 let link = element.querySelector("a.thumbnail-link");
                 link.href = args.url;
+
+                element.querySelector(".page-count-box").hidden = false;
             }
             else
             {
@@ -1649,6 +1651,7 @@ ppixiv.screen_search = class extends ppixiv.screen
                     var pageCountBox = element.querySelector(".page-count-box");
                     pageCountBox.hidden = false;
                     element.querySelector(".page-count-box .page-count").textContent = info.pageCount;
+                    element.querySelector(".page-count-box .page-count").hidden = false;
 
                     let args = new helpers.args(link.href);
                     args.hash.set("view", "manga");
@@ -1851,34 +1854,43 @@ ppixiv.screen_search = class extends ppixiv.screen
                             <ppixiv-inline class=last-viewed-image-marker src="resources/last-viewed-image-marker.svg"></ppixiv-inline>
                         </div>
 
-                        <div class="thumbnail-label" hidden><span class=label></span></div>
-                        <div class=thumbnail-bottom-left>
-                            <div class="heart button-bookmark public bookmarked" hidden>
-                                <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
-                            </div>
-                            <div class="heart button-bookmark private bookmarked" hidden>
-                                <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
+                        <div class=bottom-row>
+                            <div class=bottom-left-icon>
+                                <div class="heart button-bookmark public bookmarked" hidden>
+                                    <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
+                                </div>
+                                <div class="heart button-bookmark private bookmarked" hidden>
+                                    <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
+                                </div>
+                                <a hidden href=# class="similar-illusts-button bulb-button grey-icon">
+                                    <ppixiv-inline src="resources/related-illusts.svg"></ppixiv-inline>
+                                </a>
                             </div>
 
-                            <!-- I don't like having no popup here, but it's too intrusive over the thumbnail.
-                                Hopefully the popup over the equivalent button in the image UI is enough to tell
-                                people what this does. -->
-                            <a hidden href=# class="similar-illusts-button bulb-button grey-icon">
-                                <ppixiv-inline src="resources/related-illusts.svg"></ppixiv-inline>
-                            </a>
+                            <div style="flex: 1;"></div>
+
+                            <div class=thumbnail-label hidden>
+                                <span class="thumbnail-ellipsis-box">
+                                    <span class=label></span>
+                                </span>
+                            </div>
+
+                            <div style="flex: 1;"></div>
+
+                            <div class=bottom-right-icon>
+                                <div class=ugoira-icon hidden>
+                                    <ppixiv-inline src="resources/play-button.svg"></ppixiv-inline>
+                                </div>
+
+                                <a class=page-count-box hidden>
+                                    <span class=page-icon>
+                                        <img class=regular src="ppixiv:resources/page-icon.png">
+                                        <img class=hover src="ppixiv:resources/page-icon-hover.png">
+                                    </span>
+                                    <span class=page-count hidden>1234</span>
+                                </a>
+                            </div>
                         </div>
-                        
-                        <div class=ugoira-icon hidden>
-                            <ppixiv-inline src="resources/play-button.svg"></ppixiv-inline>
-                        </div>
-                        <a class=page-count-box hidden>
-                            <span class=page-icon>
-                                <img class=regular src="ppixiv:resources/page-icon.png">
-                                <img class=hover src="ppixiv:resources/page-icon-hover.png">
-                            </span>
-                            <span class=page-count>
-                            </span>
-                        </a>
                         <div class=muted-text>
                             <span>Muted:</span>
                             <span class=muted-label></span>

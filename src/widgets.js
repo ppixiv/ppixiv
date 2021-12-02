@@ -1289,16 +1289,13 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                 }
             }),
 
-            new menu_option_row({
+            new menu_option_toggle({
                 container: option_box,
                 parent: this,
-                items: [
-                    new menu_option_toggle({
-                        container: option_box,
-                        parent: this,
-                        label: "Linked tabs",
-                        setting: "linked_tabs_enabled",
-                    }),
+                label: "Linked tabs",
+                setting: "linked_tabs_enabled",
+                icon: helpers.create_icon("link", "16px"),
+                buttons: [
                     new menu_option_button({
                         container: option_box,
                         parent: this,

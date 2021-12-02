@@ -85,6 +85,11 @@ ppixiv.viewer_video = class extends ppixiv.viewer
         this.source.src = this.illust_data.mangaPages[0].urls.original;
         this.update_seek_bar();
 
+        // Sometimes mysteriously needing a separate load() call isn't isn't a sign of
+        // good HTML element design.  Everything else just updates after you change it,
+        // how did this go wrong?
+        this.video.load();
+
         // Tell the video UI about the video.
         this.video_ui.video_changed({player: this, video: this.video});
 

@@ -161,6 +161,16 @@ ppixiv.helpers = {
         }
     },
 
+    create_icon(name, size)
+    {
+        let span = document.createElement("span");
+        span.classList = "material-icons";
+        span.innerText = name;
+        if(size != null)
+            span.style.fontSize = size;
+        return span;
+    },
+
     create_ppixiv_inline(src)
     {
         // Parse this element if we haven't done so yet.
@@ -1447,6 +1457,37 @@ ppixiv.helpers = {
                 url.hash += "?" + hash_string;
 
             return url;
+        }
+
+        // Helpers to get and set arguments which can be in either the query or
+        // the hash.  Examples:
+        //
+        // get("page")        - get the query parameter "page"
+        // get("#page")       - get the hash parameter "page"
+        // set("page", 10)    - set the query parameter "page" to "10"
+        // set("#page", 10)   - set the hash parameter "page" to "10"
+        // set("page", null)  - remove the query parameter "page"
+        get(key)
+        {
+            let hash = key.startsWith("#");
+            if(hash)
+                key = key.substr(1);
+
+            let params = hash? this.hash:this.query;
+            return params.get(key);
+        }
+
+        set(key, value)
+        {
+            let hash = key.startsWith("#");
+            if(hash)
+                key = key.substr(1);
+                
+            let params = hash? this.hash:this.query;
+            if(value != null)
+                params.set(key, value);
+            else
+                params.delete(key);
         }
     },
 
@@ -3272,4 +3313,66 @@ ppixiv.guess_image_url = class
         let key = this.get_key(illust_id, page);
         await this.db.multi_delete([key]);
     }
+};
+
+// Helpers for working with paths.
+ppixiv.helpers.path = {
+    // Return true if array begins with prefix.
+    array_starts_with(array, prefix)
+    {
+        if(array.length < prefix.length)
+            return false;
+
+        for(let i = 0; i < prefix.length; ++i)
+            if(array[i] != prefix[i])
+                return false;
+        return true;
+    },
+
+    is_relative_to(path, root)
+    {
+        let path_parts = path.split("/");
+        let root_parts = root.split("/");
+        return ppixiv.helpers.path.array_starts_with(path_parts, root_parts);
+    },
+
+    split_path(path)
+    {
+        // If the path ends with a slash, remove it.
+        if(path.endsWith("/"))
+            path = path.substr(0, path.length-1);
+
+        let parts = path.split("/");
+        return parts;
+    },
+
+    // Return absolute_path relative to relative_to.
+    get_relative_path(relative_to, absolute_path)
+    {
+        console.assert(absolute_path.startsWith("/"));
+        console.assert(relative_to.startsWith("/"));
+
+        let path_parts = ppixiv.helpers.path.split_path(absolute_path);
+        let root_parts = ppixiv.helpers.path.split_path(relative_to);
+
+        // If absolute_path isn"t underneath relative_to, leave it alone.
+        if(!ppixiv.helpers.path.array_starts_with(path_parts, root_parts))
+            return absolute_path;
+
+        let relative_parts = path_parts.splice(root_parts.length);
+        return relative_parts.join("/");
+    },
+
+    // Append child to path.
+    get_child(path, child)
+    {
+        // If child is absolute, leave it alone.
+        if(child.startsWith("/"))
+            return child;
+
+        let path_parts = ppixiv.helpers.path.split_path(path);
+        let child_parts = ppixiv.helpers.path.split_path(child);
+        let combined = path_parts.concat(child_parts);
+        return combined.join('/');
+    },
 };

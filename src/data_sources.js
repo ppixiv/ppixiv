@@ -322,7 +322,6 @@ ppixiv.data_source = class
 
         // Ignore filenames for local IDs.
         args.hash.delete("file");
-        args.hash.delete("path");
 
         return args.url;
     }
@@ -588,7 +587,12 @@ ppixiv.data_source = class
     // If a key begins with #, it's placed in the hash rather than the query.
     set_item(container, type, fields, default_values, { current_url=null }={})
     {
-        var link = container.querySelector("[data-type='" + type + "']");
+        this.set_item2(container, {type: type, fields: fields, default_values: default_values, current_url: current_url });
+    }
+
+    set_item2(container, { type=null, fields=null, default_values=null, current_url=null, toggle=false }={})
+    {
+        let link = container.querySelector(`[data-type='${type}']`);
         if(link == null)
         {
             console.warn("Couldn't find button with selector", type);
@@ -599,57 +603,49 @@ ppixiv.data_source = class
         if(current_url == null)
             current_url = this.url;
 
-        // This button is selected if all of the keys it sets are present in the URL.
-        var button_is_selected = true;
-
         // Adjust the URL for this button.
-        let url = new URL(current_url);
+        let args = new helpers.args(new URL(current_url));
 
         // Don't include the page number in search buttons, so clicking a filter goes
         // back to page 1.
-        url.searchParams.delete("p");
+        args.set("p", null);
 
-        let args = new helpers.args(url);
-        for(var key of Object.keys(fields))
+        // This button is selected if all of the keys it sets are present in the URL.
+        let button_is_selected = true;
+
+        for(let [key, value] of Object.entries(fields))
         {
-            var original_key = key;
-            var value = fields[key];
-
-            // If key begins with "#", it means it goes in the hash.
-            var hash = key.startsWith("#");
-            if(hash)
-                key = key.substr(1);
-
-            let params = hash? args.hash:args.query;
-
             // The value we're setting in the URL:
             var this_value = value;
             if(this_value == null && default_values != null)
-                this_value = default_values[original_key];
+                this_value = default_values[key];
 
             // The value currently in the URL:
-            var selected_value = params.get(key);
+            let selected_value = args.get(key);
             if(selected_value == null && default_values != null)
-                selected_value = default_values[original_key];
+                selected_value = default_values[key];
 
             // If the URL didn't have the key we're setting, then it isn't selected.
             if(this_value != selected_value)
                 button_is_selected = false;
 
             // If the value we're setting is the default, delete it instead.
-            if(default_values != null && this_value == default_values[original_key])
+            if(default_values != null && this_value == default_values[key])
                 value = null;
 
-            if(value != null)
-                params.set(key, value);
-            else
-                params.delete(key);
+            args.set(key, value);
         }
-        url = args.url;
+
+        // If this is a toggle and the button is selected, remove the fields, turning
+        // this into an "off" button.
+        if(toggle && button_is_selected)
+        {
+            for(let key of Object.keys(fields))
+                args.set(key, null);
+        }
 
         helpers.set_class(link, "selected", button_is_selected);
-
-        link.href = url.toString();
+        link.href = args.url.toString();
     };
 
     // Like set_item for query and hash parameters, this sets parameters in the URL.
@@ -3334,8 +3330,12 @@ ppixiv.data_sources.local = class extends data_source
             search_options = { }
         }
 
+        let order = args.hash.get("order");
+
         let result = await local_api.list(folder_id, {
             ...search_options,
+
+            order: order,
 
             // If we have a next_page_uuid, use it to load the next page.
             page: page_uuid,
@@ -3417,17 +3417,17 @@ ppixiv.data_sources.local = class extends data_source
     refresh_thumbnail_ui(container)
     {
         let current_args = helpers.args.location;
-        let { search_options } = local_api.get_search_options_for_args(helpers.args.location);
 
         // Hide the "copy local path" button if we don't have one.
         container.querySelector(".copy-local-path").hidden = this.local_path == null;
 
-        this.set_item(container, "local-bookmarks-all", {"#bookmarks": null}, null, { current_url: current_args.url });
-        this.set_item(container, "local-bookmarks-only", {"#bookmarks": 1}, null, { current_url: current_args.url });
+        this.set_item2(container, { type: "local-bookmarks-only", fields: {"#bookmarks": 1}, toggle: true, current_url: current_args.url });
 
-        this.set_item(container, "local-type-all", {"#type": null}, null, { current_url: current_args.url });
-        this.set_item(container, "local-type-videos", {"#type": "videos"}, null, { current_url: current_args.url });
-        this.set_item(container, "local-type-images", {"#type": "images"}, null, { current_url: current_args.url });
+        this.set_item2(container, { type: "local-type-all", fields: {"#type": null}, current_url: current_args.url });
+        this.set_item2(container, { type: "local-type-videos", fields: {"#type": "videos"}, current_url: current_args.url });
+        this.set_item2(container, { type: "local-type-images", fields: {"#type": "images"}, current_url: current_args.url });
+
+        this.set_item2(container, {type: "local-shuffle", fields: {"#order": "shuffle"}, toggle: true, current_url: current_args.url });
 
         this.set_active_popup_highlight(container);
         this.refresh_bookmark_tag_list(container);

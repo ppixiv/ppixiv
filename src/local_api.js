@@ -1,5 +1,109 @@
 "use strict";
 
+// This is a simplified implementation of Python's pathlib.PurePosixPath.  It's
+// a bit clunkier to use since JS has no operator overloading.
+class posix_path
+{
+    static _from_parts(...args)
+    {
+    }
+    static _parse_args(...args)
+    {
+        // This is useful when you don't want to create an instance, just
+        // canonicalize some constructor arguments.
+        let parts = []
+        for(let a of args)
+        {
+            if(a instanceof posix_path)
+            {
+                parts = parts.concat(a._parts);
+                continue;
+            }
+
+            a = os.fspath(a);
+            if(a instanceof str)
+            {
+                parts.push(a);
+            }
+        }
+        return cls._flavour.parse_parts(parts)
+    }
+
+    static parse_parts(self, parts)
+    {
+        let parsed = [];
+        let sep = self.sep;
+        let root = '';
+        let it = reversed(parts);
+        for(let part of it)
+        {
+            if(!part)
+                continue;
+
+            root, rel = self.splitroot(part)
+            if(sep in rel)
+            {
+                for(let x of reversed(rel.split(sep)))
+                    if(x && x != '.')
+                        parsed.append(sys.intern(x));
+            }
+            else
+            {
+                if(rel && rel != '.')
+                    parsed.append(sys.intern(rel));
+            }
+            if(root)
+                break;
+        }
+
+        if(root)
+            parsed.append(root);
+        parsed.reverse();
+        return root, parsed
+    }
+    static splitroot(self, part, sep=sep)
+    {
+        if(part && part[0] == sep)
+        {
+            let stripped_part = part.lstrip(sep);
+            if(len(part) - len(stripped_part) == 2)
+                return sep * 2, stripped_part;
+            else
+                return sep, stripped_part;
+        }
+        else
+            return '', part
+    }
+
+    constructor(...path)
+    {
+        this.path = '';
+        for(let segment of path)
+        {
+            // If this segment is absolute, reset this.path.
+            if(segment.beginsWith('/'))
+                this.path = '';
+            else if(this.path == '')
+                this.path += '/';
+
+                // If 
+            if(segment.beginsWith('/'))
+                this.path = '';
+            this.path += segment;
+        }
+
+        this.path = path;
+    }
+
+    // Return this / path.
+    append(path)
+    {
+        new posix_path(this, path);
+    }
+
+
+};
+
 // Helpers for the local API.
 ppixiv.local_api = class
 {
@@ -138,11 +242,46 @@ ppixiv.local_api = class
         return { directory: directory, filename: filename };
     }
 
-    // The local data source URL has three parts: the search root in hash_path,
-    // the path currently being viewed in the hash argument "path", and the file
-    // being viewed (if any) in "file".  "path" is relative to hash_path if it's
-    // underneath it, otherwise it's absolute.  If the user clicks a folder or
-    // illust in a search, we leave hash_path alone and only change path and file.
+    // The local data source URL has three parts: the root, the path, and the file
+    // being viewed (if any).  The path can be absolute or relative to root.  The
+    // file be absolute or relative to path.
+    //
+    // Root is args.hash_path, path is args.hash.get("path"), and file is args.hash.get("file").
+    // 
+    // When searching, the root is the directory that was searched.  If a folder is
+    // clicked inside search results, it goes in the path, leaving the root alone so we're
+    // still in the search.  If a file is clicked inside search results, it goes in
+    // file.  These are all usually paths relative to the previous part, but they're allowed
+    // to be absolute.
+    //
+    // Changes to root and path result in a new data source.
+    //
+    // Examples:
+    //
+    // #ppixiv/images/pictures?path=vacation/day1
+    //
+    // The user searched inside /images/pictures, and is currently viewing the folder
+    // /images/pictures/vacation/day1.
+    //
+    // #ppixiv/images/pictures?file=vacation/image.jpg
+    //
+    // The user searched inside /images/pictures, and is currently viewing the image
+    // vacation/image.jpg.  There's no path, which means the image was listed directly in the
+    // search results.  We're showing that a search is active, but the current view is
+    // a folder inside the search, not the search itself.  This case is important: since
+    // the path hasn't changed, the data source is still the search, so you can mousewheel
+    // within the search.
+    //
+    // #ppixiv/images/pictures?path=vacation/day1&file=image.jpg
+    //
+    // The user searched inside /images/pictures, navigated to the folder vacation/day1 in
+    // the results, then viewed image.jpg from there.  The data source is the folder.
+    //
+    // When no search is active, we never use path.  We just put the folder inside the
+    // root.
+    //
+    // It's tricky to figure out where to edit the URL, but combining them is simple:
+    // hash_path + path + file.
     static get_args_for_id(illust_id, args)
     {
         if(args.path != "/local/")
@@ -158,48 +297,48 @@ ppixiv.local_api = class
 
         args.query.delete("p");
 
-        // Split "folder:/path/to/file.jpg" into "folder" and "/path/to/file.jpg":
-        let { type, id } = helpers.parse_id(illust_id);
+        // The path previously on args:
+        let args_root = args.hash_path || "";
+        let args_path = args.hash.get("path") || "";
+        // let args_file = args.hash.get("file") || "";
+        
+        // The new path to set:
+        let { type, id: path } = helpers.parse_id(illust_id);
 
-        let path;
         if(type == "file")
         {
-            // For files, split off the basename and put it in "file".
-            let { directory, filename } = local_api.split_local_id(id);
-            path = directory;
+            // Put the relative path to new_path from root/path in "file".
+            let folder = helpers.path.get_child(args_root, args_path);
+            let filename = helpers.path.get_relative_path(folder, path);
             args.hash.set("file", filename);
-        }
-        else
-        {
-            path = id;
-            args.hash.delete("file");
+            return args;
         }
 
-        // If there's no search active, just set this as the new hash_path.  The
-        // path argument is only used for searches.
-        let { search_options } = local_api.get_search_options_for_args(args);
-        if(search_options == null)
+        // This is a folder.  Remove any file in the URL.
+        args.hash.delete("file");
+
+        // If we're going to a folder and the current page is shuffled, don't shuffle the
+        // folder we're going to.  If the user shuffled folder:/books and then clicked a
+        // random book, he probably doesn't want the pages in the book shuffled too.  Don't
+        // do this if we're going to a file, since it doesn't matter and we don't want to
+        // cause the data source to change.
+        if(args.hash.get("order") == "shuffle")
+            args.hash.delete("order");
+
+        // If a search isn't active, just put the folder in the root and remove any path.
+        let search_active = local_api.get_search_options_for_args(args).search_options != null;
+        if(!search_active)
         {
             args.hash_path = path;
             args.hash.delete("path");
             return args;
         }
-
-        // We're in a search.  hash_path is the root of the search, so we don't want to
-        // change that.  Put the path in the path argument.
-        //
-        // Hack to check if path is a prefix of root, preventing a root of "/abcd" from
-        // matching "/abcdef".
-        let root = args.hash_path;
-        if((path + "/").startsWith(root + "/"))
-        {
-            // The path is underneath the search root.  Use a relative path to keep the
-            // URL shorter.
-            path = path.substr(root.length + 1);
-        }
-        
-        if(path != "")
-            args.hash.set("path", path);
+       
+        // When in a search, leave hash_path alone, and put the relative path to the folder
+        // in path.
+        let relative_path = helpers.path.get_relative_path(args.hash_path, path);
+        if(relative_path != "")
+            args.hash.set("path", relative_path);
         else
             args.hash.delete("path");
 
