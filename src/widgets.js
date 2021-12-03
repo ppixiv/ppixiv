@@ -1197,128 +1197,156 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
         for(let item of this.menu_options)
             item.container.remove();
 
-        this.menu_options = [
-            new menu_option_button({
-                ...shared_options,
-                label: "Similar illustrations",
-                icon: "resources/related-illusts.svg",
-                requires_image: true,
-                onclick: () => {
-                    this.parent.hide();
+        let menu_options = {
+            similar_illustrations: () => {
+                return new menu_option_button({
+                    ...shared_options,
+                    label: "Similar illustrations",
+                    icon: "resources/related-illusts.svg",
+                    requires_image: true,
+                    onclick: () => {
+                        this.parent.hide();
+    
+                        let args = new helpers.args(`/bookmark_detail.php?illust_id=${this.illust_id}#ppixiv?recommendations=1`);
+                        helpers.set_page_url(args, true /* add_to_history */, "navigation");
+                    }
+                });
+            },
+            similar_artists: () => {
+                return new menu_option_button({
+                    ...shared_options,
+                    label: "Similar artists",
+                    icon: "resources/related-illusts.svg",
+                    requires_user: true,
+                    onclick: () => {
+                        this.parent.hide();
 
-                    let args = new helpers.args(`/bookmark_detail.php?illust_id=${this.illust_id}#ppixiv?recommendations=1`);
-                    helpers.set_page_url(args, true /* add_to_history */, "navigation");
-                }
-            }),
+                        let args = new helpers.args(`/discovery/users#ppixiv?user_id=${this.user_id}`);
+                        helpers.set_page_url(args, true /* add_to_history */, "navigation");
+                    }
+                });
+            },
 
-            new menu_option_button({
-                ...shared_options,
-                label: "Similar artists",
-                icon: "resources/related-illusts.svg",
-                requires_user: true,
-                onclick: () => {
-                    this.parent.hide();
+            similar_bookmarks: () => {
+                return new menu_option_button({
+                    ...shared_options,
+                    label: "Similar bookmarks",
+                    icon: "resources/related-illusts.svg",
+                    requires_image: true,
+                    onclick: () => {
+                        this.parent.hide();
 
-                    let args = new helpers.args(`/discovery/users#ppixiv?user_id=${this.user_id}`);
-                    helpers.set_page_url(args, true /* add_to_history */, "navigation");
-                }
-            }),
-
-            new menu_option_button({
-                ...shared_options,
-                label: "Similar bookmarks",
-                icon: "resources/related-illusts.svg",
-                requires_image: true,
-                onclick: () => {
-                    this.parent.hide();
-
-                    let args = new helpers.args(`/bookmark_detail.php?illust_id=${this.illust_id}#ppixiv`);
-                    helpers.set_page_url(args, true /* add_to_history */, "navigation");
-                }
-            }),
-
+                        let args = new helpers.args(`/bookmark_detail.php?illust_id=${this.illust_id}#ppixiv`);
+                        helpers.set_page_url(args, true /* add_to_history */, "navigation");
+                    }
+                });
+            },
+    
             // XXX: hook into progress bar
-            new menu_option_button({
-                ...shared_options,
-                label: "Download image",
-                icon: "resources/download-icon.svg",
-                hide_if_unavailable: true,
-                requires_image: true,
-                available: () => { return this.thumbnail_data && actions.is_download_type_available("image", this.thumbnail_data); },
-                onclick: () => {
-                    actions.download_illust(this.illust_id, null, "image", this._page || 0);
-                    this.parent.hide();
-                }
-            }),
+            download_image: () => {
+                return new menu_option_button({
+                    ...shared_options,
+                    label: "Download image",
+                    icon: "resources/download-icon.svg",
+                    hide_if_unavailable: true,
+                    requires_image: true,
+                    available: () => { return this.thumbnail_data && actions.is_download_type_available("image", this.thumbnail_data); },
+                    onclick: () => {
+                        actions.download_illust(this.illust_id, null, "image", this._page || 0);
+                        this.parent.hide();
+                    }
+                });
+            },
 
-            new menu_option_button({
-                ...shared_options,
-                label: "Download manga ZIP",
-                icon: "resources/download-manga-icon.svg",
-                hide_if_unavailable: true,
-                requires_image: true,
-                available: () => { return this.thumbnail_data && actions.is_download_type_available("ZIP", this.thumbnail_data); },
-                onclick: () => {
-                    actions.download_illust(this.illust_id, null, "ZIP");
-                    this.parent.hide();
-                }
-            }),
+            download_manga: () => {
+                return new menu_option_button({
+                    ...shared_options,
+                    label: "Download manga ZIP",
+                    icon: "resources/download-manga-icon.svg",
+                    hide_if_unavailable: true,
+                    requires_image: true,
+                    available: () => { return this.thumbnail_data && actions.is_download_type_available("ZIP", this.thumbnail_data); },
+                    onclick: () => {
+                        actions.download_illust(this.illust_id, null, "ZIP");
+                        this.parent.hide();
+                    }
+                });
+            },
 
-            new menu_option_button({
-                ...shared_options,
-                label: "Download video MKV",
-                icon: "resources/download-icon.svg",
-                hide_if_unavailable: true,
-                requires_image: true,
-                available: () => { return this.thumbnail_data && actions.is_download_type_available("MKV", this.thumbnail_data); },
-                onclick: () => {
-                    actions.download_illust(this.illust_id, null, "MKV");
-                    this.parent.hide();
-                }
-            }),
+            download_video: () => {
+                return new menu_option_button({
+                    ...shared_options,
+                    label: "Download video MKV",
+                    icon: "resources/download-icon.svg",
+                    hide_if_unavailable: true,
+                    requires_image: true,
+                    available: () => { return this.thumbnail_data && actions.is_download_type_available("MKV", this.thumbnail_data); },
+                    onclick: () => {
+                        actions.download_illust(this.illust_id, null, "MKV");
+                        this.parent.hide();
+                    }
+                });
+            },
 
-            new menu_option_button({
-                ...shared_options,
-                label: "Send to tab",
-                classes: ["button-send-image"],
-                icon: "resources/send-to-tab.svg",
-                requires_image: true,
-                onclick: () => {
-                    main_controller.singleton.send_image_popup.show_for_illust(this.illust_id, this.page);
-                    this.parent.hide();
-                }
-            }),
+            send_to_tab: () => {
+                return new menu_option_button({
+                    ...shared_options,
+                    label: "Send to tab",
+                    classes: ["button-send-image"],
+                    icon: "resources/send-to-tab.svg",
+                    requires_image: true,
+                    onclick: () => {
+                        main_controller.singleton.send_image_popup.show_for_illust(this.illust_id, this.page);
+                        this.parent.hide();
+                    }
+                });
+            },
 
-            new menu_option_toggle({
-                container: option_box,
-                parent: this,
-                label: "Linked tabs",
-                setting: "linked_tabs_enabled",
-                icon: helpers.create_icon("link", "16px"),
-                buttons: [
-                    new menu_option_button({
-                        container: option_box,
-                        parent: this,
-                        label: "Edit",
-                        classes: ["small-font"],
-                        no_icon_padding: true,
+            linked_tabs: () => {
+                return new menu_option_toggle({
+                    container: option_box,
+                    parent: this,
+                    label: "Linked tabs",
+                    setting: "linked_tabs_enabled",
+                    icon: helpers.create_icon("link", "16px"),
+                    buttons: [
+                        new menu_option_button({
+                            container: option_box,
+                            parent: this,
+                            label: "Edit",
+                            classes: ["small-font"],
+                            no_icon_padding: true,
 
-                        onclick: (e) => {
-                            main_controller.singleton.link_tabs_popup.visible = true;
-                            this.parent.hide();
-                            return true;
-                        },
-                    }),
-                ],
-            }),
+                            onclick: (e) => {
+                                main_controller.singleton.link_tabs_popup.visible = true;
+                                this.parent.hide();
+                                return true;
+                            },
+                        }),
+                    ],
+                });
+            },
 
-            new menu_option_button({
-                ...shared_options,
-                label: "Return to Pixiv",
-                icon: "resources/pixiv-icon.svg",
-                url: "#no-ppixiv",
-            }),
-        ];
+            exit: () => {
+                return new menu_option_button({
+                    ...shared_options,
+                    label: "Return to Pixiv",
+                    icon: "resources/pixiv-icon.svg",
+                    url: "#no-ppixiv",
+                });
+            },
+        };
+
+        this.menu_options = [];
+        this.menu_options.push(menu_options.similar_illustrations());
+        this.menu_options.push(menu_options.similar_artists());
+        this.menu_options.push(menu_options.similar_bookmarks());
+        this.menu_options.push(menu_options.download_image());
+        this.menu_options.push(menu_options.download_manga());
+        this.menu_options.push(menu_options.download_video());
+        this.menu_options.push(menu_options.send_to_tab());
+        this.menu_options.push(menu_options.linked_tabs());
+        this.menu_options.push(menu_options.exit());
 
         // Close if our containing widget is closed.
         new view_hidden_listener(this.container, (e) => {
