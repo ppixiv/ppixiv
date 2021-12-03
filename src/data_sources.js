@@ -282,6 +282,9 @@ ppixiv.data_source = class
         var url = new URL(url);
         url = this.remove_ignored_url_parts(url);
 
+        // Remove /en from the URL if it's present.
+        url = helpers.get_url_without_language(url);
+
         // Sort query parameters.  We don't use multiple parameters with the same key.
         url.search = helpers.sort_query_parameters(url.searchParams).toString();
 
@@ -379,6 +382,19 @@ ppixiv.data_source = class
         return false;
     }
 
+    can_load_page(page)
+    {
+        // Most data sources can load any page if they haven't loaded a page yet.  Once
+        // a page is loaded, they only load contiguous pages.
+        if(!this.id_list.any_pages_loaded)
+            return true;
+
+        // If we've loaded pages 5-6, we can load anything between pages 4 and 7.
+        let lowest_page = this.id_list.get_lowest_loaded_page();
+        let highest_page = this.id_list.get_highest_loaded_page();
+        return page >= lowest_page-1 && page <= highest_page+1;
+    }
+
     async _load_page_async(page, cause)
     {
         // Check if we're trying to load backwards too far.
@@ -445,6 +461,9 @@ ppixiv.data_source = class
         
         return this.id_list.get_first_id();
     };
+
+    // If we're viewing a folder, return its ID.  This is used for local searches.
+    get viewing_folder() { return null; }
 
     // Return the page title to use.
     get page_title()
@@ -3372,6 +3391,27 @@ ppixiv.data_sources.local = class extends data_source
 
         this.add_page(page, found_illust_ids);
     };
+
+    // Override can_load_page.  If we've already loaded a page, we've cached the next
+    // and previous page UUIDs and we don't want to load anything else, even if the first
+    // page we loaded had no results.
+    can_load_page(page)
+    {
+        // next_page_offset is null if we haven't tried to load anything yet.
+        if(this.next_page_offset == null)
+            return true;
+
+        // If we've loaded pages 5-6, we can load anything between pages 4 and 7.
+        let lowest_page = this.id_list.get_lowest_loaded_page();
+        let highest_page = this.id_list.get_highest_loaded_page();
+        return page >= lowest_page-1 && page <= highest_page+1;
+    }
+
+    get viewing_folder()
+    {
+        let args = new helpers.args(this.url);
+        return local_api.get_local_id_from_args(args, { get_folder: true });
+    }
 
     get page_title() { return this.get_displaying_text(); }
     get_displaying_text()

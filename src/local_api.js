@@ -159,7 +159,7 @@ ppixiv.local_api = class
     // Run a search against the local API.
     //
     // The results will be registered as thumbnail info and returned.
-    static async list(path="", {...options})
+    static async list(path="", {...options}={})
     {
         let result = await local_api.local_post_request(`/api/list/${path}`, {
             ...options,
@@ -295,8 +295,6 @@ ppixiv.local_api = class
             args.hash_path = "";
         }
 
-        args.query.delete("p");
-
         // The path previously on args:
         let args_root = args.hash_path || "";
         let args_path = args.hash.get("path") || "";
@@ -316,6 +314,10 @@ ppixiv.local_api = class
 
         // This is a folder.  Remove any file in the URL.
         args.hash.delete("file");
+
+        // Remove the page when linking to a folder.  Don't do this for files, since the
+        // page should be left in place when viewing an image.
+        args.query.delete("p");
 
         // If we're going to a folder and the current page is shuffled, don't shuffle the
         // folder we're going to.  If the user shuffled folder:/books and then clicked a
@@ -366,24 +368,21 @@ ppixiv.local_api = class
         // Combine the hash path and the filename to get the local ID.
         let root = args.hash_path;
         let path = args.hash.get("path");
-        let file = args.hash.get("file");
         if(path != null)
         {
             // The path can be relative or absolute.  See set_current_illust_id.
-            if(path.startsWith("/"))
-                root = path;
-            else
-            {
-                if(!root.endsWith("/"))
-                    root += "/";
-                root += path;
-            }
+            root = helpers.path.get_child(root, path)
         }
 
+        let file = args.hash.get("file");
         if(file == null || get_folder)
             return "folder:" + root;
-        else
-            return "file:" + root + "/" + file;
+
+        // The file can also be relative or absolute.
+        if(!file.startsWith("/"))
+            file = helpers.path.get_child(root, file)
+
+        return "file:" + file;
     }
 
     // Return the API search options and title for the given URL.
@@ -436,5 +435,53 @@ ppixiv.local_api = class
         }
 
         return { search_options: search_options, title: title };
+    }
+
+    // Given a folder ID, return its parent.  If folder_id is the root, return null.
+    static get_parent_folder(illust_id)
+    {
+        if(illust_id == "folder:/")
+            return null;
+
+        // illust_id can be a file or a folder.  We always return a folder.
+        let { id } = helpers.parse_id(illust_id);
+
+        let parts = id.split("/");
+        if(parts.length == 2)
+            return "folder:/"; // return folder:/, not folder:
+
+        parts.splice(parts.length-1, 1);
+        return "folder:" + parts.join("/");
+    }
+
+    // Navigate to the top of local search.  This is the "Local Search" button in the
+    // search menu.
+    //
+    // We don't want to just navigate to folder:/, since most people will only have one
+    // library mounted, so the first thing they'll always see is a page with their one
+    // folder on it that they have to click into.  Instead, load the library list, and
+    // open the top of the first one.
+    static async show_local_search(e)
+    {
+        e.preventDefault();
+
+        let result = await local_api.list("folder:/");
+        if(!result.success)
+        {
+            console.error("Error reading libraries:", result.reason);
+            return;
+        }
+
+        let libraries = result.results;
+        if(libraries.length == 0)
+        {
+            alert("No libraries are available");
+            return;
+        }
+
+        let folder_id = libraries[0].id;
+        let args = new helpers.args("/", ppixiv.location);
+        local_api.get_args_for_id(folder_id, args);
+        helpers.set_page_url(args.url, true /* add to history */, "navigation");
     }
 }

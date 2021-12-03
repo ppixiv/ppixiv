@@ -330,7 +330,8 @@ ppixiv.tree_widget_item = class extends ppixiv.widget
     }
 
     // This is called if pending is set to true the first time the node is expanded.
-    async onexpand() { }
+    // Return true on success, or false to re-collapse the node on error.
+    async onexpand() { return true; }
 
     // This is called when the item is clicked.
     onclick() { }
@@ -361,19 +362,37 @@ ppixiv.tree_widget_item = class extends ppixiv.widget
         if(!this._pending)
             return;
 
-        // Start a load if one isn't already running.
-        if(this.load_promise == null)
+        if(this.load_promise != null)
         {
-            // Start the load.
-            this.load_promise = this.onexpand();
-
-            this.load_promise.finally(() => {
-                this.pending = false;
-                this.load_promise = null;
-            });
+            try {
+                await this.load_promise;
+            } catch(e) {
+                // The initial call to load_contents will print the error.
+            }
+            return;
         }
 
-        return await this.load_promise;
+        // Start a load if one isn't already running.
+        // Start the load.
+        this.load_promise = this.onexpand();
+
+        this.load_promise.finally(() => {
+            this.pending = false;
+            this.load_promise = null;
+        });
+
+        try {
+            if(await this.load_promise)
+                return;
+        } catch(e) {
+            console.log("Error expanding", this, e);
+        }
+
+        // If onexpand() threw an exception or returned false, there was an error loading the
+        // node.  Unexpand it rather than leaving it marked complete, so it can be retried.
+        this._pending = true;
+        this._expanded = false;
+        this.refresh_expand_mode();
     }
 
     set expandable(value)
@@ -555,7 +574,7 @@ class local_navigation_widget_item extends ppixiv.tree_widget_item
 
     async onexpand()
     {
-        await this.load();
+        return await this.load();
     }
 
     onclick()
@@ -566,7 +585,7 @@ class local_navigation_widget_item extends ppixiv.tree_widget_item
     load()
     {
         if(this.loaded)
-            return;
+            return Promise.resolve(true);
 
         // If we're already loading this item, just let it complete.
         if(this.load_promise)
@@ -587,7 +606,7 @@ class local_navigation_widget_item extends ppixiv.tree_widget_item
     async load_inner(item)
     {
         if(this.loaded)
-            return;
+            return true;
         this.loaded = true;
 
         let result = await local_api.list(this.path, {
@@ -601,7 +620,10 @@ class local_navigation_widget_item extends ppixiv.tree_widget_item
         });
 
         if(result == null)
-            return;
+        {
+            this.loaded = false;
+            return false;
+        }
 
         // If this is the top-level item, this is a list of archives.  If we have only one
         // archive, populate the top level with the top leve of the archive instead, so we
@@ -640,6 +662,8 @@ class local_navigation_widget_item extends ppixiv.tree_widget_item
             if(!this.search_options && this.path == "folder:/")
                 child.expanded = true;
         }
+
+        return true;
     }
 }
 
@@ -683,6 +707,9 @@ ppixiv.local_navigation_widget = class extends ppixiv.tree_widget
             return;
 
         let { search_options, title } = local_api.get_search_options_for_args(args);
+        if(search_options == null)
+            title = "/";
+            
         let search_root = local_api.get_search_root_from_args(args, search_options);
 
         // Note that search_options is null if we're showing the regular tree and no

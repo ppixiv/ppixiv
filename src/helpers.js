@@ -651,10 +651,10 @@ ppixiv.helpers = {
 
     // dataset is another web API with nasty traps: if you assign false or null to
     // it, it assigns "false" or "null", which are true values.
-    set_dataset: function(dataset, name, enable)
+    set_dataset: function(dataset, name, value)
     {
-        if(enable)
-            dataset[name] = 1;
+        if(value)
+            dataset[name] = value;
         else
             delete dataset[name];
     },
@@ -769,7 +769,7 @@ ppixiv.helpers = {
             return await fetch(options.url, data);
         } catch(e) {
             // Don't log an error if we were intentionally aborted.
-            if(data.signal.aborted)
+            if(data.signal && data.signal.aborted)
                 return null;
                 
             console.error("Error loading %s", options.url, e);

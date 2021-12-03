@@ -145,6 +145,10 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
                 <div class=button-strip>
                     <div class="button-block shift-left">
                         <div class="avatar-widget-container"></div>
+
+                        <div class="button button-parent-folder enabled" data-level=0 data-popup="Parent folder" hidden>
+                            <span class="material-icons">folder</span>
+                        </div>
                     </div>
 
                     <!-- position: relative positions the popup menu. -->
@@ -563,6 +567,13 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
             attributes: true, childList: false, subtree: false
         });
 
+        // If the page is navigated while the popup menu is open, clear the ID the
+        // user clicked on, so we refresh and show the default.
+        window.addEventListener("popstate", (e) => {
+            this._clicked_illust_id = null;
+            this.refresh();
+        });
+
         this.container.querySelector(".button-return-to-search").addEventListener("click", this.clicked_return_to_search.bind(this));
         this.container.querySelector(".button-fullscreen").addEventListener("click", this.clicked_fullscreen.bind(this));
         this.container.querySelector(".button-zoom").addEventListener("click", this.clicked_zoom_toggle.bind(this));
@@ -574,6 +585,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         });
 
         this.container.addEventListener("click", this.handle_link_click);
+        this.container.querySelector(".button-parent-folder").addEventListener("click", this.clicked_go_to_parent.bind(this));
 
         for(var button of this.container.querySelectorAll(".button-zoom-level"))
             button.addEventListener("click", this.clicked_zoom_level.bind(this));
@@ -1135,6 +1147,19 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
                 if(widget.set_user_id)
                     widget.set_user_id(user_id);
             }
+
+            // If we're on a local ID, show the parent folder button.  Otherwise, show the
+            // author button.  We only show one or the other of these.
+            //
+            // If we don't have an illust ID, see if the data source has a folder ID, so this
+            // works when right-clicking outside thumbs on search pages.
+            let folder_button = this.container.querySelector(".button-parent-folder");
+            let author_button = this.container.querySelector(".avatar-widget-container");
+
+            let is_local = helpers.is_local(this.folder_id_for_parent);
+            folder_button.hidden = !is_local;
+            author_button.hidden = is_local;
+            helpers.set_class(folder_button, "enabled", this.parent_folder_id != null);
         }
 
         if(this._is_zoom_ui_enabled)
@@ -1208,6 +1233,50 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         this._on_click_viewer.set_image_position([e.pageX, e.pageY], center);
         
         this.refresh();
+    }
+
+
+    // Return the illust ID whose parent the parent button will go to.
+    get folder_id_for_parent()
+    {
+        return this.effective_illust_id || this.data_source.viewing_folder;
+    }
+
+    // Return the folder ID that the parent button goes to.
+    get parent_folder_id()
+    {
+        let folder_id = this.folder_id_for_parent;
+        let is_local = helpers.is_local(folder_id);
+        if(!is_local)
+            return null;
+
+        // Go to the parent of the item that was clicked on. 
+        let parent_folder_id = local_api.get_parent_folder(folder_id);
+
+        // If the user right-clicked a thumbnail and its parent is the folder we're
+        // already displaying, go to the parent of the folder instead (otherwise we're
+        // linking to the page we're already on).  This makes the parent button make
+        // sense whether you're clicking on an image in a search result (go to the
+        // location of the image), while viewing an image (also go to the location of
+        // the image), or in a folder view (go to the folder's parent).
+        let currently_displaying_id = local_api.get_local_id_from_args(helpers.args.location);
+        if(parent_folder_id == currently_displaying_id)
+            parent_folder_id = local_api.get_parent_folder(parent_folder_id);
+
+        return parent_folder_id;
+    }
+
+    clicked_go_to_parent(e)
+    {
+        e.preventDefault();
+            
+        let parent_folder_id = this.parent_folder_id;
+        if(parent_folder_id == null)
+            return;
+
+        let args = new helpers.args("/", ppixiv.location);
+        local_api.get_args_for_id(parent_folder_id, args);
+        helpers.set_page_url(args.url, true, "navigation");
     }
 }
 

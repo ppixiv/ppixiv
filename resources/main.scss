@@ -1139,36 +1139,6 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
     }
 }
 
-.page-count-box {
-    position: absolute;
-    right: 2px;
-    bottom: 2px;
-    padding: 4px 8px;
-    background-color: rgba(0,0,0,.6);
-    border-radius: 6px;
-    transition: opacity .5s;
-
-    .page-icon {
-        width: 16px;
-        height: 16px;
-        display: inline-block;
-        vertical-align: middle;
-    }
-
-    &:hover .regular {
-        display: none;
-    }
-    &:not(:hover) .hover {
-        display: none;
-    }
-
-    .page-count {
-        vertical-align: middle;
-        margin-left: -4px;
-    }
-}
-
-/* The similar illusts button on top of thumbnails. */
 .screen-search-container {
     .thumbnail-box {
         .similar-illusts-button {
@@ -1196,30 +1166,108 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
             stroke: #000;
         }
 
-        .thumbnail-bottom-left {
+        .bottom-row {
             position: absolute;
             display: flex;
-            left: 0px;
-            bottom: 0px;
-        }
-        .heart {
-            pointer-events: none;
-            width: 32px;
-            height: 32px;
-        }
-        .heart > svg {
-            transition: opacity .5s;
-        }
+            align-items: center;
+            justify-content: center;
 
-        .ugoira-icon {
+            // Slight padding between the icons and the text.  Note that this is applied even
+            // if there's no icon, and it's applied to the empty flexes between the items, so
+            // this is very small.
+            gap: 4px;
             pointer-events: none;
-            width: 32px;
+            width: 100%;
             height: 32px;
-            right: 0px;
-            bottom: 0px;
-            color: #fff;
-            position: absolute;
-            transition: opacity .5s;
+            bottom: 3px;
+            padding: 0 4px;
+
+            // These are tricky.  We want the label to be centered, and if icons are shown in the
+            // corners, the label stays centered as long as there's room.  It only shifts or shrinks
+            // if we run out of space.  Give the boxes for icons an equal width and an extremely large
+            // flex-shrink.  The boxes will try to be the same size if there's nothing inside them, so
+            // they'll shrink by the same amount, and the huge flex-shrink will cause them to shrink
+            // completely to make room for the label as needed.  If an icon is shown inside them the
+            // box will have a minimum size and not shrink past that, but the shrinking will still
+            // happen evenly until it reaches that size.
+            .bottom-left-icon, .bottom-right-icon {
+                height: 32px;
+                width: 100px;
+                flex-shrink: 100000;
+                display: flex;
+                align-items: center;
+            }
+
+            .bottom-right-icon {
+                justify-content: end;
+            }
+
+            .thumbnail-label {
+                display: flex;
+                align-items: center;
+                gap: .5em;
+                flex-shrink: 1;
+                white-space: nowrap;
+                color: var(--frame-fg-color);
+//                background-color: var(--frame-bg-color);
+                background-color: rgba(0,0,0,.6);
+                padding: 4px 8px;
+                overflow: hidden;
+                border-radius: 6px;
+
+                .thumbnail-ellipsis-box {
+                    text-overflow: ellipsis;
+                    overflow: hidden;
+
+                    & > .label {
+                        /* Specify a line-height explicitly, so vertical centering is reasonably consistent for
+                         * both EN and JP text. */
+                        line-height: 19px;
+                    }
+                }
+                
+                .ugoira-icon {
+                    color: #fff;
+                    transition: opacity .5s;
+                }
+            }
+
+            .heart {
+                width: 32px;
+                height: 32px;
+                > svg {
+                    transition: opacity .5s;
+                }
+            }
+
+            .page-count-box {
+                display: inline-block;
+                padding: 4px 4px;
+                background-color: rgba(0,0,0,.6);
+                border-radius: 6px;
+                transition: opacity .5s;
+                white-space: nowrap;
+                // margin-top: 2px; // nudge to fix alignment with titles
+            
+                .page-icon {
+                    width: 16px;
+                    height: 16px;
+                    display: inline-block;
+                    vertical-align: middle;
+                }
+            
+                &:hover .regular {
+                    display: none;
+                }
+                &:not(:hover) .hover {
+                    display: none;
+                }
+            
+                .page-count {
+                    vertical-align: middle;
+                    margin-left: -4px;
+                }
+            }                
         }
     }
 
@@ -1246,32 +1294,6 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
     // Hide the image while it's pending, so we don't show a broken image icon.
     &[data-pending] .thumb {
         display: none;
-    }
-
-    // The popup title below thumbs:
-    .thumbnail-label {
-        position: absolute;
-        bottom: 3px;
-        pointer-events: none;
-        white-space: nowrap;
-        color: var(--frame-fg-color);
-        background-color: var(--frame-bg-color);
-        left: 50%;
-        position: absolute;
-        transform: translate(-50%, 0);
-        padding: 1px 8px;
-
-        /* Max width fills the thumbnail the label is in, minus some space so we don't overlap bottom-left icons. */
-        max-width: calc(100% - 50px);
-        overflow: hidden;
-        border-radius: 2px;
-        text-overflow: ellipsis;
-
-        & > .label {
-            /* Specify a line-height explicitly, so vertical centering is reasonably consistent for
-             * both EN and JP text. */
-            line-height: 19px;
-        }
     }
 
     // Thumbnail zooming
@@ -1479,16 +1501,13 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
         overflow: hidden;
     }
 
-    .label {
-        // margin-left: .25em;
-    }
-
+    // An icon on the left side.
     > .icon {
         display: inline-block;
         width: 1em;
-        // height: 100%;
         position: relative;
         top: 0.125em;
+        margin-right: 0.25em;
         svg {
             width: auto;
             height: 1em;

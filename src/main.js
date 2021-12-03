@@ -263,17 +263,11 @@ ppixiv.main_controller = class
         // very well), but it at least makes rewinding to the first page work.
         if(data_source == this.data_source && data_source.supports_start_page)
         {
-            let args = helpers.args.location;
-            let wanted_page = this.data_source.get_start_page(args);
-
-            // Don't create a new data source if no pages are loaded, which can happen if
-            // we're loaded viewing an illust.  We can start from any page.
-            let lowest_page = data_source.id_list.get_lowest_loaded_page();
-            let highest_page = data_source.id_list.get_highest_loaded_page();
-            if(data_source.id_list.any_pages_loaded && (wanted_page < lowest_page || wanted_page > highest_page))
+            let wanted_page = this.data_source.get_start_page(helpers.args.location);
+            if(!data_source.can_load_page(wanted_page))
             {
                 // This works the same as refresh_current_data_source above.
-                console.log("Resetting data source to an unavailable page:", lowest_page, wanted_page, highest_page);
+                console.log("Resetting data source because it can't load the requested page", wanted_page);
                 data_source = page_manager.singleton().create_data_source_for_url(ppixiv.location, true);
             }
         }
@@ -433,15 +427,9 @@ ppixiv.main_controller = class
         // Check if this is a local ID.
         if(helpers.is_local(illust_id))
         {
-            local_api.get_args_for_id(illust_id, args);
-
-            // If we're told to show a folder: ID, go to the search page instead of the illust page.
-            let { type } = helpers.parse_id(illust_id);
-            if(type == "folder")
-            {
-                helpers.set_page_url(args, add_to_history, "navigation");
-                return;
-            }
+            // If we're told to show a folder: ID, always go to the search page, not the illust page.
+            if(helpers.parse_id(illust_id).type == "folder")
+                screen = "search";
         }
 
         // Update the URL to display this illust_id.  This stays on the same data source,
@@ -556,6 +544,11 @@ ppixiv.main_controller = class
             return;
 
         if(!(e.target instanceof Element))
+            return;
+
+        // We're taking the place of the default behavior.  If somebody called preventDefault(),
+        // stop.
+        if(e.defaultPrevented)
             return;
 
         // Look up from the target for a link.

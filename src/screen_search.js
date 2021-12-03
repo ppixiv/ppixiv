@@ -603,8 +603,9 @@ ppixiv.screen_search = class extends ppixiv.screen
             { label: "Search users", url: "/search_user.php#ppixiv" },
             { label: "Rankings", url: "/ranking.php#ppixiv" },
             { label: "Recent history", url: "/history.php#ppixiv", classes: ["recent-history-link"] },
-            { label: "Local search", url: "/local/#ppixiv/", local: true },
+            { label: "Local search", url: "/local/#ppixiv/", local: true, onclick: local_api.show_local_search },
         ];
+
 
         let create_option = (option) => {
             let button = new menu_option_button({
@@ -614,6 +615,7 @@ ppixiv.screen_search = class extends ppixiv.screen
                 label: option.label,
                 url: option.url,
                 classes: option.classes,
+                onclick: option.onclick,
             })
 
             // Hide the local search menu option if it's not enabled.
@@ -865,6 +867,10 @@ ppixiv.screen_search = class extends ppixiv.screen
         if(user_id != null)
             return "user:" + user_id;
 
+        let folder_id = this.data_source.viewing_folder;
+        if(folder_id != null)
+            return folder_id;
+    
         return super.displayed_illust_id;
     }
 
