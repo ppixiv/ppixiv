@@ -150,7 +150,11 @@ class SharedZipFile:
         for entry in infolist:
             filename = '/' / Path(entry.filename)
 
-            time = datetime(*entry.date_time)
+            try:
+                time = datetime(*entry.date_time)
+            except ValueError:
+                # Fall back on the ZIP's filesystem timestamp if a file has an invalid timestamp.
+                time = self.root_entry.timestamp
             entry = ZipPathInfo(filename.name, entry, entry.filename, entry.file_size, entry.is_dir(), time)
 
             while True:
