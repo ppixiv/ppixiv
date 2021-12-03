@@ -109,13 +109,20 @@ class Database:
         else:
             connection.execute('BEGIN TRANSACTION')
 
+        took = time.time() - started_at
+        if took > 1:
+            print('Opening transaction took a long time (%.1f seconds)' % took)
+            traceback.print_stack()
+
+        started_at = time.time()
+
         try:
             yield connection
             connection.commit()
 
             took = time.time() - started_at
             if took > 1:
-                print('Database transaction took a long time')
+                print('Database transaction took a long time (%.1f seconds)' % took)
                 traceback.print_stack()
 
         finally:
