@@ -116,6 +116,10 @@ def _create_ugoira(file, output_file, frame_durations):
 
                 result = ExportMJPEG(frame_callback=retrieve_frame)
                 mkvparse.mkvparse(file, result)
+
+                # Flush each frame, so they don't sit in the buffer.
+                output_file.flush()
+
     except OSError as e:
         # We'll get EPIPE if the other side of the pipe is closed because the connection
         # was closed.  Don't raise these as errors.

@@ -4,7 +4,7 @@ from contextlib import contextmanager
 from PIL import Image, ExifTags
 from pprint import pprint
 
-from .video_metadata import mp4, mkv
+from .video_metadata import mp4, mkv, gif
 
 image_types = {
     '.png': 'image/png',
@@ -103,6 +103,17 @@ def read_metadata(f, mime_type):
     if not mime_type.startswith('image/'):
         return { }
 
+    # Use our own parser for GIFs, since PIL is slow at this.
+    if mime_type == 'image/gif':
+        data = gif.parse_gif_metadata(f).data
+        return {
+            'width': data['width'],
+            'height': data['height'],
+            'duration': data['duration'],
+            'frame_durations': data['frame_durations'],
+            'animation': len(data['frame_durations']) > 1,
+        }
+
     result = { }
 
     try:
@@ -113,10 +124,6 @@ def read_metadata(f, mime_type):
 
     result['width'] = img.size[0]
     result['height'] = img.size[1]
-
-    # If this is a GIF, remember that it's an animation.
-    if mime_type == 'image/gif':
-        result['animation'] = img.is_animated
 
     # PIL's parser for PNGs is very slow, so only support metadata from JPEG for now.
     if mime_type == 'image/jpeg':

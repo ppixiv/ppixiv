@@ -14,6 +14,7 @@ import asyncio, errno, json, sys, zipfile, os
 from PIL import Image
 from io import BytesIO
 from .misc import FixedZipPipe, WriteZip
+from .video_metadata import gif
 from pprint import pprint
 
 class NotAnimatedError(ValueError): pass
@@ -26,20 +27,12 @@ def get_frame_durations(file):
     If the file isn't an animated GIF, raise an exception.
     """
     pos = file.tell()
-
-    img = Image.open(file)
-    if img.n_frames <= 1:
-        raise NotAnimatedError()
-
-    frame_durations = []
-    for frame_no in range(img.n_frames):
-        img.seek(frame_no)
-        duration = img.info['duration']
-        frame_durations.append(duration)
-
-    # Return to the original file position.
+    data = gif.parse_gif_metadata(file).data
     file.seek(pos)
 
+    frame_durations = data['frame_durations']
+    if len(frame_durations) <= 1:
+        raise NotAnimatedError()
     return frame_durations
 
 def _create_ugoira(file, output_file, frame_durations):
@@ -55,6 +48,7 @@ def _create_ugoira(file, output_file, frame_durations):
                 frame_delays = []
                 for frame_no, duration in enumerate(frame_durations):
                     # Match browser behavior for frames that have delays that are too low.
+                    # This also matches the check in video_metadata.gif.
                     if duration < 20:
                         duration = 100
 
@@ -68,24 +62,42 @@ def _create_ugoira(file, output_file, frame_durations):
                 zip.writestr('metadata.json', metadata, compress_type=zipfile.ZIP_STORED)
                 img = Image.open(file)
 
-                # If there's a transparency index, use PNG so we can preserve transparency.
-                transparent = img.info.get('transparency', -1) != -1
-
-                # Add each file.
-                for frame_no in range(img.n_frames):
+                # Add each file.  Don't read img.img.n_frames, since it's slow and makes us
+                # take longer to start playing.
+                for frame_no in range(len(frame_durations)):
                     img.seek(frame_no)
                     frame = img
+                    frame.load()
+
+                    # If this frame has transparency, use PNG.  Otherwise, use JPEG.  JPEG compresses
+                    # much faster than PNG and this helps make sure we can keep up with the video.
+                    # This is done on a frame-by-frame basis because there's no way to know in advance
+                    # whether a GIF uses transparency except checking each frame for the transparency
+                    # index, and this avoids having to make an extra slow pass over the image first.
+                    frame_is_transparent = False
+                    if img.mode == 'P':
+                        # See if this frame is transparent.
+                        transparency_index = img.info.get('transparency', -1)
+                        if transparency_index != -1:
+                            used_colors = { color[1] for color in img.getcolors() }
+                            frame_is_transparent = transparency_index in used_colors
 
                     buffer = BytesIO()
-                    if transparent:
+                    if frame_is_transparent:
                         frame.save(buffer, 'PNG')
+                        ext = 'png'
                     else:
                         frame = frame.convert('RGB')
                         frame.save(buffer, 'JPEG')
+                        ext = 'jpg'
                     frame = buffer.getvalue()
 
                     output_file.about_to_write_file(len(frame))
-                    zip.writestr('%06i.jpg' % frame_no, frame, compress_type=zipfile.ZIP_STORED)
+                    zip.writestr('%06i.%s' % (frame_no, ext), frame, compress_type=zipfile.ZIP_STORED)
+
+                    # Flush each frame, so they don't sit in the buffer.
+                    output_file.flush()
+
     except OSError as e:
         # We'll get EPIPE if the other side of the pipe is closed because the connection
         # was closed.  Don't raise these as errors.
