@@ -45,11 +45,26 @@ ppixiv.on_click_viewer = class
         window.addEventListener("quickviewpointermove", this.pointermove, { signal: this.event_shutdown.signal });
     }
 
+    // Return the URL or preview URL being displayed.
+    get displaying_url()
+    {
+        let url = this.img?.src;
+        return url == helpers.blank_image? null:url;
+    }
+    
+    get displaying_preview_url()
+    {
+        let url = this.preview_img?.src;
+        return url == helpers.blank_image? null:url;
+    }
+
     // Load the given illust and page.
     set_new_image = async(signal, {
         url, preview_url,
         width, height,
-        // "history" to restore from history, or "auto" to set automatically.
+
+        // "history" to restore from history, "auto" to set automatically, or null to
+        // leave the position alone.
         restore_position,
 
         // This callback will be run once an image has actually been displayed.
@@ -69,6 +84,12 @@ ppixiv.on_click_viewer = class
             return;
         }
         
+        // If we're displaying the same image (either the URL or preview URL aren't changing),
+        // never restore position, so we don't interrupt the user interacting with the image.
+        let displaying_same_image = (url && url == this.displaying_url) || (preview_url && preview_url == this.displaying_preview_url);
+        if(displaying_same_image)
+            restore_position = null;
+
         let img = document.createElement("img");
         img.src = url? url:helpers.blank_image;
         img.className = "filtering";
@@ -125,10 +146,9 @@ ppixiv.on_click_viewer = class
         }
         signal.check();
 
-        // Remove the old image.
+        // We're ready to finalize the new URLs by removing the old images and setting the
+        // new ones.  This is where displaying_url and displaying_preview_url change.
         this.remove_images();
-
-        // Finalize our data.  Don't do this until we've called this.remove_images().
         this.original_width = width;
         this.original_height = height;
         this.img = img;
@@ -138,7 +158,9 @@ ppixiv.on_click_viewer = class
         this.image_container.appendChild(img_ready? this.img:this.preview_img);
 
         // Restore history or set the initial position, then call reposition() to apply it
-        // and do any clamping.
+        // and do any clamping.  Do this atomically with updating the images, so the caller
+        // knows that restore_position happens when displaying_url changes.  If the caller
+        // wants to update 
         if(restore_position == "history")
             this.restore_from_history();
         else if(restore_position == "auto")
