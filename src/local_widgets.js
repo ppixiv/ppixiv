@@ -703,7 +703,7 @@ ppixiv.local_navigation_widget = class extends ppixiv.tree_widget
     {
         // Don't load a root if we're not currently on local search.
         let args = helpers.args.location;
-        if(args.path != "/local/")
+        if(args.path != local_api.path)
             return;
 
         let { search_options, title } = local_api.get_search_options_for_args(args);
@@ -761,7 +761,7 @@ ppixiv.local_navigation_widget = class extends ppixiv.tree_widget
 
         // If we're not on a /local/ search, just deselect.
         let args = helpers.args.location;
-        if(args.path != "/local/")
+        if(args.path != local_api.path)
         {
             this.set_selected_item(null);
             return;
@@ -970,7 +970,7 @@ ppixiv.local_search_box_widget = class extends ppixiv.widget
         
         // Run the search.  We expect to be on the local data source when this is called.
         let args = new helpers.args(ppixiv.location);
-        console.assert(args.path == "/local/");
+        console.assert(args.path == local_api.path);
         if(tags)
             args.hash.set("search", tags);
         else
@@ -1114,7 +1114,7 @@ ppixiv.local_search_dropdown_widget = class extends ppixiv.widget
         entry.querySelector(".search").appendChild(span);
 
         let args = new helpers.args("/", ppixiv.location);
-        args.path = "/local/";
+        args.path = local_api.path;
         args.hash_path = "/";
         args.hash.set("search", search);
         entry.href = args.url;

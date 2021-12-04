@@ -5,10 +5,24 @@ ppixiv.local_api = class
 {
     static get local_url()
     {
+        // If we're running natively, the API is on the same URL as we are.
+        if(ppixiv.native)
+            return new URL("/", document.location);
+
         let url = settings.get("local_api_url");
         if(url == null)
             return null;
         return new URL(url);
+    }
+
+    // Return the URL path used by the UI.
+    static get path()
+    {
+        // When running natively, the path is just /.
+        if(ppixiv.native)
+            return "/";
+        else
+            return "/local/";
     }
 
     static async local_post_request(pathname, data={}, options={})
@@ -180,12 +194,12 @@ ppixiv.local_api = class
     // hash_path + path + file.
     static get_args_for_id(illust_id, args)
     {
-        if(args.path != "/local/")
+        if(args.path != local_api.path)
         {
             // Navigating to a local URL from somewhere else.  The search options
             // are unrelated, so just reset the URL.
             // XXX: untested
-            args.path = "/local/";
+            args.path = local_api.path;
             args.query = new URLSearchParams();
             args.hash = new URLSearchParams();
             args.hash_path = "";

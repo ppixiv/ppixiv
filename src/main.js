@@ -90,6 +90,10 @@ ppixiv.main_controller = class
         // that only work with premium.
         helpers.set_class(document.body, "premium", window.global_data.premium);
 
+        // These are used to hide UI when running native or not native.
+        helpers.set_class(document.body, "native", ppixiv.native);
+        helpers.set_class(document.body, "pixiv", !ppixiv.native);
+
         // These are used to hide buttons that the user has disabled.
         helpers.set_class(document.body, "hide-r18", !window.global_data.include_r18);
         helpers.set_class(document.body, "hide-r18g", !window.global_data.include_r18g);
@@ -592,6 +596,8 @@ ppixiv.main_controller = class
 
     async load_global_data_async()
     {
+        console.assert(!ppixiv.native);
+
         // Doing this sync works better, because it 
         console.log("Reloading page to get init data");
 
@@ -624,6 +630,13 @@ ppixiv.main_controller = class
     // document that we fetched separately.  Return true on success.
     load_global_info_from_document(doc)
     {
+        // When running locally, just load stub data, since this isn't used.
+        if(ppixiv.native)
+        {
+            this.init_global_data("no token", "no id", true, [], 2);
+            return true;
+        }
+
         // Stop if we already have this.
         if(window.global_data)
             return true;

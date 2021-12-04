@@ -281,7 +281,9 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
         settings_widgets.quick_view();
         settings_widgets.linked_tabs_enabled();
 
-        settings_widgets.disabled_by_default();
+        if(!ppixiv.native)
+            settings_widgets.disabled_by_default();
+            
         settings_widgets.no_hide_cursor();
 
         // Firefox's contextmenu behavior is broken, so hide this option.

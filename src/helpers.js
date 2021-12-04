@@ -437,6 +437,19 @@ ppixiv.helpers = {
     // might have done before we were able to start.
     cleanup_environment: function()
     {
+        if(ppixiv.native)
+        {
+            // We're running in a local environment and not on Pixiv, so we don't need to do
+            // this stuff.  Just add stubs for the functions we'd set up here.
+            helpers.fetch = unsafeWindow.fetch;
+            window.HTMLDocument.prototype.realCreateElement = window.HTMLDocument.prototype.createElement;
+            window.cloneInto = (data, window) =>
+            {
+                return data;
+            }
+            return;
+        }
+
         // Newer Pixiv pages run a bunch of stuff from deferred scripts, which install a bunch of
         // nastiness (like searching for installed polyfills--which we install--and adding wrappers
         // around them).  Break this by defining a webpackJsonp property that can't be set.  It

@@ -23,12 +23,12 @@ let thumbnail_ui = class extends ppixiv.widget
                 </div>
 
                 <div class=button-row>
-                    <a class="disable-ui-button popup" data-popup="Return to Pixiv" href="#no-ppixiv">
+                    <a class="disable-ui-button popup pixiv-only" data-popup="Return to Pixiv" href="#no-ppixiv">
                         <ppixiv-inline class="icon-button grey-icon" src="resources/pixiv-icon.svg"></ppixiv-inline>
                     </a>
 
                     <!-- Containing block for :hover highlights on the button: -->
-                    <div>
+                    <div class=pixiv-only>
                         <div class="grey-icon icon-button popup-menu-box-button popup parent-highlight" data-popup="Search">
                             <ppixiv-inline src="resources/icon-search.svg"></ppixiv-inline>
                         </div>
@@ -603,7 +603,7 @@ ppixiv.screen_search = class extends ppixiv.screen
             { label: "Search users", url: "/search_user.php#ppixiv" },
             { label: "Rankings", url: "/ranking.php#ppixiv" },
             { label: "Recent history", url: "/history.php#ppixiv", classes: ["recent-history-link"] },
-            { label: "Local search", url: "/local/#ppixiv/", local: true, onclick: local_api.show_local_search },
+            { label: "Local search", url: `${local_api.path}#ppixiv/`, local: true, onclick: local_api.show_local_search },
         ];
 
 

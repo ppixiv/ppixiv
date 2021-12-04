@@ -1338,15 +1338,21 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
         };
 
         this.menu_options = [];
-        this.menu_options.push(menu_options.similar_illustrations());
-        this.menu_options.push(menu_options.similar_artists());
-        this.menu_options.push(menu_options.similar_bookmarks());
-        this.menu_options.push(menu_options.download_image());
-        this.menu_options.push(menu_options.download_manga());
-        this.menu_options.push(menu_options.download_video());
+        if(!ppixiv.native)
+        {
+            this.menu_options.push(menu_options.similar_illustrations());
+            this.menu_options.push(menu_options.similar_artists());
+            this.menu_options.push(menu_options.similar_bookmarks());
+            this.menu_options.push(menu_options.download_image());
+            this.menu_options.push(menu_options.download_manga());
+            this.menu_options.push(menu_options.download_video());
+        }
+
         this.menu_options.push(menu_options.send_to_tab());
         this.menu_options.push(menu_options.linked_tabs());
-        this.menu_options.push(menu_options.exit());
+
+        if(!ppixiv.native)
+            this.menu_options.push(menu_options.exit());
 
         // Close if our containing widget is closed.
         new view_hidden_listener(this.container, (e) => {

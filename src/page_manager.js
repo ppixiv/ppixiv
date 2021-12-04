@@ -123,7 +123,7 @@ ppixiv.page_manager = class
             return data_sources.rankings;
         else if(url.pathname == "/search_user.php")
             return data_sources.search_users;
-        else if(url.pathname.startsWith("/local"))
+        else if(url.pathname.startsWith(local_api.path))
             return data_sources.local;
         else
             return null;
@@ -223,6 +223,9 @@ ppixiv.page_manager = class
     // Return true if we're active by default on the current page.
     active_by_default()
     {
+        if(ppixiv.native)
+            return true;
+
         // If the disabled-by-default setting is enabled, disable by default until manually
         // turned on.
         if(settings.get("disabled-by-default"))

@@ -36,7 +36,7 @@ ppixiv.image_ui = class extends ppixiv.widget
     </div>
 
     <div class=button-row>
-        <a class="disable-ui-button popup" data-popup="Return to Pixiv" href="#no-ppixiv" style="height: 26px;">
+        <a class="disable-ui-button popup pixiv-only" data-popup="Return to Pixiv" href="#no-ppixiv" style="height: 26px;">
             <ppixiv-inline class=grey-icon src="resources/pixiv-icon.svg" style="height: 100%; width: auto;" ></ppixiv-inline>
         </a>
 
@@ -46,19 +46,19 @@ ppixiv.image_ui = class extends ppixiv.widget
             </div>
         </div>
 
-        <div class="download-button download-image-button popup" data-download="image" data-popup="Download image">
+        <div class="download-button download-image-button popup pixiv-only" data-download="image" data-popup="Download image">
             <div class="grey-icon icon-button button enabled">
                 <ppixiv-inline src="resources/download-icon.svg"></ppixiv-inline>
             </div>
         </div>
 
-        <div class="download-button download-manga-button popup" data-download="ZIP" data-popup="Download ZIP of all images">
+        <div class="download-button download-manga-button popup pixiv-only" data-download="ZIP" data-popup="Download ZIP of all images">
             <div class="grey-icon icon-button button enabled">
                 <ppixiv-inline src="resources/download-manga-icon.svg"></ppixiv-inline>
             </div>
         </div>
 
-        <div class="download-button download-video-button popup" data-download="MKV" data-popup="Download MKV">
+        <div class="download-button download-video-button popup pixiv-only" data-download="MKV" data-popup="Download MKV">
             <div class="grey-icon icon-button button enabled">
                 <ppixiv-inline src="resources/download-icon.svg"></ppixiv-inline>
             </div>
@@ -94,19 +94,19 @@ ppixiv.image_ui = class extends ppixiv.widget
             <div class=count></div>
         </div>
 
-        <a class="similar-illusts-button bulb-button popup" data-popup="Similar illustrations" href=#>
+        <a class="similar-illusts-button bulb-button popup pixiv-only" data-popup="Similar illustrations" href=#>
             <div class="grey-icon icon-button">
                 <ppixiv-inline src="resources/related-illusts.svg"></ppixiv-inline>
             </div>
         </a>
 
-        <a class="similar-artists-button bulb-button grey-icon popup" data-popup="Similar artists" href=#>
+        <a class="similar-artists-button bulb-button grey-icon popup pixiv-only" data-popup="Similar artists" href=#>
             <div class="grey-icon icon-button">
                 <ppixiv-inline src="resources/related-illusts.svg"></ppixiv-inline>
             </div>
         </a>
 
-        <a class="similar-bookmarks-button bulb-button grey-icon popup" data-popup="Similar bookmarks" href=#>
+        <a class="similar-bookmarks-button bulb-button grey-icon popup pixiv-only" data-popup="Similar bookmarks" href=#>
             <div class="grey-icon icon-button">
                 <ppixiv-inline src="resources/related-illusts.svg"></ppixiv-inline>
             </div>
