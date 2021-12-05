@@ -45,7 +45,6 @@ def transaction(conn):
 
         print('BaseException %s caused database rollback' % e.__class__)
         print(e)
-        import traceback
         traceback.print_exc()
 
         # Still roll back the transaction.
@@ -123,6 +122,8 @@ class Database:
             connection.rollback()
 
             with self.lock:
+                assert not connection.in_transaction
+                assert connection not in self.connections
                 self.connections.append(connection)
 
     @contextmanager
