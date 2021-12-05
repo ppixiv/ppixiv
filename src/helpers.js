@@ -1983,6 +1983,49 @@ ppixiv.helpers = {
         return parts.join(" ");
     },
 
+    // 1     -> 1
+    // 1:2   -> 0.5
+    // null  -> null
+    // ""    -> null
+    parse_ratio(value)
+    {
+        if(value == null || value == "")
+            return null;
+        if(value.indexOf == null)
+            return value;
+
+        let parts = value.split(":", 2);
+        if(parts.length == 1)
+        {
+            return parseFloat(parts[0]);
+        }
+        else
+        {
+            let num = parseFloat(parts[0]);
+            let den = parseFloat(parts[1]);
+            return num/den;
+        }
+    },
+    
+    // Parse:
+    // 1        -> [1,1]
+    // 1...2    -> [1,2]
+    // 1...     -> [1,null]
+    // ...2     -> [null,2]
+    // 1:2      -> [0.5, 0.5]
+    // 1:2...2  -> [0.5, 2]
+    // null     -> null
+    parse_range(range)
+    {
+        if(range == null)
+            return null;
+            
+        let parts = range.split("...");
+        let min = helpers.parse_ratio(parts[0]);
+        let max = helpers.parse_ratio(parts[1]);
+        return [min, max];
+    },
+
     // Generate a UUID.
     create_uuid()
     {

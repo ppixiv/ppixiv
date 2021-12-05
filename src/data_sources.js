@@ -3467,6 +3467,15 @@ ppixiv.data_sources.local = class extends data_source
         this.set_item2(container, { type: "local-type-videos", fields: {"#type": "videos"}, current_url: current_args.url });
         this.set_item2(container, { type: "local-type-images", fields: {"#type": "images"}, current_url: current_args.url });
 
+        this.set_item2(container, { type: "local-aspect-ratio-all", fields: {"#aspect-ratio": null}, current_url: current_args.url });
+        this.set_item2(container, { type: "local-aspect-ratio-landscape", fields: {"#aspect-ratio": `3:2...`}, current_url: current_args.url });
+        this.set_item2(container, { type: "local-aspect-ratio-portrait", fields: {"#aspect-ratio": `...2:3`}, current_url: current_args.url });
+
+        this.set_item2(container, { type: "local-res-all", fields: {"#pixels": null}, current_url: current_args.url });
+        this.set_item2(container, { type: "local-res-high", fields: {"#pixels": "4000000..."}, current_url: current_args.url });
+        this.set_item2(container, { type: "local-res-medium", fields: {"#pixels": "1000000...3999999"}, current_url: current_args.url });
+        this.set_item2(container, { type: "local-res-low", fields: {"#pixels": "...999999"}, current_url: current_args.url });
+
         this.set_item2(container, {type: "local-shuffle", fields: {"#order": "shuffle"}, toggle: true, current_url: current_args.url });
 
         this.set_active_popup_highlight(container);

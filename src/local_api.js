@@ -330,6 +330,18 @@ ppixiv.local_api = class
                 title = helpers.title_case(search_options.media_type);
         }
 
+        if(args.hash.has("aspect-ratio"))
+        {
+            let range = args.hash.get("aspect-ratio");
+            search_options.aspect_ratio = helpers.parse_range(range);
+        }
+
+        if(args.hash.has("pixels"))
+        {
+            let range = args.hash.get("pixels");
+            search_options.total_pixels = helpers.parse_range(range);
+        }
+
         if(title)
             title += ` inside ${search_root}`;
 

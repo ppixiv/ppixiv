@@ -315,6 +315,25 @@ let thumbnail_ui = class extends ppixiv.widget
                                 <a class=box-link data-type=local-type-images href="#ppixiv">Images</a>
                             </div>
                         </div>
+                        
+                        <div class="box-button-row search-options-row">
+                            <span class="box-link popup-menu-box-button">Aspect ratio</span>
+                            <div hidden class="popup-menu-box vertical-list">
+                            <a class=box-link data-type=local-aspect-ratio-all data-default=1>All</a>
+                            <a class=box-link data-type=local-aspect-ratio-landscape>Landscape</a>
+                            <a class=box-link data-type=local-aspect-ratio-portrait>Portrait</a>
+                        </div>
+                        </div>
+                        
+
+
+                        <span class="box-link popup-menu-box-button">Image size</span>
+                        <div hidden class="popup-menu-box vertical-list">
+                            <a class=box-link data-type=local-res-all data-default=1 href="#">All</a>
+                            <a class=box-link data-type=local-res-high href="?wlt=3000&hlt=3000#ppixiv">High-res</a>
+                            <a class=box-link data-type=local-res-medium href="?wlt=1000&wgt=2999&hlt=1000&hgt=2999#ppixiv">Medium-res</a>
+                            <a class=box-link data-type=local-res-low href="?wgt=999&hgt=999#ppixiv">Low-res</a>
+                        </div>
 
                         <a class="box-link local-shuffle popup" data-popup="Shuffle" href="#" data-type=local-shuffle>
                             <span class="material-icons">shuffle</span>
