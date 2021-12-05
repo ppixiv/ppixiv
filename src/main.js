@@ -477,7 +477,11 @@ ppixiv.main_controller = class
 
     _set_active_screen_in_url(args, screen)
     {
-        args.hash.set("view", screen);
+        // If this is the default, just remove it.
+        if(screen == this.data_source.default_screen)
+            args.hash.delete("view");
+        else
+            args.hash.set("view", screen);
 
         // If we're going to the search or manga page, remove the page.
         // If we're going to the manga page, remove just the page.
