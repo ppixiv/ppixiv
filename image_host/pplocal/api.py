@@ -171,7 +171,9 @@ async def api_bookmark_add(info):
     # Look up the path.
     absolute_path, library = info.manager.resolve_path(path)
 
-    entry = library.bookmark_edit(absolute_path, set_bookmark=True, tags=tags)
+    entry = library.get(absolute_path)
+
+    library.bookmark_edit(entry, set_bookmark=True, tags=tags)
     return { 'success': True, 'bookmark': _bookmark_data(entry) }
 
 @reg('/bookmark/delete/{type:[^:]+}:{path:.+}')
@@ -183,7 +185,8 @@ async def api_bookmark_delete(info):
     
     # Look up the path.
     absolute_path, library = info.manager.resolve_path(path)
-    library.bookmark_edit(absolute_path, set_bookmark=False)
+    entry = library.get(absolute_path)
+    library.bookmark_edit(entry, set_bookmark=False)
 
     return { 'success': True }
 
@@ -325,6 +328,22 @@ async def api_list(info):
 # false or not present, the request will end.
 def api_list_impl(info):
     path = PurePosixPath(info.request.match_info['path'])
+    def get_range_parameter(name):
+        value = info.data.get(name, None)
+        if value is None:
+            return None
+        
+        if isinstance(value, (int, float)):
+            return [value, value]
+        
+        if isinstance(value, list):
+            if len(value) != 2:
+                print('Invalid search parameter for %s: %s' % (name, value))
+                return None
+
+            return [value[0], value[1]]
+        else:
+            return None
 
     # Regular search options:
     search_options = {
@@ -332,6 +351,8 @@ def api_list_impl(info):
         'bookmarked': info.data.get('bookmarked', None),
         'bookmark_tags': info.data.get('bookmark_tags', None),
         'media_type': info.data.get('media_type', None),
+        'total_pixels': get_range_parameter('total_pixels'),
+        'aspect_ratio': get_range_parameter('aspect_ratio'),
     }
 
     sort_order = info.data.get('order', 'default')

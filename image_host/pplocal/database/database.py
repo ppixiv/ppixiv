@@ -103,16 +103,10 @@ class Database:
             else:
                 connection = self.open_db()
 
-        started_at = time.time()
         if write:
             connection.execute('BEGIN IMMEDIATE TRANSACTION')
         else:
             connection.execute('BEGIN TRANSACTION')
-
-        took = time.time() - started_at
-        if took > 1:
-            print('Opening transaction took a long time (%.1f seconds)' % took)
-            traceback.print_stack()
 
         started_at = time.time()
 

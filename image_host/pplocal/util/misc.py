@@ -1,5 +1,5 @@
 # Helpers that don't have dependancies on our other modules.
-import asyncio, concurrent, os, io, struct, os, threading, time
+import asyncio, concurrent, os, io, struct, os, threading, time, traceback, sys
 from contextlib import contextmanager
 from PIL import Image, ExifTags
 from pprint import pprint
@@ -210,6 +210,120 @@ class AsyncEvent:
             return False
         finally:
             self.waits.remove(future)
+
+class TransientWriteConnection:
+    """
+    This is a convenience wrapper for opening and closing database connections.
+
+    We often run searches, which can perform writes to the database, then yield to
+    the caller.  When we do that, we might not be resumed for a long time, and we
+    need to be sure not to keep a write transaction pending.  However, we don't
+    want to open a new transaction for every write.
+
+    TransientWriteConnection is used as a context manager, and opens a connection
+    on demand.  The connection remains open when the context manager exits.  To
+    close the connection, call commit().  The connection will be committed and
+    closed, and will be reopened the next time it's used.
+    """
+    def __init__(self, db):
+        self.db = db
+        self.in_use = False
+        self.connection = None
+
+    def __enter__(self):
+        assert not self.in_use
+        self.in_use = True
+
+        if self.connection is None:
+            connection = self.db.connect(write=True)
+            self.connection = connection.__enter__()
+
+        return self.connection
+
+    def __exit__(self, type, value, traceback):
+        assert self.in_use
+        self.in_use = False
+
+        # If the context manager closes without an exception, don't commit the connection.
+        if type is None:
+            return
+
+        # Pass exceptions to the connection to roll back and release the connection.
+        connection = self.connection
+        self.connection = None
+
+        # Pass exceptions to the self.connection context manager, so it'll roll
+        # back the transaction and shut down.
+        connection.__exit__(type, value, traceback)
+ 
+
+    def commit(self):
+        assert not self.in_use
+
+        if self.connection is None:
+            return
+
+        try:
+            self.connection.__exit__(None, None, None)
+        finally:
+            self.connection = None
+
+    def __del__(self):
+        if not self.in_use:
+            return
+
+        print('Warning: TransientWriteConnection wasn\'t closed')
+
+class WithBuilder:
+    """
+    Build an SQL WITH statement for a list of rows.
+
+    builder = WithBuilder('id', 'name', table_name='names')
+    builder.add_row(1, 'Name1')
+    builder.add_row(2, 'Name2')
+
+    params = []
+    builder.get_params(params)
+    with_statement = builder.get()
+    """
+    def __init__(self, *fields, table_name):
+        self.table_name = table_name
+        self.fields = fields
+        self.rows = []
+
+    def add_row(self, *row):
+        assert len(row) == len(self.fields)
+        self.rows.append(row)
+
+    def get_params(self, params):
+        for row in self.rows:
+            params.extend(row)
+
+    def get(self):
+        """
+        Return the WITH statement, eg.
+
+        files(id, name) AS (VALUES (?, ?), (?, ?))
+
+        This doesn't include "WITH" itself, since these are normally combined.
+        """
+        # It seems to be impossible to have a WITH statement with no values, which
+        # is a pain.
+        if not self.rows:
+            self.add_row([None] * len(self.fields))
+
+        # Placeholder for one row, eg. '(?, ?)'
+        row_placeholder = ['?'] * len(self.fields)
+        row_placeholder = f"({', '.join(row_placeholder)})"
+
+        # Placeholder for all rows, eg. '(?, ?), (?, ?), (?, ?)'
+        all_row_placeholders = [row_placeholder] * len(self.rows)
+        all_row_placeholders = ', '.join(all_row_placeholders)
+
+        return f"""
+            {self.table_name} ({', '.join(self.fields)})
+            AS (VALUES {all_row_placeholders})
+        """
 
 class FixedZipPipe:
     """

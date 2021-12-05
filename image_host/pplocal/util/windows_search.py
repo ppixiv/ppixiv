@@ -119,6 +119,21 @@ class SearchDirEntry(os.PathLike):
         self._stat = None
 
     @property
+    def metadata(self):
+        """
+        Return any extra metadata that we got from the search.
+        """
+        result = { }
+
+        if self._data['System.Image.HorizontalSize']:
+            result['width'] = self._data['System.Image.HorizontalSize']
+
+        if self._data['System.Image.VerticalSize']:
+            result['height'] = self._data['System.Image.VerticalSize']
+
+        return result
+
+    @property
     def path(self):
         return self._path
 
@@ -170,6 +185,11 @@ def search(*,
         recurse=True,
         contents=None,
         media_type=None, # "images" or "videos"
+
+        # These filters are unsupported.  We accept them so we take the same parameters
+        # as file_index.search(), but it's up to the caller to actually filter these.
+        total_pixels=None,
+        aspect_ratio=None,
 
         # If None, a default timeout will be used.  If the request times out, an error
         # will be thrown.
@@ -325,14 +345,14 @@ def search(*,
             raise Exception('The search timed out')
 
 def test():
-    path=Path(r'F:\stuff\ppixiv\image_host')
-    for idx, entry in enumerate(search(paths=[path], timeout=1)):
+    path=Path(r'F:\stuff\ppixiv\image_host\temp')
+    for idx, entry in enumerate(search(paths=[path], timeout=1, substr='png')):
         if entry is SearchTimeout:
             print('Timed out')
         if entry is None:
             continue
 
-        print(entry.stat())
+        print(entry)
         st = os.stat(entry.path)
         # print(entry.is_file())
         # print(entry.is_dir())

@@ -1,29 +1,47 @@
 # This implements indexing for file searching.
 #
-# We use a hybrid approach to searching.  The Windows index does a lot of the
-# work.  Indexing very large directories can take a very long time, since we
-# need to read each file to get metadata, and the index has already done most
-# of that for us.
+# Keyword searches use Windows's file indexing.  It avoids duplicating the
+# indexing work and keeps what we're doing lightweight.
+# 
+# Files are cached in our database.  During initial scanning we search for
+# bookmarked files by looking for our metadata files, and cache the files.
+# These cache entries are unpopulated: they only have the data we can get from
+# the file entry, plus any bookmarking data.  This allows us to do searches
+# for bookmarked files, which Windows's search won't do, but we don't spend
+# a lot of time reading files if the user has thousands of bookmarks.
 #
-# However, it doesn't handle everything.  It doesn't give us any way to store
-# metadata for directories or ZIPs, and it has limited support for videos.  We
-# index these ourself.  This is much faster, since people usually have far fewer
-# videos and directories than individual images.
+# An unpopulated entry is a placeholder, created by _get_placeholder_entry.
+# This can be stored in the database, or it can be created as a temporary
+# entry from a Windows search result.  We populate entries as we return them,
+# so if we're returning the first 50 results of 1000, we only spend time reading
+# the 50 files we're returning.  The populated data is then cached in the database,
+# replacing any unpopulated entry, so we only have to do this once per file.
 #
-# While we're running, we monitor our directory for changes and update the index
-# automatically.  Searches merge results from our index and the Windows index.
+# We don't proactively remove entries from the database if they're deleted from
+# disk.  We only delete them if a search sees them and finds that the file no
+# longer exists.  This usually happens when _get_entry checks the mtime of the file.
+#
+# A limitation of this is that we can't search on file metadata that we can't get
+# from Windows search.
+#
+# Paths are stored in the database as strings, and entries internally stay that
+# way.  We only convert paths to BasePath in public APIs (see _convert_to_path).
 #
 # XXX: how can we detect if indexing is enabled on our directory
+# XXX: we shouldn't do a full refresh on changes, but not sure how to find out if
+# indexing is up to date for a path in order to use quick refresh
 
-import asyncio, itertools, os, typing, time, stat, traceback, json, sys, heapq, natsort, random
+import asyncio, collections, errno, itertools, os, typing, time, stat, traceback, json, sys, heapq, natsort, random
 from pathlib import Path
 from pprint import pprint
 from pathlib import Path, PurePosixPath
+from contextlib import contextmanager
 
 from .util import win32, monitor_changes, windows_search, misc
 from . import metadata_storage
 from .database.file_index import FileIndex
 from .util.paths import open_path, PathBase
+from .util.misc import TransientWriteConnection
 
 # Sort orders that we can use for listing and searching.
 #
@@ -70,8 +88,7 @@ class Library:
     """
     def __init__(self, data_dir):
         self.mounts = {}
-        self.pending_file_updates = {}
-        self.pending_directory_refreshes = set()
+#        self.pending_file_updates = {}
         self.refresh_event = misc.AsyncEvent()
         self.monitors = {}
         self._data_dir = data_dir
@@ -80,7 +97,7 @@ class Library:
         dbpath = self.data_dir / 'index.sqlite'
         self.db = FileIndex(dbpath)
 
-        self.update_pending_files_task = asyncio.create_task(self.update_pending_files(), name='LibraryUpdate')
+        # self.update_pending_files_task = asyncio.create_task(self.update_pending_files(), name='LibraryUpdate')
 
     def mount(self, path, name=None):
         path = open_path(path)
@@ -97,8 +114,8 @@ class Library:
             print('unmount(%s): Path wasn\'t mounted' % name)
             return
 
-        del self.mounts[name]
         await self.stop_monitoring(name)
+        del self.mounts[name]
 
     def shutdown(self):
         pass
@@ -173,103 +190,75 @@ class Library:
             paths = [Path(path) for path in paths]
 
         for path in paths.values():
-            with self.db.connect() as db_conn:
+            # XXX: don't hold the db open for the entire update
+            with self.db.connect() as conn:
                 # Find all metadata files.
                 for result in windows_search.search(paths=[str(path)], filename=metadata_storage.metadata_filename):
-                    # Refresh just files with metadata.
                     path = open_path(result.path)
+                    await self._refresh_metadata_file(path, conn=conn)
 
-                    for path in metadata_storage.get_files_with_metadata(path):
-                        try:
-                            self.handle_update(path, action='refresh', db_conn=db_conn)
-                        except FileNotFoundError as e:
-                            print('Bookmarked file %s doesn\'t exist' % path)
-                            continue
-
-
-    async def refresh(self, *,
-            path=None,
-            recurse=True,
-            progress: typing.Callable=None,
-            _level=0,
-            _call_progress_each=25000,
-            _progress_counter=None):
+    async def refresh(self, *, paths=None):
         """
         Refresh the library.
 
-        If path is specified, it must be a directory inside this library.  Only that path
-        will be updated.  If path isn't inside our path, an exception will be raised.
-
-        If progress is a function, it'll be called periodically with the number of files
-        processed.
+        This does the same thing as quick_refresh, but scans the filesystem manually
+        rather than using Windows search.
         """
-        if path is None:
-            for path in self.mounts.values():
-                await self.refresh(path=path, recurse=recurse, progress=progress,
-                    _call_progress_each=_call_progress_each, _progress_counter=_progress_counter)
-            return
+        if paths is None:
+            paths = self.mounts.values()
 
-        assert isinstance(path, PathBase)
-        path = path
+        refreshed = 0
+        total_refresh = 0
 
-        # Make sure path is inside this library.
-        if self.get_mount_for_path(path) is None:
-            print('Path %s isn\'t mounted' % path)
-            return
+        import queue
+        pending_paths = queue.LifoQueue()
+        for path in paths:
+            pending_paths.put(path)
+            total_refresh += 1
 
-        if progress is not None and _progress_counter is None:
-            _progress_counter = [0]
+        # Use a transient write connection, so we can periodically release the connection.
+        write_connection = TransientWriteConnection(self.db)
 
-        # Let other tasks run periodically.
-        await asyncio.sleep(0)
+        while not pending_paths.empty():
+            if total_refresh > 1 and (refreshed % 1000) == 0:
+                print('Refreshing %i/%i (%i left)' % (refreshed, total_refresh, pending_paths.qsize()))
 
-        # Start a database transaction for this directory.  We don't reuse this for
-        # the whole traversal, since that keeps the transaction open for too long and
-        # blocks anything else from happening.
-        directories = []
-        with self.db.connect() as db_conn:
-            # print('Refreshing: %s' % path)
+                # Periodically release the write lock.
+                write_connection.commit()
 
-            # Make a list of file IDs that were cached in this directory before we refreshed it.
-            stale_file_paths = {os.fspath(entry['path']) for entry in self.db.search(paths=[str(path)], mode=self.db.SearchMode.Subdir)}
+            path = pending_paths.get()
+            refreshed += 1
 
-            # If this is the top-level directory, refresh it too unless it's our root.
-            if _level == 0 and path in self.mounts.values():
-                self.handle_update(path, action='refresh', db_conn=db_conn)
+            # Make sure path is inside this library.
+            if self.get_mount_for_path(path) is None:
+                print('Path %s isn\'t mounted' % path)
+                continue
+
+            # Let other tasks run periodically.
+            await asyncio.sleep(0)
 
             for child in path.scandir():
-                if progress is not None:
-                    _progress_counter[0] += 1
-                    if (_progress_counter[0] % _call_progress_each) == 0:
-                        progress(_progress_counter[0])
+                if child.is_real_dir():
+                    pending_paths.put(child)
+                    total_refresh += 1
+                elif child.name == metadata_storage.metadata_filename:
+                    with write_connection as conn:
+                        await self._refresh_metadata_file(child, conn=conn)
 
-                # Update this entry.
-                self.handle_update(child, action='refresh', db_conn=db_conn)
-
-                # Remove this path from stale_file_paths, so we know it's not stale.
-                if child.path in stale_file_paths:
-                    stale_file_paths.remove(os.fspath(child.path))
-
-                # If this is a directory, queue its contents.
-                if recurse and child.is_real_dir():
-                    directories.append(child)
-
-            # Delete any entries for files and directories inside this path that no longer
-            # exist.  This will also remove file records recursively if this includes directories.
-            if stale_file_paths:
-                print('%i files were removed from %s' % (len(stale_file_paths), path))
-                print(stale_file_paths)
-                # XXX
-                #self.db.delete_recursively(stale_file_paths, conn=db_conn)
-
-        # Recurse to subdirectories.
-        for file_path in directories:
-            await self.refresh(path=file_path, recurse=True, progress=progress, _level=_level+1,
-                _call_progress_each=_call_progress_each, _progress_counter=_progress_counter)
-
-        # We're finishing.  Call progress() with the final count.
-        if _level == 0 and progress:
-            progress(_progress_counter[0])
+    async def _refresh_metadata_file(self, metadata_file, *, conn):
+        assert metadata_file.name == metadata_storage.metadata_filename
+                    
+        # Refresh just files with metadata.
+        for path in metadata_storage.get_files_with_metadata(metadata_file):
+            try:
+                # This file has metadata (usually a bookmark), so add it to the database.
+                # We might be adding thousands of files here, so only add an unpopulated entry.
+                # This imports bookmarrks, and any other metadata we stashed away in the
+                # metadata files.
+                self._get_entry(path=path, conn=conn, populate=False)
+            except FileNotFoundError as e:
+                print('Bookmarked file %s doesn\'t exist' % path)
+                continue
 
     def monitor(self, mount):
         """
@@ -291,14 +280,14 @@ class Library:
         """
         Stop monitoring for changes.
         """
-        task = self.monitors.pop(mount)
-        if task is not None:
+        if mount not in self.monitors:
             return
 
         path = self.mounts.get(mount)
         if path is None:
             raise ValueError('Mount doesn\'t exist: %s' % mount)
 
+        task = self.monitors.pop(mount)
         task.cancel()
         await task
 
@@ -306,9 +295,9 @@ class Library:
 
     async def monitored_file_changed(self, path, old_path, action):
         path = open_path(path)
-        self.handle_update(path=path, old_path=old_path, action=action)
+        await self.handle_update(path=path, old_path=old_path, action=action)
 
-    def handle_update(self, path, action, *, old_path=None, db_conn=None):
+    async def handle_update(self, path, action, *, old_path=None, db_conn=None):
         """
         This is called to update a changed path.  This can be called during an explicit
         refresh, or from file monitoring.
@@ -323,8 +312,17 @@ class Library:
         path may be a string.  We'll only convert it to a Path if necessary, since doing this
         for every file is slow.
         """
+        # XXX: this no longer does anything, but we could watch for changes to metadata files
+        return
         assert isinstance(path, PathBase)
         
+        # Short-circuit if we don't support this file.  Use is_dir and not is_real_dir so
+        # this doesn't match ZIPs.  If this is REMOVED, we can't tell if this was a directory.
+        if action != monitor_changes.FileAction.FILE_ACTION_REMOVED:
+            if not path.is_dir() and misc.mime_type(os.fspath(path)) is None:
+                # print('Ignored update for unsupported file', path)
+                return
+
         # Ignore changes to metadata files.  We assume we're the only ones changing
         # these.  If we allow them to be edited externally, we'd need to figure out
         # a way to tell if changes we're seeing are ones we made, or else we'd trigger
@@ -335,15 +333,8 @@ class Library:
         # If a path was renamed, rename them in the index.  This avoids needing to refresh
         # the whole tree when a directory is simply renamed.
         if action == monitor_changes.FileAction.FILE_ACTION_RENAMED:
-            # Many applications write a temporary file and then rename it to the new file, which we'll see
-            # as a bunch of writes to a file that we ignore, followed by a rename.  Only treat this as
-            # a rename if we already knew about the original filename.
-            if self.db.get(path=os.fspath(path), conn=db_conn) is not None:
-                self.db.rename(old_path, path, conn=db_conn)
-                return
-
-            print('Treating rename as addition because the original filename isn\'t indexed: %s' % path)
-            action = monitor_changes.FileAction.FILE_ACTION_ADDED
+            self.db.rename(old_path, path, conn=db_conn)
+            return
         
         # If the file was removed, delete it from the database.  If this is a directory, this
         # will remove everything underneath it.
@@ -352,114 +343,84 @@ class Library:
             self.db.delete_recursively([path], conn=db_conn)
             return
 
-        assert action in (monitor_changes.FileAction.FILE_ACTION_ADDED, monitor_changes.FileAction.FILE_ACTION_MODIFIED, 'refresh')
+        assert action in (monitor_changes.FileAction.FILE_ACTION_ADDED, monitor_changes.FileAction.FILE_ACTION_MODIFIED)
 
         # If we receive FILE_ACTION_ADDED for a directory, a directory was either created or
-        # moved into our tree.  If an existing directory is moved in, we'll only receive this
-        # one notification, so we need to refresh contents recursively.  This can be a long
-        # task, so add it to pending_directory_refreshes and let the refresh task handle it.
-        if path.is_real_dir() and action == monitor_changes.FileAction.FILE_ACTION_ADDED:
-            print('Queued refresh for added directory: %s' % path)
-            self.pending_directory_refreshes.add(path)
-            self.refresh_event.set()
+        # moved into our tree.  Scan it for metadata files.  We can't use a quick refresh
+        # here, since we often get here before Windows's indexing has caught up.
+        if action == monitor_changes.FileAction.FILE_ACTION_ADDED:
+            # We don't care about files being added, only directories.
+            if not path.is_real_dir():
+                return
+
+            print('Refreshing added directory: %s' % path)
+            await self.refresh(paths=[path])
             return
 
         # Don't proactively index everything, or we'll aggressively scan every file.  Skip images
         # that can be found with Windows search.  Don't skip images with metadata (bookmarks).
         # Check has_metadata to short circuit this check early, so is_dir() doesn't read ZIP
         # directories unnecessarily.
-        has_metadata = metadata_storage.has_file_metadata(path)
-        if not has_metadata and not path.is_dir() and misc.file_type(path.name) == 'image':
-            return
+        # XXX: not relevant anymore
+#        has_metadata = metadata_storage.has_file_metadata(path)
+#        if not has_metadata and not path.is_dir() and misc.file_type(path.name) == 'image':
+#            return
+
+#        if action == 'refresh':
+            # Read the file to trigger a refresh.  For speed, only create an unpopulated
+            # entry.
+#            return self._get_entry(path=path, conn=db_conn, populate=False)
 
         # If this is a FileAction from file monitoring, queue the update.  We often get multiple
         # change notifications at once, so we queued these to avoid refreshing over and over.
-        if action != 'refresh':
-            # print('Queued update for modified file:', path, action)
-            wait_for = 1
-            self.pending_file_updates[path] = time.time() + wait_for
-            self.refresh_event.set()
-            return
+        # don't refresh on changes, just when the user accesses files
+        # - exception is if we support monitoring to update the client
+    
+#        # print('Queued update for modified file:', path, action)
+#        wait_for = 1
+#        self.pending_file_updates[path] = time.time() + wait_for
+#        self.refresh_event.set()
 
-        # Read the file to trigger a refresh.
-        return self.get(path=path, conn=db_conn)
 
-    async def update_pending_files(self):
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    def _get_entry_from_path(self, path: os.PathLike, *, populate=True, extra_metadata=None):
         """
-        This is a background task that watches for files added to pending_file_updates
-        which need to be updated.
+        Return an entry from a path.
+        
+        This creates a new entry from the file without accessing the database.  The
+        entry isn't saved to the database.
+
+        If populate is false, return a fast placeholder entry.  Otherwise, read the file to
+        create a full entry.
+
+        If extra_metadata is set, it can include metadata that the caller has available to
+        populate fields, even if a placeholder is being returned:
+        - width
+        - height
         """
-        while True:
-            try:
-                # Periodically update the last update time here.  Only do this if we have
-                # no pending updates.
-                if not self.pending_file_updates and not self.pending_directory_refreshes:
-                    self._touch_last_update_time()
-
-                # See if there are any directory refreshes pending.  We can't use a quick
-                # refresh here, since we often get here before Windows's indexing has caught
-                # up.
-                if self.pending_directory_refreshes:
-                    path = self.pending_directory_refreshes.pop()
-                    print('Refreshing new directory: %s' % path)
-                    await self.refresh(path=path, recurse=True)
-                    continue
-
-                # See if there are any files in pending_file_updates which have been waiting long
-                # enough.
-                #
-                # This could be done without iterating, but the number of entries that back up in
-                # this list shouldn't be big enough for that to be needed.
-                #
-                # Note that pending_file_updates can contain directories.  A directory in
-                # pending_directory_refreshes means a full refresh is needed, but if it's in
-                # pending_file_updates, we're just refreshing the directory itself.
-                now = time.time()
-                paths_to_update = []
-                min_time_to_update = 3600
-                for path, update_at in self.pending_file_updates.items():
-                    time_until_update = update_at - now
-                    if time_until_update <= 0:
-                        paths_to_update.append(path)
-                    else:
-                        min_time_to_update = min(min_time_to_update, time_until_update + 0.01)
-
-                if not paths_to_update:
-                    # There's nothing ready to update.  Wait for min_time_to_update to wait
-                    # until a file is ready.
-                    await self.refresh_event.wait(min_time_to_update)
-                    self.refresh_event.clear()
-                    continue
-
-                # Remove the paths from pending_file_updates and update them.
-                for path in paths_to_update:
-                    del self.pending_file_updates[path]
-
-                for path in paths_to_update:
-                    print('Update modified file:', path)
-                    self.get(path)
-
-            except Exception as e:
-                traceback.print_exc()
-                await asyncio.sleep(1)
-
-    def _touch_last_update_time(self, db_conn=None):
-        """
-        Update the last_update time to now.
-
-        This is called periodically while we're running, so if we're shut down we can
-        tell when we were last running.  This lets us optimize the initial index refresh.
-        """
-        now = time.time()
-        with self.db.connect(db_conn) as db_conn:
-            last = self.db.get_last_update_time(conn=db_conn)
-            if now > last + 600:
-                print('Updating last update time')
-                self.db.set_last_update_time(now, conn=db_conn)
-
-    def cache_file(self, path: os.PathLike, *, conn=None):
+        if not path.exists():
+            return None
+            
         # Create the appropriate entry type.
-        if path.is_dir():
+        if not populate:
+            entry = self._get_placeholder_entry(path)
+        elif path.is_dir():
             entry = self._create_directory_record(path)
         else:
             entry = self._create_file_record(path)
@@ -467,17 +428,44 @@ class Library:
         if entry is None:
             return None
 
-        # If we weren't given metadata, read it now.  During batch refreshes
-        # we'll always be given the metadata, since we're reading lots of files
-        # that share the same data.
+        # Read file metadata.
         file_metadata = metadata_storage.load_file_metadata(path)
 
-        # Import bookmarks.
+        # If additional metadata was provided, use it too.  This lets us use data from
+        # windows_search.SearchDirEntry.
+        if extra_metadata is not None:
+            file_metadata = collections.ChainMap(file_metadata, extra_metadata)
+
+        # If we have any extra metadata, add it.  For example, while _create_file_record
+        # will read the width and height from the file, this allows us to include it
+        # if we're returning a placeholder, but the dimensions are available from the
+        # metadata file or from a Windows search result.
+        #
+        # Don't overwrite data that we got from the file directly.
+        # XXX: bookmarks should cache width/height
         entry['bookmarked'] = file_metadata.get('bookmarked', False)
         entry['bookmark_tags'] = file_metadata.get('bookmark_tags', '')
+        if 'width' not in entry:
+            entry['width'] = file_metadata.get('width')
+        if 'height' not in entry:
+            entry['height'] = file_metadata.get('height')
+        if 'aspect_ratio' not in entry:
+            entry['aspect_ratio'] = (entry['width'] / entry['height']) if entry.get('height') else None
 
+        return entry
+
+    def cache_file(self, path: os.PathLike, *, populate=True, conn=None):
+        """
+        Create or update the index entry for a file.
+
+        If populate is true, the file will be read and all data will be available.
+
+        If populate is false, an unpopulated entry will be cached, which only has
+        data we can extract from the path entry.  The entry will be populated the
+        first time it's returned from search results.
+        """
+        entry = self._get_entry_from_path(path)
         self.db.add_record(entry, conn=conn)
-
         return entry
 
     def _create_file_record(self, path: os.PathLike):
@@ -492,7 +480,7 @@ class Library:
         # with the user working with the file.
         with path.open('rb', shared=True) as f:
             media_metadata = misc.read_metadata(f, mime_type)
-                
+        
         width = media_metadata.get('width')
         height = media_metadata.get('height')
         title = media_metadata.get('title', '')
@@ -507,6 +495,7 @@ class Library:
             title = path.name
 
         data = {
+            'populated': True,
             'path': os.fspath(path),
             'is_directory': False,
             'parent': str(Path(path).parent),
@@ -532,6 +521,7 @@ class Library:
         stat = path.stat()
 
         data = {
+            'populated': True,
             'path': os.fspath(path),
             'filesystem_name': path.filesystem_file.name.lower(),
             'is_directory': True,
@@ -549,6 +539,51 @@ class Library:
         }
 
         return data
+
+    def _get_placeholder_entry(self, path: os.PathLike):
+        """
+        Return a placeholder entry.
+
+        This is an unpopulated entry, which only contains data that we can get from a
+        DirEntry.  This allows treating search results as entries and doing very fast
+        matching against them, before actually doing any time-consuming file caching.
+
+        XXX: store these in the db too during refreshes and only do the full populate later
+        XXX: make sure cache_file includes bookmark_data
+        """
+        if path.is_dir():
+            mime_type = 'application/folder'
+        else:
+            mime_type = misc.mime_type(os.fspath(path))
+            if mime_type is None:
+                # This file type isn't supported.
+                return None
+
+        stat = path.stat()
+        return {
+            'populated': False,
+            'path': os.fspath(path),
+            'filesystem_name': path.filesystem_file.name.lower(),
+            'filesystem_mtime': path.filesystem_file.stat().st_mtime,
+            'is_directory': path.is_dir(),
+            'parent': str(Path(path).parent),
+            'ctime': stat.st_ctime,
+            'mtime': stat.st_mtime,
+            'mime_type': mime_type,
+            'title': '',
+            'tags': '',
+            'comment': '',
+            'author': '',
+        }
+
+    def get(self, path):
+        """
+        Get the entry for a single file.
+        """
+        entry = self._get_entry(path)
+
+        self._convert_to_path(entry)
+        return entry
 
     def list(self,
         paths,
@@ -591,41 +626,40 @@ class Library:
             # Convert back to an iterator.
             scandir_results = iter(sorted_results)
 
+        # Use TransientWriteConnection to commit the transaction during yields.
+        write_connection = TransientWriteConnection(self.db)
         results = []
-        while True:
-            # This will start a database transaction.  We'll only hold it until we finish
-            # this batch, and commit it before yielding results, so we don't keep a write
-            # lock during the yield.
-            with self.db.connect(write=True) as conn:
-                for child in scandir_results:
-                    is_dir = child.is_dir()
+        for child in scandir_results:
+            is_dir = child.is_dir()
 
-                    # Skip unsupported files.
-                    if not is_dir and misc.file_type(child.name) is None:
-                        continue
+            # Skip unsupported files.
+            if not is_dir and misc.file_type(child.name) is None:
+                continue
 
-                    if not include_dirs and is_dir:
-                        continue
-                    if not include_files and not is_dir:
-                        continue
+            if not include_dirs and is_dir:
+                continue
+            if not include_files and not is_dir:
+                continue
 
-                    # Find the file in cache and cache it if needed.
-                    entry = self.get(child, force_refresh=force_refresh, conn=conn)
-                    if entry is not None:
-                        results.append(entry)
+            # Find the file in cache and cache it if needed.
+            with write_connection as conn:
+                entry = self._get_entry(child, force_refresh=force_refresh, conn=conn)
+            if entry is None:
+                continue
 
-                    # If we have a full batch, stop iterating and return it.
-                    if len(results) >= batch_size:
-                        break
+            self._convert_to_path(entry)
+            results.append(entry)
 
-            # If we exited the loop and have no results, we're at the end.
-            if not len(results):
-                break
+            # If we have a full batch, stop iterating and return it.
+            if len(results) >= batch_size:
+                write_connection.commit()
+                yield results
+                results = []
             
-            # Yield these results, then continue reading the iterator.
+        write_connection.commit()
+        if results:
             yield results
-            results = []
-            
+
     def get_mountpoint_entries(self):
         """
         Return entries for each mountpoint.
@@ -633,12 +667,39 @@ class Library:
         results = []
         with self.db.connect() as conn:
             for mount_name, mount_path in self.mounts.items():
-                entry = self.get(mount_path, conn=conn)
+                entry = self._get_entry(mount_path, conn=conn)
                 assert entry is not None
                 results.append(entry)
         return results
 
-    def get(self, path, *, force_refresh=False, check_mtime=True, conn=None):
+    def _entry_is_up_to_date(self, entry):
+        """
+        Check an entry against its file on disk to check that the file still
+        exists, and the entry is up to date.  Return true if the entry is up-to-date,
+        or false if the entry is stale or the file no longer exists.
+        """
+        # Check if cache is out of date.  If this is a ZIP, we're checking the mtime
+        # of the ZIP itself, so we don't read the ZIP directory here.
+        try:
+            path = open_path(entry['path'])
+            path_stat = path.filesystem_file.stat()
+        except OSError as e:
+            # The only common error is ENOENT, but treat any error as stale.
+            if e.errno != errno.ENOENT:
+                print('Error checking entry %s: %s' % (path.filesystem_file, str(e)))
+            return False
+
+        # The entry is stale if the timestamp of the file matches the timestamp on the entry.
+        return abs(entry['filesystem_mtime'] - path_stat.st_mtime) < 1
+
+    def _get_entry(self, path, *,
+        # If true, ignore any cached data in the database and always load from the file.
+        force_refresh=False,
+        check_mtime=True,
+
+        # If false and the file isn't cached, cache an unpopulated entry.
+        populate=True,
+        conn=None):
         """
         Return the entry for path.  If the path isn't cached, populate the cache entry.
 
@@ -648,12 +709,15 @@ class Library:
         if not force_refresh:
             entry = self.db.get(path=os.fspath(path), conn=conn)
 
+        # If the entry isn't populated and we're populating, ignore the database entry, so
+        # we'll populate it.
+        if entry is not None and populate and not entry['populated']:
+            entry = None
+
         if entry is not None and check_mtime:
-            # Check if cache is out of date.  If this is a ZIP, we're checking the mtime
-            # of the ZIP itself, so we don't read the ZIP directory here.
-            path_stat = path.filesystem_file.stat()
-            if abs(entry['filesystem_mtime'] - path_stat.st_mtime) >= 1:
-                # print('File cache out of date: %s' % path)
+            # Check if this entry exists on disk and is up to date.
+            if not self._entry_is_up_to_date(entry):
+                # Clear entry, so we'll re-cache it below.
                 entry = None
 
         if entry is None:
@@ -661,15 +725,17 @@ class Library:
             # library.  For performance, we only do this here so we avoid the Path constructor
             # when it's not needed.  Up to here, it may be a DirEntry.
             if self.get_mount_for_path(path) is None:
-                return
+                return None
 
-            entry = self.cache_file(path, conn=conn)
+            entry = self.cache_file(path, conn=conn, populate=populate)
+            if entry is None:
+                # The file doesn't exist on disk.  Delete any stale entries pointing at
+                # it.
+                print('Path doesn\'t exist, purging any cached entries: %s' % path)
+                self.db.delete_recursively([path], conn=conn)
 
         if entry is None:
             return None
-
-        # Convert these absolute paths back to Paths.
-        self._convert_to_path(entry)
 
         return entry
 
@@ -704,10 +770,13 @@ class Library:
     # to match differently, such as having different keyword matching.
     def search(self, *,
         paths=None,
-        force_refresh=False,
         use_windows_search=True,
+        use_index=True,
         sort_order='normal',
         batch_size=50,
+
+        # If true, check that search results from the database actually exist on disk.
+        verify_files=True,
         **search_options):
         if not paths:
             paths = self.mounts.values()
@@ -742,7 +811,8 @@ class Library:
         # a very long time, but we don't have a way to cancel it currently.
         windows_search_timeout = 5 if shuffle else 0
 
-        # Don't use Windows search when searching bookmarks, since it doesn't know about them.
+        # Don't use Windows search when searching bookmarks.  Bookmarks are always indexed,
+        # and the search doesn't help us with them.
         if search_options.get('bookmarked') or search_options.get('bookmark_tags') is not None:
             use_windows_search = False
 
@@ -754,16 +824,15 @@ class Library:
             windows_search_iter = []
 
         # Create the index search.
-        #
-        # This intentionally doesn't use the same connection as the Windows search
-        # iterator, since this is read-only and we keep the connection running until
-        # we've completely returned all results.
-        order = sort_order_info['index'] if sort_order_info else None
-        index_search_iter = self.db.search(paths=[str(path) for path in paths], conn=None, order=order, **search_options)
+        if use_index:
+            order = sort_order_info['index'] if sort_order_info else None
+            index_search_iter = self.db.search(paths=[str(path) for path in paths], order=order, **search_options)
+        else:
+            index_search_iter = []
 
-        # This is set while the iterate_windows_search iterator is being called, and unset between
-        # batches.  It's always set when get_entry_from_result is called.
-        windows_search_conn = None
+        # This is only used for database writes, and is always disconnected before yielding
+        # a block of results.
+        write_connection = TransientWriteConnection(self.db)
 
         # We can get the same results from Windows search and our own index.  
         seen_paths = set()
@@ -779,27 +848,16 @@ class Library:
                     return
                 seen_paths.add(result.path)
 
-                assert windows_search_conn is not None
-                entry = self.get(open_path(Path(result.path)), force_refresh=force_refresh, conn=windows_search_conn)
-                if entry is None:
-                    return None
-
-                # Not all search options are supported by Windows indexing.  For example, we
-                # can search for GIFs, but we can't filter for animated GIFs.  Re-check the
-                # entry to see if it matches the search.
-                if not self.db.id_matches_search(entry['id'], conn=windows_search_conn, **search_options):
-                    print('Discarded Windows search result that doesn\'t match: %s' % entry['path'])
-                    return None
-
-                self._convert_to_path(entry)
-                return entry
+                # Get a fast placeholder entry for this result.  This doesn't hit the database
+                # or read the file.
+                path = open_path(result.path)
+                return self._get_entry_from_path(path, populate=False, extra_metadata=result.metadata)
             else:
                 # print('Search result from database:', entry['id'], entry['filesystem_name'])
                 if str(result['path']) in seen_paths:
                     return
                 seen_paths.add(str(result['path']))
 
-                self._convert_to_path(result)
                 return result
 
         if shuffle:
@@ -844,49 +902,95 @@ class Library:
 
         # Iterate over the final search, returning it in batches.
         results = []
-        while True:
-            # Open a connection while we're running the iterator.  This will remain open for
-            # the duration of the batch, and be closed while we yield results.
-            with self.db.connect(write=True) as connection:
-                windows_search_conn = connection
+        for entry in final_search:
+            if entry is None:
+                continue
 
-                for entry in final_search:
+            # If this entry isn't populated, populate it now.
+            if not entry['populated']:
+                with write_connection as connection:
+                    # We have a subset of data in the unpopulated entry.  It'll always have the
+                    # filename, keyword, etc., and it may or may not have file-specific data like
+                    # width and height.  Do an early filter based on what information we have.
+                    # If the user searched for width and we know the width already, we can discard
+                    # the result now and not waste time reading the full entry.  This makes some
+                    # searches a lot faster.
+                    if not self.db.entry_matches_search(entry, conn=connection, incomplete=True, **search_options):
+                        # print('Early discarded search result that doesn\'t match: %s' % entry['path'])
+                        continue
+
+                    # Load the full entry.
+                    path = open_path(entry['path'])
+                    entry = self._get_entry(path, conn=connection)
                     if entry is None:
                         continue
 
-                    # print('got entry', entry)
-                    results.append(entry)
+                    # If the search only had a placeholder, it wasn't able to check the complete
+                    # search.  For example, Windows index searching doesn't know if a GIF is animated.
+                    # Re-check the result now that we have a populated entry.
+                    if not self.db.entry_matches_search(entry, conn=connection, **search_options):
+                        print('Discarded search result that doesn\'t match: %s' % entry['path'])
+                        continue
 
-                    # If we have a full batch, stop iterating and return it.
-                    if len(results) >= batch_size:
-                        break
-            
-            windows_search_conn = None
+            # If we're verifying files, see if the file needs to be refreshed.
+            if verify_files:
+                # Check if this entry exists on disk and is up to date.
+                if not self._entry_is_up_to_date(entry):
+                    # The entry is stale or no longer exists, so refresh it.  If the file still
+                    # exists we'll get the updated entry.
+                    # The cached entry is out of date, so refresh or delete it.
+                    print('Refreshing stale entry:', result['path'],)
+                    path = open_path(entry['path'])
+                    with write_connection as connection:
+                        entry = self._get_entry(path, force_refresh=True, conn=connection)
 
-            # If we exited the loop and have no results, we're at the end.
-            if not len(results):
-                return
+            if entry is None:
+                continue
 
-            # Yield these results, then continue reading the iterator.
+            self._convert_to_path(entry)
+            results.append(entry)
+
+            # If we have a full batch, stop iterating and return it.
+            if len(results) >= batch_size:
+                # Before yielding a block of results, close and commit our write connection.
+                write_connection.commit()
+
+                # Yield this block of results.
+                yield results
+                results = []
+
+        # Yield any leftover results.
+        if results:
+            write_connection.commit()
             yield results
-            results = []
 
-    def bookmark_edit(self, path, set_bookmark, tags=None):
+    def bookmark_edit(self, entry, set_bookmark, tags=None):
         """
         Add, edit or delete a bookmark.
 
         Returns the updated index entry.
         """
         # Update the bookmark metadata file.
+        path = open_path(entry['path'])
         file_metadata = metadata_storage.load_file_metadata(path)
 
         if set_bookmark:
             file_metadata['bookmarked'] = True
             if tags is not None:
                 file_metadata['bookmark_tags'] = tags
+
+            # Cache some basic metadata too, so we have access to it in placeholder
+            # data later.
+            file_metadata['width'] = entry['width']
+            file_metadata['height'] = entry['height']
         else:
             if 'bookmarked' in file_metadata: del file_metadata['bookmarked']
             if 'bookmark_tags' in file_metadata: del file_metadata['bookmark_tags']
+
+            # Clear cached metadata too, so the metadata is empty after unbookmarking and the
+            # metadata file can be deleted.
+            if 'width' in file_metadata: del file_metadata['width']
+            if 'height' in file_metadata: del file_metadata['height']
 
         metadata_storage.save_file_metadata(path, file_metadata)
 

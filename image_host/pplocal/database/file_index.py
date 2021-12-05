@@ -3,6 +3,7 @@ from enum import Enum
 from pathlib import Path
 from .database import Database, transaction
 from pprint import pprint
+from ..util.misc import WithBuilder
 
 # This implements the database storage for library.  It stores similar data to
 # what we get from the Windows index.
@@ -37,11 +38,10 @@ class FileIndex(Database):
                     conn.execute(f'''
                         CREATE TABLE {self.schema}.info(
                             id INTEGER PRIMARY KEY,
-                            version,
-                            last_updated_at NOT NULL
+                            version
                         )
                     ''')
-                    conn.execute(f'INSERT INTO {self.schema}.info (id, version, last_updated_at) values (1, ?, 0)', (0,))
+                    conn.execute(f'INSERT INTO {self.schema}.info (id, version) values (1, ?)', (0,))
 
             if self.get_db_version(conn=conn) == 0:
                 with transaction(conn):
@@ -65,6 +65,7 @@ class FileIndex(Database):
 
                             width,
                             height,
+                            aspect_ratio, -- width / height
                             tags NOT NULL,
                             title NOT NULL,
                             comment NOT NULL,
@@ -124,17 +125,27 @@ class FileIndex(Database):
 
         assert self.get_db_version(conn=conn) == 1
 
-    # Helpers for the file index:
-    def get_last_update_time(self, *, conn=None):
-        return self._get_info(conn=conn)['last_updated_at']
-    def set_last_update_time(self, value, *, conn=None):
-        self._set_info('last_updated_at', value, conn=conn)
-
     @classmethod
     def split_keywords(self, filename):
         keywords = re.split(r'([a-z0-9]+)', filename, flags=re.IGNORECASE)
         keywords = { keyword.strip() for keyword in keywords }
         keywords -= { '.', '' }
+        return keywords
+
+    @property
+    def keyword_fields(self):
+        """
+        Return entry fields which are included in the keyword index.
+        """
+        return 'path', 'tags', 'title', 'comment', 'author'
+
+    def get_keywords_for_entry(self, entry):
+        keywords = set()
+        for keyword_field in self.keyword_fields:
+            if keyword_field == 'path':
+                keywords |= self.split_keywords(os.path.basename(entry['path']))
+            else:
+                keywords |= self.split_keywords(entry[keyword_field])
         return keywords
 
     def add_record(self, entry, *, conn=None):
@@ -148,7 +159,7 @@ class FileIndex(Database):
             fields = list(entry.keys())
 
             # These fields are included in the keyword index.
-            keyword_fields = ('path', 'tags', 'title', 'comment', 'author')
+            keyword_fields = self.keyword_fields
 
             # See if this file already exists in the database.
             query = f"""
@@ -215,13 +226,7 @@ class FileIndex(Database):
                 # Delete old keywords.
                 cursor.execute(f'DELETE FROM {self.schema}.file_keywords WHERE file_id = ?', [entry['id']])
 
-                # Split strings that we include in keyword searching.
-                keywords = set()
-                for keyword_field in keyword_fields:
-                    if keyword_field == 'path':
-                        keywords |= self.split_keywords(os.path.basename(entry['path']))
-                    else:
-                        keywords |= self.split_keywords(entry[keyword_field])
+                keywords = self.get_keywords_for_entry(entry)
 
                 keywords_to_add = []
                 for keyword in keywords:
@@ -359,119 +364,180 @@ class FileIndex(Database):
         # If set, this is an array of bookmark tags to filter for.
         bookmark_tags=None,
 
+        # Only match images with width*height >= total_pixels.  If negative,
+        # match images with width*height <= -total_pixels.
+        total_pixels=None,
+
+        # Only match images with width / height >= aspect_ratio.  if negative,
+        # match width / height <= -aspect_ratio.
+        aspect_ratio=None,
+
         # If set, only match this exact file ID in the database.  This is used to
         # check if a loaded entry matches other search filters.
+        # XXX: remove?
         file_id=None,
 
         # An SQL ORDER BY statement to order results.  See library.sort_orders.
         order=None,
 
+        # By default, all filters must match for us to return a file.  If available_fields
+        # is set, it's a list of keys in the entry which are available, and only search
+        # filters whose required fields are present will be used.  For example, if
+        # available_fields doesn't include 'width', the total_pixels filter will be ignored.
+        #
+        # This is used for early filtering with unpopulated entries, so we can filter out
+        # as many search results as possible using just filesystem data before spending time
+        # loading the file's metadata.
+        available_fields=None,
+
+        # If set, this is a (with_statement, params) tuple, which will be used as the
+        # source for the search instead of the database.
+        source=None,
+
         include_files=True, include_dirs=True,
         conn=None
     ):
-        with self.cursor(conn) as cursor:
-            select_columns = []
-            where = []
-            params = []
-            joins = []
+        # If available_fields was supplied, disable searches that require unavailable
+        # fields.
+        if available_fields is not None:
+            if 'width' not in available_fields or 'height' not in available_fields:
+                total_pixels = None
+                aspect_ratio = None
 
-            select_columns.append('files.*')
+        select_columns = []
+        where = []
+        params = []
+        joins = []
+        with_prefix = ''
 
-            if paths:
-                path_conds = []
-                for path in paths:
-                    if mode == self.SearchMode.Recursive:
-                        # paths are top directories to start searching from.  This is done with a
-                        # prefix match against the path: listing "C:\ABCD" recursively matches "C:\ABCD\*".
-                        # Directories don't end in a slash, so Include the directory itself explicitly.
-                        path_conds.append(f'({self.schema}.files.path GLOB ? OR {self.schema}.files.path = ?)')
-                        params.append(path + os.path.sep + '*')
-                        params.append(path)
-                    elif mode == self.SearchMode.Subdir:
-                        # Only list files directly inside path.
-                        path_conds.append(f'{self.schema}.files.parent = ?')
-                        params.append(path)
-                    elif mode == self.SearchMode.Exact:
-                        # Only list path itself.
-                        path_conds.append(f'{self.schema}.files.path = ?')
-                        params.append(path)
-                    else:
-                        assert False
+        select_columns.append('files.*')
+        if source is None:
+            schema = f'{self.schema}.'
+        else:
+            with_prefix, source_params = source
+            params.extend(source_params)
+            schema = ''
 
-                assert path_conds
-                where.append(f"({' OR '.join(path_conds)})")
-
-            if not include_files:
-                where.append(f'{self.schema}.files.is_directory')
-            if not include_dirs:
-                where.append(f'not {self.schema}.files.is_directory')
-            if media_type is not None:
-                assert media_type in ('videos', 'images')
-
-                if media_type == 'videos':
-                    # Include animation, so searching for videos includes animated GIFs.
-                    where.append(f'({self.schema}.mime_type GLOB "video/*" OR animation)')
-                elif media_type == 'images':
-                    where.append(f'{self.schema}.mime_type GLOB "image/*"')
-
-            if file_id is not None:
-                where.append(f'{self.schema}.files.id = ?')
-                params.append(file_id)
-
-            if bookmarked is not None:
-                if bookmarked:
-                    where.append(f'{self.schema}.files.bookmarked')
+        if paths:
+            path_conds = []
+            for path in paths:
+                if mode == self.SearchMode.Recursive:
+                    # paths are top directories to start searching from.  This is done with a
+                    # prefix match against the path: listing "C:\ABCD" recursively matches "C:\ABCD\*".
+                    # Directories don't end in a slash, so Include the directory itself explicitly.
+                    path_conds.append(f'({schema}files.path GLOB ? OR {schema}files.path = ?)')
+                    params.append(path + os.path.sep + '*')
+                    params.append(path)
+                elif mode == self.SearchMode.Subdir:
+                    # Only list files directly inside path.
+                    path_conds.append(f'{schema}files.parent = ?')
+                    params.append(path)
+                elif mode == self.SearchMode.Exact:
+                    # Only list path itself.
+                    path_conds.append(f'{schema}files.path = ?')
+                    params.append(path)
                 else:
-                    where.append(f'not {self.schema}.files.bookmarked')
+                    assert False
 
-                # If we're searching bookmark tags, join the bookmark tag table.  Note that
-                # a blank value of bookmark_tags means 
-                if bookmark_tags is not None:
-                    if bookmark_tags == '':
-                        # Search for untagged bookmarks using the files_untagged_bookmarks index.
-                        where.append(f'bookmark_tags == ""')
-                        where.append(f'bookmarked')
-                    else:
-                        joins.append(f'''
-                            LEFT JOIN {self.schema}.bookmark_tags
-                            ON {self.schema}.bookmark_tags.file_id = {self.schema}.files.id
-                        ''')
+            assert path_conds
+            where.append(f"({' OR '.join(path_conds)})")
 
-                        # Add each tag.
-                        for tag in bookmark_tags.split(' '):
-                            where.append(f'lower({self.schema}.bookmark_tags.tag) = lower(?)')
-                            params.append(tag)
-            
-            if substr:
-                for word_idx, word in enumerate(self.split_keywords(substr)):
-                    # Each keyword match requires a separate join.
-                    alias = 'keyword%i' % word_idx
-                    joins.append(f'JOIN {self.schema}.file_keywords AS %s' % alias)
-                    where.append('files.id = %s.file_id' % alias)
+        if not include_files:
+            where.append(f'{schema}files.is_directory')
+        if not include_dirs:
+            where.append(f'not {schema}files.is_directory')
+        if media_type is not None:
+            assert media_type in ('videos', 'images')
 
-                    # We need to lowercase the string ourself and not say "GLOB lower(?)" for this
-                    # to use the keyword index.
-                    where.append('lower(%s.keyword) GLOB ?' % alias)
-                    params.append(word.lower())
+            if media_type == 'videos':
+                # Include animation, so searching for videos includes animated GIFs.
+                where.append(f'({schema}mime_type GLOB "video/*" OR animation)')
+            elif media_type == 'images':
+                where.append(f'{schema}mime_type GLOB "image/*"')
 
-            if order is None:
-                order = ''
+        if total_pixels is not None:
+            # Minimum total pixels:
+            if total_pixels[0] is not None:
+                where.append(f'{schema}width*{schema}height >= ?')
+                params.append(total_pixels[0])
 
-            where = ('WHERE ' + ' AND '.join(where)) if where else ''
-            joins = (' '.join(joins)) if joins else ''
+            # Maximum total pixels:
+            if total_pixels[1] is not None:
+                where.append(f'{schema}width*{schema}height <= ?')
+                params.append(total_pixels[1])
 
-            query = f"""
-                SELECT {', '.join(select_columns)}
-                FROM {self.schema}.files AS files
-                {joins}
-                {where}
-                {order}
-            """
-#            print(query)
-#            for row in cursor.execute('EXPLAIN QUERY PLAN ' + query, params):
-#                result = dict(row)
-#                print('plan:', result)
+        if aspect_ratio is not None:
+            # Minimum aspect ratio:
+            if aspect_ratio[0] is not None:
+                where.append(f'{schema}width/{schema}height >= ?')
+                params.append(aspect_ratio[0])
 
+            # Maximum aspect ratio:
+            if aspect_ratio[1] is not None:
+                where.append(f'{schema}width/{schema}height <= ?')
+                params.append(aspect_ratio[1])
+
+        if file_id is not None:
+            where.append(f'{schema}files.id = ?')
+            params.append(file_id)
+
+        if bookmarked is not None:
+            if bookmarked:
+                where.append(f'{schema}files.bookmarked')
+            else:
+                where.append(f'not {schema}files.bookmarked')
+
+            # If we're searching bookmark tags, join the bookmark tag table.  Note that
+            # a blank value of bookmark_tags means 
+            if bookmark_tags is not None:
+                if bookmark_tags == '':
+                    # Search for untagged bookmarks using the files_untagged_bookmarks index.
+                    where.append(f'bookmark_tags == ""')
+                    where.append(f'bookmarked')
+                else:
+                    joins.append(f'''
+                        LEFT JOIN {schema}bookmark_tags
+                        ON {schema}bookmark_tags.file_id = {schema}files.id
+                    ''')
+
+                    # Add each tag.
+                    for tag in bookmark_tags.split(' '):
+                        where.append(f'lower({schema}bookmark_tags.tag) = lower(?)')
+                        params.append(tag)
+        
+        if substr:
+            for word_idx, word in enumerate(self.split_keywords(substr)):
+                # Each keyword match requires a separate join.
+                alias = 'keyword%i' % word_idx
+                joins.append(f'JOIN {schema}file_keywords AS %s' % alias)
+                where.append('files.id = %s.file_id' % alias)
+
+                # We need to lowercase the string ourself and not say "GLOB lower(?)" for this
+                # to use the keyword index.
+                where.append('lower(%s.keyword) GLOB ?' % alias)
+                params.append(word.lower())
+
+        if order is None:
+            order = ''
+
+        where = ('WHERE ' + ' AND '.join(where)) if where else ''
+        joins = (' '.join(joins)) if joins else ''
+
+        query = f"""
+            {with_prefix}
+            SELECT {', '.join(select_columns)}
+            FROM {schema}files AS files
+            {joins}
+            {where}
+            {order}
+        """
+#        print(query)
+#        print(params)
+#        for row in cursor.execute('EXPLAIN QUERY PLAN ' + query, params):
+#            result = dict(row)
+#            print('plan:', result)
+
+        with self.cursor(conn) as cursor:
             for row in cursor.execute(query, params):
                 result = dict(row)
                 try:
@@ -481,12 +547,59 @@ class FileIndex(Database):
                     # the transaction.
                     return
 
-    def id_matches_search(self, file_id, conn=None, **search_options):
+    def entry_matches_search(self, entry, conn=None, incomplete=False, **search_options):
         """
-        Return true if the given file ID matches the search options.
+        Return true if the given entry matches the search options.  The entry doesn't
+        need to be in the database.
+
+        If incomplete is true and entry is unpopulated, do as much filtering as possible
+        with the data available.  If a search filter can't be performed because entry
+        doesn't have the data yet, we'll assume it matches.
         """
-        for entry in self.search(file_id=file_id, **search_options, conn=conn):
+        # Create a WITH statement with the same schema as the "files" and "file_keywords"
+        # table, containing just this record.
+        params = []
+        withs = []
+
+        # If the entry has no ID, it doesn't actually exist in the database. Set a
+        # dummy ID, since if we leave it null, it won't join.
+        if 'id' not in entry:
+            entry = { 'id': 'placeholder-id' } | entry
+
+        # Add the files table.
+        field_names = list(entry.keys())
+        fields = [entry[field] for field in field_names]
+
+        file_with = WithBuilder(*field_names, table_name='files')
+        file_with.add_row(*fields)
+        file_with.get_params(params)
+        withs.append(file_with.get())
+
+        # Add the file_keywords table.
+        keywords = self.get_keywords_for_entry(entry)
+        if keywords:
+            keyword_with = WithBuilder('file_id', 'keyword', table_name='file_keywords')
+        
+            for keyword in keywords:
+                keyword_with.add_row(entry['id'], keyword)
+            keyword_with.get_params(params)
+            withs.append(keyword_with.get())
+
+        # Combine the result into a single WITH statement.
+        source = f"""WITH {", ".join(withs)}"""
+
+        # If incomplete matches are being allowed, tell search() which fields are
+        # available.
+        if incomplete:
+            available_fields = [field for field in field_names if entry[field] is not None]
+        else:
+            available_fields = None
+
+        # Search for the entry using this WITH statement.  If it returns it as a result, it
+        # matches the search parameters.
+        for entry in self.search(source=(source, params), available_fields=available_fields, **search_options, conn=conn):
             return True
+
         return False
 
     def get_all_bookmark_tags(self, *, conn=None):
