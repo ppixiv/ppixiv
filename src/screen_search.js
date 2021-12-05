@@ -1743,7 +1743,7 @@ ppixiv.screen_search = class extends ppixiv.screen
     refresh_thumbnail(illust_id)
     {
         var ul = this.container.querySelector(".thumbnails");
-        var thumbnail_element = ul.querySelector("[data-id=\"" + illust_id + "\"]");
+        var thumbnail_element = ul.querySelector("[data-id=\"" + helpers.escape_selector(illust_id) + "\"]");
         if(thumbnail_element == null)
             return;
         this.refresh_bookmark_icon(thumbnail_element);
@@ -1952,7 +1952,7 @@ ppixiv.screen_search = class extends ppixiv.screen
     // after coming from an illustration.
     scroll_to_illust_id(illust_id)
     {
-        var thumb = this.container.querySelector("[data-id='" + illust_id + "']");
+        var thumb = this.container.querySelector("[data-id='" + helpers.escape_selector(illust_id) + "']");
         if(thumb == null)
             return;
 
@@ -1964,7 +1964,7 @@ ppixiv.screen_search = class extends ppixiv.screen
 
     pulse_thumbnail(illust_id)
     {
-        var thumb = this.container.querySelector("[data-id='" + illust_id + "']");
+        var thumb = this.container.querySelector("[data-id='" + helpers.escape_selector(illust_id) + "']");
         if(thumb == null)
             return;
 

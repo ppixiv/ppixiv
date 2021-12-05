@@ -1975,6 +1975,16 @@ ppixiv.helpers = {
         return parts.join("/");
     },
 
+    // Escape a string to use in a CSS selector.
+    //
+    // If we're searching for [data-filename='path'], we need to escape quotes in "path".
+    escape_selector(s)
+    {
+        return s.replace(/['"]/g, (c) => {
+            return "\\" + c;
+        });
+    },
+
     title_case(s)
     {
         let parts = [];
