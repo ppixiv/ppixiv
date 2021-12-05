@@ -229,14 +229,18 @@ class TransientWriteConnection:
         self.db = db
         self.in_use = False
         self.connection = None
+        self.connection_ctx = None
 
     def __enter__(self):
         assert not self.in_use
         self.in_use = True
 
         if self.connection is None:
-            connection = self.db.connect(write=True)
-            self.connection = connection.__enter__()
+            # Open a connection.  Note that db.connect() is a context manager, and we need
+            # to keep a reference to it, both so we can call __exit__ when we're done and because
+            # if it's GC'd, the context manager will be exited prematurely.
+            self.connection_ctx = connection = self.db.connect(write=True)
+            self.connection = self.connection_ctx.__enter__()
 
         return self.connection
 
@@ -249,13 +253,13 @@ class TransientWriteConnection:
             return
 
         # Pass exceptions to the connection to roll back and release the connection.
-        connection = self.connection
+        ctx = self.connection_ctx
         self.connection = None
+        self.connection_ctx = None
 
         # Pass exceptions to the self.connection context manager, so it'll roll
         # back the transaction and shut down.
-        connection.__exit__(type, value, traceback)
- 
+        ctx.__exit__(type, value, traceback)
 
     def commit(self):
         assert not self.in_use
@@ -263,10 +267,11 @@ class TransientWriteConnection:
         if self.connection is None:
             return
 
-        try:
-            self.connection.__exit__(None, None, None)
-        finally:
-            self.connection = None
+        ctx = self.connection_ctx
+        self.connection_ctx = None
+        self.connection = None
+
+        ctx.__exit__(None, None, None)
 
     def __del__(self):
         if not self.in_use:
