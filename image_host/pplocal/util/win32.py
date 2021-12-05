@@ -61,7 +61,7 @@ def open_handle_shared(path, mode='r'):
         raise ctypes.WinError(ctypes.get_last_error())
     return handle
 
-def open_shared(path, mode='r'):
+def open_shared(path, mode='r', encoding=None):
     """
     Open a file with all FILE_SHARE flags enabled.  This lets us index and update
     files without locking them, so our background process doesn't interfere with the
@@ -78,7 +78,7 @@ def open_shared(path, mode='r'):
         raise
 
     try:
-        return open(fd, mode)
+        return open(fd, mode, encoding=encoding)
     except:
         # If open() fails, close the FD, which will also close the handle.
         os.close(fd)

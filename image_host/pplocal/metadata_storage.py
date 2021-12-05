@@ -1,6 +1,9 @@
-import copy, json, os
+import copy, json, os, threading
 from .util import win32
 from .util.paths import open_path
+from contextlib import contextmanager
+from .util.paths import open_path
+from pprint import pprint
 
 metadata_filename = '.ppixivbookmark.json.txt'
 
@@ -8,6 +11,10 @@ metadata_filename = '.ppixivbookmark.json.txt'
 #
 # Note that we always deep copy these objects before returning them to callers.
 _metadata_cache = {}
+
+# This is held while accessing _metadata_cache or doing any operations on
+# metadata files.
+_metadata_lock = threading.RLock()
 
 def load_directory_metadata(directory_path, return_copy=True):
     """
@@ -29,6 +36,10 @@ def load_directory_metadata(directory_path, return_copy=True):
     keywords in the file that we can search for.  Windows Search will index metadata
     for some file types, but it's hit-or-miss (it handles JPEGs much better than PNGs).
     """
+    with _metadata_lock:
+        return _load_directory_metadata_locked(directory_path, return_copy=return_copy)
+
+def _load_directory_metadata_locked(directory_path, *, return_copy=True):
     try:
         this_metadata_filename = os.fspath(directory_path / metadata_filename)
         result = _metadata_cache.get(this_metadata_filename)
@@ -61,20 +72,20 @@ def load_directory_metadata(directory_path, return_copy=True):
         return { }
 
 def save_directory_metadata(directory_path, data):
-    this_metadata_filename = os.fspath(directory_path / metadata_filename)
+    with _metadata_lock:
+        return _save_directory_metadata_locked(directory_path, data)
+
+def _save_directory_metadata_locked(directory_path, data):
+    this_metadata_filename = directory_path / metadata_filename
+    this_metadata_filename = open_path(this_metadata_filename)
 
     # If there's no data, delete the metadata file if it exists.
     if not data:
-        try:
-            os.unlink(this_metadata_filename)
-        except FileNotFoundError:
-            pass
+        this_metadata_filename.unlink(missing_ok=True)
 
         if this_metadata_filename in _metadata_cache:
-            del _metadata_cache[this_metadata_filename]
+            del _metadata_cache[os.fspath(this_metadata_filename)]
         return
-
-    _metadata_cache[this_metadata_filename] = copy.deepcopy(data)
 
     data = {
         'identifier': 'ppixivmetadatafile',
@@ -83,20 +94,29 @@ def save_directory_metadata(directory_path, data):
     }
     json_data = json.dumps(data, indent=4, ensure_ascii=False) + '\n'
 
+    # Write the new metadata to a temporary file.
+    temp_metadata_filename = this_metadata_filename.with_suffix('.temp')
+    with open(temp_metadata_filename, 'w+t', encoding='utf-8') as f:
+        f.write(json_data)
+
     # If the file is hidden, Windows won't let us overwrite it, which doesn't
     # make much sense.  We have to open it for writing (but not overwrite) and
     # unset the hidden bit.
     try:
-        with open(this_metadata_filename, 'r+t', encoding='utf-8') as f:
+        with this_metadata_filename.open('r+t', shared=False) as f:
             win32.set_file_hidden(f, hide=False)
     except FileNotFoundError:
         pass
 
-    with open(this_metadata_filename, 'w+t', encoding='utf-8') as f:
-        f.write(json_data)
+    # Overwrite the metadata file with the new one.
+    temp_metadata_filename.replace(this_metadata_filename)
 
-        # Hide the file so we don't clutter the user's directory if possible.
-        win32.set_file_hidden(f)
+    # Hide the file so we don't clutter the user's directory if possible.
+    with this_metadata_filename.open('r+t', shared=False) as f:
+        win32.set_file_hidden(f, hide=True)
+
+    # Only update our cache once we've successfully written the new data.
+    _metadata_cache[os.fspath(this_metadata_filename)] = copy.deepcopy(data.get('data', { }))
 
 def _directory_path_for_file(path):
     """
@@ -123,6 +143,23 @@ def load_file_metadata(path, *, return_copy=True):
     load_directory_metadata, it can be specified with directory_metadata
     to avoid loading it repeatedly while scanning directories.
     """
+    with _metadata_lock:
+        return _load_file_metadata_locked(path, return_copy=return_copy)
+
+@contextmanager
+def load_and_lock_file_metadata(path):
+    """
+    Yield the metadata for path, locking all metadata until the context manager
+    completes.
+
+    This is used for writing metadata.  The caller should call save_file_metadata
+    before exiting the context manager.
+    """
+    with _metadata_lock:
+        result = _load_file_metadata_locked(path)
+        yield result
+
+def _load_file_metadata_locked(path, *, return_copy=True):
     directory_path, filename = _directory_path_for_file(path)
     directory_metadata = load_directory_metadata(directory_path, return_copy=return_copy)
 
@@ -140,6 +177,10 @@ def has_file_metadata(path):
     return len(load_file_metadata(path, return_copy=False)) != 0
 
 def save_file_metadata(path, data):
+    with _metadata_lock:
+        return _save_file_metadata_locked(path, data)
+
+def _save_file_metadata_locked(path, data):
     directory_path, filename = _directory_path_for_file(path)
 
     # Read the full metadata so we can replace this file.
@@ -152,7 +193,7 @@ def save_file_metadata(path, data):
     else:
         directory_metadata[str(filename)] = data
 
-    save_directory_metadata(directory_path, directory_metadata)
+    _save_directory_metadata_locked(directory_path, directory_metadata)
 
 def get_files_with_metadata(metadata_path):
     """

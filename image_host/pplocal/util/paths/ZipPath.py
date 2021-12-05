@@ -277,6 +277,9 @@ class ZipPath(PathBase):
     def with_name(self, name):
         return ZipPath(shared_zip=self.zip, at=self._path.with_name(name))
 
+    def with_suffix(self, name):
+        return ZipPath(shared_zip=self.zip, at=self._path.with_suffix(name))
+
     @property
     def filesystem_path(self):
         return Path(self.zip.path)
@@ -355,3 +358,12 @@ class ZipPath(PathBase):
             raise FileNotFoundError('File not found: %s' % self._path)
 
         return self.zip.open_file(entry.zipinfo, mode, shared=shared)
+
+    def unlink(self, missing_ok=True):
+        raise OSError('Deleting files inside ZIPs not supported')
+        
+    def rename(self, target):
+        raise OSError('Renaming files inside ZIPs not supported')
+
+    def replace(self, target):
+        raise OSError('Renaming files inside ZIPs not supported')

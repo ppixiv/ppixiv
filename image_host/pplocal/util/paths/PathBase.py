@@ -51,6 +51,7 @@ class PathBase:
         return self.is_dir()
 
     def with_name(self, name): raise NotImplemented()
+    def with_suffix(self, suffix): raise NotImplemented()
 
     @property
     def real_file(self):
@@ -106,3 +107,7 @@ class PathBase:
         Open the file.  If shared is true, disable filesystem locking.
         """
         raise NotImplemented()
+
+    def unlink(self, missing_ok=True): raise NotImplemented()
+    def rename(self, target): raise NotImplemented()
+    def replace(self, target): raise NotImplemented()

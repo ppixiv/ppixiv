@@ -182,7 +182,6 @@ class Library:
         those directories.
 
         This currently doesn't remove bookmarks from the database that no longer exist.
-        XXX clear bookmarks that we don't find
         """
         if paths is None:
             paths = self.mounts
@@ -972,27 +971,27 @@ class Library:
         """
         # Update the bookmark metadata file.
         path = open_path(entry['path'])
-        file_metadata = metadata_storage.load_file_metadata(path)
+        with metadata_storage.load_and_lock_file_metadata(path) as file_metadata:
+            if set_bookmark:
+                file_metadata['bookmarked'] = True
+                print('updating tags', tags)
+                if tags is not None:
+                    file_metadata['bookmark_tags'] = tags
 
-        if set_bookmark:
-            file_metadata['bookmarked'] = True
-            if tags is not None:
-                file_metadata['bookmark_tags'] = tags
+                # Cache some basic metadata too, so we have access to it in placeholder
+                # data later.
+                file_metadata['width'] = entry['width']
+                file_metadata['height'] = entry['height']
+            else:
+                if 'bookmarked' in file_metadata: del file_metadata['bookmarked']
+                if 'bookmark_tags' in file_metadata: del file_metadata['bookmark_tags']
 
-            # Cache some basic metadata too, so we have access to it in placeholder
-            # data later.
-            file_metadata['width'] = entry['width']
-            file_metadata['height'] = entry['height']
-        else:
-            if 'bookmarked' in file_metadata: del file_metadata['bookmarked']
-            if 'bookmark_tags' in file_metadata: del file_metadata['bookmark_tags']
+                # Clear cached metadata too, so the metadata is empty after unbookmarking and the
+                # metadata file can be deleted.
+                if 'width' in file_metadata: del file_metadata['width']
+                if 'height' in file_metadata: del file_metadata['height']
 
-            # Clear cached metadata too, so the metadata is empty after unbookmarking and the
-            # metadata file can be deleted.
-            if 'width' in file_metadata: del file_metadata['width']
-            if 'height' in file_metadata: del file_metadata['height']
-
-        metadata_storage.save_file_metadata(path, file_metadata)
+            metadata_storage.save_file_metadata(path, file_metadata)
 
         # Update the file in the index.
         return self.cache_file(path)

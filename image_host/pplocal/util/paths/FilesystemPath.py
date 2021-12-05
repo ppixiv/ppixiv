@@ -114,6 +114,9 @@ class FilesystemPath(PathBase):
     def with_name(self, name):
         return FilesystemPath(self._path.with_name(name))
 
+    def with_suffix(self, suffix):
+        return FilesystemPath(self._path.with_suffix(suffix))
+
     @property
     def real_file(self):
         # If this is a ZIP, we're treating it like a directory and listing its contents
@@ -146,7 +149,23 @@ class FilesystemPath(PathBase):
             yield FilesystemPath(Path(path.path), direntry=path)
 
     def open(self, mode='r', *, shared=True):
+        # Python 3 somehow managed to screw up UTF-8 almost as badly as
+        # they did in 2.
+        encoding = None
+        if 't' in mode:
+            encoding = 'utf-8'
+                
         if shared:
-            return win32.open_shared(os.fspath(self._path), mode)
+            return win32.open_shared(os.fspath(self._path), mode, encoding=encoding)
         else:
-            return open(os.fspath(self._path), mode)
+            return open(os.fspath(self._path), mode, encoding=encoding)
+
+    # pathlib's missing_ok defaults to False, which makes no sense.  We default to true.
+    def unlink(self, missing_ok=True):
+        self._path.unlink(missing_ok=missing_ok)
+
+    def rename(self, target):
+        return FilesystemPath(self._path.rename(target))
+
+    def replace(self, target):
+        return FilesystemPath(self._path.replace(target))
