@@ -36,7 +36,7 @@ class Manager:
         app.on_shutdown.append(self.shutdown)
 
     async def shutdown(self, app):
-        print('Shutting down')
+        print('Shutting down manager')
         for name in list(self.library.mounts.keys()):
             await self.library.unmount(name)
         
@@ -54,9 +54,6 @@ class Manager:
                 print('Library path isn\'t a directory: %s', str(path))
                 continue
 
-            def progress_func(total):
-                print('Indexing progress for %s: %i' % (path, total))
-
             self.library.mount(path, name)
 
             print('Initializing library: %s' % path)
@@ -64,7 +61,7 @@ class Manager:
             # Run a quick refresh at startup.
             start = time.time()
             await self.library.quick_refresh()
-            # await library.refresh(progress=progress_func)
+            #await self.library.refresh()
             end = time.time()
             print('Indexing took %.2f seconds' % (end-start))
 
