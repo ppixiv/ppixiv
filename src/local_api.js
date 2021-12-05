@@ -141,6 +141,28 @@ ppixiv.local_api = class
 
         image_data.singleton().call_illust_modified_callbacks(illust_id);
     }
+    
+    static async load_recent_bookmark_tags()
+    {
+        let result = await local_api.local_post_request(`/api/bookmark/tags`);
+        if(!result.success)
+        {
+            console.log("Error fetching bookmark tag counts");
+            return;
+        }
+
+        let tags = [];
+        for(let tag of Object.keys(result.tags))
+        {
+            // Skip "untagged".
+            if(tag == "")
+                continue;
+            tags.push(tag);
+        }
+
+        tags.sort();
+        return tags;
+    }
 
     // Given a local ID, return the separated directory and filename.  id is
     // the id result of helpers.parse_id when type is "file".

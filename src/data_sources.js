@@ -1667,7 +1667,7 @@ ppixiv.data_sources.artist = class extends data_source
         if(user_info.frequentTags)
             return user_info.frequentTags;
 
-        var result = await helpers.get_request("https://www.pixiv.net/ajax/user/" + user_info.userId + "/illustmanga/tags", {});
+        var result = await helpers.get_request("/ajax/user/" + user_info.userId + "/illustmanga/tags", {});
         if(result.error)
         {
             console.error("Error fetching tags for user " + user_info.userId + ": " + result.error);
@@ -1847,7 +1847,7 @@ class data_source_bookmarks_base extends data_source
             this.load_bookmark_tag_counts(data_source_bookmarks_base.cached_bookmark_tag_counts);
         
         // Fetch bookmark tags.  We can do this in parallel with everything else.
-        var url = "https://www.pixiv.net/ajax/user/" + this.viewing_user_id + "/illusts/bookmark/tags";
+        var url = "/ajax/user/" + this.viewing_user_id + "/illusts/bookmark/tags";
         var result = await helpers.get_request(url, {});
 
         // Cache this if we're viewing our own bookmarks, so we can display them while

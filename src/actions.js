@@ -198,6 +198,9 @@ ppixiv.actions = class
     // Change an existing bookmark to public or private.
     static async bookmark_set_private(illust_id, private_bookmark)
     {
+        if(helpers.is_local(illust_id))
+            return;
+
         let illust_info = await thumbnail_data.singleton().get_or_load_illust_data(illust_id);
         if(!illust_info.bookmarkData)
         {
@@ -247,11 +250,10 @@ ppixiv.actions = class
         // Split the new tags.
         tags = tags.split(" ");
         tags = tags.filter((value) => { return value != ""; });
-        console.log("New tags:", tags);
 
         // This should already be loaded, since the only way to open this prompt is
         // in the tag dropdown.
-        let bookmark_tags = await image_data.singleton().load_bookmark_details(illust_data.illustId);
+        let bookmark_tags = await image_data.singleton().load_bookmark_details(illust_data.id);
 
         // Add each tag the user entered to the tag list to update it.
         let active_tags = [...bookmark_tags];
@@ -270,9 +272,10 @@ ppixiv.actions = class
         console.log("All tags:", active_tags);
         
         // Edit the bookmark.
-        await actions.bookmark_add(illust_id, {
-            tags: active_tags,
-        });
+        if(helpers.is_local(illust_id))
+            await local_api.bookmark_add(illust_id, { tags: tags });
+        else
+            await actions.bookmark_add(illust_id, { tags: active_tags, });
     }
     
     // If quiet is true, don't print any messages.
@@ -468,7 +471,10 @@ ppixiv.actions = class
 
     static async load_recent_bookmark_tags()
     {
-        let url = "https://www.pixiv.net/ajax/user/" + window.global_data.user_id + "/illusts/bookmark/tags";
+        if(ppixiv.native)
+            return await local_api.load_recent_bookmark_tags();
+
+        let url = "/ajax/user/" + window.global_data.user_id + "/illusts/bookmark/tags";
         let result = await helpers.get_request(url, {});
         let bookmark_tags = [];
         let add_tag = (tag) => {
