@@ -172,8 +172,7 @@ async def api_bookmark_add(info):
     absolute_path, library = info.manager.resolve_path(path)
 
     entry = library.get(absolute_path)
-
-    library.bookmark_edit(entry, set_bookmark=True, tags=tags)
+    entry = library.bookmark_edit(entry, set_bookmark=True, tags=tags)
     return { 'success': True, 'bookmark': _bookmark_data(entry) }
 
 @reg('/bookmark/delete/{type:[^:]+}:{path:.+}')
