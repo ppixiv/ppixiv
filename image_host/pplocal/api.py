@@ -113,9 +113,7 @@ def get_illust_info(library, entry, base_url):
 
     timestamp = datetime.fromtimestamp(ctime, tz=timezone.utc).isoformat()
     preview_urls = [urls['small']]
-    tags = entry['tags'].split(' ')
-    if '' in tags:
-        tags.remove('')
+    tags = entry['tags'].split()
 
     image_info = {
         'id': illust_id,
@@ -154,7 +152,7 @@ def _bookmark_data(entry):
         return None
 
     return {
-        'tags': entry['bookmark_tags'].split(' '),
+        'tags': entry['bookmark_tags'].split(),
         'private': False,
     }
 
