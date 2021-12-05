@@ -1343,6 +1343,9 @@ ppixiv.helpers = {
             hash_path = hash_path.substr(0, idx);
         }
 
+        // We encode spaces as + in the URL, but decodeURIComponent doesn't, so decode
+        // that first.  Actual '+' is always escaped as %2B.
+        hash_path = hash_path.replace(/\+/g, " ");
         hash_path = decodeURIComponent(hash_path);
 
         // Use unsafeWindow.URLSearchParams to work around https://bugzilla.mozilla.org/show_bug.cgi?id=1414602.
@@ -1462,10 +1465,10 @@ ppixiv.helpers = {
             {
                 if(!this.hash_path.startsWith("/"))
                     url.hash += "/";
-                url.hash += this.hash_path;
+                url.hash += helpers.encodeURLHash(this.hash_path);
             }
 
-            let hash_string = this.hash.toString();
+            let hash_string = helpers.encodeHashParams(this.hash);
             if(hash_string != "")
                 url.hash += "?" + hash_string;
 
@@ -1973,6 +1976,63 @@ ppixiv.helpers = {
         let parts = path.split('/');
         parts = parts.splice(parts.length-count); // take the last two parts
         return parts.join("/");
+    },
+
+    encodeURLPart(regex, part)
+    {
+        return part.replace(regex, (c) => {
+            // encodeURIComponent(sic) encodes non-ASCII characters.  We don't need to.
+            let ord = c.charCodeAt(0);
+            if(ord >= 128)
+                return c;
+
+            // Regular URL escaping wants to escape spaces as %20, which is silly since
+            // it's such a common character in filenames.  Escape them as + instead, like
+            // things like AWS do.  The escaping is different, but it's still a perfectly
+            // valid URL.  Note that the API doesn't decode these, we only use it in the UI.
+            if(c == " ")
+                return "+";
+
+            let hex = ord.toString(16).padStart('0', 2);
+            return "%" + hex;
+        });
+    },
+
+    // Both "encodeURI" and "encodeURIComponent" are wrong for encoding hashes.
+    // The first doesn't escape ?, and the second escapes lots of things we
+    // don't want to, like forward slash.
+    encodeURLHash(hash)
+    {
+        return helpers.encodeURLPart(/[^A-Za-z0-9-_\.!~\*'()/:\[\]\^=&]/g, hash);
+    },
+
+    // This one escapes keys in hash parameters.  This is the same as encodeURLHash,
+    // except it also encodes = and &.
+    encodeHashParam(param)
+    {
+        return helpers.encodeURLPart(/[^A-Za-z0-9-_\.!~\*'()/:\[\]\^]/g, param);
+    },
+
+    // Encode a URLSearchParams for hash parameters.
+    //
+    // We can use URLSearchParams.toString(), but that escapes overaggressively and
+    // gives us nasty, hard to read URLs.  There's no reason to escape forward slash
+    // in query parameters.
+    encodeHashParams(params)
+    {
+        let values = [];
+        for(let key of params.keys())
+        {
+            let key_values = params.getAll(key);
+            for(let value of key_values)
+            {
+                key = helpers.encodeHashParam(key);
+                value = helpers.encodeHashParam(value);
+                values.push(key + "=" + value);
+            }
+        }
+
+        return values.join("&");
     },
 
     // Escape a string to use in a CSS selector.

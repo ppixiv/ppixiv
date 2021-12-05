@@ -209,7 +209,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
             return;
         }
 
-        console.log(`Showing image ${decodeURIComponent(illust_id)} page ${manga_page}`);
+        console.log(`Showing image ${illust_id} page ${manga_page}`);
 
         helpers.set_title_and_icon(early_illust_data);
         
