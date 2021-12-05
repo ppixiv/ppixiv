@@ -211,6 +211,107 @@ class AsyncEvent:
         finally:
             self.waits.remove(future)
 
+class RunMainTask:
+    """
+    Run the main async task.
+
+    asyncio is unreliable with KeyboardInterrupt.  However, KeyboardInterrupt
+    shouldn't be used anyway.  It's much more reliable to just cancel the main
+    task and never raise KeyboardInterrupt inside it.
+    
+    This runs the main task in a thread, so it doesn't see KeyboardInterrupt,
+    and cancels it on interrupt.
+
+    main() will be called with a set_main_task keyword argument, which should
+    be called from within the main task that should be cancelled on interrupt.
+    """
+    def __init__(self, main):
+        self._main = main
+        self._task_finished = threading.Event()
+        self._main_loop = None
+        self._main_task = None
+
+        self._thread = threading.Thread(target=self._run, name='main')
+        self._thread.start()
+
+        interrupt_count = 0
+        last_interrupt_at = 0
+        while self._thread.is_alive():
+            try:
+                # XXX: classic Python problem, join() blocks KeyboardInterrupt
+                if self._thread.join(.1):
+                    break
+            except KeyboardInterrupt:
+                if time.time() - last_interrupt_at > 5:
+                    interrupt_count = 0
+
+                interrupt_count += 1
+                last_interrupt_at = time.time()
+                if interrupt_count >= 3:
+                    # The user hit ^C a few times and we haven't exited, so force the issue.
+                    print('Exiting')
+                    os._exit(0)
+                
+                self._cancel_main_task()
+
+    def _cancel_main_task(self):
+        if self._main_task is None:
+            print('No main task to cancel')
+            return
+        assert self._main_loop is not None
+
+        print('Shutting down...')
+        future = asyncio.run_coroutine_threadsafe(self._do_cancel_main_task(), self._main_loop)
+
+        try:
+            # Wait for _do_cancel_main_task to complete.  This doesn't mean the task has finished.
+            future.result(timeout=5)
+            return
+        except concurrent.futures.TimeoutError:
+            # This should never happen.
+            print('Shutdown timed out')
+
+        this_thread_id = threading.current_thread().ident
+        frames = sys._current_frames()
+        for thread in threading.enumerate():
+            thread_id = thread.ident
+            if thread_id == this_thread_id:
+                continue
+
+            if not thread.is_alive():
+                continue
+            
+            print(f'Thread {thread_id}: {thread.name}')
+            thread_frames = frames.get(thread_id)
+            if thread_frames:
+                traceback.print_stack(thread_frames, limit=4)
+            print('')
+
+        del frames
+
+        if False:
+            for task in asyncio.all_tasks(self._main_loop):
+                print(task)
+                print('stack:')
+                task.print_stack()
+                print('')
+
+    async def _do_cancel_main_task(self):
+        self._main_task.cancel()
+
+    def _run(self):
+        try:
+            self._main(set_main_task=self.set_main_task)
+        except asyncio.CancelledError as e:
+            # XXX: signal the main thread that we've finished
+            return
+        finally:
+            self._task_finished.set()
+
+    def set_main_task(self):
+        self._main_loop = asyncio.get_running_loop()
+        self._main_task = asyncio.current_task()
+
 class TransientWriteConnection:
     """
     This is a convenience wrapper for opening and closing database connections.

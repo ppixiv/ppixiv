@@ -107,7 +107,9 @@ async def shutdown_requests(app):
     for task, request in dict(_running_requests).items():
         task.cancel()
 
-async def setup():
+async def setup(*, set_main_task=None):
+    set_main_task()
+
     app = web.Application(middlewares=[register_request_middleware])
     app.on_response_prepare.append(check_origin)
     app.on_shutdown.append(shutdown_requests)
@@ -147,13 +149,16 @@ class AccessLogger(AbstractAccessLogger):
         start_time = time.time() - duration
         self.logger.info('%f %i (%i): %s' % (start_time, response.status, response.body_length, path))
 
-def run():
-    web.run_app(setup(),
+def run_server(*, set_main_task):
+    web.run_app(setup(set_main_task=set_main_task),
         host='localhost',
         port=8235,
         print=None,
         access_log_format='%t "%r" %s %b',
         access_log_class=AccessLogger)
+
+def run():
+    misc.RunMainTask(run_server)
 
 if __name__ == '__main__':
     run()
