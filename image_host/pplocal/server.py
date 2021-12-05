@@ -1,6 +1,7 @@
 #!/usr/bin/python
 import asyncio, json, logging, traceback, urllib, time, io
 from pprint import pprint
+import urllib.parse
 
 import aiohttp
 from aiohttp import web
@@ -16,8 +17,11 @@ async def check_origin(request, response):
     Check the Origin header and add CORS headers.
     """
     origin = request.headers.get('Origin')
-    if origin is not None and origin != 'https://www.pixiv.net':
-        raise aiohttp.web.HTTPUnauthorized()
+    if origin is not None:
+        # Allow requests from www.pixiv.net and our local client.
+        origin_url = urllib.parse.urlparse(origin)
+        if origin_url.hostname not in ('www.pixiv.net', '127.0.0.1'):
+            raise aiohttp.web.HTTPUnauthorized()
 
     if origin:
         response.headers['Access-Control-Allow-Origin'] = origin
@@ -100,8 +104,6 @@ async def register_request_middleware(request, handler):
         del _running_requests[request.task]
 
 async def shutdown_requests(app):
-    print('shutdown_requests')
-
     for task, request in dict(_running_requests).items():
         task.cancel()
 
