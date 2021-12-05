@@ -47,11 +47,6 @@ def _create_ugoira(file, output_file, frame_durations):
                 # Add the metadata file.
                 frame_delays = []
                 for frame_no, duration in enumerate(frame_durations):
-                    # Match browser behavior for frames that have delays that are too low.
-                    # This also matches the check in video_metadata.gif.
-                    if duration < 20:
-                        duration = 100
-
                     frame_delays.append({
                         'file': '%06i.jpg' % frame_no,
                         'delay': duration,

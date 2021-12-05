@@ -74,6 +74,14 @@ class parse_gif_metadata:
                 data = f.read(size)
 
                 flags, duration, transparency_index = struct.unpack('BBB', data[0:3])
+
+                # Convert to milliseconds.
+                duration *= 10
+
+                # Match browser behavior for frames that have delays that are too low.
+                # http://trac.webkit.org/changeset/73295/webkit
+                if duration <= 10:
+                    duration = 100
                 self.frame_durations.append(duration)
 
                 # reserved              = flags & 0b11100000
@@ -82,11 +90,6 @@ class parse_gif_metadata:
                 # has_transparent_color = flags & 0b00000001
 
                 f.read(1) # end of block
-
-                # Match browser behavior for frames that have delays that are too low.
-                # This also matches the check in gif_to_zip.
-                if duration < 20:
-                    duration = 100
 
             case 0x01:
                 header_size, = _read_unpack(f, 'B')
