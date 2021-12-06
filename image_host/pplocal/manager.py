@@ -75,14 +75,16 @@ class Manager:
             raise misc.Error('invalid-request', 'Invalid request')
 
         library_name, path_inside_library = Library.split_library_name_and_path(relative_path)
-        mount = self.library.mounts.get(library_name)
-        if mount is None:
-            raise misc.Error('not-found', 'Library %s doesn\'t exist' % library_name)
-
-        path = Path(mount) / path_inside_library
+        if library_name == 'root':
+            path = Path(str(path_inside_library))
+        else:
+            mount = self.library.mounts.get(library_name)
+            if mount is None:
+                raise misc.Error('not-found', 'Library %s doesn\'t exist' % library_name)
+            path = Path(mount) / path_inside_library
         path = open_path(path)
 
-        return path, self.library
+        return path
     
     # Values of api_list_results can be a dictionary, in which case they're a result
     # cached from a previous call.  They can also be a function, which is called to

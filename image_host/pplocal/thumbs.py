@@ -17,7 +17,7 @@ max_thumbnail_pixels = 500*500
 # Serve direct file requests.
 async def handle_file(request):
     path = request.match_info['path']
-    absolute_path, library = request.app['manager'].resolve_path(path)
+    absolute_path = request.app['manager'].resolve_path(path)
     if not absolute_path.is_file():
         raise aiohttp.web.HTTPNotFound()
 
@@ -220,7 +220,7 @@ async def handle_tree_thumb(request):
 
 async def handle_thumb(request, mode='thumb'):
     path = request.match_info['path']
-    absolute_path, library = request.app['manager'].resolve_path(path)
+    absolute_path = request.app['manager'].resolve_path(path)
     if absolute_path is None:
         raise aiohttp.web.HTTPNotFound()
     
@@ -257,7 +257,7 @@ async def handle_thumb(request, mode='thumb'):
     if misc.file_type(os.fspath(absolute_path)) is None:
         raise aiohttp.web.HTTPNotFound()
 
-    data_dir = library.data_dir
+    data_dir = request.app['manager'].library.data_dir
 
     # Generate the thumbnail in a thread.
     thumbnail_file, mime_type = await create_thumb(path, absolute_path, mode, data_dir=data_dir)
@@ -278,7 +278,7 @@ async def handle_mjpeg(request):
     Handle /mjpeg-zip requests.
     """
     path = request.match_info['path']
-    absolute_path, library = request.app['manager'].resolve_path(path)
+    absolute_path = request.app['manager'].resolve_path(path)
 
     if not absolute_path.is_file():
         raise aiohttp.web.HTTPNotFound()

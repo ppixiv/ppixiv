@@ -167,10 +167,10 @@ async def api_bookmark_add(info):
         tags = ' '.join(tags)
 
     # Look up the path.
-    absolute_path, library = info.manager.resolve_path(path)
+    absolute_path = info.manager.resolve_path(path)
 
-    entry = library.get(absolute_path)
-    entry = library.bookmark_edit(entry, set_bookmark=True, tags=tags)
+    entry = info.manager.library.get(absolute_path)
+    entry = info.manager.library.bookmark_edit(entry, set_bookmark=True, tags=tags)
     return { 'success': True, 'bookmark': _bookmark_data(entry) }
 
 @reg('/bookmark/delete/{type:[^:]+}:{path:.+}')
@@ -181,9 +181,9 @@ async def api_bookmark_delete(info):
     path = PurePosixPath(info.request.match_info['path'])
     
     # Look up the path.
-    absolute_path, library = info.manager.resolve_path(path)
-    entry = library.get(absolute_path)
-    library.bookmark_edit(entry, set_bookmark=False)
+    absolute_path = info.manager.resolve_path(path)
+    entry = info.manager.library.get(absolute_path)
+    info.manager.library.bookmark_edit(entry, set_bookmark=False)
 
     return { 'success': True }
 
@@ -206,13 +206,13 @@ async def api_bookmark_tags(info):
 @reg('/illust/{type:[^:]+}:{path:.+}')
 async def api_illust(info):
     path = PurePosixPath(info.request.match_info['path'])
-    absolute_path, library = info.manager.resolve_path(path)
+    absolute_path = info.manager.resolve_path(path)
 
-    entry = library.get(absolute_path)
+    entry = info.manager.library.get(absolute_path)
     if entry is None:
         raise misc.Error('not-found', 'File not in library')
 
-    entry = get_illust_info(library, entry, info.base_url)
+    entry = get_illust_info(info.manager.library, entry, info.base_url)
     if entry is None:
         raise misc.Error('not-found', 'File not in library')
 
@@ -391,7 +391,7 @@ def api_list_impl(info):
     # Make a list of paths to search.
     paths_to_search = None
     if str(path) != '/':
-        absolute_path, library = info.manager.resolve_path(path)
+        absolute_path = info.manager.resolve_path(path)
         paths_to_search = [absolute_path]
 
     if search_options:
@@ -418,7 +418,7 @@ def api_list_impl(info):
 @reg('/view/{type:[^:]+}:{path:.+}')
 async def api_illust(info):
     path = PurePosixPath(info.request.match_info['path'])
-    absolute_path, library = info.manager.resolve_path(path)
+    absolute_path = info.manager.resolve_path(path)
     print(absolute_path)
 
     # XXX
