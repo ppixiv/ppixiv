@@ -464,6 +464,9 @@ class Library:
         first time it's returned from search results.
         """
         entry = self._get_entry_from_path(path)
+        if entry is None:
+            return None
+
         self.db.add_record(entry, conn=conn)
         return entry
 
@@ -938,7 +941,7 @@ class Library:
                     # The entry is stale or no longer exists, so refresh it.  If the file still
                     # exists we'll get the updated entry.
                     # The cached entry is out of date, so refresh or delete it.
-                    print('Refreshing stale entry:', result['path'],)
+                    print('Refreshing stale entry:', entry['path'],)
                     path = open_path(entry['path'])
                     with write_connection as connection:
                         entry = self._get_entry(path, force_refresh=True, conn=connection)
