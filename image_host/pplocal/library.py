@@ -380,24 +380,6 @@ class Library:
 #        self.pending_file_updates[path] = time.time() + wait_for
 #        self.refresh_event.set()
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     def _get_entry_from_path(self, path: os.PathLike, *, populate=True, extra_metadata=None):
         """
         Return an entry from a path.
