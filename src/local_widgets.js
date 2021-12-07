@@ -1182,9 +1182,8 @@ ppixiv.view_in_explorer_widget = class extends ppixiv.illust_widget
         let url = new URL("file:///");
         url.pathname = path;
         url = url.toString();
-        url = url.replace("file:", "viewinexplorer:")
+        url = url.replace("file:", "vviewinexplorer:")
 
-        //let url = "viewinexplorer:///" + encodeURI(path);
         let a = this.container.querySelector("A.local-link");
         a.href = url;
 
