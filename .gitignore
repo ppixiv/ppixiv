@@ -3,3 +3,4 @@ output
 chrome
 unused
 **/__pycache__
+**/*.vcxproj.user
