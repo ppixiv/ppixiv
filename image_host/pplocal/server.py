@@ -8,7 +8,7 @@ from aiohttp import web
 from aiohttp.abc import AbstractAccessLogger
 from aiohttp.web_log import AccessLogger
 
-from . import api, thumbs
+from . import api, thumbs, ui
 from .util import misc
 from .manager import Manager
 
@@ -120,6 +120,7 @@ async def setup(*, set_main_task=None):
     app.router.add_get('/tree-thumb/{type:[^:]+}:{path:.+}', thumbs.handle_tree_thumb)
     app.router.add_get('/poster/{type:[^:]+}:{path:.+}', thumbs.handle_poster)
     app.router.add_get('/mjpeg-zip/{type:[^:]+}:{path:.+}', thumbs.handle_mjpeg)
+    ui.add_routes(app.router)
 
     # Add a handler for each API call.
     for command, func in api.handlers.items():
