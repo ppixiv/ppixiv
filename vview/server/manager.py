@@ -2,8 +2,8 @@ import asyncio, os, time
 from pathlib import Path, PurePosixPath
 from collections import OrderedDict, namedtuple
 
-from .util import misc
-from .util.paths import open_path
+from ..util import misc
+from ..util.paths import open_path
 from .library import Library
 
 _library_paths = {

@@ -9,7 +9,7 @@ from aiohttp.abc import AbstractAccessLogger
 from aiohttp.web_log import AccessLogger
 
 from . import api, thumbs, ui
-from .util import misc
+from ..util import misc
 from .manager import Manager
 
 async def check_origin(request, response):

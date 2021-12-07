@@ -11,8 +11,7 @@ add_to_context_menu = True
 
 # Get the path to VView.exe.
 # XXX: This is stupid.
-top_dir = Path(__file__).parent.parent.parent # /image_host
-root_dir = top_dir.parent # /
+root_dir = Path(__file__).parent.parent.parent 
 vview_exe = root_dir / "VView.exe"
 
 application_name = 'VView'
@@ -32,7 +31,7 @@ def register_view_in_explorer():
 
     This handles "View in Explorer" in the UI.
     """
-    args = [str(vview_exe), '-m', 'pplocal.shell.view_in_explorer', '"%1"']
+    args = [str(vview_exe), '-m', 'vview.shell.view_in_explorer', '"%1"']
 
     key = _create_key_path(winreg.HKEY_CURRENT_USER, r'Software\Classes\vviewinexplorer')
     winreg.SetValueEx(key, None, 0, winreg.REG_SZ, 'vviewinexplorer')
@@ -43,11 +42,11 @@ def register_view_in_explorer():
     winreg.SetValueEx(key, None, 0, winreg.REG_SZ, ' '.join(args))
 
 def register_file_associations():
-    # Register a shell extension that launches pplocal.shell.open_path.  This is
+    # Register a shell extension that launches vview.shell.open_path.  This is
     # done through VView.exe.
     key_command = _create_key_path(winreg.HKEY_CURRENT_USER, rf'Software\Classes\{application_name}\shell\open\command')
 
-    executable = f'{vview_exe} -m pplocal.shell.open_path "%1"'
+    executable = f'{vview_exe} -m vview.shell.open_path "%1"'
     winreg.SetValueEx(key_command, None, 0, winreg.REG_SZ, executable)
 
     # Add it as an opener for each supported type.
@@ -73,14 +72,14 @@ def register_context_menu_items():
     winreg.SetValueEx(key, 'AppliesTo', 0, winreg.REG_SZ, applies_to)
 
     key = winreg.CreateKey(key, fr"command")
-    winreg.SetValueEx(key, None, 0, winreg.REG_SZ, f'{vview_exe} -m pplocal.shell.open_path "%1"')
+    winreg.SetValueEx(key, None, 0, winreg.REG_SZ, f'{vview_exe} -m vview.shell.open_path "%1"')
 
     # Add a Folder\shell item for directories.
     key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, fr"Software\Classes\Folder\shell\{application_name}")
     winreg.SetValueEx(key, None, 0, winreg.REG_SZ, "VV&iew")
 
     key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, fr"Software\Classes\Folder\shell\{application_name}\command")
-    winreg.SetValueEx(key, None, 0, winreg.REG_SZ, f'{vview_exe} -m pplocal.shell.open_path "%1"')
+    winreg.SetValueEx(key, None, 0, winreg.REG_SZ, f'{vview_exe} -m vview.shell.open_path "%1"')
 
 def unregister():
     # Unregister vviewinexplorer:
@@ -147,14 +146,14 @@ def write_vview_config():
         return
 
     local_data = Path(result.value)
-    data_dir = local_data / 'PViewer'
+    data_dir = local_data / 'VView'
     config_path = data_dir / 'interpreter.txt'
     print(config_path)
     
     with config_path.open('w+t') as f:
         interpreter_path = sys.executable
         root_path = os.getcwd()
-        f.write(f'"{interpreter_path}"\n')
+        f.write(f'{interpreter_path}\n')
         f.write(f'{root_path}\n')
 
 def go():

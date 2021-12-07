@@ -7,7 +7,7 @@ from pathlib import Path
 from shutil import copyfile
 
 from . import video
-from .util import misc, mjpeg_mkv_to_zip, gif_to_zip
+from ..util import misc, mjpeg_mkv_to_zip, gif_to_zip
 
 resource_path = (Path(__file__) / '../../../resources').resolve()
 blank_image = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=')

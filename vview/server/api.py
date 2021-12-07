@@ -4,8 +4,8 @@ from pprint import pprint
 from collections import defaultdict
 from pathlib import Path, PurePosixPath
 
-from .util import misc
-from .util.paths import open_path
+from ..util import misc
+from ..util.paths import open_path
 
 handlers = {}
 

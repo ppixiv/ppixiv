@@ -37,11 +37,11 @@ from pprint import pprint
 from pathlib import Path, PurePosixPath
 from contextlib import contextmanager
 
-from .util import win32, monitor_changes, windows_search, misc
+from ..util import win32, monitor_changes, windows_search, misc
 from . import metadata_storage
-from .database.file_index import FileIndex
-from .util.paths import open_path, PathBase
-from .util.misc import TransientWriteConnection
+from ..database.file_index import FileIndex
+from ..util.paths import open_path, PathBase
+from ..util.misc import TransientWriteConnection
 
 # Sort orders that we can use for listing and searching.
 #
@@ -986,7 +986,7 @@ class Library:
 
 async def test():
     # path = Path('e:/images')
-    path = Path('f:/stuff/ppixiv/image_host/temp')
+    path = Path('f:/stuff/ppixiv/python/temp')
     library = Library('test', 'test.sqlite', path)
 
     def progress_func(total):

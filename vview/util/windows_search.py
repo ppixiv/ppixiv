@@ -345,7 +345,7 @@ def search(*,
             raise Exception('The search timed out')
 
 def test():
-    path=Path(r'F:\stuff\ppixiv\image_host\temp')
+    path=Path(r'F:\stuff\ppixiv\python\temp')
     for idx, entry in enumerate(search(paths=[path], timeout=1, substr='png')):
         if entry is SearchTimeout:
             print('Timed out')

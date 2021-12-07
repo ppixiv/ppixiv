@@ -1,8 +1,7 @@
 import copy, json, os, threading
-from .util import win32
-from .util.paths import open_path
 from contextlib import contextmanager
-from .util.paths import open_path
+from ..util import win32
+from ..util.paths import open_path
 from pprint import pprint
 
 metadata_filename = '.ppixivbookmark.json.txt'
