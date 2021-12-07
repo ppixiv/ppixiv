@@ -1956,7 +1956,7 @@ ppixiv.helpers = {
 
         let parts = id.split(":");
         let type = parts.length < 2?  "illust": parts[0];
-        let actual_id = parts.length < 2? id: parts[1];
+        let actual_id = parts.length < 2? id: parts.splice(1).join(":"); // join the rest
         return {
             type: type,
             id: actual_id,
