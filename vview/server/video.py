@@ -6,7 +6,7 @@ import asyncio, os, subprocess
 # Is there a lightweight way of doing this?  FFmpeg is enormous and has
 # nasty licensing.  We only need to support WebM and MP4, since those are
 # the only formats that browsers will display anyway.
-ffmpeg = './ffmpeg/bin/ffmpeg'
+ffmpeg = './extern/ffmpeg/bin/ffmpeg'
 
 async def wait_or_kill_process(process):
     """

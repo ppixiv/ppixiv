@@ -4,7 +4,7 @@ import aiohttp, asyncio, json
 import sass
 from pathlib import Path, PurePosixPath
 from ..util.paths import open_path
-from ..source_files import source_files
+from ..build.source_files import source_files
 
 root_dir = Path(__file__) / '..' / '..' / '..' # XXX gross
 root_dir = root_dir.resolve()
