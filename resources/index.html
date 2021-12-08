@@ -1,0 +1,87 @@
+<!doctype html>
+<body>
+
+<script>
+
+// This is similar to bootstrap.js, but for standalone launches.  This should probably
+// be simplified.
+let _load_source_file = function(__pixiv, __source) {
+    const ppixiv = __pixiv;
+    with(ppixiv)
+    {
+        return eval(__source);
+    }
+};
+
+(async() =>
+{
+    console.log("ppixiv bootstrap");
+
+    // In a development build, our source and binary assets are in @resources, and we need
+    // to pull them out into an environment manually.
+    let env = {};
+
+    // Set ppixiv.native to true to let the UI know that we're in our native environment
+    // and not running in Pixiv.
+    env.native = true;
+
+    env.resources = {};
+
+    let result = await fetch("/client/source-files.js");
+    let source_list = await result.json();
+
+    // Fetch each source file.  Do this in parallel.
+    let source_fetches = {};
+    for(let path of source_list)
+    {
+        // Load the source file.
+        source_fetches[path] = fetch(path);
+    }
+
+    // Wait for all fetches to complete.
+    await Promise.all(Object.values(source_fetches));
+
+    for(let path of source_list)
+    {
+        let source_fetch = await source_fetches[path];
+        let source = await source_fetch.text();
+
+        if(source == null)
+        {
+            // launch() will show an error for this, so don't do it here too.
+            continue;
+        }
+
+        // Add sourceURL to each file, so they show meaningful filenames in logs.
+        // Since we're loading the files as-is and line numbers don't change, we
+        // don't need a source map.
+        //
+        // This uses a path that pretends to be on the same URL as the site, which
+        // seems to be needed to make VS Code map the paths correctly.
+        source += "\n";
+        source += `//# sourceURL=${document.location.origin}/ppixiv/${path}\n`;
+
+        env.resources[path] = source;
+    }
+
+    // Load each source file.
+    for(let path of source_list)
+    {
+        let source = env.resources[path];
+        if(!source)
+        {
+            console.error("Source file missing:", path);
+            continue;
+        }
+
+        _load_source_file(env, source);
+    }
+
+    window.unsafeWindow = window;
+    window.ppixiv = env;
+
+    // Create the main controller.
+    env.main_controller.launch();
+})();
+
+</script>
