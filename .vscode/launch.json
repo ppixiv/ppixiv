@@ -34,5 +34,12 @@
         "enableContentValidation": false,
         "preLaunchTask": "build",
         "targetSelection": "pick"
+    }, {
+        "name": "Python",
+        "type": "python",
+        "request": "launch",
+        "cwd": "${workspaceFolder}",
+        "program": "vview/debug.py",
+        "args": ["${file}"],
     }]
 }
