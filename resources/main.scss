@@ -832,6 +832,8 @@ body.light .description {
 }
 
 body:not(.premium) .premium-only { display: none; }
+body:not(.native) .native-only { display: none; }
+body:not(.pixiv) .pixiv-only { display: none; }
 body.hide-r18 .r18 { display: none; }
 body.hide-r18g .r18g { display: none; }
 
@@ -1247,6 +1249,7 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
                 border-radius: 6px;
                 transition: opacity .5s;
                 white-space: nowrap;
+                pointer-events: auto; // turn pointer events back on
                 // margin-top: 2px; // nudge to fix alignment with titles
             
                 .page-icon {
@@ -2544,7 +2547,7 @@ svg.heart-image .delete {
     user-select: none;
     overflow-x: hidden;
     overflow-y: auto;
-    height: 100%;
+    flex: 1;
 
     .tree-item
     {
@@ -2650,9 +2653,12 @@ svg.heart-image .delete {
     flex-shrink: 0;
     background-color: #111;
     border-right: solid 1px #444;
-    padding: 1em 0.5em;
+    padding-top: 0.5em;
+    padding-left: 0.5em;
     opacity: 1;
     transition: opacity .35s, transform .35s;
+    display: flex;
+    flex-direction: column;
 
     // Not sure if this is worth bothering with.  Switching to position: fixed breaks the block
     // out so it doesn't affect layout, then shift and fade.
