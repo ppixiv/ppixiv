@@ -496,7 +496,7 @@ class Library:
 
         return entry
 
-    def cache_file(self, path: os.PathLike, *, populate=True, conn=None):
+    def cache_file(self, *args, **kwargs):
         """
         Create or update the index entry for a file.
 
@@ -506,6 +506,16 @@ class Library:
         data we can extract from the path entry.  The entry will be populated the
         first time it's returned from search results.
         """
+        entry = self._cache_file(*args, **kwargs)
+        if entry is None:
+            return None
+        self._convert_to_path(entry)
+        return entry
+
+    # The only difference between cache_file and _cache_file is that cache_file is
+    # public, so it returns path objects, and _cache_file is internal, so it leaves
+    # paths as strings.
+    def _cache_file(self, path: os.PathLike, *, populate=True, conn=None):
         entry = self._get_entry_from_path(path)
         if entry is None:
             return None
@@ -777,7 +787,7 @@ class Library:
             if self.get_mount_for_path(path) is None:
                 return None
 
-            entry = self.cache_file(path, conn=conn, populate=populate)
+            entry = self._cache_file(path, conn=conn, populate=populate)
             if entry is None:
                 # The file doesn't exist on disk.  Delete any stale entries pointing at
                 # it.
@@ -1041,7 +1051,7 @@ class Library:
             metadata_storage.save_file_metadata(path, file_metadata)
 
         # Update the file in the index.
-        return self.cache_file(path)
+        return self._cache_file(path)
 
     def get_all_bookmark_tags(self):
         return self.db.get_all_bookmark_tags()
