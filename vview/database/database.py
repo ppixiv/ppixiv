@@ -200,3 +200,14 @@ class Database:
         return self._get_info(conn=conn)['version']
     def set_db_version(self, version, *, conn=None):
         return self._set_info('version', version, conn=conn)
+
+    @classmethod
+    def escape_like(cls, s, escape='$'):
+        """
+        Escape s for use in a LIKE expression, using escape as the escape character.
+        The result is used with a LIKE ? ESCAPE "?" expression.
+        """
+        s = s.replace(escape, escape + escape)
+        s = s.replace('_', escape + '_')
+        s = s.replace('%', escape + '_')
+        return s

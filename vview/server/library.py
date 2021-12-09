@@ -31,11 +31,10 @@
 # XXX: we shouldn't do a full refresh on changes, but not sure how to find out if
 # indexing is up to date for a path in order to use quick refresh
 
-import asyncio, collections, errno, itertools, os, typing, time, stat, traceback, json, sys, heapq, natsort, random
+import asyncio, collections, errno, itertools, os, time, traceback, json, heapq, natsort, random, math
 from pathlib import Path
 from pprint import pprint
 from pathlib import Path, PurePosixPath
-from contextlib import contextmanager
 
 from ..util import win32, monitor_changes, windows_search, misc
 from . import metadata_storage
@@ -65,10 +64,26 @@ sort_orders = {
     # It does treat ZIPs as directories.  That's unexpected, but it's what we want, so we'll take
     # it.
     'normal': {
-        'windows': 'ORDER BY System.FolderNameDisplay, System.ItemPathDisplay ASC',
+        'windows': [('System.FolderNameDisplay', 'DESC'), ('System.ItemPathDisplay', 'ASC')],
         'entry': lambda entry: (not entry['is_directory'], entry['filesystem_name'].lower()),
-        'index': 'ORDER BY is_directory DESC, filesystem_name ASC',
+        'index': [('is_directory', 'DESC'), ('filesystem_name', 'ASC')],
         'fs': lambda entry: (not entry.is_dir(), entry.name),
+    },
+
+    # Creation time, older first.
+    'ctime': {
+        # Note that even though NTFS has subsecond ctimes, Windows indexing truncates them to
+        # an integer.  Do the same thing when comparing from other sources to make sure they
+        # sort the same way, otherwise merge sorts won't work properly.
+        #
+        # Using the path as a secondary sort to break ties to make sure the order is consistent
+        # is also needed for the merge to work.
+        'windows': [('System.DateCreated', 'ASC'), ('System.ItemPathDisplay', 'ASC')],
+        'entry': lambda entry: (math.floor(entry['ctime']), entry['filesystem_name'].lower()),
+
+        # SQLite doesn't have floor(), so do it with round() instead.
+        'index': [('round(ctime - 0.5)', 'ASC'), ('filesystem_name', 'ASC')],
+        'fs': lambda entry: (math.floor(entry.stat().st_ctime), entry.name),
     },
 
     # A natural sort.  This also puts directories first, but sorts numbered files much better.
@@ -78,6 +93,53 @@ sort_orders = {
         'fs': lambda entry: (not entry.is_dir(), *natsort.natsort_key(entry.name)),
     }
 }
+
+def _get_sort(sort_order):
+    """
+    Return info for a sort order.
+
+    This is in the same format as sort_orders above, except:
+
+    - SQL orders are flattened to an ORDER BY clause.
+    - A "reverse" key is added, which is true if sort_order begins with "-".
+    - If reversed, SQL orders are inversed.
+    """
+    # If the sort order begins with '-', remove it and set the 'reversed' flag in
+    # the results.
+    reverse_order = sort_order.startswith('-')
+    if reverse_order:
+        sort_order = sort_order.lstrip('-')
+
+    order = sort_orders.get(sort_order)
+    if order is None:
+        print('Unsupported sort order: %s' % sort_order)
+        return None
+
+    order = dict(order)
+    order['reverse'] = reverse_order
+
+    # If this sort order is reversed, reverse the SQL ORDER BY sorts.
+    if reverse_order:
+        for order_type in 'windows', 'index':
+            if order_type not in order:
+                continue
+
+            new_order_by = []
+            for field, asc_desc in order[order_type]:
+                assert asc_desc in ('ASC', 'DESC'), asc_desc
+                asc_desc = 'DESC' if asc_desc == 'ASC' else 'ASC'
+                new_order_by.append((field, asc_desc))
+            
+            order[order_type] = new_order_by
+
+    # Flatten the SQL orderings to ORDER BY clauses.
+    for order_type in 'windows', 'index':
+        if order_type not in order:
+            continue
+
+        order[order_type] = 'ORDER BY ' + ', '.join('%s %s' % (key, asc_desc) for key, asc_desc in order[order_type])
+
+    return order
 
 class Library:
     """
@@ -423,7 +485,6 @@ class Library:
         # metadata file or from a Windows search result.
         #
         # Don't overwrite data that we got from the file directly.
-        # XXX: bookmarks should cache width/height
         entry['bookmarked'] = file_metadata.get('bookmarked', False)
         entry['bookmark_tags'] = file_metadata.get('bookmark_tags', '')
         if 'width' not in entry:
@@ -572,7 +633,7 @@ class Library:
     def list(self,
         paths,
         *,
-        sort_order='default',
+        sort_order='normal',
         force_refresh=False,
         include_files=True,
         include_dirs=True,
@@ -587,8 +648,12 @@ class Library:
         # Remove any paths that aren't mounted.
         paths = [path for path in paths if self.get_mount_for_path(path)]
 
-        if sort_order == 'default':
+        # The normal sort for directory listings is the natural sort.  Substitute it
+        # here, so the caller doesn't need to figure it out.
+        if sort_order == 'normal':
             sort_order = 'natural'
+        elif sort_order == '-normal':
+            sort_order = '-natural'
 
         # Run scandir for each path, and chain them together into a single iterator.
         iterators = []
@@ -602,13 +667,14 @@ class Library:
             scandir_results = list(scandir_results)
             random.shuffle(scandir_results)
             scandir_results = iter(scandir_results)
-        elif sort_order is not None and sort_orders.get(sort_order):
-            order = sort_orders[sort_order]
-            sorted_results = list(scandir_results)
-            sorted_results.sort(key=order['fs'])
+        elif sort_order is not None:
+            sort_order_info = _get_sort(sort_order)
+            if sort_order_info is not None:
+                sorted_results = list(scandir_results)
+                sorted_results.sort(key=sort_order_info['fs'], reverse=sort_order_info['reverse'])
 
-            # Convert back to an iterator.
-            scandir_results = iter(sorted_results)
+                # Convert back to an iterator.
+                scandir_results = iter(sorted_results)
 
         # Use TransientWriteConnection to commit the transaction during yields.
         write_connection = TransientWriteConnection(self.db)
@@ -767,10 +833,7 @@ class Library:
 
         assert paths
 
-        if sort_order == 'default':
-            sort_order = 'normal'
-
-        sort_order_info = sort_orders.get(sort_order)
+        sort_order_info = _get_sort(sort_order)
 
         # if the sort order is shuffle, disable sorting within the actual searches.
         shuffle = sort_order == 'shuffle'
@@ -879,8 +942,7 @@ class Library:
 
             # If we're sorting, use heapq.merge to merge the two together.  Otherwise, just chain them.
             if sort_order_info:
-                merge_key = sort_order_info['entry']
-                final_search = heapq.merge(search_results_iter, index_results_iter, key=merge_key)
+                final_search = heapq.merge(search_results_iter, index_results_iter, key=sort_order_info['entry'], reverse=sort_order_info['reverse'])
             else:
                 final_search = itertools.chain(search_results_iter, index_results_iter)
 

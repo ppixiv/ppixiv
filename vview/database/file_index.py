@@ -95,7 +95,7 @@ class FileIndex(Database):
 
                     # This should be searched with:
                     #
-                    # SELECT * from file_tags WHERE LOWER(tag) GLOB "pattern*";
+                    # SELECT * from file_tags WHERE LOWER(tag) LIKE "pattern%";
                     #
                     # for the best chance that the search can use the tag index.
                     conn.execute(f'''
@@ -110,7 +110,7 @@ class FileIndex(Database):
 
                     # This should be searched with:
                     #
-                    # SELECT * from bookmark_tags WHERE LOWER(tag) GLOB "pattern*";
+                    # SELECT * from bookmark_tags WHERE LOWER(tag) LIKE "pattern%";
                     #
                     # for the best chance that the search can use the tag index.
                     conn.execute(f'''
@@ -265,15 +265,16 @@ class FileIndex(Database):
         """
         with self.cursor(conn) as cursor:
             # If path includes "/path", we need to delete "/path" and files matching
-            # "/path/*", but not "/path*".
-            path_list = [(str(path), str(path) + os.path.sep + '*') for path in paths]
+            # "/path/%", but not "/path%".
+            path_list = [(str(path), self.escape_like(str(path)) + os.path.sep + '%') for path in paths]
             count = cursor.connection.total_changes
             cursor.executemany(f'''
                 DELETE FROM {self.schema}.files
                 WHERE
                     files.path = ? OR
-                    files.path GLOB ?
+                    files.path LIKE ? ESCAPE "$"
             ''', path_list)
+
             deleted = cursor.connection.total_changes - count
             # print('Deleted %i (%s)' % (deleted, paths))
 
@@ -425,8 +426,8 @@ class FileIndex(Database):
                     # paths are top directories to start searching from.  This is done with a
                     # prefix match against the path: listing "C:\ABCD" recursively matches "C:\ABCD\*".
                     # Directories don't end in a slash, so Include the directory itself explicitly.
-                    path_conds.append(f'({schema}files.path GLOB ? OR {schema}files.path = ?)')
-                    params.append(path + os.path.sep + '*')
+                    path_conds.append(f'({schema}files.path LIKE ? ESCAPE "$" OR {schema}files.path = ?)')
+                    params.append(self.escape_like(path) + os.path.sep + '%')
                     params.append(path)
                 elif mode == self.SearchMode.Subdir:
                     # Only list files directly inside path.
@@ -451,9 +452,9 @@ class FileIndex(Database):
 
             if media_type == 'videos':
                 # Include animation, so searching for videos includes animated GIFs.
-                where.append(f'({schema}mime_type GLOB "video/*" OR animation)')
+                where.append(f'({schema}mime_type LIKE "video/%" OR animation)')
             elif media_type == 'images':
-                where.append(f'{schema}mime_type GLOB "image/*"')
+                where.append(f'{schema}mime_type LIKE "image/%"')
 
         if total_pixels is not None:
             # Minimum total pixels:
