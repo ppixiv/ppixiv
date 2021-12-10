@@ -713,7 +713,9 @@ ppixiv.data_source = class
     // the default selected.
     set_active_popup_highlight(container)
     {
-        for(let button of container.querySelectorAll(".popup-menu-box-button"))
+        // popup-menu-box-button is buttons that have dropdowns.  Only affect .box-link,
+        // so we don't mess with icons that are also buttons for popups.
+        for(let button of container.querySelectorAll(".popup-menu-box-button.box-link"))
         {
             // See if this button has a dropdown menu.  This is set up by dropdown_menu_opener.
             let box = button.dropdownMenuBox;
