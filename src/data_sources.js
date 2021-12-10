@@ -720,23 +720,15 @@ ppixiv.data_source = class
             if(box == null)
                 continue;
 
-            // Find the selected item in the dropdown.
+            // Find the selected item in the dropdown, if any.
             let selected_item = box.querySelector(".selected");
-            if(selected_item == null)
-            {
-                // There's no selected item.  If there's no default item then this is normal.  If
-                // not, this should just be an item for a different data source that isn't being
-                // refreshed right now.
-                continue;
-            }
-
-            let selected_default = selected_item.dataset["default"];
+            let selected_default = selected_item == null || selected_item.dataset["default"];
             helpers.set_class(button, "active", !selected_default);
             helpers.set_class(box, "active", !selected_default);
 
             // Store the original text, so we can restore it when the default is selected.
             if(button.dataset.originalText == null)
-            button.dataset.originalText = button.innerText;
+                button.dataset.originalText = button.innerText;
 
             // If an option is selected, replace the menu button text with the selection's label.
             if(selected_default)
@@ -3476,7 +3468,11 @@ ppixiv.data_sources.local = class extends data_source
         this.set_item2(container, { type: "local-res-medium", fields: {"#pixels": "1000000...3999999"}, current_url: current_args.url });
         this.set_item2(container, { type: "local-res-low", fields: {"#pixels": "...999999"}, current_url: current_args.url });
 
-        this.set_item2(container, {type: "local-shuffle", fields: {"#order": "shuffle"}, toggle: true, current_url: current_args.url });
+        this.set_item2(container, {type: "local-sort-normal", fields: {"#order": null}, current_url: current_args.url });
+        this.set_item2(container, {type: "local-sort-invert", fields: {"#order": "-normal"}, current_url: current_args.url });
+        this.set_item2(container, {type: "local-sort-newest", fields: {"#order": "-ctime"}, current_url: current_args.url });
+        this.set_item2(container, {type: "local-sort-oldest", fields: {"#order": "ctime"}, current_url: current_args.url });
+        this.set_item2(container, {type: "local-sort-shuffle", fields: {"#order": "shuffle"}, toggle: true, current_url: current_args.url });
 
         this.set_active_popup_highlight(container);
         this.refresh_bookmark_tag_list(container);

@@ -286,47 +286,41 @@ let thumbnail_ui = class extends ppixiv.widget
                 </div>
 
                 <div class="data-source-specific" data-datasource=local>
-                    <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.5em;">
-                        <div class="search-box local-tag-search-box">
-                            <div class="input-field-container hover-menu-box">
-                                <input placeholder="Search files">
+                    <div class="search-box local-tag-search-box">
+                        <div class="input-field-container hover-menu-box">
+                            <input placeholder="Search files">
 
-                                <span class="clear-local-search-button right-side-button">
-                                    <span class="material-icons" style="display: block; color: black;">clear</span>                                
-                                </span>
+                            <span class="clear-local-search-button right-side-button">
+                                <span class="material-icons" style="display: block; color: black;">clear</span>                                
+                            </span>
 
-                                <span class="submit-local-search-button right-side-button">
-                                    <span class="material-icons" style="display: block; color: black;">search</span>                                
-                                </span>
-                            </div>
+                            <span class="submit-local-search-button right-side-button">
+                                <span class="material-icons" style="display: block; color: black;">search</span>                                
+                            </span>
                         </div>
+                    </div>
 
+                    <div class="box-button-row">
                         <span class="popup grey-icon copy-local-path" data-popup="Copy local path to clipboard" style="cursor: pointer;">
                             <span class="material-icons">content_copy</span>
                         </span>
 
                         <a class="box-link popup" data-type=local-bookmarks-only data-popup="Show bookmarks" href="#">Bookmarks</a>
 
-                        <div class="box-button-row search-options-row">
-                            <span class="box-link popup-menu-box-button">Type</span>
-                            <div hidden class="popup-menu-box vertical-list">
-                                <a class=box-link data-type=local-type-all data-default=1 href="#ppixiv">All</a>
-                                <a class=box-link data-type=local-type-videos href="#ppixiv">Videos</a>
-                                <a class=box-link data-type=local-type-images href="#ppixiv">Images</a>
-                            </div>
+                        <span class="box-link popup-menu-box-button">Type</span>
+                        <div hidden class="popup-menu-box vertical-list">
+                            <a class=box-link data-type=local-type-all data-default=1 href="#ppixiv">All</a>
+                            <a class=box-link data-type=local-type-videos href="#ppixiv">Videos</a>
+                            <a class=box-link data-type=local-type-images href="#ppixiv">Images</a>
                         </div>
                         
-                        <div class="box-button-row search-options-row">
-                            <span class="box-link popup-menu-box-button">Aspect ratio</span>
-                            <div hidden class="popup-menu-box vertical-list">
+                        <span class="box-link popup-menu-box-button">Aspect ratio</span>
+                        <div hidden class="popup-menu-box vertical-list">
                             <a class=box-link data-type=local-aspect-ratio-all data-default=1>All</a>
                             <a class=box-link data-type=local-aspect-ratio-landscape>Landscape</a>
                             <a class=box-link data-type=local-aspect-ratio-portrait>Portrait</a>
                         </div>
-                        </div>
                         
-
-
                         <span class="box-link popup-menu-box-button">Image size</span>
                         <div hidden class="popup-menu-box vertical-list">
                             <a class=box-link data-type=local-res-all data-default=1 href="#">All</a>
@@ -335,7 +329,15 @@ let thumbnail_ui = class extends ppixiv.widget
                             <a class=box-link data-type=local-res-low href="?wgt=999&hgt=999#ppixiv">Low-res</a>
                         </div>
 
-                        <a class="box-link local-shuffle popup" data-popup="Shuffle" href="#" data-type=local-shuffle>
+                        <span class="box-link popup-menu-box-button">Order</span>
+                        <div hidden class="popup-menu-box vertical-list">
+                            <a class=box-link data-type=local-sort-normal data-default=1 href="#">Name</a>
+                            <a class=box-link data-type=local-sort-invert href="#">Name (inverse)</a>
+                            <a class=box-link data-type=local-sort-newest href="#">Newest</a>
+                            <a class=box-link data-type=local-sort-oldest href="#">Oldest</a>
+                        </div>
+
+                        <a class="box-link local-shuffle popup" data-popup="Shuffle" href="#" data-type=local-sort-shuffle>
                             <span class="material-icons">shuffle</span>
                         </a>
                     </div>
