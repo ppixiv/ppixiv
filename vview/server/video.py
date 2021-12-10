@@ -6,7 +6,7 @@ import asyncio, os, subprocess
 # Is there a lightweight way of doing this?  FFmpeg is enormous and has
 # nasty licensing.  We only need to support WebM and MP4, since those are
 # the only formats that browsers will display anyway.
-ffmpeg = './extern/ffmpeg/bin/ffmpeg'
+ffmpeg = './vview/extern/ffmpeg/bin/ffmpeg'
 
 async def wait_or_kill_process(process):
     """
@@ -75,6 +75,21 @@ class pipe_to_process:
             os.close(self.write)
             self.write = None
 
+async def run_ffmpeg(args, stdin=None):
+    args = list(args)
+    args = [ffmpeg] + args
+    
+    process = await asyncio.create_subprocess_exec(*args,
+        stdin=stdin.read if stdin else subprocess.DEVNULL)#,
+        #stdout=subprocess.DEVNULL)#,
+        #stderr=subprocess.DEVNULL)
+
+    wait = wait_or_kill_process(process)
+    if stdin is not None:
+        return await stdin.send_and_wait(wait)
+    else:
+        return await wait
+
 async def extract_frame(input_file, output_file, seek_seconds, exif_description=None):
     # If input_file is a file on disk, give ffmpeg the filename so it can seek.  If it's
     # a stream (we're reading from a ZIP), feed it through stdin.
@@ -85,9 +100,7 @@ async def extract_frame(input_file, output_file, seek_seconds, exif_description=
     else:
         input_path = str(input_file)
         stdin = None
-
     args = [
-        ffmpeg,
         '-y',
         '-hide_banner',
         '-ss', str(seek_seconds),
@@ -99,35 +112,11 @@ async def extract_frame(input_file, output_file, seek_seconds, exif_description=
         '-pix_fmt', 'yuvj420p',
         output_file,
     ]
-
-    process = await asyncio.create_subprocess_exec(*args,
-        stdin=stdin.read if stdin else subprocess.DEVNULL,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL)
-
-    wait = wait_or_kill_process(process)
-    if stdin is not None:
-        result = await stdin.send_and_wait(wait)
-    else:
-        result = await wait
+    result = await run_ffmpeg(args, stdin=stdin)
 
     # If the file is shorter than seek_seconds, ffmpeg will return success and just
     # not create the file.
     if result != 0 or not output_file.is_file():
         return False
-
-    # Set the file's EXIF description.
-    if False and exif_description is not None:
-        import exif
-        with open(output_file, 'rb') as f:
-            data = f.read()
-
-        exif_dict = exif.Image(data)
-        exif_dict.set('image_description', exif_description)
-
-        data = exif_dict.get_file()
-
-        with open(output_file, 'wb') as f:
-            f.write(data)
 
     return True
