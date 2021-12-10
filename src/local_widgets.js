@@ -243,7 +243,7 @@ ppixiv.tree_widget_item = class extends ppixiv.widget
                     <div class="button-bookmark public enabled bookmarked" hidden>
                         <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
                     </div>
-                    <a class=label></a>
+                    <div class=label></div>
                 </div>
 
                 <div class=items></div>
@@ -572,13 +572,13 @@ class local_navigation_widget_item extends ppixiv.tree_widget_item
         this.container.querySelector(".button-bookmark").hidden = !bookmarked;
 
         // This is useful, but the pointless browser URL popup covering the UI is really annoying...
-        if(this.path)
+        /* if(this.path)
         {
             let label = this.container.querySelector(".label");
             let args = helpers.args.location;
             local_api.get_args_for_id(this.path, args);
             // label.href = args.url.toString();
-        }
+        } */
     }
 
     async onexpand()
