@@ -285,7 +285,7 @@ let thumbnail_ui = class extends ppixiv.widget
                     </div>
                 </div>
 
-                <div class="data-source-specific" data-datasource=local>
+                <div class="data-source-specific" data-datasource=vview>
                     <div class="search-box local-tag-search-box">
                         <div class="input-field-container hover-menu-box">
                             <input placeholder="Search files">
@@ -2002,7 +2002,7 @@ ppixiv.screen_search = class extends ppixiv.screen
     handle_onkeydown(e)
     {
         // Pressing ^F while on the local search focuses the search box.
-        if(this.data_source.name == "local" && e.key.toUpperCase() == "F" && e.ctrlKey)
+        if(this.data_source.name == "vview" && e.key.toUpperCase() == "F" && e.ctrlKey)
         {
             this.container.querySelector(".local-tag-search-box input").focus();
             e.preventDefault();

@@ -3268,9 +3268,9 @@ ppixiv.data_sources.recent = class extends data_source
 }
 
 
-ppixiv.data_sources.local = class extends data_source
+ppixiv.data_sources.vview = class extends data_source
 {
-    get name() { return "local"; }
+    get name() { return "vview"; }
 
     constructor(url)
     {

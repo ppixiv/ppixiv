@@ -124,7 +124,7 @@ ppixiv.page_manager = class
         else if(url.pathname == "/search_user.php")
             return data_sources.search_users;
         else if(url.pathname.startsWith(local_api.path))
-            return data_sources.local;
+            return data_sources.vview;
         else
             return null;
     };
