@@ -1998,5 +1998,16 @@ ppixiv.screen_search = class extends ppixiv.screen
         url.searchParams.append("s_mode", "s_usr");
         helpers.set_page_url(url, true);
     }
+    
+    handle_onkeydown(e)
+    {
+        // Pressing ^F while on the local search focuses the search box.
+        if(this.data_source.name == "local" && e.key.toUpperCase() == "F" && e.ctrlKey)
+        {
+            this.container.querySelector(".local-tag-search-box input").focus();
+            e.preventDefault();
+            e.stopPropagation();
+        }
+    }
 };
 

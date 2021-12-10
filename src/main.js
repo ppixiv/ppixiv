@@ -745,7 +745,7 @@ ppixiv.main_controller = class
         if(document.body.dataset.popupOpen)
             return;
 
-        if(e.keyCode == 27) // escape
+        if(e.key == "Escape")
         {
             e.preventDefault();
             e.stopPropagation();
