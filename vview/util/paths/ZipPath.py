@@ -250,6 +250,10 @@ class ZipPath(PathBase):
         return self._get_our_entry() is not None
 
     @property
+    def parent(self):
+        return ZipPath(shared_zip=self.zip, at=self._path.parent)
+
+    @property
     def suffix(self):
         return self._path.suffix
 

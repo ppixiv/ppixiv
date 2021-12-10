@@ -82,6 +82,10 @@ class FilesystemPath(PathBase):
             return self._path.exists()
 
     @property
+    def parent(self):
+        return FilesystemPath(self.path.parent)
+
+    @property
     def suffix(self):
         return self._path.suffix
 
@@ -169,3 +173,8 @@ class FilesystemPath(PathBase):
 
     def replace(self, target):
         return FilesystemPath(self._path.replace(target))
+
+    # pathlib's mkdir defaults to parents=False, exist=False, which is the opposite
+    # of the thing people want.
+    def mkdir(self, parents=True, exist_ok=True):
+        self._path.mkdir(parents=parents, exist_ok=exist_ok)

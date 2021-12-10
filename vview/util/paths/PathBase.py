@@ -29,7 +29,7 @@ class PathBase:
         Return this file's parent.  If this is a ZIP, this will traverse out of the
         ZIP into the containing filesystem.
         """
-        return self.path.parent
+        raise NotImplemented()
 
     @property
     def suffix(self): raise NotImplemented()
@@ -111,3 +111,4 @@ class PathBase:
     def unlink(self, missing_ok=True): raise NotImplemented()
     def rename(self, target): raise NotImplemented()
     def replace(self, target): raise NotImplemented()
+    def mkdir(self, parents=True, exist_ok=True): raise NotImplemented()
