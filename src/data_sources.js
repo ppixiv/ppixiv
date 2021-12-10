@@ -956,7 +956,7 @@ ppixiv.data_sources.discovery_users = class extends data_source
         {
             result = await helpers.get_request(`/ajax/user/${this.showing_user_id}/recommends`, {
                 userNum: this.users_per_page,
-                workNum: 3,
+                workNum: 8,
                 isR18: true,
                 lang: "en"
             });
