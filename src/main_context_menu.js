@@ -558,6 +558,9 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         this.container.querySelector(".button-fullscreen").addEventListener("click", this.clicked_fullscreen.bind(this));
         this.container.querySelector(".button-zoom").addEventListener("click", this.clicked_zoom_toggle.bind(this));
         this.container.querySelector(".button-browser-back").addEventListener("click", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+
             history.back();
         });
 
@@ -1132,11 +1135,17 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
 
     clicked_return_to_search(e)
     {
+        e.preventDefault();
+        e.stopPropagation();
+
         main_controller.singleton.navigate_out();
     }
 
     clicked_fullscreen(e)
     {
+        e.preventDefault();
+        e.stopPropagation();
+
         if(!document.fullscreenElement)
             document.documentElement.requestFullscreen();
         else
@@ -1146,6 +1155,9 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
     // "Zoom lock", zoom as if we're holding the button constantly
     clicked_zoom_toggle(e)
     {
+        e.preventDefault();
+        e.stopPropagation();
+
         if(!this._is_zoom_ui_enabled)
             return;
         
@@ -1158,6 +1170,9 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
 
     clicked_zoom_level(e)
     {
+        e.preventDefault();
+        e.stopPropagation();
+
         if(!this._is_zoom_ui_enabled)
             return;
 

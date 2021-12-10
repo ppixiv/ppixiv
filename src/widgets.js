@@ -1382,6 +1382,7 @@ ppixiv.toggle_dropdown_menu_widget = class extends ppixiv.illust_widget
 
         this.container.addEventListener("click", (e) => {
             e.preventDefault();
+            e.stopPropagation();
 
             // Ignore clicks if this button isn't enabled.
             if(this.require_image && !this.container.classList.contains("enabled"))
