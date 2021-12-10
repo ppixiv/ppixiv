@@ -24,14 +24,15 @@ class Manager:
         if local_data:
             # Get AppData/Local.
             local_data = Path(os.getenv('LOCALAPPDATA'))
-            data_dir = local_data / 'ppixiv'
+            data_dir = local_data / 'vview'
         else:
             data_dir = Path(os.path.dirname(__file__)) / '../data'
         
-        self._data_dir = data_dir.resolve()
-        self._data_dir.mkdir(parents=True, exist_ok=True)
+        data_dir = open_path(data_dir.resolve())
+        self.data_dir = data_dir
+        self.data_dir.mkdir()
 
-        self.library = Library(self._data_dir)
+        self.library = Library(self.data_dir)
 
         app.on_shutdown.append(self.shutdown)
 
