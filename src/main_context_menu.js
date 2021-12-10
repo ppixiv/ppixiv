@@ -195,6 +195,9 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
         window.addEventListener("keydown", this.onkeyevent);
         window.addEventListener("keyup", this.onkeyevent);
 
+        // Use key_listener to watch for ctrl being held.
+        new key_listener("Control", this.ctrl_pressed.bind(this));
+
         // Work around glitchiness in Chrome's click behavior (if we're in Chrome).
         new fix_chrome_clicks(this.container);
 
@@ -300,30 +303,23 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
             e.stopPropagation();
             return;
         }
+    }
 
-        // Keyboard access to the context menu, to try to make things easier for touchpad
-        // users.
-        let down = e.type == "keydown";
-        let key = e.key.toUpperCase();
-        if(e.key == "Control")
+    ctrl_pressed(down)
+    {
+        if(!settings.get("ctrl_opens_popup"))
+            return;
+
+        this.buttons_down["Control"] = down;
+
+        if(down)
         {
-            if(!settings.get("ctrl_opens_popup"))
-                return;
-
-            e.preventDefault();
-            e.stopPropagation();
-
-            this.buttons_down[e.key] = down;
-
-            if(down)
-            {
-                let x = pointer_listener.latest_mouse_position[0];
-                let y = pointer_listener.latest_mouse_position[1];
-                let node = document.elementFromPoint(x, y);
-                this.show(x, y, node);
-            } else {
-                this.hide_if_all_buttons_released();
-            }
+            let x = pointer_listener.latest_mouse_position[0];
+            let y = pointer_listener.latest_mouse_position[1];
+            let node = document.elementFromPoint(x, y);
+            this.show(x, y, node);
+        } else {
+            this.hide_if_all_buttons_released();
         }
     }
 

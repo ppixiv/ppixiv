@@ -75,6 +75,7 @@ ppixiv.main_controller = class
 
         // Set up the pointer_listener singleton.
         pointer_listener.install_global_handler();
+        new ppixiv.global_key_listener;
 
         // Pixiv scripts that use meta-global-data remove the element from the page after
         // it's parsed for some reason.  Try to get global info from document, and if it's

@@ -2760,6 +2760,138 @@ ppixiv.pointer_listener = class
     }
 }
 
+// This is like pointer_listener, but for watching for keys being held down.
+// This isn't meant to be used for single key events.
+ppixiv.global_key_listener = class
+{
+    static singleton = null;
+
+    constructor()
+    {
+        ppixiv.global_key_listener.singleton = this;
+
+        this.keys_pressed = new Set();
+        this.listeners = new Map(); // by key
+    
+        // Listen to keydown on bubble, so we don't see key presses that were stopped
+        // by the original target, but listen to keyup on capture.
+        window.addEventListener("keydown", (e) => {
+            if(this.keys_pressed.has(e.key))
+                return;
+
+            this.keys_pressed.add(e.key);
+            this.call_listeners_for_key(e.key, true);
+        });
+
+        window.addEventListener("keyup", (e) => {
+            if(!this.keys_pressed.has(e.key))
+                return;
+                console.log("released", e.key);
+
+            this.keys_pressed.delete(e.key);
+            this.call_listeners_for_key(e.key, false);
+        }, true);
+
+        // If the context menu is shown, release all keys, since browsers forget to send
+        // keyup events when the context menu is open.
+        window.addEventListener("contextmenu", async (e) => {
+            // This is a pain.  We need to handle this event as late as possible, to let
+            // all other handlers have a chance to preventDefault.  If we check it now,
+            // contextmenu handlers (like blocking_context_menu_until_timer) can be registered
+            // after us, and we won't see their preventDefault.
+            //
+            // This really wants an option for event listeners that causes it to be run after
+            // other event handlers, but doesn't allow it to preventDefault, for event handlers
+            // that specifically want to know if an event ended up being prevented.  But that
+            // doesn't exist, so instead we just sleep to exit to the event loop, and look at
+            // the event after it's completed.
+            await helpers.sleep(0);
+            if(e.defaultPrevented)
+                return;
+
+            for(let key of this.keys_pressed)
+                this.call_listeners_for_key(key, false);
+
+            this.keys_pressed.deleteAll(e.key);
+        });
+    }
+
+    get_listeners_for_key(key, { create=false }={})
+    {
+        if(!this.listeners.has(key))
+        {
+            if(!create)
+                return [];
+            this.listeners.set(key, new Set);
+        }
+
+        return this.listeners.get(key);
+    }
+
+    // XXX also queue a call
+    register_listener(key, listener)
+    {
+        let listeners_for_key = this.get_listeners_for_key(key, { create: true });
+        listeners_for_key.add(listener);
+        
+        // If key is already pressed, run the callback.  Defer this so we don't call
+        // it while the caller is still registering.
+        setTimeout(() => {
+            // Stop if the listener was unregistered before we got here.
+            if(!this.get_listeners_for_key(key).has(listener))
+                return;
+
+            if(this.keys_pressed.has(key))
+                key_listener.key_changed(true);
+        }, 0);
+    }
+
+    unregister_listener(key, listener)
+    {
+        let listeners_for_key = this.get_listeners_for_key(key, { create: false });
+        if(listeners_for_key)
+            listeners_for_key.delete(listener);
+    }
+
+    call_listeners_for_key = (key, down) =>
+    {
+        let listeners_for_key = this.get_listeners_for_key(key, { create: false });
+        if(listeners_for_key == null)
+            return;
+
+        for(let key_listener of listeners_for_key.values())
+            key_listener.key_changed(down);
+    };
+}
+
+ppixiv.key_listener = class
+{
+    constructor(key, callback, {signal=null}={})
+    {
+        this.key_changed = this.key_changed.bind(this);
+        this.callback = callback;
+        this.pressed = false;
+
+        ppixiv.global_key_listener.singleton.register_listener(key, this);
+
+        if(signal)
+        {
+            signal.addEventListener("abort", (e) => {
+                ppixiv.global_key_listener.singleton.unregister_listener(key, this);
+            });
+        }
+    }
+
+    key_changed(pressed)
+    {
+        if(this.pressed == pressed)
+            return;
+        this.pressed = pressed;
+        
+        this.callback(pressed);
+    }
+}
+
 
 // This is an attempt to make it easier to handle a common problem with
 // asyncs: checking whether what we're doing should continue after awaiting.
