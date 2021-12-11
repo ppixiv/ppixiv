@@ -2786,7 +2786,6 @@ ppixiv.global_key_listener = class
         window.addEventListener("keyup", (e) => {
             if(!this.keys_pressed.has(e.key))
                 return;
-                console.log("released", e.key);
 
             this.keys_pressed.delete(e.key);
             this.call_listeners_for_key(e.key, false);
@@ -2828,7 +2827,6 @@ ppixiv.global_key_listener = class
         return this.listeners.get(key);
     }
 
-    // XXX also queue a call
     register_listener(key, listener)
     {
         let listeners_for_key = this.get_listeners_for_key(key, { create: true });
@@ -2842,7 +2840,7 @@ ppixiv.global_key_listener = class
                 return;
 
             if(this.keys_pressed.has(key))
-                key_listener.key_changed(true);
+                listener.key_changed(true);
         }, 0);
     }
 
