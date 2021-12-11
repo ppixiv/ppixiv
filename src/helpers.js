@@ -2813,7 +2813,7 @@ ppixiv.global_key_listener = class
             for(let key of this.keys_pressed)
                 this.call_listeners_for_key(key, false);
 
-            this.keys_pressed.deleteAll(e.key);
+            this.keys_pressed.clear();
         });
     }
 
