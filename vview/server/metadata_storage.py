@@ -82,7 +82,7 @@ def _save_directory_metadata_locked(directory_path, data):
     if not data:
         this_metadata_filename.unlink(missing_ok=True)
 
-        if this_metadata_filename in _metadata_cache:
+        if os.fspath(this_metadata_filename) in _metadata_cache:
             del _metadata_cache[os.fspath(this_metadata_filename)]
         return
 

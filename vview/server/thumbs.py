@@ -5,7 +5,7 @@ from PIL import Image
 from pathlib import Path
 from shutil import copyfile
 
-from ..util import misc, mjpeg_mkv_to_zip, gif_to_zip, video
+from ..util import misc, mjpeg_mkv_to_zip, gif_to_zip, inpainting, video
 
 resource_path = (Path(__file__) / '../../../resources').resolve()
 blank_image = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=')
@@ -60,7 +60,7 @@ def _image_is_transparent(img):
     else:
         return False
 
-def threaded_create_thumb(path):
+def threaded_create_thumb(path, inpaint_path=None):
     # Thumbnail the image.
     #
     # Don't use PIL's built-in behavior of clamping the size.  It works poorly for
@@ -74,6 +74,19 @@ def threaded_create_thumb(path):
         except OSError as e:
             print('Couldn\'t read %s to create thumbnail: %s' % (path, e))
             return None, None
+
+    # See if we have an inpaint image that we can apply.  We never create these in
+    # response to a thumbnail request, since it's too slow to do in bulk, but use them
+    # if they already exist.  Applying them to thumbnails prevents the un-painted
+    # image from flashing onscreen whenever we're using thumbnails for quick previews.
+    if inpaint_path is not None and inpaint_path.exists():
+        with inpaint_path.open('rb') as f:
+            try:
+                inpaint = Image.open(f)
+                image = inpainting.apply_inpaint(image, inpaint)
+            except OSError as e:
+                # Just log errors for these, don't fail the request.
+                print('Couldn\'t read inpaint %s for thumbnail: %s' % (path, e))
 
     total_pixels = image.size[0]*image.size[1]
     ratio = max_thumbnail_pixels / total_pixels
@@ -172,19 +185,18 @@ async def _extract_video_thumbnail_frame(illust_id, path, data_dir):
     copyfile(poster_path, thumb_path)
     return thumb_path
 
-async def create_thumb(illust_id, absolute_path, mode, *, data_dir):
-    filetype = misc.file_type(str(absolute_path))
-    if filetype == 'video':
-        if mode =='poster':
-            file, mime_type = await _create_video_poster(illust_id, absolute_path, data_dir)
-            return file.read_bytes(), mime_type
-        else:
-            thumb_path = await _extract_video_thumbnail_frame(illust_id, absolute_path, data_dir)
-
-            # Create the thumbnail in the same way we create image thumbs.
-            return await asyncio.to_thread(threaded_create_thumb, thumb_path)
+async def create_video_thumb(illust_id, absolute_path, mode, *, data_dir):
+    if mode =='poster':
+        file, mime_type = await _create_video_poster(illust_id, absolute_path, data_dir)
+        return file.read_bytes(), mime_type
     else:
-        return await asyncio.to_thread(threaded_create_thumb, absolute_path)
+        thumb_path = await _extract_video_thumbnail_frame(illust_id, absolute_path, data_dir)
+
+        # Create the thumbnail in the same way we create image thumbs.
+        return await asyncio.to_thread(threaded_create_thumb, thumb_path)
+
+async def create_thumb(illust_id, absolute_path, *, inpaint_path=None):
+    return await asyncio.to_thread(threaded_create_thumb, absolute_path, inpaint_path=inpaint_path)
 
 def _find_directory_thumbnail(path):
     """
@@ -258,7 +270,16 @@ async def handle_thumb(request, mode='thumb'):
     data_dir = request.app['manager'].library.data_dir
 
     # Generate the thumbnail in a thread.
-    thumbnail_file, mime_type = await create_thumb(path, absolute_path, mode, data_dir=data_dir)
+    filetype = misc.file_type(str(absolute_path))
+    if filetype == 'video':
+        thumbnail_file, mime_type = await create_video_thumb(path, absolute_path, mode, data_dir=data_dir)
+    else:
+        entry = request.app['manager'].library.get(absolute_path)
+        if entry is None:
+            raise aiohttp.web.HTTPNotFound()
+
+        inpaint_path = inpainting.get_inpaint_path_for_entry(entry, request.app['manager'])
+        thumbnail_file, mime_type = await create_thumb(path, absolute_path, inpaint_path=inpaint_path)
     if thumbnail_file is None:
         raise aiohttp.web.HTTPNotFound()
 
@@ -322,3 +343,23 @@ async def handle_mjpeg(request):
             await task
         
         return response
+
+async def handle_inpaint(request):
+    path = request.match_info['path']
+    absolute_path = request.app['manager'].resolve_path(path)
+    if absolute_path is None or not absolute_path.is_file():
+        raise aiohttp.web.HTTPNotFound()
+
+    entry = request.app['manager'].library.get(absolute_path)
+    if entry is None:
+        raise misc.Error('not-found', 'File not in library')
+
+    inpaint_path, inpaint_image, mime_type = await inpainting.create_inpaint_for_entry(entry, request.app['manager'])
+    if inpaint_path is None:
+        # Generating the inpaint failed.
+        raise aiohttp.web.HTTPInternalServerError()
+
+    return FileResponse(inpaint_path, headers={
+        'Cache-Control': 'public, immutable',
+        'Content-Type': mime_type,
+    })

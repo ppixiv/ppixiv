@@ -36,7 +36,7 @@ from pathlib import Path
 from pprint import pprint
 from pathlib import Path, PurePosixPath
 
-from ..util import win32, monitor_changes, windows_search, misc
+from ..util import win32, monitor_changes, windows_search, misc, inpainting
 from . import metadata_storage
 from ..database.file_index import FileIndex
 from ..util.paths import open_path, PathBase
@@ -493,6 +493,18 @@ class Library:
             entry['height'] = file_metadata.get('height')
         if 'aspect_ratio' not in entry:
             entry['aspect_ratio'] = (entry['width'] / entry['height']) if entry.get('height') else None
+        entry['inpaint'] = json.dumps(file_metadata['inpaint']) if 'inpaint' in file_metadata else None
+        entry['inpaint_id'] = file_metadata.get('inpaint_id')
+
+        if 'inpaint_id' in file_metadata:
+            # Only import inpaint_timestamp if we've actually created the inpaint file.
+            # Otherwise, leave it unset until we create it, so the thumbnail URL will change
+            # when it's created.
+            inpaint_path = inpainting.get_inpaint_cache_path(entry['inpaint_id'], data_dir=self._data_dir)
+            if inpaint_path.exists() and 'inpaint_timestamp' in file_metadata:
+                entry['inpaint_timestamp'] = file_metadata['inpaint_timestamp']
+        else:
+                entry['inpaint_timestamp'] = 0
 
         return entry
 
@@ -1052,6 +1064,28 @@ class Library:
 
         # Update the file in the index.
         return self._cache_file(path)
+
+    def get_all_bookmark_tags(self):
+        return self.db.get_all_bookmark_tags()
+
+    def set_inpaint_data(self, entry, inpaint):
+        path = open_path(entry['path'])
+        with metadata_storage.load_and_lock_file_metadata(path) as file_metadata:
+            if inpaint:
+                file_metadata['inpaint'] = inpaint
+                file_metadata['inpaint_id'] = inpainting.get_inpaint_id(path, inpaint)
+                file_metadata['inpaint_timestamp'] = time.time()
+            else:
+                print('deleting inpaint')
+                for key in ('inpaint', 'inpaint_id', 'inpaint_timestamp'):
+                    if key in file_metadata:
+                        file_metadata.pop(key)
+
+            # Store the updated data.
+            metadata_storage.save_file_metadata(path, file_metadata)
+
+        # Update the file in the index.
+        return self.cache_file(path)
 
     def get_all_bookmark_tags(self):
         return self.db.get_all_bookmark_tags()

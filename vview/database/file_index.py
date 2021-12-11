@@ -77,6 +77,11 @@ class FileIndex(Database):
                             codec,
                             animation NOT NULL DEFAULT FALSE,
 
+                            -- The current inpaint data, its filename ID and timestamp.
+                            inpaint,
+                            inpaint_id,
+                            inpaint_timestamp DEFAULT 0 NOT NULL,
+
                             -- If this is a video or an animation, this is the duration in seconds if known.
                             duration
                         )

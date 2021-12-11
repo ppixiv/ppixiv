@@ -1,10 +1,10 @@
-import os, urllib, uuid, time, asyncio
+import os, urllib, uuid, time, asyncio, json, traceback
 from datetime import datetime, timezone
 from pprint import pprint
 from collections import defaultdict
 from pathlib import Path, PurePosixPath
 
-from ..util import misc
+from ..util import misc, inpainting
 from ..util.paths import open_path
 
 handlers = {}
@@ -54,9 +54,17 @@ def get_illust_info(library, entry, base_url):
     illust_id = '%s:%s' % ('folder' if entry['is_directory'] else 'file', public_path)
     is_animation = entry.get('animation')
 
+    # The timestamp to use for URLs affected only by the image time:
+    image_timestamp = entry['mtime']
+
+    # The timestamp to use for URLs affected by image time, as well as any inpainting
+    # edits:
+    image_timestamp_with_inpaint = image_timestamp 
+    image_timestamp_with_inpaint += entry.get('inpaint_timestamp', 0)
+
     # The URLs that this file might have:
     remote_image_path = base_url + '/file/' + urllib.parse.quote(illust_id, safe='/:')
-    remote_thumb_path = base_url + '/thumb/' + urllib.parse.quote(illust_id, safe='/:')
+    remote_thumb_path = f'{base_url}/thumb/{urllib.parse.quote(illust_id, safe="/:")}?{image_timestamp_with_inpaint}'
     remote_poster_path = base_url + '/poster/' + urllib.parse.quote(illust_id, safe='/:')
     remote_mjpeg_path = base_url + '/mjpeg-zip/' + urllib.parse.quote(illust_id, safe='/:')
 
@@ -107,7 +115,7 @@ def get_illust_info(library, entry, base_url):
     if filetype == 'video':
         urls['poster'] = remote_poster_path
 
-    # If this is an MJPEG, reteurn the path to the transformed ZIP.
+    # If this is an MJPEG, return the path to the transformed ZIP.
     if is_animation:
         urls['mjpeg_zip'] = remote_mjpeg_path
 
@@ -140,6 +148,12 @@ def get_illust_info(library, entry, base_url):
         'tagList': tags,
         'duration': entry['duration'],
     }
+
+    # Add the inpaint info if this image has one.
+    if entry.get('inpaint'):
+        image_info['inpaint'] = json.loads(entry['inpaint'])
+        urls['inpaint'] = f'{base_url}/inpaint/{urllib.parse.quote(illust_id, safe="/:")}?{image_timestamp_with_inpaint}'
+        image_info['inpaint_generated'] = entry['inpaint_timestamp'] != 0
 
     return image_info
 
@@ -207,18 +221,30 @@ async def api_bookmark_tags(info):
 async def api_illust(info):
     path = PurePosixPath(info.request.match_info['path'])
     absolute_path = info.manager.resolve_path(path)
+    generate_inpaint = info.data.get('generate_inpaint', True)
 
     entry = info.manager.library.get(absolute_path)
     if entry is None:
         raise misc.Error('not-found', 'File not in library')
 
-    entry = get_illust_info(info.manager.library, entry, info.base_url)
-    if entry is None:
+    illust_info = get_illust_info(info.manager.library, entry, info.base_url)
+    if illust_info is None:
         raise misc.Error('not-found', 'File not in library')
+
+    if generate_inpaint:
+        # We don't generate inpaints when viewing thumbs, since it would take too long.
+        # Generate it if it doesn't exist when image data is requested, since that's when
+        # the user is viewing a single image.  This only matters if the cached data has been
+        # deleted.
+        await inpainting.create_inpaint_for_entry(entry, info.manager)
+
+        # Re-cache the file, so inpaint_timestamp is updated.  It's only imported if the
+        # inpaint file exists.
+        info.manager.library.cache_file(absolute_path)
 
     return {
         'success': True,
-        'illust': entry,
+        'illust': illust_info,
     }
 
 @reg('/list/{type:[^:]+}:{path:.+}')
@@ -419,7 +445,6 @@ def api_list_impl(info):
 async def api_illust(info):
     path = PurePosixPath(info.request.match_info['path'])
     absolute_path = info.manager.resolve_path(path)
-    print(absolute_path)
 
     # XXX
     import subprocess 
@@ -453,4 +478,33 @@ async def api_illust(info):
 
     return {
         'success': True,
+    }
+
+# Edit the inpaint data for an image.
+@reg('/edit-inpainting/{type:[^:]+}:{path:.+}')
+async def api_edit_inpainting(info):
+    path = PurePosixPath(info.request.match_info['path'])
+    absolute_path = info.manager.resolve_path(path)
+
+    inpaint = info.data.get('inpaint', None)
+    assert isinstance(inpaint, list)
+
+    entry = info.manager.library.get(absolute_path)
+    if entry is None:
+        raise misc.Error('not-found', 'File not in library')
+
+    # Save the new inpaint data.  This won't actually generate the inpaint image.
+    entry = info.manager.library.set_inpaint_data(entry, inpaint)
+
+    # Generate the inpaint image now.
+    await inpainting.create_inpaint_for_entry(entry, info.manager)
+
+    # Re-cache the file, so inpaint_timestamp is updated with the new inpaint image's tinestamp.
+    entry = info.manager.library.cache_file(absolute_path)
+
+    illust_info = get_illust_info(info.manager.library, entry, info.base_url)
+
+    return {
+        'success': True,
+        'illust': illust_info,
     }
