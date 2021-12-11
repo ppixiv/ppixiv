@@ -75,9 +75,12 @@ class Build(object):
         """
         # Handle Cygwin and Windows paths.
         cwd = os.getcwd()
-        if cwd.startswith('/cygdrive/'):
+        if cwd.startswith('/cygdrive/'): # /cygdrive/c/path
             parts = cwd.split('/')
             cwd = '%s:/%s' % (parts[2], '/'.join(parts[3:]))
+        elif cwd.startswith('/'): # /c/path
+            parts = cwd.split('/')
+            cwd = '%s:/%s' % (parts[1], '/'.join(parts[2:]))
 
         return 'file:///%s/' % cwd
 
