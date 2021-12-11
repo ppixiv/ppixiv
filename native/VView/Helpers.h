@@ -5,6 +5,6 @@
 #include <string>
 using namespace std;
 
-bool RunApplication(const wstring &args);
+bool RunApplication(const wstring &args, wstring &error, bool always_show_console);
 
 #endif
