@@ -8,6 +8,7 @@ source_files = [
     'src/widgets.js',
     'src/local_api.js',
     'src/local_widgets.js',
+    'src/inpaint_editor.js',
     'src/menu_option.js',
     'src/main_context_menu.js',
     'src/create_zip.js',

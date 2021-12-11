@@ -17,6 +17,10 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         // Create a click and drag viewer for the image.
         this.on_click_viewer = new on_click_viewer(this.container);
 
+        // Create the inpaint editor.  This is passed down to on_click_viewer to group
+        // it with the image, but we create it here and reuse it.
+        this.inpaint_editor = new ppixiv.InpaintEditor({ container: this.container });
+
         main_context_menu.get.on_click_viewer = this.on_click_viewer;
     }
 
@@ -26,6 +30,9 @@ ppixiv.viewer_images = class extends ppixiv.viewer
 
         this.illust_id = illust_id;
         this._page = page;
+
+        // If this is a local image, tell the inpaint editor about it.
+        this.inpaint_editor.set_illust_id(helpers.is_local(this.illust_id)? this.illust_id:null);
 
         // First, load early illust data.  This is enough info to set up the image list
         // with preview URLs, so we can start the image view early.
@@ -53,18 +60,44 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         signal.check();
 
         // Update the list to include the image URLs.
+        this.refresh_from_illust_data();
+    }
+
+    refresh_from_illust_data()
+    {
+        if(this.illust_data == null)
+            return;
+
         this.images = [];
         for(let manga_page of this.illust_data.mangaPages)
         {
             this.images.push({
                 url: manga_page.urls.original,
                 preview_url: manga_page.urls.small,
+                inpaint_url: manga_page.urls.inpaint,
                 width: manga_page.width,
                 height: manga_page.height,
             });
         }
 
         this.refresh();
+    }
+
+    // If illust data changes, refresh in case any image URLs have changed.
+    illust_data_changed()
+    {
+        // If we don't have illust_data, load() is still going.  Don't do anything here,
+        // let it finish and it'll pick up the latest data.
+        if(this.illust_data == null)
+            return;
+
+        // Get the updated illust data.
+        let illust_data = image_data.singleton().get_image_info_sync(this.illust_id);
+        if(illust_data == null)
+            return;
+
+        this.illust_data = illust_data;
+        this.refresh_from_illust_data();
     }
 
     // Note that this will always return JPG if all we have is the preview URL.
@@ -85,6 +118,12 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         {
             this.on_click_viewer.shutdown();
             this.on_click_viewer = null;
+        }
+
+        if(this.inpaint_editor)
+        {
+            this.inpaint_editor.shutdown();
+            this.inpaint_editor = null;
         }
 
         main_context_menu.get.on_click_viewer = null;
@@ -121,9 +160,14 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         this.on_click_viewer.set_new_image({
             url: current_image.url,
             preview_url: current_image.preview_url,
+            inpaint_url: current_image.inpaint_url,
             width: current_image.width,
             height: current_image.height,
             restore_position: this.restore_history? "history":"auto",
+
+            // Only enable inpainting for local images.
+            allow_inpaint: helpers.is_local(this.illust_id),
+
             ondisplayed: (e) => {
                 // Clear restore_history once the image is actually restored, since we
                 // only want to do this the first time.  We don't do this immediately

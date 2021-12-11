@@ -2783,3 +2783,76 @@ svg.heart-image .delete {
 {
     padding: 0.5em;
 }
+
+.inpaint-editor {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1; // above the image
+    pointer-events: none;
+
+    .save-inpaint.dirty {
+        color: #0f0;
+    }
+
+    .inpaint-editor-buttons {
+        font-size: 150%;
+        position: absolute;
+        bottom: 0;
+        pointer-events: auto;
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+.inpaint-editor-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+
+    .inpaint-segment {
+        // inpaint-editor-overlay disables pointer-events.  Turn it back on here.
+        pointer-events: auto;
+
+        &.selected
+        {
+            .inpaint-line {
+                //fill: #000;
+                // stroke: #FFF;
+            }
+        }
+        
+        .inpaint-line {
+            fill: none;
+            stroke: #f00;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            stroke-opacity: 0.75;
+            mix-blend-mode: difference;
+        }
+
+        &:hover {
+            pointer-events: all;
+
+            .inpaint-handle {
+                stroke: #000;
+                opacity: 1;
+            }
+        }
+
+        &:not(.selected) .inpaint-handle {
+            opacity: 0;
+        }
+
+        .inpaint-handle {
+            fill: none;
+            opacity: 0.25;
+            stroke: #000;
+            pointer-events: all;
+        }
+    }
+}

@@ -60,7 +60,7 @@ ppixiv.on_click_viewer = class
 
     // Load the given illust and page.
     set_new_image = async(signal, {
-        url, preview_url,
+        url, preview_url, inpaint_url,
         width, height,
 
         // "history" to restore from history, "auto" to set automatically, or null to
@@ -69,6 +69,9 @@ ppixiv.on_click_viewer = class
 
         // This callback will be run once an image has actually been displayed.
         ondisplayed,
+
+        // True if we should support inpaint images and editing (local only).
+        allow_inpaint=false,
     }={}) =>
     {
         // When quick view displays an image on mousedown, we want to see the mousedown too
@@ -93,6 +96,15 @@ ppixiv.on_click_viewer = class
         let img = document.createElement("img");
         img.src = url? url:helpers.blank_image;
         img.className = "filtering";
+
+        // If inpainting is enabled, wrap the image in an InpaintImageContainer.  This acts like
+        // an image as far as we're concerned.  If inpainting isn't enabled, skip this.
+        if(allow_inpaint)
+        {
+            let inpaint_container = new InpaintImageContainer();
+            inpaint_container.set_image_urls(url, inpaint_url);
+            img = inpaint_container;
+        }
 
         // Create the low-res preview.  This loads the thumbnail underneath the main image.  Don't set the
         // "filtering" class, since using point sampling for the thumbnail doesn't make sense.  If preview_url
@@ -463,6 +475,8 @@ ppixiv.on_click_viewer = class
             // elements inside the container.
             if(e.target != this.img && e.target != this.image_container)
                 return;
+
+            e.preventDefault();
 
             this.image_container.style.cursor = "none";
 

@@ -18,9 +18,9 @@ ppixiv.widget = class
         if(template)
         {
             console.assert(contents == null);
-            console.assert(container != null);
             this.container = this.create_template({html: template});
-            container.appendChild(this.container);
+            if(container != null)
+                container.appendChild(this.container);
         }
         else
         {
@@ -1327,6 +1327,22 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                 });
             },
 
+            edit_inpainting: () => {
+                return new menu_option_button({
+                    ...shared_options,
+                    label: "Edit inpainting",
+                    icon: helpers.create_icon("brush", "16px"),
+                    hide_if_unavailable: true,
+                    requires: ({illust_id}) => {
+                        return illust_id != null && helpers.is_local(illust_id);
+                    },
+                    onclick: () => {
+                        if(ppixiv.InpaintEditor.singleton)
+                            ppixiv.InpaintEditor.singleton.visible = !ppixiv.InpaintEditor.singleton.visible;
+                    }
+                });
+            },
+
             exit: () => {
                 return new menu_option_button({
                     ...shared_options,
@@ -1350,6 +1366,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
 
         this.menu_options.push(menu_options.send_to_tab());
         this.menu_options.push(menu_options.linked_tabs());
+        this.menu_options.push(menu_options.edit_inpainting());
 
         if(!ppixiv.native)
             this.menu_options.push(menu_options.exit());
@@ -1389,6 +1406,8 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
             if(option.options.requires_image && illust_id == null)
                 enable = false;
             if(option.options.requires_user && this.user_id == null)
+                enable = false;
+            if(option.options.requires && !option.options.requires({illust_id: illust_id, user_id: this.user_id}))
                 enable = false;
             if(enable && option.options.available)
                 enable = option.options.available();

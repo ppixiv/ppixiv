@@ -181,7 +181,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
             return;
         }
 
-        // Check if we got illust info.  This usually means it's been deleted.
+        // If we didn't get illust info, the image has probably been deleted.
         if(early_illust_data == null)
         {
             let message = image_data.singleton().get_illust_load_error(illust_id);
@@ -455,6 +455,10 @@ ppixiv.screen_illust = class extends ppixiv.screen
             return;
 
         this.ui.refresh();
+
+        // Tell the view that illust data changed.
+        if(this.viewer?.illust_data_changed)
+            this.viewer.illust_data_changed();
     }
 
     onwheel(e)
