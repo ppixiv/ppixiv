@@ -114,9 +114,10 @@ class Database:
             connection.commit()
 
             took = time.time() - started_at
-            if took > 1:
-                print('Database transaction took a long time (%.1f seconds)' % took)
-                traceback.print_stack()
+
+            # if took > 1:
+            #     print('Database transaction took a long time (%.1f seconds)' % took)
+            #     traceback.print_stack()
 
         finally:
             connection.rollback()
