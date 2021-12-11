@@ -908,6 +908,15 @@ ppixiv.local_search_box_widget = class extends ppixiv.widget
             focus_parent: this.container,
         });
 
+        this.input_element.addEventListener("keydown", (e) => {
+            // Exit the search box if escape is pressed.
+            if(e.key == "Escape")
+            {
+                this.input_element.blur();
+                this.dropdown_widget.hide();
+            }
+        });
+
         this.input_element.addEventListener("focus", this.input_onfocus);
         this.input_element.addEventListener("submit", this.submit_search);
         this.clear_search_button = this.container.querySelector(".clear-local-search-button");
