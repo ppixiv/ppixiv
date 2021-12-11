@@ -27,45 +27,57 @@ let _load_source_file = function(__pixiv, __source) {
 
     env.resources = {};
 
-    let result = await fetch("/client/source-files.js");
-    let source_list = await result.json();
+    let result = await fetch("/client/init.js");
+    let init = await result.json();
 
     // Fetch each source file.  Do this in parallel.
     let source_fetches = {};
-    for(let path of source_list)
+    for(let path of init.source_files)
     {
         // Load the source file.
         source_fetches[path] = fetch(path);
     }
 
+    for(let [path, url] of Object.entries(init.resources))
+    {
+        // Load the resource.
+        source_fetches[path] = fetch(url);
+    }
+
     // Wait for all fetches to complete.
     await Promise.all(Object.values(source_fetches));
 
-    for(let path of source_list)
+    for(let [path, source_fetch] of Object.entries(source_fetches))
     {
-        let source_fetch = await source_fetches[path];
-        let source = await source_fetch.text();
-
-        if(source == null)
+        source_fetch = await source_fetch;
+        let data = null;
+        if(path.endsWith(".png"))
         {
-            // launch() will show an error for this, so don't do it here too.
-            continue;
+            // Load binary resources into object URLs.
+            data = await source_fetch.blob();
+            if(data == null)
+                continue
+            data = URL.createObjectURL(data);
+        }
+        else
+        {
+            data = await source_fetch.text();
+            if(data == null)
+                continue
+
+            // Add sourceURL to each file.  Remove the mtime query so it doesn't clutter logs.
+            let url = new URL(source_fetch.url);
+            url.search = "";
+
+            data += "\n";
+            data += `//# sourceURL=${url}\n`;
         }
 
-        // Add sourceURL to each file, so they show meaningful filenames in logs.
-        // Since we're loading the files as-is and line numbers don't change, we
-        // don't need a source map.
-        //
-        // This uses a path that pretends to be on the same URL as the site, which
-        // seems to be needed to make VS Code map the paths correctly.
-        source += "\n";
-        source += `//# sourceURL=${document.location.origin}/ppixiv/${path}\n`;
-
-        env.resources[path] = source;
+        env.resources[path] = data;
     }
 
     // Load each source file.
-    for(let path of source_list)
+    for(let path of init.source_files)
     {
         let source = env.resources[path];
         if(!source)

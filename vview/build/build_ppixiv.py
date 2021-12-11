@@ -1,4 +1,5 @@
-import base64, collections, errno, glob, json, os, re, sys, subprocess
+import base64, collections, errno, glob, json, io, os, re, sys, subprocess
+from pathlib import Path
 import sass
 from pprint import pprint
 
@@ -64,6 +65,16 @@ class Build(object):
 
         self.create_environment()
         self.resources = self.build_resources()
+
+        # For debug builds, write resources to a file that we can include with @resources, so we
+        # can update them without having to change the debug script.  Write output/resources.js
+        # for when we're in debug mode.
+        output = io.StringIO()
+        for fn, data in self.resources.items():
+            output.write('ppixiv.resources["%s"] = %s;\n' % (fn, data))
+        with open(self.debug_resources_path, 'w+t', encoding='utf-8') as f:
+            f.write(output.getvalue())
+
         self.build_release()
         self.build_debug()
 
@@ -83,6 +94,9 @@ class Build(object):
             cwd = '%s:/%s' % (parts[1], '/'.join(parts[2:]))
 
         return 'file:///%s/' % cwd
+
+    def __init__(self):
+        pass
 
     def get_source_root_url(self):
         """
@@ -109,6 +123,42 @@ class Build(object):
         with open(self.setup_filename, 'w+t', encoding='utf-8') as f:
             f.write(json.dumps(environment, indent=4) + '\n')
 
+    def get_resource_list(self):
+        results = collections.OrderedDict()
+        files = list(glob.glob('resources/*'))
+        files.sort()
+        for path in files:
+            name = path.replace('\\', '/')
+            _, ext = os.path.splitext(name)
+            results[name] = Path(path)
+
+        return results
+
+    def build_css(self, path, source_map_embed=False, embed_source_root=None):
+        # This API's a bit annoying: we have to omit these parameters entirely and not
+        # set them to None if we want an embedded source map.
+        kwargs = { }
+
+        if not source_map_embed:
+            kwargs['source_map_root'] = self.get_source_root_url()
+            kwargs['source_map_filename'] = 'dummy' # or else it doesn't give us a source map
+            kwargs['omit_source_map_url'] = True
+        else:
+            kwargs['source_map_root'] = embed_source_root
+
+        results = sass.compile(filename=str(path),
+                source_comments=True,
+                source_map_embed=source_map_embed,
+                **kwargs)
+
+        # Also, it has a variable number of results depending on whether it's returning
+        # a source map or not.
+        if source_map_embed:
+            data, source_map = results, None
+        else:
+            data, source_map = results
+        return data, source_map
+
     def build_resources(self):
         """
         Compile files in resource/ and inline-resource/ into output/resource.js that we can include as
@@ -117,7 +167,7 @@ class Build(object):
         These are base64-encoded and not easily read in the output file.  We should only use this for
         markup and images and not scripts, since we don't want to obfuscate code in the output.
         """
-        print('Building: %s' % self.debug_resources_path)
+        print('Building resources: %s' % self.debug_resources_path)
 
         source_map_root = self.get_source_root_url()
 
@@ -125,17 +175,11 @@ class Build(object):
         # This prevents the output from changing.
         resources = collections.OrderedDict()
 
-        for fn in glob.glob('resources/*'):
+        for fn, path in self.get_resource_list().items():
             fn = fn.replace('\\', '/')
-            _, ext = os.path.splitext(fn)
-
-            if ext in ('.css', '.scss'):
-                data, source_map = sass.compile(filename=fn,
-                        source_comments=True,
-                        source_map_embed=False,
-                        source_map_root=source_map_root,
-                        source_map_filename='dummy', # or else it doesn't give us a source map
-                        omit_source_map_url=True)
+            ext = path.suffix
+            if ext == '.scss':
+                data, source_map = self.build_css(path)
 
                 # Write out the source map.  Chrome does allow us to reference file:/// URLs in
                 # source map URLs.
@@ -166,15 +210,6 @@ class Build(object):
             # JSON makes these text resources hard to read.  Instead, put them in backticks, escaping
             # the contents.
             resources[fn] = to_javascript_string(data)
-
-        # In release builds, resources are added to ppixiv.resources in the same way as source.
-        #
-        # In debug builds, we write them to a file that we can include with @resources, so we
-        # can update them without having to change the debug script.  Write output/resources.js
-        # for when we're in debug mode.
-        with open(self.debug_resources_path, 'w+t', encoding='utf-8') as f:
-            for fn, data in resources.items():
-                f.write('ppixiv.resources["%s"] = %s;\n' % (fn, data))
 
         return resources
 
