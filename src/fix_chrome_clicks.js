@@ -33,8 +33,7 @@ ppixiv.fix_chrome_clicks = class
         // events for each mouse button, we have to listen to all clicks in window in order
         // to find out if button 0 is pressed.  If the user presses button 2 outside of our
         // container we still want to know about button 0, but that button 0 event might happen
-        // in another element that we don't care about, 
-        // for each 
+        // in another element that we don't care about.
         this.container.addEventListener("pointerdown", this.onpointer, true);
         this.container.addEventListener("pointerup", this.onpointer, true);
         this.container.addEventListener("pointermove", this.onpointer, true);
@@ -73,9 +72,6 @@ ppixiv.fix_chrome_clicks = class
     // deduce what's happening from the button mask.
     onpointer(e)
     {
-        if(e.pointerType != "mouse")
-            return;
-
         if(e.type == "pointerdown")
         {
             // Start listening to move events.  We only need this while a button
