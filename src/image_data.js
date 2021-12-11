@@ -68,7 +68,7 @@ ppixiv.image_data = class
         if(this.image_data[illust_id] != null)
             return Promise.resolve(this.image_data[illust_id]);
 
-        // If there's already a load in progress, just return it.
+        // If there's already a load in progress, return the running promise.
         if(this.illust_loads[illust_id] != null)
             return this.illust_loads[illust_id];
         
@@ -101,12 +101,14 @@ ppixiv.image_data = class
     // If load_user_info is true, we'll attempt to load user info in parallel.  It still
     // needs to be requested with get_user_info(), but loading it here can allow requesting
     // it sooner.
-    async load_image_info(illust_id, illust_data, { load_user_info=false }={})
+    async load_image_info(illust_id, { illust_data=null, load_user_info=false }={})
     {
         // See if we already have data for this image.  If we do, stop.  We always load
         // everything we need if we load anything at all.
         if(this.image_data[illust_id] != null)
             return;
+
+        delete this.nonexistant_illist_ids[illust_id];
 
         // We need the illust data, user data, and ugoira metadata (for illustType 2).  (We could
         // load manga data too, but we currently let the manga view do that.)  We need to know the
@@ -248,19 +250,15 @@ ppixiv.image_data = class
     // Load image info from the local API.
     async _load_local_image_info(illust_id)
     {
-        let illust_data = await local_api.local_post_request(`/api/illust/${illust_id}`);
-
-        if(!illust_data.success)
+        let illust_data = await local_api.load_image_info(illust_id);
+        if(illust_data == null)
         {
-            console.error("Error loading image:", illust_data);
             this.nonexistant_illist_ids[illust_id] = illust_data.message;
             return null;
         }
 
-        local_api.adjust_illust_info(illust_data.illust);
-
-        this.image_data[illust_id] = illust_data.illust;
-        return illust_data.illust;
+        this.image_data[illust_id] = illust_data;
+        return illust_data;
     }
 
     // The user request can either return a small subset of data (just the username,
@@ -430,7 +428,7 @@ ppixiv.image_data = class
     // we have any fetches in the air already, we'll leave them running.
     add_illust_data(illust_data)
     {
-        var load_promise = this.load_image_info(illust_data.illustId, illust_data);
+        var load_promise = this.load_image_info(illust_data.illustId, { illust_data: illust_data });
         this._started_loading_image_info(illust_data.illustId, load_promise);
     }
 

@@ -53,6 +53,20 @@ ppixiv.local_api = class
         return ppixiv.local_api.local_url != null;
     }
 
+    // Load image info from the local API.
+    static async load_image_info(illust_id)
+    {
+        let illust_data = await local_api.local_post_request(`/api/illust/${illust_id}`);
+        if(!illust_data.success)
+        {
+            console.error("Error loading image:", illust_data);
+            return null;
+        }
+
+        local_api.adjust_illust_info(illust_data.illust);
+        return illust_data.illust;
+    }
+
     // Fill in some redundant fields in.  The local API doesn't use mangaPages,
     // but we fill it in from urls so we can treat it the same way.
     static adjust_illust_info(illust)
