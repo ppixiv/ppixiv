@@ -150,8 +150,6 @@ class Library:
     """
     def __init__(self, data_dir):
         self.mounts = {}
-#        self.pending_file_updates = {}
-        self.refresh_event = misc.AsyncEvent()
         self.monitors = {}
         self._data_dir = data_dir
 
@@ -367,45 +365,9 @@ class Library:
         to use to store changes.  This allows batching our updates into a single transaction
         for performance.
 
-        action is either a monitor_changes.FileAction, or 'refresh' if this is from our
-        refresh.
-
         path may be a string.  We'll only convert it to a Path if necessary, since doing this
         for every file is slow.
         """
-        # XXX: this no longer does anything, but we could watch for changes to metadata files
-        return
-        assert isinstance(path, PathBase)
-        
-        # Short-circuit if we don't support this file.  Use is_dir and not is_real_dir so
-        # this doesn't match ZIPs.  If this is REMOVED, we can't tell if this was a directory.
-        if action != monitor_changes.FileAction.FILE_ACTION_REMOVED:
-            if not path.is_dir() and misc.mime_type(os.fspath(path)) is None:
-                # print('Ignored update for unsupported file', path)
-                return
-
-        # Ignore changes to metadata files.  We assume we're the only ones changing
-        # these.  If we allow them to be edited externally, we'd need to figure out
-        # a way to tell if changes we're seeing are ones we made, or else we'd trigger
-        # refreshes endlessly.
-        if path.name == metadata_storage.metadata_filename:
-            return
-        
-        # If a path was renamed, rename them in the index.  This avoids needing to refresh
-        # the whole tree when a directory is simply renamed.
-        if action == monitor_changes.FileAction.FILE_ACTION_RENAMED:
-            self.db.rename(old_path, path, conn=db_conn)
-            return
-        
-        # If the file was removed, delete it from the database.  If this is a directory, this
-        # will remove everything underneath it.
-        if action == monitor_changes.FileAction.FILE_ACTION_REMOVED:
-            print('File removed: %s' % path)
-            self.db.delete_recursively([path], conn=db_conn)
-            return
-
-        assert action in (monitor_changes.FileAction.FILE_ACTION_ADDED, monitor_changes.FileAction.FILE_ACTION_MODIFIED)
-
         # If we receive FILE_ACTION_ADDED for a directory, a directory was either created or
         # moved into our tree.  Scan it for metadata files.  We can't use a quick refresh
         # here, since we often get here before Windows's indexing has caught up.
@@ -416,31 +378,6 @@ class Library:
 
             print('Refreshing added directory: %s' % path)
             await self.refresh(paths=[path])
-            return
-
-        # Don't proactively index everything, or we'll aggressively scan every file.  Skip images
-        # that can be found with Windows search.  Don't skip images with metadata (bookmarks).
-        # Check has_metadata to short circuit this check early, so is_dir() doesn't read ZIP
-        # directories unnecessarily.
-        # XXX: not relevant anymore
-#        has_metadata = metadata_storage.has_file_metadata(path)
-#        if not has_metadata and not path.is_dir() and misc.file_type(path.name) == 'image':
-#            return
-
-#        if action == 'refresh':
-            # Read the file to trigger a refresh.  For speed, only create an unpopulated
-            # entry.
-#            return self._get_entry(path=path, conn=db_conn, populate=False)
-
-        # If this is a FileAction from file monitoring, queue the update.  We often get multiple
-        # change notifications at once, so we queued these to avoid refreshing over and over.
-        # don't refresh on changes, just when the user accesses files
-        # - exception is if we support monitoring to update the client
-    
-#        # print('Queued update for modified file:', path, action)
-#        wait_for = 1
-#        self.pending_file_updates[path] = time.time() + wait_for
-#        self.refresh_event.set()
 
     def _get_entry_from_path(self, path: os.PathLike, *, populate=True, extra_metadata=None):
         """
