@@ -2,12 +2,10 @@ import asyncio, aiohttp, io, os, math, hashlib, base64
 from aiohttp.web_fileresponse import FileResponse
 from datetime import datetime, timezone
 from PIL import Image
-from PIL.ExifTags import TAGS
 from pathlib import Path
 from shutil import copyfile
 
-from . import video
-from ..util import misc, mjpeg_mkv_to_zip, gif_to_zip
+from ..util import misc, mjpeg_mkv_to_zip, gif_to_zip, video
 
 resource_path = (Path(__file__) / '../../../resources').resolve()
 blank_image = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=')
