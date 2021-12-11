@@ -378,9 +378,9 @@ def api_list_impl(info):
         'aspect_ratio': get_range_parameter('aspect_ratio'),
     }
 
-    sort_order = info.data.get('order', 'default')
+    sort_order = info.data.get('order', 'normal')
     if not sort_order:
-        sort_order = 'default'
+        sort_order = 'normal'
 
     # Remove null values from search_options, so it only contains search filters we're
     # actually using.
