@@ -27,16 +27,6 @@ def reg(command):
         return func
     return wrapper
 
-# We generate thumbnails on demand every time they're requested, without caching
-# them.  We only have one client (the local user), so we rely on the browser caching
-# for us.
-#
-# TODO:
-# parallelizing reading image dimensions should speed it up when over a network connection
-# editing libraries
-# mkv/mp4 support
-# gif -> mkv/mp4
-
 class RequestInfo:
     def __init__(self, request, data, base_url):
         self.request = request
@@ -292,7 +282,6 @@ async def api_list(info):
     # skipping ahead to restart a search.
     while True:
         # Get the next page of results.  Run this in a thread.
-        # XXX: run_in_executor so this can be async
         def run():
             try:
                 return next(result_generator)
@@ -440,45 +429,6 @@ def api_list_impl(info):
 
     while True:
         yield flush(last=True)
-
-@reg('/view/{type:[^:]+}:{path:.+}')
-async def api_illust(info):
-    path = PurePosixPath(info.request.match_info['path'])
-    absolute_path = info.manager.resolve_path(path)
-
-    # XXX
-    import subprocess 
-    if os.path.isdir(absolute_path):
-        os.startfile(absolute_path)
-    else:
-        # Work around a Microsoft programmer being braindamaged: everything else in Windows
-        # supports forward slashes in paths, but Explorer is hardcoded to only work with backslashes.
-        # The main application used for navigating files in Windows doesn't know how to parse
-        # pathnames.
-        absolute_path = absolute_path.replace('/', '\\')
-
-        #path = os.path.dirname(absolute_path)
-        #file = os.path.basename(absolute_path)
-        print('->', absolute_path)
-
-        si = subprocess.STARTUPINFO(dwFlags=subprocess.STARTF_USESHOWWINDOW, wShowWindow=1)
-#        si.dwFlags = subprocess.STARTF_USESHOWWINDOW
-
-        proc = subprocess.Popen([
-            'explorer.exe',
-            '/select,',
-            absolute_path,
-        ],
-        creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
-        startupinfo=si)
-        print(dir(proc))
-        print(proc.pid)
-
-        # os.startfile(absolute_path)
-
-    return {
-        'success': True,
-    }
 
 # Edit the inpaint data for an image.
 @reg('/edit-inpainting/{type:[^:]+}:{path:.+}')
