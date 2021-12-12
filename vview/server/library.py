@@ -89,7 +89,7 @@ sort_orders = {
     # This isn't supported for searching, but it's mostly useful for viewing single directories.
     # This is the default sort for Library.list.
     'natural': {
-        'fs': lambda entry: (not entry.is_dir(), *natsort.natsort_key(entry.name)),
+        'fs': lambda entry: (not entry.is_dir(), *natsort.natsort_key(entry.stem)),
     }
 }
 

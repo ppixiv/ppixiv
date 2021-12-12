@@ -90,6 +90,10 @@ class FilesystemPath(PathBase):
         return self._path.suffix
 
     @property
+    def stem(self):
+        return self._path.stem
+
+    @property
     def parts(self):
         return self._path.parts
 

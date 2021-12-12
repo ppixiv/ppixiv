@@ -35,6 +35,9 @@ class PathBase:
     def suffix(self): raise NotImplemented()
 
     @property
+    def stem(self): raise NotImplemented()
+
+    @property
     def parts(self): return self.path.parts
 
     def is_file(self): raise NotImplemented()
@@ -116,4 +119,3 @@ class PathBase:
     def read_bytes(self):
         with self.open('rb') as f:
             return f.read()
-            

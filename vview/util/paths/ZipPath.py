@@ -256,6 +256,10 @@ class ZipPath(PathBase):
     @property
     def suffix(self):
         return self._path.suffix
+        
+    @property
+    def stem(self):
+        return self._path.stem
 
     @property
     def parts(self):
