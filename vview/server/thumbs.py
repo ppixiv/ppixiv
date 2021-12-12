@@ -1,11 +1,12 @@
-import asyncio, aiohttp, io, os, math, hashlib, base64
+import asyncio, aiohttp, io, os, math, hashlib, base64, urllib.parse
 from aiohttp.web_fileresponse import FileResponse
 from datetime import datetime, timezone
 from PIL import Image
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from shutil import copyfile
 
 from ..util import misc, mjpeg_mkv_to_zip, gif_to_zip, inpainting, video
+from ..util.paths import open_path
 
 resource_path = (Path(__file__) / '../../../resources').resolve()
 blank_image = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=')
@@ -367,3 +368,33 @@ async def handle_inpaint(request):
         'Cache-Control': 'public, immutable',
         'Content-Type': mime_type,
     })
+
+async def handle_open(request):
+    """
+    Redirect an absolute filesystem path to view it.
+    """
+    # Note that we don't manager.check_path here.  This isn't loaded from the UI so
+    # it has no referer or origin, and it just redirects to another page.
+    absolute_path = open_path(request.match_info['path'])
+    if not absolute_path.exists():
+        raise aiohttp.web.HTTPNotFound()
+
+    # Get the illust ID for this file or directory.
+    path = PurePosixPath(request.app['manager'].library.get_public_path(absolute_path))
+
+    # If the underlying path is a file, separate the filename.
+    if absolute_path.is_file() and absolute_path.suffix != '.zip':
+        filename = path.name
+        path = path.parent
+    else:
+        filename = None
+
+    url = '/#ppixiv' + urllib.parse.quote(str(path), safe='/: +')
+    if filename:
+        filename = urllib.parse.quote(filename)
+        url += '?view=illust'
+        url += '&file=' + filename
+
+    url = url.replace('+', '%2B')
+    url = url.replace(' ', '+')
+    raise aiohttp.web.HTTPFound(location=url)
