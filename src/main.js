@@ -77,6 +77,9 @@ ppixiv.main_controller = class
         pointer_listener.install_global_handler();
         new ppixiv.global_key_listener;
 
+        // If we're running natively, set the initial URL.
+        await local_api.set_initial_url();
+
         // Pixiv scripts that use meta-global-data remove the element from the page after
         // it's parsed for some reason.  Try to get global info from document, and if it's
         // not there, re-fetch the page to get it.

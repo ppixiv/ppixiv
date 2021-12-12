@@ -76,6 +76,26 @@ ppixiv.local_api = class
         illust.pageCount = 1;
     }
 
+    // This is called early in initialization.  If we're running natively and
+    // the URL is empty, navigate to a default directory, so we don't start off
+    // on an empty page every time.
+    static async set_initial_url()
+    {
+        if(!ppixiv.native || document.location.hash != "")
+            return;
+
+        // Read the folder list.  If we have any mounts, navigate to the first one.  Otherwise,
+        // show folder:/ as a fallback.
+        let illust_id = "folder:/";
+        let result = await local_api.list(illust_id);
+        if(result.results.length)
+            illust_id = result.results[0].id;
+
+        let args = helpers.args.location;
+        local_api.get_args_for_id(illust_id, args);
+        helpers.set_page_url(args, false, "initial");
+    }
+
     // Run a search against the local API.
     //
     // The results will be registered as thumbnail info and returned.
