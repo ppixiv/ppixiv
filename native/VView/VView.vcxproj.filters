@@ -11,4 +11,7 @@
   <ItemGroup>
     <ResourceCompile Include="Resource.rc" />
   </ItemGroup>
+  <ItemGroup>
+    <Image Include="vview-icon.ico" />
+  </ItemGroup>
 </Project>
