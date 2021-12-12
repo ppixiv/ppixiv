@@ -471,6 +471,12 @@ ppixiv.data_source = class
         return "Pixiv";
     }
 
+    // Set the page icon.
+    set_page_icon()
+    {
+        helpers.set_icon();
+    }
+
     // This is implemented by the subclass.
     async load_page_internal(page)
     {
@@ -3408,6 +3414,12 @@ ppixiv.data_sources.vview = class extends data_source
     }
 
     get page_title() { return this.get_displaying_text(); }
+
+    set_page_icon()
+    {
+        helpers.set_icon({vview: true});
+    }
+
     get_displaying_text()
     {
         // If we have a path inside a search, show the path, since we're not showing the

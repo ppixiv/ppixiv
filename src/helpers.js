@@ -1886,15 +1886,18 @@ ppixiv.helpers = {
         helpers.set_page_title(page_title);
     },
 
-    set_icon(illust_data)
+    set_icon({vview=false}={})
     {
-        helpers.set_page_icon(resources['resources/regular-pixiv-icon.png']);
+        if(ppixiv.native || vview)
+            helpers.set_page_icon(resources['resources/vview-icon.png']);
+        else
+            helpers.set_page_icon(resources['resources/regular-pixiv-icon.png']);
     },
 
     set_title_and_icon(illust_data)
     {
         helpers.set_title(illust_data)
-        helpers.set_icon(illust_data)
+        helpers.set_icon()
     },
 
     // Return 1 if the given keydown event should zoom in, -1 if it should zoom

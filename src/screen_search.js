@@ -860,6 +860,7 @@ ppixiv.screen_search = class extends ppixiv.screen
             }
         }
 
+        this.data_source.set_page_icon();
         helpers.set_page_title(this.data_source.page_title || "Loading...");
         
         var ui_box = this.container.querySelector(".thumbnail-ui-box");
