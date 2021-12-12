@@ -201,7 +201,7 @@ class Library:
 
             return PurePosixPath('/' + mount_name) / relative_path
 
-        return PurePosixPath('/root') / path
+        return PurePosixPath('/root') / str(path).replace('\\', '/')
 
     def get_mount_for_path(self, path):
         for mount_name, mount_path in self.mounts.items():

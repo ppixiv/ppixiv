@@ -395,6 +395,7 @@ def api_list_impl(info):
             'success': True,
             'next': not last,
             'results': file_info,
+            'path': str(info.manager.library.get_public_path(path)),
         }
 
         file_info = []
@@ -403,11 +404,11 @@ def api_list_impl(info):
     # If we're not searching and listing the root, just list the libraries.
     if not search_options and str(path) == '/':
         for entry in info.manager.library.get_mountpoint_entries():
-            info = get_illust_info(info, entry, info.base_url)
-            if info is None:
+            illust_info = get_illust_info(info, entry, info.base_url)
+            if illust_info is None:
                 continue
 
-            file_info.append(info)
+            file_info.append(illust_info)
 
         yield flush(last=True)
         return
