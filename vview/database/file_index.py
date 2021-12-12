@@ -410,6 +410,10 @@ class FileIndex(Database):
                 total_pixels = None
                 aspect_ratio = None
 
+            # Video searches require the animation field.
+            if media_type == 'videos' and 'animation' not in available_fields:
+                media_type = None
+
         select_columns = []
         where = []
         params = []
@@ -457,7 +461,7 @@ class FileIndex(Database):
 
             if media_type == 'videos':
                 # Include animation, so searching for videos includes animated GIFs.
-                where.append(f'({schema}mime_type LIKE "video/%" OR animation)')
+                where.append(f'({schema}mime_type LIKE "video/%" OR {schema}animation)')
             elif media_type == 'images':
                 where.append(f'{schema}mime_type LIKE "image/%"')
 
