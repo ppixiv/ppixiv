@@ -231,7 +231,7 @@ async def handle_tree_thumb(request):
 async def handle_thumb(request, mode='thumb'):
     path = request.match_info['path']
     absolute_path = request.app['manager'].resolve_path(path)
-    if absolute_path is None:
+    if not request.app['manager'].check_path(absolute_path, request, throw=False):
         raise aiohttp.web.HTTPNotFound()
     
     # If this is a directory, look for an image inside it to display.
@@ -298,6 +298,8 @@ async def handle_mjpeg(request):
     """
     path = request.match_info['path']
     absolute_path = request.app['manager'].resolve_path(path)
+    if not request.app['manager'].check_path(absolute_path, request, throw=False):
+        raise aiohttp.web.HTTPNotFound()
 
     if not absolute_path.is_file():
         raise aiohttp.web.HTTPNotFound()
@@ -347,7 +349,9 @@ async def handle_mjpeg(request):
 async def handle_inpaint(request):
     path = request.match_info['path']
     absolute_path = request.app['manager'].resolve_path(path)
-    if absolute_path is None or not absolute_path.is_file():
+    if not request.app['manager'].check_path(absolute_path, request, throw=False):
+        raise aiohttp.web.HTTPNotFound()
+    if not absolute_path.is_file():
         raise aiohttp.web.HTTPNotFound()
 
     entry = request.app['manager'].library.get(absolute_path)

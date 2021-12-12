@@ -32,11 +32,10 @@
 # indexing is up to date for a path in order to use quick refresh
 
 import asyncio, collections, errno, itertools, os, time, traceback, json, heapq, natsort, random, math
-from pathlib import Path
 from pprint import pprint
 from pathlib import Path, PurePosixPath
 
-from ..util import win32, monitor_changes, windows_search, misc, inpainting
+from ..util import monitor_changes, windows_search, misc, inpainting
 from . import metadata_storage
 from ..database.file_index import FileIndex
 from ..util.paths import open_path, PathBase
@@ -191,10 +190,8 @@ class Library:
         r"""
         Given an absolute filesystem path inside this library, return the API path.
         
-        For example, if this is "images" pointing to "C:\SomeImages" and path is
+        For example, if the mount named "images" points to "C:\SomeImages" and path is
         "C:\SomeImages\path\image.jpg", return "/images/path/image.jpg".
-
-        Return None if path isn't inside this library.
         """
         for mount_name, mount_path in self.mounts.items():
             try:
@@ -203,7 +200,8 @@ class Library:
                 continue
 
             return PurePosixPath('/' + mount_name) / relative_path
-        return None
+
+        return PurePosixPath('/root') / path
 
     def get_mount_for_path(self, path):
         for mount_name, mount_path in self.mounts.items():
@@ -245,8 +243,6 @@ class Library:
         """
         if paths is None:
             paths = self.mounts
-        else:
-            paths = [Path(path) for path in paths]
 
         for path in paths.values():
             # XXX: don't hold the db open for the entire update
@@ -604,9 +600,6 @@ class Library:
         if not paths:
             paths = self.mounts.values()
 
-        # Remove any paths that aren't mounted.
-        paths = [path for path in paths if self.get_mount_for_path(path)]
-
         # The normal sort for directory listings is the natural sort.  Substitute it
         # here, so the caller doesn't need to figure it out.
         if sort_order == 'normal':
@@ -678,6 +671,8 @@ class Library:
             for mount_name, mount_path in self.mounts.items():
                 entry = self._get_entry(mount_path, conn=conn)
                 assert entry is not None
+                
+                self._convert_to_path(entry)
                 results.append(entry)
         return results
 
@@ -730,12 +725,7 @@ class Library:
                 entry = None
 
         if entry is None:
-            # The file needs to be cached.  Check that the path is actually inside this
-            # library.  For performance, we only do this here so we avoid the Path constructor
-            # when it's not needed.  Up to here, it may be a DirEntry.
-            if self.get_mount_for_path(path) is None:
-                return None
-
+            # The file needs to be cached.
             entry = self._cache_file(path, conn=conn, populate=populate)
             if entry is None:
                 # The file doesn't exist on disk.  Delete any stale entries pointing at
@@ -750,11 +740,11 @@ class Library:
 
     def _convert_to_path(self, entry):
         """
-        FileIndex only deals with string paths.  Our API uses Path.  Convert paths
-        in entry from strings to Path.
+        FileIndex only deals with string paths.  Our API uses BasePath.  Convert paths
+        in entry from strings to BasePath.
         """
-        entry['path'] = Path(entry['path'])
-        entry['parent'] = Path(entry['parent'])
+        entry['path'] = open_path(entry['path'])
+        entry['parent'] = open_path(entry['parent'])
 
     # Searching is a bit tricky.  We have a few things we want to do:
     #

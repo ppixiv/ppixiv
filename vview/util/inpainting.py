@@ -4,7 +4,6 @@ from PIL import Image, ImageFilter
 from io import BytesIO
 from pathlib import Path
 from pprint import pprint
-from ..util.paths import open_path
 
 from . import video
 
@@ -209,12 +208,9 @@ async def create_inpaint_for_entry(entry, manager):
     cache_dir = manager.data_dir / 'inpaint'
     cache_dir.mkdir()
     
-    # XXX: entry['path'] should be a PathBase in the first place
-    path = open_path(entry['path'])
-
     try:
         patch_filename = get_inpaint_path_for_entry(entry, manager)
-        return await create_inpaint_or_wait(path, inpaint, patch_filename=patch_filename)
+        return await create_inpaint_or_wait(entry['path'], inpaint, patch_filename=patch_filename)
     except Exception:
         # Don't let errors with inpainting prevent us from doing anything with the image.
         print('Error generating inpaint')

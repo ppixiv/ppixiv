@@ -3,7 +3,7 @@ from pathlib import Path, PurePosixPath
 from collections import OrderedDict, namedtuple
 
 from ..util import misc
-from ..util.paths import open_path
+from ..util.paths import open_path, PathBase
 from .library import Library
 
 _library_paths = {
@@ -136,3 +136,26 @@ class Manager:
 
         assert len(self.api_list_results) == 0
 
+    def check_path(self, path, request, throw=False):
+        """
+        Return true if path should be accessible to the current request.
+        If throw is true, raise an API exception.
+
+        Note that we mostly rely on the fact that we only run on localhost, so we can
+        only receive requests from the local PC, and we only allow requests from the local
+        system with origin checks.  This is just an extra check to limit what can be
+        accessed by scripts running on Pixiv.
+        """
+        # If path isn't in a mounted directory, only allow access for the local UI.
+        # Otherwise, we'd be giving Pixiv full access to the filesystem.
+        if self.library.get_mount_for_path(path):
+            return True
+
+        if not request['is_local']:
+            print('Not allowing access for non-local request:', path)
+            if throw:
+                raise misc.Error('not-found', 'File not in library')
+            else:
+                return False
+
+        return True

@@ -16,7 +16,7 @@ async def check_origin(request, response):
     """
     Check the Origin header and add CORS headers.
     """
-    origin = request.headers.get('Origin')
+    origin = request.headers.get('Origin') or request.headers.get('Referer')
     if origin is not None:
         # Allow requests from www.pixiv.net and our local client.
         origin_url = urllib.parse.urlparse(origin)
@@ -29,6 +29,22 @@ async def check_origin(request, response):
         response.headers['Access-Control-Allow-Headers'] = 'Accept, Cache-Control, If-None-Match, If-Modified-Since, Origin, Range, X-Requested-With'
         response.headers['Access-Control-Expose-Headers'] = '*'
         response.headers['Access-Control-Max-Age'] = '1000000'
+
+@web.middleware
+async def auth_middleware(request, handler):
+    # We don't do much authentication, since we're running on localhost and can only receive
+    # requests from localhost.  The origin is checked by check_origin, so random sites can't
+    # make requests.  All we do here is set a flag if a request has an origin of localhost,
+    # which means it's from the local UI and not through Pixiv.  We only give access to /root
+    # to access non-mounted directories for the local UI.
+    origin = request.headers.get('Origin') or request.headers.get('Referer')
+    if origin is not None:
+        origin_url = urllib.parse.urlparse(origin)
+        request['is_local'] = origin_url.hostname == '127.0.0.1'
+    else:
+        request['is_local'] = False
+
+    return await handler(request)
 
 def create_handler_for_command(handler):
     async def handle(request):
@@ -110,7 +126,7 @@ async def shutdown_requests(app):
 async def setup(*, set_main_task=None):
     set_main_task()
 
-    app = web.Application(middlewares=[register_request_middleware])
+    app = web.Application(middlewares=[register_request_middleware, auth_middleware])
     app.on_response_prepare.append(check_origin)
     app.on_shutdown.append(shutdown_requests)
 

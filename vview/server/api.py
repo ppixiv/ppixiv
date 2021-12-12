@@ -2,10 +2,9 @@ import os, urllib, uuid, time, asyncio, json, traceback
 from datetime import datetime, timezone
 from pprint import pprint
 from collections import defaultdict
-from pathlib import Path, PurePosixPath
+from pathlib import PurePosixPath
 
 from ..util import misc, inpainting
-from ..util.paths import open_path
 
 handlers = {}
 
@@ -35,12 +34,16 @@ class RequestInfo:
         self.manager = request.app['manager']
 
 # Get info for illust_id.
-def get_illust_info(library, entry, base_url):
+def get_illust_info(info, entry, base_url):
     """
     Return illust info.
     """
-    public_path = library.get_public_path(Path(entry['path']))
+    # Check if this access is allowed.
+    if not info.manager.check_path(entry['path'], info.request):
+        return None
     
+    public_path = info.manager.library.get_public_path(entry['path'])
+
     illust_id = '%s:%s' % ('folder' if entry['is_directory'] else 'file', public_path)
     is_animation = entry.get('animation')
 
@@ -166,12 +169,14 @@ async def api_bookmark_add(info):
     Add a bookmark.  If a bookmark already exists, it will be edited and not replaced.
     """
     path = PurePosixPath(info.request.match_info['path'])
+
     tags = info.data.get('tags', None)
     if tags is not None:
         tags = ' '.join(tags)
 
     # Look up the path.
     absolute_path = info.manager.resolve_path(path)
+    info.manager.check_path(absolute_path, info.request, throw=True)
 
     entry = info.manager.library.get(absolute_path)
     entry = info.manager.library.bookmark_edit(entry, set_bookmark=True, tags=tags)
@@ -186,6 +191,7 @@ async def api_bookmark_delete(info):
     
     # Look up the path.
     absolute_path = info.manager.resolve_path(path)
+    info.manager.check_path(absolute_path, info.request, throw=True)
     entry = info.manager.library.get(absolute_path)
     info.manager.library.bookmark_edit(entry, set_bookmark=False)
 
@@ -217,7 +223,7 @@ async def api_illust(info):
     if entry is None:
         raise misc.Error('not-found', 'File not in library')
 
-    illust_info = get_illust_info(info.manager.library, entry, info.base_url)
+    illust_info = get_illust_info(info, entry, info.base_url)
     if illust_info is None:
         raise misc.Error('not-found', 'File not in library')
 
@@ -397,7 +403,10 @@ def api_list_impl(info):
     # If we're not searching and listing the root, just list the libraries.
     if not search_options and str(path) == '/':
         for entry in info.manager.library.get_mountpoint_entries():
-            info = get_illust_info(info.manager.library, entry, info.base_url)
+            info = get_illust_info(info, entry, info.base_url)
+            if info is None:
+                continue
+
             file_info.append(info)
 
         yield flush(last=True)
@@ -419,9 +428,9 @@ def api_list_impl(info):
     # block.
     for entries in entry_iterator:
         for entry in entries:
-            entry = get_illust_info(info.manager.library, entry, info.base_url)
-            if entry is not None:
-                file_info.append(entry)
+            illust_info = get_illust_info(info, entry, info.base_url)
+            if illust_info is not None:
+                file_info.append(illust_info)
         
         # If we're listing directories only, wait until we have all results.
         if not directories_only and file_info:
@@ -452,7 +461,7 @@ async def api_edit_inpainting(info):
     # Re-cache the file, so inpaint_timestamp is updated with the new inpaint image's tinestamp.
     entry = info.manager.library.cache_file(absolute_path)
 
-    illust_info = get_illust_info(info.manager.library, entry, info.base_url)
+    illust_info = get_illust_info(info, entry, info.base_url)
 
     return {
         'success': True,
