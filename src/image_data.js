@@ -251,14 +251,14 @@ ppixiv.image_data = class
     async _load_local_image_info(illust_id)
     {
         let illust_data = await local_api.load_image_info(illust_id);
-        if(illust_data == null)
+        if(!illust_data.success)
         {
-            this.nonexistant_illist_ids[illust_id] = illust_data.message;
+            this.nonexistant_illist_ids[illust_id] = illust_data.reason;
             return null;
         }
 
-        this.image_data[illust_id] = illust_data;
-        return illust_data;
+        this.image_data[illust_id] = illust_data.illust;
+        return illust_data.illust;
     }
 
     // The user request can either return a small subset of data (just the username,
