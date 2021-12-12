@@ -254,7 +254,7 @@ ppixiv.page_manager = class
         // If we're explicitly enabled but aren't actually available, we're disabled.  This
         // makes sure we don't break pages if we accidentally load them with a #ppixiv hash,
         // or if we remove support for a page that people have in their browser session.
-        return helpers.parse_hash(ppixiv.location) != null && this.available_for_url(ppixiv.location);
+        return helpers.is_ppixiv_url(ppixiv.location) && this.available_for_url(ppixiv.location);
     };
 
     // Given a list of tags, return the URL to use to search for them.  This differs

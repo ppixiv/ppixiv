@@ -1161,6 +1161,9 @@ ppixiv.helpers = {
     // internally without a page navigation.
     make_pixiv_links_internal(root)
     {
+        if(ppixiv.native)
+            return;
+
         for(var a of root.querySelectorAll("A"))
         {
             var url = new URL(a.href, ppixiv.location);
@@ -1296,28 +1299,19 @@ ppixiv.helpers = {
         });
     },
 
-    // Parse the hash portion of our URL.  For example,
-    //
-    // #ppixiv?a=1&b=2
-    //
-    // returns { a: "1", b: "2" }.
-    //
-    // If this isn't one of our URLs, return null.
-    parse_hash: function(url)
+    // Return true if url is one of ours.
+    is_ppixiv_url: function(url)
     {
-        var ppixiv_url = url.hash.startsWith("#ppixiv");
-        if(!ppixiv_url)
-            return null;
-        
-        // Parse the hash of the current page as a path.  For example, if
-        // the hash is #ppixiv/foo/bar?baz, parse it as /ppixiv/foo/bar?baz.
-        var adjusted_url = url.hash.replace(/#/, "/");
-        return new URL(adjusted_url, url);
+        // If we're native, all URLs on this origin are ours.
+        if(ppixiv.native)
+            return new URL(url).origin == document.location.origin;
+        else
+            return url.hash.startsWith("#ppixiv");
     },
 
     get_hash_args: function(url)
     {
-        if(!url.hash.startsWith("#ppixiv"))
+        if(!helpers.is_ppixiv_url(url))
             return { path: "", query: new unsafeWindow.URLSearchParams() };
 
         // The hash looks like:
@@ -1332,7 +1326,11 @@ ppixiv.helpers = {
         //
         // If the hash is #ppixiv/abcd, the hash path is "/abcd".
         // Remove #ppixiv:
-        let hash_path = url.hash.substr(7);
+        let hash_path = url.hash;
+        if(hash_path.startsWith("#ppixiv"))
+            hash_path = hash_path.substr(7);
+        else if(hash_path.startsWith("#"))
+            hash_path = hash_path.substr(1);
 
         // See if we have hash args.
         let idx = hash_path.indexOf('?');
@@ -1460,7 +1458,7 @@ ppixiv.helpers = {
             //
             // For example, if this.hash_path is "a/b/c" and this.hash is { a: "1", b: "2" },
             // set the hash to #ppixiv/a/b/c?a=1&b=2.
-            url.hash = "#ppixiv";
+            url.hash = ppixiv.native? "#":"#ppixiv";
             if(this.hash_path != "")
             {
                 if(!this.hash_path.startsWith("/"))

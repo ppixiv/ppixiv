@@ -128,7 +128,7 @@ ppixiv.main_controller = class
         // still work, but none of the URLs we create will have #ppixiv, so we won't handle navigation
         // directly and the page will reload on every click.  Do this before we create any of our
         // UI, so our links inherit the hash.
-        if(helpers.parse_hash(ppixiv.location) == null)
+        if(!ppixiv.native && !helpers.is_ppixiv_url(ppixiv.location))
         {
             // Don't create a new history state.
             let newURL = new URL(ppixiv.location);
@@ -566,8 +566,7 @@ ppixiv.main_controller = class
 
         // If this isn't a #ppixiv URL, let it run normally.
         var url = new URL(a.href, document.href);
-        var is_ppixiv_url = helpers.parse_hash(url) != null;
-        if(!is_ppixiv_url)
+        if(!helpers.is_ppixiv_url(url))
             return;
 
         // Stop all handling for this link.
