@@ -2793,8 +2793,26 @@ svg.heart-image .delete {
     z-index: 1; // above the image
     pointer-events: none;
 
-    .save-inpaint.dirty {
-        color: #0f0;
+    .save-inpaint {
+        &.dirty {
+            color: #0f0;
+        }
+
+        & .spinner {
+            position: absolute;
+            top: 0;
+            left: 0;
+            background-color: var(--box-link-bg-color);
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            & > span {
+                display: block;
+                font-size: 40px;
+            }
+        }
     }
 
     .inpaint-editor-buttons {
@@ -2804,6 +2822,15 @@ svg.heart-image .delete {
         pointer-events: auto;
         width: 100%;
         justify-content: center;
+    }
+
+    .spin {
+        animation: spin 1000ms linear infinite forwards;
+    }
+    
+    @keyframes spin {
+        0%   { transform: rotate(0); }
+        100% { transform: rotate(360deg); }
     }
 }
 
@@ -2840,12 +2867,17 @@ svg.heart-image .delete {
 
             .inpaint-handle {
                 stroke: #000;
-                opacity: 1;
             }
         }
 
-        &:not(.selected) .inpaint-handle {
+        .inpaint-handle {
             opacity: 0;
+        }
+
+        &.selected .inpaint-handle,
+        &:hover .inpaint-handle
+        {
+            opacity: 1;
         }
 
         .inpaint-handle {

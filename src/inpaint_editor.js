@@ -13,7 +13,12 @@ ppixiv.InpaintEditor = class extends ppixiv.illust_widget
         super({...options, template: `
             <div class=inpaint-editor>
                 <div class="inpaint-editor-buttons box-button-row">
-                    <div class="box-link save-inpaint">Save</div>
+                    <div class="box-link save-inpaint" style="position: relative">
+                        Save
+                        <div class=spinner hidden>
+                            <span style="" class="material-icons spin">refresh</span>
+                        </div>
+                    </div>
                     <div class="box-link view-inpaint">View</div>
                     <div class="box-link create-lines">Create lines</div>
 
@@ -34,7 +39,7 @@ ppixiv.InpaintEditor = class extends ppixiv.illust_widget
                     </div>
                     <div class=box-link>
                         <span>Soften edges</span>
-                        <input class=inpaint-blur type=range min=1 max=5>
+                        <input class=inpaint-blur type=range min=0 max=5>
 
                         <div class="save-default-soften popup" data-popup="Set as default">
                             <div class="material-icons" style="display: block;">push_pin</div>
@@ -62,13 +67,15 @@ ppixiv.InpaintEditor = class extends ppixiv.illust_widget
             this.editor.create_lines = !this.editor.create_lines;
         });
 
-        
         // Update the selected line's thickness when the thickness slider changes.
         this.line_width_slider = this.container.querySelector(".inpaint-line-width");
         this.line_width_slider_box = this.container.querySelector(".inpaint-line-width-box");
         this.line_width_slider.addEventListener("input", (e) => {
+            if(this.editor.selected_line == null)
+                return;
             this.editor.selected_line.thickness = parseInt(this.line_width_slider.value);
         });
+        this.line_width_slider.value = settings.get("inpaint_default_thickness", 10);
 
         // Hide the inpaint while dragging the thickness slider.
         this.pointer_listener = new ppixiv.pointer_listener({
@@ -88,8 +95,15 @@ ppixiv.InpaintEditor = class extends ppixiv.illust_widget
             this.editor.blur = parseFloat(this.blur_slider.value);
         }, { signal: this.shutdown_signal.signal });
         
-        this.container.querySelector(".save-inpaint").addEventListener("click", (e) => {
-            this.inpaint_container.editor.save();
+        let save_inpaint = this.container.querySelector(".save-inpaint");
+        save_inpaint.addEventListener("click", async (e) => {
+            let spinner = save_inpaint.querySelector(".spinner");
+            spinner.hidden = false;
+            try {
+                await this.inpaint_container.editor.save();
+            } finally {
+                spinner.hidden = true;
+            }
         }, { signal: this.shutdown_signal.signal });
 
         let view_inpaint_button = this.container.querySelector(".view-inpaint");
@@ -152,10 +166,15 @@ ppixiv.InpaintEditor = class extends ppixiv.illust_widget
 
     async refresh_internal({ illust_id, illust_data })
     {
+        // Scale the thickness slider to the size of the image.
+        let size = illust_data? Math.min(illust_data.width, illust_data.height):50;
+        this.line_width_slider.max = size / 25;
     }
 
     refresh()
     {
+        super.refresh();
+
         if(this.editor)
         {
             helpers.set_class(this.create_lines_button, "selected", this.editor.create_lines);
@@ -169,7 +188,6 @@ ppixiv.InpaintEditor = class extends ppixiv.illust_widget
             this.blur_slider.value = this.editor.blur;
 
             helpers.set_class(this.container.querySelector(".save-inpaint"), "dirty", this.editor.dirty);
-
         }
     }
 
@@ -776,6 +794,8 @@ ppixiv.InpaintEditorOverlay = class extends ppixiv.illust_widget
         // Deselect the line if it's selected.
         if(this.selected_line_idx == idx)
             this.selected_line = null;
+        if(this.adding_line == line)
+            this.adding_line = null;
 
         this.lines.splice(idx, 1);
         this.refresh_lines();
@@ -959,6 +979,11 @@ ppixiv.LineEditorSegment = class extends ppixiv.widget
             let edit_point = this.edit_points[idx];
             edit_point.setAttribute("cx", segment[0]);
             edit_point.setAttribute("cy", segment[1]);
+
+            let radius = this._thickness / 2;
+            radius = Math.max(radius, 25);
+            edit_point.setAttribute("rx", radius);
+            edit_point.setAttribute("ry", radius);
         }
     }
 }
