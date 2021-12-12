@@ -730,7 +730,7 @@ class Library:
             if entry is None:
                 # The file doesn't exist on disk.  Delete any stale entries pointing at
                 # it.
-                print('Path doesn\'t exist, purging any cached entries: %s' % path)
+                # print('Path doesn\'t exist, purging any cached entries: %s' % path)
                 self.db.delete_recursively([path], conn=conn)
 
         if entry is None:
