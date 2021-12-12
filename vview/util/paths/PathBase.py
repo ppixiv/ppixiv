@@ -112,3 +112,8 @@ class PathBase:
     def rename(self, target): raise NotImplemented()
     def replace(self, target): raise NotImplemented()
     def mkdir(self, parents=True, exist_ok=True): raise NotImplemented()
+
+    def read_bytes(self):
+        with self.open('rb') as f:
+            return f.read()
+            
