@@ -1,5 +1,5 @@
 # Helpers that don't have dependancies on our other modules.
-import asyncio, concurrent, os, io, struct, os, threading, time, traceback, sys
+import asyncio, concurrent, os, io, struct, os, threading, time, traceback, sys, queue
 from contextlib import contextmanager
 from PIL import Image, ExifTags
 from pprint import pprint
@@ -506,3 +506,60 @@ def WriteZip(zip):
     except:
         zip.fp = None
         raise
+
+class ThreadedQueue:
+    """
+    Run an iterator in a thread.  The results are queued, and can be retrieved with
+    an iterator.
+
+    This is used to run searches on a thread, and allow them to complete even if
+    they return more results than we'll return in one page.
+    """
+    def __init__(self, iterator):
+        self.results = queue.Queue()
+        self.iterator = iterator
+        self.cancel = threading.Event()
+
+        self.thread = threading.Thread(target=self._read_results)
+        self.thread.start()
+
+    def _read_results(self):
+        try:
+            for result in self.iterator:
+                if self.cancel.is_set():
+                    break
+
+                if result is None:
+                    continue
+
+                self.results.put(result)
+        finally:
+            self.results.put(None)
+
+    def __iter__(self):
+        return self
+    
+    def __next__(self):
+        # If the queue has been discarded, we've already stopped.
+        if self.results is None:
+            raise StopIteration
+
+        result = self.results.get()
+        if result is None:
+            self._join_thread()
+            raise StopIteration
+
+        return result
+
+    def cancel(self):
+        """
+        Cancel the task, and block is true until the generator has stopped.
+
+        The iterator will receive GeneratorExit the next time it yields a value.
+        """
+        self.cancel.set()
+        self._join_thread()
+
+    def _join_thread(self):
+        self.thread.join()
+        self.results = None

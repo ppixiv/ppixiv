@@ -797,15 +797,9 @@ class Library:
                     sort_order_info = sort_orders['normal']
                     break
 
-        # Normally, disable the timeout for the Windows search.  The search cursor is kept
-        # between page loads and the user might take a long time before loading the next
-        # page, and if we use a timeout, the query will time out while it waits.  Set a
-        # timeout if shuffling is enabled, since we'll be reading the whole result set at
-        # once and it might match tons of files.
-        #
-        # We don't actually want the request to get stuck if a request is made that takes
-        # a very long time, but we don't have a way to cancel it currently.
-        windows_search_timeout = 5 if shuffle else 0
+        # We're waiting synchronously for the Windows search if we're in shuffle and can't
+        # return any results at all until it finishes, so use a smaller timeout.
+        windows_search_timeout = 5 if shuffle else 10
 
         # Don't use Windows search when searching bookmarks.  Bookmarks are always indexed,
         # and the search doesn't help us with them.
@@ -871,7 +865,15 @@ class Library:
 
             final_search = get_shuffled_results()
         else:
-            # We now have our two generators to run the searches.  get_results_from_index and
+            # We now have our two generators to run the searches: windows_search_iter and
+            # index_search_iter.  Wrap both of them in a ThreadedQueue, so they continue
+            # and run to completion in the background, even though we'll only read chunks of
+            # them at a time here.  This prevents us from keeping the Windows search queries
+            # and SQLite transactions open indefinitely.  This doesn't do any of the slower
+            # work of scanning files, just the file search.
+            windows_search_iter = misc.ThreadedQueue(windows_search_iter)
+            index_search_iter = misc.ThreadedQueue(index_search_iter)
+
             # get_results_from_search iterate through those and yield entries.
             def get_results_from_index():
                 for result in index_search_iter:
