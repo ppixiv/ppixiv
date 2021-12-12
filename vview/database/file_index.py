@@ -378,11 +378,6 @@ class FileIndex(Database):
         # match width / height <= -aspect_ratio.
         aspect_ratio=None,
 
-        # If set, only match this exact file ID in the database.  This is used to
-        # check if a loaded entry matches other search filters.
-        # XXX: remove?
-        file_id=None,
-
         # An SQL ORDER BY statement to order results.  See library.sort_orders.
         order=None,
 
@@ -486,10 +481,6 @@ class FileIndex(Database):
             if aspect_ratio[1] is not None:
                 where.append(f'{schema}width/{schema}height <= ?')
                 params.append(aspect_ratio[1])
-
-        if file_id is not None:
-            where.append(f'{schema}files.id = ?')
-            params.append(file_id)
 
         if bookmarked is not None:
             if bookmarked:

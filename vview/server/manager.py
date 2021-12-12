@@ -95,8 +95,6 @@ class Manager:
         self.api_list_results[uuid] = cached_result
         
         # Delete old cached entries.
-        # XXX: we can keep more cached results than this, but we should expire
-        # old active requests after a while so we don't keep searches open forever
         uuids = list(self.api_list_results.keys())
         max_cache_entries = 25
         uuids = uuids[:-max_cache_entries]

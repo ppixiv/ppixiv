@@ -41,7 +41,6 @@ class FilesystemPath(PathBase):
         If this FilesystemPath is being created while iterating a parent directory, direntry
         will be the DirEntry from os.scandir.  This is used to speed up file operations.
         """
-        # XXX: check performance of Path ctor in refreshes
         self._path = Path(path)
         self.stat_cache = None
         self.direntry = direntry
