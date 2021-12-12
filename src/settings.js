@@ -151,4 +151,6 @@ ppixiv.settings.configure("linked_tabs", { session: true });
 ppixiv.settings.configure("linked_tabs_enabled", { session: true, default_value: true });
 ppixiv.settings.configure("volume", { default_value: 1 });
 ppixiv.settings.configure("view_mode", { default_value: "illust" });
+ppixiv.settings.configure("inpaint_editing", { session: true });
+ppixiv.settings.configure("inpaint_create_lines", { session: true });
 

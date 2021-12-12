@@ -120,7 +120,7 @@ ppixiv.InpaintEditor = class extends ppixiv.illust_widget
             console.log("Saved default blur:", value);
         }, { signal: this.shutdown_signal.signal });
 
-        this.visible = false;
+        this.visible = settings.get("inpaint_editing", false);
     }
 
     shutdown()
@@ -193,6 +193,7 @@ ppixiv.InpaintEditor = class extends ppixiv.illust_widget
     {
         super.visibility_changed();
         this.refresh_editor_visibility();
+        settings.set("inpaint_editing", this.visible);
     }
 
     refresh_editor_visibility()
@@ -233,6 +234,8 @@ ppixiv.InpaintEditorOverlay = class extends ppixiv.illust_widget
 
         this.svg = this.container.querySelector(".inpaint-container");
         this.editing_illust_id = null;
+
+        this.create_lines = settings.get("inpaint_create_lines", false);
     }
 
     async refresh_internal({ illust_id, illust_data })
@@ -541,6 +544,8 @@ ppixiv.InpaintEditorOverlay = class extends ppixiv.illust_widget
             return;
 
         this._create_lines = value;
+        settings.set("inpaint_create_lines", this.create_lines);
+
         this.refresh_pointer_events();
 
         // If we're turning quick line creation off and we have an incomplete line,
