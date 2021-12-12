@@ -998,23 +998,31 @@ class Library:
         return self.db.get_all_bookmark_tags()
 
     def set_inpaint_data(self, entry, inpaint):
-        path = open_path(entry['path'])
-        with metadata_storage.load_and_lock_file_metadata(path) as file_metadata:
+        with metadata_storage.load_and_lock_file_metadata(entry['path']) as file_metadata:
+            # If nothing is changing, don't do anything.
+            if file_metadata.get('inpaint') == inpaint:
+                return entry
+
+            # Delete the previous cached inpaint file, if there is one.
+            old_inpaint_id = entry.get('inpaint_id')
+            if old_inpaint_id:
+                old_inpaint_path = inpainting.get_inpaint_cache_path(old_inpaint_id, data_dir=self._data_dir)
+                old_inpaint_path.unlink()
+
             if inpaint:
                 file_metadata['inpaint'] = inpaint
-                file_metadata['inpaint_id'] = inpainting.get_inpaint_id(path, inpaint)
+                file_metadata['inpaint_id'] = inpainting.get_inpaint_id(entry['path'], inpaint)
                 file_metadata['inpaint_timestamp'] = time.time()
             else:
-                print('deleting inpaint')
                 for key in ('inpaint', 'inpaint_id', 'inpaint_timestamp'):
                     if key in file_metadata:
                         file_metadata.pop(key)
 
             # Store the updated data.
-            metadata_storage.save_file_metadata(path, file_metadata)
+            metadata_storage.save_file_metadata(entry['path'], file_metadata)
 
         # Update the file in the index.
-        return self.cache_file(path)
+        return self.cache_file(entry['path'])
 
     def get_all_bookmark_tags(self):
         return self.db.get_all_bookmark_tags()

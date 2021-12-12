@@ -357,7 +357,10 @@ async def handle_inpaint(request):
 
     entry = request.app['manager'].library.get(absolute_path)
     if entry is None:
-        raise misc.Error('not-found', 'File not in library')
+        raise aiohttp.web.HTTPNotFound()
+
+    if not entry.get('inpaint'):
+        raise aiohttp.web.HTTPNotFound()
 
     inpaint_path, inpaint_image, mime_type = await inpainting.create_inpaint_for_entry(entry, request.app['manager'])
     if inpaint_path is None:
