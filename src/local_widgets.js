@@ -602,11 +602,16 @@ class local_navigation_widget_item extends ppixiv.tree_widget_item
 
         this.load_promise = this.load_inner();
 
-        this.load_promise.finally(() => {
-            this.load_promise = null;
-
+        this.load_promise.then((success) => {
+            if(!success)
+                return;
+                
             // Refresh the selection in case this loaded the search we're currently on.
             this.tree.refresh_selection();
+        });
+
+        this.load_promise.finally(() => {
+            this.load_promise = null;
         });
 
         return this.load_promise;
