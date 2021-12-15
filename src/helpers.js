@@ -17,6 +17,7 @@ ppixiv.ElementDisabled = class extends Error
 
 ppixiv.helpers = {
     blank_image: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
+    xmlns: "http://www.w3.org/2000/svg",
     
     remove_array_element: function(array, element)
     {
@@ -3503,3 +3504,32 @@ ppixiv.helpers.path = {
         return combined.join('/');
     },
 };
+
+ppixiv.FixedDOMRect = class extends DOMRect
+{
+    constructor(left, top, right, bottom)
+    {
+        super(left, top, right-left, bottom-top);
+    }
+
+    get left() { return super.left; }
+    set left(value)
+    {
+        let delta = value - this.x;
+        this.x += delta;
+        this.width -= delta;
+    }
+
+    get top() { return super.top; }
+    set top(value)
+    {
+        let delta = value - this.y;
+        this.y += delta;
+        this.height -= delta;
+    }
+
+    get right() { return super.right; }
+    set right(value) { this.width += value - this.right; }
+    get bottom() { return super.bottom; }
+    set bottom(value) { this.height += value - this.bottom; }
+}

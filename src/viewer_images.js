@@ -15,11 +15,21 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         this.load = new SentinelGuard(this.load, this);
 
         // Create a click and drag viewer for the image.
-        this.on_click_viewer = new on_click_viewer(this.container);
+        this.on_click_viewer = new on_click_viewer({
+            container: this.container,
+            onviewcontainerchange: (viewcontainer) => {
+                // Let image_editor know when the overlay container changes.
+                if(viewcontainer instanceof ImageEditingOverlayContainer)
+                    this.image_editor.overlay_container = viewcontainer;
+            },
+        });
 
         // Create the inpaint editor.  This is passed down to on_click_viewer to group
         // it with the image, but we create it here and reuse it.
-        this.inpaint_editor = new ppixiv.InpaintEditor({ container: this.container });
+        this.image_editor = new ppixiv.ImageEditor({
+            container: this.container,
+            onvisibilitychanged: () => { this.refresh(); }, // refresh when crop editing is changed
+        });
 
         main_context_menu.get.on_click_viewer = this.on_click_viewer;
     }
@@ -32,7 +42,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         this._page = page;
 
         // If this is a local image, tell the inpaint editor about it.
-        this.inpaint_editor.set_illust_id(helpers.is_local(this.illust_id)? this.illust_id:null);
+        this.image_editor.set_illust_id(helpers.is_local(this.illust_id)? this.illust_id:null);
 
         // First, load early illust data.  This is enough info to set up the image list
         // with preview URLs, so we can start the image view early.
@@ -49,6 +59,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
             preview_url: early_illust_data.previewUrls[0],
             width: early_illust_data.width,
             height: early_illust_data.height,
+            crop: early_illust_data.crop, // not per-page
         }];
 
         this.refresh();
@@ -77,6 +88,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
                 inpaint_url: manga_page.urls.inpaint,
                 width: manga_page.width,
                 height: manga_page.height,
+                crop: this.illust_data.crop, // not per-page
             });
         }
 
@@ -120,10 +132,10 @@ ppixiv.viewer_images = class extends ppixiv.viewer
             this.on_click_viewer = null;
         }
 
-        if(this.inpaint_editor)
+        if(this.image_editor)
         {
-            this.inpaint_editor.shutdown();
-            this.inpaint_editor = null;
+            this.image_editor.shutdown();
+            this.image_editor = null;
         }
 
         main_context_menu.get.on_click_viewer = null;
@@ -163,10 +175,11 @@ ppixiv.viewer_images = class extends ppixiv.viewer
             inpaint_url: current_image.inpaint_url,
             width: current_image.width,
             height: current_image.height,
+            crop: this.image_editor.editing_crop? null:current_image.crop, // no cropping while editing cropping
             restore_position: this.restore_history? "history":"auto",
 
-            // Only enable inpainting for local images.
-            allow_inpaint: helpers.is_local(this.illust_id),
+            // Only enable editing for local images.
+            enable_editing: helpers.is_local(this.illust_id),
 
             ondisplayed: (e) => {
                 // Clear restore_history once the image is actually restored, since we

@@ -7,7 +7,7 @@
 // more usable than doing things like zooming based on the native resolution.
 ppixiv.on_click_viewer = class
 {
-    constructor(container)
+    constructor({container, onviewcontainerchange})
     {
         this.onresize = this.onresize.bind(this);
         this.pointermove = this.pointermove.bind(this);
@@ -17,8 +17,10 @@ ppixiv.on_click_viewer = class
         this.set_new_image = new SentinelGuard(this.set_new_image, this);
 
         this.image_container = container;
+        this.onviewcontainerchange = onviewcontainerchange;
         this.original_width = 1;
         this.original_height = 1;
+        this._cropped_size = null;
 
         this.center_pos = [0, 0];
 
@@ -71,7 +73,10 @@ ppixiv.on_click_viewer = class
         ondisplayed,
 
         // True if we should support inpaint images and editing (local only).
-        allow_inpaint=false,
+        enable_editing=false,
+
+        // If set, this is a FixedDOMRect to crop the image to.
+        crop=null,
     }={}) =>
     {
         // When quick view displays an image on mousedown, we want to see the mousedown too
@@ -93,18 +98,32 @@ ppixiv.on_click_viewer = class
         if(displaying_same_image)
             restore_position = null;
 
+        let crop_box = document.createElement("div");
+        crop_box.classList.add("crop-box");
+        crop_box.style.position = "relative";
+        crop_box.style.width = "100%";
+        crop_box.style.height = "100%";
+
+        let image_box = document.createElement("div");
+        image_box.classList.add("image-box");
+        image_box.appendChild(crop_box);
+
         let img = document.createElement("img");
         img.src = url? url:helpers.blank_image;
         img.className = "filtering";
+        img.style.width = "100%";
+        img.style.height = "100%";
+        img.style.position = "absolute";
 
-        // If inpainting is enabled, wrap the image in an InpaintImageContainer.  This acts like
-        // an image as far as we're concerned.  If inpainting isn't enabled, skip this.
-        if(allow_inpaint)
+        // If image editing is enabled, wrap the image in an ImageEditingOverlayContainer.  This acts like
+        // an image as far as we're concerned.  If editing isn't enabled, skip this.
+        if(enable_editing)
         {
-            let inpaint_container = new InpaintImageContainer();
+            let inpaint_container = new ImageEditingOverlayContainer();
             inpaint_container.set_image_urls(url, inpaint_url);
             img = inpaint_container;
         }
+        crop_box.appendChild(img);
 
         // Create the low-res preview.  This loads the thumbnail underneath the main image.  Don't set the
         // "filtering" class, since using point sampling for the thumbnail doesn't make sense.  If preview_url
@@ -113,6 +132,10 @@ ppixiv.on_click_viewer = class
         preview_img.src = preview_url? preview_url:helpers.blank_image;
         preview_img.classList.add("low-res-preview");
         preview_img.style.pointerEvents = "none";
+        preview_img.style.width = "100%";
+        preview_img.style.height = "100%";
+        preview_img.style.position = "absolute";
+        crop_box.appendChild(preview_img);
 
         // Get the new image ready before removing the old one, to avoid flashing a black
         // screen while the new image decodes.  This will finish quickly if the preview image
@@ -163,11 +186,25 @@ ppixiv.on_click_viewer = class
         this.remove_images();
         this.original_width = width;
         this.original_height = height;
+        this._cropped_size = crop? new FixedDOMRect(crop[0], crop[1], crop[2], crop[3]):null;
         this.img = img;
         this.preview_img = preview_img;
+        this.image_box = image_box;
+        this.crop_box = crop_box;
 
-        // If the main image is already ready, add it.  Otherwise, add the preview image.
-        this.image_container.appendChild(img_ready? this.img:this.preview_img);
+        this.update_crop();
+
+        // Only show the preview image until we're ready to show the main image.
+        img.hidden = true;
+        preview_img.hidden = true;
+
+        this.image_container.appendChild(image_box);
+
+        // If the main image is already ready, show it.  Otherwise, show the preview image.
+        if(img_ready)
+            this.img.hidden = false;
+        else
+            this.preview_img.hidden = false;
 
         // Restore history or set the initial position, then call reposition() to apply it
         // and do any clamping.  Do this atomically with updating the images, so the caller
@@ -179,6 +216,10 @@ ppixiv.on_click_viewer = class
             this.reset_position();
 
         this.reposition();
+
+        // We've changed the view container, so call onviewcontainerchange.
+        if(this.onviewcontainerchange)
+            this.onviewcontainerchange(img);
 
         // Let the caller know that we've displayed an image.  (We actually haven't since that
         // happens just below, but this is only used to let viewer_images know that history
@@ -216,8 +257,8 @@ ppixiv.on_click_viewer = class
         await decode_promise;
         signal.check();
 
-        this.image_container.appendChild(img);
-        preview_img.remove();
+        this.img.hidden = false;
+        this.preview_img.hidden = true;
     }
 
     async decode_img(img)
@@ -240,17 +281,23 @@ ppixiv.on_click_viewer = class
         // help Chrome with GC delays.
         if(this.img)
         {
-            this.img.remove();
             this.img.src = helpers.blank_image;
             this.img = null;
         }
 
         if(this.preview_img)
         {
-            this.preview_img.remove();
             this.preview_img.src = helpers.blank_image;
             this.preview_img = null;
         }
+
+        if(this.image_box)
+        {
+            this.image_box.remove();
+            this.image_box = null;
+        }
+
+        this.crop_box = null;
     }
 
     shutdown()
@@ -268,7 +315,7 @@ ppixiv.on_click_viewer = class
         // Figure out whether the image is relatively portrait or landscape compared to the screen.
         let screen_width = Math.max(this.container_width, 1); // might be 0 if we're hidden
         let screen_height = Math.max(this.container_height, 1);
-        let aspect = (screen_width/this.original_width) > (screen_height/this.original_height)? "portrait":"landscape";
+        let aspect = (screen_width/this.cropped_width) > (screen_height/this.cropped_height)? "portrait":"landscape";
 
         // Illustration viewing mode:
         //
@@ -471,11 +518,6 @@ ppixiv.on_click_viewer = class
 
         if(e.pressed)
         {
-            // We only want clicks on the image, or on the container backing the image, not other
-            // elements inside the container.
-            if(e.target != this.img && e.target != this.image_container)
-                return;
-
             e.preventDefault();
 
             this.image_container.style.cursor = "none";
@@ -599,12 +641,17 @@ ppixiv.on_click_viewer = class
         if(screen_width == 0 || screen_height == 0)
             return 1;
 
-        return Math.min(screen_width/this.original_width, screen_height/this.original_height);
+        return Math.min(screen_width/this.cropped_width, screen_height/this.cropped_height);
     }
     
+    // If we're cropping, this is the natural size of the crop rectangle.  If we're
+    // not cropping, this is just the size of the image.
+    get cropped_width() { return this._cropped_size? this._cropped_size.width:this.original_width; }
+    get cropped_height() { return this._cropped_size? this._cropped_size.height:this.original_height; }
+
     // Return the width and height of the image when at 1x zoom.
-    get width() { return this.original_width * this._image_to_screen_ratio; }
-    get height() { return this.original_height * this._image_to_screen_ratio; }
+    get width() { return this.cropped_width * this._image_to_screen_ratio; }
+    get height() { return this.cropped_height * this._image_to_screen_ratio; }
 
     // The actual size of the image with its current zoom.
     get onscreen_width() { return this.width * this._zoom_factor_current; }
@@ -667,39 +714,61 @@ ppixiv.on_click_viewer = class
             this.center_pos[0] = 0.5; // center horizontally
         if(screen_height >= zoomed_height)
             this.center_pos[1] = 0.5; // center vertically
-    
-        // Normally (when unzoomed), the image is centered.
-        let [x, y] = this.current_zoom_pos;
 
-        this.img.style.width = this.width + "px";
-        this.img.style.height = this.height + "px";
-        this.img.style.position = "absolute";
+        let x = screen_width/2;
+        let y = screen_height/2;
+        
+        // current_zoom_pos is the position that should be centered on screen.  At
+        // [0.5,0.5], the image is centered.
+        let [pos_x, pos_y] = this.current_zoom_pos;
+        x -= pos_x * zoomed_width;
+        y -= pos_y * zoomed_height;
+
+        // Only shift by integer amounts.  This only matters when at 1:1, so there's
+        // no subpixel offset.
+        x = Math.round(x);
+        y = Math.round(y);
+        
+        this.image_box.style.width = Math.round(zoomed_width) + "px";
+        this.image_box.style.height = Math.round(zoomed_height) + "px";
+        this.image_box.style.position = "relative";
 
         // We can either use CSS positioning or transforms.  Transforms used to be a lot
         // faster, but today it doesn't matter.  However, with CSS positioning we run into
         // weird Firefox compositing bugs that cause the image to disappear after zooming
         // and opening the context menu.  That's hard to pin down, but since it doesn't happen
         // with translate, let's just use that.
-        this.img.style.transformOrigin = "0 0";
-        this.img.style.transform = 
-            `translate(${screen_width/2}px, ${screen_height/2}px) ` +
-            `scale(${zoom_factor}) ` +
-            `translate(${-this.width * x}px, ${-this.height * y}px) ` +
-        ``;
-        this.img.style.right = "auto";
-        this.img.style.bottom = "auto";
+        this.image_box.style.transformOrigin = "0 0";
+        this.image_box.style.transform = `translate(${x}px, ${y}px)`;
+        this.image_box.style.right = "auto";
+        this.image_box.style.bottom = "auto";
+    }
 
-        // If we have a secondary (preview) image, put it in the same place as the main image.
-        if(this.preview_img)
+    update_crop()
+    {
+        helpers.set_class(this.image_box, "cropping", this._cropped_size != null);
+
+        // If we're not cropping, just turn the crop box off entirely.
+        if(this._cropped_size == null)
         {
-            this.preview_img.style.width = this.width + "px";
-            this.preview_img.style.height = this.height + "px";
-            this.preview_img.style.position = "absolute";
-            this.preview_img.style.right = "auto";
-            this.preview_img.style.bottom = "auto";
-            this.preview_img.style.transformOrigin = "0 0";
-            this.preview_img.style.transform = this.img.style.transform;
+            this.crop_box.style.width = "100%";
+            this.crop_box.style.height = "100%";
+            this.crop_box.style.transformOrigin = "0 0";
+            this.crop_box.style.transform = "";
+            return;
         }
+
+        // Crop the image by scaling up crop_box to cut off the right and bottom,
+        // then shifting left and up.  The size is relative to image_box, so this
+        // doesn't actually increase the image size.
+        let crop_width = this._cropped_size.width / this.original_width;
+        let crop_height = this._cropped_size.height / this.original_height;
+        let crop_left = this._cropped_size.left / this.original_width;
+        let crop_top = this._cropped_size.top / this.original_height;
+        this.crop_box.style.width = `${(1/crop_width)*100}%`;
+        this.crop_box.style.height = `${(1/crop_height)*100}%`;
+        this.crop_box.style.transformOrigin = "0 0";
+        this.crop_box.style.transform = `translate(${-crop_left*100}%, ${-crop_top*100}%)`;
     }
 
     // Restore the pan and zoom state from history.

@@ -1,24 +1,17 @@
 "use strict";
 
-let xmlns = "http://www.w3.org/2000/svg";
-
-// The inpaint editor has two parts: InpaintEditor, for hovering UI elements, and
-// InpaintEditorOverlay, which sits on top of the editor and scales with it.  Most of
-// the work happens in InpaintEditorOverlay, and it stores all state, undo, etc.
-ppixiv.InpaintEditor = class extends ppixiv.illust_widget
+ppixiv.InpaintEditor = class extends ppixiv.widget
 {
-    static singleton = null;
     constructor(options)
     {
         super({...options, template: `
             <div class=inpaint-editor>
-                <div class="inpaint-editor-buttons box-button-row">
-                    <div class="box-link save-inpaint" style="position: relative">
-                        Save
-                        <div class=spinner hidden>
-                            <span style="" class="material-icons spin">refresh</span>
-                        </div>
-                    </div>
+                <!-- This node is removed and placed on top of the image.-->
+                <div class=inpaint-editor-overlay>
+                    <svg class=inpaint-container width=100% height=100% viewBox="0 0 1 1"></svg>
+                </div>
+
+                <div class="image-editor-button-row box-button-row">
                     <div class="box-link view-inpaint">View</div>
                     <div class="box-link create-lines">Create lines</div>
 
@@ -46,34 +39,43 @@ ppixiv.InpaintEditor = class extends ppixiv.illust_widget
                         </div>
                     </div>
                 </div>
-
-
             </div>
         `});
 
+        this.pointermove_drag_point = this.pointermove_drag_point.bind(this);
+        this.onmousehover = this.onmousehover.bind(this);
+
         this.shutdown_signal = new AbortController();
 
-        // There should only be one of these at a time.
-        console.assert(ppixiv.InpaintEditor.singleton == null);
-        ppixiv.InpaintEditor.singleton = this;
+        this.width = 100;
+        this.height = 100;
+        this.lines = [];
+        this._downscale_ratio = 1;
+        this._blur = 0;
 
-        // Prevent fullscreen doubleclicks on UI buttons.
-        this.container.addEventListener("dblclick", (e) => {
-            e.stopPropagation();
-        });
+        this.dragging_segment_point = -1;
+        this.drag_start = null;
+        this.selected_line_idx = -1;
+
+        // Remove .inpaint-editor-overlay.  It's inserted into the image overlay when we
+        // have one, so it pans and zooms with the image.
+        this.editor_overlay = this.container.querySelector(".inpaint-editor-overlay");
+        this.editor_overlay.remove();
+        this.editor_overlay.slot = "inpaint-editor";
+        this.svg = this.editor_overlay.querySelector(".inpaint-container");
 
         this.create_lines_button = this.container.querySelector(".create-lines");
         this.create_lines_button.addEventListener("click", (e) => {
-            this.editor.create_lines = !this.editor.create_lines;
+            this.create_lines = !this.create_lines;
         });
 
         // Update the selected line's thickness when the thickness slider changes.
         this.line_width_slider = this.container.querySelector(".inpaint-line-width");
         this.line_width_slider_box = this.container.querySelector(".inpaint-line-width-box");
         this.line_width_slider.addEventListener("input", (e) => {
-            if(this.editor.selected_line == null)
+            if(this.selected_line == null)
                 return;
-            this.editor.selected_line.thickness = parseInt(this.line_width_slider.value);
+            this.selected_line.thickness = parseInt(this.line_width_slider.value);
         });
         this.line_width_slider.value = settings.get("inpaint_default_thickness", 10);
 
@@ -81,31 +83,22 @@ ppixiv.InpaintEditor = class extends ppixiv.illust_widget
         this.pointer_listener = new ppixiv.pointer_listener({
             element: this.line_width_slider,
             callback: (e) => {
-                this._inpaint_container.hide_inpaint = e.pressed;
+                this._overlay_container.hide_inpaint = e.pressed;
             },
         });
 
         this.downscale_slider = this.container.querySelector(".inpaint-downscale");
         this.downscale_slider.addEventListener("change", (e) => {
-            this.editor.downscale_ratio = parseFloat(this.downscale_slider.value);
+            this.parent.save_undo();
+            this.downscale_ratio = parseFloat(this.downscale_slider.value);
         }, { signal: this.shutdown_signal.signal });
 
         this.blur_slider = this.container.querySelector(".inpaint-blur");
         this.blur_slider.addEventListener("change", (e) => {
-            this.editor.blur = parseFloat(this.blur_slider.value);
+            this.parent.save_undo();
+            this.blur = parseFloat(this.blur_slider.value);
         }, { signal: this.shutdown_signal.signal });
         
-        let save_inpaint = this.container.querySelector(".save-inpaint");
-        save_inpaint.addEventListener("click", async (e) => {
-            let spinner = save_inpaint.querySelector(".spinner");
-            spinner.hidden = false;
-            try {
-                await this.inpaint_container.editor.save();
-            } finally {
-                spinner.hidden = true;
-            }
-        }, { signal: this.shutdown_signal.signal });
-
         let view_inpaint_button = this.container.querySelector(".view-inpaint");
         this.pointer_listener = new ppixiv.pointer_listener({
             element: view_inpaint_button,
@@ -134,70 +127,70 @@ ppixiv.InpaintEditor = class extends ppixiv.illust_widget
             console.log("Saved default blur:", value);
         }, { signal: this.shutdown_signal.signal });
 
-        this.visible = settings.get("inpaint_editing", false);
+        this.pointer_listener = new ppixiv.pointer_listener({
+            element: this.editor_overlay,
+            callback: this.pointerevent.bind(this),
+            signal: this.shutdown_signal.signal,
+        });
+
+        // This is a pain.  We want to handle clicks when modifier buttons are pressed, and
+        // let them through otherwise so panning works.  Every other event system lets you
+        // handle or not handle a mouse event and have it fall through if you don't handle
+        // it, but CSS won't.  Work around this by watching for our modifier keys and setting
+        // pointer-events: none as needed.
+        this.ctrl_pressed = false;
+        for(let modifier of ["Control", "Alt", "Shift"])
+        {
+            new ppixiv.key_listener(modifier, (pressed) => {
+                this.ctrl_pressed = pressed;
+                this.refresh_pointer_events();
+            }, {
+                signal: this.shutdown_signal.signal
+            });
+        }
+
+        this._create_lines = settings.get("inpaint_create_lines", false);
+
+        // Prevent fullscreening if a UI element is double-clicked.
+        this.editor_overlay.addEventListener("dblclick", this.ondblclick.bind(this), { signal: this.shutdown_signal.signal });
+        this.editor_overlay.addEventListener("mouseover", this.onmousehover, { signal: this.shutdown_signal.signal });
+
+        this.refresh_pointer_events();
     }
 
     shutdown()
     {
+        // Signal shutdown_signal to remove event listeners.
         console.assert(this.shutdown_signal != null);
         this.shutdown_signal.abort();
         this.shutdown_signal = null;
-        ppixiv.InpaintEditor.singleton = null;
+
+        // Clear lines when shutting down so we remove their event listeners.
+        this.clear();
 
         this.container.remove();
     }
-    
-    // When an InpaintImageContainer is created, it calls this so we know about it.  When
-    // it's done, this is called with null.
-    set inpaint_container(inpaint_container)
+
+    // This is called when the ImageEditingOverlayContainer changes.
+    set overlay_container(overlay_container)
     {
-        this._inpaint_container = inpaint_container;
-        this.editor = inpaint_container?.editor;
-        this.refresh();
-
-        if(this._inpaint_container == null)
-            return;
-
-        // Sync up the editor's visibility with ours.
-        this.refresh_editor_visibility();
-        this.editor.set_illust_id(this.illust_id);
-    }
-    get inpaint_container() { return this._inpaint_container; }
-
-    async refresh_internal({ illust_id, illust_data })
-    {
-        // Scale the thickness slider to the size of the image.
-        let size = illust_data? Math.min(illust_data.width, illust_data.height):50;
-        this.line_width_slider.max = size / 25;
+        console.assert(overlay_container instanceof ImageEditingOverlayContainer)
+        if(this.editor_overlay.parentNode)
+            this.editor_overlay.remove();
+        overlay_container.appendChild(this.editor_overlay);
+        this._overlay_container = overlay_container;
     }
 
     refresh()
     {
         super.refresh();
 
-        if(this.editor)
-        {
-            helpers.set_class(this.create_lines_button, "selected", this.editor.create_lines);
+        helpers.set_class(this.create_lines_button, "selected", this.create_lines);
 
-            // this.line_width_slider.disabled = this.editor.selected_line == null;
-            // helpers.set_class(this.line_width_slider_box, "disabled", this.line_width_slider.disabled);
-
-            if(this.editor.selected_line)
-                this.line_width_slider.value = this.editor.selected_line.thickness;
-            this.downscale_slider.value = this.editor.downscale_ratio;
-            this.blur_slider.value = this.editor.blur;
-
-            helpers.set_class(this.container.querySelector(".save-inpaint"), "dirty", this.editor.dirty);
-        }
-    }
-
-    // Pass the illust ID to the overlay too.
-    set_illust_id(illust_id)
-    {
-        super.set_illust_id(illust_id);
-
-        if(this.editor != null)
-            this.editor.set_illust_id(illust_id)
+        if(this.selected_line)
+            this.line_width_slider.value = this.selected_line.thickness;
+        this.downscale_slider.value = this.downscale_ratio;
+        this.blur_slider.value = this.blur;
     }
 
     update_menu(menu_container)
@@ -210,62 +203,15 @@ ppixiv.InpaintEditor = class extends ppixiv.illust_widget
     visibility_changed()
     {
         super.visibility_changed();
-        this.refresh_editor_visibility();
-        settings.set("inpaint_editing", this.visible);
+        this.editor_overlay.hidden = !this.visible;
     }
 
-    refresh_editor_visibility()
+    set_illust_data(illust_data)
     {
-        if(this.editor)
-            this.editor.visible = this.visible;
-    }
-}
+        // Scale the thickness slider to the size of the image.
+        let size = illust_data? Math.min(illust_data.width, illust_data.height):50;
+        this.line_width_slider.max = size / 25;
 
-ppixiv.InpaintEditorOverlay = class extends ppixiv.illust_widget
-{
-    constructor({inpaint_image_container, ...options})
-    {
-        super({...options, template: `
-            <div class=inpaint-editor-overlay>
-                <svg class=inpaint-container width=100% height=100% viewBox="0 0 1 1">
-                </svg>
-            </div>
-        `});
-        
-        this.pointermove_drag_point = this.pointermove_drag_point.bind(this);
-
-        // The InpaintImageContainer.  We have access to this so we can show and hide
-        // the inpaint.
-        this.inpaint_image_container = inpaint_image_container;
-
-        this.width = 100;
-        this.height = 100;
-        this.lines = [];
-        this._downscale_ratio = 1;
-        this._blur = 0;
-        this._dirty = false;
-        this.undo_stack = [];
-
-        this.dragging_segment_point = -1;
-        this.drag_start = null;
-        this.selected_line_idx = -1;
-
-        this.svg = this.container.querySelector(".inpaint-container");
-        this.editing_illust_id = null;
-
-        this.create_lines = settings.get("inpaint_create_lines", false);
-    }
-
-    async refresh_internal({ illust_id, illust_data })
-    {
-        // If the illust ID hasn't changed, don't reimport data from illust_data.  Just
-        // import it once when illust_id is set so we don't erase edits.
-        if(illust_id == this.editing_illust_id)
-            return;
-
-        this.undo_stack = [];
-        this.redo_stack = [];
-        this.editing_illust_id = illust_id;
         this.clear();
 
         if(illust_data == null)
@@ -282,25 +228,17 @@ ppixiv.InpaintEditorOverlay = class extends ppixiv.illust_widget
             this.downscale_ratio = settings.get("inpaint_default_downscale", 1);
             this.blur = settings.get("inpaint_default_blur", 0);
         }
-
-        // We just loaded, so clear dirty.
-        this.dirty = false;
     }
 
-    async save()
+    get_data_to_save()
     {
-        let result = await local_api.local_post_request(`/api/edit-inpainting/${this.illust_id}`, {
+        return {
             inpaint: this.get_inpaint_data({for_saving: true}),
-        });
-
-        if(!result.success)
-        {
-            console.error("Error saving inpaint:", result);
-            return;
         }
+    }
 
-        this.dirty = false;
-
+    async after_save(result)
+    {
         let illust = result.illust;
         if(illust.urls.inpaint)
         {
@@ -327,6 +265,8 @@ ppixiv.InpaintEditorOverlay = class extends ppixiv.illust_widget
         thumbnail_data.singleton().update_illust_data(illust.id, {
             previewUrls: [illust.urls.small],
         });
+
+        return true;
     }
 
     // Return inpaint data for saving.
@@ -404,7 +344,7 @@ ppixiv.InpaintEditorOverlay = class extends ppixiv.illust_widget
             }
         }
 
-        ppixiv.InpaintEditor.singleton.refresh();
+        this.refresh();
     }
 
     get downscale_ratio() { return this._downscale_ratio; }
@@ -413,11 +353,8 @@ ppixiv.InpaintEditorOverlay = class extends ppixiv.illust_widget
         if(this._downscale_ratio == value)
             return;
 
-        this.save_undo();
         this._downscale_ratio = value;
-    
-        // Tell the InpaintEditor to refresh the slider.
-        ppixiv.InpaintEditor.singleton.refresh();
+        this.refresh();
     }
 
     get blur() { return this._blur; }
@@ -426,11 +363,8 @@ ppixiv.InpaintEditorOverlay = class extends ppixiv.illust_widget
         if(this._blur == value)
             return;
 
-        this.save_undo();
         this._blur = value;
-    
-        // Tell the InpaintEditor to refresh the slider.
-        ppixiv.InpaintEditor.singleton.refresh();
+        this.refresh();
     }
 
     clear()
@@ -441,66 +375,10 @@ ppixiv.InpaintEditorOverlay = class extends ppixiv.illust_widget
         this._blur = 0;
     }
 
-    start()
-    {
-        if(this.shutdown_signal)
-            return;
-
-        this.shutdown_signal = new AbortController();
-        this.onmousehover = this.onmousehover.bind(this);
-
-        this.pointer_listener = new ppixiv.pointer_listener({
-            element: this.container,
-            callback: this.pointerevent.bind(this),
-            signal: this.shutdown_signal.signal,
-        });
-
-        // This is a pain.  We want to handle clicks when modifier buttons are pressed, and
-        // let them through otherwise so panning works.  Every other event system lets you
-        // handle or not handle a mouse event and have it fall through if you don't handle
-        // it, but CSS won't.  Work around this by watching for our modifier keys and setting
-        // pointer-events: none as needed.
-        this.ctrl_pressed = false;
-        for(let modifier of ["Control", "Alt", "Shift"])
-        {
-            new ppixiv.key_listener(modifier, (pressed) => {
-                this.ctrl_pressed = pressed;
-                this.refresh_pointer_events();
-            }, {
-                signal: this.shutdown_signal.signal
-            });
-        }
-
-        window.addEventListener("keypress", (e) => {
-            if(e.code == "KeyZ" && e.ctrlKey)
-            {
-                console.log("undo");
-                e.stopPropagation();
-                e.preventDefault();
-                this.undo();
-            }
-
-            if(e.code == "KeyY" && e.ctrlKey)
-            {
-                console.log("redo");
-                e.stopPropagation();
-                e.preventDefault();
-                this.redo();
-            }
-        }, { signal: this.shutdown_signal.signal });
-
-        // Prevent fullscreening if a UI element is double-clicked.
-        this.container.addEventListener("dblclick", this.ondblclick.bind(this), { signal: this.shutdown_signal.signal });
-
-        this.container.addEventListener("mouseover", this.onmousehover, { signal: this.shutdown_signal.signal });
-
-        this.refresh_pointer_events();
-    }
-
     onmousehover(e)
     {
         let over = e.target.closest(".inpaint-line, .inpaint-handle") != null;
-        this.inpaint_image_container.hide_inpaint = over;
+        this._overlay_container.hide_inpaint = over;
 
         // While we think we're hovering, add a mouseover listener to window, so we catch
         // all mouseover events that tell us we're no longer hovering.  If we don't do this,
@@ -510,49 +388,6 @@ ppixiv.InpaintEditorOverlay = class extends ppixiv.illust_widget
             window.addEventListener("mouseover", this.onmousehover, { signal: this.shutdown_signal.signal });
         else
             window.removeEventListener("mouseover", this.onmousehover, { signal: this.shutdown_signal.signal });
-    }
-
-    // Store the current data as an undo state.
-    save_undo()
-    {
-        this.undo_stack.push(this.get_inpaint_data());
-        this.redo_stack = [];
-
-        // Anything that adds to the undo stack causes us to be dirty.
-        this.dirty = true;
-    }
-
-    get dirty() { return this._dirty; }
-    set dirty(value)
-    {
-        if(this._dirty == value)
-            return;
-
-        this._dirty = value;
-        ppixiv.InpaintEditor.singleton.refresh();
-    }
-
-    // Revert to the previous undo state, if any.
-    undo()
-    {
-        if(this.undo_stack.length == 0)
-            return;
-
-        this.redo_stack.push(this.get_inpaint_data());
-        this.set_inpaint_data(this.undo_stack.pop());
-
-        // If we were adding a line, we just undid the first point, so end it.
-        this.adding_line = null;
-    }
-
-    // Redo the last undo.
-    redo()
-    {
-        if(this.redo_stack.length == 0)
-            return;
-
-        this.undo_stack.push(this.get_inpaint_data());
-        this.set_inpaint_data(this.redo_stack.pop());
     }
 
     get create_lines() { return this._create_lines; }
@@ -574,15 +409,16 @@ ppixiv.InpaintEditorOverlay = class extends ppixiv.illust_widget
             this.adding_line = null;
         }
 
-        ppixiv.InpaintEditor.singleton.refresh();
+        this.refresh();
     }
 
     refresh_pointer_events()
     {
+        helpers.set_class(this.editor_overlay, "creating-lines", this._create_lines);
         if(this.ctrl_pressed || this._create_lines)
-            this.container.style.pointerEvents = "auto";
+            this.editor_overlay.style.pointerEvents = "auto";
         else
-            this.container.style.pointerEvents = "none";
+            this.editor_overlay.style.pointerEvents = "none";
     }
 
     get_control_point_from_element(node)
@@ -618,11 +454,9 @@ ppixiv.InpaintEditorOverlay = class extends ppixiv.illust_widget
             e.stopPropagation();
 
             if(inpaint_segment == this.adding_line)
-            {
-                console.log("stop");
                 return;
-            }
-            this.save_undo();
+
+            this.parent.save_undo();
 
             // If another segment was clicked while adding a line, connect to that line.
             if(inpaint_segment && control_point_idx != -1)
@@ -638,10 +472,14 @@ ppixiv.InpaintEditorOverlay = class extends ppixiv.illust_widget
 
                 this.adding_line = null;
                 inpaint_segment.add_point({x: point[0], y: point[1], at: point_idx});
+
+                // Drag the point we connected to, not the new point.
+                this.start_dragging_point(inpaint_segment, control_point_idx, e);
                 return;
             }
 
-            this.adding_line.add_point({x: x, y: y});
+            let new_control_point_idx = this.adding_line.add_point({x: x, y: y});
+            this.start_dragging_point(this.adding_line, new_control_point_idx, e);
             this.adding_line = null;
 
             return;
@@ -652,24 +490,18 @@ ppixiv.InpaintEditorOverlay = class extends ppixiv.illust_widget
             e.preventDefault();
             e.stopPropagation();
 
-            this.save_undo();
+            this.parent.save_undo();
             
             // If shift is held, clicking a line segment inserts a point.  Otherwise, it
             // drags the whole segment.
             if(control_point_idx == -1 && e.shiftKey)
             {
                 let { x, y } = this.get_point_from_click(e);
-                console.log("add at", inpaint_line_idx);
-
                 control_point_idx = inpaint_segment.add_point({x: x, y: y, at: inpaint_line_idx});
             }
 
-            this.dragging_segment = inpaint_segment;
-            this.dragging_segment_point = control_point_idx;
+            this.start_dragging_point(inpaint_segment, control_point_idx, e);
 
-            this.drag_pos = [e.clientX, e.clientY];
-
-            window.addEventListener("pointermove", this.pointermove_drag_point);
             return;
         }
         else if(this.dragging_segment)
@@ -685,18 +517,27 @@ ppixiv.InpaintEditorOverlay = class extends ppixiv.illust_widget
             e.preventDefault();
             e.stopPropagation();
             
-            this.save_undo();
+            this.parent.save_undo();
 
             this.adding_line = this.add_line();
             this.adding_line.thickness = settings.get("inpaint_default_thickness", 10);
-            this.adding_line.add_point({x: x, y: y});
+            let control_point_idx = this.adding_line.add_point({x: x, y: y});
+            this.start_dragging_point(this.adding_line, control_point_idx, e);
         }
+    }
+
+    start_dragging_point(inpaint_segment, point_idx=-1, e)
+    {
+        this.dragging_segment = inpaint_segment;
+        this.dragging_segment_point = point_idx;
+        this.drag_pos = [e.clientX, e.clientY];
+        window.addEventListener("pointermove", this.pointermove_drag_point);
     }
 
     // Convert a click from client coordinates to image coordinates.
     get_point_from_click({clientX, clientY})
     {
-        let {width, height, top, left} = this.container.getBoundingClientRect();
+        let {width, height, top, left} = this.editor_overlay.getBoundingClientRect();
         let x = (clientX - left) / width * this.width;
         let y = (clientY - top) / height * this.height;
         return { x: x, y: y };
@@ -711,7 +552,7 @@ ppixiv.InpaintEditorOverlay = class extends ppixiv.illust_widget
         let { inpaint_segment, control_point_idx } = this.get_control_point_from_element(e.target);
         if(inpaint_segment)
         {
-            this.save_undo();
+            this.parent.save_undo();
 
             if(control_point_idx == -1)
                 this.remove_line(inpaint_segment);
@@ -735,7 +576,7 @@ ppixiv.InpaintEditorOverlay = class extends ppixiv.illust_widget
         this.drag_pos = [e.clientX, e.clientY];
 
         // Scale movement from client coordinates to the size of the container.
-        let {width, height} = this.container.getBoundingClientRect();
+        let {width, height} = this.editor_overlay.getBoundingClientRect();
         delta_x *= this.width / width;
         delta_y *= this.height / height;
 
@@ -757,19 +598,6 @@ ppixiv.InpaintEditorOverlay = class extends ppixiv.illust_widget
         }
 
         this.dragging_segment.update_segment();
-    }
-
-    stop()
-    {
-        // Clear lines when shutting down so we remove their event listeners.
-        this.clear();
-
-        if(this.shutdown_signal)
-        {
-            // Signal shutdown_signal to remove event listeners.
-            this.shutdown_signal.abort();
-            this.shutdown_signal = null;
-        }
     }
 
     add_line()
@@ -809,7 +637,7 @@ ppixiv.InpaintEditorOverlay = class extends ppixiv.illust_widget
             this.selected_line_idx = this.lines.indexOf(line);
 
         this.refresh_lines();
-        ppixiv.InpaintEditor.singleton.refresh();
+        this.refresh();
     }
 
     get selected_line()
@@ -845,7 +673,7 @@ ppixiv.LineEditorSegment = class extends ppixiv.widget
     {
         // Templates don't work, because it doesn't create the <g> as an SVG
         // element.  Is there a way to make that work?
-        let contents = document.createElementNS(xmlns, "g");
+        let contents = document.createElementNS(helpers.xmlns, "g");
         contents.setAttribute("class", "inpaint-segment");
         container.appendChild(contents);
 
@@ -885,7 +713,7 @@ ppixiv.LineEditorSegment = class extends ppixiv.widget
 
     create_edit_point()
     {
-        let point = document.createElementNS(xmlns, "ellipse");
+        let point = document.createElementNS(helpers.xmlns, "ellipse");
         point.setAttribute("class", "inpaint-handle");
         point.setAttribute("cx", "100");
         point.setAttribute("cy", "100");
@@ -906,7 +734,7 @@ ppixiv.LineEditorSegment = class extends ppixiv.widget
 
         if(!this.polyline)
         {
-            this.polyline = document.createElementNS(xmlns, "polyline");
+            this.polyline = document.createElementNS(helpers.xmlns, "polyline");
             this.polyline.setAttribute("class", "inpaint-line");
             this.container.appendChild(this.polyline);
         }
@@ -916,7 +744,7 @@ ppixiv.LineEditorSegment = class extends ppixiv.widget
         {
             // Use a rect for the lines.  It doesn't join as cleanly as a polyline,
             // but it lets us set both the fill and the stroke.
-            let line = document.createElementNS(xmlns, "rect");
+            let line = document.createElementNS(helpers.xmlns, "rect");
             line.setAttribute("class", "inpaint-line");
             line.dataset.idx = idx;
 
@@ -988,144 +816,3 @@ ppixiv.LineEditorSegment = class extends ppixiv.widget
     }
 }
 
-// This is a custom element that roughly emulates an HTMLImageElement, but contains two
-// overlaid images instead of one to overlay the inpaint, and holds the InpaintEditorOverlay.
-// Load and error events are dispatched, and the image is considered loaded or complete when
-// both of its images are loaded or complete.  This allows on_click_viewer to display inpainting
-// and the inpaint editor without needing to know much about it, so we can avoid complicating
-// the viewer.
-ppixiv.InpaintImageContainer = class extends HTMLElement
-{
-    static get observedAttributes() { return ["src", "src2"]; }
-
-    constructor()
-    {
-        super();
-
-        this._onload = this._onload.bind(this);
-        this._onerror = this._onerror.bind(this);
-
-        this.attachShadow({mode: "open"});
-
-        let container = document.createElement("div");
-        container.setAttribute("class", "container");
-        this.shadowRoot.append(container);
-
-        this._img1 = document.createElement("img");
-        this._img1.dataset.img = "main-image";
-        this._img2 = document.createElement("img");
-        this._img2.dataset.img = "inpaint-image";
-
-        for(let img of [this._img1, this._img2])
-        {
-            img.classList.add("filtering");
-            img.addEventListener("load", this._onload);
-            img.addEventListener("error", this._onerror);
-            container.appendChild(img);
-        }
-
-        let slot = document.createElement("slot");
-        slot.name = "inpaint-editor";
-        container.append(slot);
-
-        let style = document.createElement("style");
-        style.textContent = `
-            .container, .container > * {
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-            }
-        `;
-        this.shadowRoot.append(style);
-
-        this.attributeChangedCallback("src", null, this.getAttribute("src"));
-        this.attributeChangedCallback("src2", null, this.getAttribute("src2"));
-
-        // Create the InpaintEditorOverlay.  This has the actual line editing UI
-        // that gets overlaid on top of the image.  
-        this.editor = new ppixiv.InpaintEditorOverlay({
-            container: this.container,
-            inpaint_image_container: this,
-        });
-        this.editor.container.slot = "inpaint-editor";
-        this.appendChild(this.editor.container);
-    }
-
-    set_image_urls(image_url, inpaint_url)
-    {
-        this.src = image_url;
-        this.src2 = inpaint_url;
-    }
-
-    _onload(e)
-    {
-        // Dispatch loaded on ourself if both images are loaded.
-        if(this.complete)
-            this.dispatchEvent(new Event("load"));
-    }
-
-    _onerror(e)
-    {
-        this.dispatchEvent(new Event("error"));
-    }
-
-    // Set the image URLs.  If set to null, use a blank image instead so we don't trigger
-    // load errors.
-    get src() { return this.getAttribute("src"); }
-    set src(value) { this.setAttribute("src", value || helpers.blank_image); }
-    get src2() { return this.getAttribute("src2"); }
-    set src2(value) { this.setAttribute("src2", value || helpers.blank_image); }
-
-    get complete()
-    {
-        return this._img1.complete && this._img2.complete;
-    }
-
-    decode()
-    {
-        return Promise.all([this._img1.decode(), this._img2.decode()]);
-    }
-
-    attributeChangedCallback(name, oldValue, newValue)
-    {
-        if(name == "src")
-            this._img1.src = newValue;
-        if(name == "src2")
-            this._img2.src = newValue;
-    }
-
-    connectedCallback()
-    {
-        if(!this.isConnected)
-            return;
-
-        this.editor.start();
-
-        // There should always be an InpaintEditor active when we're added to a document.
-        // Make us the active container.
-        ppixiv.InpaintEditor.singleton.inpaint_container = this;
-    }
-
-    disconnectedCallback(x)
-    {
-        this.editor.stop();
-
-        if(ppixiv.InpaintEditor.singleton.inpaint_container == this)
-            ppixiv.InpaintEditor.singleton.inpaint_container = null;
-    }
-
-    get width() { return this._img1.width; }
-    get height() { return this._img1.height; }
-    get naturalWidth() { return this._img1.naturalWidth; }
-    get naturalHeight() { return this._img1.naturalHeight; }
-
-    get hide_inpaint() { return this._img2.style.opacity == 0; }
-    set hide_inpaint(value)
-    {
-        this._img2.style.opacity = value? 0:1;
-    }
-}
-
-customElements.define("inpaint-image-container", ppixiv.InpaintImageContainer);

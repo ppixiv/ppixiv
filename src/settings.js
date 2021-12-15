@@ -6,6 +6,10 @@ ppixiv.settings = class
     static sticky_settings = { };
     static session_settings = { };
     static defaults = { };
+
+    // When a setting changes, an event with the name of the setting is dispatched on
+    // settings.changes.
+    static changes = new EventTarget();
     
     static get_change_callback_list(key)
     {
@@ -116,11 +120,14 @@ ppixiv.settings = class
 
         // Call change listeners for this key.
         settings.get_change_callback_list(key).call(key);
+
+        let event = new Event(key);
+        settings.changes.dispatchEvent(event);
     }
 
-    static register_change_callback(key, callback)
+    static register_change_callback(key, callback, { signal=null }={})
     {
-        settings.get_change_callback_list(key).register(callback);
+        settings.get_change_callback_list(key).register(callback, signal);
     }
 
     static unregister_change_callback(key, callback)
@@ -151,6 +158,7 @@ ppixiv.settings.configure("linked_tabs", { session: true });
 ppixiv.settings.configure("linked_tabs_enabled", { session: true, default_value: true });
 ppixiv.settings.configure("volume", { default_value: 1 });
 ppixiv.settings.configure("view_mode", { default_value: "illust" });
-ppixiv.settings.configure("inpaint_editing", { session: true });
+ppixiv.settings.configure("image_editing", { session: true });
+ppixiv.settings.configure("image_editing_mode", { session: true });
 ppixiv.settings.configure("inpaint_create_lines", { session: true });
 

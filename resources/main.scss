@@ -112,6 +112,13 @@ ul {
     height: 100%;
     user-select: none;
     cursor: pointer;
+
+    // If the image is cropped, set overflow: hidden on the image box to cut it
+    // off.  Don't do this if it isn't needed, since it can trigger compositing
+    // glitches in Chrome.
+    .image-box.cropping {
+        overflow: hidden;
+    }
 }
 
 // Let the browser know about our dynamic zooming and panning.  This prevents Chrome from baking the
@@ -120,7 +127,7 @@ ul {
 // This is disabled for now, since it seemed to be triggering a weird bug in Chrome that caused
 // it to display the full-res images as if they had been scaled down to the size of the preview
 // image.
-.image-container > img {
+.image-container > .image-box {
     // will-change: transform;
 }
 
@@ -240,9 +247,9 @@ textarea:focus, input:focus, a:focus {
         }
     }
 
-    // .mouse-hidden-box.show-cursor means the mouse has moved recently.  &.visible means
+    // .mouse-hidden-box.shcursor-activeursor means the mouse has moved recently.  &.visible means
     // the mouse is over the UI, and we'll keep it visible even if the mouse isn't moving.
-    .mouse-hidden-box.show-cursor &,
+    .mouse-hidden-box.cursor-active &,
     &.visible
     {
         opacity: 1;
@@ -2784,7 +2791,7 @@ svg.heart-image .delete {
     padding: 0.5em;
 }
 
-.inpaint-editor {
+.image-editor {
     width: 100%;
     height: 100%;
     position: absolute;
@@ -2793,7 +2800,7 @@ svg.heart-image .delete {
     z-index: 1; // above the image
     pointer-events: none;
 
-    .save-inpaint {
+    .save-edits {
         &.dirty {
             color: #0f0;
         }
@@ -2815,13 +2822,28 @@ svg.heart-image .delete {
         }
     }
 
-    .inpaint-editor-buttons {
-        font-size: 150%;
+    .image-editor-buttons {
+        // If no editor is actually active, hide the top buttons with the mouse cursor.
+        .mouse-hidden-box:not(.show-cursor) &.top {
+            display: none;
+        }
+
+        &.top {
+            top: 0;
+        }
+        &.bottom {
+            bottom: 0;
+        }
         position: absolute;
-        bottom: 0;
-        pointer-events: auto;
+        display: flex;
+        flex-direction: column;
+        font-size: 150%;
         width: 100%;
         justify-content: center;
+        align-items: center;
+        .image-editor-button-row {
+            pointer-events: auto;
+        }
     }
 
     .spin {
@@ -2834,12 +2856,49 @@ svg.heart-image .delete {
     }
 }
 
+.crop-editor-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+
+    .crop-box {
+        position: relative;
+        cursor: move !important;        
+        .crop-dim {
+            position: absolute;
+            background-color: #000;
+            opacity: 0.5;
+        }
+    }
+
+    .handle {
+        &[data-crop="topleft"] { cursor: nw-resize !important; }
+        &[data-crop="top"] { cursor: n-resize !important; }
+        &[data-crop="topright"] { cursor: ne-resize !important; }
+        &[data-crop="left"] { cursor: w-resize !important; }
+        &[data-crop="right"] { cursor: e-resize !important; }
+        &[data-crop="bottomleft"] { cursor: sw-resize !important; }
+        &[data-crop="bottom"] { cursor: s-resize !important; }
+        &[data-crop="bottomright"] { cursor: se-resize !important; }
+    }
+
+    .edge-handle {
+        position: absolute;
+    }
+}
+
 .inpaint-editor-overlay {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
+
+    &.creating-lines {
+        cursor: crosshair !important;
+    }
 
     .inpaint-segment {
         // inpaint-editor-overlay disables pointer-events.  Turn it back on here.

@@ -1330,15 +1330,14 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
             edit_inpainting: () => {
                 return new menu_option_button({
                     ...shared_options,
-                    label: "Edit inpainting",
+                    label: "Edit image",
                     icon: helpers.create_icon("brush", "16px"),
                     hide_if_unavailable: true,
                     requires: ({illust_id}) => {
                         return illust_id != null && helpers.is_local(illust_id);
                     },
                     onclick: () => {
-                        if(ppixiv.InpaintEditor.singleton)
-                            ppixiv.InpaintEditor.singleton.visible = !ppixiv.InpaintEditor.singleton.visible;
+                        settings.set("image_editing", !settings.get("image_editing", false));
                     }
                 });
             },
