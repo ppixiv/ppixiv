@@ -408,7 +408,7 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
         // Adjust the fade-in so it's centered around the centered element.
         this.displayed_menu.style.transformOrigin = (pos[0]) + "px " + (pos[1]) + "px";
 
-        hide_mouse_cursor_on_idle.disable_all();
+        hide_mouse_cursor_on_idle.disable_all("context-menu");
     }
 
     // If element is within a button that has a tooltip set, show it.
@@ -510,7 +510,7 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
         view_hidden_listener.send_viewhidden(this.container);
         
         this.displayed_menu = null;
-        hide_mouse_cursor_on_idle.enable_all();
+        hide_mouse_cursor_on_idle.enable_all("context-menu");
         this.buttons_down = {};
         document.body.classList.remove("hide-ui");
         window.removeEventListener("blur", this.window_onblur);

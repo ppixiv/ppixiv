@@ -23,9 +23,8 @@ ppixiv.track_mouse_movement = class
     static _singleton = null;
     static get singleton() { return track_mouse_movement._singleton; }
 
-    // True if the mouse is active.  This corresponds to the mouseactive and mouseinactive
-    // events.
-    get active() { return _this; }
+    // True if the mouse is stationary.  This corresponds to the mouseinactive event.
+    get stationary() { return !this._active; }
 
     // Briefly pretend that the mouse is inactive.
     //
@@ -112,8 +111,8 @@ ppixiv.track_mouse_movement = class
 
         if(this._active)
         {
-            window.dispatchEvent(new Event("mouseinactive"));
             this._active = false;
+            window.dispatchEvent(new Event("mouseinactive"));
         }
     }
 }
@@ -122,24 +121,24 @@ ppixiv.track_mouse_movement = class
 // This only hides the cursor over element.
 ppixiv.hide_mouse_cursor_on_idle = class
 {
+    static instances = new Set();
     constructor(element)
     {
         hide_mouse_cursor_on_idle.add_style();
+        hide_mouse_cursor_on_idle.instances.add(this);
 
         this.track = new track_mouse_movement();
         
-        this.show_cursor = this.show_cursor.bind(this);
-        this.hide_cursor = this.hide_cursor.bind(this);
-
         this.element = element;
-        this.cursor_hidden = false;
 
-        window.addEventListener("mouseactive", this.show_cursor);
-        window.addEventListener("mouseinactive", this.hide_cursor);
+        window.addEventListener("mouseactive", this.refresh_cursor_stationary.bind(this));
+        window.addEventListener("mouseinactive", this.refresh_cursor_stationary.bind(this));
 
         settings.register_change_callback("no-hide-cursor", hide_mouse_cursor_on_idle.update_from_settings);
         hide_mouse_cursor_on_idle.update_from_settings();
     }
+
+    static disabled_by = new Set();
 
     static add_style()
     {
@@ -175,41 +174,59 @@ ppixiv.hide_mouse_cursor_on_idle = class
         // If no-hide-cursor is true, disable the style that hides the cursor.  We track cursor
         // hiding and set the local hide-cursor style even if cursor hiding is disabled, so
         // other UI can use it, like video seek bars.
-        hide_mouse_cursor_on_idle.global_style.disabled = settings.get("no-hide-cursor");
+        hide_mouse_cursor_on_idle.global_style.disabled = !this.is_enabled;
     }
 
-    // Temporarily disable hiding all mouse cursors.
-    static enable_all()
+    // Temporarily disable hiding all mouse cursors.  source is a key for the UI that's doing
+    // this, so different UI can disable cursor hiding without conflicting.
+    static enable_all(source)
     {
-        // Just let update_from_settings readding the enable-cursor-hiding class if needed.
+        this.disabled_by.delete(source);
         this.update_from_settings();
+        for(let instance of hide_mouse_cursor_on_idle.instances)
+            instance.refresh_hide_cursor();
     }
 
-    static disable_all()
+    static disable_all(source)
     {
-        // Just disable the style, so we stop hiding the mouse.  We don't just unset the hide-cursor
-        // class, so this only stops hiding the mouse cursor and doesn't cause other UI like seek
-        // bars to be displayed.
-        hide_mouse_cursor_on_idle.global_style.disabled = true;
+        this.disabled_by.add(source);
+        this.update_from_settings();
+        for(let instance of hide_mouse_cursor_on_idle.instances)
+            instance.refresh_hide_cursor();
     }
 
-    show_cursor(e)
+    static get mouse_stationary()
     {
-        this.cursor_hidden = false;
-        this.refresh_hide_cursor();
+        return this._mouse_stationary;
     }
 
-    hide_cursor(e)
+    static set mouse_stationary(value)
     {
-        this.cursor_hidden = true;
+        this._mouse_stationary = value;
+    }
+
+    static get is_enabled()
+    {
+        return !settings.get("no-hide-cursor") && this.disabled_by.size == 0;
+    }
+
+    refresh_cursor_stationary(e)
+    {
         this.refresh_hide_cursor();
     }
 
     refresh_hide_cursor()
     {
-        let hidden = this.cursor_hidden;
+        // cursor-stationary means the mouse isn't moving, whether or not we're hiding
+        // the cursor when it's stationary.  hide-cursor is set to actually hide the cursor
+        // and UI elements that are hidden with the cursor.
+        let stationary = track_mouse_movement.singleton.stationary;
+        let hidden = stationary && hide_mouse_cursor_on_idle.is_enabled;
         helpers.set_class(this.element, "hide-cursor", hidden);
         helpers.set_class(this.element, "show-cursor", !hidden);
+
+        helpers.set_class(this.element, "cursor-stationary", stationary);
+        helpers.set_class(this.element, "cursor-active", !stationary);
     }
 }
 

@@ -45,6 +45,8 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
         this.editing_illust_id = null;
         this.undo_stack = [];
 
+        this.top_button_row = this.container.querySelector(".image-editor-buttons.top");
+
         this.show_crop = this.container.querySelector(".show-crop");
         this.show_crop.addEventListener("click", (e) => {
             settings.set("image_editing_mode", settings.get("image_editing_mode", null) == "crop"? null:"crop");
@@ -183,6 +185,13 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
         this.inpaint_editor.visible = showing_inpaint;
         this.inpaint_buttons.hidden = !showing_inpaint;
         helpers.set_class(this.show_inpaint, "selected", showing_inpaint);
+
+        // Disable hiding the mouse cursor when editing is enabled.  This also prevents
+        // the top button row from being hidden.
+        if(showing_crop || showing_inpaint)
+            hide_mouse_cursor_on_idle.disable_all("image-editing");
+        else
+            hide_mouse_cursor_on_idle.enable_all("image-editing");
     }
 
     // Store the current data as an undo state.
