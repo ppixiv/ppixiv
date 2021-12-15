@@ -428,6 +428,7 @@ class Library:
             entry['aspect_ratio'] = (entry['width'] / entry['height']) if entry.get('height') else None
         entry['inpaint'] = json.dumps(file_metadata['inpaint']) if 'inpaint' in file_metadata else None
         entry['inpaint_id'] = file_metadata.get('inpaint_id')
+        entry['crop'] = json.dumps(file_metadata['crop']) if 'crop' in file_metadata else None
 
         if 'inpaint_id' in file_metadata:
             # Only import inpaint_timestamp if we've actually created the inpaint file.
@@ -972,7 +973,6 @@ class Library:
         with metadata_storage.load_and_lock_file_metadata(path) as file_metadata:
             if set_bookmark:
                 file_metadata['bookmarked'] = True
-                print('updating tags', tags)
                 if tags is not None:
                     file_metadata['bookmark_tags'] = tags
 
@@ -997,26 +997,34 @@ class Library:
     def get_all_bookmark_tags(self):
         return self.db.get_all_bookmark_tags()
 
-    def set_inpaint_data(self, entry, inpaint):
+    def set_image_edits(self, entry, *, inpaint=None, crop=None):
         with metadata_storage.load_and_lock_file_metadata(entry['path']) as file_metadata:
-            # If nothing is changing, don't do anything.
-            if file_metadata.get('inpaint') == inpaint:
-                return entry
+            # If crop is set, it's either a array of four integers, or empty to unset cropping.
+            if crop is not None and file_metadata.get('crop') != crop:
+                assert isinstance(crop, list)
+                if not crop:
+                    file_metadata.pop('crop', None)
+                else:
+                    assert len(crop) == 4
+                    file_metadata['crop'] = crop
 
-            # Delete the previous cached inpaint file, if there is one.
-            old_inpaint_id = entry.get('inpaint_id')
-            if old_inpaint_id:
-                old_inpaint_path = inpainting.get_inpaint_cache_path(old_inpaint_id, data_dir=self._data_dir)
-                old_inpaint_path.unlink()
+            if inpaint is not None and file_metadata.get('inpaint') != inpaint:
+                assert isinstance(inpaint, list)
 
-            if inpaint:
-                file_metadata['inpaint'] = inpaint
-                file_metadata['inpaint_id'] = inpainting.get_inpaint_id(entry['path'], inpaint)
-                file_metadata['inpaint_timestamp'] = time.time()
-            else:
-                for key in ('inpaint', 'inpaint_id', 'inpaint_timestamp'):
-                    if key in file_metadata:
-                        file_metadata.pop(key)
+                # Delete the previous cached inpaint file, if there is one.
+                old_inpaint_id = entry.get('inpaint_id')
+                if old_inpaint_id:
+                    old_inpaint_path = inpainting.get_inpaint_cache_path(old_inpaint_id, data_dir=self._data_dir)
+                    old_inpaint_path.unlink()
+
+                if inpaint:
+                    file_metadata['inpaint'] = inpaint
+                    file_metadata['inpaint_id'] = inpainting.get_inpaint_id(entry['path'], inpaint)
+                    file_metadata['inpaint_timestamp'] = time.time()
+                else:
+                    for key in ('inpaint', 'inpaint_id', 'inpaint_timestamp'):
+                        if key in file_metadata:
+                            file_metadata.pop(key)
 
             # Store the updated data.
             metadata_storage.save_file_metadata(entry['path'], file_metadata)

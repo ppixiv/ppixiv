@@ -77,6 +77,9 @@ class FileIndex(Database):
                             codec,
                             animation NOT NULL DEFAULT FALSE,
 
+                            -- If the image is cropped, a JSON array of crop data.
+                            crop,
+
                             -- The current inpaint data, its filename ID and timestamp.
                             inpaint,
                             inpaint_id,

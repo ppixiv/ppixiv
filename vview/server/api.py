@@ -148,6 +148,9 @@ def get_illust_info(info, entry, base_url):
         urls['inpaint'] = f'{base_url}/inpaint/{urllib.parse.quote(illust_id, safe="/:")}?{image_timestamp_with_inpaint}'
         image_info['inpaint_generated'] = entry['inpaint_timestamp'] != 0
 
+    if entry.get('crop'):
+        image_info['crop'] = json.loads(entry['crop'])
+
     return image_info
 
 def _bookmark_data(entry):
@@ -440,27 +443,28 @@ def api_list_impl(info):
     while True:
         yield flush(last=True)
 
-# Edit the inpaint data for an image.
-@reg('/edit-inpainting/{type:[^:]+}:{path:.+}')
+# Save nondestructive edits for an image.
+@reg('/set-image-edits/{type:[^:]+}:{path:.+}')
 async def api_edit_inpainting(info):
     path = PurePosixPath(info.request.match_info['path'])
     absolute_path = info.manager.resolve_path(path)
-
-    inpaint = info.data.get('inpaint', None)
-    assert isinstance(inpaint, list)
 
     entry = info.manager.library.get(absolute_path)
     if entry is None:
         raise misc.Error('not-found', 'File not in library')
 
+    inpaint = info.data.get('inpaint', None)
+    crop = info.data.get('crop', None)
+
     # Save the new inpaint data.  This won't actually generate the inpaint image.
-    entry = info.manager.library.set_inpaint_data(entry, inpaint)
+    entry = info.manager.library.set_image_edits(entry, inpaint=inpaint, crop=crop)
 
-    # Generate the inpaint image now.
-    await inpainting.create_inpaint_for_entry(entry, info.manager)
+    if inpaint is not None:
+        # Generate the inpaint image now.
+        await inpainting.create_inpaint_for_entry(entry, info.manager)
 
-    # Re-cache the file, so inpaint_timestamp is updated with the new inpaint image's tinestamp.
-    entry = info.manager.library.cache_file(absolute_path)
+        # Re-cache the file, so inpaint_timestamp is updated with the new inpaint image's tinestamp.
+        entry = info.manager.library.cache_file(absolute_path)
 
     illust_info = get_illust_info(info, entry, info.base_url)
 
