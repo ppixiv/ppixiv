@@ -1182,6 +1182,8 @@ ppixiv.screen_search = class extends ppixiv.screen
             // to scroll away from.
             this.refresh_images();
 
+            this.container.querySelector(".search-results").focus();
+
             helpers.yield(() => {
                 this.load_needed_thumb_data();
             });

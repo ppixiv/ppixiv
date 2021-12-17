@@ -114,6 +114,9 @@ ppixiv.screen_manga = class extends ppixiv.screen
         // The rest of the load happens async.  Although we're already in an async
         // function, it should return without waiting for API requests.
         this.async_set_image();
+
+        // Focus the container, so it receives keyboard events like home/end.
+        this.container.querySelector(".search-results").focus();
     }
 
     async async_set_image()

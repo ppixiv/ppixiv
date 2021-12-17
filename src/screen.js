@@ -9,10 +9,6 @@ ppixiv.screen = class extends ppixiv.widget
             ...options,
             visible: false,
         });
-
-        // Make our container focusable, so we can give it keyboard focus when we
-        // become active.
-        this.container.tabIndex = -1;
     }
 
     // Handle a key input.  This is only called while the screen is active.
@@ -48,12 +44,7 @@ ppixiv.screen = class extends ppixiv.widget
         // Show or hide the screen.
         this.visible = active;
 
-        if(active)
-        {
-            // Focus the container, so it receives keyboard events, eg. home/end.
-            this.container.focus();
-        }
-        else
+        if(!active)
         {
             // When the screen isn't active, send viewhidden to close all popup menus inside it.
             view_hidden_listener.send_viewhidden(this.container);

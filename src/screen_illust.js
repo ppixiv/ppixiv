@@ -143,6 +143,9 @@ ppixiv.screen_illust = class extends ppixiv.screen
 
         this.set_data_source(data_source);
         this.show_image(illust_id, page, restore_history);
+        
+        // Focus the container, so it receives keyboard events like home/end.
+        this.container.focus();
     }
 
     // Show an image.  If manga_page is -1, show the last page.
