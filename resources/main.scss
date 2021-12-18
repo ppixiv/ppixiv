@@ -104,7 +104,7 @@ ul {
     height: 100%;
 }
 
-.image-container, .preview-container {
+.view-container {
     position: absolute;
     top: 0;
     left: 0;
@@ -112,27 +112,37 @@ ul {
     height: 100%;
     user-select: none;
     cursor: pointer;
+}
+
+.viewer-images {
+    width: 100%;
+    height: 100%;
 
     // If the image is cropped, set overflow: hidden on the image box to cut it
     // off.  Don't do this if it isn't needed, since it can trigger compositing
     // glitches in Chrome.
-    .image-box.cropping {
+    > .image-box.cropping {
         overflow: hidden;
+    }
+
+    // Let the browser know about our dynamic zooming and panning.  This prevents Chrome from baking the
+    // resize when it doesn't change for a while, which causes a big hitch the next time we zoom. */
+    //
+    // This is disabled for now, since it seemed to be triggering a weird bug in Chrome that caused
+    // it to display the full-res images as if they had been scaled down to the size of the preview
+    // image.
+    > .image-box {
+        // will-change: transform;
     }
 }
 
-// Let the browser know about our dynamic zooming and panning.  This prevents Chrome from baking the
-// resize when it doesn't change for a while, which causes a big hitch the next time we zoom. */
-//
-// This is disabled for now, since it seemed to be triggering a weird bug in Chrome that caused
-// it to display the full-res images as if they had been scaled down to the size of the preview
-// image.
-.image-container > .image-box {
-    // will-change: transform;
-}
-
-img.low-res-preview {
-//    filter: brightness(80%);
+.viewer-ugoira, .viewer-video {
+    width: 100%;
+    height: 100%;
+    > .video-container {
+        width: 100%;
+        height: 100%;
+    }
 }
 
 [hidden] {
@@ -176,12 +186,13 @@ textarea:focus, input:focus, a:focus {
 }
 
 // This holds the seek bar and video UI.
-.video-ui-container
+.video-ui
 {
     position: absolute;
     bottom: 0px;
     left: 0px;
     width: 100%;
+    user-select: none;
 
     transition: transform .25s, opacity .25s;
     opacity: 0;
@@ -247,10 +258,11 @@ textarea:focus, input:focus, a:focus {
         }
     }
 
-    // .mouse-hidden-box.shcursor-activeursor means the mouse has moved recently.  &.visible means
-    // the mouse is over the UI, and we'll keep it visible even if the mouse isn't moving.
+    // Stay visible if the mouse has moved recently, we're dragging, and while hovering
+    // over the UI.
     .mouse-hidden-box.cursor-active &,
-    &.visible
+    &.dragging,
+    &:hover
     {
         opacity: 1;
 
@@ -259,13 +271,6 @@ textarea:focus, input:focus, a:focus {
             transform: scale(100%, 50%);
         }
     }
-}
-
-.video-ui
-{
-    bottom: 0;
-    width: 100%;
-    user-select: none;
 
     > .video-ui-strip
     {

@@ -49,10 +49,10 @@ ppixiv.screen_illust = class extends ppixiv.screen
         image_data.singleton().illust_modified_callbacks.register(this.refresh_ui);
         settings.register_change_callback("recent-bookmark-tags", this.refresh_ui);
 
-        this.image_container = this.container.querySelector(".image-container");
+        this.view_container = this.container.querySelector(".view-container");
 
         // Fullscreen on double-click.
-        this.image_container.addEventListener("dblclick", () => {
+        this.view_container.addEventListener("dblclick", () => {
             helpers.toggle_fullscreen();
         });
 
@@ -70,13 +70,6 @@ ppixiv.screen_illust = class extends ppixiv.screen
 
         // A bar showing how far along in an image sequence we are:
         this.manga_page_bar = new progress_bar(this.container.querySelector(".ui-box")).controller();
-
-        // Create the video UI, which includes the viewer_ugoira seek bar.
-        this.video_ui = new ppixiv.video_ui({
-            container: this.container.querySelector(".video-ui-container"),
-            parent: this,
-        });
-        new hide_seek_bar(this.container.querySelector(".video-ui-container"));
 
         this.set_active(false, { });
         this.flashed_page_change = false;
@@ -106,11 +99,11 @@ ppixiv.screen_illust = class extends ppixiv.screen
 
     get _hide_image()
     {
-        return this.image_container.hidden;
+        return this.view_container.hidden;
     }
     set _hide_image(value)
     {
-        this.image_container.hidden = value;
+        this.view_container.hidden = value;
     }
     
     async set_active(active, { illust_id, page, data_source, restore_history })
@@ -304,11 +297,9 @@ ppixiv.screen_illust = class extends ppixiv.screen
 
         if(this.viewer == null)
         {
-            let image_container = this.image_container;
             this.viewer = new viewer_class({
-                contents: image_container,
+                container: this.view_container,
                 manga_page_bar: this.manga_page_bar,
-                video_ui: this.video_ui,
             });
         }
 
@@ -355,7 +346,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
         // If the image is muted, load a dummy viewer.
         this.remove_viewer();
         this.viewer = new viewer_muted({
-            contents: this.image_container,
+            container: this.view_container,
             illust_id: this.current_illust_id,
         });
         this._hide_image = false;
@@ -368,6 +359,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
         if(this.viewer != null)
         {
             this.viewer.shutdown();
+            this.viewer.container.remove();
             this.viewer = null;
         }
     }
@@ -392,11 +384,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
     // view.
     stop_displaying_image()
     {
-        if(this.viewer != null)
-        {
-            this.viewer.shutdown();
-            this.viewer = null;
-        }
+        this.remove_viewer();
 
         if(this.manga_thumbnails)
             this.manga_thumbnails.set_illust_info(null);

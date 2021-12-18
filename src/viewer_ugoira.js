@@ -2,10 +2,21 @@
 
 ppixiv.viewer_ugoira = class extends ppixiv.viewer
 {
-    constructor({video_ui, ...options})
+    constructor({...options})
     {
-        super(options);
+        super({...options, template: `
+            <div class=viewer-ugoira>
+                <div class=video-container></div>
+                <div class=video-ui-container></div>
+            </div>
+        `});
         
+        // Create the video UI.
+        this.video_ui = new ppixiv.video_ui({
+            container: this.container.querySelector(".video-ui-container"),
+            parent: this,
+        });
+
         this.refresh_focus = this.refresh_focus.bind(this);
         this.clicked_canvas = this.clicked_canvas.bind(this);
         this.onkeydown = this.onkeydown.bind(this);
@@ -14,10 +25,11 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
         this.seek_callback = this.seek_callback.bind(this);
         this.load = new SentinelGuard(this.load, this);
 
-        this.video_ui = video_ui;
-        this.seek_bar = video_ui.seek_bar;
+        this.seek_bar = this.video_ui.seek_bar;
         this.seek_bar.set_current_time(0);
         this.seek_bar.set_callback(this.seek_callback);
+
+        this.video_container = this.container.querySelector(".video-container");
 
         // Create a canvas to render into.
         this.canvas = document.createElement("canvas");
@@ -26,7 +38,7 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
         this.canvas.style.width = "100%";
         this.canvas.style.height = "100%";
         this.canvas.style.objectFit = "contain";
-        this.container.appendChild(this.canvas);
+        this.video_container.appendChild(this.canvas);
 
         this.canvas.addEventListener("click", this.clicked_canvas, false);
 
@@ -187,7 +199,7 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
             img1.style.height = "100%";
             img1.style.objectFit = "contain";
             img1.src = url1;
-            this.container.appendChild(img1);
+            this.video_container.appendChild(img1);
             this.preview_img1 = img1;
 
             // Allow clicking the previews too, so if you click to pause the video before it has enough
@@ -204,7 +216,7 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
             img2.style.height = "100%";
             img2.style.objectFit = "contain";
             img2.src = url2;
-            this.container.appendChild(img2);
+            this.video_container.appendChild(img2);
             img2.addEventListener("click", this.clicked_canvas, false);
             this.preview_img2 = img2;
 

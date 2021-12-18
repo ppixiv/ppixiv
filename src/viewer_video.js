@@ -8,18 +8,28 @@
 // We don't show buffering.  This is only used for viewing local files.
 ppixiv.viewer_video = class extends ppixiv.viewer
 {
-    constructor({video_ui, ...options})
+    constructor({...options})
     {
-        super(options);
+        super({...options, template: `
+            <div class=viewer-video>
+                <div class=video-container></div>
+                <div class=video-ui-container></div>
+            </div>
+        `});
         
+        // Create the video UI.
+        this.video_ui = new ppixiv.video_ui({
+            container: this.container.querySelector(".video-ui-container"),
+            parent: this,
+        });
+
         this.refresh_focus = this.refresh_focus.bind(this);
         this.clicked_video = this.clicked_video.bind(this);
         this.onkeydown = this.onkeydown.bind(this);
         this.update_seek_bar = this.update_seek_bar.bind(this);
         this.seek_callback = this.seek_callback.bind(this);
 
-        this.video_ui = video_ui;
-        this.seek_bar = video_ui.seek_bar;
+        this.seek_bar = this.video_ui.seek_bar;
         this.seek_bar.set_current_time(0);
         this.seek_bar.set_callback(this.seek_callback);
 
@@ -48,11 +58,12 @@ ppixiv.viewer_video = class extends ppixiv.viewer
         this.video.style.display = "block";
         this.video.style.margin = "0 auto";
 
-        this.container.appendChild(this.video);
+        this.video_container = this.container.querySelector(".video-container");
+        this.video_container.appendChild(this.video);
 
         this.video.addEventListener("timeupdate", this.update_seek_bar);
         this.video.addEventListener("progress", this.update_seek_bar);
-        this.container.addEventListener("click", this.clicked_video);
+        this.video_container.addEventListener("click", this.clicked_video);
 
         // In case we start PIP without playing first, switch the poster when PIP starts.
         this.video.addEventListener("enterpictureinpicture", (e) => { this.switch_poster_to_thumb(); });
@@ -337,6 +348,14 @@ ppixiv.video_ui = class extends ppixiv.widget
                 <div class=seek-bar-container-bottom></div>
             </div>
         `});
+
+        // Set .dragging to stay visible during drags.
+        this.pointer_listener = new ppixiv.pointer_listener({
+            element: this.container,
+            callback: (e) => {
+                helpers.set_class(this.container, "dragging", e.pressed);
+            },
+        });
 
         // Add the seek bar.  This moves between seek-bar-container-top and seek-bar-container-bottom.
         this.seek_bar = new seek_bar({

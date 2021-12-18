@@ -1,57 +1,5 @@
 "use strict";
 
-// This is a helper to show a container when the mouse is visible.
-ppixiv.hide_seek_bar = class
-{
-    constructor(container)
-    {
-        this.mouseover = this.mouseover.bind(this);
-        this.mouseout = this.mouseout.bind(this);
-
-        this.container = container;
-
-        this.container.addEventListener("mouseover", this.mouseover);
-        this.container.addEventListener("mouseout", this.mouseout);
-        this.refresh_visibility();
-
-        // Keep the widget visible during drags.
-        this.pointer_listener = new ppixiv.pointer_listener({
-            element: this.container,
-            callback: (e) => {
-                this.dragging = e.pressed;
-                this.refresh_visibility();
-            },
-        });
-
-        this.container.visible = false;
-    }
-
-    mouseover()
-    {
-        this.hovering = true;
-        this.refresh_visibility();
-    }
-
-    mouseout()
-    {
-        this.hovering = false;
-        this.refresh_visibility();
-    }
-
-    get actually_visible()
-    {
-        return this.hovering || this.dragging;
-    }
-
-    refresh_visibility()
-    {
-        // Show the seek bar if the mouse is over it, or if we're actively dragging.
-        // Only show if we're active.
-        var visible = this.actually_visible;
-        helpers.set_class(this.container, "visible", visible);
-    }
-}
-
 ppixiv.seek_bar = class extends widget
 {
     constructor({...options})

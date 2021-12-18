@@ -6,7 +6,11 @@ ppixiv.viewer_images = class extends ppixiv.viewer
 {
     constructor(options)
     {
-        super(options);
+        super({...options, template: `
+            <div class=viewer-images>
+            </div>
+        `
+        });
 
         this.manga_page_bar = options.manga_page_bar;
         this.onkeydown = this.onkeydown.bind(this);
