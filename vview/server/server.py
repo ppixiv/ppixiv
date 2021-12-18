@@ -66,7 +66,7 @@ def create_handler_for_command(handler):
         except Exception as e:
             traceback.print_exception(e)
             stack = traceback.format_exception(e)
-            result = { 'success': False, 'code': 'internal-error', 'message': str(e), 'stack': stack }
+            result = { 'success': False, 'code': 'internal-error', 'reason': str(e), 'stack': stack }
 
         # Don't use web.JsonResponse.  It doesn't let us control JSON formatting
         # and gives really ugly JSON.
@@ -77,7 +77,7 @@ def create_handler_for_command(handler):
             print('Invalid response data:', e)
             pprint(result)
 
-            result = { 'success': False, 'code': 'internal-error', 'message': str(e) }
+            result = { 'success': False, 'code': 'internal-error', 'reason': str(e) }
             data = json.dumps(result, indent=4, ensure_ascii=False) + '\n'
 
         data = data.encode('utf-8')
@@ -88,8 +88,8 @@ def create_handler_for_command(handler):
         status = 200
         message = 'OK'
         if not result.get('success'):
-            status = 500
-            message = result.get('message')
+            status = 401
+            message = result.get('reason')
         return web.Response(body=data, status=status, reason=message, content_type='application/json')
 
     return handle
