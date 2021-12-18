@@ -633,7 +633,7 @@ class local_navigation_widget_item extends ppixiv.tree_widget_item
             directories_only: true,
         });
 
-        if(result == null)
+        if(!result.success)
         {
             this.loaded = false;
             return false;

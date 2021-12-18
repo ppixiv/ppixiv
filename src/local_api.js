@@ -108,7 +108,7 @@ ppixiv.local_api = class
         if(!result.success)
         {
             console.error("Error reading directory:", result.reason);
-            return null;
+            return result;
         }
 
         for(let illust of result.results)

@@ -3364,8 +3364,11 @@ ppixiv.data_sources.vview = class extends data_source
             skip: this.next_page_offset,
         });
 
-        if(result == null)
-            return;
+        if(!result.success)
+        {
+            message_widget.singleton.show("Error reading directory: " + result.reason);
+            return result;
+        }
 
         // If we got a local path, store it to allow copying it to the clipboard.
         this.local_path = result.local_path;
