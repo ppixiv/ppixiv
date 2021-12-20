@@ -239,7 +239,7 @@ async def api_illust(info):
 
         # Re-cache the file, so inpaint_timestamp is updated.  It's only imported if the
         # inpaint file exists.
-        info.manager.library.cache_file(absolute_path)
+        info.manager.library.get(absolute_path, force_refresh=True)
 
     return {
         'success': True,
@@ -464,7 +464,7 @@ async def api_edit_inpainting(info):
         await inpainting.create_inpaint_for_entry(entry, info.manager)
 
         # Re-cache the file, so inpaint_timestamp is updated with the new inpaint image's tinestamp.
-        entry = info.manager.library.cache_file(absolute_path)
+        entry = info.manager.library.get(absolute_path, force_refresh=True)
 
     illust_info = get_illust_info(info, entry, info.base_url)
 

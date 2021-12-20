@@ -156,8 +156,6 @@ class Library:
         dbpath = self.data_dir / 'index.sqlite'
         self.db = FileIndex(dbpath)
 
-        # self.update_pending_files_task = asyncio.create_task(self.update_pending_files(), name='LibraryUpdate')
-
     def mount(self, path, name=None):
         path = open_path(path)
         if name is None:
@@ -442,25 +440,6 @@ class Library:
 
         return entry
 
-    def cache_file(self, *args, **kwargs):
-        """
-        Create or update the index entry for a file.
-
-        If populate is true, the file will be read and all data will be available.
-
-        If populate is false, an unpopulated entry will be cached, which only has
-        data we can extract from the path entry.  The entry will be populated the
-        first time it's returned from search results.
-        """
-        entry = self._cache_file(*args, **kwargs)
-        if entry is None:
-            return None
-        self._convert_to_path(entry)
-        return entry
-
-    # The only difference between cache_file and _cache_file is that cache_file is
-    # public, so it returns path objects, and _cache_file is internal, so it leaves
-    # paths as strings.
     def _cache_file(self, path: os.PathLike, *, populate=True, conn=None):
         entry = self._get_entry_from_path(path)
         if entry is None:
@@ -577,11 +556,13 @@ class Library:
             'author': '',
         }
 
-    def get(self, path):
+    def get(self, path, *, force_refresh=False):
         """
         Get the entry for a single file.
         """
-        entry = self._get_entry(path)
+        entry = self._get_entry(path, force_refresh=force_refresh)
+        if entry is None:
+            return None
 
         self._convert_to_path(entry)
         return entry
@@ -992,7 +973,7 @@ class Library:
             metadata_storage.save_file_metadata(path, file_metadata)
 
         # Update the file in the index.
-        return self._cache_file(path)
+        return self.get(path, force_refresh=True)
 
     def get_all_bookmark_tags(self):
         return self.db.get_all_bookmark_tags()
@@ -1030,7 +1011,7 @@ class Library:
             metadata_storage.save_file_metadata(entry['path'], file_metadata)
 
         # Update the file in the index.
-        return self.cache_file(entry['path'])
+        return self.get(entry['path'], force_refresh=True)
 
     def get_all_bookmark_tags(self):
         return self.db.get_all_bookmark_tags()
