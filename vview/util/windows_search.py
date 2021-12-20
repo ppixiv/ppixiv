@@ -297,7 +297,7 @@ def search(*,
     if bookmarked:
         where.append("System.Rating >= 50")
 
-    # If sorT_results is true, sort directories first, then alphabetical.  This is
+    # If sort_results is true, sort directories first, then alphabetical.  This is
     # useful but makes the search slower.
     if order is None:
         order = ''
