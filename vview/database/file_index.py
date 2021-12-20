@@ -163,7 +163,11 @@ class FileIndex(Database):
 
         If a record for this path already exists, it will be replaced.
         """
-        with self.cursor(conn) as cursor:
+        # We're going to read the database and then probably write a record.  Try to open
+        # a write transaction from the start, which prevents "database locked" errors if
+        # the database is modified between the read and the write.  This won't do anything
+        # if we already have a connection.
+        with self.cursor(conn, write=True) as cursor:
             fields = list(entry.keys())
 
             # These fields are included in the keyword index.
