@@ -448,7 +448,8 @@ class Library:
         self.db.add_record(entry, conn=conn)
         return entry
 
-    def _create_file_record(self, path: os.PathLike):
+    @classmethod
+    def _create_file_record(cls, path: os.PathLike):
         mime_type = misc.mime_type(os.fspath(path))
         if mime_type is None:
             # This file type isn't supported.
@@ -497,7 +498,8 @@ class Library:
 
         return data
 
-    def _create_directory_record(self, path: os.PathLike):
+    @classmethod
+    def _create_directory_record(cls, path: os.PathLike):
         stat = path.stat()
 
         data = {
@@ -520,7 +522,8 @@ class Library:
 
         return data
 
-    def _get_placeholder_entry(self, path: os.PathLike):
+    @classmethod
+    def _get_placeholder_entry(cls, path: os.PathLike):
         """
         Return a placeholder entry.
 
