@@ -102,6 +102,7 @@ class Database:
             else:
                 connection = self.open_db()
 
+        change_count = connection.total_changes
         if write:
             connection.execute('BEGIN IMMEDIATE TRANSACTION')
         else:
@@ -114,10 +115,18 @@ class Database:
             connection.commit()
 
             took = time.time() - started_at
+            change_count = connection.total_changes
 
-            # if took > 1:
-            #     print('Database transaction took a long time (%.1f seconds)' % took)
-            #     traceback.print_stack()
+            # Log long-running transactions if we took a write lock.  This isn't ideal
+            # since we should just check whether we actually had a write lock, but SQLite
+            # doesn't seem to have any way to get that.  Also, we should only count time
+            # since we actually took the write lock and not count time waiting for another
+            # write lock, but again there seems to be no way to do that.  "Database is locked"
+            # has always been the biggest problem people have with SQLite, and it's no wonder
+            # why: it gives no tools whatsoever for troubleshooting it.
+            if (write or change_count > 0) and took > 1:
+                print('Database transaction took a long time (%.1f seconds)' % took)
+                traceback.print_stack()
 
         finally:
             connection.rollback()
