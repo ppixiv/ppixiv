@@ -4,7 +4,7 @@ from ..util import win32
 from ..util.paths import open_path
 from pprint import pprint
 
-metadata_filename = '.ppixivbookmark.json.txt'
+metadata_filename = '.vview.txt'
 
 # A mapping from metadata filenames to their contents.
 #
