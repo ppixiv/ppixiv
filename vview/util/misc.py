@@ -340,8 +340,13 @@ class TransientWriteConnection:
             # Open a connection.  Note that db.connect() is a context manager, and we need
             # to keep a reference to it, both so we can call __exit__ when we're done and because
             # if it's GC'd, the context manager will be exited prematurely.
-            self.connection_ctx = connection = self.db.connect(write=True)
-            self.connection = self.connection_ctx.__enter__()
+            self.connection_ctx = self.db.connect(write=False)
+            try:
+                self.connection = self.connection_ctx.__enter__()
+            except:
+                self.in_use = False
+                self.connection_ctx = None
+                raise
 
         return self.connection
 
