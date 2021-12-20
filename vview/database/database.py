@@ -137,8 +137,14 @@ class Database:
                 self.connections.append(connection)
 
     @contextmanager
-    def cursor(self, conn=None):
-        with self.connect(conn) as conn:
+    def cursor(self, conn=None, write=False):
+        """
+        Open a cursor, and yield a transaction.
+
+        If write is true and conn is None (we don't already have a transaction), the
+        transaction will be opened with a write lock.
+        """
+        with self.connect(conn, write=write) as conn:
             assert isinstance(conn, sqlite3.Connection), conn
 
             with transaction(conn):
