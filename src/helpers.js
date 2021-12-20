@@ -3092,6 +3092,10 @@ ppixiv.global_key_listener = class
             this.call_listeners_for_key(e.key, false);
         }, true);
 
+        window.addEventListener("blur", (e) => {
+            this.release_all_keys();
+        });
+
         // If the context menu is shown, release all keys, since browsers forget to send
         // keyup events when the context menu is open.
         window.addEventListener("contextmenu", async (e) => {
@@ -3109,11 +3113,16 @@ ppixiv.global_key_listener = class
             if(e.defaultPrevented)
                 return;
 
-            for(let key of this.keys_pressed)
-                this.call_listeners_for_key(key, false);
-
-            this.keys_pressed.clear();
+            this.release_all_keys();
         });
+    }
+    
+    release_all_keys()
+    {
+        for(let key of this.keys_pressed)
+            this.call_listeners_for_key(key, false);
+
+        this.keys_pressed.clear();
     }
 
     get_listeners_for_key(key, { create=false }={})
