@@ -698,28 +698,31 @@ class Library:
         if not force_refresh:
             entry = self.db.get(path=os.fspath(path), conn=conn)
 
-        # If the entry isn't populated and we're populating, ignore the database entry, so
-        # we'll populate it.
-        if entry is not None and populate and not entry['populated']:
-            entry = None
-
-        if entry is not None and check_mtime:
-            # Check if this entry exists on disk and is up to date.
-            if not self._entry_is_up_to_date(entry):
-                # Clear entry, so we'll re-cache it below.
+            # If the entry isn't populated and we're populating, ignore the database entry, so
+            # we'll populate it.
+            if entry is not None and populate and not entry['populated']:
                 entry = None
 
-        if entry is None:
-            # The file needs to be cached.
-            entry = self._cache_file(path, conn=conn, populate=populate)
-            if entry is None:
-                # The file doesn't exist on disk.  Delete any stale entries pointing at
-                # it.
-                # print('Path doesn\'t exist, purging any cached entries: %s' % path)
-                self.db.delete_recursively([path], conn=conn)
+            if entry is not None and check_mtime:
+                # Check if this entry exists on disk and is up to date.
+                if not self._entry_is_up_to_date(entry):
+                    # Clear entry, so we'll re-cache it below.
+                    entry = None
+
+            if entry is not None:
+                return entry
+
+        # The file needs to be cached, so scan the file.
+        entry = self._get_entry_from_path(path, populate=populate)
 
         if entry is None:
+            # The file doesn't exist on disk.  Delete any stale entries pointing at
+            # it.
+            # print('Path doesn\'t exist, purging any cached entries: %s' % path)
+            self.db.delete_recursively([path], conn=conn)
             return None
+
+        self.db.add_record(entry, conn=conn)
 
         return entry
 
