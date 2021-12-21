@@ -243,12 +243,14 @@ class Library:
             paths = self.mounts
 
         for path in paths.values():
-            # XXX: don't hold the db open for the entire update
-            with self.db.connect() as conn:
-                # Find all metadata files.
-                for result in windows_search.search(paths=[str(path)], filename=metadata_storage.metadata_filename):
-                    path = open_path(result.path)
-                    await self._refresh_metadata_file(path, conn=conn)
+            # Find all metadata files.
+            for result in windows_search.search(
+                    paths=[str(path)],
+                    filename=metadata_storage.metadata_filename,
+                    timeout=0, # disable timeouts
+                ):
+                path = open_path(result.path)
+                await self._refresh_metadata_file(path)
 
     async def refresh(self, *, paths=None):
         """
@@ -269,15 +271,9 @@ class Library:
             pending_paths.put(path)
             total_refresh += 1
 
-        # Use a transient write connection, so we can periodically release the connection.
-        write_connection = TransientWriteConnection(self.db)
-
         while not pending_paths.empty():
             if total_refresh > 1 and (refreshed % 1000) == 0:
                 print('Refreshing %i/%i (%i left)' % (refreshed, total_refresh, pending_paths.qsize()))
-
-                # Periodically release the write lock.
-                write_connection.commit()
 
             path = pending_paths.get()
             refreshed += 1
@@ -295,10 +291,9 @@ class Library:
                     pending_paths.put(child)
                     total_refresh += 1
                 elif child.name == metadata_storage.metadata_filename:
-                    with write_connection as conn:
-                        await self._refresh_metadata_file(child, conn=conn)
+                    await self._refresh_metadata_file(child)
 
-    async def _refresh_metadata_file(self, metadata_file, *, conn):
+    async def _refresh_metadata_file(self, metadata_file, *, conn=None):
         assert metadata_file.name == metadata_storage.metadata_filename
                     
         # Refresh just files with metadata.
@@ -613,8 +608,6 @@ class Library:
                 # Convert back to an iterator.
                 scandir_results = iter(sorted_results)
 
-        # Use TransientWriteConnection to commit the transaction during yields.
-        write_connection = TransientWriteConnection(self.db)
         results = []
         for child in scandir_results:
             is_dir = child.is_dir()
@@ -629,8 +622,7 @@ class Library:
                 continue
 
             # Find the file in cache and cache it if needed.
-            with write_connection as conn:
-                entry = self._get_entry(child, force_refresh=force_refresh, conn=conn)
+            entry = self._get_entry(child, force_refresh=force_refresh)
             if entry is None:
                 continue
 
@@ -639,11 +631,9 @@ class Library:
 
             # If we have a full batch, stop iterating and return it.
             if len(results) >= batch_size:
-                write_connection.commit()
                 yield results
                 results = []
             
-        write_connection.commit()
         if results:
             yield results
 
@@ -808,10 +798,6 @@ class Library:
         else:
             index_search_iter = []
 
-        # This is only used for database writes, and is always disconnected before yielding
-        # a block of results.
-        write_connection = TransientWriteConnection(self.db)
-
         # We can get the same results from Windows search and our own index.  
         seen_paths = set()
 
@@ -893,29 +879,28 @@ class Library:
 
             # If this entry isn't populated, populate it now.
             if not entry['populated']:
-                with write_connection as connection:
-                    # We have a subset of data in the unpopulated entry.  It'll always have the
-                    # filename, keyword, etc., and it may or may not have file-specific data like
-                    # width and height.  Do an early filter based on what information we have.
-                    # If the user searched for width and we know the width already, we can discard
-                    # the result now and not waste time reading the full entry.  This makes some
-                    # searches a lot faster.
-                    if not self.db.entry_matches_search(entry, conn=connection, incomplete=True, **search_options):
-                        # print('Early discarded search result that doesn\'t match: %s' % entry['path'])
-                        continue
+                # We have a subset of data in the unpopulated entry.  It'll always have the
+                # filename, keyword, etc., and it may or may not have file-specific data like
+                # width and height.  Do an early filter based on what information we have.
+                # If the user searched for width and we know the width already, we can discard
+                # the result now and not waste time reading the full entry.  This makes some
+                # searches a lot faster.
+                if not self.db.entry_matches_search(entry, incomplete=True, **search_options):
+                    # print('Early discarded search result that doesn\'t match: %s' % entry['path'])
+                    continue
 
-                    # Load the full entry.
-                    path = open_path(entry['path'])
-                    entry = self._get_entry(path, conn=connection)
-                    if entry is None:
-                        continue
+                # Load the full entry.
+                path = open_path(entry['path'])
+                entry = self._get_entry(path)
+                if entry is None:
+                    continue
 
-                    # If the search only had a placeholder, it wasn't able to check the complete
-                    # search.  For example, Windows index searching doesn't know if a GIF is animated.
-                    # Re-check the result now that we have a populated entry.
-                    if not self.db.entry_matches_search(entry, conn=connection, **search_options):
-                        print('Discarded search result that doesn\'t match: %s' % entry['path'])
-                        continue
+                # If the search only had a placeholder, it wasn't able to check the complete
+                # search.  For example, Windows index searching doesn't know if a GIF is animated.
+                # Re-check the result now that we have a populated entry.
+                if not self.db.entry_matches_search(entry, **search_options):
+                    print('Discarded search result that doesn\'t match: %s' % entry['path'])
+                    continue
 
             # If we're verifying files, see if the file needs to be refreshed.
             if verify_files:
@@ -926,8 +911,7 @@ class Library:
                     # The cached entry is out of date, so refresh or delete it.
                     print('Refreshing stale entry:', entry['path'],)
                     path = open_path(entry['path'])
-                    with write_connection as connection:
-                        entry = self._get_entry(path, force_refresh=True, conn=connection)
+                    entry = self._get_entry(path, force_refresh=True)
 
             if entry is None:
                 continue
@@ -937,16 +921,12 @@ class Library:
 
             # If we have a full batch, stop iterating and return it.
             if len(results) >= batch_size:
-                # Before yielding a block of results, close and commit our write connection.
-                write_connection.commit()
-
                 # Yield this block of results.
                 yield results
                 results = []
 
         # Yield any leftover results.
         if results:
-            write_connection.commit()
             yield results
 
     def bookmark_edit(self, entry, set_bookmark, tags=None):
