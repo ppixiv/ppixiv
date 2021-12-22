@@ -637,6 +637,62 @@ class Library:
         if results:
             yield results
 
+    def list_ids(self,
+        path,
+        *,
+        sort_order='normal',
+    ):
+        """
+        Return the IDs of all files inside a path.
+
+        This is optimized for returning the files in large directories more quickly than we
+        can with list, and doesn't scan file contents.
+        """
+        # The normal sort for directory listings is the natural sort.  Substitute it
+        # here, so the caller doesn't need to figure it out.
+        if sort_order == 'normal':
+            sort_order = 'natural'
+        elif sort_order == '-normal':
+            sort_order = '-natural'
+
+        # There's no point to shuffling here.
+        if sort_order == 'shuffle':
+            sort_order = 'natural'
+
+        scandir_results = path.scandir()
+
+        if sort_order is not None:
+            sort_order_info = _get_sort(sort_order)
+            if sort_order_info is not None:
+                scandir_results = sorted(scandir_results, key=sort_order_info['fs'], reverse=sort_order_info['reverse'])
+
+        # pathlib is surprisingly slow, and becomes a major bottleneck when we're looking
+        # up large search results.  Since all files will be in the same directory, optimize
+        # this by figuring out the prefix the results will have just once.
+        for mount_name, mount_path in self.mounts.items():
+            try:
+                relative_path = path.relative_to(mount_path)
+                root_path = PurePosixPath('/' + mount_name) / relative_path
+                break
+            except ValueError:
+                continue
+        else:
+            root_path = PurePosixPath('/root')
+
+        results = []
+        for path in scandir_results:
+            is_dir = path.is_dir()
+
+            # Skip unsupported files.
+            if not is_dir and (misc.file_type(path.name) is None or misc.mime_type_from_ext(path.suffix) is None):
+                continue
+
+            relative_path = root_path / path.name
+            illust_id = '%s:%s' % ('folder' if is_dir else 'file', relative_path)
+            results.append(illust_id)
+            
+        return results
+
     def get_mountpoint_entries(self):
         """
         Return entries for each mountpoint.

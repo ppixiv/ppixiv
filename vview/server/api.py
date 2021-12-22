@@ -246,6 +246,46 @@ async def api_illust(info):
         'illust': illust_info,
     }
 
+@reg('/ids/{type:[^:]+}:{path:.+}')
+async def api_ids(info):
+    """
+    Return a list of IDs in the given folder.
+
+    This is a limited subset of /list.  This only supports listing a directory, and only
+    returns IDs, but it returns all IDs without pagination.  This can be done very quickly,
+    since it never requires scanning individual files.
+    """
+    def run():
+        return api_ids_impl(info)
+
+    return {
+        'success': True,
+        'ids': await asyncio.to_thread(run),
+    }
+
+def api_ids_impl(info):
+    path = PurePosixPath(info.request.match_info['path'])
+
+    sort_order = info.data.get('order', 'normal')
+    if not sort_order:
+        sort_order = 'normal'
+
+    illust_ids = []
+
+    # If we're not searching and listing the root, just list the libraries.
+    if str(path) == '/':
+        for entry in info.manager.library.get_mountpoint_entries():
+            illust_id = 'folder:' + entry['path']
+            illust_ids.append(illust_id)
+
+        return illust_ids
+
+    absolute_path = info.manager.resolve_path(path)
+    for illust_id in info.manager.library.list_ids(path=absolute_path, sort_order=sort_order):
+        illust_ids.append(illust_id)
+
+    return illust_ids
+
 @reg('/list/{type:[^:]+}:{path:.+}')
 async def api_list(info):
     """
