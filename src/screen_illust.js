@@ -558,12 +558,12 @@ ppixiv.screen_illust = class extends ppixiv.screen
 
         // Get the next (or previous) illustration after the current one.  This will be null if we've
         // reached the end of the list, or if it requires loading the next page of search results.
-        var new_illust_id = this.data_source.id_list.get_neighboring_illust_id(navigate_from_illust_id, down);
+        var new_illust_id = this.data_source.get_neighboring_illust_id(navigate_from_illust_id, down);
         if(new_illust_id == null)
         {
             // We didn't have the new illustration, so we may need to load another page of search results.
             // Find the page the current illustration is on.
-            let next_page = this.data_source.id_list.get_page_for_neighboring_illust(navigate_from_illust_id, down);
+            let next_page = this.data_source.get_page_for_neighboring_illust(navigate_from_illust_id, down);
 
             // If we can't find the next page, then the current image isn't actually loaded in
             // the current search results.  This can happen if the page is reloaded: we'll show

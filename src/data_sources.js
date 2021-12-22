@@ -762,6 +762,14 @@ ppixiv.data_source = class
     add_extra_links(links)
     {
     }
+
+    // Return the next or previous illustration.  If we don't have that page, return null.
+    //
+    // This only returns illustrations, skipping over any special entries like user:12345.
+    get_neighboring_illust_id(illust_id, next)
+    {
+        return this.id_list.get_neighboring_illust_id(illust_id, next);
+    }
 };
 
 // Load a list of illust IDs, and allow retriving them by page.
