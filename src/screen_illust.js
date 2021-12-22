@@ -557,56 +557,10 @@ ppixiv.screen_illust = class extends ppixiv.screen
             navigate_from_illust_id = this.current_illust_id;
 
         // Get the next (or previous) illustration after the current one.  This will be null if we've
-        // reached the end of the list, or if it requires loading the next page of search results.
-        var new_illust_id = this.data_source.get_neighboring_illust_id(navigate_from_illust_id, down);
+        // reached the end of the list.
+        let new_illust_id = await this.data_source.get_or_load_neighboring_illust_id(navigate_from_illust_id, down);
         if(new_illust_id == null)
-        {
-            // We didn't have the new illustration, so we may need to load another page of search results.
-            // Find the page the current illustration is on.
-            let next_page = this.data_source.get_page_for_neighboring_illust(navigate_from_illust_id, down);
-
-            // If we can't find the next page, then the current image isn't actually loaded in
-            // the current search results.  This can happen if the page is reloaded: we'll show
-            // the previous image, but we won't have the results loaded (and the results may have
-            // changed).  Just jump to the first image in the results so we get back to a place
-            // we can navigate from.
-            //
-            // Note that we use id_list.get_first_id rather than get_current_illust_id, which is
-            // just the image we're already on.
-            if(next_page == null)
-            {
-                // We should normally know which page the illustration we're currently viewing is on.
-                console.log("Don't know the next page for illust", navigate_from_illust_id);
-                new_illust_id = this.data_source.id_list.get_first_id();
-                if(new_illust_id != null)
-                    return { illust_id: new_illust_id };
-
-                return { };
-            }
-            console.log("Loaded the next page of results:", next_page);
-
-            // The page shouldn't already be loaded.  Double-check to help prevent bugs that might
-            // spam the server requesting the same page over and over.
-            if(this.data_source.id_list.is_page_loaded(next_page))
-            {
-                console.error("Page", next_page, "is already loaded");
-                return { };
-            }
-
-            // Ask the data source to load it.
-            let new_page_loaded = this.data_source.load_page(next_page, { cause: "illust navigation" });
-
-            // Wait for results.
-            new_page_loaded = await new_page_loaded;
-
-            if(new_page_loaded)
-            {
-                // Now that we've loaded data, try to find the new image again.
-                new_illust_id = this.data_source.id_list.get_neighboring_illust_id(navigate_from_illust_id, down);
-            }
-
-            console.log("Retrying navigation after data load");
-        }
+            return { };
 
         let page = down || skip_manga_pages? 0:-1;
         return { illust_id: new_illust_id, page: page, leaving_manga_post: leaving_manga_post };

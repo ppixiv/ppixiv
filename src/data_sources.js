@@ -770,6 +770,58 @@ ppixiv.data_source = class
     {
         return this.id_list.get_neighboring_illust_id(illust_id, next);
     }
+
+
+    // Return the next or previous image to navigate to from illust_id.  If we're at the end of
+    // the loaded results, load the next or previous page.
+    async get_or_load_neighboring_illust_id(illust_id, next)
+    {
+        let new_illust_id = this.get_neighboring_illust_id(illust_id, next);
+        if(new_illust_id != null)
+            return new_illust_id;
+
+        // We didn't have the new illustration, so we may need to load another page of search results.
+        // Find the page this illustration is on.
+        let next_page = this.id_list.get_page_for_neighboring_illust(illust_id, next);
+
+        // If we can't find the next page, then the image isn't actually loaded in the current
+        // search results.  This can happen if the page is reloaded: we'll show the previous
+        // image, but we won't have the results loaded (and the results may have changed).
+        // Just jump to the first image in the results so we get back to a place we can navigate
+        // from.
+        //
+        // Note that we use id_list.get_first_id rather than get_current_illust_id, which is
+        // just the image we're already on.
+        if(next_page == null)
+        {
+            // We should normally know which page the illustration we're currently viewing is on.
+            console.log("Don't know the next page for illust", illust_id);
+            new_illust_id = this.id_list.get_first_id();
+            if(new_illust_id != null)
+                return new_illust_id;
+
+            return null;
+        }
+
+        console.log("Loading the next page of results:", next_page);
+
+        // The page shouldn't already be loaded.  Double-check to help prevent bugs that might
+        // spam the server requesting the same page over and over.
+        if(this.id_list.is_page_loaded(next_page))
+        {
+            console.error("Page", next_page, "is already loaded");
+            return null;
+        }
+
+        // Load a page.
+        let new_page_loaded = await this.load_page(next_page, { cause: "illust navigation" });
+        if(!new_page_loaded)
+            return null;
+
+        // Now that we've loaded data, try to find the new image again.
+        console.log("Finishing navigation after data load");
+        return this.id_list.get_neighboring_illust_id(illust_id, next);
+    }
 };
 
 // Load a list of illust IDs, and allow retriving them by page.
