@@ -230,15 +230,15 @@ ppixiv.screen_illust = class extends ppixiv.screen
 
         // This is the first image we're displaying if we previously had no illust ID, or
         // if we were hidden.
-        let is_first_image_displayed = this.current_illust_id == -1 || this._hide_image;
+        let is_first_image_displayed = this.current_illust_id == null || this._hide_image;
 
         // Speculatively load the next image, which is what we'll show if you press page down, so
         // advancing through images is smoother.
         //
-        // We don't do this when showing the first image, since the most common case is simply
-        // viewing a single image and not navigating to any others, so this avoids making
-        // speculative loads every time you load a single illustration.
-        if(!is_first_image_displayed)
+        // If we're not local, don't do this when showing the first image, since the most common
+        // case is simply viewing a single image and then backing out to the search, so this avoids
+        // doing extra loads every time you load a single illustration.
+        if(!is_first_image_displayed || helpers.is_local(illust_id))
         {
             // get_navigation may block to load more search results.  Run this async without
             // waiting for it.
@@ -393,7 +393,6 @@ ppixiv.screen_illust = class extends ppixiv.screen
         this.current_illust_id = null;
 
         this.wanted_illust_page = 0;
-        this.current_illust_id = null;
         this.refresh_ui();
 
         // Tell the preloader that we're not displaying an image anymore.
