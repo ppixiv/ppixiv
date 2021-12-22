@@ -2031,7 +2031,10 @@ class data_source_bookmarks_base extends data_source
             {
                 let bookmark_id = illust.bookmarkData.id;
                 let tags = result.body.bookmarkTags[bookmark_id] || [];
-                image_data.singleton().update_cached_bookmark_image_tags(illust.id, tags);
+
+                // illust.id is an int if this image is deleted.  Convert it to a string so it's
+                // like other images.
+                image_data.singleton().update_cached_bookmark_image_tags(illust.id.toString(), tags);
             }
         }
 
