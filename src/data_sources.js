@@ -382,6 +382,12 @@ ppixiv.data_source = class
         return false;
     }
 
+    // Return true if the data source can load the given page.
+    //
+    // This returns false for the page before the first loaded page, even if the data source
+    // is technically able to load it.  We can do that as a special case for the "load previous
+    // results" button, which ignores this, but in most cases (such as clicking a page 1
+    // link when on page 2), we don't and instead create a new data source.
     can_load_page(page)
     {
         // Most data sources can load any page if they haven't loaded a page yet.  Once
@@ -392,7 +398,7 @@ ppixiv.data_source = class
         // If we've loaded pages 5-6, we can load anything between pages 4 and 7.
         let lowest_page = this.id_list.get_lowest_loaded_page();
         let highest_page = this.id_list.get_highest_loaded_page();
-        return page >= lowest_page-1 && page <= highest_page+1;
+        return page >= lowest_page && page <= highest_page+1;
     }
 
     async _load_page_async(page, cause)
@@ -3467,7 +3473,7 @@ ppixiv.data_sources.vview = class extends data_source
         // If we've loaded pages 5-6, we can load anything between pages 4 and 7.
         let lowest_page = this.id_list.get_lowest_loaded_page();
         let highest_page = this.id_list.get_highest_loaded_page();
-        return page >= lowest_page-1 && page <= highest_page+1;
+        return page >= lowest_page && page <= highest_page+1;
     }
 
     get viewing_folder()
