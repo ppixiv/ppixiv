@@ -3489,6 +3489,88 @@ ppixiv.data_sources.vview = class extends data_source
         helpers.set_icon({vview: true});
     }
 
+    // Handle navigating to neighboring images.
+    //
+    // Normally, we only support navigating from illusts that we've loaded, since there's
+    // no general way to find the page an illustration is on.  If we start by viewing an
+    // illust on page 10, we can't figure out that it's on page 10 in order to load it.
+    //
+    // Handle this better if we're viewing a local directory, by loading the full contents
+    // of the directory.  This way, if we're started by viewing a local file, we can always
+    // navigate around the directory.
+    //
+    // This is only done if we're just viewing a directory without a search.  Doing it for
+    // searches is much slower since it can require scanning all results at once for filtering,
+    // and it's mostly important when viewing a file in a directory.
+    async get_or_load_neighboring_illust_id(illust_id, next)
+    {
+        // If this is a search, use the regular behavior.
+        let args = new helpers.args(this.url);
+        let { search_options } = local_api.get_search_options_for_args(args);
+        if(search_options != null)
+            return super.get_or_load_neighboring_illust_id(illust_id, next);
+
+        // Try loading results with the normal path first.  If this succeeds, we don't need
+        // to make the slower api/ids call.
+        let result = await super.get_or_load_neighboring_illust_id(illust_id, next);
+        if(result != null)
+            return result;
+
+        // Load IDs if we haven't done so yet.
+        if(this.all_illust_ids == null)
+        {
+            // If we're already loading, wait for the existing request.
+            if(this.load_ids_promise == null)
+            {
+                let folder_id = local_api.get_local_id_from_args(args, { get_folder: true });
+                console.log("Loading folder contents for navigation:", folder_id);
+                this.load_ids_promise = local_api.local_post_request(`/api/ids/${folder_id}`, {
+                    ...search_options,
+                    ids_only: true,
+        
+                    order: args.hash.get("order"),
+                });
+            }
+
+            let result = await this.load_ids_promise;
+            if(!result.success)
+            {
+                console.error("Error loading IDs:", result.reason);
+                return;
+            }
+
+            this.all_illust_ids = result.ids;
+        }
+
+        // Find illust_id.
+        let idx = this.all_illust_ids.indexOf(illust_id);
+        if(idx == -1)
+        {
+            console.log("Illust ID not found in folder:", illust_id);
+            return null;
+        }
+
+        // Find the next file, ignoring folders.
+        for(let i = 0; i < 100; ++i) // sanity limit
+        {
+            idx += next? +1:-1;
+            if(idx < 0 || idx >= this.all_illust_ids.length)
+            {
+                console.log("Reached the end of results");
+                return null;
+            }
+
+            // If it's not an illustration, keep looking.
+            let next_illust_id = this.all_illust_ids[idx];
+            let { type } = helpers.parse_id(next_illust_id);
+            if(type == "illust" || type == "file")
+                return next_illust_id;
+        }
+
+        console.log("Couldn't find the next illust");
+        return null;
+    }
+
     get_displaying_text()
     {
         // If we have a path inside a search, show the path, since we're not showing the
