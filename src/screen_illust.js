@@ -461,7 +461,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
             return;
 
         var down = e.deltaY > 0;
-        this.move(down, e.shiftKey /* skip_manga_pages */);
+        this.navigate_to_next(down, { skip_manga_pages: e.shiftKey });
     }
 
     get displayed_illust_id()
@@ -508,7 +508,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
             e.preventDefault();
             e.stopPropagation();
 
-            this.move(false, e.shiftKey /* skip_manga_pages */);
+            this.navigate_to_next(false, { skip_manga_pages: e.shiftKey });
             break;
 
         case 39: // right
@@ -517,7 +517,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
             e.preventDefault();
             e.stopPropagation();
 
-            this.move(true, e.shiftKey /* skip_manga_pages */);
+            this.navigate_to_next(true, { skip_manga_pages: e.shiftKey });
             break;
         }
     }
@@ -570,7 +570,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
     // If skip_manga_pages is true, jump past any manga pages in the current illustration.  If
     // this is true and we're navigating backwards, we'll also jump to the first manga page
     // instead of the last.
-    async move(down, skip_manga_pages)
+    async navigate_to_next(down, { skip_manga_pages=false }={})
     {
         // Remember whether we're navigating forwards or backwards, for preloading.
         this.latest_navigation_direction_down = down;
