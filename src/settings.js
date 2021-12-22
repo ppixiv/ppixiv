@@ -162,3 +162,4 @@ ppixiv.settings.configure("image_editing", { session: true });
 ppixiv.settings.configure("image_editing_mode", { session: true });
 ppixiv.settings.configure("inpaint_create_lines", { session: true });
 
+ppixiv.settings.configure("auto_pan_ease", { default_value: 1 });

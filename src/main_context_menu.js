@@ -1015,6 +1015,8 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
             this.hide_temporarily = true;
         }
 
+        this._on_click_viewer.stop_animation();
+
         // If e is a keyboard event, use null to use the center of the screen.
         var keyboard = e instanceof KeyboardEvent;
         var pageX = keyboard? null:e.pageX;
@@ -1197,6 +1199,8 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         if(!this._is_zoom_ui_enabled)
             return;
         
+        this._on_click_viewer.stop_animation();
+
         let center = this._on_click_viewer.get_image_position([e.pageX, e.pageY]);
         this._on_click_viewer.locked_zoom = !this._on_click_viewer.locked_zoom;
         this._on_click_viewer.set_image_position([e.pageX, e.pageY], center);
@@ -1211,6 +1215,8 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
 
         if(!this._is_zoom_ui_enabled)
             return;
+
+        this._on_click_viewer.stop_animation();
 
         let level = e.currentTarget.dataset.level;
 

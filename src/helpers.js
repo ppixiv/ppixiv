@@ -1748,6 +1748,32 @@ ppixiv.helpers = {
         return await Promise.any([promise, sleep]);
     },
 
+    // Asynchronously wait for an animation frame.
+    async vsync({signal=null}={})
+    {
+        return new Promise((accept, reject) => {
+            // The timestamp passed to the requestAnimationFrame callback is designed
+            // incorrectly.  It gives the time callbacks started being called, which is
+            // meaningless.  It should give the time in the future the current frame is
+            // expected to be displayed, which is what you get from things like Android's
+            // choreographer to allow precise frame timing.
+            let id = requestAnimationFrame((time) => {
+                accept(time);
+            });
+    
+            let abort = () => {
+                cancelAnimationFrame(id);
+                signal.removeEventListener("abort", abort);
+                reject();
+            };
+    
+            if(signal)
+            {
+                signal.addEventListener("abort", abort, { once: true });
+            }
+        });
+    },
+    
     // Return a CSS style to specify thumbnail resolutions.
     //
     // Based on the dimensions of the container and a desired pixel size of thumbnails,
