@@ -477,6 +477,8 @@ ppixiv.ZipImagePlayer = class
         if(this.frame >= (this.frame_count - 1)) {
             if(!this.op.loop) {
                 this.pause();
+                if(this.op.onfinished)
+                    this.op.onfinished();
                 return;
             }
 

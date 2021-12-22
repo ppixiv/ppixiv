@@ -123,6 +123,10 @@ let thumbnail_ui = class extends ppixiv.widget
                             <a class="box-link popup" data-type=order-date data-popup="Show newest bookmarks first" href=#>Newest</a>
                             <a class="box-link popup" data-type=order-shuffle data-popup="Show in random order" href=#>Shuffle</a>
                         </span>
+
+                        <a class="box-link slideshow popup" data-popup="Slideshow" href="#">
+                            <span class="material-icons">wallpaper</span>
+                        </a>
                     </div>
                 </div>                
 
@@ -340,6 +344,10 @@ let thumbnail_ui = class extends ppixiv.widget
                         <a class="box-link local-shuffle popup" data-popup="Shuffle" href="#" data-type=local-sort-shuffle>
                             <span class="material-icons">shuffle</span>
                         </a>
+
+                        <a class="box-link slideshow popup" data-popup="Slideshow" href="#">
+                            <span class="material-icons">wallpaper</span>
+                        </a>
                     </div>
                     <div class="box-button-row local-bookmark-tag-list">
                         <span>Bookmark tags:</span>
@@ -480,8 +488,6 @@ ppixiv.screen_search = class extends ppixiv.screen
             await ppixiv.recently_seen_illusts.get().clear();
             this.refresh_search();
         });
-
-        var settings_menu = this.container.querySelector(".settings-menu-box > .popup-menu-box");
 
         this.container.querySelector(".preferences-button").addEventListener("click", (e) => {
             new ppixiv.settings_dialog({ container: document.body });
@@ -866,6 +872,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         var ui_box = this.container.querySelector(".thumbnail-ui-box");
         this.data_source.refresh_thumbnail_ui(ui_box, this);
 
+        this.refresh_slideshow_buttons();
         this.refresh_ui_for_user_id();
     };
 
@@ -1108,6 +1115,23 @@ ppixiv.screen_search = class extends ppixiv.screen
         // Tell the context menu which user is being viewed (if we're viewing a user-specific
         // search).
         main_context_menu.get.user_id = user_id;
+    }
+
+    // Refresh the slideshow buttons.
+    refresh_slideshow_buttons()
+    {
+        // For local images, set file=*.  For Pixiv, set the illust_id to *.
+        let args = helpers.args.location;
+        if(this.data_source.name == "vview")
+            args.hash.set("file", "*");
+        else
+            this.data_source.set_current_illust_id("*", args);
+
+        args.hash.set("slideshow", "1");
+        args.hash.set("view", "illust");
+
+        for(let node of this.container.querySelectorAll("A.slideshow"))
+            node.href = args.url;
     }
 
     // Use different icons for sites where you can give the artist money.  This helps make

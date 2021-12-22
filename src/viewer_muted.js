@@ -17,11 +17,12 @@ ppixiv.viewer_muted = class extends ppixiv.viewer
                 </div>
             </div>
         `});
-
-        this.load();
     }
 
-    async load()
+    async load(illust_id, manga_page, {
+        autoplay=false,
+        onfinished=null,
+    }={})
     {
         this.container.querySelector(".view-muted-image").addEventListener("click", (e) => {
             let args = helpers.args.location;
@@ -29,7 +30,23 @@ ppixiv.viewer_muted = class extends ppixiv.viewer
             helpers.set_page_url(args, false /* add_to_history */, "override-mute");
         });
 
-        this.illust_data = await image_data.singleton().get_image_info(this.illust_id);
+        // We don't skip muted images in autoplay immediately, since it could cause
+        // API hammering if something went wrong, and most of the time autoplay is used
+        // on bookmarks where there aren't a lot of muted images anyway.  Just wait a couple
+        // seconds and call onfinished.
+        if(autoplay && onfinished)
+        {
+            let autoplay_timer = this.autoplay_timer = (async() => {
+                await helpers.sleep(2000);
+                if(autoplay_timer != this.autoplay_timer)
+                    return;
+
+                onfinished();
+            })();
+        }
+
+        this.illust_data = await image_data.singleton().get_image_info(illust_id);
+        console.log(illust_id, this.illust_data);
 
         // Stop if we were removed before the request finished.
         if(this.was_shutdown)
@@ -55,6 +72,7 @@ ppixiv.viewer_muted = class extends ppixiv.viewer
         super.shutdown();
 
         this.container.parentNode.removeChild(this.container);
+        this.autoplay_timer = null;
     }
 }
 

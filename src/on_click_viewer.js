@@ -90,6 +90,13 @@ ppixiv.on_click_viewer = class
         // This callback will be run once an image has actually been displayed.
         ondisplayed,
 
+        // If true, we're in slideshow mode.  We'll always start an animation, and image
+        // navigation will be disabled.
+        slideshow=false,
+
+        // If we're animating, this will be called when the animation finishes.
+        onfinished=null,
+
         // True if we should support inpaint images and editing (local only).
         enable_editing=false,
 
@@ -109,6 +116,10 @@ ppixiv.on_click_viewer = class
             this.remove_images();
             return;
         }
+
+        // Don't show low-res previews during slideshows.
+        if(slideshow)
+            preview_url = url;
         
         // If we're displaying the same image (either the URL or preview URL aren't changing),
         // never restore position, so we don't interrupt the user interacting with the image.
@@ -196,6 +207,8 @@ ppixiv.on_click_viewer = class
         this._cropped_size = crop? new FixedDOMRect(crop[0], crop[1], crop[2], crop[3]):null;
         this.img = img;
         this.preview_img = preview_img;
+        this.slideshow = slideshow;
+        this.onfinished = onfinished;
 
         this.crop_box.appendChild(img);
         this.crop_box.appendChild(preview_img);
@@ -299,10 +312,11 @@ ppixiv.on_click_viewer = class
             this.preview_img = null;
         }
 
-        if(this.animation && remove_animation)
+        if(this.animations && remove_animation)
         {
-            this.animation.cancel();
-            this.animation = null;
+            for(let animation of this.animations)
+                animation.cancel();
+            this.animations = null;
         }
     }
 
@@ -331,11 +345,11 @@ ppixiv.on_click_viewer = class
         return (screen_width/this.cropped_width) > (screen_height/this.cropped_height)? "portrait":"landscape";
     }
 
-    // Set the pan position to the default for this image.
+    // Set the pan position to the default for this image, or start the selected animation.
     reset_position()
     {
         // If panning is enabled, enable the animation instead.
-        if(ppixiv.settings.get("auto_pan"))
+        if(ppixiv.settings.get("auto_pan") || this.slideshow)
         {
             this.refresh_autopan();
             return;
@@ -385,7 +399,7 @@ ppixiv.on_click_viewer = class
     {
         this.reposition();
 
-        if(this.animation)
+        if(this.animations)
             this.refresh_autopan();
     }
 
@@ -542,7 +556,7 @@ ppixiv.on_click_viewer = class
 
     pointerevent = (e) =>
     {
-        if(e.mouseButton != 0)
+        if(e.mouseButton != 0 || this.slideshow)
             return;
 
         if(e.pressed)
@@ -633,7 +647,7 @@ ppixiv.on_click_viewer = class
         // don't cancel the animation in quick view.
         this.drag_movement[0] += movementX;
         this.drag_movement[1] += movementY;
-        if(this.animation)
+        if(this.animations)
         {
             // This matches Windows's default SM_CXDRAG/SM_CYDRAG behavior.
             if(this.drag_movement[0] < 4 && this.drag_movement[1] < 4)
@@ -724,7 +738,7 @@ ppixiv.on_click_viewer = class
             return;
 
         // Stop if there's an animation active.
-        if(this.animation != null)
+        if(this.animations != null)
             return;
 
         this.schedule_save_to_history();
@@ -843,7 +857,7 @@ ppixiv.on_click_viewer = class
             pos: this.center_pos,
             zoom: this.zoom_level,
             lock: this.locked_zoom,
-            animating: this.animation != null,
+            animating: this.animations != null,
         };
 
         helpers.set_page_url(args, false /* add_to_history */);
@@ -875,21 +889,44 @@ ppixiv.on_click_viewer = class
         // This is like the thumbnail animation, which gives a reasonable default for both landscape
         // and portrait animations.
         let auto_pan_ease = ppixiv.settings.get("auto_pan_ease");
+        let pan_duration = this.slideshow? 30:3;
 
-        let default_pan = [{
-            x: 0,
-            y: 0,
-            zoom: 1,
-            max_speed: true,
-            speed: .25,
-            duration: 3,
-            ease: auto_pan_ease,
-        }, {
-            x: 1,
-            y: 1,
-            zoom: 1,
-            duration: 2,
-        }];
+        let default_pan = {
+            pan: [{
+                x: 0, y: 0, zoom: 1,
+                max_speed: true,
+                speed: .25,
+                duration: pan_duration,
+                ease: auto_pan_ease,
+            }, {
+                x: 1, y: 1, zoom: 1,
+                duration: 2,
+            }],
+        };
+
+        // This adds a fade, and a slight delay at the start and end of the pan which
+        // overlaps the fade.
+        let default_pan_with_fade = {
+            fade_in: 1,
+            fade_out: 1,
+
+            pan: [{
+                x: 0, y: 0, zoom: 1,
+                duration: 0.5,
+            }, {
+                x: 0, y: 0, zoom: 1,
+                max_speed: true,
+                speed: .25,
+                duration: pan_duration,
+                ease: auto_pan_ease,
+            }, {
+                x: 1, y: 1, zoom: 1,
+                duration: 1.0,
+            }, {
+                x: 1, y: 1, zoom: 1,
+            }],
+        };
+
         /*
         let pull_in = [{
             x: 0.5,
@@ -906,11 +943,18 @@ ppixiv.on_click_viewer = class
         }];
         */
 
-        this.run_animation(default_pan);
+        this.run_animation(this.slideshow? default_pan_with_fade:default_pan);
     }
 
-    run_animation(points)
+    run_animation(animation)
     {
+        // Opacity from fades is applied when the animation stops, so the image doesn't reappear
+        // while the next image is loading.  If there's an opacity left over from the previous
+        // image, remove it now.
+        this.image_box.style.opacity = "";
+
+        let points = animation.pan;
+
         // Make a deep copy of points, since we're going to modify it.
         points = JSON.parse(JSON.stringify(points));
 
@@ -1038,27 +1082,62 @@ ppixiv.on_click_viewer = class
 
         // Create the animation, or update it in-place if it already exists, probably due to the
         // window being resized.  total_time won't be updated when we do this.
-        if(this.animation == null)
+        if(this.animations == null)
         {
-            let keyframe_effect = new KeyframeEffect(
+            let main_animation = new Animation(new KeyframeEffect(
                 this.image_box,
                 keyframes,
                 {
                     duration: total_time * 1000,
                     fill: 'forwards',
                 }
-            );
-    
-            this.animation = new Animation(keyframe_effect);
+            ));
+
+            // Create a separate animation for fade-in and fade-out.
+            let fade_keyframes = [{
+            }];
+
+            let fade_duration = animation.fade_in + animation.fade_out;
+            if(fade_duration > 0 && fade_duration <= total_time)
+            {
+                fade_keyframes = [{
+                    opacity: 0,
+                }, {
+                    opacity: 1,
+                    easing: "linear",
+                    offset: animation.fade_in / total_time,
+                }, {
+                    opacity: 1,
+                    offset: 1 - (animation.fade_out / total_time),
+                }, {
+                    opacity: 0,
+                    offset: 1,
+                }];
+            }
+
+            let fade_animation = new Animation(new KeyframeEffect(
+                this.image_box, fade_keyframes, {
+                    duration: total_time * 1000,
+                    fill: 'forwards',
+                }
+            ));
+            
+            this.animations = [main_animation, fade_animation];
 
             // Commit and remove the animation when it finishes, so the history state remembers that
             // we were no longer animating.  This way, viewing an image in a linked tab and then removing
-            // it doesn't restart a long-finished animation.
-            this.animation.onfinish = (e) => { this.stop_animation(); };
+            // it doesn't restart a long-finished animation.  We only pay attention to the main animation
+            // for this and ignore the fade.
+            this.animations[0].onfinish = (e) => {
+                this.stop_animation();
+                if(this.onfinished)
+                    this.onfinished();
+            };
 
-            this.animation.play();
+            for(let animation of this.animations)
+                animation.play();
         } else {
-            this.animation.effect.setKeyframes(keyframes);
+            this.animations[0].effect.setKeyframes(keyframes);
         }
     }
 
@@ -1068,14 +1147,20 @@ ppixiv.on_click_viewer = class
     // cancel the animation.
     stop_animation()
     {
-        if(this.animation == null)
+        if(this.animations == null)
             return;
 
-        // Commit the current state of the animation so we can read where the image was, then
-        // cancel it.  We don't need to wait for animation.pending here.
-        this.animation.commitStyles();
-        this.animation.cancel();
-        this.animation = null;
+        // Commit the current state of the main animation so we can read where the image was.
+        // This also commits the opacity, so if we're ending one image to display another the
+        // image won't flash on screen.
+        for(let animation of this.animations)
+            animation.commitStyles();
+
+        // Cancel all animations.  We don't need to wait for animation.pending here.
+        for(let animation of this.animations)
+            animation.cancel();
+
+        this.animations = null;
 
         // Figure out the zoom factor the animation left us with.  The zoom factor is 1 if
         // the image width equals this.width.

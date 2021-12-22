@@ -38,12 +38,19 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         main_context_menu.get.on_click_viewer = this.on_click_viewer;
     }
 
-    async load(signal, illust_id, page, { restore_history=false }={})
+    async load(signal,
+        illust_id, page, {
+            restore_history=false,
+            slideshow=false,
+            onfinished=null,
+        }={})
     {
         this.restore_history = restore_history;
 
         this.illust_id = illust_id;
         this._page = page;
+        this._slideshow = slideshow;
+        this._onfinished = onfinished;
 
         // If this is a local image, tell the inpaint editor about it.
         this.image_editor.set_illust_id(helpers.is_local(this.illust_id)? this.illust_id:null);
@@ -184,6 +191,9 @@ ppixiv.viewer_images = class extends ppixiv.viewer
 
             // Only enable editing for local images.
             enable_editing: helpers.is_local(this.illust_id),
+
+            autoplay: this._slideshow,
+            onfinished: this._onfinished,
 
             ondisplayed: (e) => {
                 // Clear restore_history once the image is actually restored, since we

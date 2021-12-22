@@ -119,6 +119,7 @@ class illust_id_list
     // Return the next or previous illustration.  If we don't have that page, return null.
     //
     // This only returns illustrations, skipping over any special entries like user:12345.
+    // If illust_id is null, start at the first loaded illustration.
     get_neighboring_illust_id(illust_id, next)
     {
         for(let i = 0; i < 100; ++i) // sanity limit
@@ -138,6 +139,9 @@ class illust_id_list
     // The actual logic for get_neighboring_illust_id, except for skipping entries.
     _get_neighboring_illust_id_internal(illust_id, next)
     {
+        if(illust_id == null)
+            return this.get_first_id();
+
         let page = this.get_page_for_illust(illust_id);
         if(page == null)
             return null;
@@ -779,7 +783,11 @@ ppixiv.data_source = class
 
 
     // Return the next or previous image to navigate to from illust_id.  If we're at the end of
-    // the loaded results, load the next or previous page.
+    // the loaded results, load the next or previous page.  If illust_id is null, return the first
+    // image.  This only returns illusts, not users or folders.
+    //
+    // This currently won't load more than one page.  If we load a page and it only has users,
+    // we won't try another page.
     async get_or_load_neighboring_illust_id(illust_id, next)
     {
         let new_illust_id = this.get_neighboring_illust_id(illust_id, next);
@@ -787,25 +795,18 @@ ppixiv.data_source = class
             return new_illust_id;
 
         // We didn't have the new illustration, so we may need to load another page of search results.
-        // Find the page this illustration is on.
+        // Find the page this illustration is on, or use the initial page if illust_id is null.
         let next_page = this.id_list.get_page_for_neighboring_illust(illust_id, next);
+        if(illust_id == null)
+            next_page = this.initial_page;
 
         // If we can't find the next page, then the image isn't actually loaded in the current
         // search results.  This can happen if the page is reloaded: we'll show the previous
         // image, but we won't have the results loaded (and the results may have changed).
-        // Just jump to the first image in the results so we get back to a place we can navigate
-        // from.
-        //
-        // Note that we use id_list.get_first_id rather than get_current_illust_id, which is
-        // just the image we're already on.
         if(next_page == null)
         {
             // We should normally know which page the illustration we're currently viewing is on.
             console.log("Don't know the next page for illust", illust_id);
-            new_illust_id = this.id_list.get_first_id();
-            if(new_illust_id != null)
-                return new_illust_id;
-
             return null;
         }
 

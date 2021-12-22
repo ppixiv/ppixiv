@@ -53,7 +53,10 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
         window.addEventListener("visibilitychange", this.refresh_focus);
     }
 
-    async load(signal, illust_id, manga_page)
+    async load(signal, illust_id, manga_page, {
+        slideshow=false,
+        onfinished=null,
+    }={})
     {
         this.unload();
 
@@ -100,9 +103,9 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
             signal: this.abort_controller.signal,
             autosize: true,
             canvas: this.canvas,
-            loop: true,
-            debug: false,
+            loop: !slideshow,
             progress: this.progress,
+            onfinished: onfinished,
         });            
 
         this.player.video_interface.addEventListener("timeupdate", this.ontimeupdate, { signal: this.abort_controller.signal });

@@ -154,6 +154,9 @@ ppixiv.screen_illust = class extends ppixiv.screen
         // If we previously set a pending navigation, this navigation overrides it.
         this.cancel_async_navigation();
 
+        if(await this.load_first_image(illust_id))
+            return;
+
         // Remember that this is the image we want to be displaying.
         this.wanted_illust_id = illust_id;
         this.wanted_illust_page = manga_page;
@@ -198,7 +201,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
         if( this.wanted_illust_id == this.current_illust_id && 
             this.wanted_illust_page == this.viewer.page &&
             this.viewer != null && 
-            this.hiding_muted_image == this.view_muted && // view-muted not changing
+            this.viewing_muted_image == this.view_muted && // view-muted not changing
             !this._hide_image)
         {
             console.log(`illust ${illust_id} page ${this.wanted_illust_page} is already displayed`);
@@ -272,9 +275,6 @@ ppixiv.screen_illust = class extends ppixiv.screen
         this.ui.illust_id = illust_id;
         this.refresh_ui();
 
-        if(this.update_mute(early_illust_data))
-            return;
-
         // If the image has the ドット絵 tag, enable nearest neighbor filtering.
         helpers.set_class(document.body, "dot", helpers.tags_contain_dot(early_illust_data));
 
@@ -283,7 +283,13 @@ ppixiv.screen_illust = class extends ppixiv.screen
        
         // Create the image viewer.
         let viewer_class;
-        if(early_illust_data.illustType == 2)
+
+        this.viewing_muted_image = this.view_muted;
+
+        let is_muted = this.should_hide_muted_image(early_illust_data).is_muted;
+        if(is_muted)
+            viewer_class = viewer_muted;
+        else if(early_illust_data.illustType == 2)
             viewer_class = viewer_ugoira;
         else if(early_illust_data.illustType == "video")
             viewer_class = viewer_video;
@@ -303,8 +309,18 @@ ppixiv.screen_illust = class extends ppixiv.screen
             });
         }
 
+        let slideshow = helpers.args.location.hash.get("slideshow") == "1";
+        if(slideshow)
+            restore_history = false;
+
         this.viewer.load(illust_id, manga_page, {
             restore_history: restore_history,
+            slideshow: slideshow,
+            onfinished: () => {
+                // When an image finishes in slideshow, move to the next image.
+                if(slideshow)
+                    this.navigate_to_next(1, { loop: true });
+            },
         });
 
         // If the viewer was hidden, unhide it now that the new one is set up.
@@ -314,6 +330,37 @@ ppixiv.screen_illust = class extends ppixiv.screen
 
         // Refresh the UI now that we have a new viewer.
         this.refresh_ui();
+    }
+
+    // If we're loading "*", it's a placeholder saying to view the first search result.
+    // This allows viewing shuffled results.  This can be a Pixiv illust_id of *, or
+    // a local ID with a filename of *.  Load the initial data source page if it's not
+    // already loaded, and navigate to the first result.
+    async load_first_image(illust_id)
+    {
+        if(helpers.is_local(illust_id))
+        {
+            let args = helpers.args.location;
+            local_api.get_args_for_id(illust_id, args);
+            if(args.hash.get("file") != "*")
+                return false;
+        }
+        else if(illust_id != "*")
+            return false;
+
+        // This will load results if needed, skip folders so we only pick images, and return
+        // the first ID.
+        let new_illust_id = await this.data_source.get_or_load_neighboring_illust_id(null, true);
+        if(new_illust_id == null)
+        {
+            message_widget.singleton.show("Couldn't find an image to view");
+            return true;
+        }
+
+        main_controller.singleton.show_illust(new_illust_id, {
+            add_to_history: false,
+        });
+        return true;
     }
 
     get view_muted()
@@ -329,28 +376,6 @@ ppixiv.screen_illust = class extends ppixiv.screen
             return { is_muted: false };
 
         return { is_muted: true, muted_tag: muted_tag, muted_user: muted_user };
-    }
-
-    update_mute(early_illust_data)
-    {
-        // Check if this post is muted.
-        let { is_muted } = this.should_hide_muted_image(early_illust_data);
-        this.hiding_muted_image = this.view_muted;
-        if(!is_muted)
-            return false;
-    
-        // Tell the thumbnail view about the image.  If the image is muted, disable thumbs.
-        if(this.manga_thumbnails)
-            this.manga_thumbnails.set_illust_info(null);
-
-        // If the image is muted, load a dummy viewer.
-        this.remove_viewer();
-        this.viewer = new viewer_muted({
-            container: this.view_container,
-            illust_id: this.current_illust_id,
-        });
-        this._hide_image = false;
-        return true;
     }
     
     // Remove the old viewer, if any.
@@ -525,7 +550,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
     // Get the illust_id and page navigating down (or up) will go to.
     //
     // This may trigger loading the next page of search results, if we've reached the end.
-    async get_navigation(down, { skip_manga_pages=false, }={})
+    async get_navigation(down, { skip_manga_pages=false, loop=false }={})
     {
         // Check if we're just changing pages within the same manga post.
         let leaving_manga_post = false;
@@ -558,6 +583,11 @@ ppixiv.screen_illust = class extends ppixiv.screen
         // Get the next (or previous) illustration after the current one.  This will be null if we've
         // reached the end of the list.
         let new_illust_id = await this.data_source.get_or_load_neighboring_illust_id(navigate_from_illust_id, down);
+
+        // If we're at the end and we're looping, go to the first (or last) image.
+        if(new_illust_id == null && loop)
+            new_illust_id = down? this.data_source.id_list.get_first_id():this.data_source.id_list.get_last_id();
+    
         if(new_illust_id == null)
             return { };
 
@@ -570,7 +600,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
     // If skip_manga_pages is true, jump past any manga pages in the current illustration.  If
     // this is true and we're navigating backwards, we'll also jump to the first manga page
     // instead of the last.
-    async navigate_to_next(down, { skip_manga_pages=false }={})
+    async navigate_to_next(down, { skip_manga_pages=false, loop=false }={})
     {
         // Remember whether we're navigating forwards or backwards, for preloading.
         this.latest_navigation_direction_down = down;
@@ -583,6 +613,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
         // the next page of search results.
         let { illust_id: new_illust_id, page, end, leaving_manga_post } = await this.get_navigation(down, {
             skip_manga_pages: skip_manga_pages,
+            loop: loop,
         });
     
         // If we didn't get a page, we're at the end of the search results.  Flash the
