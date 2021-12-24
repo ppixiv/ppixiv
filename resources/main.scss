@@ -972,6 +972,10 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
 
         // Always show the vertical scrollbar, so we don't relayout as images load.
         overflow-y: scroll;
+
+        &:focus {
+            outline: none;
+        }
     }
 }
 
