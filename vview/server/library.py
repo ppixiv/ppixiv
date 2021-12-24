@@ -677,7 +677,7 @@ class Library:
             except ValueError:
                 continue
         else:
-            root_path = PurePosixPath('/root')
+            root_path = PurePosixPath('/root') / str(path).replace('\\', '/')
 
         results = []
         for path in scandir_results:
