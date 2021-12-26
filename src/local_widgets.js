@@ -998,6 +998,7 @@ ppixiv.local_search_box_widget = class extends ppixiv.widget
             args.hash.set("search", tags);
         else
             args.hash.delete("search");
+        args.set("p", null);
         helpers.set_page_url(args, true /* add_to_history */, "navigation");
     }
 }
