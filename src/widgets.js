@@ -194,7 +194,7 @@ ppixiv.illust_widget = class extends ppixiv.widget
         {
             // See if we have the data the widget wants already.
             info.thumbnail_data = thumbnail_data.singleton().get_illust_data_sync(this._media_id);
-            info.illust_data = image_data.singleton().get_image_info_sync(this._media_id);
+            info.illust_data = image_data.singleton().get_media_info_sync(this._media_id);
             let load_needed = false;
             switch(this.needed_data)
             {
@@ -204,7 +204,7 @@ ppixiv.illust_widget = class extends ppixiv.widget
                     load_needed = true;
                 break;
             case "illust_info":
-                info.illust_data = image_data.singleton().get_image_info_sync(this._media_id);
+                info.illust_data = image_data.singleton().get_media_info_sync(this._media_id);
                 if(info.illust_data == null)
                     load_needed = true;
                 break;
@@ -1497,7 +1497,7 @@ ppixiv.bookmark_button_widget = class extends ppixiv.illust_widget
     {
         // If this is a local image, we won't have a bookmark count, so set local-image
         // to remove our padding for it.  We can get media_id before thumbnail_data.
-        let is_local =  helpers.is_local(media_id);
+        let is_local =  helpers.is_media_id_local(media_id);
         helpers.set_class(this.container,  "has-like-count", !is_local);
 
         let { type } = helpers.parse_media_id(media_id);

@@ -1150,7 +1150,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
             let folder_button = this.container.querySelector(".button-parent-folder");
             let author_button = this.container.querySelector(".avatar-widget-container");
 
-            let is_local = helpers.is_local(this.folder_id_for_parent);
+            let is_local = helpers.is_media_id_local(this.folder_id_for_parent);
             folder_button.hidden = !is_local;
             author_button.hidden = is_local;
             helpers.set_class(folder_button, "enabled", this.parent_folder_id != null);
@@ -1244,7 +1244,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
     get parent_folder_id()
     {
         let folder_id = this.folder_id_for_parent;
-        let is_local = helpers.is_local(folder_id);
+        let is_local = helpers.is_media_id_local(folder_id);
         if(!is_local)
             return null;
 

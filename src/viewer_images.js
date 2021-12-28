@@ -123,7 +123,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
             return;
 
         // Get the updated illust data.
-        let illust_data = image_data.singleton().get_image_info_sync(this.media_id);
+        let illust_data = image_data.singleton().get_media_info_sync(this.media_id);
         if(illust_data == null)
             return;
 

@@ -124,14 +124,14 @@ class illust_id_list
     {
         for(let i = 0; i < 100; ++i) // sanity limit
         {
-            let new_media_id = this._get_neighboring_media_id_internal(media_id, next, options);
-            if(new_media_id == null)
+            media_id = this._get_neighboring_media_id_internal(media_id, next, options);
+            if(media_id == null)
                 return null;
 
             // If it's not an illustration, keep looking.
-            let { type } = helpers.parse_media_id(new_media_id);
+            let { type } = helpers.parse_media_id(media_id);
             if(type == "illust" || type == "file")
-                return new_media_id;
+                return media_id;
         }
         return null;
     }
@@ -144,7 +144,7 @@ class illust_id_list
 
         // If we're navigating forwards, grab thumbnail info to get the page count to
         // see if we're at the end. 
-        if(!skip_manga_pages)
+        if(helpers.parse_media_id(media_id).type == "illust" && !skip_manga_pages)
         {
             let id = helpers.parse_media_id(media_id);
 
@@ -214,7 +214,7 @@ class illust_id_list
         }
 
         // If we're navigating backwards, get the last page on new_media_id.
-        if(!next && !skip_manga_pages)
+        if(helpers.parse_media_id(new_media_id).type == "illust" && !next && !skip_manga_pages)
         {
             let info = thumbnail_data.singleton().get_illust_data_sync(new_media_id);
             if(info == null)
@@ -1003,7 +1003,8 @@ ppixiv.data_sources.related_illusts = class extends data_source
 
             // Don't wait for this to finish before continuing.
             let illust_id = this.url.searchParams.get("illust_id");
-            image_data.singleton().get_image_info(illust_id).then((illust_info) => {
+            let media_id = helpers.illust_id_to_media_id(illust_id)
+            image_data.singleton().get_media_info(media_id).then((illust_info) => {
                 this.illust_info = illust_info;
                 this.call_update_listeners();
             }).catch((e) => {
@@ -3263,7 +3264,8 @@ ppixiv.data_sources.related_favorites = class extends data_source_from_page
         // Get info for the illustration we're displaying bookmarks for.
         var query_args = this.url.searchParams;
         var illust_id = query_args.get("illust_id");
-        this.illust_info = await image_data.singleton().get_image_info(illust_id);
+        let media_id = helpers.illust_id_to_media_id(illust_id)
+        this.illust_info = await image_data.singleton().get_media_info(media_id);
         
         return super.load_page_internal(page);
     }

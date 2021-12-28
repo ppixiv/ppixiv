@@ -102,7 +102,7 @@ ppixiv.SendImage = class
         // Send everything we know about the image, so the receiver doesn't have to
         // do a lookup.
         let thumbnail_info = thumbnail_data.singleton().get_one_thumbnail_info(media_id);
-        let illust_data = image_data.singleton().get_image_info_sync(media_id);
+        let illust_data = image_data.singleton().get_media_info_sync(media_id);
 
         let user_id = illust_data?.userId;
         let user_info = user_id? image_data.singleton().get_user_info_sync(user_id):null;
@@ -244,7 +244,7 @@ ppixiv.SendImage = class
         let screen = main_controller.singleton.displayed_screen;
         let media_id = screen? screen.displayed_media_id:null;
         let thumbnail_info = media_id? thumbnail_data.singleton().get_one_thumbnail_info(media_id):null;
-        let illust_data = media_id? image_data.singleton().get_image_info_sync(media_id):null;
+        let illust_data = media_id? image_data.singleton().get_media_info_sync(media_id):null;
 
         let user_id = illust_data?.userId;
         let user_info = user_id? image_data.singleton().get_user_info_sync(user_id):null;

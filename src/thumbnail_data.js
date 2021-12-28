@@ -33,16 +33,9 @@ ppixiv.thumbnail_data = class
     // We won't start fetching IDs that aren't loaded.
     are_all_media_ids_loaded_or_loading(media_ids)
     {
-        let illust_ids = [];
-        for(let media_id of media_ids)
+        for(var media_id of media_ids)
         {
-            let [illust_id] = helpers.media_id_to_illust_id_and_page(media_id);
-            illust_ids.push(illust_id);
-        }
-
-        for(var illust_id of illust_ids)
-        {
-            if(this.thumbnail_data[illust_id] == null && !this.loading_ids[illust_id])
+            if(this.thumbnail_data[media_id] == null && !this.loading_ids[media_id])
                 return false;
         }
         return true;
@@ -50,8 +43,7 @@ ppixiv.thumbnail_data = class
    
     is_media_id_loaded_or_loading(media_id)
     {
-        let [illust_id] = helpers.media_id_to_illust_id_and_page(media_id);
-        return this.thumbnail_data[illust_id] != null || this.loading_ids[illust_id];
+        return this.thumbnail_data[media_id] != null || this.loading_ids[media_id];
     }
     
     // Return thumbnail data for media_id, or null if it's not loaded.
@@ -60,60 +52,54 @@ ppixiv.thumbnail_data = class
     // to load thumbnail data in batches.
     get_one_thumbnail_info(media_id)
     {
-        let [illust_id] = helpers.media_id_to_illust_id_and_page(media_id);
-        return this.thumbnail_data[illust_id];
+        return this.thumbnail_data[media_id];
     }
 
-    // Return thumbnail data for illust_ids, and start loading any requested IDs that aren't
+    // Return thumbnail data for media_ids, and start loading any requested IDs that aren't
     // already loaded.
     get_thumbnail_info(media_ids)
     {
         var result = {};
-        var needed_ids = [];
-        for(var media_id of media_ids)
+        var needed_media_ids = [];
+        for(let media_id of media_ids)
         {
-            let [illust_id] = helpers.media_id_to_illust_id_and_page(media_id);
-
-            var data = this.thumbnail_data[illust_id];
+            let data = this.thumbnail_data[media_id];
             if(data == null)
             {
-                // Don't request user IDs as thumbnail IDs.
+                // Only load illust IDs.
                 let { type } = helpers.parse_media_id(media_id);
-                if(type == "user")
+                if(type != "illust")
                     continue;
 
-                // We don't need to load local thumbnail IDs, since they're always provided by the
-                // data source.  Make sure we don't send these to load_thumbnail_info.
-                if(helpers.is_local(illust_id))
-                    continue;
-
-                needed_ids.push('id:', illust_id);
+                needed_media_ids.push(media_id);
                 continue;
             }
-            result[illust_id] = data;
+            result[media_id] = data;
         }
 
         // Load any thumbnail data that we didn't have.
-        if(needed_ids.length)
-            this.load_thumbnail_info(needed_ids);
+        if(needed_media_ids.length)
+            this.load_thumbnail_info(needed_media_ids);
 
         return result;
     }
 
     // Load thumbnail info for the given list of IDs.
-    async load_thumbnail_info(illust_ids)
+    async load_thumbnail_info(media_ids)
     {
         // Make a list of IDs that we're not already loading.
-        var ids_to_load = [];
-        for(var id of illust_ids)
-            if(this.loading_ids[id] == null)
-                ids_to_load.push(id);
+        let illust_ids_to_load = [];
+        for(let media_id of media_ids)
+        {
+            if(this.loading_ids[media_id] != null)
+                continue;
 
-        if(ids_to_load.length == 0)
+            illust_ids_to_load.push(helpers.parse_media_id(media_id).id);
+            this.loading_ids[media_id] = true;
+        }
+
+        if(illust_ids_to_load.length == 0)
             return;
-
-        for(var id of ids_to_load)
-            this.loading_ids[id] = true;
 
         // There's also
         //
@@ -125,7 +111,7 @@ ppixiv.thumbnail_data = class
         // have an updated generic illustration lookup call if they ever update the
         // regular search pages, and we can switch to it then.
         var result = await helpers.rpc_get_request("/rpc/illust_list.php", {
-            illust_ids: ids_to_load.join(","),
+            illust_ids: illust_ids_to_load.join(","),
 
             // Specifying this gives us 240x240 thumbs, which we want, rather than the 150x150
             // ones we'll get if we don't (though changing the URL is easy enough too).
@@ -391,8 +377,8 @@ ppixiv.thumbnail_data = class
             // Store the data.
             this.add_thumbnail_info(thumb_info);
 
-            var illust_id = thumb_info.id;
-            delete this.loading_ids[illust_id];
+            let media_id = helpers.illust_id_to_media_id(thumb_info.id);
+            delete this.loading_ids[media_id];
 
             // This is really annoying: the profile picture is the only field that's present in thumbnail
             // info but not illust info.  We want a single basic data set for both, so that can't include
@@ -411,8 +397,8 @@ ppixiv.thumbnail_data = class
     // Store thumbnail info.
     add_thumbnail_info(thumb_info)
     {
-        var illust_id = thumb_info.id;
-        this.thumbnail_data[illust_id] = thumb_info;
+        let media_id = helpers.illust_id_to_media_id(thumb_info.id);
+        this.thumbnail_data[media_id] = thumb_info;
     }
 
     is_muted(thumb_info)
@@ -504,7 +490,7 @@ ppixiv.thumbnail_data = class
         // First, see if we have full illust info.  Prefer to use it over thumbnail info
         // if we have it, so full info is available.  If we don't, see if we have thumbnail
         // info.
-        let data = image_data.singleton().get_image_info_sync(media_id);
+        let data = image_data.singleton().get_media_info_sync(media_id);
         if(data == null)
             data = thumbnail_data.singleton().get_one_thumbnail_info(media_id);
 
@@ -524,7 +510,7 @@ ppixiv.thumbnail_data = class
         // First, see if we have full illust info.  Prefer to use it over thumbnail info
         // if we have it, so full info is available.  If we don't, see if we have thumbnail
         // info.
-        let data = image_data.singleton().get_image_info_sync(media_id);
+        let data = image_data.singleton().get_media_info_sync(media_id);
         if(data == null)
             data = thumbnail_data.singleton().get_one_thumbnail_info(media_id);
 
@@ -573,7 +559,7 @@ ppixiv.thumbnail_data = class
         if(thumb_data)
             update_data(thumb_data, this.thumbnail_info_keys);
 
-        let illust_info = image_data.singleton().get_image_info_sync(media_id);
+        let illust_info = image_data.singleton().get_media_info_sync(media_id);
         if(illust_info != null)
             update_data(illust_info, this.thumbnail_info_keys);
 

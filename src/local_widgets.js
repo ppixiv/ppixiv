@@ -536,7 +536,7 @@ class local_navigation_widget_item extends ppixiv.tree_widget_item
         // Set the ID on the item to let the popup menu know what it is.  Don't do
         // this for top-level libraries ("folder:/images"), since they can't be
         // bookmarked.
-        let { id } = helpers.parse_id(this.path);
+        let { id } = helpers.parse_media_id(this.path);
         let is_library = id.indexOf("/", 1) == -1;
         if(!is_library)
             this.container.dataset.mediaId = this.path;
@@ -657,7 +657,7 @@ class local_navigation_widget_item extends ppixiv.tree_widget_item
         for(let dir of result.results)
         {
             // Strip "folder:" off of the name, and use the basename of that as the label.
-            let {type } = helpers.parse_id(dir.id);
+            let {type } = helpers.parse_media_id(dir.id);
             if(type != "folder")
                 continue;
     

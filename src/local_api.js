@@ -54,9 +54,9 @@ ppixiv.local_api = class
     }
 
     // Load image info from the local API.
-    static async load_image_info(illust_id)
+    static async load_media_info(media_id)
     {
-        let illust_data = await local_api.local_post_request(`/api/illust/${illust_id}`);
+        let illust_data = await local_api.local_post_request(`/api/illust/${media_id}`);
         if(illust_data.success)
             local_api.adjust_illust_info(illust_data.illust);
 
@@ -135,13 +135,13 @@ ppixiv.local_api = class
             return;
 
         // Update bookmark tags and thumbnail data.
-        image_data.singleton().update_cached_bookmark_image_tags(illust_id, result.bookmark.tags);
+        image_data.singleton().update_cached_bookmark_image_tags(media_id, result.bookmark.tags);
 
         thumbnail_data.singleton().update_illust_data(media_id, {
             bookmarkData: result.bookmark
         });
 
-        let { type } = helpers.parse_id(media_id);
+        let { type } = helpers.parse_media_id(media_id);
         
         message_widget.singleton.show(
             was_bookmarked? "Bookmark edited":
@@ -195,7 +195,7 @@ ppixiv.local_api = class
     }
 
     // Given a local ID, return the separated directory and filename.  id is
-    // the id result of helpers.parse_id when type is "file".
+    // the id result of helpers.parse_media_id when type is "file".
     static split_local_id(id)
     {
         let idx = id.lastIndexOf("/");
@@ -244,7 +244,7 @@ ppixiv.local_api = class
     //
     // It's tricky to figure out where to edit the URL, but combining them is simple:
     // hash_path + path + file.
-    static get_args_for_id(illust_id, args)
+    static get_args_for_id(media_id, args)
     {
         if(args.path != local_api.path)
         {
@@ -263,7 +263,7 @@ ppixiv.local_api = class
         // let args_file = args.hash.get("file") || "";
         
         // The new path to set:
-        let { type, id: path } = helpers.parse_id(illust_id);
+        let { type, id: path } = helpers.parse_media_id(media_id);
 
         if(type == "file")
         {
@@ -404,7 +404,7 @@ ppixiv.local_api = class
 
             // When there's no search, just show the current path as the title.
             let folder_id = local_api.get_local_id_from_args(args, { get_folder: true });
-            let { id } = helpers.parse_id(folder_id);
+            let { id } = helpers.parse_media_id(folder_id);
             title = helpers.get_path_suffix(id);
         }
 
@@ -412,13 +412,13 @@ ppixiv.local_api = class
     }
 
     // Given a folder ID, return its parent.  If folder_id is the root, return null.
-    static get_parent_folder(illust_id)
+    static get_parent_folder(media_id)
     {
-        if(illust_id == "folder:/")
+        if(media_id == "folder:/")
             return null;
 
-        // illust_id can be a file or a folder.  We always return a folder.
-        let { id } = helpers.parse_id(illust_id);
+        // media_id can be a file or a folder.  We always return a folder.
+        let { id } = helpers.parse_media_id(media_id);
 
         let parts = id.split("/");
         if(parts.length == 2)

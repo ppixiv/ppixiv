@@ -22,8 +22,7 @@ ppixiv.image_data = class
 
         // Negative cache to remember illusts that don't exist, so we don't try to
         // load them repeatedly:
-        this.nonexistant_illist_ids = { };
-        this.nonexistant_user_ids = { }; // XXX
+        this.nonexistant_media_ids = { };
 
         this.illust_loads = {};
         this.user_info_loads = {};
@@ -49,56 +48,49 @@ ppixiv.image_data = class
         this.illust_modified_callbacks.call(media_id);
     }
 
-    // Get image data asynchronously.
+    // Get media data asynchronously.
     //
-    // await get_image_info(12345);
+    // await get_media_info(12345);
     //
     // If illust_id is a video, we'll also download the metadata before returning it, and store
     // it as image_data.ugoiraMetadata.
-    get_image_info(illust_id)
+    get_media_info(media_id)
     {
-        if(illust_id == null)
+        if(media_id == null)
             return null;
 
         // Stop if we know this illust doesn't exist.
-        if(illust_id in this.nonexistant_illist_ids)
+        let base_media_id = this._get_base_media_id(media_id);
+        if(base_media_id in this.nonexistant_media_ids)
             return null;
 
         // If we already have the image data, just return it.
-        if(this.image_data[illust_id] != null)
-            return Promise.resolve(this.image_data[illust_id]);
+        if(this.image_data[media_id] != null)
+            return Promise.resolve(this.image_data[media_id]);
 
         // If there's already a load in progress, return the running promise.
-        if(this.illust_loads[illust_id] != null)
-            return this.illust_loads[illust_id];
+        if(this.illust_loads[media_id] != null)
+            return this.illust_loads[media_id];
         
-        var load_promise = this.load_image_info(illust_id);
-        this._started_loading_image_info(illust_id, load_promise);
+        var load_promise = this.load_media_info(media_id);
+        this._started_loading_image_info(media_id, load_promise);
         return load_promise;
     }
-    
-    // get_image_info for a media ID.
-    get_media_info(media_id)
-    {
-        let [illust_id] = helpers.media_id_to_illust_id_and_page(media_id);
-        return this.get_image_info(illust_id);
-    }
 
-    _started_loading_image_info(illust_id, load_promise)
+    _started_loading_image_info(media_id, load_promise)
     {
-        this.illust_loads[illust_id] = load_promise;
-        this.illust_loads[illust_id].then(() => {
-            delete this.illust_loads[illust_id];
+        this.illust_loads[media_id] = load_promise;
+        this.illust_loads[media_id].then(() => {
+            delete this.illust_loads[media_id];
         });
     }
     
-    // Like get_image_info, but return the result immediately.
+    // Like get_media_info, but return the result immediately.
     //
     // If the image info isn't loaded, don't start a request and just return null.
-    get_image_info_sync(media_id)
+    get_media_info_sync(media_id)
     {
-        let [illust_id] = helpers.media_id_to_illust_id_and_page(media_id);
-        return this.image_data[illust_id];
+        return this.image_data[media_id];
     }
     
     // Load illust_id and all data that it depends on.
@@ -109,23 +101,26 @@ ppixiv.image_data = class
     // If load_user_info is true, we'll attempt to load user info in parallel.  It still
     // needs to be requested with get_user_info(), but loading it here can allow requesting
     // it sooner.
-    async load_image_info(illust_id, { illust_data=null, load_user_info=false }={})
+    async load_media_info(media_id, { illust_data=null, load_user_info=false }={})
     {
+        let [illust_id] = helpers.media_id_to_illust_id_and_page(media_id);
+
         // See if we already have data for this image.  If we do, stop.  We always load
         // everything we need if we load anything at all.
-        if(this.image_data[illust_id] != null)
+        if(this.image_data[media_id] != null)
             return;
 
-        delete this.nonexistant_illist_ids[illust_id];
+        let base_media_id = this._get_base_media_id(media_id);
+        delete this.nonexistant_media_ids[base_media_id];
 
         // We need the illust data, user data, and ugoira metadata (for illustType 2).  (We could
         // load manga data too, but we currently let the manga view do that.)  We need to know the
         // user ID and illust type to start those loads.
-        console.log("Fetching", illust_id);
+        console.log("Fetching", media_id);
 
         // If this is a local image, use our API to retrieve it.
-        if(helpers.is_local(illust_id))
-            return await this._load_local_image_info(illust_id);
+        if(helpers.is_media_id_local(media_id))
+            return await this._load_local_image_info(media_id);
 
         var user_info_promise = null;
         var manga_promise = null;
@@ -148,7 +143,6 @@ ppixiv.image_data = class
         // If we have thumbnail info, it tells us the user ID.  This lets us start loading
         // user info without waiting for the illustration data to finish loading first.
         // Don't fetch thumbnail info if it's not already loaded.
-        let media_id = helpers.illust_id_to_media_id(illust_id);
         var thumbnail_info = thumbnail_data.singleton().get_one_thumbnail_info(media_id);
         if(thumbnail_info != null)
             start_loading(thumbnail_info.userId, thumbnail_info.illustType, thumbnail_info.pageCount);
@@ -162,7 +156,7 @@ ppixiv.image_data = class
             {
                 let message = illust_result?.message || "Error loading illustration";
                 console.log(`Error loading illust ${illust_id}; ${message}`);
-                this.nonexistant_illist_ids[illust_id] = message;
+                this.nonexistant_media_ids[base_media_id] = message;
                 return null;
             }
 
@@ -248,25 +242,38 @@ ppixiv.image_data = class
         guess_image_url.get.add_info(illust_data);
 
         // Store the image data.
-        this.image_data[illust_id] = illust_data;
+        this.image_data[media_id] = illust_data;
         return illust_data;
     }
 
+    // Clear the page number on media_id for use with nonexistant_media_ids.
+    _get_base_media_id(media_id)
+    {
+        let id = helpers.parse_media_id(media_id);
+        id.page = 0;
+        return helpers.encode_media_id(id);
+    }
+
     // If get_image_info or get_user_info returned null, return the error message.
-    get_illust_load_error(illust_id) { return this.nonexistant_illist_ids[illust_id]; }
-    get_user_load_error(user_id) { return this.nonexistant_user_ids[illust_id]; }
+    get_illust_load_error(media_id)
+    {
+        let base_media_id = this._get_base_media_id(media_id);
+        return this.nonexistant_media_ids[base_media_id];
+    }
+    get_user_load_error(user_id) { return "user:" + this.nonexistant_media_ids[user_id]; }
 
     // Load image info from the local API.
-    async _load_local_image_info(illust_id)
+    async _load_local_image_info(media_id)
     {
-        let illust_data = await local_api.load_image_info(illust_id);
+        let illust_data = await local_api.load_media_info(media_id);
         if(!illust_data.success)
         {
-            this.nonexistant_illist_ids[illust_id] = illust_data.reason;
+            let base_media_id = this._get_base_media_id(media_id);
+            this.nonexistant_media_ids[base_media_id] = illust_data.reason;
             return null;
         }
 
-        this.image_data[illust_id] = illust_data.illust;
+        this.image_data[media_id] = illust_data.illust;
         return illust_data.illust;
     }
 
@@ -308,7 +315,8 @@ ppixiv.image_data = class
             return null;
 
         // Stop if we know this user doesn't exist.
-        if(user_id in this.nonexistant_user_ids)
+        let base_media_id = "user:" + user_id;
+        if(base_media_id in this.nonexistant_media_ids)
             return null;
         
         // If we already have the user info for this illustration (and it's full data, if
@@ -339,6 +347,8 @@ ppixiv.image_data = class
     
     async load_user_info(user_id)
     {
+        let base_media_id = "user:" + user_id;
+
         // -1 is for illustrations with no user, which is used for local images.
         if(user_id == -1)
             return null;
@@ -349,7 +359,7 @@ ppixiv.image_data = class
         {
             let message = result?.message || "Error loading user";
             console.log(`Error loading user ${user_id}: ${message}`);
-            this.nonexistant_user_ids[user_id] = message;
+            this.nonexistant_media_ids[base_media_id] = message;
             return null;
         }
 
@@ -437,8 +447,9 @@ ppixiv.image_data = class
     // we have any fetches in the air already, we'll leave them running.
     add_illust_data(illust_data)
     {
-        var load_promise = this.load_image_info(illust_data.illustId, { illust_data: illust_data });
-        this._started_loading_image_info(illust_data.illustId, load_promise);
+        let media_id = helpers.illust_id_to_media_id(illust_data.illustId);
+        var load_promise = this.load_media_info(media_id, { illust_data: illust_data });
+        this._started_loading_image_info(media_id, load_promise);
     }
 
     add_user_data(user_data)
@@ -455,8 +466,6 @@ ppixiv.image_data = class
     // only load this if the user is viewing/editing bookmark tags.
     async load_bookmark_details(media_id)
     {
-        let [illust_id] = helpers.media_id_to_illust_id_and_page(media_id);
-
         // If we know the image isn't bookmarked, we know there are no bookmark tags, so
         // we can skip this.
         let thumb = thumbnail_data.singleton().get_illust_data_sync(media_id);
@@ -468,12 +477,13 @@ ppixiv.image_data = class
             return this.bookmarked_image_tags[media_id]; 
 
         // The local API just puts bookmark info on the illust info.
-        if(helpers.is_local(illust_id))
+        if(helpers.is_media_id_local(media_id))
         {
             this.bookmarked_image_tags[media_id] = thumb.bookmarkData.tags;
             return this.bookmarked_image_tags[media_id]; 
         }
 
+        let [illust_id] = helpers.media_id_to_illust_id_and_page(media_id);
         let bookmark_page = await helpers.load_data_in_iframe("/bookmark_add.php?type=illust&illust_id=" + illust_id);
         
         let tags = bookmark_page.querySelector(".bookmark-detail-unit form input[name='tag']").value;

@@ -1970,14 +1970,10 @@ ppixiv.helpers = {
         ctx.closePath();
     },
 
-    // Helpers for IDs in the illustration list.
+    // Split a "type:id" into its two parts.
     //
-    // Most things we show in thumbs are illustration IDs, and we pass them around normally.
-    // If we need to show something else in a thumbnail, we encode it.  We can show a user
-    // thumbnail by adding "user:12345" as an ID.
-    //
-    // Return the type of the ID and the underlying illust or user ID.
-    parse_id(id)
+    // If there's no colon, this is a Pixiv illust ID, so set type to "illust".
+    _split_id(id)
     {
         if(id == null)
             return { }
@@ -1993,19 +1989,16 @@ ppixiv.helpers = {
 
     // Encode a media ID.
     //
-    // This is an attempt to consolidate IDs.  We have three types of IDs;
-    // - Pixiv has separate illustration ID and page numbers.  We use these in URLs
-    // for compatibility with Pixiv URLs.
-    // - We encode other types of IDs into illust IDs, such as "user:1234".  This
-    // still has the manga page separately.  If there's no type prefix, "illust" is
-    // implied.  These are parsed with helpers.parse_id.  This should be phased out
-    // in favor of media IDs.
-    // - Media IDs encode encode the page number into the ID, eg. "illust:1234-1",
-    // so the entire resource is encoded into the string.  These always have the type
-    // prefix and a page number, so it's always "illust:1234-0" and not "1234".
-    // Page numbers in media IDs are 0-based.
+    // These represent single images, videos, etc. that we can view.  Examples:
     //
-    // Media IDs and illust IDs are always the same for local IDs.
+    // illust:1234-0          - The first page of Pixiv illust ID 1234
+    // illust:1234-12         - Pixiv illust ID 1234, page 12.  Pages are zero-based.
+    // user:1000              - Pixiv user 1000.
+    // folder:/images         - A directory in the local API.
+    // file:/images/image.jpg - A file in the local API.
+    //
+    // IDs with the local API are already in this format, and Pixiv illust IDs and pages are
+    // converted to it.
     encode_media_id({type, id, page=null}={})
     {
         if(type == "illust")
@@ -2021,7 +2014,7 @@ ppixiv.helpers = {
     parse_media_id(media_id)
     {
         // If this isn't an illust, a media ID is the same as an illust ID.
-        let { type, id } = helpers.parse_id(media_id);
+        let { type, id } = helpers._split_id(media_id);
         if(type != "illust")
             return { type: type, id: id, page: 0 };
 
@@ -2038,12 +2031,13 @@ ppixiv.helpers = {
         return { type: type, id: id, page: page };
     },
 
+    // Convert a Pixiv illustration ID and page number to a media ID.
     illust_id_to_media_id(illust_id, page)
     {
         if(illust_id == null)
             return null;
             
-        let { type, id } = helpers.parse_id(illust_id);
+        let { type, id } = helpers._split_id(illust_id);
 
         // Pages are only used for illusts.  For other types, the page should always
         // be null or 0, and we don't include it in the media ID.
@@ -2069,13 +2063,7 @@ ppixiv.helpers = {
         return [id, page];
     },
 
-    // Return true if illust_id is an ID for the local API.
-    is_local(illust_id)
-    {
-        let { type } = helpers.parse_id(illust_id);
-        return type == "file" || type == "folder";
-    },
-
+    // Return true if media_id is an ID for the local API.
     is_media_id_local(media_id)
     {
         let { type } = helpers.parse_media_id(media_id);
@@ -3515,7 +3503,7 @@ ppixiv.guess_image_url = class
         }
     
         // If we already have illust info, use it.
-        let illust_info = image_data.singleton().get_image_info_sync(media_id);
+        let illust_info = image_data.singleton().get_media_info_sync(media_id);
         if(illust_info != null)
             return illust_info.mangaPages[page].urls.original;
 

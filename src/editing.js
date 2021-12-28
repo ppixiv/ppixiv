@@ -42,7 +42,7 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
         this.shutdown_signal = new AbortController();
         this.onvisibilitychanged = onvisibilitychanged;
         this._dirty = false;
-        this.editing_illust_id = null;
+        this.editing_media_id = null;
         this.undo_stack = [];
 
         this.top_button_row = this.container.querySelector(".image-editor-buttons.top");
@@ -146,15 +146,15 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
     async refresh_internal({ illust_data })
     {
         // If the illust ID hasn't changed, don't reimport data from illust_data.  Just
-        // import it once when illust_id is set so we don't erase edits.
-        let illust_id = illust_data?.id;
-        if(illust_data && illust_id == this.editing_illust_id)
+        // import it once when media_id is set so we don't erase edits.
+        let media_id = illust_data?.id;
+        if(illust_data && media_id == this.editing_media_id)
             return;
 
         // Clear undo/redo on load.
         this.undo_stack = [];
         this.redo_stack = [];
-        this.editing_illust_id = illust_id;
+        this.editing_media_id = media_id;
     
         this.crop_editor.set_illust_data(illust_data);
         this.inpaint_editor.set_illust_data(illust_data);
@@ -260,7 +260,7 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
                     edits[key] = value;
             }
 
-            let result = await local_api.local_post_request(`/api/set-image-edits/${this.illust_id}`, edits);
+            let result = await local_api.local_post_request(`/api/set-image-edits/${this.media_id}`, edits);
             if(!result.success)
             {
                 console.error("Error saving image edits:", result);

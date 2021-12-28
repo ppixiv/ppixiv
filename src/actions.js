@@ -56,7 +56,7 @@ ppixiv.actions = class
         if(!was_bookmarked)
         {
             // If we have full illust data loaded, increase its bookmark count locally.
-            let full_illust_info = image_data.singleton().get_image_info_sync(media_id);
+            let full_illust_info = image_data.singleton().get_media_info_sync(media_id);
             if(full_illust_info)
                 full_illust_info.bookmarkCount++;
         }
@@ -182,7 +182,7 @@ ppixiv.actions = class
         });
 
         // If we have full image data loaded, update the like count locally.
-        let illust_data = image_data.singleton().get_image_info_sync(media_id);
+        let illust_data = image_data.singleton().get_media_info_sync(media_id);
         if(illust_data)
         {
             illust_data.bookmarkCount--;
@@ -233,8 +233,6 @@ ppixiv.actions = class
     // list.  Add the bookmarks to recents, and bookmark the image with the entered tags.
     static async add_new_tag(media_id)
     {
-        let [illust_id] = helpers.media_id_to_illust_id_and_page(media_id);
-
         console.log("Show tag prompt");
 
         // Hide the popup when we show the prompt.
@@ -273,10 +271,10 @@ ppixiv.actions = class
         console.log("All tags:", active_tags);
         
         // Edit the bookmark.
-        if(helpers.is_local(illust_id))
-            await local_api.bookmark_add(illust_id, { tags: tags });
+        if(helpers.is_media_id_local(media_id))
+            await local_api.bookmark_add(media_id, { tags: tags });
         else
-            await actions.bookmark_add(illust_id, { tags: active_tags, });
+            await actions.bookmark_add(media_id, { tags: active_tags, });
     }
     
     // If quiet is true, don't print any messages.
@@ -308,7 +306,7 @@ ppixiv.actions = class
 
         // If we have illust data, increase the like count locally.  Don't load it
         // if it's not loaded already.
-        let illust_data = image_data.singleton().get_image_info_sync(media_id);
+        let illust_data = image_data.singleton().get_media_info_sync(media_id);
         if(!was_already_liked && illust_data)
             illust_data.likeCount++;
 
