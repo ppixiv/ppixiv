@@ -4,8 +4,9 @@
 ppixiv.actions = class
 {
     // Set a bookmark.  Any existing bookmark will be overwritten.
-    static async _bookmark_add_internal(illust_id, options)
+    static async _bookmark_add_internal(media_id, options)
     {
+        let illust_id = helpers.media_id_to_illust_id_and_page(media_id)[0];
         let illust_info = await thumbnail_data.singleton().get_or_load_illust_data(illust_id);
         
         if(options == null)
@@ -17,7 +18,7 @@ ppixiv.actions = class
         if(!options.disable_auto_like)
         {
             console.log("Automatically liking image with bookmark");
-            actions.like_image(illust_id, true /* quiet */);
+            actions.like_image(media_id, true /* quiet */);
         }
          
         // Remember whether this is a new bookmark or an edit.
@@ -76,8 +77,9 @@ ppixiv.actions = class
     // existing data), except for public/private which can be changed in-place, and we need
     // to do an extra request to retrieve the tag list if we need it.  We try to avoid
     // making the extra bookmark details request if possible.
-    static async bookmark_add(illust_id, options)
+    static async bookmark_add(media_id, options)
     {
+        let illust_id = helpers.media_id_to_illust_id_and_page(media_id)[0];
         if(helpers.is_local(illust_id))
             return await local_api.bookmark_add(illust_id, options);
 
@@ -97,7 +99,7 @@ ppixiv.actions = class
             if(options.tags != null)
                 helpers.update_recent_bookmark_tags(options.tags);
         
-            return await actions._bookmark_add_internal(illust_id, options);
+            return await actions._bookmark_add_internal(media_id, options);
         }
         
         // Special case: If we're not setting anything, then we just want this image to
@@ -151,7 +153,7 @@ ppixiv.actions = class
             }
         }
         
-        return await actions._bookmark_add_internal(illust_id, bookmark_params);
+        return await actions._bookmark_add_internal(media_id, bookmark_params);
     }
 
     static async bookmark_remove(illust_id)
@@ -279,10 +281,12 @@ ppixiv.actions = class
     }
     
     // If quiet is true, don't print any messages.
-    static async like_image(illust_id, quiet)
+    static async like_image(media_id, quiet)
     {
-        if(helpers.is_local(illust_id))
+        if(helpers.is_media_id_local(media_id))
             return;
+
+        let illust_id = helpers.media_id_to_illust_id_and_page(media_id)[0];
 
         console.log("Clicked like on", illust_id);
         

@@ -522,6 +522,13 @@ ppixiv.thumbnail_data = class
         return data;
     }
 
+    // get_or_load_illust_data for a media ID.
+    async get_or_load_media_data(media_id, load=true)
+    {
+        let [illust_id] = helpers.media_id_to_illust_id_and_page(media_id);
+        return await this.get_or_load_illust_data(illust_id, load);
+    }
+
     // Update illustration data in both thumbnail info and illust info.
     //
     // This is used in places that use get_or_load_illust_data to get thumbnail

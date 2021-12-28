@@ -2042,12 +2042,14 @@ ppixiv.helpers = {
 
         // Pages are only used for illusts.  For other types, the page should always
         // be null or 0, and we don't include it in the media ID.
-        if(page != null)
+        if(type == "illust")
         {
-            if(type == "illust")
-                id += "-" + page;
-            else
-                console.assert(page == 0);
+            id += "-";
+            id += page || 0;
+        }
+        else
+        {
+            console.assert(page == null || page == 0);
         }
 
         return type + ":" + id;
@@ -2066,6 +2068,12 @@ ppixiv.helpers = {
     is_local(illust_id)
     {
         let { type } = helpers.parse_id(illust_id);
+        return type == "file" || type == "folder";
+    },
+
+    is_media_id_local(media_id)
+    {
+        let { type } = helpers.parse_media_id(media_id);
         return type == "file" || type == "folder";
     },
 

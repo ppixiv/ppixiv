@@ -436,10 +436,10 @@ ppixiv.screen_search = class extends ppixiv.screen
             if(a == null)
                 return;
 
-            if(a.dataset.illustId == null)
+            if(a.dataset.mediaId == null)
                 return;
 
-            await image_data.singleton().get_image_info(a.dataset.illustId);
+            await image_data.singleton().get_media_info(a.dataset.mediaId);
         }, true);
  
         this.container.querySelector(".refresh-search-button").addEventListener("click", this.refresh_search.bind(this));
@@ -466,18 +466,15 @@ ppixiv.screen_search = class extends ppixiv.screen
                 if(e.pointerType != "mouse")
                     return;
 
-                let { illust_id, page } = main_controller.singleton.get_illust_at_element(e.target);
-                if(illust_id == null)
+                let { media_id } = main_controller.singleton.get_illust_at_element(e.target);
+                if(media_id == null)
                     return;
 
                 // Don't stopPropagation.  We want the illustration view to see the press too.
                 e.preventDefault();
                 // e.stopImmediatePropagation();
-        
-                main_controller.singleton.show_illust(illust_id, {
-                    page: page,
-                    add_to_history: true,
-                });
+
+                main_controller.singleton.show_media(media_id, { add_to_history: true });
             },
         });
         // Clear recent illusts:
@@ -686,13 +683,13 @@ ppixiv.screen_search = class extends ppixiv.screen
 
         // If the data source supports a start page, update the page number in the URL to reflect
         // the first visible thumb.
-        if(this.data_source == null || !this.data_source.supports_start_page || first_thumb.dataset.page == null)
+        if(this.data_source == null || !this.data_source.supports_start_page || first_thumb.dataset.searchPage == null)
             return;
 
         main_controller.singleton.temporarily_ignore_onpopstate = true;
         try {
             let args = helpers.args.location;
-            this.data_source.set_start_page(args, first_thumb.dataset.page);
+            this.data_source.set_start_page(args, first_thumb.dataset.searchPage);
             helpers.set_page_url(args, false, "viewing-page");
         } finally {
             main_controller.singleton.temporarily_ignore_onpopstate = false;
@@ -710,7 +707,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         let visible_illust_ids = [];
         for(let element of this.container.querySelectorAll(`.thumbnails > [data-id][data-visible]:not([data-special])`))
         {
-            let { type, id } = helpers.parse_id(element.dataset.id);
+            let { type, id } = helpers.parse_media_id(element.dataset.id);
             if(type != "illust")
                 continue;
 
@@ -1253,19 +1250,22 @@ ppixiv.screen_search = class extends ppixiv.screen
                 {
                     // This page isn't loaded.  Fill the gap with items_per_page blank entries.
                     for(let idx = 0; idx < items_per_page; ++idx)
-                        images_to_add.push([null, page]);
+                        images_to_add.push({media_id: null, search_page: page});
                     continue;
                 }
 
                 // Create an image for each ID.
                 for(let illust_id of illust_ids)
-                    images_to_add.push({id: illust_id, page: page});
+                {
+                    let media_id = helpers.illust_id_to_media_id(illust_id);
+                    images_to_add.push({media_id: media_id, search_page: page});
+                }
             }
 
             // If this data source supports a start page and we started after page 1, add the "load more"
             // button at the beginning.
             if(this.data_source.initial_page > 1)
-                images_to_add.splice(0, 0, { id: "special:previous-page", page: null });
+                images_to_add.splice(0, 0, { media_id: "special:previous-page", page: null });
         }
 
         // Add thumbs.
@@ -1288,9 +1288,9 @@ ppixiv.screen_search = class extends ppixiv.screen
         for(let i = 0; i < images_to_add.length; ++i)
         {
             let entry = images_to_add[i];
-            let illust_id = entry.id;
-            let page = entry.page;
-            let index = illust_id + "/" + page;
+            let media_id = entry.media_id;
+            let search_page = entry.search_page;
+            let index = media_id + "/" + search_page;
             images_to_add_index[index] = i;
         }
 
@@ -1299,9 +1299,9 @@ ppixiv.screen_search = class extends ppixiv.screen
             if(node == null)
                 return null;
 
-            let illust_id = node.dataset.id;
-            let page = node.dataset.page;
-            let index = illust_id + "/" + page;
+            let media_id = node.dataset.id;
+            let search_page = node.dataset.search_page;
+            let index = media_id + "/" + search_page;
             return images_to_add_index[index];
         }
 
@@ -1349,9 +1349,9 @@ ppixiv.screen_search = class extends ppixiv.screen
            for(let idx = first_idx - 1; idx >= 0; --idx)
            {
                let entry = images_to_add[idx];
-               let illust_id = entry.id;
-               let page = entry.page;
-               let node = this.create_thumb(illust_id, page);
+               let media_id = entry.media_id;
+               let search_page = entry.search_page;
+               let node = this.create_thumb(media_id, search_page);
                first_matching_node.insertAdjacentElement("beforebegin", node);
                first_matching_node = node;
            }
@@ -1365,9 +1365,9 @@ ppixiv.screen_search = class extends ppixiv.screen
         for(let idx = last_idx + 1; idx < images_to_add.length; ++idx)
         {
             let entry = images_to_add[idx];
-            let illust_id = entry.id;
-            let page = entry.page;
-            let node = this.create_thumb(illust_id, page);
+            let media_id = entry.media_id;
+            let search_page = entry.search_page;
+            let node = this.create_thumb(media_id, search_page);
             ul.appendChild(node);
         }
 
@@ -1416,7 +1416,7 @@ ppixiv.screen_search = class extends ppixiv.screen
             {
                 // If this is an illustration, file or folder, add it to wanted_illust_ids so we
                 // load its thumbnail info.  Don't do this if it's a user.
-                if(helpers.parse_id(element.dataset.id).type != "user")
+                if(helpers.parse_media_id(element.dataset.id).type != "user")
                     wanted_illust_ids.push(element.dataset.id);
             }
         }
@@ -1436,7 +1436,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         if(load_page == null && elements.length > 0 && elements[elements.length-1] == ul.lastElementChild)
         {
             let last_element = elements[elements.length-1];
-            load_page = parseInt(last_element.dataset.page)+1;
+            load_page = parseInt(last_element.dataset.searchPage)+1;
         }
 
         // Hide "no results" if it's shown while we load data.
@@ -1565,13 +1565,14 @@ ppixiv.screen_search = class extends ppixiv.screen
 
         for(var element of elements)
         {
-            var illust_id = element.dataset.id;
-            if(illust_id == null)
+            let media_id = element.dataset.id;
+            if(media_id == null)
                 continue;
 
             var search_mode = this.data_source.search_mode;
 
-            let { id: thumb_id, type: thumb_type } = helpers.parse_id(illust_id);
+            let illust_id = helpers.media_id_to_illust_id_and_page(media_id)[0];
+            let { id: thumb_id, type: thumb_type } = helpers.parse_media_id(media_id);
 
             // For illustrations, get thumbnail info.  If we don't have it yet, skip the image (leave it pending)
             // and we'll come back once we have it.
@@ -1664,7 +1665,7 @@ ppixiv.screen_search = class extends ppixiv.screen
                 helpers.set_thumbnail_panning_direction(element, info.width, info.height, 1);
             }
 
-            // Set the link.  Setting dataset.illustId will allow this to be handled with in-page
+            // Set the link.  Setting dataset.mediaId will allow this to be handled with in-page
             // navigation, and the href will allow middle click, etc. to work normally.
             //
             // If we're on the followed users page, set these to the artist page instead.
@@ -1690,9 +1691,7 @@ ppixiv.screen_search = class extends ppixiv.screen
                 link.href = helpers.get_url_for_id(illust_id);
             }
 
-            link.dataset.illustId = illust_id;
-            if(illust_id != -1)
-                link.dataset.userId = info.userId;
+            link.dataset.mediaId = media_id;
 
             // Don't show this UI when we're in the followed users view.
             if(search_mode == "illusts")
@@ -1771,8 +1770,9 @@ ppixiv.screen_search = class extends ppixiv.screen
     // This is used to refresh the bookmark icon when changing a bookmark.
     refresh_thumbnail(illust_id)
     {
+        let media_id = helpers.illust_id_to_media_id(illust_id);
         var ul = this.container.querySelector(".thumbnails");
-        var thumbnail_element = ul.querySelector("[data-id=\"" + helpers.escape_selector(illust_id) + "\"]");
+        let thumbnail_element = ul.querySelector("[data-id=\"" + helpers.escape_selector(media_id) + "\"]");
         if(thumbnail_element == null)
             return;
         this.refresh_bookmark_icon(thumbnail_element);
@@ -1785,11 +1785,12 @@ ppixiv.screen_search = class extends ppixiv.screen
         if(this.data_source && this.data_source.search_mode == "users")
             return;
 
-        var illust_id = thumbnail_element.dataset.id;
-        if(illust_id == null)
+        var media_id = thumbnail_element.dataset.id;
+        if(media_id == null)
             return;
 
         // Get thumbnail info.
+        let illust_id = helpers.media_id_to_illust_id_and_page(media_id)[0];
         var thumbnail_info = thumbnail_data.singleton().get_one_thumbnail_info(illust_id);
         if(thumbnail_info == null)
             return;
@@ -1830,15 +1831,16 @@ ppixiv.screen_search = class extends ppixiv.screen
             if(element == null)
                 return;
 
-            let illust_id = element.dataset.id;
-            if(illust_id == null)
+            let media_id = element.dataset.id;
+            if(media_id == null)
                 return;
 
-            let { type } = helpers.parse_id(illust_id);
+            let { type } = helpers.parse_media_id(media_id);
             if(type == "user")
                 return;
 
             // Skip this thumb if it's already loading.
+            let [illust_id] = helpers.media_id_to_illust_id_and_page(media_id);
             if(thumbnail_data.singleton().is_id_loaded_or_loading(illust_id))
                 return;
 
@@ -1877,10 +1879,10 @@ ppixiv.screen_search = class extends ppixiv.screen
     // illust_id is the illustration this will be if it's displayed, or null if this
     // is a placeholder for pages we haven't loaded.  page is the page this illustration
     // is on (whether it's a placeholder or not).
-    create_thumb(illust_id, page)
+    create_thumb(media_id, search_page)
     {
         let entry = null;
-        if(illust_id == "special:previous-page")
+        if(media_id == "special:previous-page")
         {
             entry = this.create_template({ name: "load-previous-results", html: `
                 <div class="thumbnail-load-previous">
@@ -1955,17 +1957,17 @@ ppixiv.screen_search = class extends ppixiv.screen
         }
 
         // If this is a non-thumb entry, mark it so we ignore it for "nearby thumb" handling, etc.
-        if(illust_id == "special:previous-page")
+        if(media_id == "special:previous-page")
             entry.dataset.special = 1;
 
         // Mark that this thumb hasn't been filled in yet.
         entry.dataset.pending = true;
 
-        if(illust_id != null)
-            entry.dataset.id = illust_id;
+        if(media_id != null)
+            entry.dataset.id = media_id;
 
-        if(page != null)
-            entry.dataset.page = page;
+        if(search_page != null)
+            entry.dataset.searchPage = search_page;
         for(let observer of this.intersection_observers)
             observer.observe(entry);
         return entry;
@@ -1981,7 +1983,8 @@ ppixiv.screen_search = class extends ppixiv.screen
     // after coming from an illustration.
     scroll_to_illust_id(illust_id)
     {
-        var thumb = this.container.querySelector("[data-id='" + helpers.escape_selector(illust_id) + "']");
+        let media_id = helpers.illust_id_to_media_id(illust_id);
+        var thumb = this.container.querySelector("[data-id='" + helpers.escape_selector(media_id) + "']");
         if(thumb == null)
             return;
 
@@ -1993,7 +1996,8 @@ ppixiv.screen_search = class extends ppixiv.screen
 
     pulse_thumbnail(illust_id)
     {
-        var thumb = this.container.querySelector("[data-id='" + helpers.escape_selector(illust_id) + "']");
+        let media_id = helpers.illust_id_to_media_id(illust_id);
+        let thumb = this.container.querySelector("[data-id='" + helpers.escape_selector(media_id) + "']");
         if(thumb == null)
             return;
 

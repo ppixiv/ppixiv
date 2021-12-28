@@ -539,7 +539,7 @@ class local_navigation_widget_item extends ppixiv.tree_widget_item
         let { id } = helpers.parse_id(this.path);
         let is_library = id.indexOf("/", 1) == -1;
         if(!is_library)
-            this.container.dataset.illustId = this.path;
+            this.container.dataset.mediaId = this.path;
 
         if(options.root)
         {

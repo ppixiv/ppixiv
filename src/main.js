@@ -328,7 +328,7 @@ ppixiv.main_controller = class
 
         let new_screen = this.screens[new_screen_name];
 
-        this.context_menu.set_illust(illust_id);
+        this.context_menu.set_media_id(helpers.illust_id_to_media_id(illust_id));
         
         this.current_screen_name = new_screen_name;
 
@@ -420,6 +420,13 @@ ppixiv.main_controller = class
             var show_element = data_sources.indexOf(data_source_name) != -1;
             node.hidden = !show_element;
         }
+    }
+
+    // show_illust for a media ID.
+    show_media(media_id, options={})
+    {
+        let [illust_id, page] = helpers.media_id_to_illust_id_and_page(media_id);
+        return this.show_illust(illust_id, {page: page, ...options});
     }
 
     // Show an illustration by ID.
@@ -772,17 +779,10 @@ ppixiv.main_controller = class
         if(element == null)
             return result;
 
-        // Illustration search results have both the illust ID and the user ID on it.
-        let illust_element = element.closest("[data-illust-id]");
-        if(illust_element)
-        {
-            result.illust_id = illust_element.dataset.illustId;
-
-            // If no page is present, set page to null rather than page 0.  This distinguishes image
-            // search results which don't refer to a specific page from the manga page display.  Don't
-            // use -1 for this, since that's used in some places to mean the last page.
-            result.page = illust_element.dataset.pageIdx == null? null:parseInt(illust_element.dataset.pageIdx);
-        }
+        // Illustration search results have both the media ID and the user ID on it.
+        let media_element = element.closest("[data-media-id]");
+        if(media_element)
+            result.media_id = media_element.dataset.mediaId;
 
         let user_element = element.closest("[data-user-id]");
         if(user_element)

@@ -21,6 +21,12 @@ ppixiv.context_menu_image_info_widget = class extends ppixiv.illust_widget
             return "illust_info";
     }
 
+    set show_page_number(value)
+    {
+        this._show_page_number = value;
+        this.refresh();
+    }
+
     refresh_internal({ thumbnail_data, illust_data })
     {
         if(!illust_data)
@@ -41,32 +47,26 @@ ppixiv.context_menu_image_info_widget = class extends ppixiv.illust_widget
         var page_text = "";
         if(illust_data.pageCount > 1)
         {
-            if(this._page == null)
-                page_text = illust_data.pageCount + " pages";
-            else
+            if(this._show_page_number)
                 page_text = "Page " + (this._page+1) + "/" + illust_data.pageCount;
+            else
+                page_text = illust_data.pageCount + " pages";
         }
         set_info(".page-count", page_text);
-
-        // Show info for the current page.  If _page is -1 then we're on the search view and don't have
-        // a specific page, so show info for the first page.
-        let page = this._page;
-        if(page == null)
-            page = 0;
 
         // If we're on the first page then we only requested early info, and we can use the dimensions
         // on it.  Otherwise, we have full info and we'll get dimensions from mangaPages.
         var info = "";
         let width = null, height = null;
-        if(page == 0)
+        if(this._page == 0)
         {
             width = illust_data.width;
             height = illust_data.height;
         }
         else
         {
-            width = illust_data.mangaPages[page].width;
-            height = illust_data.mangaPages[page].height;
+            width = illust_data.mangaPages[this._page].width;
+            height = illust_data.mangaPages[this._page].height;
         }
 
         if(width != null && height != null)
@@ -550,7 +550,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         this.handle_link_click = this.handle_link_click.bind(this);
 
         this._on_click_viewer = null;
-        this._page = null;
+        this._media_id = null;
 
         // Refresh the menu when the view changes.
         this.mode_observer = new MutationObserver(function(mutationsList, observer) {
@@ -570,7 +570,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         // If the page is navigated while the popup menu is open, clear the ID the
         // user clicked on, so we refresh and show the default.
         window.addEventListener("popstate", (e) => {
-            this._clicked_illust_id = null;
+            this._clicked_media_id = null;
             this.refresh();
         });
 
@@ -710,16 +710,16 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
             window.removeEventListener("wheel", this.onwheel, true);
     }
 
-    // Return the illust ID active in the context menu, or null if none.
+    // Return the media ID active in the context menu, or null if none.
     //
     // If we're opened by right clicking on an illust, we'll show that image's
     // info.  Otherwise, we'll show the info for the illust we're on, if any.
-    get effective_illust_id()
+    get effective_media_id()
     {
-        if(this._clicked_illust_id != null)
-            return this._clicked_illust_id;
+        if(this._clicked_media_id != null)
+            return this._clicked_media_id;
         else
-            return this._illust_id;
+            return this._media_id;
     }
 
     get effective_user_id()
@@ -732,38 +732,27 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
             return null;
     }
 
-    get effective_page()
-    {
-        // If we have a temporary illust_id, use the temporary page too.  If it's
-        // null, that means we're over an illust and not a page.
-        if(this._clicked_illust_id != null)
-            return this._clicked_page;
-        else
-            return this._page;
-    }
-    
     // When the effective illust ID changes, let our widgets know.
-    _effective_illust_id_changed()
+    _effective_media_id_changed()
     {
         // If we're not visible, don't refresh an illust until we are, so we don't trigger
         // data loads.  Do refresh even if we're hidden if we have no illust to clear
         // the previous illust's display even if we're not visible, so it's not visible the
         // next time we're displayed.
-        let illust_id = this.effective_illust_id;
-        if(!this.visible && illust_id != null)
+        let media_id = this.effective_media_id;
+        if(!this.visible && media_id != null)
             return;
 
         this.refresh();
     }
 
-    set_illust(illust_id, page=null)
+    set_media_id(media_id)
     {
-        if(this._illust_id == illust_id && this._page == page)
+        if(this._media_id == media_id)
             return;
 
-        this._illust_id = illust_id;
-        this._page = page;
-        this._effective_illust_id_changed();
+        this._media_id = media_id;
+        this._effective_media_id_changed();
     }
 
     // Set the current viewer, or null if none.  If set, we'll activate zoom controls.
@@ -827,7 +816,8 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         // These hotkeys require an image, which we have if we're viewing an image or if the user
         // was hovering over an image in search results.  We might not have the illust info yet,
         // but we at least need an illust ID.
-        let illust_id = this.effective_illust_id;
+        let media_id = this.effective_media_id;
+        let illust_id = helpers.media_id_to_illust_id_and_page(media_id)[0];
 
         // All of these hotkeys require Ctrl.
         if(!e.ctrlKey)
@@ -836,10 +826,10 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         if(e.key.toUpperCase() == "V")
         {
             (async() => {
-                if(illust_id == null)
+                if(media_id == null)
                     return;
 
-                actions.like_image(illust_id);
+                actions.like_image(media_id);
             })();
 
             return true;
@@ -848,10 +838,10 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         if(e.key.toUpperCase() == "B")
         {
             (async() => {
-                if(illust_id == null)
+                if(media_id == null)
                     return;
 
-                let illust_data = await thumbnail_data.singleton().get_or_load_illust_data(illust_id);
+                let illust_data = await thumbnail_data.singleton().get_or_load_media_data(media_id);
 
                 // Ctrl-Shift-Alt-B: add a bookmark tag
                 if(e.altKey && e.shiftKey)
@@ -1058,7 +1048,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         // When we hide, we clear which ID we want to display, but we don't refresh the
         // display so it doesn't flicker while it fades out.  Refresh now instead, so
         // we don't flash the previous ID if we need to wait for a load.
-        this._effective_illust_id_changed();
+        this._effective_media_id_changed();
 
         // If RMB is pressed while dragging LMB, stop dragging the window when we
         // show the popup.
@@ -1068,34 +1058,30 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         // See if an element representing a user and/or an illust was under the cursor.
         if(target != null)
         {
-            let { user_id, illust_id, page } = main_controller.singleton.get_illust_at_element(target);
+            let { user_id, media_id } = main_controller.singleton.get_illust_at_element(target);
             if(user_id != null)
                 this._set_temporary_user(user_id);
 
-            if(illust_id != null)
-                this._set_temporary_illust(illust_id, page);
+            if(media_id != null)
+                this._set_temporary_illust(media_id);
         }
 
         super.show(x, y, target);
 
         // Make sure we're up to date if we deferred an update while hidden.
-        this._effective_illust_id_changed();
+        this._effective_media_id_changed();
     }
 
     // Set an alternative illust ID to show.  This is effective until the context menu is hidden.
     // This is used to remember what the cursor was over when the context menu was opened when in
     // the search view.
-    async _set_temporary_illust(illust_id, page)
+    async _set_temporary_illust(media_id)
     {
         // Store the illust_id immediately, so it's available without waiting for image
         // info to load.
-        this._clicked_illust_id = illust_id;
-        this._clicked_page = page;
+        this._clicked_media_id = media_id;
 
-        if(page != null)
-            page = parseInt(page);
-
-        this._effective_illust_id_changed();
+        this._effective_media_id_changed();
     }
 
     // Set an alternative user ID to show.  This is effective until the context menu is hidden.
@@ -1112,12 +1098,11 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
             return;
 
         this._clicked_user_id = null;
-        this._clicked_illust_id = null;
-        this._clicked_page = null;
+        this._clicked_media_id = null;
 
         // Don't refresh yet, so we try to not change the display while it fades out.
         // We'll do the refresh the next time we're displayed.
-        // this._effective_illust_id_changed();
+        // this._effective_media_id_changed();
 
         super.hide();
     }
@@ -1141,13 +1126,22 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         // don't blank themselves while we're still fading out.
         if(this.visible)
         {
-            let illust_id = this.effective_illust_id, page = this.effective_page, user_id = this.effective_user_id;
+            let media_id = this.effective_media_id;
+            let [illust_id, page] = helpers.media_id_to_illust_id_and_page(media_id);
+            let user_id = this.effective_user_id;
             for(let widget of this.illust_widgets)
             {
                 if(widget.set_illust_id)
                     widget.set_illust_id(illust_id, page);
                 if(widget.set_user_id)
                     widget.set_user_id(user_id);
+
+                // If _clicked_media_id is set, we're open for a search result image the user right-clicked
+                // on.  Otherwise, we're open for the image actually being viewed.  Tell context_menu_image_info_widget
+                // to show the current manga page if we're on a viewed image, but not if we're on a search
+                // result.
+                let showing_viewed_image = (this._clicked_media_id == null);
+                widget.show_page_number = showing_viewed_image;
             }
 
             // If we're on a local ID, show the parent folder button.  Otherwise, show the
@@ -1245,7 +1239,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
     // Return the illust ID whose parent the parent button will go to.
     get folder_id_for_parent()
     {
-        return this.effective_illust_id || this.data_source.viewing_folder;
+        return this.effective_media_id || this.data_source.viewing_folder;
     }
 
     // Return the folder ID that the parent button goes to.

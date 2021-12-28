@@ -1252,7 +1252,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                     requires_image: true,
                     available: () => { return this.thumbnail_data && actions.is_download_type_available("image", this.thumbnail_data); },
                     onclick: () => {
-                        actions.download_illust(this.illust_id, null, "image", this._page || 0);
+                        actions.download_illust(this.illust_id, null, "image", this._page);
                         this.parent.hide();
                     }
                 });
@@ -1605,7 +1605,10 @@ ppixiv.like_button_widget = class extends ppixiv.illust_widget
         e.stopPropagation();
 
         if(this._illust_id != null)
-            actions.like_image(this._illust_id);
+        {
+            let media_id = helpers.illust_id_to_media_id(this._illust_id);
+            actions.like_image(media_id);
+        }
     }
 }
 

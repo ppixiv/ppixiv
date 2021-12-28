@@ -76,6 +76,13 @@ ppixiv.image_data = class
         this._started_loading_image_info(illust_id, load_promise);
         return load_promise;
     }
+    
+    // get_image_info for a media ID.
+    get_media_info(media_id)
+    {
+        let [illust_id] = helpers.media_id_to_illust_id_and_page(media_id);
+        return this.get_image_info(illust_id);
+    }
 
     _started_loading_image_info(illust_id, load_promise)
     {
@@ -92,6 +99,14 @@ ppixiv.image_data = class
     {
         return this.image_data[illust_id];
     }
+    
+    // get_image_info_sync for a media ID.
+    get_media_info_sync(media_id)
+    {
+        let [illust_id] = helpers.media_id_to_illust_id_and_page(media_id);
+        return this.get_image_info_sync(illust_id);
+    }
+
 
     // Load illust_id and all data that it depends on.
     //

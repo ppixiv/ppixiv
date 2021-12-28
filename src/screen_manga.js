@@ -308,8 +308,7 @@ ppixiv.screen_manga = class extends ppixiv.screen
         
         var link = element.querySelector("a.thumbnail-link");
         link.href = helpers.get_url_for_id(this.illust_id, page_idx+1);
-        link.dataset.illustId = this.illust_id;
-        link.dataset.pageIdx = page_idx;
+        link.dataset.mediaId = helpers.illust_id_to_media_id(this.illust_id, page_idx);
 
         // We don't use intersection checking for the manga view right now.  Mark entries
         // with all of the "image onscreen" tags.
@@ -317,7 +316,6 @@ ppixiv.screen_manga = class extends ppixiv.screen
         element.dataset.fartherAway = true;
         element.dataset.fullyOnScreen = true;
 
-        element.dataset.pageIdx = page_idx;
         return element;
     }
 

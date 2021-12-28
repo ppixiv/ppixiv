@@ -53,24 +53,21 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
         window.addEventListener("visibilitychange", this.refresh_focus);
     }
 
-    async load(signal, illust_id, manga_page, {
+    async load(signal, media_id, {
         slideshow=false,
         onnextimage=null,
     }={})
     {
         this.unload();
 
-        this.illust_id = illust_id;
-
-
         // Load early data to show the low-res preview quickly.  This is a simpler version of
         // what viewer_images does,.
-        let early_illust_data = await thumbnail_data.singleton().get_or_load_illust_data(this.illust_id);
+        let early_illust_data = await thumbnail_data.singleton().get_or_load_media_data(media_id);
         signal.check();
         this.create_preview_images(early_illust_data.previewUrls[0], null);
 
         // Load full data.
-        this.illust_data = await image_data.singleton().get_image_info(this.illust_id);
+        this.illust_data = await image_data.singleton().get_media_info(media_id);
         signal.check();
 
         // illust_data.urls for Pixiv, mangaPages[0] for local.
@@ -81,8 +78,8 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
         this.abort_controller = new AbortController;
 
         let source = null;
-        let local = helpers.is_local(this.illust_id);
-        if(helpers.is_local(this.illust_id))
+        let local = helpers.is_media_id_local(media_id);
+        if(local)
         {
             // The local API returns a separate path for these, since it doesn't have
             // illust_data.ugoiraMetadata.

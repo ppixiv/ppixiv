@@ -39,21 +39,22 @@ ppixiv.viewer_images = class extends ppixiv.viewer
     }
 
     async load(signal,
-        illust_id, page, {
+        media_id, {
             restore_history=false,
             slideshow=false,
             onnextimage=null,
         }={})
     {
+        let [illust_id, page] = helpers.media_id_to_illust_id_and_page(media_id);
         this.restore_history = restore_history;
 
-        this.illust_id = illust_id;
+        this.media_id = media_id;
         this._page = page;
         this._slideshow = slideshow;
         this._onnextimage = onnextimage;
 
         // If this is a local image, tell the inpaint editor about it.
-        this.image_editor.set_illust_id(helpers.is_local(this.illust_id)? this.illust_id:null);
+        this.image_editor.set_illust_id(helpers.is_media_id_local(this.media_id)? illust_id:null);
 
         // First, load early illust data.  This is enough info to set up the image list
         // with preview URLs, so we can start the image view early.  This can return either
@@ -61,7 +62,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         //
         // If this blocks to load, the full illust data will be loaded, so we'll never
         // run two separate requests here.
-        let early_illust_data = await thumbnail_data.singleton().get_or_load_illust_data(this.illust_id);
+        let early_illust_data = await thumbnail_data.singleton().get_or_load_media_data(this.media_id);
 
         // Stop if we were removed before the request finished.
         signal.check();
@@ -83,7 +84,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
             this.refresh();
             
             // Now wait for full illust info to load.
-            this.illust_data = await image_data.singleton().get_image_info(this.illust_id);
+            this.illust_data = await image_data.singleton().get_media_info(this.media_id);
 
             // Stop if we were removed before the request finished.
             signal.check();
@@ -123,7 +124,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
             return;
 
         // Get the updated illust data.
-        let illust_data = image_data.singleton().get_image_info_sync(this.illust_id);
+        let illust_data = image_data.singleton().get_media_info_sync(this.media_id);
         if(illust_data == null)
             return;
 
@@ -165,11 +166,6 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         return this._page;
     }
 
-    get current_media_id()
-    {
-        return helpers.illust_id_to_media_id(this.illust_id, this._page);
-    }
-
     refresh()
     {
         // If we don't have this.images, load() hasn't set it up yet.
@@ -188,7 +184,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         // Create the new image and pass it to the viewer.
         this.url = current_image.url || current_image.preview_url;
         this.on_click_viewer.set_new_image({
-            media_id: this.current_media_id,
+            media_id: this.media_id,
             url: current_image.url,
             preview_url: current_image.preview_url,
             inpaint_url: current_image.inpaint_url,
@@ -198,7 +194,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
             restore_position: this.restore_history? "history":"auto",
 
             // Only enable editing for local images.
-            enable_editing: helpers.is_local(this.illust_id),
+            enable_editing: helpers.is_media_id_local(this.media_id),
 
             slideshow: this._slideshow,
             onnextimage: this._onnextimage,
@@ -231,19 +227,19 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         switch(e.keyCode)
         {
         case 36: // home
-            e.stopPropagation();
-            e.preventDefault();
-            main_controller.singleton.show_illust(this.illust_id, {
-                page: 0,
-            });
-            return;
-
         case 35: // end
             e.stopPropagation();
             e.preventDefault();
-            main_controller.singleton.show_illust(this.illust_id, {
-                page: this.illust_data.pageCount - 1,
-            });
+
+            let [illust_id, page] = helpers.media_id_to_illust_id_and_page(this.media_id);
+        
+            if(e.keyCode == 35)
+                page = this.illust_data.pageCount - 1;
+            else
+                page = 0;
+
+            let new_media_id = helpers.illust_id_to_media_id(illust_id, page);
+            main_controller.singleton.show_media(new_media_id);
             return;
         }
     }

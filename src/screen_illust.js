@@ -125,7 +125,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
                 this._hide_image = true;
 
             // Stop showing the user in the context menu, and stop showing the current page.
-            main_context_menu.get.set_illust(null, null);
+            main_context_menu.get.set_media_id(null);
 
             this.flashed_page_change = false;
 
@@ -276,8 +276,9 @@ ppixiv.screen_illust = class extends ppixiv.screen
         }
 
         let slideshow = helpers.args.location.hash.get("slideshow") == "1";
+        let media_id = helpers.illust_id_to_media_id(illust_id, manga_page);
 
-        this.viewer.load(illust_id, manga_page, {
+        this.viewer.load(media_id, {
             restore_history: restore_history,
             slideshow: slideshow,
             onnextimage: () => {
@@ -420,7 +421,9 @@ ppixiv.screen_illust = class extends ppixiv.screen
 
         // Tell the context menu which user is being viewed.
         main_context_menu.get.user_id = this.current_user_id;
-        main_context_menu.get.set_illust(illust_id, page);
+
+        let media_id = helpers.illust_id_to_media_id(illust_id, page);
+        main_context_menu.get.set_media_id(media_id);
 
         // Update the disable UI button to point at the current image's illustration page.
         var disable_button = this.container.querySelector(".disable-ui-button");

@@ -77,16 +77,14 @@ ppixiv.viewer_video = class extends ppixiv.viewer
         this.seeking = false;
     }
     
-    async load(illust_id, manga_page, {
+    async load(media_id, {
         slideshow=false,
         onnextimage=null,
     }={})
     {
         this.unload();
 
-        this.illust_id = illust_id;
-
-        this.illust_data = await image_data.singleton().get_image_info(this.illust_id);
+        this.illust_data = await image_data.singleton().get_media_info(media_id);
 
         // Remove the old source, if any, and create a new one.
         if(this.source)

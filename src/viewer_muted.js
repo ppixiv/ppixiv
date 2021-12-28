@@ -19,7 +19,7 @@ ppixiv.viewer_muted = class extends ppixiv.viewer
         `});
     }
 
-    async load(illust_id, manga_page, {
+    async load(media_id, {
         slideshow=false,
         onnextimage=null,
     }={})
@@ -45,8 +45,7 @@ ppixiv.viewer_muted = class extends ppixiv.viewer
             })();
         }
 
-        this.illust_data = await image_data.singleton().get_image_info(illust_id);
-        console.log(illust_id, this.illust_data);
+        this.illust_data = await image_data.singleton().get_media_info(media_id);
 
         // Stop if we were removed before the request finished.
         if(this.was_shutdown)
