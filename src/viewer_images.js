@@ -165,6 +165,11 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         return this._page;
     }
 
+    get current_media_id()
+    {
+        return helpers.illust_id_to_media_id(this.illust_id, this._page);
+    }
+
     refresh()
     {
         // If we don't have this.images, load() hasn't set it up yet.
@@ -183,6 +188,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         // Create the new image and pass it to the viewer.
         this.url = current_image.url || current_image.preview_url;
         this.on_click_viewer.set_new_image({
+            media_id: this.current_media_id,
             url: current_image.url,
             preview_url: current_image.preview_url,
             inpaint_url: current_image.inpaint_url,

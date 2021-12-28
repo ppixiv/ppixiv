@@ -36,6 +36,7 @@ ppixiv.on_click_viewer = class
         this.image_box.appendChild(this.crop_box);
 
         this.onviewcontainerchange = onviewcontainerchange;
+        this.media_id = null;
         this.original_width = 1;
         this.original_height = 1;
         this._cropped_size = null;
@@ -80,6 +81,7 @@ ppixiv.on_click_viewer = class
 
     // Load the given illust and page.
     set_new_image = async(signal, {
+        media_id,
         url, preview_url, inpaint_url,
         width, height,
 
@@ -121,10 +123,9 @@ ppixiv.on_click_viewer = class
         if(slideshow)
             preview_url = url;
         
-        // If we're displaying the same image (either the URL or preview URL aren't changing),
-        // never restore position, so we don't interrupt the user interacting with the image.
-        let displaying_same_image = (url && url == this.displaying_url) || (preview_url && preview_url == this.displaying_preview_url);
-        if(displaying_same_image)
+        // Don't restore the position if we're displaying the same image, so we don't interrupt
+        // the user interacting with the image.
+        if(media_id == this.media_id)
             restore_position = null;
 
         let img = document.createElement("img");
@@ -201,7 +202,8 @@ ppixiv.on_click_viewer = class
         // We're ready to finalize the new URLs by removing the old images and setting the
         // new ones.  This is where displaying_url and displaying_preview_url change.
         // If we're displaying the same image, don't remove the animation if one is running.
-        this.remove_images({remove_animation: !this.animation_enabled || !displaying_same_image});
+        this.remove_images({remove_animation: !this.animation_enabled || media_id != this.media_id});
+        this.media_id = media_id;
         this.original_width = width;
         this.original_height = height;
         this._cropped_size = crop? new FixedDOMRect(crop[0], crop[1], crop[2], crop[3]):null;
@@ -294,6 +296,7 @@ ppixiv.on_click_viewer = class
     remove_images({remove_animation=true}={})
     {
         this.cancel_save_to_history();
+        this.media_id = null;
 
         // Clear the image URLs when we remove them, so any loads are cancelled.  This seems to
         // help Chrome with GC delays.
@@ -1099,7 +1102,6 @@ ppixiv.on_click_viewer = class
         // If we're not updating an already-running animation, set up the image for animating.
         if(this.animation == null)
         {
-            console.error("new");
             // Opacity from fades is applied when the animation stops, so the image doesn't reappear
             // while the next image is loading.  If there's an opacity left over from the previous
             // image, remove it now.

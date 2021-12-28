@@ -1990,7 +1990,78 @@ ppixiv.helpers = {
             id: actual_id,
         }
     },
-    
+
+    // Encode a media ID.
+    //
+    // This is an attempt to consolidate IDs.  We have three types of IDs;
+    // - Pixiv has separate illustration ID and page numbers.  We use these in URLs
+    // for compatibility with Pixiv URLs.
+    // - We encode other types of IDs into illust IDs, such as "user:1234".  This
+    // still has the manga page separately.  If there's no type prefix, "illust" is
+    // implied.  These are parsed with helpers.parse_id.  This should be phased out
+    // in favor of media IDs.
+    // - Media IDs encode encode the page number into the ID, eg. "illust:1234-1",
+    // so the entire resource is encoded into the string.  These always have the type
+    // prefix and a page number, so it's always "illust:1234-0" and not "1234".
+    // Page numbers in media IDs are 0-based.
+    encode_media_id({type, id, page=null}={})
+    {
+        if(type == "illust")
+        {
+            if(page == null)
+                page = 0;
+            id  += "-" + page;
+        }
+
+        return type + ":" + id;
+    },
+
+    parse_media_id(media_id)
+    {
+        // If this isn't an illust, a media ID is the same as an illust ID.
+        let { type, id } = helpers.parse_id(media_id);
+        if(type != "illust")
+            return { type: type, id: id, page: null };
+
+        // If there's no hyphen in the ID, it's also the same.
+        if(media_id.indexOf("-") == -1)
+            return { type: type, id: id, page: 0 };
+
+        // Split out the page.
+        let parts = id.split("-");
+        let page = parts[1];
+        page = parseInt(page);
+        id = parts[0];
+        
+        return { type: type, id: id, page: page };
+    },
+
+    illust_id_to_media_id(illust_id, page)
+    {
+        let { type, id } = helpers.parse_id(illust_id);
+
+        // Pages are only used for illusts.  For other types, the page should always
+        // be null or 0, and we don't include it in the media ID.
+        if(page != null)
+        {
+            if(type == "illust")
+                id += "-" + page;
+            else
+                console.assert(page == 0);
+        }
+
+        return type + ":" + id;
+    },
+
+    media_id_to_illust_id_and_page(media_id)
+    {
+        let { type, id, page } = helpers.parse_media_id(media_id);
+        if(type != "illust")
+            return [media_id, 0];
+        
+        return [id, page];
+    },
+
     // Return true if illust_id is an ID for the local API.
     is_local(illust_id)
     {
