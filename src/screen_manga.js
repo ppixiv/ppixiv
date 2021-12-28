@@ -16,6 +16,8 @@ ppixiv.screen_manga = class extends ppixiv.screen
 
         window.addEventListener("resize", this.window_onresize);
 
+        this.scroll_container = this.container.querySelector(".search-results");
+
         // If the "view muted image" button is clicked, add view-muted to the URL.
         this.container.querySelector(".view-muted-image").addEventListener("click", (e) => {
             let args = helpers.args.location;
@@ -208,7 +210,6 @@ ppixiv.screen_manga = class extends ppixiv.screen
             var manga_page = this.illust_info.mangaPages[page];
             
             var entry = this.create_thumb(page, manga_page);
-            var link = entry.querySelector(".thumbnail-link");
             helpers.set_thumbnail_panning_direction(entry, manga_page.width, manga_page.height, ratio);
             
             ul.appendChild(entry);
@@ -307,12 +308,14 @@ ppixiv.screen_manga = class extends ppixiv.screen
         thumb.width = size[0];
         thumb.height = size[1];
         
-        var link = element.querySelector("a.thumbnail-link");
-
         let id = helpers.parse_media_id(this.media_id);
         id.page = page_idx;
         let page_media_id = helpers.encode_media_id(id);
+
+        let link = element.querySelector("a.thumbnail-link");
         link.dataset.mediaId = page_media_id;
+
+        element.dataset.id = page_media_id;
 
         link.href = helpers.get_url_for_id(page_media_id, page_idx+1);
 
@@ -352,15 +355,14 @@ ppixiv.screen_manga = class extends ppixiv.screen
         if(media_id == null)
             return;
 
-        let [illust_id, page] = helpers.media_id_to_illust_id_and_page(media_id);
-        var thumb = this.container.querySelector('[data-page-idx="' + page + '"]');
+        let thumb = this.container.querySelector(`[data-id="${helpers.escape_selector(media_id)}"]`);
         if(thumb == null)
             return;
 
         // If the item isn't visible, center it.
-        var scroll_pos = this.container.scrollTop;
-        if(thumb.offsetTop < scroll_pos || thumb.offsetTop + thumb.offsetHeight > scroll_pos + this.container.offsetHeight)
-            this.container.scrollTop = thumb.offsetTop + thumb.offsetHeight/2 - this.container.offsetHeight/2;
+        let scroll_pos = this.scroll_container.scrollTop;
+        if(thumb.offsetTop < scroll_pos || thumb.offsetTop + thumb.offsetHeight > scroll_pos + this.scroll_container.offsetHeight)
+            this.scroll_container.scrollTop = thumb.offsetTop + thumb.offsetHeight/2 - this.scroll_container.offsetHeight/2;
     }
 
     handle_onkeydown(e)
