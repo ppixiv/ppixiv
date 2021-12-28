@@ -406,9 +406,6 @@ ppixiv.thumbnail_data = class
                 delete thumb_info.profileImageUrl;
             }
         }
-
-        // Broadcast that we have new thumbnail data available.
-        window.dispatchEvent(new Event("thumbnailsLoaded"));
     };
 
     // Store thumbnail info.

@@ -366,7 +366,6 @@ ppixiv.screen_search = class extends ppixiv.screen
     {
         super(options);
         
-        this.thumbs_loaded = this.thumbs_loaded.bind(this);
         this.data_source_updated = this.data_source_updated.bind(this);
         this.onwheel = this.onwheel.bind(this);
 //        this.onmousemove = this.onmousemove.bind(this);
@@ -378,7 +377,6 @@ ppixiv.screen_search = class extends ppixiv.screen
 
         this.scroll_container = this.container.querySelector(".search-results");
 
-        window.addEventListener("thumbnailsLoaded", this.thumbs_loaded);
         window.addEventListener("focus", this.visible_thumbs_changed);
 
         this.container.addEventListener("wheel", this.onwheel, { passive: false });
@@ -672,12 +670,18 @@ ppixiv.screen_search = class extends ppixiv.screen
         option_box.insertAdjacentElement("beforeend", search);
     }
 
+    get_first_visible_thumb()
+    {
+        // Find the first thumb that's fully onscreen.  Ignore elements not specific to a page (load previous results).
+        return this.container.querySelector(`.thumbnails > [data-id][data-fully-on-screen][data-search-page]`);
+    }
+
     // This is called as the user scrolls and different thumbs are fully onscreen,
     // to update the page URL.
     first_visible_thumbs_changed()
     {
         // Find the first thumb that's fully onscreen.  Ignore elements not specific to a page (load previous results).
-        let first_thumb = this.container.querySelector(`.thumbnails > [data-id][data-fully-on-screen][data-page]`);
+        let first_thumb = this.get_first_visible_thumb();
         if(!first_thumb)
             return;
 
@@ -1278,7 +1282,6 @@ ppixiv.screen_search = class extends ppixiv.screen
         // Most of the time we're just appending.  The main time that we add to the beginning is
         // the "load previous results" button.
         let ul = this.container.querySelector(".thumbnails");
-        let next_node = ul.firstElementChild;
 
         // Make a dictionary of all illust IDs and pages, so we can look them up quickly.
         let images_to_add_index = {};
@@ -1297,13 +1300,13 @@ ppixiv.screen_search = class extends ppixiv.screen
                 return null;
 
             let media_id = node.dataset.id;
-            let search_page = node.dataset.search_page;
+            let search_page = node.dataset.searchPage;
             let index = media_id + "/" + search_page;
             return images_to_add_index[index];
         }
 
         // Find the first match (4 in the above example).
-        let first_matching_node = next_node;
+        let first_matching_node = ul.firstElementChild;
         while(first_matching_node && get_node_idx(first_matching_node) == null)
             first_matching_node = first_matching_node.nextElementSibling;
 
@@ -1322,12 +1325,18 @@ ppixiv.screen_search = class extends ppixiv.screen
             }
         }
 
-        // If we have a matching range, save the scroll position relative to it, so if we add
-        // new elements at the top, we stay scrolled where we are.  Otherwise, just restore the
-        // current scroll position.
-        let save_scroll = new SaveScrollPosition(this.scroll_container);
-        if(first_matching_node)
-            save_scroll.save_relative_to(first_matching_node);
+        // Save the scroll position relative to the first thumbnail, excluding things like
+        // the "load previous thumbs" button.
+        let saved_scroll_top = 0;
+        let saved_scroll_pos = 0;
+        let saved_scroll_pos_at_media_id = null;
+        let first_visible_thumb_node = this.get_first_visible_thumb();
+        if(first_visible_thumb_node != null)
+        {
+            saved_scroll_pos_at_media_id = first_visible_thumb_node.dataset.id;
+            saved_scroll_top = this.scroll_container.scrollTop;
+            saved_scroll_pos = first_visible_thumb_node.offsetTop;
+        }
 
         // If we have a range, delete all items outside of it.  Otherwise, just delete everything.
         while(first_matching_node && first_matching_node.previousElementSibling)
@@ -1383,10 +1392,18 @@ ppixiv.screen_search = class extends ppixiv.screen
             min_padding: 15,
         });
 
-        // Restore the value of scrollTop from before we updated.  For some reason, Firefox
-        // modifies scrollTop after we add a bunch of items, which causes us to scroll to
-        // the wrong position, even though scrollRestoration is disabled.
-        save_scroll.restore();
+        // Find the thumb with the same media ID as the one we saved the scroll
+        // position at and restore its position.
+        if(saved_scroll_pos_at_media_id != null)
+        {
+            let restore_scroll_position_node = this.scroll_container.querySelector(`[data-id="${helpers.escape_selector(saved_scroll_pos_at_media_id)}"]`);
+            if(restore_scroll_position_node != null)
+            {
+                let offset = restore_scroll_position_node.offsetTop - saved_scroll_pos;
+                let scroll_top = saved_scroll_top + offset;
+                this.scroll_container.scrollTop = scroll_top;
+            }
+        }
     }
 
     // Start loading data pages that we need to display visible thumbs, and start
@@ -1961,12 +1978,6 @@ ppixiv.screen_search = class extends ppixiv.screen
         for(let observer of this.intersection_observers)
             observer.observe(entry);
         return entry;
-    }
-
-    // This is called when thumbnail_data has loaded more thumbnail info.
-    thumbs_loaded(e)
-    {
-        this.set_visible_thumbs();
     }
 
     // Scroll to media_id if it's available.  This is called when we display the thumbnail view
