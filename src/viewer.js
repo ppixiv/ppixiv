@@ -19,7 +19,6 @@ ppixiv.viewer = class extends widget
         this.was_shutdown = true;
     }
 
-    set page(page) { }
     get page() { return 0; }
 
     set active(value) { this._active = value; }

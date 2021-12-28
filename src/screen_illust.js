@@ -187,17 +187,6 @@ ppixiv.screen_illust = class extends ppixiv.screen
             return;
         }
 
-        // If this image is already loaded, just make sure it's not hidden.
-        if( this.wanted_illust_id == this.current_illust_id && 
-            this.wanted_illust_page == this.viewer.page &&
-            this.viewer != null && 
-            this.viewing_muted_image == this.view_muted && // view-muted not changing
-            !this._hide_image)
-        {
-            console.log(`illust ${illust_id} page ${this.wanted_illust_page} is already displayed`);
-            return;
-        }
-
         console.log(`Showing image ${illust_id} page ${manga_page}`);
 
         helpers.set_title_and_icon(early_illust_data);
@@ -243,19 +232,6 @@ ppixiv.screen_illust = class extends ppixiv.screen
                 // we're telling it that we don't need to load anything.
                 image_preloader.singleton.set_speculative_image(new_illust_id, new_page);
             })();
-        }
-
-        // If the illust ID isn't changing, just update the viewed page.
-        if(illust_id == this.current_illust_id && this.viewer != null && this.viewer.page != this.wanted_illust_page)
-        {
-            console.log("Image ID not changed, setting page", this.wanted_illust_page, "of image", this.current_illust_id);
-            this._hide_image = false;
-            this.viewer.page = this.wanted_illust_page;
-            if(this.manga_thumbnails)
-                this.manga_thumbnails.current_page_changed(manga_page);
-            this.refresh_ui();
-
-            return;
         }
 
         // Finalize the new illust ID.

@@ -56,7 +56,8 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         this.image_editor.set_illust_id(helpers.is_local(this.illust_id)? this.illust_id:null);
 
         // First, load early illust data.  This is enough info to set up the image list
-        // with preview URLs, so we can start the image view early.
+        // with preview URLs, so we can start the image view early.  This can return either
+        // thumbnail info or illust info.
         //
         // If this blocks to load, the full illust data will be loaded, so we'll never
         // run two separate requests here.
@@ -64,22 +65,29 @@ ppixiv.viewer_images = class extends ppixiv.viewer
 
         // Stop if we were removed before the request finished.
         signal.check();
-       
-        // Early data only gives us the image dimensions for page 1.
-        this.images = [{
-            preview_url: early_illust_data.previewUrls[0],
-            width: early_illust_data.width,
-            height: early_illust_data.height,
-            crop: early_illust_data.crop, // not per-page
-        }];
 
-        this.refresh();
-        
-        // Now wait for full illust info to load.
-        this.illust_data = await image_data.singleton().get_image_info(this.illust_id);
+        // See if we got illust info or thumbnail info.
+        if(early_illust_data.mangaPages != null)
+        {
+            // We got illust data and not thumbnail data, so we have all we need.
+            this.illust_data = early_illust_data;
+        } else {
+            // We got thumbnail data, which only gives us the image dimensions for page 1.
+            this.images = [{
+                preview_url: early_illust_data.previewUrls[0],
+                width: early_illust_data.width,
+                height: early_illust_data.height,
+                crop: early_illust_data.crop, // not per-page
+            }];
 
-        // Stop if we were removed before the request finished.
-        signal.check();
+            this.refresh();
+            
+            // Now wait for full illust info to load.
+            this.illust_data = await image_data.singleton().get_image_info(this.illust_id);
+
+            // Stop if we were removed before the request finished.
+            signal.check();
+        }
 
         // Update the list to include the image URLs.
         this.refresh_from_illust_data();
@@ -155,12 +163,6 @@ ppixiv.viewer_images = class extends ppixiv.viewer
     get page()
     {
         return this._page;
-    }
-
-    set page(page)
-    {
-        this._page = page;
-        this.refresh();
     }
 
     refresh()
