@@ -161,9 +161,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
         this.wanted_illust_id = illust_id;
         this.wanted_illust_page = manga_page;
 
-        // If remote quick view is active, send this image.  Only do this if we have
-        // focus, since if we don't have focus, we're probably receiving this from another
-        // tab.
+        // If linked tabs are active, send this image.
         if(settings.get("linked_tabs_enabled"))
             SendImage.send_image(illust_id, manga_page, settings.get("linked_tabs", []), "temp-view");
 
@@ -302,16 +300,13 @@ ppixiv.screen_illust = class extends ppixiv.screen
         }
 
         let slideshow = helpers.args.location.hash.get("slideshow") == "1";
-        if(slideshow)
-            restore_history = false;
 
         this.viewer.load(illust_id, manga_page, {
             restore_history: restore_history,
             slideshow: slideshow,
             onnextimage: () => {
-                // When an image finishes in slideshow, move to the next image.
-                if(slideshow)
-                    this.navigate_to_next(1, { loop: true });
+                // The viewer wants to go to the next image, normally during slideshows.
+                this.navigate_to_next(1, { loop: true });
             },
         });
 

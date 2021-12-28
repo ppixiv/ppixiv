@@ -330,6 +330,9 @@ ppixiv.data_source = class
         // Ignore filenames for local IDs.
         args.hash.delete("file");
 
+        // slideshow is used by the viewer and doesn't affect the data source.
+        args.hash.delete("slideshow");
+
         return args.url;
     }
 
