@@ -2038,6 +2038,9 @@ ppixiv.helpers = {
 
     illust_id_to_media_id(illust_id, page)
     {
+        if(illust_id == null)
+            return null;
+            
         let { type, id } = helpers.parse_id(illust_id);
 
         // Pages are only used for illusts.  For other types, the page should always

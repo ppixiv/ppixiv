@@ -3312,18 +3312,18 @@ ppixiv.data_sources.recent = class extends data_source
         // Read illust_ids once and paginate them so we don't return them all at once.
         if(this.illust_ids == null)
         {
-            let illust_ids = await ppixiv.recently_seen_illusts.get().get_recent_illust_ids();
+            let illust_ids = await ppixiv.recently_seen_illusts.get().get_recent_media_ids();
             this.pages = paginate_illust_ids(illust_ids, this.estimated_items_per_page);
         }
 
         // Register this page.
-        let illust_ids = this.pages[page-1] || [];
+        let media_ids = this.pages[page-1] || [];
         let found_illust_ids = [];
 
         // Get thumbnail data for this page.  Some thumbnail data might be missing if it
         // expired before this page was viewed.  Don't add illust IDs that we don't have
         // thumbnail data for.
-        let thumbs = await ppixiv.recently_seen_illusts.get().get_thumbnail_info(illust_ids);
+        let thumbs = await ppixiv.recently_seen_illusts.get().get_thumbnail_info(media_ids);
         thumbnail_data.singleton().loaded_thumbnail_info(thumbs, "internal");
 
         for(let thumb of thumbs)

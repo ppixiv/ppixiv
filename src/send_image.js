@@ -97,12 +97,12 @@ ppixiv.SendImage = class
 
     // Send an image to another tab.  action is either "temp-view", to show the image temporarily,
     // or "display", to navigate to it.
-    static async send_image(illust_id, page, tab_ids, action)
+    static async send_image(media_id, tab_ids, action)
     {
         // Send everything we know about the image, so the receiver doesn't have to
         // do a lookup.
-        let thumbnail_info = thumbnail_data.singleton().get_one_thumbnail_info(illust_id);
-        let illust_data = image_data.singleton().get_image_info_sync(illust_id);
+        let thumbnail_info = thumbnail_data.singleton().get_one_media_thumbnail_info(media_id);
+        let illust_data = image_data.singleton().get_media_info_sync(media_id);
 
         let user_id = illust_data?.userId;
         let user_info = user_id? image_data.singleton().get_user_info_sync(user_id):null;
@@ -111,8 +111,7 @@ ppixiv.SendImage = class
             message: "send-image",
             from: SendImage.tab_id,
             to: tab_ids,
-            illust_id: illust_id,
-            page: page,
+            media_id: media_id,
             action: action, // "temp-view" or "display"
             thumbnail_info: thumbnail_info,
             illust_data: illust_data,
@@ -213,8 +212,7 @@ ppixiv.SendImage = class
             console.assert(data.action == "temp-view" || data.action == "display", data.actionj);
 
             // Show the image.
-            main_controller.singleton.show_illust(data.illust_id, {
-                page: data.page,
+            main_controller.singleton.show_media(data.media_id, {
                 temp_view: data.action == "temp-view",
                 source: "temp-view",
 
@@ -244,10 +242,9 @@ ppixiv.SendImage = class
     static broadcast_tab_info()
     {
         let screen = main_controller.singleton.displayed_screen;
-        let illust_id = screen? screen.displayed_illust_id:null;
-        let page = screen? screen.displayed_illust_page:null;
-        let thumbnail_info = illust_id? thumbnail_data.singleton().get_one_thumbnail_info(illust_id):null;
-        let illust_data = illust_id? image_data.singleton().get_image_info_sync(illust_id):null;
+        let media_id = screen? screen.displayed_media_id:null;
+        let thumbnail_info = media_id? thumbnail_data.singleton().get_one_media_thumbnail_info(media_id):null;
+        let illust_data = media_id? image_data.singleton().get_media_info_sync(media_id):null;
 
         let user_id = illust_data?.userId;
         let user_info = user_id? image_data.singleton().get_user_info_sync(user_id):null;
@@ -261,8 +258,7 @@ ppixiv.SendImage = class
             window_height: window.innerHeight,
             screen_x: window.screenX,
             screen_y: window.screenY,
-            illust_id: illust_id,
-            page: page,
+            media_id: media_id,
 
             // Include whatever we know about this image, so if we want to display this in
             // another tab, we don't have to look it up again.
@@ -539,7 +535,7 @@ ppixiv.send_image_popup = class extends ppixiv.dialog_widget
 
         SendImage.add_message_listener("take-image", (message) => {
             let tab_id = message.from;
-            SendImage.send_image(this.illust_id, this.page, [tab_id], "display");
+            SendImage.send_image(this.media_id, [tab_id], "display");
 
             this.visible = false;
         });
@@ -547,10 +543,9 @@ ppixiv.send_image_popup = class extends ppixiv.dialog_widget
         this.visible = false;
     }
 
-    show_for_illust(illust_id, page)
+    show_for_illust(media_id)
     {
-        this.illust_id = illust_id;
-        this.page = page;
+        this.media_id = media_id;
         this.visible = true;
     }
 

@@ -31,8 +31,15 @@ ppixiv.thumbnail_data = class
     // Return true if all thumbs in illust_ids have been loaded, or are currently loading.
     //
     // We won't start fetching IDs that aren't loaded.
-    are_all_ids_loaded_or_loading(illust_ids)
+    are_all_media_ids_loaded_or_loading(media_ids)
     {
+        let illust_ids = [];
+        for(let media_id of media_ids)
+        {
+            let [illust_id] = helpers.media_id_to_illust_id_and_page(media_id);
+            illust_ids.push(illust_id);
+        }
+
         for(var illust_id of illust_ids)
         {
             if(this.thumbnail_data[illust_id] == null && !this.loading_ids[illust_id])
@@ -41,8 +48,9 @@ ppixiv.thumbnail_data = class
         return true;
     }
    
-    is_id_loaded_or_loading(illust_id)
+    is_media_id_loaded_or_loading(media_id)
     {
+        let [illust_id] = helpers.media_id_to_illust_id_and_page(media_id);
         return this.thumbnail_data[illust_id] != null || this.loading_ids[illust_id];
     }
     
@@ -55,14 +63,22 @@ ppixiv.thumbnail_data = class
         return this.thumbnail_data[illust_id];
     }
 
+    get_one_media_thumbnail_info(media_id)
+    {
+        let [illust_id] = helpers.media_id_to_illust_id_and_page(media_id);
+        return this.get_one_thumbnail_info(illust_id);
+    }
+    
     // Return thumbnail data for illust_ids, and start loading any requested IDs that aren't
     // already loaded.
-    get_thumbnail_info(illust_ids)
+    get_thumbnail_info(media_ids)
     {
         var result = {};
         var needed_ids = [];
-        for(var illust_id of illust_ids)
+        for(var media_id of media_ids)
         {
+            let [illust_id] = helpers.media_id_to_illust_id_and_page(media_id);
+
             var data = this.thumbnail_data[illust_id];
             if(data == null)
             {

@@ -1127,12 +1127,11 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         if(this.visible)
         {
             let media_id = this.effective_media_id;
-            let [illust_id, page] = helpers.media_id_to_illust_id_and_page(media_id);
             let user_id = this.effective_user_id;
             for(let widget of this.illust_widgets)
             {
-                if(widget.set_illust_id)
-                    widget.set_illust_id(illust_id, page);
+                if(widget.set_media_id)
+                    widget.set_media_id(media_id);
                 if(widget.set_user_id)
                     widget.set_user_id(user_id);
 

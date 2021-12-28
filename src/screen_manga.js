@@ -72,7 +72,7 @@ ppixiv.screen_manga = class extends ppixiv.screen
         this.refresh_ui();
     }
 
-    async set_active(active, { illust_id })
+    async set_active(active, { media_id, illust_id })
     {
         if(this.illust_id != illust_id)
         {
@@ -83,7 +83,7 @@ ppixiv.screen_manga = class extends ppixiv.screen
 
             this.illust_id = illust_id;
             this.illust_info = null;
-            this.ui.illust_id = illust_id;
+            this.ui.media_id = media_id;
 
             // Refresh even if illust_id is null, so we quickly clear the screen.
             await this.refresh_ui();
@@ -223,12 +223,12 @@ ppixiv.screen_manga = class extends ppixiv.screen
     {
         return this._active;
     }
-
-    get displayed_illust_id()
-    {
-        return this.illust_id;        
-    }
     
+    get displayed_media_id()
+    {
+        return helpers.illust_id_to_media_id(this.illust_id)[0];
+    }
+
     // Navigating out goes back to the search.
     get navigate_out_target() { return "search"; }
 
@@ -341,12 +341,13 @@ ppixiv.screen_manga = class extends ppixiv.screen
             this.scroll_to_top();
     }
 
-    scroll_to_illust_id(illust_id, manga_page)
+    scroll_to_media_id(media_id)
     {
-        if(manga_page == null)
+        if(media_id == null)
             return;
 
-        var thumb = this.container.querySelector('[data-page-idx="' + manga_page + '"]');
+        let [illust_id, page] = helpers.media_id_to_illust_id_and_page(media_id);
+        var thumb = this.container.querySelector('[data-page-idx="' + page + '"]');
         if(thumb == null)
             return;
 

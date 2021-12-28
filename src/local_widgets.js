@@ -516,7 +516,7 @@ ppixiv.tree_widget_item = class extends ppixiv.widget
         let illust_ids = data_source.id_list.illust_ids_by_page.get(1);
         console.log("files for double click:", illust_ids?.length);
         if(illust_ids != null)
-            main_controller.singleton.show_illust(illust_ids[0], {add_to_history: true, source: "dblclick"});
+            main_controller.singleton.show_media(illust_ids[0], {add_to_history: true, source: "dblclick"});
     }
 };
 

@@ -19,17 +19,8 @@ ppixiv.screen = class extends ppixiv.widget
     // Return the view that navigating back in the popup menu should go to.
     get navigate_out_target() { return null; }
 
-    // If this screen is displaying an image, return its ID.
-    // If this screen is displaying a user's posts, return "user:ID".
-    // Otherwise, return null.
-    get displayed_illust_id()
-    {
-        return null;
-    }
-
-    // If this screen is displaying a manga page, return its ID.  Otherwise, return null.
-    // If this is non-null, displayed_illust_id will always also be non-null.
-    get displayed_illust_page()
+    // Return the media ID being displayed, or null if none.
+    get displayed_media_id()
     {
         return null;
     }
@@ -37,7 +28,7 @@ ppixiv.screen = class extends ppixiv.widget
     // These are called to restore the scroll position on navigation.
     scroll_to_top() { }
     restore_scroll_position() { }
-    scroll_to_illust_id(illust_id, manga_page) { }
+    scroll_to_media_id(media_id) { }
 
     async set_active(active)
     {

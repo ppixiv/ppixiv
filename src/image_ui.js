@@ -219,19 +219,22 @@ ppixiv.image_ui = class extends ppixiv.widget
         this.avatar_widget.shutdown();
     }
 
-    get illust_id()
+    get media_id()
     {
-        return this._illust_id;
+        return this._media_id;
     }
 
-    set illust_id(illust_id)
+    set media_id(media_id)
     {
-        if(this._illust_id == illust_id)
+        if(this._media_id == media_id)
             return;
+        this._media_id = media_id;
 
+        let [illust_id, page] = helpers.media_id_to_illust_id_and_page(media_id);
         this._illust_id = illust_id;
-        this.illust_data = null;
+        this.displayed_page = page;
 
+        this.illust_data = null;
         this.refresh();
     }
 
@@ -246,27 +249,28 @@ ppixiv.image_ui = class extends ppixiv.widget
             return;
 
         // Update widget illust IDs.
-        this.like_button.set_illust_id(this._illust_id, this.displayed_page);
-        this.bookmark_tag_widget.set_illust_id(this._illust_id, this.displayed_page);
-        this.toggle_tag_widget.set_illust_id(this._illust_id, this.displayed_page);
-        this.like_count_widget.set_illust_id(this._illust_id, this.displayed_page);
-        this.bookmark_count_widget.set_illust_id(this._illust_id, this.displayed_page);
+        this.like_button.set_media_id(this._media_id);
+        this.bookmark_tag_widget.set_media_id(this._media_id);
+        this.toggle_tag_widget.set_media_id(this._media_id);
+        this.like_count_widget.set_media_id(this._media_id);
+        this.bookmark_count_widget.set_media_id(this._media_id);
         for(let button of this.bookmark_buttons)
-            button.set_illust_id(this._illust_id, this.displayed_page);
+            button.set_media_id(this._media_id);
     
         this.illust_data = null;
-        if(this._illust_id == null)
+        if(this._media_id == null)
             return;
 
         // We need image info to update.
-        let illust_id = this._illust_id;
-        let illust_info = await image_data.singleton().get_image_info(illust_id);
+        let media_id = this._media_id;
+        let illust_info = await image_data.singleton().get_media_info(this._media_id);
 
         // Check if anything changed while we were loading.
-        if(illust_info == null || illust_id != this._illust_id || !this.visible)
+        if(illust_info == null || media_id != this._media_id || !this.visible)
             return;
 
         this.illust_data = illust_info;
+        let illust_id = this._illust_id;
         let user_id = illust_info.userId;
 
         // Show the author if it's someone else's post, or the edit link if it's ours.
@@ -370,15 +374,6 @@ ppixiv.image_ui = class extends ppixiv.widget
         set_info(".page-count", page_text);
     }
 
-    // Set the resolution to display in image info.  If both are null, no resolution
-    // is displayed.
-    set_displayed_page_info(page)
-    {
-        console.assert(page == null || page >= 0);
-        this.displayed_page = page;
-        this.refresh();
-    }
-
     clicked_download(e)
     {
         if(this.illust_data == null)
@@ -392,7 +387,7 @@ ppixiv.image_ui = class extends ppixiv.widget
         e.stopPropagation();
 
         let download_type = clicked_button.dataset.download;
-        actions.download_illust(this.illust_id, this.progress_bar.controller(), download_type, this.displayed_page);
+        actions.download_illust(this._illust_id, this.progress_bar.controller(), download_type, this.displayed_page);
     }
  }
 

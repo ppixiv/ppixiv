@@ -169,18 +169,21 @@ ppixiv.illust_widget = class extends ppixiv.widget
         return "illust_info";
     }
 
-    set_illust_id(illust_id, page=null)
+    set_media_id(media_id)
     {
-        console.assert(page != -1);
-        if(this._illust_id == illust_id && this._page == page)
+        if(this._media_id == media_id)
             return;
 
+        this._media_id = media_id;
+
+        let [illust_id, page] = helpers.media_id_to_illust_id_and_page(media_id);
         this._illust_id = illust_id;
         this._page = page;
         this.refresh();
     }
-
+    
     get illust_id() { return this._illust_id; }
+    get media_id() { return this._media_id; }
 
     async refresh()
     {
@@ -989,15 +992,15 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
         return tag_list;
     }
 
-    // Override setting illust_id to save tags when we're closed.  Otherwise, illust_id will already
+    // Override setting media_id to save tags when we're closed.  Otherwise, media_id will already
     // be cleared when we close and we won't be able to save.
-    set_illust_id(illust_id, page=null)
+    set_media_id(media_id)
     {
         // If we're hiding and were previously visible, save changes.
-        if(illust_id == null)
+        if(media_id == null)
             this.save_current_tags();
 
-        super.set_illust_id(illust_id, page);
+        super.set_media_id(media_id);
     }
     
     // Hide the dropdown without committing anything.  This happens if a bookmark
@@ -1296,7 +1299,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                     icon: "resources/send-to-tab.svg",
                     requires_image: true,
                     onclick: () => {
-                        main_controller.singleton.send_image_popup.show_for_illust(this.illust_id, this.page);
+                        main_controller.singleton.send_image_popup.show_for_illust(this.media_id);
                         this.parent.hide();
                     }
                 });

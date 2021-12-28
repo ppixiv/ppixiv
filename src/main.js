@@ -253,8 +253,7 @@ ppixiv.main_controller = class
     {
         // Remember what we were displaying before we start changing things.
         var old_screen = this.screens[this.current_screen_name];
-        var old_illust_id = old_screen? old_screen.displayed_illust_id:null;
-        var old_illust_page = old_screen? old_screen.displayed_illust_page:null;
+        var old_media_id = old_screen? old_screen.displayed_media_id:null;
 
         // Get the current data source.  If we've already created it, this will just return
         // the same object and not create a new one.
@@ -314,6 +313,7 @@ ppixiv.main_controller = class
 
         var illust_id = data_source.get_current_illust_id();
         var manga_page = args.hash.has("page")? parseInt(args.hash.get("page"))-1:0;
+        let media_id = helpers.illust_id_to_media_id(illust_id, manga_page);
 
         // If we're on search, we don't care what image is current.  Clear illust_id so we
         // tell context_menu that we're not viewing anything, so it disables bookmarking.
@@ -328,7 +328,7 @@ ppixiv.main_controller = class
 
         let new_screen = this.screens[new_screen_name];
 
-        this.context_menu.set_media_id(helpers.illust_id_to_media_id(illust_id));
+        this.context_menu.set_media_id(media_id);
         
         this.current_screen_name = new_screen_name;
 
@@ -349,6 +349,7 @@ ppixiv.main_controller = class
 
             await new_screen.set_active(true, {
                 data_source: data_source,
+                media_id: media_id,
                 illust_id: illust_id,
                 page: manga_page,
                 navigation_cause: cause,
@@ -362,8 +363,8 @@ ppixiv.main_controller = class
 
         // If we're enabling the thumbnail, pulse the image that was just being viewed (or
         // loading to be viewed), to make it easier to find your place.
-        if(new_screen_name == "search" && old_illust_id != null)
-            this.screen_search.pulse_thumbnail(old_illust_id);
+        if(new_screen_name == "search" && old_media_id != null)
+            this.screen_search.pulse_thumbnail(old_media_id);
         
         // Are we navigating forwards or back?
         var new_history_index = helpers.current_history_state_index();
@@ -396,13 +397,12 @@ ppixiv.main_controller = class
             // console.log("Restore scroll position for forwards navigation");
             new_screen.restore_scroll_position();
         }
-        else if(screen_changing && old_illust_id != null)
+        else if(screen_changing && old_media_id != null)
         {
             // If we're navigating backwards or toggling, and we're switching from the image UI to thumbnails,
             // try to scroll the search screen to the image that was displayed.  Otherwise, tell
             // it to restore any scroll position saved in the data source.
-            // console.log("Scroll to", old_illust_id, old_illust_page);
-            new_screen.scroll_to_illust_id(old_illust_id, old_illust_page);
+            new_screen.scroll_to_media_id(old_media_id);
         }
         else
         {
@@ -589,14 +589,13 @@ ppixiv.main_controller = class
         var url = new unsafeWindow.URL(url);
         url = helpers.get_url_without_language(url);
         let illust = this.get_illust_at_element(a);
-        if(illust?.illust_id)
+        if(illust?.media_id)
         {
-            let illust_id = illust.illust_id;
+            let media_id = illust.media_id;
             let args = new helpers.args(a.href);
             let screen = args.hash.has("view")? args.hash.get("view"):"illust";
-            this.show_illust(illust_id, {
+            this.show_media(media_id, {
                 screen: screen,
-                page: illust.page,
                 add_to_history: true
             });
             

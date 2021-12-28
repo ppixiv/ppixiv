@@ -40,7 +40,7 @@ ppixiv.recently_seen_illusts = class
         store.createIndex("last_seen", "last_seen");
     }
     
-    async add_illusts(illust_ids)
+    async add_illusts(media_ids)
     {
         // Clean up old illusts.  We don't need to wait for this.
         this.purge_old_illusts();
@@ -52,17 +52,17 @@ ppixiv.recently_seen_illusts = class
         let time = Date.now();
         let data = {};
         let idx = 0;
-        for(let illust_id of illust_ids)
+        for(let media_id of media_ids)
         {
             // Store thumbnail info with the image.  Every data_source these days is able
             // to fill in thumbnail data as part of the request, so we store the thumbnail
             // info to be able to do the same in data_source.recent.  We're called when
             // a thumbnail is being displayed, so 
-            let thumb_info = thumbnail_data.singleton().get_one_thumbnail_info(illust_id);
+            let thumb_info = thumbnail_data.singleton().get_one_media_thumbnail_info(media_id);
             if(thumb_info == null)
                 continue;
 
-            data[illust_id] = {
+            data[media_id] = {
                 // Nudge the time back slightly as we go, so illustrations earlier in the list will
                 // be treated as older.  This causes them to sort earlier in the recent illustrations
                 // view.  If we don't do this, they'll be displayed in an undefined order.
@@ -80,8 +80,8 @@ ppixiv.recently_seen_illusts = class
     {
     }
 
-    // Return illust_ids for recently viewed illusts, most recent first.
-    async get_recent_illust_ids()
+    // Return media_ids for recently viewed illusts, most recent first.
+    async get_recent_media_ids()
     {
         return await this.db.db_op(async (db) => {
             let store = this.db.get_store(db);
@@ -89,22 +89,22 @@ ppixiv.recently_seen_illusts = class
         });
     }
 
-    // Return thumbnail data for the given illust IDs if we have it.
-    async get_thumbnail_info(illust_ids)
+    // Return thumbnail data for the given media IDs if we have it.
+    async get_thumbnail_info(media_ids)
     {
         return await this.db.db_op(async (db) => {
             let store = this.db.get_store(db);
 
             // Load the thumbnail info in bulk.
             let promises = {};
-            for(let illust_id of illust_ids)
-                promises[illust_id] = key_storage.async_store_get(store, illust_id);
+            for(let media_id of media_ids)
+                promises[media_id] = key_storage.async_store_get(store, media_id);
             await Promise.all(Object.values(promises));
 
             let results = [];
-            for(let illust_id of illust_ids)
+            for(let media_id of media_ids)
             {
-                let entry = await promises[illust_id];
+                let entry = await promises[media_id];
                 if(entry && entry.thumb_info)
                     results.push(entry.thumb_info);
             }
@@ -142,13 +142,6 @@ ppixiv.recently_seen_illusts = class
             results.push(entry.primaryKey);
 
         return results;
-    }
-
-    async get_stored_illust_thumbnail_info(illust_ids)
-    {
-        return await this.db.db_op(async (db) => {
-            let store = this.db.get_store(db);
-        });
     }
 
     // Clear history.

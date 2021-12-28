@@ -54,7 +54,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         this._onnextimage = onnextimage;
 
         // If this is a local image, tell the inpaint editor about it.
-        this.image_editor.set_illust_id(helpers.is_media_id_local(this.media_id)? illust_id:null);
+        this.image_editor.set_media_id(helpers.is_media_id_local(this.media_id)? this.media_id:null);
 
         // First, load early illust data.  This is enough info to set up the image list
         // with preview URLs, so we can start the image view early.  This can return either
@@ -159,11 +159,6 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         }
 
         main_context_menu.get.on_click_viewer = null;
-    }
-
-    get page()
-    {
-        return this._page;
     }
 
     refresh()

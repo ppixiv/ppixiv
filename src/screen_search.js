@@ -704,17 +704,17 @@ ppixiv.screen_search = class extends ppixiv.screen
         if(this.data_source && this.data_source.name == "recent")
             return;
 
-        let visible_illust_ids = [];
+        let visible_media_ids = [];
         for(let element of this.container.querySelectorAll(`.thumbnails > [data-id][data-visible]:not([data-special])`))
         {
             let { type, id } = helpers.parse_media_id(element.dataset.id);
             if(type != "illust")
                 continue;
 
-            visible_illust_ids.push(id);
+            visible_media_ids.push(element.dataset.id);
         }
         
-        ppixiv.recently_seen_illusts.get().add_illusts(visible_illust_ids);
+        ppixiv.recently_seen_illusts.get().add_illusts(visible_media_ids);
     }
 
     refresh_search()
@@ -884,10 +884,10 @@ ppixiv.screen_search = class extends ppixiv.screen
     // If the data source has an associated artist, return the "user:ID" for the user, so
     // when we navigate back to an earlier search, pulse_thumbnail will know which user to
     // flash.
-    get displayed_illust_id()
+    get displayed_media_id()
     {
         if(this.data_source == null)
-            return super.displayed_illust_id;
+            return super.displayed_media_id;
 
         let user_id = this.data_source.viewing_user_id;
         if(user_id != null)
@@ -897,7 +897,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         if(folder_id != null)
             return folder_id;
     
-        return super.displayed_illust_id;
+        return super.displayed_media_id;
     }
 
     // Call refresh_ui_for_user_info with the user_info for the user we're viewing,
@@ -1197,7 +1197,7 @@ ppixiv.screen_search = class extends ppixiv.screen
             this.refresh_ui();
 
             // Refresh the images now, so it's possible to scroll to entries, but wait to start
-            // loading data to give the caller a chance to call scroll_to_illust_id(), which needs
+            // loading data to give the caller a chance to call scroll_to_media_id(), which needs
             // to happen after refresh_images but before load_needed_thumb_data.  This way, if
             // we're showing a page far from the top, we won't load the first page that we're about
             // to scroll away from.
@@ -1459,17 +1459,17 @@ ppixiv.screen_search = class extends ppixiv.screen
             this.container.querySelector(".no-results").hidden = false;
         }
 
-        if(!thumbnail_data.singleton().are_all_ids_loaded_or_loading(wanted_illust_ids))
+        if(!thumbnail_data.singleton().are_all_media_ids_loaded_or_loading(wanted_illust_ids))
         {
             // At least one visible thumbnail needs to be loaded, so load more data at the same
             // time.
-            let nearby_illust_ids = this.get_thumbs_to_load();
+            let nearby_media_ids = this.get_thumbs_to_load();
 
             // Load the thumbnail data if needed.
             //
             // Loading thumbnail info here very rarely happens anymore, since every data
             // source provides thumbnail info with its illust IDs.
-            thumbnail_data.singleton().get_thumbnail_info(nearby_illust_ids);
+            thumbnail_data.singleton().get_thumbnail_info(nearby_media_ids);
         }
         
         this.set_visible_thumbs();
@@ -1692,6 +1692,7 @@ ppixiv.screen_search = class extends ppixiv.screen
             }
 
             link.dataset.mediaId = media_id;
+            link.dataset.userId = info.userId;
 
             // Don't show this UI when we're in the followed users view.
             if(search_mode == "illusts")
@@ -1840,11 +1841,13 @@ ppixiv.screen_search = class extends ppixiv.screen
                 return;
 
             // Skip this thumb if it's already loading.
-            let [illust_id] = helpers.media_id_to_illust_id_and_page(media_id);
-            if(thumbnail_data.singleton().is_id_loaded_or_loading(illust_id))
+            if(thumbnail_data.singleton().is_media_id_loaded_or_loading(media_id))
+            {
+                console.log("-");
                 return;
+            }
 
-            results.push(illust_id);
+            results.push(media_id);
         }
         
         let onscreen_thumbs = this.container.querySelectorAll(`.thumbnails > [data-id][data-fully-on-screen]`);
@@ -1981,9 +1984,8 @@ ppixiv.screen_search = class extends ppixiv.screen
 
     // Scroll to illust_id if it's available.  This is called when we display the thumbnail view
     // after coming from an illustration.
-    scroll_to_illust_id(illust_id)
+    scroll_to_media_id(media_id)
     {
-        let media_id = helpers.illust_id_to_media_id(illust_id);
         var thumb = this.container.querySelector("[data-id='" + helpers.escape_selector(media_id) + "']");
         if(thumb == null)
             return;
@@ -1994,9 +1996,8 @@ ppixiv.screen_search = class extends ppixiv.screen
             this.scroll_container.scrollTop = thumb.offsetTop + thumb.offsetHeight/2 - this.scroll_container.offsetHeight/2;
     };
 
-    pulse_thumbnail(illust_id)
+    pulse_thumbnail(media_id)
     {
-        let media_id = helpers.illust_id_to_media_id(illust_id);
         let thumb = this.container.querySelector("[data-id='" + helpers.escape_selector(media_id) + "']");
         if(thumb == null)
             return;
