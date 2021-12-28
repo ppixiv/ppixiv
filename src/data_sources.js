@@ -120,8 +120,10 @@ class illust_id_list
     //
     // This only returns illustrations, skipping over any special entries like user:12345.
     // If illust_id is null, start at the first loaded illustration.
-    get_neighboring_illust_id(illust_id, next)
+    get_neighboring_illust_id(media_id, next)
     {
+        let [illust_id] = helpers.media_id_to_illust_id_and_page(media_id);
+
         for(let i = 0; i < 100; ++i) // sanity limit
         {
             illust_id = this._get_neighboring_illust_id_internal(illust_id, next);
@@ -508,8 +510,9 @@ ppixiv.data_source = class
     // This is called when the currently displayed illust_id changes.  The illust_id should
     // always have been loaded by this data source, so it should be in id_list.  The data
     // source should update the history state to reflect the current state.
-    set_current_illust_id(illust_id, args)
+    set_current_media_id(media_id, args)
     {
+        let [illust_id] = helpers.media_id_to_illust_id_and_page(media_id);
         if(this.supports_start_page)
         {
             // Store the page the illustration is on in the hash, so if the page is reloaded while
@@ -779,9 +782,9 @@ ppixiv.data_source = class
     // Return the next or previous illustration.  If we don't have that page, return null.
     //
     // This only returns illustrations, skipping over any special entries like user:12345.
-    get_neighboring_illust_id(illust_id, next)
+    get_neighboring_illust_id(media_id, next)
     {
-        return this.id_list.get_neighboring_illust_id(illust_id, next);
+        return this.id_list.get_neighboring_illust_id(media_id, next);
     }
 
 
@@ -791,9 +794,11 @@ ppixiv.data_source = class
     //
     // This currently won't load more than one page.  If we load a page and it only has users,
     // we won't try another page.
-    async get_or_load_neighboring_illust_id(illust_id, next)
+    async get_or_load_neighboring_illust_id(media_id, next)
     {
-        let new_illust_id = this.get_neighboring_illust_id(illust_id, next);
+        let [illust_id, page] = helpers.media_id_to_illust_id_and_page(media_id);
+
+        let new_illust_id = this.get_neighboring_illust_id(media_id, next);
         if(new_illust_id != null)
             return new_illust_id;
 
@@ -830,7 +835,7 @@ ppixiv.data_source = class
 
         // Now that we've loaded data, try to find the new image again.
         console.log("Finishing navigation after data load");
-        return this.id_list.get_neighboring_illust_id(illust_id, next);
+        return this.id_list.get_neighboring_illust_id(media_id, next);
     }
 };
 
@@ -1821,8 +1826,10 @@ ppixiv.data_sources.current_illust = class extends data_source
 
     // We don't return any posts to navigate to, but this can still be called by
     // quick view.
-    set_current_illust_id(illust_id, args)
+    set_current_media_id(media_id, args)
     {
+        let [illust_id] = helpers.media_id_to_illust_id_and_page(media_id);
+
         // Pixiv's inconsistent URLs are annoying.  Figure out where the ID field is.
         // If the first field is a language, it's the third field (/en/artworks/#), otherwise
         // it's the second (/artworks/#).
@@ -2038,7 +2045,8 @@ class data_source_bookmarks_base extends data_source
 
                 // illust.id is an int if this image is deleted.  Convert it to a string so it's
                 // like other images.
-                image_data.singleton().update_cached_bookmark_image_tags(illust.id.toString(), tags);
+                let media_id = helpers.illust_id_to_media_id(illust.id.toString());
+                image_data.singleton().update_cached_bookmark_image_tags(media_id, tags);
             }
         }
 
@@ -3509,17 +3517,17 @@ ppixiv.data_sources.vview = class extends data_source
     // This is only done if we're just viewing a directory without a search.  Doing it for
     // searches is much slower since it can require scanning all results at once for filtering,
     // and it's mostly important when viewing a file in a directory.
-    async get_or_load_neighboring_illust_id(illust_id, next)
+    async get_or_load_neighboring_illust_id(media_id, next)
     {
         // If this is a search, use the regular behavior.
         let args = new helpers.args(this.url);
         let { search_options } = local_api.get_search_options_for_args(args);
         if(search_options != null)
-            return super.get_or_load_neighboring_illust_id(illust_id, next);
+            return super.get_or_load_neighboring_illust_id(media_id, next);
 
         // Try loading results with the normal path first.  If this succeeds, we don't need
         // to make the slower api/ids call.
-        let result = await super.get_or_load_neighboring_illust_id(illust_id, next);
+        let result = await super.get_or_load_neighboring_illust_id(media_id, next);
         if(result != null)
             return result;
 
@@ -3549,11 +3557,11 @@ ppixiv.data_sources.vview = class extends data_source
             this.all_illust_ids = result.ids;
         }
 
-        // Find illust_id.
-        let idx = this.all_illust_ids.indexOf(illust_id);
+        // Find media_id.
+        let idx = this.all_illust_ids.indexOf(media_id);
         if(idx == -1)
         {
-            console.log("Illust ID not found in folder:", illust_id);
+            console.log("Illust ID not found in folder:", media_id);
             return null;
         }
 
@@ -3596,9 +3604,9 @@ ppixiv.data_sources.vview = class extends data_source
 
     // Put the illust ID in the hash instead of the path.  Pixiv doesn't care about this,
     // and this avoids sending the user's filenames to their server as 404s.
-    set_current_illust_id(illust_id, args)
+    set_current_media_id(media_id, args)
     {
-        local_api.get_args_for_id(illust_id, args);
+        local_api.get_args_for_id(media_id, args);
     }
 
     get_current_illust_id()

@@ -118,9 +118,9 @@ ppixiv.local_api = class
         return result;
     }
 
-    static async bookmark_add(illust_id, options)
+    static async bookmark_add(media_id, options)
     {
-        let illust_info = await thumbnail_data.singleton().get_or_load_illust_data(illust_id);
+        let illust_info = await thumbnail_data.singleton().get_or_load_illust_data(media_id);
         let bookmark_options = { };
         if(options.tags != null)
             bookmark_options.tags = options.tags;
@@ -128,7 +128,7 @@ ppixiv.local_api = class
         // Remember whether this is a new bookmark or an edit.
         let was_bookmarked = illust_info.bookmarkData != null;
 
-        let result = await local_api.local_post_request(`/api/bookmark/add/${illust_id}`, {
+        let result = await local_api.local_post_request(`/api/bookmark/add/${media_id}`, {
             ...bookmark_options,
         });
         if(!result.success)
@@ -137,39 +137,39 @@ ppixiv.local_api = class
         // Update bookmark tags and thumbnail data.
         image_data.singleton().update_cached_bookmark_image_tags(illust_id, result.bookmark.tags);
 
-        thumbnail_data.singleton().update_illust_data(illust_id, {
+        thumbnail_data.singleton().update_illust_data(media_id, {
             bookmarkData: result.bookmark
         });
 
-        let { type } = helpers.parse_id(illust_id);
+        let { type } = helpers.parse_id(media_id);
         
         message_widget.singleton.show(
             was_bookmarked? "Bookmark edited":
             type == "folder"? "Bookmarked folder":"Bookmarked",
         );
-        image_data.singleton().call_illust_modified_callbacks(illust_id);
+        image_data.singleton().call_illust_modified_callbacks(media_id);
     }
 
-    static async bookmark_remove(illust_id)
+    static async bookmark_remove(media_id)
     {
-        let illust_info = await thumbnail_data.singleton().get_or_load_illust_data(illust_id);
+        let illust_info = await thumbnail_data.singleton().get_or_load_illust_data(media_id);
         if(illust_info.bookmarkData == null)
         {
             console.log("Not bookmarked");
             return;
         }
 
-        let result = await local_api.local_post_request(`/api/bookmark/delete/${illust_id}`);
+        let result = await local_api.local_post_request(`/api/bookmark/delete/${media_id}`);
         if(!result.success)
             return;
 
-        thumbnail_data.singleton().update_illust_data(illust_id, {
+        thumbnail_data.singleton().update_illust_data(media_id, {
             bookmarkData: null
         });
 
         message_widget.singleton.show("Bookmark removed");
 
-        image_data.singleton().call_illust_modified_callbacks(illust_id);
+        image_data.singleton().call_illust_modified_callbacks(media_id);
     }
     
     static async load_recent_bookmark_tags()
@@ -332,7 +332,7 @@ ppixiv.local_api = class
         let path = args.hash.get("path");
         if(path != null)
         {
-            // The path can be relative or absolute.  See set_current_illust_id.
+            // The path can be relative or absolute.
             root = helpers.path.get_child(root, path)
         }
 

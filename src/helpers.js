@@ -2004,6 +2004,8 @@ ppixiv.helpers = {
     // so the entire resource is encoded into the string.  These always have the type
     // prefix and a page number, so it's always "illust:1234-0" and not "1234".
     // Page numbers in media IDs are 0-based.
+    //
+    // Media IDs and illust IDs are always the same for local IDs.
     encode_media_id({type, id, page=null}={})
     {
         if(type == "illust")
@@ -2021,7 +2023,7 @@ ppixiv.helpers = {
         // If this isn't an illust, a media ID is the same as an illust ID.
         let { type, id } = helpers.parse_id(media_id);
         if(type != "illust")
-            return { type: type, id: id, page: null };
+            return { type: type, id: id, page: 0 };
 
         // If there's no hyphen in the ID, it's also the same.
         if(media_id.indexOf("-") == -1)
@@ -3412,27 +3414,21 @@ ppixiv.guess_image_url = class
         store.createIndex("user_id_and_filetype", ["user_id", "page", "ext"]);
     }
 
-    // Use the illust ID and page together as the primary key.
-    get_key(illust_id, page)
-    {
-        return `${illust_id}_${page}`;
-    }
-
     // Store info about an image that we've loaded data for.
     add_info(image_info)
     {
-        let illust_id = image_info.id;
-
         // Store one record per page.
         let pages = [];
         for(let page = 0; page < image_info.pageCount; ++page)
         {
+            let illust_id = image_info.id;
+            let media_id = helpers.illust_id_to_media_id(image_info.id, page);
             let url = image_info.mangaPages[page].urls.original;
             let parts = url.split(".");
             let ext = parts[parts.length-1];
     
             pages.push({
-                illust_id_and_page: this.get_key(illust_id, page),
+                illust_id_and_page: media_id,
                 illust_id: illust_id,
                 page: page,
                 user_id: image_info.userId,
@@ -3491,12 +3487,11 @@ ppixiv.guess_image_url = class
         });
     }
 
-    async get_stored_record(illust_id, page)
+    async get_stored_record(media_id)
     {
         return this.db.db_op(async (db) => {
-            let key = this.get_key(illust_id, page);
             let store = this.db.get_store(db);
-            let record = await key_storage.async_store_get(store, key);
+            let record = await key_storage.async_store_get(store, media_id);
             if(record == null)
                 return null;
             else
@@ -3504,14 +3499,14 @@ ppixiv.guess_image_url = class
         });
     }
 
-    async guess_url(illust_id, page)
+    async guess_url(media_id)
     {
         // If this is a local URL, we always have the image URL and we don't need to guess.
-        let { type } = helpers.parse_id(illust_id);
+        let { type, page } = helpers.parse_media_id(media_id);
         console.assert(type != "folder");
         if(type == "file")
         {
-            let thumb = thumbnail_data.singleton().get_one_thumbnail_info(illust_id);
+            let thumb = thumbnail_data.singleton().get_one_media_thumbnail_info(media_id);
             if(thumb?.illustType == "video")
                 return null;
             else
@@ -3519,17 +3514,17 @@ ppixiv.guess_image_url = class
         }
     
         // If we already have illust info, use it.
-        let illust_info = image_data.singleton().get_image_info_sync(illust_id);
+        let illust_info = image_data.singleton().get_media_info_sync(media_id);
         if(illust_info != null)
             return illust_info.mangaPages[page].urls.original;
 
         // If we've stored this URL, use it.
-        let stored_url = await this.get_stored_record(illust_id, page);
+        let stored_url = await this.get_stored_record(media_id);
         if(stored_url != null)
             return stored_url;
         
         // Get thumbnail data.  We need the thumbnail URL to figure out the image URL.
-        let thumb = thumbnail_data.singleton().get_one_thumbnail_info(illust_id);
+        let thumb = thumbnail_data.singleton().get_one_media_thumbnail_info(media_id);
         if(thumb == null)
             return null;
 
@@ -3552,11 +3547,10 @@ ppixiv.guess_image_url = class
     // This is called if a guessed preload fails to load.  This either means we
     // guessed wrong, or if we came from a cached URL in the database, that the
     // user reuploaded the image with a different file type.
-    async guessed_url_incorrect(illust_id, page)
+    async guessed_url_incorrect(media_id)
     {
         // If this was a stored URL, remove it from the database.
-        let key = this.get_key(illust_id, page);
-        await this.db.multi_delete([key]);
+        await this.db.multi_delete([media_id]);
     }
 };
 

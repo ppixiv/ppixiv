@@ -1122,7 +1122,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         if(this.data_source.name == "vview")
             args.hash.set("file", "*");
         else
-            this.data_source.set_current_illust_id("*", args);
+            this.data_source.set_current_media_id("*", args);
 
         args.hash.set("slideshow", "1");
         args.hash.set("view", "illust");

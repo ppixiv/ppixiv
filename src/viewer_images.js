@@ -62,7 +62,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         //
         // If this blocks to load, the full illust data will be loaded, so we'll never
         // run two separate requests here.
-        let early_illust_data = await thumbnail_data.singleton().get_or_load_media_data(this.media_id);
+        let early_illust_data = await thumbnail_data.singleton().get_or_load_illust_data(this.media_id);
 
         // Stop if we were removed before the request finished.
         signal.check();

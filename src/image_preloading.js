@@ -115,30 +115,27 @@ ppixiv.image_preloader = class
 
     // Set the illust_id the user is currently viewing.  If illust_id is null, the user isn't
     // viewing an image (eg. currently viewing thumbnails).
-    async set_current_image(illust_id, page)
+    async set_current_image(media_id)
     {
-        if(this.current_illust_id == illust_id && this.current_illust_page == page)
+        if(this.current_media_id == media_id)
             return;
 
-        this.current_illust_id = illust_id;
-        this.current_illust_page = page;
+        this.current_media_id = media_id;
         this.current_illust_info = null;
 
-        await this.guess_preload(illust_id, page);
+        await this.guess_preload(media_id);
 
-        if(this.current_illust_id == null)
+        if(this.current_media_id == null)
             return;
 
         // Get the image data.  This will often already be available.
-        let illust_info = await image_data.singleton().get_image_info(this.current_illust_id);
-        if(this.current_illust_id != illust_id || this.current_illust_info != null)
-            return;
+        let illust_info = await image_data.singleton().get_media_info(this.current_media_id);
 
         // Stop if the illust was changed while we were loading.
-        if(this.current_illust_id != illust_id && this.current_illust_page != page)
+        if(this.current_media_id != media_id)
             return;
 
-        // Store the illust_info for current_illust_id.
+        // Store the illust_info for current_media_id.
         this.current_illust_info = illust_info;
 
         this.check_fetch_queue();
@@ -146,27 +143,26 @@ ppixiv.image_preloader = class
 
     // Set the illust_id we want to speculatively load, which is the next or previous image in
     // the current search.  If illust_id is null, we don't want to speculatively load anything.
-    async set_speculative_image(illust_id, page)
+    async set_speculative_image(media_id)
     {
-        if(this.speculative_illust_id == illust_id && this.speculative_illust_page == page)
+        if(this.speculative_media_id == media_id)
             return;
-        
-        this.speculative_illust_id = illust_id;
-        this.speculative_illust_page = page;
+
+        this.speculative_media_id = media_id;
         this.speculative_illust_info = null;
-        if(this.speculative_illust_id == null)
+        if(this.speculative_media_id == null)
             return;
 
         // Get the image data.  This will often already be available.
-        let illust_info = await image_data.singleton().get_image_info(this.speculative_illust_id);
-        if(this.speculative_illust_id != illust_id || this.speculative_illust_info != null)
+        let illust_info = await image_data.singleton().get_media_info(this.speculative_media_id);
+        if(this.speculative_media_id != media_id)
             return;
 
         // Stop if the illust was changed while we were loading.
-        if(this.speculative_illust_id != illust_id && this.speculative_illust_page != page)
+        if(this.speculative_media_id != media_id)
             return;
 
-        // Store the illust_info for current_illust_id.
+        // Store the illust_info for current_media_id.
         this.speculative_illust_info = illust_info;
 
         this.check_fetch_queue();
@@ -181,9 +177,9 @@ ppixiv.image_preloader = class
         // Make a list of fetches that we want to be running, in priority order.
         let wanted_preloads = [];
         if(this.current_illust_info != null)
-            wanted_preloads = wanted_preloads.concat(this.create_preloaders_for_illust(this.current_illust_info, this.current_illust_page));
+            wanted_preloads = wanted_preloads.concat(this.create_preloaders_for_illust(this.current_illust_info, this.current_media_id));
         if(this.speculative_illust_info != null)
-            wanted_preloads = wanted_preloads.concat(this.create_preloaders_for_illust(this.speculative_illust_info, this.speculative_illust_page));
+            wanted_preloads = wanted_preloads.concat(this.create_preloaders_for_illust(this.speculative_illust_info, this.speculative_media_id));
 
         // Remove all preloads from wanted_preloads that we've already finished recently.
         let filtered_preloads = [];
@@ -291,8 +287,10 @@ ppixiv.image_preloader = class
     }
 
     // Return an array of preloaders to load resources for the given illustration.
-    create_preloaders_for_illust(illust_data, page)
+    create_preloaders_for_illust(illust_data, media_id)
     {
+        let page = helpers.parse_media_id(media_id).page;
+
         // Don't precache muted images.
         if(muting.singleton.any_tag_muted(illust_data.tagList))
             return [];
@@ -337,14 +335,14 @@ ppixiv.image_preloader = class
     // it immediately.
     //
     // If illust_id is null, stop any running guessed preload.
-    async guess_preload(illust_id, page)
+    async guess_preload(media_id)
     {
         // See if we can guess the image's URL from previous info, or if we can figure it
         // out from another source.
         let guessed_url = null;
-        if(illust_id != null && page != null)
+        if(media_id != null)
         {
-            guessed_url = await guess_image_url.get.guess_url(illust_id, page);
+            guessed_url = await guess_image_url.get.guess_url(media_id);
             if(this.guessed_preload && this.guessed_preload.url == guessed_url)
                 return;
         }
@@ -362,7 +360,7 @@ ppixiv.image_preloader = class
             this.guessed_preload = new img_preloader(guessed_url, () => {
                 // The image load failed.  Let guessed_preload know.
                 console.info("Guessed image load failed");
-                guess_image_url.get.guessed_url_incorrect(illust_id, page);
+                guess_image_url.get.guessed_url_incorrect(media_id);
             });
             this.guessed_preload.start();
         }

@@ -170,7 +170,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
         // many pages it has, and whether it's muted.  This will always complete immediately
         // if we're coming from a search or anywhere else that will already have this info,
         // but it can block if we're loading from scratch.
-        let early_illust_data = await thumbnail_data.singleton().get_or_load_illust_data(illust_id);
+        let early_illust_data = await thumbnail_data.singleton().get_or_load_illust_data(media_id);
 
         // If we were deactivated while waiting for image info or the image we want to show has changed, stop.
         if(!this.active || this.wanted_media_id != media_id)
@@ -322,7 +322,8 @@ ppixiv.screen_illust = class extends ppixiv.screen
             return true;
         }
 
-        main_controller.singleton.show_illust(new_illust_id, {
+        let media_id = helpers.illust_id_to_media_id(new_illust_id);
+        main_controller.singleton.show_media(media_id, {
             add_to_history: false,
         });
         return true;
@@ -519,7 +520,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
         {
             // Using early_illust_data here means we can handle page navigation earlier, if
             // the user navigates before we have full illust info.
-            let early_illust_data = await thumbnail_data.singleton().get_or_load_media_data(this.wanted_media_id);
+            let early_illust_data = await thumbnail_data.singleton().get_or_load_illust_data(this.wanted_media_id);
             let num_pages = early_illust_data.pageCount;
             if(num_pages > 1)
             {
@@ -544,11 +545,9 @@ ppixiv.screen_illust = class extends ppixiv.screen
         if(navigate_from_media_id == null)
             navigate_from_media_id = this.current_media_id;
 
-        let [navigate_from_illust_id] = helpers.media_id_to_illust_id_and_page(navigate_from_media_id);
-
         // Get the next (or previous) illustration after the current one.  This will be null if we've
         // reached the end of the list.
-        let new_illust_id = await this.data_source.get_or_load_neighboring_illust_id(navigate_from_illust_id, down);
+        let new_illust_id = await this.data_source.get_or_load_neighboring_illust_id(navigate_from_media_id, down);
 
         // If we're at the end and we're looping, go to the first (or last) image.
         if(new_illust_id == null && loop)
@@ -559,10 +558,11 @@ ppixiv.screen_illust = class extends ppixiv.screen
 
         // If we're moving backwards and not skipping manga pages, we want to go to the last page
         // on the new image.  Load image info to get the page count.
-        let page = 0
+        let page = 0;
         if(!down && !skip_manga_pages)
         {
-            let new_page_info = await thumbnail_data.singleton().get_or_load_illust_data(new_illust_id);
+            let media_id = helpers.illust_id_to_media_id(new_illust_id);
+            let new_page_info = await thumbnail_data.singleton().get_or_load_illust_data(media_id);
             page = new_page_info.pageCount - 1;
         }
 

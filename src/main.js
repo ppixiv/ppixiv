@@ -422,37 +422,31 @@ ppixiv.main_controller = class
         }
     }
 
-    // show_illust for a media ID.
-    show_media(media_id, options={})
-    {
-        let [illust_id, page] = helpers.media_id_to_illust_id_and_page(media_id);
-        return this.show_illust(illust_id, {page: page, ...options});
-    }
-
     // Show an illustration by ID.
     //
     // This actually just sets the history URL.  We'll do the rest of the work in popstate.
-    show_illust(illust_id, {page, add_to_history=false, screen="illust", temp_view=false, source=""}={})
+    show_media(media_id, {add_to_history=false, screen="illust", temp_view=false, source=""}={})
     {
-        console.assert(illust_id != null, "Invalid illust_id", illust_id);
+        console.assert(media_id != null, "Invalid illust_id", media_id);
 
         let args = helpers.args.location;
 
         // Check if this is a local ID.
-        if(helpers.is_local(illust_id))
+        if(helpers.is_media_id_local(media_id))
         {
             // If we're told to show a folder: ID, always go to the search page, not the illust page.
-            if(helpers.parse_id(illust_id).type == "folder")
+            if(helpers.parse_media_id(media_id).type == "folder")
                 screen = "search";
         }
 
-        // Update the URL to display this illust_id.  This stays on the same data source,
+        // Update the URL to display this media_id.  This stays on the same data source,
         // so displaying an illust won't cause a search to be made in the background or
         // have other side-effects.
         this._set_active_screen_in_url(args, screen);
-        this.data_source.set_current_illust_id(illust_id, args);
+        this.data_source.set_current_media_id(media_id, args);
 
         // Remove any leftover page from the current illust.  We'll load the default.
+        let [illust_id, page] = helpers.media_id_to_illust_id_and_page(media_id);
         if(page == null)
             args.hash.delete("page");
         else

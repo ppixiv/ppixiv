@@ -44,9 +44,9 @@ ppixiv.image_data = class
         this.user_modified_callbacks.call(user_id);
     }
 
-    call_illust_modified_callbacks(illust_id)
+    call_illust_modified_callbacks(media_id)
     {
-        this.illust_modified_callbacks.call(illust_id);
+        this.illust_modified_callbacks.call(media_id);
     }
 
     // Get image data asynchronously.
@@ -459,33 +459,25 @@ ppixiv.image_data = class
     // There's no visible API to do this, so we have to scrape the bookmark_add page.  I wish
     // they'd just include this in bookmarkData.  Since this takes an extra request, we should
     // only load this if the user is viewing/editing bookmark tags.
-    get_bookmark_details(illust_info)
+    async load_bookmark_details(media_id)
     {
-        var illust_id = illust_info.illustId;
+        let [illust_id] = helpers.media_id_to_illust_id_and_page(media_id);
 
-        if(this.bookmark_details[illust_id] == null)
-            this.bookmark_details[illust_id] = this.load_bookmark_details(illust_info);
-
-        return this.bookmark_details[illust_id];
-    }
-
-    async load_bookmark_details(illust_id)
-    {
         // If we know the image isn't bookmarked, we know there are no bookmark tags, so
         // we can skip this.
-        let thumb = await thumbnail_data.singleton().get_or_load_illust_data(illust_id, false /* don't load */);
+        let thumb = await thumbnail_data.singleton().get_or_load_illust_data(media_id, false /* don't load */);
         if(thumb && thumb.bookmarkData == null)
             return [];
 
         // Stop if this is already loaded.
-        if(this.bookmarked_image_tags[illust_id])
-            return this.bookmarked_image_tags[illust_id]; 
+        if(this.bookmarked_image_tags[media_id])
+            return this.bookmarked_image_tags[media_id]; 
 
         // The local API just puts bookmark info on the illust info.
         if(helpers.is_local(illust_id))
         {
-            this.bookmarked_image_tags[illust_id] = thumb.bookmarkData.tags;
-            return this.bookmarked_image_tags[illust_id]; 
+            this.bookmarked_image_tags[media_id] = thumb.bookmarkData.tags;
+            return this.bookmarked_image_tags[media_id]; 
         }
 
         let bookmark_page = await helpers.load_data_in_iframe("/bookmark_add.php?type=illust&illust_id=" + illust_id);
@@ -494,24 +486,24 @@ ppixiv.image_data = class
         tags = tags.split(" ");
         tags = tags.filter((value) => { return value != ""; });
 
-        this.bookmarked_image_tags[illust_id] = tags;
-        return this.bookmarked_image_tags[illust_id]; 
+        this.bookmarked_image_tags[media_id] = tags;
+        return this.bookmarked_image_tags[media_id]; 
     }
 
     // Replace our cache of bookmark tags for an image.  This is used after updating
     // a bookmark.
-    update_cached_bookmark_image_tags(illust_id, tags)
+    update_cached_bookmark_image_tags(media_id, tags)
     {
         if(tags == null)
-            delete this.bookmarked_image_tags[illust_id];
+            delete this.bookmarked_image_tags[media_id];
         else
-            this.bookmarked_image_tags[illust_id] = tags;
+            this.bookmarked_image_tags[media_id] = tags;
 
-        this.call_illust_modified_callbacks(illust_id);
+        this.call_illust_modified_callbacks(media_id);
     }
 
     // Remember when we've liked an image recently, so we don't spam API requests.
-    get_liked_recently(illust_id) { return this.recent_likes[illust_id]; }
-    add_liked_recently(illust_id) { this.recent_likes[illust_id] = true; }
+    get_liked_recently(media_id) { return this.recent_likes[media_id]; }
+    add_liked_recently(media_id) { this.recent_likes[media_id] = true; }
 }
 

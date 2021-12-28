@@ -83,7 +83,7 @@ ppixiv.thumbnail_data = class
             if(data == null)
             {
                 // Don't request user IDs as thumbnail IDs.
-                let { type } = helpers.parse_id(illust_id);
+                let { type } = helpers.parse_media_id(media_id);
                 if(type == "user")
                     continue;
 
@@ -509,8 +509,10 @@ ppixiv.thumbnail_data = class
     // data, since it takes a full API request either way.
     //
     // If load is false, return null if we have no data instead of loading it.
-    async get_or_load_illust_data(illust_id, load=true)
+    async get_or_load_illust_data(media_id, load=true)
     {
+        let [illust_id] = helpers.media_id_to_illust_id_and_page(media_id);
+
         // First, see if we have full illust info.  Prefer to use it over thumbnail info
         // if we have it, so full info is available.  If we don't, see if we have thumbnail
         // info.
@@ -538,21 +540,16 @@ ppixiv.thumbnail_data = class
         return data;
     }
 
-    // get_or_load_illust_data for a media ID.
-    async get_or_load_media_data(media_id, load=true)
-    {
-        let [illust_id] = helpers.media_id_to_illust_id_and_page(media_id);
-        return await this.get_or_load_illust_data(illust_id, load);
-    }
-
     // Update illustration data in both thumbnail info and illust info.
     //
     // This is used in places that use get_or_load_illust_data to get thumbnail
     // info, and then need to save changes to it.  Update both sources.
     //
     // This can't update tags.
-    update_illust_data(illust_id, data)
+    update_illust_data(media_id, data)
     {
+        let [illust_id] = helpers.media_id_to_illust_id_and_page(media_id);
+
         let update_data = (update, keys) => {
             for(let key of keys)
             {

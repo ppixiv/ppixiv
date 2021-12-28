@@ -176,9 +176,8 @@ ppixiv.manga_thumbnail_widget = class extends ppixiv.widget
             if(new_page < 0 || new_page >= this.entries.length)
                 return;
 
-            main_controller.singleton.show_illust(this.illust_info.illustId, {
-                page: new_page,
-            });
+            let media_id = helpers.illust_id_to_media_id(this.illust_info.illustId, new_page);
+            main_controller.singleton.show_media(media_id);
             
             /*
             var entry = this.entries[new_page];
@@ -198,9 +197,8 @@ ppixiv.manga_thumbnail_widget = class extends ppixiv.widget
             e.stopPropagation();
 
             var new_page = parseInt(thumb.dataset.page);
-            main_controller.singleton.show_illust(this.illust_info.illustId, {
-                page: new_page,
-            });
+            let media_id = helpers.illust_id_to_media_id(new_illust_id, new_page);
+            main_controller.singleton.show_media(media_id);
             return;
         }
     }

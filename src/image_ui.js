@@ -230,12 +230,14 @@ ppixiv.image_ui = class extends ppixiv.widget
             return;
         this._media_id = media_id;
 
-        let [illust_id, page] = helpers.media_id_to_illust_id_and_page(media_id);
-        this._illust_id = illust_id;
-        this.displayed_page = page;
-
         this.illust_data = null;
         this.refresh();
+    }
+
+    get displayed_page()
+    {
+        let [illust_id, page] = helpers.media_id_to_illust_id_and_page(this._media_id);
+        return page;
     }
 
     handle_onkeydown(e)
@@ -270,7 +272,8 @@ ppixiv.image_ui = class extends ppixiv.widget
             return;
 
         this.illust_data = illust_info;
-        let illust_id = this._illust_id;
+
+        let [illust_id] = helpers.media_id_to_illust_id_and_page(this._media_id);
         let user_id = illust_info.userId;
 
         // Show the author if it's someone else's post, or the edit link if it's ours.
@@ -387,7 +390,7 @@ ppixiv.image_ui = class extends ppixiv.widget
         e.stopPropagation();
 
         let download_type = clicked_button.dataset.download;
-        actions.download_illust(this._illust_id, this.progress_bar.controller(), download_type, this.displayed_page);
+        actions.download_illust(this._media_id, this.progress_bar.controller(), download_type, this.displayed_page);
     }
  }
 

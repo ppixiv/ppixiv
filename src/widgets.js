@@ -177,36 +177,34 @@ ppixiv.illust_widget = class extends ppixiv.widget
         this._media_id = media_id;
 
         let [illust_id, page] = helpers.media_id_to_illust_id_and_page(media_id);
-        this._illust_id = illust_id;
         this._page = page;
         this.refresh();
     }
     
-    get illust_id() { return this._illust_id; }
+    get illust_id() { throw "FIXME"; } // making sure all uses of this are removed
     get media_id() { return this._media_id; }
 
     async refresh()
     {
         // Grab the illust info.
-        let illust_id = this._illust_id;
-        let page = this._page;
-        let info = { illust_id: this._illust_id };
+        let media_id = this._media_id;
+        let info = { media_id: this._media_id };
         
-        if(this._illust_id != null)
+        if(this._media_id != null)
         {
             // See if we have the data the widget wants already.
-            info.thumbnail_data = await thumbnail_data.singleton().get_or_load_illust_data(this._illust_id, false /* don't load */);
-            info.illust_data = image_data.singleton().get_image_info_sync(illust_id);
+            info.thumbnail_data = await thumbnail_data.singleton().get_or_load_illust_data(this._media_id, false /* don't load */);
+            info.illust_data = image_data.singleton().get_media_info_sync(this._media_id);
             let load_needed = false;
             switch(this.needed_data)
             {
             case "thumbnail":
-                info.thumbnail_data = await thumbnail_data.singleton().get_or_load_illust_data(this._illust_id, false /* don't load */);
+                info.thumbnail_data = await thumbnail_data.singleton().get_or_load_illust_data(this._media_id, false /* don't load */);
                 if(info.thumbnail_data == null)
                     load_needed = true;
                 break;
             case "illust_info":
-                info.illust_data = image_data.singleton().get_image_info_sync(this._illust_id);
+                info.illust_data = image_data.singleton().get_media_info_sync(this._media_id);
                 if(info.illust_data == null)
                     load_needed = true;
                 break;
@@ -224,25 +222,24 @@ ppixiv.illust_widget = class extends ppixiv.widget
             case "illust_id":
                 break; // nothing
             case "thumbnail":
-                info.thumbnail_data = await thumbnail_data.singleton().get_or_load_illust_data(this._illust_id);
+                info.thumbnail_data = await thumbnail_data.singleton().get_or_load_illust_data(this._media_id);
                 break;
             case "illust_info":
-                info.illust_data = await image_data.singleton().get_image_info(this._illust_id);
+                info.illust_data = await image_data.singleton().get_media_info(this._media_id);
                 break;
             default:
                 throw new Error("Unknown: " + this.needed_data);
             }
         }
 
-        // Stop if the illust or page changed while we were async.  Check the page here too,
-        // since that can cause needed_data to change.
-        if(this._illust_id != illust_id || this._page != page)
+        // Stop if the media ID changed while we were async.
+        if(this._media_id != media_id)
             return;
 
         await this.refresh_internal(info);
     }
 
-    async refresh_internal({ illust_id, illust_data, thumbnail_data })
+    async refresh_internal({ media_id, illust_id, illust_data, thumbnail_data })
     {
         throw "Not implemented";
     }
@@ -956,12 +953,12 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
             </div>
         `});
 
-        this.displaying_illust_id = null;
+        this.displaying_media_id = null;
 
         this.container.addEventListener("click", this.clicked_bookmark_tag.bind(this), true);
 
         this.container.querySelector(".add-tag").addEventListener("click", async (e) => {
-            await actions.add_new_tag(this._illust_id);
+            await actions.add_new_tag(this._media_id);
         });
 
         this.container.querySelector(".sync-tags").addEventListener("click", async (e) => {
@@ -1038,26 +1035,26 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
             // Clear the tag list when the menu closes, so it's clean on the next refresh.
             var bookmark_tags = this.container.querySelector(".tag-list");
             helpers.remove_elements(bookmark_tags);
-            this.displaying_illust_id = null;
+            this.displaying_media_id = null;
         }
     }
 
-    async refresh_internal({ illust_id })
+    async refresh_internal({ media_id })
     {
         // If we're refreshing the same illust that's already refreshed, store which tags were selected
         // before we clear the list.
-        let old_selected_tags = this.displaying_illust_id == illust_id? this.selected_tags:[];
+        let old_selected_tags = this.displaying_media_id == media_id? this.selected_tags:[];
 
-        this.displaying_illust_id = null;
+        this.displaying_media_id = null;
 
         let bookmark_tags = this.container.querySelector(".tag-list");
         helpers.remove_elements(bookmark_tags);
 
         // Make sure the dropdown is hidden if we have no image.
-        if(illust_id == null)
+        if(media_id == null)
             this.visible = false;
 
-        if(illust_id == null || !this.visible)
+        if(media_id == null || !this.visible)
             return;
 
         // Fit the tag scroll box within however much space we have available.
@@ -1070,10 +1067,10 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
 
         // If the tag list is open, populate bookmark details to get bookmark tags.
         // If the image isn't bookmarked this won't do anything.
-        let active_tags = await image_data.singleton().load_bookmark_details(illust_id);
+        let active_tags = await image_data.singleton().load_bookmark_details(media_id);
 
         // Remember which illustration's bookmark tags are actually loaded.
-        this.displaying_illust_id = illust_id;
+        this.displaying_media_id = media_id;
 
         // Remove elements again, in case another refresh happened while we were async
         // and to remove the loading entry.
@@ -1122,18 +1119,18 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
     async save_current_tags()
     {
         // Store the ID and tag list we're saving, since they can change when we await.
-        let illust_id = this._illust_id;
+        let media_id = this._media_id;
         let new_tags = this.selected_tags;
-        if(illust_id == null)
+        if(media_id == null)
             return;
 
         // Only save tags if we're refreshed to the current illust ID, to make sure we don't save
         // incorrectly if we're currently waiting for the async refresh.
-        if(illust_id != this.displaying_illust_id)
+        if(media_id != this.displaying_media_id)
             return;
 
         // Get the tags currently on the bookmark to compare.
-        let old_tags = await image_data.singleton().load_bookmark_details(illust_id);
+        let old_tags = await image_data.singleton().load_bookmark_details(media_id);
 
         var equal = new_tags.length == old_tags.length;
         for(let tag of new_tags)
@@ -1150,7 +1147,7 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
         console.log("Old tags:", old_tags);
         console.log("New tags:", new_tags);
 
-        await actions.bookmark_add(this._illust_id, {
+        await actions.bookmark_add(this._media_id, {
             tags: new_tags,
         });
     }
@@ -1209,8 +1206,9 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                     requires_image: true,
                     onclick: () => {
                         this.parent.hide();
-    
-                        let args = new helpers.args(`/bookmark_detail.php?illust_id=${this.illust_id}#ppixiv?recommendations=1`);
+
+                        let [illust_id] = helpers.media_id_to_illust_id_and_page(this.media_id);
+                        let args = new helpers.args(`/bookmark_detail.php?illust_id=${illust_id}#ppixiv?recommendations=1`);
                         helpers.set_page_url(args, true /* add_to_history */, "navigation");
                     }
                 });
@@ -1239,7 +1237,8 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                     onclick: () => {
                         this.parent.hide();
 
-                        let args = new helpers.args(`/bookmark_detail.php?illust_id=${this.illust_id}#ppixiv`);
+                        let [illust_id] = helpers.media_id_to_illust_id_and_page(this.media_id);
+                        let args = new helpers.args(`/bookmark_detail.php?illust_id=${illust_id}#ppixiv`);
                         helpers.set_page_url(args, true /* add_to_history */, "navigation");
                     }
                 });
@@ -1255,7 +1254,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                     requires_image: true,
                     available: () => { return this.thumbnail_data && actions.is_download_type_available("image", this.thumbnail_data); },
                     onclick: () => {
-                        actions.download_illust(this.illust_id, null, "image", this._page);
+                        actions.download_illust(this.media_id, null, "image");
                         this.parent.hide();
                     }
                 });
@@ -1270,7 +1269,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                     requires_image: true,
                     available: () => { return this.thumbnail_data && actions.is_download_type_available("ZIP", this.thumbnail_data); },
                     onclick: () => {
-                        actions.download_illust(this.illust_id, null, "ZIP");
+                        actions.download_illust(this.media_id, null, "ZIP");
                         this.parent.hide();
                     }
                 });
@@ -1285,7 +1284,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                     requires_image: true,
                     available: () => { return this.thumbnail_data && actions.is_download_type_available("MKV", this.thumbnail_data); },
                     onclick: () => {
-                        actions.download_illust(this.illust_id, null, "MKV");
+                        actions.download_illust(this.media_id, null, "MKV");
                         this.parent.hide();
                     }
                 });
@@ -1300,6 +1299,28 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                     requires_image: true,
                     onclick: () => {
                         main_controller.singleton.send_image_popup.show_for_illust(this.media_id);
+                        this.parent.hide();
+                    }
+                });
+            },
+
+            toggle_slideshow: () => {
+                return new menu_option_button({
+                    ...shared_options,
+                    label: "Slideshow",
+                    icon: helpers.create_icon("wallpaper", "16px"),
+                    requires_image: true,
+                    onclick: () => {
+                        // Add or remove slideshow=1 from the hash.
+                        let args = helpers.args.location;
+                        let enabled = args.hash.get("slideshow") == "1";
+                        if(enabled)
+                            args.hash.delete("slideshow");
+                        else
+                            args.hash.set("slideshow", "1");
+        
+                        helpers.set_page_url(args, false, "toggle slideshow");
+
                         this.parent.hide();
                     }
                 });
@@ -1336,8 +1357,8 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                     label: "Edit image",
                     icon: helpers.create_icon("brush", "16px"),
                     hide_if_unavailable: true,
-                    requires: ({illust_id}) => {
-                        return illust_id != null && helpers.is_local(illust_id);
+                    requires: ({media_id}) => {
+                        return media_id != null && helpers.is_media_id_local(media_id);
                     },
                     onclick: () => {
                         settings.set("image_editing", !settings.get("image_editing", false));
@@ -1368,6 +1389,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
 
         this.menu_options.push(menu_options.send_to_tab());
         this.menu_options.push(menu_options.linked_tabs());
+        this.menu_options.push(menu_options.toggle_slideshow());
         this.menu_options.push(menu_options.edit_inpainting());
 
         if(!ppixiv.native)
@@ -1391,7 +1413,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
             this.refresh();
     }
 
-    async refresh_internal({ illust_id, thumbnail_data })
+    async refresh_internal({ media_id, thumbnail_data })
     {
         if(!this.visible)
             return;
@@ -1405,11 +1427,11 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
             let enable = true;
     
             // Enable or disable buttons that require an image.
-            if(option.options.requires_image && illust_id == null)
+            if(option.options.requires_image && media_id == null)
                 enable = false;
             if(option.options.requires_user && this.user_id == null)
                 enable = false;
-            if(option.options.requires && !option.options.requires({illust_id: illust_id, user_id: this.user_id}))
+            if(option.options.requires && !option.options.requires({media_id: media_id, user_id: this.user_id}))
                 enable = false;
             if(enable && option.options.available)
                 enable = option.options.available();
@@ -1448,10 +1470,10 @@ ppixiv.toggle_dropdown_menu_widget = class extends ppixiv.illust_widget
         });
     }
 
-    refresh_internal({ illust_id })
+    refresh_internal({ media_id })
     {
         if(this.require_image)
-            helpers.set_class(this.container, "enabled", illust_id != null);
+            helpers.set_class(this.container, "enabled", media_id != null);
     }
 }
 
@@ -1471,14 +1493,14 @@ ppixiv.bookmark_button_widget = class extends ppixiv.illust_widget
         image_data.singleton().illust_modified_callbacks.register(this.refresh.bind(this));
     }
 
-    refresh_internal({ illust_id, thumbnail_data })
+    refresh_internal({ media_id, thumbnail_data })
     {
         // If this is a local image, we won't have a bookmark count, so set local-image
-        // to remove our padding for it.  We can get illust_id before thumbnail_data.
-        let is_local =  helpers.is_local(illust_id);
+        // to remove our padding for it.  We can get media_id before thumbnail_data.
+        let is_local =  helpers.is_local(media_id);
         helpers.set_class(this.container,  "has-like-count", !is_local);
 
-        let { type } = helpers.parse_id(illust_id);
+        let { type } = helpers.parse_media_id(media_id);
 
         // Hide the private bookmark button for local IDs.
         if(this.bookmark_type == "private")
@@ -1534,15 +1556,16 @@ ppixiv.bookmark_button_widget = class extends ppixiv.illust_widget
             this.bookmark_tag_widget.hide_without_sync();
 
         // If the image is bookmarked and the same privacy button was clicked, remove the bookmark.
-        let illust_data = await thumbnail_data.singleton().get_or_load_illust_data(this._illust_id);
+        let illust_data = await thumbnail_data.singleton().get_or_load_illust_data(this._media_id);
         
         let private_bookmark = this.bookmark_type == "private";
         if(illust_data.bookmarkData && illust_data.bookmarkData.private == private_bookmark)
         {
-            await actions.bookmark_remove(this._illust_id);
+            let media_id = this._media_id;
+            await actions.bookmark_remove(this._media_id);
 
             // If the current image changed while we were async, stop.
-            if(this._illust_id != illust_data.illustId)
+            if(media_id != this._media_id)
                 return;
             
             // Hide the tag dropdown after unbookmarking, without saving any tags in the
@@ -1554,7 +1577,7 @@ ppixiv.bookmark_button_widget = class extends ppixiv.illust_widget
         }
 
         // Add or edit the bookmark.
-        await actions.bookmark_add(this._illust_id, {
+        await actions.bookmark_add(this._media_id, {
             private: private_bookmark,
             tags: tag_list,
         });
@@ -1589,16 +1612,16 @@ ppixiv.like_button_widget = class extends ppixiv.illust_widget
         image_data.singleton().illust_modified_callbacks.register(this.refresh.bind(this));
     }
 
-    async refresh_internal({ illust_id })
+    async refresh_internal({ media_id })
     {
         // Hide the like button for local IDs.
-        this.container.closest(".button-container").hidden = helpers.is_local(illust_id);
+        this.container.closest(".button-container").hidden = helpers.is_media_id_local(media_id);
 
-        let liked_recently = this._illust_id != null? image_data.singleton().get_liked_recently(this._illust_id):false;
+        let liked_recently = media_id != null? image_data.singleton().get_liked_recently(media_id):false;
         helpers.set_class(this.container, "liked", liked_recently);
         helpers.set_class(this.container, "enabled", !liked_recently);
 
-        this.container.dataset.popup = this._illust_id == null? "":
+        this.container.dataset.popup = this._media_id == null? "":
             liked_recently? "Already liked image":"Like image";
     }
     
@@ -1607,11 +1630,8 @@ ppixiv.like_button_widget = class extends ppixiv.illust_widget
         e.preventDefault();
         e.stopPropagation();
 
-        if(this._illust_id != null)
-        {
-            let media_id = helpers.illust_id_to_media_id(this._illust_id);
-            actions.like_image(media_id);
-        }
+        if(this._media_id != null)
+            actions.like_image(this._media_id);
     }
 }
 

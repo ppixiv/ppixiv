@@ -7,7 +7,7 @@ ppixiv.actions = class
     static async _bookmark_add_internal(media_id, options)
     {
         let illust_id = helpers.media_id_to_illust_id_and_page(media_id)[0];
-        let illust_info = await thumbnail_data.singleton().get_or_load_illust_data(illust_id);
+        let illust_info = await thumbnail_data.singleton().get_or_load_illust_data(media_id);
         
         if(options == null)
             options = {};
@@ -41,7 +41,7 @@ ppixiv.actions = class
             throw "Didn't get a bookmark ID";
 
         // Store the ID of the new bookmark, so the unbookmark button works.
-        thumbnail_data.singleton().update_illust_data(illust_id, {
+        thumbnail_data.singleton().update_illust_data(media_id, {
             bookmarkData: {
                 id: new_bookmark_id,
                 private: !!request.restrict,
@@ -50,13 +50,13 @@ ppixiv.actions = class
 
         // Even if we weren't given tags, we still know that they're unset, so set tags so
         // we won't need to request bookmark details later.
-        image_data.singleton().update_cached_bookmark_image_tags(illust_id, request.tags);
-        console.log("Updated bookmark data:", illust_id, new_bookmark_id, request.restrict, request.tags);
+        image_data.singleton().update_cached_bookmark_image_tags(media_id, request.tags);
+        console.log("Updated bookmark data:", media_id, new_bookmark_id, request.restrict, request.tags);
 
         if(!was_bookmarked)
         {
             // If we have full illust data loaded, increase its bookmark count locally.
-            let full_illust_info = image_data.singleton().get_image_info_sync(illust_id);
+            let full_illust_info = image_data.singleton().get_media_info_sync(media_id);
             if(full_illust_info)
                 full_illust_info.bookmarkCount++;
         }
@@ -65,7 +65,7 @@ ppixiv.actions = class
                 was_bookmarked? "Bookmark edited":
                 options.private? "Bookmarked privately":"Bookmarked");
 
-        image_data.singleton().call_illust_modified_callbacks(illust_id);
+        image_data.singleton().call_illust_modified_callbacks(media_id);
     }
 
     // Create or edit a bookmark.
@@ -79,16 +79,15 @@ ppixiv.actions = class
     // making the extra bookmark details request if possible.
     static async bookmark_add(media_id, options)
     {
-        let illust_id = helpers.media_id_to_illust_id_and_page(media_id)[0];
-        if(helpers.is_local(illust_id))
-            return await local_api.bookmark_add(illust_id, options);
+        if(helpers.is_media_id_local(media_id))
+            return await local_api.bookmark_add(media_id, options);
 
         if(options == null)
             options = {};
 
-        let illust_info = await thumbnail_data.singleton().get_or_load_illust_data(illust_id);
+        let illust_info = await thumbnail_data.singleton().get_or_load_illust_data(media_id);
 
-        console.log("Add bookmark for", illust_id, "options:", options);
+        console.log("Add bookmark for", media_id, "options:", options);
 
         // This is a mess, since Pixiv's APIs are all over the place.
         //
@@ -117,12 +116,12 @@ ppixiv.actions = class
             // If the image is already bookmarked, use bookmark_set_private to edit the
             // existing bookmark.  This won't auto-like.
             console.log("Only editing private field", options.private);
-            return await actions.bookmark_set_private(illust_id, options.private);
+            return await actions.bookmark_set_private(media_id, options.private);
         }
 
         // If we're modifying tags, we need bookmark details loaded, so we can preserve
         // the current privacy status.  This will insert the info into illust_info.bookmarkData.
-        let bookmark_tags = await image_data.singleton().load_bookmark_details(illust_id);
+        let bookmark_tags = await image_data.singleton().load_bookmark_details(media_id);
 
         var bookmark_params = {
             // Don't auto-like if we're editing an existing bookmark.
@@ -156,12 +155,12 @@ ppixiv.actions = class
         return await actions._bookmark_add_internal(media_id, bookmark_params);
     }
 
-    static async bookmark_remove(illust_id)
+    static async bookmark_remove(media_id)
     {
-        if(helpers.is_local(illust_id))
-            return await local_api.bookmark_remove(illust_id);
+        if(helpers.is_media_id_local(media_id))
+            return await local_api.bookmark_remove(media_id);
 
-        let illust_info = await thumbnail_data.singleton().get_or_load_illust_data(illust_id);
+        let illust_info = await thumbnail_data.singleton().get_or_load_illust_data(media_id);
         if(illust_info.bookmarkData == null)
         {
             console.log("Not bookmarked");
@@ -178,35 +177,35 @@ ppixiv.actions = class
 
         console.log("Removing bookmark finished");
 
-        thumbnail_data.singleton().update_illust_data(illust_id, {
+        thumbnail_data.singleton().update_illust_data(media_id, {
             bookmarkData: null
         });
 
         // If we have full image data loaded, update the like count locally.
-        let illust_data = image_data.singleton().get_image_info_sync(illust_id);
+        let illust_data = image_data.singleton().get_media_info_sync(media_id);
         if(illust_data)
         {
             illust_data.bookmarkCount--;
-            image_data.singleton().call_illust_modified_callbacks(illust_id);
+            image_data.singleton().call_illust_modified_callbacks(media_id);
         }
         
-        image_data.singleton().update_cached_bookmark_image_tags(illust_id, null);
+        image_data.singleton().update_cached_bookmark_image_tags(media_id, null);
 
         message_widget.singleton.show("Bookmark removed");
 
-        image_data.singleton().call_illust_modified_callbacks(illust_id);
+        image_data.singleton().call_illust_modified_callbacks(media_id);
     }
 
     // Change an existing bookmark to public or private.
-    static async bookmark_set_private(illust_id, private_bookmark)
+    static async bookmark_set_private(media_id, private_bookmark)
     {
-        if(helpers.is_local(illust_id))
+        if(helpers.is_media_id_local(media_id))
             return;
 
-        let illust_info = await thumbnail_data.singleton().get_or_load_illust_data(illust_id);
+        let illust_info = await thumbnail_data.singleton().get_or_load_illust_data(media_id);
         if(!illust_info.bookmarkData)
         {
-            console.log(`Illust ${illust_id} wasn't bookmarked`);
+            console.log(`Illust ${media_id} wasn't bookmarked`);
             return;
         }
 
@@ -218,7 +217,7 @@ ppixiv.actions = class
         });
 
         // Update bookmark info.
-        thumbnail_data.singleton().update_illust_data(illust_id, {
+        thumbnail_data.singleton().update_illust_data(media_id, {
             bookmarkData: {
                 id: bookmark_id,
                 private: private_bookmark,
@@ -227,14 +226,14 @@ ppixiv.actions = class
         
         message_widget.singleton.show(private_bookmark? "Bookmarked privately":"Bookmarked");
 
-        image_data.singleton().call_illust_modified_callbacks(illust_id);
+        image_data.singleton().call_illust_modified_callbacks(media_id);
     }
 
     // Show a prompt to enter tags, so the user can add tags that aren't already in the
     // list.  Add the bookmarks to recents, and bookmark the image with the entered tags.
-    static async add_new_tag(illust_id)
+    static async add_new_tag(media_id)
     {
-        let illust_data = await image_data.singleton().get_image_info(illust_id);
+        let [illust_id] = helpers.media_id_to_illust_id_and_page(media_id);
 
         console.log("Show tag prompt");
 
@@ -255,7 +254,7 @@ ppixiv.actions = class
 
         // This should already be loaded, since the only way to open this prompt is
         // in the tag dropdown.
-        let bookmark_tags = await image_data.singleton().load_bookmark_details(illust_data.id);
+        let bookmark_tags = await image_data.singleton().load_bookmark_details(media_id);
 
         // Add each tag the user entered to the tag list to update it.
         let active_tags = [...bookmark_tags];
@@ -288,9 +287,9 @@ ppixiv.actions = class
 
         let illust_id = helpers.media_id_to_illust_id_and_page(media_id)[0];
 
-        console.log("Clicked like on", illust_id);
+        console.log("Clicked like on", media_id);
         
-        if(image_data.singleton().get_liked_recently(illust_id))
+        if(image_data.singleton().get_liked_recently(media_id))
         {
             if(!quiet)
                 message_widget.singleton.show("Already liked this image");
@@ -305,16 +304,17 @@ ppixiv.actions = class
         let was_already_liked = result.body.is_liked;
 
         // Remember that we liked this image recently.
-        image_data.singleton().add_liked_recently(illust_id);
+        image_data.singleton().add_liked_recently(media_id);
 
         // If we have illust data, increase the like count locally.  Don't load it
         // if it's not loaded already.
-        let illust_data = image_data.singleton().get_image_info_sync(illust_id);
+        let illust_data = image_data.singleton().get_media_info_sync(media_id);
         if(!was_already_liked && illust_data)
-        {
             illust_data.likeCount++;
-            image_data.singleton().call_illust_modified_callbacks(illust_id);
-        }
+
+        // Let widgets know that the image was liked recently, and that the like count
+        // may have changed.
+        image_data.singleton().call_illust_modified_callbacks(media_id);
 
         if(!quiet)
         {
@@ -372,11 +372,11 @@ ppixiv.actions = class
     // Image downloading
     //
     // Download illust_data.
-    static async download_illust(illust_id, progress_bar_controller, download_type, manga_page)
+    static async download_illust(media_id, progress_bar_controller, download_type)
     {
-        let illust_data = await image_data.singleton().get_image_info(illust_id, { load_user_info: true });
+        let illust_data = await image_data.singleton().get_media_info(media_id, { load_user_info: true });
         let user_info = await image_data.singleton().get_user_info(illust_data.userId);
-        console.log("Download", illust_id, "with type", download_type);
+        console.log("Download", media_id, "with type", download_type);
 
         if(download_type == "MKV")
         {
@@ -396,7 +396,7 @@ ppixiv.actions = class
         // host, since it's not in @connect, and adding that will prompt everyone for permission.  Work around that
         // by replacing i-cf.pixiv.net with i.pixiv.net, since that host still works fine.  This only affects downloads.
         var images = [];
-        for(var page of illust_data.mangaPages)
+        for(let page of illust_data.mangaPages)
         {
             let url = page.urls.original;
             url = url.replace(/:\/\/i-cf.pximg.net/, "://i.pximg.net");
@@ -404,6 +404,7 @@ ppixiv.actions = class
         }
 
         // If we're in image mode for a manga post, only download the requested page.
+        let manga_page = helpers.parse_media_id(media_id).page;
         if(download_type == "image")
             images = [images[manga_page]];
 

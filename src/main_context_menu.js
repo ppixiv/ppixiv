@@ -817,7 +817,6 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         // was hovering over an image in search results.  We might not have the illust info yet,
         // but we at least need an illust ID.
         let media_id = this.effective_media_id;
-        let illust_id = helpers.media_id_to_illust_id_and_page(media_id)[0];
 
         // All of these hotkeys require Ctrl.
         if(!e.ctrlKey)
@@ -841,12 +840,12 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
                 if(media_id == null)
                     return;
 
-                let illust_data = await thumbnail_data.singleton().get_or_load_media_data(media_id);
+                let illust_data = await thumbnail_data.singleton().get_or_load_illust_data(media_id);
 
                 // Ctrl-Shift-Alt-B: add a bookmark tag
                 if(e.altKey && e.shiftKey)
                 {
-                    actions.add_new_tag(illust_id);
+                    actions.add_new_tag(media_id);
                     return;
                 }
 
@@ -859,7 +858,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
                         return;
                     }
 
-                    actions.bookmark_remove(illust_id);
+                    actions.bookmark_remove(media_id);
                     return;
                 }
 
@@ -872,7 +871,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
                     return;
                 }
 
-                actions.bookmark_add(illust_id, {
+                actions.bookmark_add(media_id, {
                     private: bookmark_privately
                 });
             })();
