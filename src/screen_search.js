@@ -119,10 +119,9 @@ let thumbnail_ui = class extends ppixiv.widget
                             <a class="box-link popup" data-type=private data-popup="Show private bookmarks" href=#>Private</a>
                         </span>
 
-                        <span class=bookmarks-shuffle>
-                            <a class="box-link popup" data-type=order-date data-popup="Show newest bookmarks first" href=#>Newest</a>
-                            <a class="box-link popup" data-type=order-shuffle data-popup="Show in random order" href=#>Shuffle</a>
-                        </span>
+                        <a class="box-link popup" data-type=order-shuffle data-popup="Shuffle" href=#>
+                            <span class="material-icons">shuffle</span>
+                        </a>
 
                         <a class="box-link slideshow popup" data-popup="Slideshow" href="#">
                             <span class="material-icons">wallpaper</span>

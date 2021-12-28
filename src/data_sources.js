@@ -2199,8 +2199,7 @@ class data_source_bookmarks_base extends data_source
         let args = new helpers.args(this.url);
         let show_all = args.hash.get("show-all") != "0";
         let set_public = show_all? { rest: null, "#show-all": 0 }:{};
-        this.set_item(container, "order-date", {"#shuffle": null}, {"#shuffle": null});
-        this.set_item(container, "order-shuffle", {"#shuffle": 1, ...set_public}, {"#shuffle": null, "#show-all": 1});
+        this.set_item2(container, {type: "order-shuffle", fields: {"#shuffle": 1, ...set_public}, toggle: true, default_values: {"#shuffle": null, "#show-all": 1}});
 
         // Refresh the bookmark tag list.  Remove the page number from these buttons.
         let current_url = new URL(this.url);
