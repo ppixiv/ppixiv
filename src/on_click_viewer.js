@@ -95,7 +95,7 @@ ppixiv.on_click_viewer = class
         slideshow=false,
 
         // If we're animating, this will be called when the animation finishes.
-        onfinished=null,
+        onnextimage=null,
 
         // True if we should support inpaint images and editing (local only).
         enable_editing=false,
@@ -208,7 +208,7 @@ ppixiv.on_click_viewer = class
         this.img = img;
         this.preview_img = preview_img;
         this.slideshow = slideshow;
-        this.onfinished = onfinished;
+        this.onnextimage = onnextimage;
 
         this.crop_box.appendChild(img);
         this.crop_box.appendChild(preview_img);
@@ -1130,8 +1130,8 @@ ppixiv.on_click_viewer = class
             // for this and ignore the fade.
             this.animations[0].onfinish = (e) => {
                 this.stop_animation();
-                if(this.onfinished)
-                    this.onfinished();
+                if(this.onnextimage)
+                    this.onnextimage();
             };
 
             for(let animation of this.animations)

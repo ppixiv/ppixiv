@@ -79,7 +79,7 @@ ppixiv.viewer_video = class extends ppixiv.viewer
     
     async load(illust_id, manga_page, {
         slideshow=false,
-        onfinished=null,
+        onnextimage=null,
     }={})
     {
         this.unload();
@@ -96,8 +96,8 @@ ppixiv.viewer_video = class extends ppixiv.viewer
         // Don't loop in slideshow.
         this.video.loop = !slideshow;
         this.video.onended = () => {
-            if(onfinished)
-                onfinished();
+            if(onnextimage)
+                onnextimage();
         };
 
         this.video.appendChild(this.source);

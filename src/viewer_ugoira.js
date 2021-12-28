@@ -55,7 +55,7 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
 
     async load(signal, illust_id, manga_page, {
         slideshow=false,
-        onfinished=null,
+        onnextimage=null,
     }={})
     {
         this.unload();
@@ -105,7 +105,7 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
             canvas: this.canvas,
             loop: !slideshow,
             progress: this.progress,
-            onfinished: onfinished,
+            onfinished: onnextimage,
         });            
 
         this.player.video_interface.addEventListener("timeupdate", this.ontimeupdate, { signal: this.abort_controller.signal });

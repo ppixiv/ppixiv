@@ -308,7 +308,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
         this.viewer.load(illust_id, manga_page, {
             restore_history: restore_history,
             slideshow: slideshow,
-            onfinished: () => {
+            onnextimage: () => {
                 // When an image finishes in slideshow, move to the next image.
                 if(slideshow)
                     this.navigate_to_next(1, { loop: true });
