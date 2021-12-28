@@ -234,7 +234,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
             e.stopPropagation();
             e.preventDefault();
             main_controller.singleton.show_illust(this.illust_id, {
-                page: -1,
+                page: this.illust_data.pageCount - 1,
             });
             return;
         }

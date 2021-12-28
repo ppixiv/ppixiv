@@ -141,7 +141,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
         this.container.focus();
     }
 
-    // Show an image.  If manga_page is -1, show the last page.
+    // Show an image.
     async show_image(illust_id, manga_page, restore_history)
     {
         console.assert(illust_id != null);
@@ -188,14 +188,6 @@ ppixiv.screen_illust = class extends ppixiv.screen
             message_widget.singleton.clear_timer();
             return;
         }
-
-        // If manga_page is -1, update wanted_illust_page with the last page now that we know
-        // what it is.
-        if(manga_page == -1)
-            manga_page = early_illust_data.pageCount - 1;
-        else
-            manga_page = helpers.clamp(manga_page, 0, early_illust_data.pageCount-1);
-        this.wanted_illust_page = manga_page;
 
         // If this image is already loaded, just make sure it's not hidden.
         if( this.wanted_illust_id == this.current_illust_id && 
@@ -591,7 +583,15 @@ ppixiv.screen_illust = class extends ppixiv.screen
         if(new_illust_id == null)
             return { };
 
-        let page = down || skip_manga_pages? 0:-1;
+        // If we're moving backwards and not skipping manga pages, we want to go to the last page
+        // on the new image.  Load image info to get the page count.
+        let page = 0
+        if(!down && !skip_manga_pages)
+        {
+            let new_page_info = await thumbnail_data.singleton().get_or_load_illust_data(new_illust_id);
+            page = new_page_info.pageCount - 1;
+        }
+
         return { illust_id: new_illust_id, page: page, leaving_manga_post: leaving_manga_post };
     }
 

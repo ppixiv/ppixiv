@@ -146,7 +146,6 @@ ppixiv.image_preloader = class
 
     // Set the illust_id we want to speculatively load, which is the next or previous image in
     // the current search.  If illust_id is null, we don't want to speculatively load anything.
-    // If page is -1, the caller wants to preload the last manga page.
     async set_speculative_image(illust_id, page)
     {
         if(this.speculative_illust_id == illust_id && this.speculative_illust_page == page)
@@ -316,10 +315,6 @@ ppixiv.image_preloader = class
         // If this is a video, preload the poster.
         if(illust_data.illustType == "video")
             return [new img_preloader(illust_data.mangaPages[0].urls.poster) ];
-
-        // If page is -1, preload the last page.
-        if(page == -1)
-            page = illust_data.mangaPages.length-1;
 
         // Otherwise, preload the images.  Preload thumbs first, since they'll load
         // much faster.
