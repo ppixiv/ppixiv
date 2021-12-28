@@ -482,8 +482,8 @@ ppixiv.thumbnail_data = class
         "tagList",
     ];
     
-    // Return thumbnail data for a single illust if it's available.  If it isn't, read
-    // full illust info, and then return thumbnail data.
+    // Return illust info or thumbnail data, whicihever is available.  If we don't have
+    // either, read full illust info.  If we have both, return illust info.
     //
     // This is used when we're displaying info for a single image, and the caller only
     // needs thumbnail data.  It allows us to use either thumbnail data or illust info,
@@ -495,16 +495,19 @@ ppixiv.thumbnail_data = class
     // If load is false, return null if we have no data instead of loading it.
     async get_or_load_illust_data(illust_id, load=true)
     {
-        let data = thumbnail_data.singleton().get_one_thumbnail_info(illust_id);
+        // First, see if we have full illust info.  Prefer to use it over thumbnail info
+        // if we have it, so full info is available.  If we don't, see if we have thumbnail
+        // info.
+        let data = image_data.singleton().get_image_info_sync(illust_id);
         if(data == null)
-        {
-            if(load)
-                data = await image_data.singleton().get_image_info(illust_id);
-            else
-                data = image_data.singleton().get_image_info_sync(illust_id);
-            if(data == null)
-                return null;
-        }
+            data = thumbnail_data.singleton().get_one_thumbnail_info(illust_id);
+
+        // If we don't have either and load is true, load the image info.
+        if(data == null && load)
+            data = await image_data.singleton().get_image_info(illust_id);
+
+        if(data == null)
+            return null;
 
         // Verify whichever data type we got.
         for(let key of this.thumbnail_info_keys)
