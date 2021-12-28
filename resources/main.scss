@@ -573,6 +573,7 @@ body.light .whats-new-button.updates > svg {
         transition: filter .25s;
         display: block;
         position: relative;
+        box-shadow: 0 0 10px 4px #000;
 
         /* .avatar contains an image, and a canvas overlaid on top for hover effects. */
         & > canvas {
