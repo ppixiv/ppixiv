@@ -311,14 +311,16 @@ ppixiv.main_controller = class
         else
             new_screen_name = args.hash.get("view");
 
-        var illust_id = data_source.get_current_illust_id();
-        var manga_page = args.hash.has("page")? parseInt(args.hash.get("page"))-1:0;
-        let media_id = helpers.illust_id_to_media_id(illust_id, manga_page);
+        // Update the media ID with the current manga page, if any.
+        let media_id = data_source.get_current_media_id();
+        let id = helpers.parse_media_id(media_id);
+        id.page = args.hash.has("page")? parseInt(args.hash.get("page"))-1:0;
+        media_id = helpers.encode_media_id(id);
 
-        // If we're on search, we don't care what image is current.  Clear illust_id so we
+        // If we're on search, we don't care what image is current.  Clear media_id so we
         // tell context_menu that we're not viewing anything, so it disables bookmarking.
         if(new_screen_name == "search")
-            illust_id = null;
+            media_id = null;
 
         console.log("Loading data source.  Screen:", new_screen_name, "Cause:", cause, "URL:", ppixiv.location.href);
 
@@ -350,8 +352,6 @@ ppixiv.main_controller = class
             await new_screen.set_active(true, {
                 data_source: data_source,
                 media_id: media_id,
-                illust_id: illust_id,
-                page: manga_page,
                 navigation_cause: cause,
                 restore_history: restore_history,
             });

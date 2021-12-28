@@ -56,7 +56,7 @@ ppixiv.actions = class
         if(!was_bookmarked)
         {
             // If we have full illust data loaded, increase its bookmark count locally.
-            let full_illust_info = image_data.singleton().get_media_info_sync(media_id);
+            let full_illust_info = image_data.singleton().get_image_info_sync(media_id);
             if(full_illust_info)
                 full_illust_info.bookmarkCount++;
         }
@@ -182,7 +182,7 @@ ppixiv.actions = class
         });
 
         // If we have full image data loaded, update the like count locally.
-        let illust_data = image_data.singleton().get_media_info_sync(media_id);
+        let illust_data = image_data.singleton().get_image_info_sync(media_id);
         if(illust_data)
         {
             illust_data.bookmarkCount--;
@@ -308,7 +308,7 @@ ppixiv.actions = class
 
         // If we have illust data, increase the like count locally.  Don't load it
         // if it's not loaded already.
-        let illust_data = image_data.singleton().get_media_info_sync(media_id);
+        let illust_data = image_data.singleton().get_image_info_sync(media_id);
         if(!was_already_liked && illust_data)
             illust_data.likeCount++;
 

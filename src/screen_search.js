@@ -941,7 +941,7 @@ ppixiv.screen_search = class extends ppixiv.screen
             });
 
             extra_links.push({
-                url: new URL(`/discovery/users#ppixiv?user_id=${user_info.userId}#ppixiv`, ppixiv.location),
+                url: new URL(`/discovery/users#ppixiv?user_id=${user_info.userId}`, ppixiv.location),
                 type: ".similar-artists",
                 label: "Similar artists",
             });
@@ -1117,7 +1117,7 @@ ppixiv.screen_search = class extends ppixiv.screen
     // Refresh the slideshow buttons.
     refresh_slideshow_buttons()
     {
-        // For local images, set file=*.  For Pixiv, set the illust_id to *.
+        // For local images, set file=*.  For Pixiv, set the file to *.
         let args = helpers.args.location;
         if(this.data_source.name == "vview")
             args.hash.set("file", "*");
@@ -1235,7 +1235,7 @@ ppixiv.screen_search = class extends ppixiv.screen
     // We don't need to do this when scrolling around or when new thumbnail data is available.
     refresh_images()
     {
-        // Make a list of [illust_id, page] thumbs to add.
+        // Make a list of [media_id, page] thumbs to add.
         let images_to_add = [];
         if(this.data_source != null)
         {
@@ -1245,8 +1245,8 @@ ppixiv.screen_search = class extends ppixiv.screen
             let items_per_page = this.data_source.estimated_items_per_page;
             for(let page = min_page; page <= max_page; ++page)
             {
-                let illust_ids = id_list.illust_ids_by_page.get(page);
-                if(illust_ids == null)
+                let media_ids = id_list.media_ids_by_page.get(page);
+                if(media_ids == null)
                 {
                     // This page isn't loaded.  Fill the gap with items_per_page blank entries.
                     for(let idx = 0; idx < items_per_page; ++idx)
@@ -1255,11 +1255,8 @@ ppixiv.screen_search = class extends ppixiv.screen
                 }
 
                 // Create an image for each ID.
-                for(let illust_id of illust_ids)
-                {
-                    let media_id = helpers.illust_id_to_media_id(illust_id);
+                for(let media_id of media_ids)
                     images_to_add.push({media_id: media_id, search_page: page});
-                }
             }
 
             // If this data source supports a start page and we started after page 1, add the "load more"
@@ -1407,17 +1404,17 @@ ppixiv.screen_search = class extends ppixiv.screen
 
         // Make a list of pages that we need loaded, and illustrations that we want to have
         // set.
-        var wanted_illust_ids = [];
+        var wanted_media_ids = [];
 
         let elements = this.get_visible_thumbnails();
         for(var element of elements)
         {
             if(element.dataset.id != null)
             {
-                // If this is an illustration, file or folder, add it to wanted_illust_ids so we
+                // If this is an illustration, file or folder, add it to wanted_media_ids so we
                 // load its thumbnail info.  Don't do this if it's a user.
                 if(helpers.parse_media_id(element.dataset.id).type != "user")
-                    wanted_illust_ids.push(element.dataset.id);
+                wanted_media_ids.push(element.dataset.id);
             }
         }
 
@@ -1459,7 +1456,7 @@ ppixiv.screen_search = class extends ppixiv.screen
             this.container.querySelector(".no-results").hidden = false;
         }
 
-        if(!thumbnail_data.singleton().are_all_media_ids_loaded_or_loading(wanted_illust_ids))
+        if(!thumbnail_data.singleton().are_all_media_ids_loaded_or_loading(wanted_media_ids))
         {
             // At least one visible thumbnail needs to be loaded, so load more data at the same
             // time.
@@ -1555,14 +1552,6 @@ ppixiv.screen_search = class extends ppixiv.screen
     {
         // Make a list of IDs that we're assigning.
         var elements = this.get_visible_thumbnails();
-        var illust_ids = [];
-        for(var element of elements)
-        {
-            if(element.dataset.id == null)
-                continue;
-            illust_ids.push(element.dataset.id);
-        }        
-
         for(var element of elements)
         {
             let media_id = element.dataset.id;
@@ -1571,7 +1560,6 @@ ppixiv.screen_search = class extends ppixiv.screen
 
             var search_mode = this.data_source.search_mode;
 
-            let illust_id = helpers.media_id_to_illust_id_and_page(media_id)[0];
             let { id: thumb_id, type: thumb_type } = helpers.parse_media_id(media_id);
 
             // For illustrations, get thumbnail info.  If we don't have it yet, skip the image (leave it pending)
@@ -1579,7 +1567,7 @@ ppixiv.screen_search = class extends ppixiv.screen
             if(thumb_type == "illust" || thumb_type == "file" || thumb_type == "folder")
             {
                 // Get thumbnail info.
-                var info = thumbnail_data.singleton().get_one_thumbnail_info(illust_id);
+                var info = thumbnail_data.singleton().get_one_thumbnail_info(media_id);
                 if(info == null)
                     continue;
             }
@@ -1679,7 +1667,7 @@ ppixiv.screen_search = class extends ppixiv.screen
                 // This is a local directory.  We only expect to see this while on the local
                 // data source.  The folder link retains any search parameters in the URL.
                 let args = helpers.args.location;
-                local_api.get_args_for_id(illust_id, args);
+                local_api.get_args_for_id(media_id, args);
         
                 let link = element.querySelector("a.thumbnail-link");
                 link.href = args.url;
@@ -1688,7 +1676,7 @@ ppixiv.screen_search = class extends ppixiv.screen
             }
             else
             {
-                link.href = helpers.get_url_for_id(illust_id);
+                link.href = helpers.get_url_for_id(media_id);
             }
 
             link.dataset.mediaId = media_id;
@@ -1717,6 +1705,7 @@ ppixiv.screen_search = class extends ppixiv.screen
 
             // On most pages, the suggestions button in thumbnails shows similar illustrations.  On following,
             // show similar artists instead.
+            let illust_id = helpers.media_id_to_illust_id_and_page(media_id)[0];
             if(search_mode == "users")
                 element.querySelector("A.similar-illusts-button").href = "/discovery/users#ppixiv?user_id=" + info.userId;
             else
@@ -1733,7 +1722,7 @@ ppixiv.screen_search = class extends ppixiv.screen
             else if(thumb_type == "folder")
             {
                 // The ID is based on the filename.  Use it to show the directory name in the thumbnail.
-                let parts = illust_id.split("/");
+                let parts = media_id.split("/");
                 let basename = parts[parts.length-1];
                 let label = element.querySelector(".thumbnail-label");
                 label.hidden = false;
@@ -1766,12 +1755,11 @@ ppixiv.screen_search = class extends ppixiv.screen
         }
     }
 
-    // Refresh the thumbnail for illust_id.
+    // Refresh the thumbnail for media_id.
     //
     // This is used to refresh the bookmark icon when changing a bookmark.
-    refresh_thumbnail(illust_id)
+    refresh_thumbnail(media_id)
     {
-        let media_id = helpers.illust_id_to_media_id(illust_id);
         var ul = this.container.querySelector(".thumbnails");
         let thumbnail_element = ul.querySelector("[data-id=\"" + helpers.escape_selector(media_id) + "\"]");
         if(thumbnail_element == null)
@@ -1791,8 +1779,7 @@ ppixiv.screen_search = class extends ppixiv.screen
             return;
 
         // Get thumbnail info.
-        let illust_id = helpers.media_id_to_illust_id_and_page(media_id)[0];
-        var thumbnail_info = thumbnail_data.singleton().get_one_thumbnail_info(illust_id);
+        var thumbnail_info = thumbnail_data.singleton().get_one_thumbnail_info(media_id);
         if(thumbnail_info == null)
             return;
 
@@ -1879,7 +1866,7 @@ ppixiv.screen_search = class extends ppixiv.screen
 
     // Create a thumb placeholder.  This doesn't load the image yet.
     //
-    // illust_id is the illustration this will be if it's displayed, or null if this
+    // media_id is the illustration this will be if it's displayed, or null if this
     // is a placeholder for pages we haven't loaded.  page is the page this illustration
     // is on (whether it's a placeholder or not).
     create_thumb(media_id, search_page)
@@ -1982,7 +1969,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         this.set_visible_thumbs();
     }
 
-    // Scroll to illust_id if it's available.  This is called when we display the thumbnail view
+    // Scroll to media_id if it's available.  This is called when we display the thumbnail view
     // after coming from an illustration.
     scroll_to_media_id(media_id)
     {

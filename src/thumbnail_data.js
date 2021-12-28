@@ -28,7 +28,7 @@ ppixiv.thumbnail_data = class
         return thumbnail_data._singleton;
     };
 
-    // Return true if all thumbs in illust_ids have been loaded, or are currently loading.
+    // Return true if all thumbs in media_ids have been loaded, or are currently loading.
     //
     // We won't start fetching IDs that aren't loaded.
     are_all_media_ids_loaded_or_loading(media_ids)
@@ -54,21 +54,16 @@ ppixiv.thumbnail_data = class
         return this.thumbnail_data[illust_id] != null || this.loading_ids[illust_id];
     }
     
-    // Return thumbnail data for illud_id, or null if it's not loaded.
+    // Return thumbnail data for media_id, or null if it's not loaded.
     //
     // The thumbnail data won't be loaded if it's not already available.  Use get_thumbnail_info
     // to load thumbnail data in batches.
-    get_one_thumbnail_info(illust_id)
+    get_one_thumbnail_info(media_id)
     {
+        let [illust_id] = helpers.media_id_to_illust_id_and_page(media_id);
         return this.thumbnail_data[illust_id];
     }
 
-    get_one_media_thumbnail_info(media_id)
-    {
-        let [illust_id] = helpers.media_id_to_illust_id_and_page(media_id);
-        return this.get_one_thumbnail_info(illust_id);
-    }
-    
     // Return thumbnail data for illust_ids, and start loading any requested IDs that aren't
     // already loaded.
     get_thumbnail_info(media_ids)
@@ -507,37 +502,55 @@ ppixiv.thumbnail_data = class
     //
     // If it isn't available and we need to load it, we load illust info instead of thumbnail
     // data, since it takes a full API request either way.
-    //
-    // If load is false, return null if we have no data instead of loading it.
-    async get_or_load_illust_data(media_id, load=true)
+    async get_or_load_illust_data(media_id)
     {
-        let [illust_id] = helpers.media_id_to_illust_id_and_page(media_id);
-
         // First, see if we have full illust info.  Prefer to use it over thumbnail info
         // if we have it, so full info is available.  If we don't, see if we have thumbnail
         // info.
-        let data = image_data.singleton().get_image_info_sync(illust_id);
+        let data = image_data.singleton().get_image_info_sync(media_id);
         if(data == null)
-            data = thumbnail_data.singleton().get_one_thumbnail_info(illust_id);
+            data = thumbnail_data.singleton().get_one_thumbnail_info(media_id);
 
-        // If we don't have either and load is true, load the image info.
-        if(data == null && load)
-            data = await image_data.singleton().get_image_info(illust_id);
-
+        // If we don't have either, load the image info.
         if(data == null)
-            return null;
+            data = await image_data.singleton().get_media_info(media_id);
 
-        // Verify whichever data type we got.
+        this._check_illust_data(data);
+
+        return data;
+    }
+
+    // A sync version of get_or_load_illust_data.  This doesn't load data if it
+    // isn't available.
+    get_illust_data_sync(media_id)
+    {
+        // First, see if we have full illust info.  Prefer to use it over thumbnail info
+        // if we have it, so full info is available.  If we don't, see if we have thumbnail
+        // info.
+        let data = image_data.singleton().get_image_info_sync(media_id);
+        if(data == null)
+            data = thumbnail_data.singleton().get_one_thumbnail_info(media_id);
+
+        this._check_illust_data(data);
+
+        return data;
+    }
+
+    // Check the result of get_or_load_illust_data.  We always expect all keys in
+    // thumbnail_info_keys to be included, regardless of where the data came from.
+    _check_illust_data(illust_data)
+    {
+        if(illust_data == null)
+            return;
+
         for(let key of this.thumbnail_info_keys)
         {
-            if(!(key in data))
+            if(!(key in illust_data))
             {
-                console.warn(`Missing key ${key} for early data`, data);
+                console.warn(`Missing key ${key} for early data`, illust_data);
                 continue;
             }
         }
-
-        return data;
     }
 
     // Update illustration data in both thumbnail info and illust info.
@@ -548,8 +561,6 @@ ppixiv.thumbnail_data = class
     // This can't update tags.
     update_illust_data(media_id, data)
     {
-        let [illust_id] = helpers.media_id_to_illust_id_and_page(media_id);
-
         let update_data = (update, keys) => {
             for(let key of keys)
             {
@@ -561,15 +572,15 @@ ppixiv.thumbnail_data = class
             }
         };
 
-        let thumb_data = thumbnail_data.singleton().get_one_thumbnail_info(illust_id);
+        let thumb_data = thumbnail_data.singleton().get_one_thumbnail_info(media_id);
         if(thumb_data)
             update_data(thumb_data, this.thumbnail_info_keys);
 
-        let illust_info = image_data.singleton().get_image_info_sync(illust_id);
+        let illust_info = image_data.singleton().get_image_info_sync(media_id);
         if(illust_info != null)
             update_data(illust_info, this.thumbnail_info_keys);
 
-        image_data.singleton().call_illust_modified_callbacks(illust_id);
+        image_data.singleton().call_illust_modified_callbacks(media_id);
     }
 }
 

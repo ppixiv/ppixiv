@@ -9,7 +9,7 @@
 // view something else, the browser won't load anything else until those images that we no
 // longer need finish loading.
 //
-// image_preloader is told the illust_id that we're currently showing, and the ID that we want
+// image_preloader is told the media_id that we're currently showing, and the ID that we want
 // to speculatively load.  We'll run loads in parallel, giving the current image's resources
 // priority and cancelling loads when they're no longer needed.
 //
@@ -113,7 +113,7 @@ ppixiv.image_preloader = class
         this.recently_preloaded_urls = [];
     }
 
-    // Set the illust_id the user is currently viewing.  If illust_id is null, the user isn't
+    // Set the media_id the user is currently viewing.  If media_id is null, the user isn't
     // viewing an image (eg. currently viewing thumbnails).
     async set_current_image(media_id)
     {
@@ -141,8 +141,8 @@ ppixiv.image_preloader = class
         this.check_fetch_queue();
     }
 
-    // Set the illust_id we want to speculatively load, which is the next or previous image in
-    // the current search.  If illust_id is null, we don't want to speculatively load anything.
+    // Set the media_id we want to speculatively load, which is the next or previous image in
+    // the current search.  If media_id is null, we don't want to speculatively load anything.
     async set_speculative_image(media_id)
     {
         if(this.speculative_media_id == media_id)
@@ -334,7 +334,7 @@ ppixiv.image_preloader = class
     // to start loading, but if we can guess the URL correctly then we can start loading
     // it immediately.
     //
-    // If illust_id is null, stop any running guessed preload.
+    // If media_id is null, stop any running guessed preload.
     async guess_preload(media_id)
     {
         // See if we can guess the image's URL from previous info, or if we can figure it

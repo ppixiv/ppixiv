@@ -22,27 +22,27 @@ class illust_id_list
 {
     constructor()
     {
-        this.illust_ids_by_page = new Map();
+        this.media_ids_by_page = new Map();
     };
 
     get_all_illust_ids()
     {
         // Make a list of all IDs we already have.
         let all_ids = [];
-        for(let [page, ids] of this.illust_ids_by_page)
+        for(let [page, ids] of this.media_ids_by_page)
             all_ids = all_ids.concat(ids);
         return all_ids;
     }
 
     get any_pages_loaded()
     {
-        return this.illust_ids_by_page.size != 0;
+        return this.media_ids_by_page.size != 0;
     }
 
     get_lowest_loaded_page()
     {
         let min_page = 999999;
-        for(let page of this.illust_ids_by_page.keys())
+        for(let page of this.media_ids_by_page.keys())
             min_page = Math.min(min_page, page);
         return min_page;
     }
@@ -50,7 +50,7 @@ class illust_id_list
     get_highest_loaded_page()
     {
         let max_page = 0;
-        for(let page of this.illust_ids_by_page.keys())
+        for(let page of this.media_ids_by_page.keys())
             max_page = Math.max(max_page, page);
         return max_page;
     }
@@ -59,14 +59,14 @@ class illust_id_list
     //
     // If the page cache has been invalidated, return false.  This happens if we think the
     // results have changed too much for us to reconcile it.
-    add_page(page, illust_ids)
+    add_page(page, media_ids)
     {
         // Sanity check:
-        for(let illust_id of illust_ids)
-            if(illust_id == null)
+        for(let media_id of media_ids)
+            if(media_id == null)
                 console.warn("Null illust_id added");
 
-        if(this.illust_ids_by_page.has(page))
+        if(this.media_ids_by_page.has(page))
         {
             console.warn("Page", page, "was already loaded");
             return true;
@@ -79,7 +79,7 @@ class illust_id_list
         // start of page 2 that were at the end of page 1 when we requested it, because new posts
         // have been added to page 1 that we haven't seen.  Remove any duplicate IDs.
         let ids_to_remove = [];
-        for(let new_id of illust_ids)
+        for(let new_id of media_ids)
         {
             if(all_illusts.indexOf(new_id) != -1)
                 ids_to_remove.push(new_id);
@@ -87,11 +87,11 @@ class illust_id_list
 
         if(ids_to_remove.length > 0)
             console.log("Removing duplicate illustration IDs:", ids_to_remove.join(", "));
-        illust_ids = illust_ids.slice();
+            media_ids = media_ids.slice();
         for(let new_id of ids_to_remove)
         {
-            let idx = illust_ids.indexOf(new_id);
-            illust_ids.splice(idx, 1);
+            let idx = media_ids.indexOf(new_id);
+            media_ids.splice(idx, 1);
         }
 
         // If there's nothing on this page, don't add it, so this doesn't increase
@@ -99,16 +99,16 @@ class illust_id_list
         // FIXME: If we removed everything, the data source will appear to have reached the last
         // page and we won't load any more pages, since thumbnail_view assumes that a page not
         // returning any data means we're at the end.
-        if(illust_ids.length == 0)
+        if(media_ids.length == 0)
             return;
 
-        this.illust_ids_by_page.set(page, illust_ids);
+        this.media_ids_by_page.set(page, media_ids);
     };
 
     // Return the page number illust_id is on, or null if we don't know.
     get_page_for_illust(illust_id)
     {
-        for(let [page, ids] of this.illust_ids_by_page)
+        for(let [page, ids] of this.media_ids_by_page)
         {
             if(ids.indexOf(illust_id) != -1)
                 return page;
@@ -120,59 +120,115 @@ class illust_id_list
     //
     // This only returns illustrations, skipping over any special entries like user:12345.
     // If illust_id is null, start at the first loaded illustration.
-    get_neighboring_illust_id(media_id, next)
+    get_neighboring_media_id(media_id, next, options={})
     {
-        let [illust_id] = helpers.media_id_to_illust_id_and_page(media_id);
-
         for(let i = 0; i < 100; ++i) // sanity limit
         {
-            illust_id = this._get_neighboring_illust_id_internal(illust_id, next);
-            if(illust_id == null)
+            let new_media_id = this._get_neighboring_media_id_internal(media_id, next, options);
+            if(new_media_id == null)
                 return null;
 
             // If it's not an illustration, keep looking.
-            let { type } = helpers.parse_id(illust_id);
+            let { type } = helpers.parse_media_id(new_media_id);
             if(type == "illust" || type == "file")
-                return illust_id;
+                return new_media_id;
         }
         return null;
     }
 
-    // The actual logic for get_neighboring_illust_id, except for skipping entries.
-    _get_neighboring_illust_id_internal(illust_id, next)
+    // The actual logic for get_neighboring_media_id, except for skipping entries.
+    _get_neighboring_media_id_internal(media_id, next, { skip_manga_pages=false }={})
     {
-        if(illust_id == null)
+        if(media_id == null)
             return this.get_first_id();
 
-        let page = this.get_page_for_illust(illust_id);
+        // If we're navigating forwards, grab thumbnail info to get the page count to
+        // see if we're at the end. 
+        if(!skip_manga_pages)
+        {
+            let id = helpers.parse_media_id(media_id);
+
+            // If we're navigating backwards and we're past page 1, just go to the previous page.
+            if(!next && id.page > 0)
+            {
+                id.page--;
+                return helpers.encode_media_id(id);
+            }
+
+            // If we're navigating forwards, grab illust data to see if we can navigate to the
+            // next page.
+            if(next)
+            {
+                let info = thumbnail_data.singleton().get_illust_data_sync(media_id);
+                if(info == null)
+                {
+                    console.log("Thumbnail info missing for", media_id);
+                    return null;
+                }
+
+                let [old_illust_id, old_page] = helpers.media_id_to_illust_id_and_page(media_id);
+                if(old_page < info.pageCount - 1)
+                {
+                    // There are more pages, so just navigate to the next page.
+                    id.page++;
+                    return helpers.encode_media_id(id);
+                }
+            }
+        }
+
+        // We only know about the first page of each media ID.  Get the media ID for the first
+        // page of media_id.
+        let id = helpers.parse_media_id(media_id);
+        id.page = 0;
+        media_id = helpers.encode_media_id(id);
+
+        let page = this.get_page_for_illust(media_id);
         if(page == null)
             return null;
 
-        let ids = this.illust_ids_by_page.get(page);
-        let idx = ids.indexOf(illust_id);
+        let ids = this.media_ids_by_page.get(page);
+        let idx = ids.indexOf(media_id);
         let new_idx = idx + (next? +1:-1);
+        let new_media_id = null;
         if(new_idx < 0)
         {
-            // Return the last illustration on the previous page, or null if that page isn't loaded.
+            // Get the last illustration on the previous page, or null if that page isn't loaded.
             let prev_page_no = page - 1;
-            let prev_page_illust_ids = this.illust_ids_by_page.get(prev_page_no);
-            if(prev_page_illust_ids == null)
+            let prev_page_media_ids = this.media_ids_by_page.get(prev_page_no);
+            if(prev_page_media_ids == null)
                 return null;
-            return prev_page_illust_ids[prev_page_illust_ids.length-1];
+            new_media_id = prev_page_media_ids[prev_page_media_ids.length-1];
         }
         else if(new_idx >= ids.length)
         {
-            // Return the first illustration on the next page, or null if that page isn't loaded.
+            // Get the first illustration on the next page, or null if that page isn't loaded.
             let next_page_no = page + 1;
-            let next_page_illust_ids = this.illust_ids_by_page.get(next_page_no);
-            if(next_page_illust_ids == null)
+            let next_page_media_ids = this.media_ids_by_page.get(next_page_no);
+            if(next_page_media_ids == null)
                 return null;
-            return next_page_illust_ids[0];
+            new_media_id = next_page_media_ids[0];
         }
         else
         {
-            return ids[new_idx];
+            new_media_id = ids[new_idx];
         }
+
+        // If we're navigating backwards, get the last page on new_media_id.
+        if(!next && !skip_manga_pages)
+        {
+            let info = thumbnail_data.singleton().get_illust_data_sync(new_media_id);
+            if(info == null)
+            {
+                console.log("Thumbnail info missing for", media_id);
+                return null;
+            }
+
+            let id = helpers.parse_media_id(new_media_id);
+            id.page = info.pageCount - 1;
+            new_media_id = helpers.encode_media_id(id);
+        }
+
+        return new_media_id;
     };
 
     // Return the page we need to load to get the next or previous illustration.  This only
@@ -183,7 +239,7 @@ class illust_id_list
         if(page == null)
             return null;
 
-        let ids = this.illust_ids_by_page.get(page);
+        let ids = this.media_ids_by_page.get(page);
         let idx = ids.indexOf(illust_id);
         let new_idx = idx + (next? +1:-1);
         if(new_idx >= 0 && new_idx < ids.length)
@@ -196,18 +252,18 @@ class illust_id_list
     // Return the first ID, or null if we don't have any.
     get_first_id()
     {
-        if(this.illust_ids_by_page.size == 0)
+        if(this.media_ids_by_page.size == 0)
             return null;
 
-        let keys = this.illust_ids_by_page.keys();
+        let keys = this.media_ids_by_page.keys();
         let page = keys.next().value;
-        return this.illust_ids_by_page.get(page)[0];
+        return this.media_ids_by_page.get(page)[0];
     }
 
     // Return true if the given page is loaded.
     is_page_loaded(page)
     {
-        return this.illust_ids_by_page.has(page);
+        return this.media_ids_by_page.has(page);
     }
 };
 
@@ -440,8 +496,8 @@ ppixiv.data_source = class
         // we do anything that might have side-effects of starting another load.
         await null;
 
-        // Start the actual load.
-        var result = await this.load_page_internal(page);
+        // Run the actual load.
+        await this.load_page_internal(page);
 
         // Reduce the start page, which will update the "load more results" button if any.  It's important
         // to do this after the await above.  If we do it before, it'll update the button before we load
@@ -452,7 +508,7 @@ ppixiv.data_source = class
 
         // If there were no results, then we've loaded the last page.  Don't try to load
         // any pages beyond this.
-        if(!this.id_list.illust_ids_by_page.has(page))
+        if(!this.id_list.media_ids_by_page.has(page))
         {
             console.log("No data on page", page);
             if(this.first_empty_page == -1 || page < this.first_empty_page)
@@ -465,14 +521,14 @@ ppixiv.data_source = class
     // Return the illust_id to display by default.
     //
     // This should only be called after the initial data is loaded.
-    get_current_illust_id()
+    get_current_media_id()
     {
         // If we have an explicit illust_id in the hash, use it.  Note that some pages (in
         // particular illustration pages) put this in the query, which is handled in the particular
         // data source.
         let args = helpers.args.location;
         if(args.hash.has("illust_id"))
-            return args.hash.get("illust_id");
+            return helpers.illust_id_to_media_id(args.hash.get("illust_id"));
         
         return this.id_list.get_first_id();
     };
@@ -590,9 +646,9 @@ ppixiv.data_source = class
     }
 
     // Register a page of data.
-    add_page(page, illust_ids)
+    add_page(page, media_ids)
     {
-        this.id_list.add_page(page, illust_ids);
+        this.id_list.add_page(page, media_ids);
 
         // Call update listeners asynchronously to let them know we have more data.
         helpers.yield(() => {
@@ -782,9 +838,9 @@ ppixiv.data_source = class
     // Return the next or previous illustration.  If we don't have that page, return null.
     //
     // This only returns illustrations, skipping over any special entries like user:12345.
-    get_neighboring_illust_id(media_id, next)
+    get_neighboring_media_id(media_id, next, options={})
     {
-        return this.id_list.get_neighboring_illust_id(media_id, next);
+        return this.id_list.get_neighboring_media_id(media_id, next, options);
     }
 
 
@@ -794,18 +850,16 @@ ppixiv.data_source = class
     //
     // This currently won't load more than one page.  If we load a page and it only has users,
     // we won't try another page.
-    async get_or_load_neighboring_illust_id(media_id, next)
+    async get_or_load_neighboring_media_id(media_id, next, options={})
     {
-        let [illust_id, page] = helpers.media_id_to_illust_id_and_page(media_id);
-
-        let new_illust_id = this.get_neighboring_illust_id(media_id, next);
-        if(new_illust_id != null)
-            return new_illust_id;
+        let new_media_id = this.get_neighboring_media_id(media_id, next, options);
+        if(new_media_id != null)
+            return new_media_id;
 
         // We didn't have the new illustration, so we may need to load another page of search results.
-        // Find the page this illustration is on, or use the initial page if illust_id is null.
-        let next_page = this.id_list.get_page_for_neighboring_illust(illust_id, next);
-        if(illust_id == null)
+        // Find the page this illustration is on, or use the initial page if media_id is null.
+        let next_page = this.id_list.get_page_for_neighboring_illust(media_id, next, options);
+        if(media_id == null)
             next_page = this.initial_page;
 
         // If we can't find the next page, then the image isn't actually loaded in the current
@@ -814,7 +868,7 @@ ppixiv.data_source = class
         if(next_page == null)
         {
             // We should normally know which page the illustration we're currently viewing is on.
-            console.log("Don't know the next page for illust", illust_id);
+            console.log("Don't know the next page for illust", media_id);
             return null;
         }
 
@@ -835,7 +889,7 @@ ppixiv.data_source = class
 
         // Now that we've loaded data, try to find the new image again.
         console.log("Finishing navigation after data load");
-        return this.id_list.get_neighboring_illust_id(media_id, next);
+        return this.id_list.get_neighboring_media_id(media_id, next, options);
     }
 };
 
@@ -870,13 +924,13 @@ class data_source_fake_pagination extends data_source
     {
         if(this.pages == null)
         {
-            var illust_ids = await this.load_all_results();
-            this.pages = paginate_illust_ids(illust_ids, this.estimated_items_per_page);
+            let media_ids = await this.load_all_results();
+            this.pages = paginate_illust_ids(media_ids, this.estimated_items_per_page);
         }
 
         // Register this page.
-        var illust_ids = this.pages[page-1] || [];
-        this.add_page(page, illust_ids);
+        var media_ids = this.pages[page-1] || [];
+        this.add_page(page, media_ids);
     }
 
     // Implemented by the subclass.  Load all results, and return the resulting IDs.
@@ -908,12 +962,12 @@ ppixiv.data_sources.discovery = class extends data_source
         let thumbs = result.body.thumbnails.illust;
         thumbnail_data.singleton().loaded_thumbnail_info(thumbs, "normal");
 
-        let illust_ids = [];
+        let media_ids = [];
         for(let thumb of thumbs)
-            illust_ids.push(thumb.id);
+            media_ids.push(helpers.illust_id_to_media_id(thumb.id));
 
         tag_translations.get().add_translations_dict(result.body.tagTranslation);
-        this.add_page(page, illust_ids);
+        this.add_page(page, media_ids);
     };
 
     get page_title() { return "Discovery"; }
@@ -976,12 +1030,12 @@ ppixiv.data_sources.related_illusts = class extends data_source
         let thumbs = result.body.thumbnails.illust;
         thumbnail_data.singleton().loaded_thumbnail_info(thumbs, "normal");
 
-        let illust_ids = [];
+        let media_ids = [];
         for(let thumb of thumbs)
-            illust_ids.push(thumb.id);
+            media_ids.push(helpers.illust_id_to_media_id(thumb.id));
 
         tag_translations.get().add_translations_dict(result.body.tagTranslation);
-        this.add_page(page, illust_ids);
+        this.add_page(page, media_ids);
     };
 
     get page_title() { return "Similar Illusts"; }
@@ -1081,7 +1135,7 @@ ppixiv.data_sources.discovery_users = class extends data_source
         // ajax/user/#/recommends is body.recommendUsers and user.illustIds.
         // discovery/users is body.recommendedUsers and user.recentIllustIds.
         let recommended_users = result.body.recommendUsers || result.body.recommendedUsers;
-        let illust_ids = [];
+        let media_ids = [];
         for(let user of recommended_users)
         {
             // Each time we load a "page", we're actually just getting a new randomized set of recommendations
@@ -1092,15 +1146,15 @@ ppixiv.data_sources.discovery_users = class extends data_source
                 continue;
             this.seen_user_ids[user.userId] = true;
 
-            illust_ids.push("user:" + user.userId);
+            media_ids.push("user:" + user.userId);
             
             let illustIds = user.illustIds || user.recentIllustIds;
             for(let illust_id of illustIds)
-                illust_ids.push(illust_id);
+                media_ids.push(helpers.illust_id_to_media_id(illust_id));
         }
 
         // Register the new page of data.
-        this.add_page(page, illust_ids);
+        this.add_page(page, media_ids);
     }
 
     load_page_available(page)
@@ -1230,21 +1284,15 @@ ppixiv.data_sources.rankings = class extends data_source
     
         // This returns a struct of data that's like the thumbnails data response,
         // but it's not quite the same.
-        var illust_ids = [];
+        var media_ids = [];
         for(var item of result.contents)
-        {
-            // Most APIs return IDs as strings, but this one returns them as ints.
-            // Convert them to strings.
-            var illust_id = "" + item.illust_id;
-            var user_id = "" + item.user_id;
-            illust_ids.push(illust_id);
-        }
+            media_ids.push(helpers.illust_id_to_media_id("" + item.illust_id));
 
         // Register this as thumbnail data.
         thumbnail_data.singleton().loaded_thumbnail_info(result.contents, "rankings");
         
         // Register the new page of data.
-        this.add_page(page, illust_ids);
+        this.add_page(page, media_ids);
     };
 
     get estimated_items_per_page() { return 50; }
@@ -1396,8 +1444,8 @@ class data_source_from_page extends data_source
 
         let doc = await helpers.load_data_in_iframe(url);
 
-        let illust_ids = this.parse_document(doc);
-        if(illust_ids == null)
+        let media_ids = this.parse_document(doc);
+        if(media_ids == null)
         {
             // The most common case of there being no data in the document is loading
             // a deleted illustration.  See if we can find an error message.
@@ -1409,10 +1457,10 @@ class data_source_from_page extends data_source
         // is usually correct unless we happen to load the last page last.  Allow this to increase
         // in case that happens.  (This is only used by the thumbnail view.)
         if(this.items_per_page == 1)
-            this.items_per_page = Math.max(illust_ids.length, this.items_per_page);
+            this.items_per_page = Math.max(media_ids.length, this.items_per_page);
 
         // Register the new page of data.
-        this.add_page(page, illust_ids);
+        this.add_page(page, media_ids);
     }
 
     // Parse the loaded document and return the illust_ids.
@@ -1513,14 +1561,20 @@ ppixiv.data_sources.artist = class extends data_source
             // we do it this way since that's what the site does.
             if(this.pages == null)
             {
-                let all_illust_ids = await this.load_all_results();
-                this.pages = paginate_illust_ids(all_illust_ids, this.estimated_items_per_page);
+                let all_media_ids = await this.load_all_results();
+                this.pages = paginate_illust_ids(all_media_ids, this.estimated_items_per_page);
             }
 
-            let illust_ids = this.pages[page-1] || [];
-
-            if(illust_ids.length)
+            let media_ids = this.pages[page-1] || [];
+            if(media_ids.length)
             {
+                let illust_ids = [];
+                for(let media_id of media_ids)
+                {
+                    let illust_id = helpers.media_id_to_illust_id_and_page(media_id)[0];
+                    illust_ids.push(illust_id);
+                }
+
                 // That only gives us a list of illust IDs, so we have to load them.  Annoyingly, this
                 // is the one single place it gives us illust info in bulk instead of thumbnail data.
                 // It would be really useful to be able to batch load like this in general, but this only
@@ -1543,7 +1597,7 @@ ppixiv.data_sources.artist = class extends data_source
             //     await image_data.singleton().add_illust_data(illust_data);
 
             // Register this page.
-            this.add_page(page, illust_ids);
+            this.add_page(page, media_ids);
         }
         else
         {
@@ -1573,16 +1627,16 @@ ppixiv.data_sources.artist = class extends data_source
                 item.profileImageUrl = this.user_info.imageBig;
             }
 
-            var illust_ids = [];
+            var media_ids = [];
             for(var illust_data of result.body.works)
-                illust_ids.push(illust_data.id);
-            
+                media_ids.push(helpers.illust_id_to_media_id(illust_data.id)); 
+
             // This request returns all of the thumbnail data we need.  Forward it to
             // thumbnail_data so we don't need to look it up.
             thumbnail_data.singleton().loaded_thumbnail_info(result.body.works, "normal");
 
             // Register the new page of data.
-            this.add_page(page, illust_ids);
+            this.add_page(page, media_ids);
         }
     }
     
@@ -1632,7 +1686,11 @@ ppixiv.data_sources.artist = class extends data_source
             return parseInt(rhs) - parseInt(lhs);
         });
 
-        return illust_ids;
+        var media_ids = [];
+        for(let illust_id of illust_ids)
+            media_ids.push(helpers.illust_id_to_media_id(illust_id));
+
+        return media_ids;
     };
 
     refresh_thumbnail_ui(container, thumbnail_view)
@@ -1809,7 +1867,8 @@ ppixiv.data_sources.current_illust = class extends data_source
         url = new URL(url);
         url = helpers.get_url_without_language(url);
         let parts = url.pathname.split("/");
-        this.illust_id = parts[2];
+        let illust_id = parts[2];
+        this.media_id = helpers.illust_id_to_media_id(illust_id);
     }
 
     // Show the illustration by default.
@@ -1821,8 +1880,8 @@ ppixiv.data_sources.current_illust = class extends data_source
     // This data source just views a single image and doesn't return any posts.
     async load_page_internal(page) { }
 
-    // We're always viewing our illust_id.
-    get_current_illust_id() { return this.illust_id; }
+    // We're always viewing our media ID.
+    get_current_media_id() { return this.media_id; }
 
     // We don't return any posts to navigate to, but this can still be called by
     // quick view.
@@ -2305,13 +2364,13 @@ ppixiv.data_sources.bookmarks = class extends data_source_bookmarks_base
 
         let result = await this.request_bookmarks(page_to_load, null);
 
-        var illust_ids = [];
+        var media_ids = [];
         for(let illust_data of result.works)
-            illust_ids.push(illust_data.id);
+            media_ids.push(helpers.illust_id_to_media_id(illust_data.id)); 
 
         // If we're shuffling, shuffle the individual illustrations too.
         if(this.shuffle)
-            helpers.shuffle_array(illust_ids);
+            helpers.shuffle_array(media_ids);
         
         // This request returns all of the thumbnail data we need.  Forward it to
         // thumbnail_data so we don't need to look it up.
@@ -2319,7 +2378,7 @@ ppixiv.data_sources.bookmarks = class extends data_source_bookmarks_base
 
         // Register the new page of data.  If we're shuffling, use the original page number, not the
         // shuffled page.
-        this.add_page(page, illust_ids);
+        this.add_page(page, media_ids);
 
         // Remember the total count, for display.
         this.total_bookmarks = result.total;
@@ -2354,12 +2413,12 @@ ppixiv.data_sources.bookmarks_merged = class extends data_source_bookmarks_base
 
         // Both requests finished.  Combine the two lists of illust IDs into a single page
         // and register it.
-        var illust_ids = [];
+        let media_ids = [];
         for(var i = 0; i < 2; ++i)
             if(this.bookmark_illust_ids[i] != null && this.bookmark_illust_ids[i][page] != null)
-                illust_ids = illust_ids.concat(this.bookmark_illust_ids[i][page]);
+                media_ids = media_ids.concat(this.bookmark_illust_ids[i][page]);
         
-        this.add_page(page, illust_ids);
+        this.add_page(page, media_ids);
 
         // Combine the two totals.
         this.total_bookmarks = this.bookmark_totals[0] + this.bookmark_totals[1];
@@ -2384,9 +2443,9 @@ ppixiv.data_sources.bookmarks_merged = class extends data_source_bookmarks_base
             return parseInt(rhs.bookmarkData.id) - parseInt(lhs.bookmarkData.id);
         });
 
-        var illust_ids = [];
+        var media_ids = [];
         for(let illust_data of result.works)
-            illust_ids.push(illust_data.id);
+            media_ids.push(helpers.illust_id_to_media_id(illust_data.id));
 
         // This request returns all of the thumbnail data we need.  Forward it to
         // thumbnail_data so we don't need to look it up.
@@ -2394,7 +2453,7 @@ ppixiv.data_sources.bookmarks_merged = class extends data_source_bookmarks_base
 
         // If there are no results, remember that this is the last page, so we don't
         // make more requests for this type.
-        if(illust_ids.length == 0)
+        if(media_ids.length == 0)
         {
             if(this.max_page_per_type[is_private] == -1)
                 this.max_page_per_type[is_private] = page;
@@ -2404,7 +2463,7 @@ ppixiv.data_sources.bookmarks_merged = class extends data_source_bookmarks_base
         }
 
         // Store the IDs.  We don't register them here.
-        this.bookmark_illust_ids[is_private][page] = illust_ids;
+        this.bookmark_illust_ids[is_private][page] = media_ids;
 
         // Remember the total count, for display.
         this.bookmark_totals[is_private] = result.total;
@@ -2465,22 +2524,22 @@ ppixiv.data_sources.new_illust = class extends data_source
             lastId: this.last_id,
         });
 
-        var illust_ids = [];
-        for(var illust_data of result.body.illusts)
-            illust_ids.push(illust_data.id);
-
-        if(illust_ids.length > 0)
+        if(result.body.illusts.length > 0)
         {
-            this.last_id = illust_ids[illust_ids.length-1];
+            this.last_id = result.body.illusts[result.body.illusts.length-1].id;
             this.last_id_page++;
         }
-        
+
+        let media_ids = [];
+        for(var illust_data of result.body.illusts)
+            media_ids.push(helpers.illust_id_to_media_id(illust_data.id));
+
         // This request returns all of the thumbnail data we need.  Forward it to
         // thumbnail_data so we don't need to look it up.
         thumbnail_data.singleton().loaded_thumbnail_info(result.body.illusts, "normal");
 
         // Register the new page of data.
-        this.add_page(page, illust_ids);
+        this.add_page(page, media_ids);
     }
     
     refresh_thumbnail_ui(container)
@@ -2543,12 +2602,12 @@ ppixiv.data_sources.bookmarks_new_illust = class extends data_source
         // Populate thumbnail data with this data.
         thumbnail_data.singleton().loaded_thumbnail_info(data.thumbnails.illust, "normal");
 
-        let illust_ids = [];
+        let media_ids = [];
         for(let illust of data.thumbnails.illust)
-            illust_ids.push(illust.id);
+            media_ids.push(helpers.illust_id_to_media_id(illust.id));
 
         // Register the new page of data.
-        this.add_page(page, illust_ids);
+        this.add_page(page, media_ids);
     }
     
     get page_title()
@@ -2807,12 +2866,12 @@ ppixiv.data_sources.search = class extends data_source
         // Populate thumbnail data with this data.
         thumbnail_data.singleton().loaded_thumbnail_info(illusts, "normal");
 
-        var illust_ids = [];
+        let media_ids = [];
         for(let illust of illusts)
-            illust_ids.push(illust.id);
+            media_ids.push(helpers.illust_id_to_media_id(illust.id));
 
         // Register the new page of data.
-        this.add_page(page, illust_ids);
+        this.add_page(page, media_ids);
     }
 
     get page_title()
@@ -3084,16 +3143,16 @@ ppixiv.data_sources.follows = class extends data_source
             illust.profileImageUrl = followed_user.profileImageUrl;
         }
 
-        var illust_ids = [];
+        var media_ids = [];
         for(let illust of illusts)
-            illust_ids.push("user:" + illust.userId);
-        
+            media_ids.push("user:" + illust.userId);
+
         // This request returns all of the thumbnail data we need.  Forward it to
         // thumbnail_data so we don't need to look it up.
         thumbnail_data.singleton().loaded_thumbnail_info(illusts, "normal");
 
         // Register the new page of data.
-        this.add_page(page, illust_ids);
+        this.add_page(page, media_ids);
     }
 
     refresh_thumbnail_ui(container, thumbnail_view)
@@ -3326,7 +3385,7 @@ ppixiv.data_sources.recent = class extends data_source
 
         // Register this page.
         let media_ids = this.pages[page-1] || [];
-        let found_illust_ids = [];
+        let found_media_ids = [];
 
         // Get thumbnail data for this page.  Some thumbnail data might be missing if it
         // expired before this page was viewed.  Don't add illust IDs that we don't have
@@ -3335,9 +3394,9 @@ ppixiv.data_sources.recent = class extends data_source
         thumbnail_data.singleton().loaded_thumbnail_info(thumbs, "internal");
 
         for(let thumb of thumbs)
-            found_illust_ids.push(thumb.id);
+            found_media_ids.push(helpers.illust_id_to_media_id(thumb.id));
 
-        this.add_page(page, found_illust_ids);
+        this.add_page(page, found_media_ids);
     };
 
     get page_title() { return "Recent"; }
@@ -3469,11 +3528,11 @@ ppixiv.data_sources.vview = class extends data_source
         if(result.pages.next == null)
             this.reached_end = true;
 
-        let found_illust_ids = [];
+        let found_media_ids = [];
         for(let thumb of result.results)
-            found_illust_ids.push(thumb.id);
+            found_media_ids.push(thumb.id);
 
-        this.add_page(page, found_illust_ids);
+        this.add_page(page, found_media_ids);
     };
 
     // Override can_load_page.  If we've already loaded a page, we've cached the next
@@ -3517,17 +3576,17 @@ ppixiv.data_sources.vview = class extends data_source
     // This is only done if we're just viewing a directory without a search.  Doing it for
     // searches is much slower since it can require scanning all results at once for filtering,
     // and it's mostly important when viewing a file in a directory.
-    async get_or_load_neighboring_illust_id(media_id, next)
+    async get_or_load_neighboring_media_id(media_id, next, options={})
     {
         // If this is a search, use the regular behavior.
         let args = new helpers.args(this.url);
         let { search_options } = local_api.get_search_options_for_args(args);
         if(search_options != null)
-            return super.get_or_load_neighboring_illust_id(media_id, next);
+            return super.get_or_load_neighboring_media_id(media_id, next, options);
 
         // Try loading results with the normal path first.  If this succeeds, we don't need
         // to make the slower api/ids call.
-        let result = await super.get_or_load_neighboring_illust_id(media_id, next);
+        let result = await super.get_or_load_neighboring_media_id(media_id, next, options);
         if(result != null)
             return result;
 
@@ -3576,10 +3635,10 @@ ppixiv.data_sources.vview = class extends data_source
             }
 
             // If it's not an illustration, keep looking.
-            let next_illust_id = this.all_illust_ids[idx];
-            let { type } = helpers.parse_id(next_illust_id);
+            let next_media_id = this.all_illust_ids[idx];
+            let { type } = helpers.parse_media_id(next_media_id);
             if(type == "illust" || type == "file")
-                return next_illust_id;
+                return next_media_id;
         }
 
         console.log("Couldn't find the next illust");
@@ -3594,7 +3653,7 @@ ppixiv.data_sources.vview = class extends data_source
         if(args.hash.get("path") != null)
         {
             let folder_id = local_api.get_local_id_from_args(args, { get_folder: true });
-            return helpers.get_path_suffix(helpers.parse_id(folder_id).id);
+            return helpers.get_path_suffix(helpers.parse_media_id(folder_id).id);
         }
         else
         {
@@ -3609,7 +3668,7 @@ ppixiv.data_sources.vview = class extends data_source
         local_api.get_args_for_id(media_id, args);
     }
 
-    get_current_illust_id()
+    get_current_media_id()
     {
         let args = helpers.args.location;
 

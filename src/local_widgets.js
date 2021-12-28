@@ -47,7 +47,7 @@ ppixiv.tree_widget = class extends ppixiv.widget
         }
     }
 
-    illust_modified(illust_id)
+    illust_modified(media_id)
     {
         if(this.root == null)
             return;
@@ -55,7 +55,7 @@ ppixiv.tree_widget = class extends ppixiv.widget
         for(let node of Object.values(this.root.nodes))
         {
             if(node.illust_changed)
-                node.illust_changed(illust_id);
+                node.illust_changed(media_id);
         }
     }
     
@@ -513,10 +513,10 @@ ppixiv.tree_widget_item = class extends ppixiv.widget
             await data_source.load_page(1);
 
         // Navigate to the first image on the first page.
-        let illust_ids = data_source.id_list.illust_ids_by_page.get(1);
-        console.log("files for double click:", illust_ids?.length);
-        if(illust_ids != null)
-            main_controller.singleton.show_media(illust_ids[0], {add_to_history: true, source: "dblclick"});
+        let media_ids = data_source.id_list.media_ids_by_page.get(1);
+        console.log("files for double click:", media_ids?.length);
+        if(media_ids != null)
+            main_controller.singleton.show_media(media_ids[0], {add_to_history: true, source: "dblclick"});
     }
 };
 
@@ -554,10 +554,10 @@ class local_navigation_widget_item extends ppixiv.tree_widget_item
     // XXX: need a way to refresh these
     // do this once at the tree level:
     // image_data.singleton().illust_modified_callbacks.register(this.refresh);
-    illust_changed(illust_id)
+    illust_changed(media_id)
     {
         // Refresh if we're displaying the illust that changed.
-        if(illust_id == this.path)
+        if(media_id == this.path)
             this.refresh();
     }
 
@@ -804,8 +804,8 @@ ppixiv.local_navigation_widget = class extends ppixiv.tree_widget
         await this.root.load();
         signal.check();
 
-        let illust_id = local_api.get_local_id_from_args(args, { get_folder: true });
-        let { id } = helpers.parse_id(illust_id);
+        let media_id = local_api.get_local_id_from_args(args, { get_folder: true });
+        let { id } = helpers.parse_media_id(media_id);
 
         // Split apart the path.
         let parts = id.split("/");
@@ -848,14 +848,14 @@ ppixiv.local_navigation_widget = class extends ppixiv.tree_widget
             signal.check();
         }
 
-        return this.root.nodes[illust_id];
+        return this.root.nodes[media_id];
     }
 
-    // Navigate to illust_id, which should be an entry in the current tree.
-    show_item(illust_id)
+    // Navigate to media_id, which should be an entry in the current tree.
+    show_item(media_id)
     {
         let args = new helpers.args(ppixiv.location);
-        local_api.get_args_for_id(illust_id, args);
+        local_api.get_args_for_id(media_id, args);
         helpers.set_page_url(args, true /* add_to_history */, "navigation");
 
         // Hide the hover thumbnail on click to get it out of the way.
@@ -1186,10 +1186,10 @@ ppixiv.view_in_explorer_widget = class extends ppixiv.illust_widget
         });
     }
 
-    refresh_internal({ illust_id, thumbnail_data })
+    refresh_internal({ media_id, thumbnail_data })
     {
         // Hide the button if we're not on a local image.
-        this.container.closest(".button-container").hidden = !helpers.is_local(illust_id);
+        this.container.closest(".button-container").hidden = !helpers.is_media_id_local(media_id);
         
         let path = thumbnail_data?.localPath;
         this.enabled = thumbnail_data?.localPath != null;
@@ -1212,7 +1212,7 @@ ppixiv.view_in_explorer_widget = class extends ppixiv.illust_widget
         a.href = url;
 
         // Set the popup for the type of ID.
-        let { type } = helpers.parse_id(illust_id);
+        let { type } = helpers.parse_media_id(media_id);
         let popup = type == "file"? "View file in Explorer":"View folder in Explorer";
         a.dataset.popup = popup;
     }
@@ -1237,9 +1237,9 @@ ppixiv.close_search_widget = class extends ppixiv.widget
         this.container.addEventListener("click", (e) => {
             // Get the URL for the current folder and set it to a new URL, so it removes search
             // parameters.
-            let illust_id = local_api.get_local_id_from_args(helpers.args.location, { get_folder: true });
+            let media_id = local_api.get_local_id_from_args(helpers.args.location, { get_folder: true });
             let args = new helpers.args("/", ppixiv.location);
-            local_api.get_args_for_id(illust_id, args);
+            local_api.get_args_for_id(media_id, args);
             helpers.set_page_url(args, true, "navigation");
         });
     }

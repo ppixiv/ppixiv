@@ -4,11 +4,10 @@
 // type of content in the main display.
 ppixiv.viewer = class extends widget
 {
-    constructor({illust_id, ...options})
+    constructor({...options})
     {
         super(options);
 
-        this.illust_id = illust_id;
         this.active = false;
     }
 

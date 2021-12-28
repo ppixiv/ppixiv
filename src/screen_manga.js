@@ -29,7 +29,7 @@ ppixiv.screen_manga = class extends ppixiv.screen
             parent: this,
             progress_bar: this.progress_bar,
         });
-        this.scroll_positions_by_illust_id = {};
+        this.scroll_positions_by_media_id = {};
         
         image_data.singleton().user_modified_callbacks.register(this.refresh_ui);
         image_data.singleton().illust_modified_callbacks.register(this.refresh_ui);
@@ -72,28 +72,28 @@ ppixiv.screen_manga = class extends ppixiv.screen
         this.refresh_ui();
     }
 
-    async set_active(active, { media_id, illust_id })
+    async set_active(active, { media_id })
     {
-        if(this.illust_id != illust_id)
+        if(this.media_id != media_id)
         {
             // The load itself is async and might not happen immediately if we don't have page info yet.
             // Clear any previous image list so it doesn't flash on screen while we load the new info.
             let ul = this.container.querySelector(".thumbnails");
             helpers.remove_elements(ul);
 
-            this.illust_id = illust_id;
+            this.media_id = media_id;
             this.illust_info = null;
             this.ui.media_id = media_id;
 
-            // Refresh even if illust_id is null, so we quickly clear the screen.
+            // Refresh even if media_id is null, so we quickly clear the screen.
             await this.refresh_ui();
         }
 
         if(this._active && !active)
         {
             // Save the old scroll position.
-            if(this.illust_id != null)
-                this.scroll_positions_by_illust_id[this.illust_id] = this.container.scrollTop;
+            if(this.media_id != null)
+                this.scroll_positions_by_media_id[this.media_id] = this.container.scrollTop;
 
             // Hide the dropdown tag widget.
             this.ui.bookmark_tag_widget.visible = false;
@@ -108,7 +108,7 @@ ppixiv.screen_manga = class extends ppixiv.screen
         // This will hide or unhide us.
         await super.set_active(active);
 
-        if(!active || this.illust_id == null)
+        if(!active || this.media_id == null)
             return;
         
         // The rest of the load happens async.  Although we're already in an async
@@ -121,11 +121,12 @@ ppixiv.screen_manga = class extends ppixiv.screen
 
     async async_set_image()
     {
-        console.log("Loading manga screen for:", this.illust_id);
+        console.log("Loading manga screen for:", this.media_id);
 
         // Load image info.
-        var illust_info = await image_data.singleton().get_image_info(this.illust_id);
-        if(illust_info.id != this.illust_id)
+        let media_id = this.media_id;
+        var illust_info = await image_data.singleton().get_media_info(this.media_id);
+        if(media_id != this.media_id)
             return;
 
         this.illust_info = illust_info;
@@ -226,7 +227,7 @@ ppixiv.screen_manga = class extends ppixiv.screen
     
     get displayed_media_id()
     {
-        return helpers.illust_id_to_media_id(this.illust_id)[0];
+        return this.media_id;
     }
 
     // Navigating out goes back to the search.
@@ -307,8 +308,13 @@ ppixiv.screen_manga = class extends ppixiv.screen
         thumb.height = size[1];
         
         var link = element.querySelector("a.thumbnail-link");
-        link.href = helpers.get_url_for_id(this.illust_id, page_idx+1);
-        link.dataset.mediaId = helpers.illust_id_to_media_id(this.illust_id, page_idx);
+
+        let id = helpers.parse_media_id(this.media_id);
+        id.page = page_idx;
+        let page_media_id = helpers.encode_media_id(id);
+        link.dataset.mediaId = page_media_id;
+
+        link.href = helpers.get_url_for_id(page_media_id, page_idx+1);
 
         // We don't use intersection checking for the manga view right now.  Mark entries
         // with all of the "image onscreen" tags.
@@ -331,11 +337,11 @@ ppixiv.screen_manga = class extends ppixiv.screen
     {
         // If we saved a scroll position when navigating away from a data source earlier,
         // restore it now.  Only do this once.
-        var scroll_pos = this.scroll_positions_by_illust_id[this.illust_id];
+        var scroll_pos = this.scroll_positions_by_media_id[this.media_id];
         if(scroll_pos != null)
         {
             this.container.scrollTop = scroll_pos;
-            delete this.scroll_positions_by_illust_id[this.illust_id];
+            delete this.scroll_positions_by_media_id[this.media_id];
         }
         else
             this.scroll_to_top();

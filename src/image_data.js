@@ -95,19 +95,12 @@ ppixiv.image_data = class
     // Like get_image_info, but return the result immediately.
     //
     // If the image info isn't loaded, don't start a request and just return null.
-    get_image_info_sync(illust_id)
+    get_image_info_sync(media_id)
     {
+        let [illust_id] = helpers.media_id_to_illust_id_and_page(media_id);
         return this.image_data[illust_id];
     }
     
-    // get_image_info_sync for a media ID.
-    get_media_info_sync(media_id)
-    {
-        let [illust_id] = helpers.media_id_to_illust_id_and_page(media_id);
-        return this.get_image_info_sync(illust_id);
-    }
-
-
     // Load illust_id and all data that it depends on.
     //
     // If we already have the image data (not necessarily the rest, like ugoira_metadata),
@@ -155,7 +148,8 @@ ppixiv.image_data = class
         // If we have thumbnail info, it tells us the user ID.  This lets us start loading
         // user info without waiting for the illustration data to finish loading first.
         // Don't fetch thumbnail info if it's not already loaded.
-        var thumbnail_info = thumbnail_data.singleton().get_one_thumbnail_info(illust_id);
+        let media_id = helpers.illust_id_to_media_id(illust_id);
+        var thumbnail_info = thumbnail_data.singleton().get_one_thumbnail_info(media_id);
         if(thumbnail_info != null)
             start_loading(thumbnail_info.userId, thumbnail_info.illustType, thumbnail_info.pageCount);
     
@@ -465,7 +459,7 @@ ppixiv.image_data = class
 
         // If we know the image isn't bookmarked, we know there are no bookmark tags, so
         // we can skip this.
-        let thumb = await thumbnail_data.singleton().get_or_load_illust_data(media_id, false /* don't load */);
+        let thumb = thumbnail_data.singleton().get_illust_data_sync(media_id);
         if(thumb && thumb.bookmarkData == null)
             return [];
 

@@ -1076,7 +1076,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
     // the search view.
     async _set_temporary_illust(media_id)
     {
-        // Store the illust_id immediately, so it's available without waiting for image
+        // Store the media_id immediately, so it's available without waiting for image
         // info to load.
         this._clicked_media_id = media_id;
 

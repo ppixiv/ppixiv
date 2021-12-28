@@ -45,11 +45,10 @@ ppixiv.viewer_images = class extends ppixiv.viewer
             onnextimage=null,
         }={})
     {
-        let [illust_id, page] = helpers.media_id_to_illust_id_and_page(media_id);
         this.restore_history = restore_history;
 
         this.media_id = media_id;
-        this._page = page;
+        this._page = helpers.parse_media_id(media_id).page;
         this._slideshow = slideshow;
         this._onnextimage = onnextimage;
 
@@ -124,7 +123,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
             return;
 
         // Get the updated illust data.
-        let illust_data = image_data.singleton().get_media_info_sync(this.media_id);
+        let illust_data = image_data.singleton().get_image_info_sync(this.media_id);
         if(illust_data == null)
             return;
 
@@ -226,14 +225,14 @@ ppixiv.viewer_images = class extends ppixiv.viewer
             e.stopPropagation();
             e.preventDefault();
 
-            let [illust_id, page] = helpers.media_id_to_illust_id_and_page(this.media_id);
+            let id = helpers.parse_media_id(this.media_id);
         
             if(e.keyCode == 35)
-                page = this.illust_data.pageCount - 1;
+                id.page = this.illust_data.pageCount - 1;
             else
-                page = 0;
+                id.page = 0;
 
-            let new_media_id = helpers.illust_id_to_media_id(illust_id, page);
+            let new_media_id = helpers.encode_media_id(id);
             main_controller.singleton.show_media(new_media_id);
             return;
         }

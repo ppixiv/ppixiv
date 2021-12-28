@@ -193,18 +193,18 @@ ppixiv.illust_widget = class extends ppixiv.widget
         if(this._media_id != null)
         {
             // See if we have the data the widget wants already.
-            info.thumbnail_data = await thumbnail_data.singleton().get_or_load_illust_data(this._media_id, false /* don't load */);
-            info.illust_data = image_data.singleton().get_media_info_sync(this._media_id);
+            info.thumbnail_data = thumbnail_data.singleton().get_illust_data_sync(this._media_id);
+            info.illust_data = image_data.singleton().get_image_info_sync(this._media_id);
             let load_needed = false;
             switch(this.needed_data)
             {
             case "thumbnail":
-                info.thumbnail_data = await thumbnail_data.singleton().get_or_load_illust_data(this._media_id, false /* don't load */);
+                info.thumbnail_data = thumbnail_data.singleton().get_illust_data_sync(this._media_id);
                 if(info.thumbnail_data == null)
                     load_needed = true;
                 break;
             case "illust_info":
-                info.illust_data = image_data.singleton().get_media_info_sync(this._media_id);
+                info.illust_data = image_data.singleton().get_image_info_sync(this._media_id);
                 if(info.illust_data == null)
                     load_needed = true;
                 break;
@@ -219,7 +219,7 @@ ppixiv.illust_widget = class extends ppixiv.widget
 
             switch(this.needed_data)
             {
-            case "illust_id":
+            case "media_id":
                 break; // nothing
             case "thumbnail":
                 info.thumbnail_data = await thumbnail_data.singleton().get_or_load_illust_data(this._media_id);
@@ -931,7 +931,7 @@ ppixiv.text_prompt = class extends ppixiv.dialog_widget
 // Widget for editing bookmark tags.
 ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
 {
-    get needed_data() { return "illust_id"; }
+    get needed_data() { return "media_id"; }
 
     constructor({...options})
     {
@@ -1449,7 +1449,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
 ppixiv.toggle_dropdown_menu_widget = class extends ppixiv.illust_widget
 {
     // We only need an illust ID and no info.
-    get needed_data() { return "illust_id"; }
+    get needed_data() { return "media_id"; }
 
     constructor({bookmark_tag_widget, require_image=false, ...options})
     {
@@ -1601,7 +1601,7 @@ ppixiv.bookmark_count_widget = class extends ppixiv.illust_widget
 
 ppixiv.like_button_widget = class extends ppixiv.illust_widget
 {
-    get needed_data() { return "illust_id"; }
+    get needed_data() { return "media_id"; }
 
     constructor(options)
     {

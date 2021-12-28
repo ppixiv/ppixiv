@@ -236,8 +236,7 @@ ppixiv.image_ui = class extends ppixiv.widget
 
     get displayed_page()
     {
-        let [illust_id, page] = helpers.media_id_to_illust_id_and_page(this._media_id);
-        return page;
+        return helpers.parse_media_id(this._media_id).page;
     }
 
     handle_onkeydown(e)
@@ -287,7 +286,7 @@ ppixiv.image_ui = class extends ppixiv.widget
 
         var element_title = this.container.querySelector(".title");
         element_title.textContent = illust_info.illustTitle;
-        element_title.href = helpers.get_url_for_id(illust_id);
+        element_title.href = helpers.get_url_for_id(this._media_id);
 
         // If the author name is empty, hide it instead of leaving it empty.
         this.container.querySelector(".author-block").hidden = illust_info.userName == "";

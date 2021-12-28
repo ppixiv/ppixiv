@@ -106,7 +106,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
         this.view_container.hidden = value;
     }
     
-    async set_active(active, { illust_id, page, media_id, data_source, restore_history })
+    async set_active(active, { media_id, data_source, restore_history })
     {
         this._active = active;
         await super.set_active(active);
@@ -135,18 +135,19 @@ ppixiv.screen_illust = class extends ppixiv.screen
         }
 
         this.set_data_source(data_source);
-        this.show_image(illust_id, page, media_id, restore_history);
+        this.show_image(media_id, restore_history);
         
         // Focus the container, so it receives keyboard events like home/end.
         this.container.focus();
     }
 
     // Show an image.
-    async show_image(illust_id, manga_page, media_id, restore_history)
+    async show_image(media_id, restore_history) 
     {
         console.assert(media_id != null);
 
         helpers.set_class(document.body,  "force-ui", unsafeWindow.debug_show_ui);
+        let [illust_id, manga_page] = helpers.media_id_to_illust_id_and_page(media_id);
 
         // Reset the manga page change indicator when we change images.
         this.flashed_page_change = false;
@@ -154,17 +155,15 @@ ppixiv.screen_illust = class extends ppixiv.screen
         // If we previously set a pending navigation, this navigation overrides it.
         this.cancel_async_navigation();
 
-        if(await this.load_first_image(illust_id))
+        if(await this.load_first_image(media_id))
             return;
 
         // Remember that this is the image we want to be displaying.
         this.wanted_media_id = media_id;
-        this.wanted_illust_id = illust_id;
-        this.wanted_illust_page = manga_page;
 
         // If linked tabs are active, send this image.
         if(settings.get("linked_tabs_enabled"))
-            SendImage.send_image(illust_id, manga_page, settings.get("linked_tabs", []), "temp-view");
+            SendImage.send_image(media_id, settings.get("linked_tabs", []), "temp-view");
 
         // Get very basic illust info.  This is enough to tell which viewer to use, how
         // many pages it has, and whether it's muted.  This will always complete immediately
@@ -188,12 +187,12 @@ ppixiv.screen_illust = class extends ppixiv.screen
             return;
         }
 
-        console.log(`Showing image ${illust_id} page ${manga_page}`);
+        console.log(`Showing image ${media_id}`);
 
         helpers.set_title_and_icon(early_illust_data);
         
         // Tell the preloader about the current image.
-        image_preloader.singleton.set_current_image(illust_id, manga_page);
+        image_preloader.singleton.set_current_image(media_id);
 
         // If we adjusted the page, update the URL.  Allow "page" to be 1 or not present for
         // page 1.
@@ -229,10 +228,9 @@ ppixiv.screen_illust = class extends ppixiv.screen
                 let { media_id: new_media_id } =
                     await this.get_navigation(this.latest_navigation_direction_down);
 
-                // Let image_preloader handle speculative loading.  If preload_illust_id is null,
+                // Let image_preloader handle speculative loading.  If new_media_id is null,
                 // we're telling it that we don't need to load anything.
-                let [new_illust_id, new_page] = helpers.media_id_to_illust_id_and_page(new_media_id);
-                image_preloader.singleton.set_speculative_image(new_illust_id, new_page);
+                image_preloader.singleton.set_speculative_image(new_media_id);
             })();
         }
 
@@ -298,32 +296,31 @@ ppixiv.screen_illust = class extends ppixiv.screen
     }
 
     // If we're loading "*", it's a placeholder saying to view the first search result.
-    // This allows viewing shuffled results.  This can be a Pixiv illust_id of *, or
+    // This allows viewing shuffled results.  This can be a Pixiv illust ID of *, or
     // a local ID with a filename of *.  Load the initial data source page if it's not
     // already loaded, and navigate to the first result.
-    async load_first_image(illust_id)
+    async load_first_image(media_id)
     {
-        if(helpers.is_local(illust_id))
+        if(helpers.is_media_id_local(media_id))
         {
             let args = helpers.args.location;
-            local_api.get_args_for_id(illust_id, args);
+            local_api.get_args_for_id(media_id, args);
             if(args.hash.get("file") != "*")
                 return false;
         }
-        else if(illust_id != "*")
+        else if(helpers.parse_media_id(media_id).id != "*")
             return false;
 
         // This will load results if needed, skip folders so we only pick images, and return
         // the first ID.
-        let new_illust_id = await this.data_source.get_or_load_neighboring_illust_id(null, true);
-        if(new_illust_id == null)
+        let new_media_id = await this.data_source.get_or_load_neighboring_media_id(null, true);
+        if(new_media_id == null)
         {
             message_widget.singleton.show("Couldn't find an image to view");
             return true;
         }
 
-        let media_id = helpers.illust_id_to_media_id(new_illust_id);
-        main_controller.singleton.show_media(media_id, {
+        main_controller.singleton.show_media(new_media_id, {
             add_to_history: false,
         });
         return true;
@@ -381,15 +378,13 @@ ppixiv.screen_illust = class extends ppixiv.screen
             this.manga_thumbnails.set_illust_info(null);
         
         this.wanted_media_id = null;
-        this.wanted_illust_id = null;
         this.current_media_id = null;
 
-        this.wanted_illust_page = 0;
         this.refresh_ui();
 
         // Tell the preloader that we're not displaying an image anymore.
-        image_preloader.singleton.set_current_image(null, null);
-        image_preloader.singleton.set_speculative_image(null, null);
+        image_preloader.singleton.set_current_image(null);
+        image_preloader.singleton.set_speculative_image(null);
 
         // If remote quick view is active, cancel it if we leave the image.
         SendImage.send_message({
@@ -417,8 +412,6 @@ ppixiv.screen_illust = class extends ppixiv.screen
         if(!this._active)
             return;
         
-        let [illust_id] = helpers.media_id_to_illust_id_and_page(this.current_media_id);
-
         // Tell the UI which page is being viewed.
         this.ui.media_id = this.current_media_id;
 
@@ -428,12 +421,13 @@ ppixiv.screen_illust = class extends ppixiv.screen
 
         // Update the disable UI button to point at the current image's illustration page.
         var disable_button = this.container.querySelector(".disable-ui-button");
-        disable_button.href = "/artworks/" + illust_id + "#no-ppixiv";
+        let [illust_id] = helpers.media_id_to_illust_id_and_page(this.current_media_id);
+        disable_button.href = `/artworks/${illust_id}#no-ppixiv`;
 
         // If we're not showing an image yet, hide the UI and don't try to update it.
-        helpers.set_class(this.container.querySelector(".ui"), "disabled", illust_id == -1);
+        helpers.set_class(this.container.querySelector(".ui"), "disabled", this.current_media_id == null);
 
-        if(illust_id == -1)
+        if(this.current_media_id == null)
             return;
 
         this.ui.refresh();
@@ -509,36 +503,13 @@ ppixiv.screen_illust = class extends ppixiv.screen
         }
     }
 
-    // Get the illust_id and page navigating down (or up) will go to.
+    // Get the media_id and page navigating down (or up) will go to.
     //
     // This may trigger loading the next page of search results, if we've reached the end.
     async get_navigation(down, { skip_manga_pages=false, loop=false }={})
     {
         // Check if we're just changing pages within the same manga post.
-        let leaving_manga_post = false;
-        if(!skip_manga_pages && this.wanted_media_id != null)
-        {
-            // Using early_illust_data here means we can handle page navigation earlier, if
-            // the user navigates before we have full illust info.
-            let early_illust_data = await thumbnail_data.singleton().get_or_load_illust_data(this.wanted_media_id);
-            let num_pages = early_illust_data.pageCount;
-            if(num_pages > 1)
-            {
-                let id = helpers.parse_media_id(this.wanted_media_id);
-
-                let new_page = id.page + (down? +1:-1);
-                id.page = Math.max(0, Math.min(num_pages - 1, new_page));
-                let new_media_id = helpers.encode_media_id(id);
-
-                if(new_media_id != this.wanted_media_id)
-                    return { media_id: new_media_id };
-
-                // If the page didn't change, we reached the end of the manga post.
-                leaving_manga_post = true;
-            }
-        }
-
-        // If we have a target illust_id, move relative to it.  Otherwise, move relative to the
+        // If we have a target media_id, move relative to it.  Otherwise, move relative to the
         // displayed image.  This way, if we navigate repeatedly before a previous navigation
         // finishes, we'll keep moving rather than waiting for each navigation to complete.
         let navigate_from_media_id = this.wanted_media_id;
@@ -547,13 +518,13 @@ ppixiv.screen_illust = class extends ppixiv.screen
 
         // Get the next (or previous) illustration after the current one.  This will be null if we've
         // reached the end of the list.
-        let new_illust_id = await this.data_source.get_or_load_neighboring_illust_id(navigate_from_media_id, down);
+        let new_media_id = await this.data_source.get_or_load_neighboring_media_id(navigate_from_media_id, down, { skip_manga_pages: skip_manga_pages });
 
         // If we're at the end and we're looping, go to the first (or last) image.
-        if(new_illust_id == null && loop)
-            new_illust_id = down? this.data_source.id_list.get_first_id():this.data_source.id_list.get_last_id();
+        if(new_media_id == null && loop)
+            new_media_id = down? this.data_source.id_list.get_first_id():this.data_source.id_list.get_last_id();
     
-        if(new_illust_id == null)
+        if(new_media_id == null)
             return { };
 
         // If we're moving backwards and not skipping manga pages, we want to go to the last page
@@ -561,13 +532,23 @@ ppixiv.screen_illust = class extends ppixiv.screen
         let page = 0;
         if(!down && !skip_manga_pages)
         {
-            let media_id = helpers.illust_id_to_media_id(new_illust_id);
-            let new_page_info = await thumbnail_data.singleton().get_or_load_illust_data(media_id);
+            let new_page_info = await thumbnail_data.singleton().get_or_load_illust_data(new_media_id);
             page = new_page_info.pageCount - 1;
         }
 
-        let media_id = helpers.illust_id_to_media_id(new_illust_id, page);
-        return { media_id: media_id, leaving_manga_post: leaving_manga_post };
+        // If the media ID changed and we have more than one page, we're leaving a manga post.
+        let leaving_manga_post = false;
+        if(navigate_from_media_id != null)
+        {
+            // Using early_illust_data here means we can handle page navigation earlier, if
+            // the user navigates before we have full illust info.
+            let early_illust_data = await thumbnail_data.singleton().get_or_load_illust_data(navigate_from_media_id);
+            let num_pages = early_illust_data.pageCount;
+            if(num_pages > 1 && helpers.parse_media_id(this.wanted_media_id).id != helpers.parse_media_id(new_media_id).id)
+                leaving_manga_post = true;
+        }
+
+        return { media_id: new_media_id, leaving_manga_post: leaving_manga_post };
     }
 
     // Navigate to the next or previous image.
@@ -597,7 +578,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
         {
             console.log("Reached the end of the list");
             this.flash_end_indicator(down, "last-image");
-            return { illust_id: null, page: null, end: true };
+            return;
         }
 
         // If this.pending_navigation is no longer the same as pending_navigation, we navigated since
@@ -622,7 +603,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
         // If we're confirming leaving a manga post, do that now.  This is done after we load the
         // new page of search results if needed, so we know whether we've actually reached the end
         // and should show the end indicator above instead.
-        if(leaving_manga_post && !this.flashed_page_change && 0)
+        if(leaving_manga_post && !skip_manga_pages && !this.flashed_page_change && 0)
         {
             this.flashed_page_change = true;
             this.flash_end_indicator(down, "last-page");

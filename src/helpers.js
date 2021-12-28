@@ -2301,15 +2301,16 @@ ppixiv.helpers = {
 
     // Return the canonical URL for an illust.  For most URLs this is
     // /artworks/12345.
-    get_url_for_id(illust_id, page=null)
+    get_url_for_id(media_id)
     {
         let args = null;
+        let [illust_id, page] = helpers.media_id_to_illust_id_and_page(media_id);
 
-        if(helpers.is_local(illust_id))
+        if(helpers.is_media_id_local(media_id))
         {
             // URLs for local files are handled differently.
             args = helpers.args.location;
-            local_api.get_args_for_id(illust_id, args);
+            local_api.get_args_for_id(media_id, args);
         }
         else
         {
@@ -2317,7 +2318,7 @@ ppixiv.helpers = {
             args.path  = `/artworks/${illust_id}`;
         }
 
-        if(page != null)
+        if(page != null && page > 1)
             args.query.set("page", page);
 
         return args.url;
@@ -3506,7 +3507,7 @@ ppixiv.guess_image_url = class
         console.assert(type != "folder");
         if(type == "file")
         {
-            let thumb = thumbnail_data.singleton().get_one_media_thumbnail_info(media_id);
+            let thumb = thumbnail_data.singleton().get_one_thumbnail_info(media_id);
             if(thumb?.illustType == "video")
                 return null;
             else
@@ -3514,7 +3515,7 @@ ppixiv.guess_image_url = class
         }
     
         // If we already have illust info, use it.
-        let illust_info = image_data.singleton().get_media_info_sync(media_id);
+        let illust_info = image_data.singleton().get_image_info_sync(media_id);
         if(illust_info != null)
             return illust_info.mangaPages[page].urls.original;
 
@@ -3524,7 +3525,7 @@ ppixiv.guess_image_url = class
             return stored_url;
         
         // Get thumbnail data.  We need the thumbnail URL to figure out the image URL.
-        let thumb = thumbnail_data.singleton().get_one_media_thumbnail_info(media_id);
+        let thumb = thumbnail_data.singleton().get_one_thumbnail_info(media_id);
         if(thumb == null)
             return null;
 
