@@ -153,6 +153,7 @@ ppixiv.settings = class
 
 // Register settings.
 ppixiv.settings.configure("zoom-mode", { sticky: true });
+ppixiv.settings.configure("theme", { default: "dark" });
 ppixiv.settings.configure("zoom-level", { sticky: true });
 ppixiv.settings.configure("linked_tabs", { session: true });
 ppixiv.settings.configure("linked_tabs_enabled", { session: true, default_value: true });

@@ -14,6 +14,9 @@ a {
 
 /* Theme colors: */
 body {
+    --main-background-color: #000;
+    --background-noise: var(--dark-noise);
+
     --button-color: #888;
     --button-highlight-color: #eee;
 
@@ -57,7 +60,10 @@ body {
     --like-button-hover-color: #fff;
 }
 
-body.light {
+body[data-theme="light"] {
+    --main-background-color: #fff;
+    --background-noise: var(--light-noise);
+
     --ui-bg-color: #eee;
     --ui-fg-color: #222;
     --ui-border-color: #ccc;
@@ -166,6 +172,8 @@ textarea:focus, input:focus, a:focus {
     width: 100%;
     height: 100%;
     overflow: hidden;
+    background-color: var(--main-background-color);
+    background-image: var(--background-noise);
 }
 .progress-bar {
     position: absolute;
@@ -545,7 +553,7 @@ textarea:focus, input:focus, a:focus {
 .whats-new-button.updates > svg {
     color: #cc0;
 }
-body.light .whats-new-button.updates > svg {
+body[data-theme="light"] .whats-new-button.updates > svg {
     color: #0aa; /* yellow doesn't work in a light theme */
 }
 
@@ -781,7 +789,7 @@ body.dot canvas.filtering {
     color: #FF0 !important; /* override grey-icon hover color */
 }
 
-body.light .bulb-button:hover > .icon-button {
+body[data-theme="light"] .bulb-button:hover > .icon-button {
     stroke: #000;
 }
 
@@ -812,7 +820,7 @@ body.light .bulb-button:hover > .icon-button {
     max-height: 10em;
     overflow-y: auto;
 }
-body.light .description {
+body[data-theme="light"] .description {
     border: none;
 }
 /* Override obnoxious colors in descriptions.  Why would you allow this? */
@@ -1901,7 +1909,7 @@ a.box-link, span.box-link
         fill: #ff0;
     }
 
-    body.light &
+    body[data-theme="light"] &
     {
         stroke: #aa0;
     }
@@ -2056,7 +2064,7 @@ a.box-link, span.box-link
                 border-right: 10px solid transparent;
             }
 
-            body.light & .tag-dropdown-arrow {
+            body[data-theme="light"] & .tag-dropdown-arrow {
                 border-top-color: #ccc;
             }
         }
@@ -2160,20 +2168,20 @@ a.box-link, span.box-link
                    &.active {
             background-color: #008;
         }
-        body.light &.active {
+        body[data-theme="light"] &.active {
             background-color: #00c;
             color: #fff;
         }
                    &.active:hover {
             background-color: #00a;
         }
-        body.light &.active:hover {
+        body[data-theme="light"] &.active:hover {
             background-color: #00a;
         }
                    &:not(.active):hover {
             background-color: #222;
         }
-        body.light &:not(.active):hover {
+        body[data-theme="light"] &:not(.active):hover {
             background-color: #ccc;
         }
     }
@@ -2502,7 +2510,7 @@ svg.heart-image .delete {
             color: #eee;
             position: relative;
 
-            body.light & {
+            body[data-theme="light"] & {
                 background-color: #ddd;
                 color: #222;
             }
@@ -2533,12 +2541,12 @@ svg.heart-image .delete {
             text-align: center;
             margin-left: 6px;
             border: 1px solid white;
-            body.light & { border-color: #444; }
+            body[data-theme="light"] & { border-color: #444; }
         }
 
         > .submit-button:hover {
             background-color: #444;
-            body.light & { background-color: #aaa; }
+            body[data-theme="light"] & { background-color: #aaa; }
         }
     }
 }
@@ -2553,7 +2561,7 @@ svg.heart-image .delete {
     > a {
         padding: 4px 10px;
         background-color: #444;
-        body.light & {
+        body[data-theme="light"] & {
             background-color: #ccc;
         }
     }

@@ -1546,7 +1546,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         this.set_visible_thumbs();
         this.refresh_images();
 
-        helpers.set_class(document.body, "light", settings.get("theme") == "light");
+        document.body.dataset.theme = settings.get("theme");
         helpers.set_class(document.body, "disable-thumbnail-panning", settings.get("disable_thumbnail_panning"));
         helpers.set_class(document.body, "disable-thumbnail-zooming", settings.get("disable_thumbnail_zooming"));
         helpers.set_class(document.body, "ui-on-hover", settings.get("ui-on-hover"));

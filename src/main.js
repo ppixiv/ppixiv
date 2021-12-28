@@ -163,16 +163,20 @@ ppixiv.main_controller = class
         // Now that we've cleared the document, we can unhide it.
         document.documentElement.hidden = false;
 
-        // Add binary resources as CSS styles.
-        helpers.add_style("noise-background", `body .noise-background { background-image: url("${resources['resources/noise.png']}"); };`);
-        helpers.add_style("light-noise-background", `body.light .noise-background { background-image: url("${resources['resources/noise-light.png']}"); };`);
-        
-        // Add the main CSS style.
-        helpers.add_style("main", resources['resources/main.scss']);
-       
         // Load image resources into blobs.
         await this.load_resource_blobs();
 
+        // Add the blobs for binary resources as CSS variables.
+        helpers.add_style("image-styles", `
+            body {
+                --dark-noise: url("${resources['resources/noise.png']}");
+                --light-noise: url("${resources['resources/noise-light.png']}");
+            }
+        `);
+
+        // Add the main CSS style.
+        helpers.add_style("main", resources['resources/main.scss']);
+       
         // Create the page from our HTML resource.
         let font_link = document.createElement("link");
         font_link.href = "https://fonts.googleapis.com/icon?family=Material+Icons";
