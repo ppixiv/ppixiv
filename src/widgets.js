@@ -1354,17 +1354,15 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
             },
 
             edit_inpainting: () => {
-                return new menu_option_button({
+                return new menu_option_toggle({
                     ...shared_options,
                     label: "Edit image",
                     icon: helpers.create_icon("brush", "16px"),
                     hide_if_unavailable: true,
+                    setting: "image_editing",
                     requires: ({media_id}) => {
                         return media_id != null && helpers.is_media_id_local(media_id);
                     },
-                    onclick: () => {
-                        settings.set("image_editing", !settings.get("image_editing", false));
-                    }
                 });
             },
 
