@@ -673,14 +673,14 @@ ppixiv.avatar_widget = class extends widget
 
     async refresh()
     {
-        if(this.user_id == null)
+        if(this.user_id == null || this.user_id == -1)
         {
             this.user_data = null;
             this.container.classList.add("loading");
 
             // Set the avatar image to a blank image, so it doesn't flash the previous image
             // the next time we display it.  It should never do this, since we set a new image
-            // before displaying it, but Chrome doesn't do this correctly at least with Canvas.
+            // before displaying it, but Chrome doesn't do this correctly at least with canvas.
             this.img.src = helpers.blank_image;
             return;
         }
