@@ -1342,6 +1342,8 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                             no_icon_padding: true,
 
                             onclick: (e) => {
+                                e.stopPropagation();
+
                                 main_controller.singleton.link_tabs_popup.visible = true;
                                 this.parent.hide();
                                 return true;
