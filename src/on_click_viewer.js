@@ -949,21 +949,11 @@ ppixiv.on_click_viewer = class
         
         let animation = this.prepare_animation(this.slideshow_enabled? default_pan_with_fade:default_pan);
 
-        // If the max speed is very low, the image fits the window very closely, so there's no room
-        // to pan.  If this is a portrait image and we're in slideshow mode, switch to a zoom.  This
-        // mostly applies if you're on a portrait monitor and displaying a portrait image, so most
-        // people won't see this.  It doesn't really make sense in landscape, since we don't know
-        // where to pull in, but it usually works for portrait images.
-        // switches too often
-        // - only do it if we're panning vertically?
-        if(this.slideshow_enabled && animation.max_speed < 0.005 && 1)
-        {
-            // We only need to look at the window aspect ratio, since when this happens the image and
-            // the window have roughly the same AR.
-            let aspect_ratio = this.container_width / this.container_height;
-            if(aspect_ratio < 1)
-                animation = this.prepare_animation(pull_in_with_fade);
-        }
+        // If the image's aspect ratio is very close to the screen's, a pan animation has nowhere to
+        // go.  If we're in slideshow mode, switch to a zoom.  This
+        let image_screen_ratio = (this.cropped_width/this.cropped_height) / (this.container_width/this.container_height);
+        if(this.slideshow_enabled && Math.abs(image_screen_ratio - 1) < 0.05)
+            animation = this.prepare_animation(pull_in_with_fade);
 
         this.run_animation(animation);
     }
