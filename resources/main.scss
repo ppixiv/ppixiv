@@ -133,12 +133,8 @@ ul {
 
     // Let the browser know about our dynamic zooming and panning.  This prevents Chrome from baking the
     // resize when it doesn't change for a while, which causes a big hitch the next time we zoom. */
-    //
-    // This is disabled for now, since it seemed to be triggering a weird bug in Chrome that caused
-    // it to display the full-res images as if they had been scaled down to the size of the preview
-    // image.
     > .image-box {
-        // will-change: transform;
+        will-change: transform, opacity;
     }
 }
 
