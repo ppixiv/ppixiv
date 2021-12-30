@@ -1820,9 +1820,11 @@ ppixiv.screen_search = class extends ppixiv.screen
         return this.container.querySelectorAll(`.thumbnails > [data-id][data-nearby]:not([data-special])`);
     }
 
-    // Get a given number of thumb that should be loaded, starting with thumbs that are onscreen
-    // and working outwards until we have enough.
-    get_thumbs_to_load(count=100)
+    // Return media IDs that need thumbnail data loaded.
+    //
+    // Most data sources provide thumbnail data with the IDs.  For those, this will never return
+    // anything, since everything's already loaded.
+    get_thumbs_to_load()
     {
         // If the container has a zero height, that means we're hidden and we don't want to load
         // thumbnail data at all.
@@ -1830,53 +1832,24 @@ ppixiv.screen_search = class extends ppixiv.screen
             return [];
 
         let results = [];
-        let add_element = (element) =>
+        let onscreen_thumbs = this.container.querySelectorAll(`.thumbnails > [data-id][data-nearby]`);
+        for(let element of onscreen_thumbs)
         {
-            if(element == null)
-                return;
-
             let media_id = element.dataset.id;
             if(media_id == null)
-                return;
+                continue;
 
             let { type } = helpers.parse_media_id(media_id);
             if(type == "user")
-                return;
+                continue;
 
             // Skip this thumb if it's already loading.
             if(thumbnail_data.singleton().is_media_id_loaded_or_loading(media_id))
-            {
-                console.log("-");
-                return;
-            }
+                continue;
 
             results.push(media_id);
         }
         
-        let onscreen_thumbs = this.container.querySelectorAll(`.thumbnails > [data-id][data-fully-on-screen]`);
-        if(onscreen_thumbs.length == 0)
-            return [];
-
-        // First, add all thumbs that are onscreen, so these are prioritized.
-        for(let thumb of onscreen_thumbs)
-            add_element(thumb);
-
-        // Walk forwards and backwards around the initial results.
-        let forwards = onscreen_thumbs[onscreen_thumbs.length-1];
-        let backwards = onscreen_thumbs[0];
-        while(forwards || backwards)
-        {
-            if(results.length >= count)
-                break;
-            if(forwards)
-                forwards = forwards.nextElementSibling;
-            if(backwards)
-                backwards = backwards.previousElementSibling;
-
-            add_element(forwards);
-            add_element(backwards);
-        }
-
         return results;
     }
 
