@@ -60,6 +60,15 @@ body {
     --like-button-hover-color: #fff;
 }
 
+body[data-theme="dark"]
+{
+    // Disable the lighter background noise when displaying an image.
+    &[data-current-view="illust"] {
+        --background-noise: "";
+    }
+}
+
+
 body[data-theme="light"] {
     --main-background-color: #fff;
     --background-noise: var(--light-noise);
