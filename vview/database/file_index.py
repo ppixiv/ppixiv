@@ -109,7 +109,7 @@ class FileIndex(Database):
                     conn.execute(f'''
                         CREATE TABLE {self.schema}.file_keywords(
                             file_id NOT NULL,
-                            keyword NOT NULL,
+                            keyword TEXT NOT NULL,
                             FOREIGN KEY(file_id) REFERENCES files(id) ON DELETE CASCADE
                         )
                     ''')
