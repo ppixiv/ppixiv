@@ -521,9 +521,10 @@ class FileIndex(Database):
                 where.append('files.id = %s.file_id' % alias)
 
                 # We need to lowercase the string ourself and not say "GLOB lower(?)" for this
-                # to use the keyword index.
+                # to use the keyword index.  Use a prefix match, which can still use the keyword
+                # index.
                 where.append('lower(%s.keyword) GLOB ?' % alias)
-                params.append(word.lower())
+                params.append(word.lower() + '*')
 
         if order is None:
             order = ''
