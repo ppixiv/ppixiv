@@ -87,7 +87,7 @@ def _save_directory_metadata_locked(directory_path, data):
         return
 
     data = {
-        'identifier': 'ppixivmetadatafile',
+        'identifier': 'vviewmetadatafile',
         'version': 1,
         'data': data,
     }
