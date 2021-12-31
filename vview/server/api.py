@@ -33,6 +33,10 @@ class RequestInfo:
         self.base_url = base_url
         self.manager = request.app['manager']
 
+def _get_id_for_entry(manager, entry):
+    public_path = manager.library.get_public_path(entry['path'])
+    return '%s:%s' % ('folder' if entry['is_directory'] else 'file', public_path)
+
 # Get info for illust_id.
 def get_illust_info(info, entry, base_url):
     """
@@ -42,9 +46,7 @@ def get_illust_info(info, entry, base_url):
     if not info.manager.check_path(entry['path'], info.request):
         return None
     
-    public_path = info.manager.library.get_public_path(entry['path'])
-
-    illust_id = '%s:%s' % ('folder' if entry['is_directory'] else 'file', public_path)
+    illust_id = _get_id_for_entry(info.manager, entry)
     is_animation = entry.get('animation')
 
     # The timestamp to use for URLs affected only by the image time:
@@ -275,7 +277,7 @@ def api_ids_impl(info):
     # If we're not searching and listing the root, just list the libraries.
     if str(path) == '/':
         for entry in info.manager.library.get_mountpoint_entries():
-            illust_id = 'folder:' + entry['path']
+            illust_id = _get_id_for_entry(info.manager, entry)
             illust_ids.append(illust_id)
 
         return illust_ids
