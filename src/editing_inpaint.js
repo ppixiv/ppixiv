@@ -160,15 +160,10 @@ ppixiv.InpaintEditor = class extends ppixiv.widget
 
     shutdown()
     {
-        // Signal shutdown_signal to remove event listeners.
-        console.assert(this.shutdown_signal != null);
-        this.shutdown_signal.abort();
-        this.shutdown_signal = null;
+        super.shutdown();
 
         // Clear lines when shutting down so we remove their event listeners.
         this.clear();
-
-        this.container.remove();
     }
 
     // This is called when the ImageEditingOverlayContainer changes.

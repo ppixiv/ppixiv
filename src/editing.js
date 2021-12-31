@@ -39,7 +39,6 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
             parent: this,
         });
 
-        this.shutdown_signal = new AbortController();
         this.onvisibilitychanged = onvisibilitychanged;
         this._dirty = false;
         this.editing_media_id = null;
@@ -119,15 +118,10 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
 
     shutdown()
     {
-        // Signal shutdown_signal to remove event listeners.
-        console.assert(this.shutdown_signal != null);
-        this.shutdown_signal.abort();
-        this.shutdown_signal = null;
-
         this.crop_editor.shutdown();
         this.inpaint_editor.shutdown();
 
-        this.container.remove();
+        super.shutdown();
     }
 
     visibility_changed()

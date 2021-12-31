@@ -13,6 +13,7 @@ ppixiv.widget = class
     {
         this.options = options;
         this.templates = {};
+        this.shutdown_signal = new AbortController();
 
         // We must have either a template or contents.
         if(template)
@@ -90,6 +91,16 @@ ppixiv.widget = class
         this.refresh_visibility();
 
         this.visibility_changed();
+    }
+
+    shutdown()
+    {
+        // Signal shutdown_signal to remove event listeners.
+        console.assert(this.shutdown_signal != null);
+        this.shutdown_signal.abort();
+        this.shutdown_signal = null;
+
+        this.container.remove();
     }
 
     // Show or hide the widget.
