@@ -5,10 +5,12 @@
 // We always load the user data for an illustration if it's not already loaded.  We also
 // load ugoira_metadata.  This way, we can access all the info we need for an image in
 // one place, without doing multi-phase loads elsewhere.
-ppixiv.image_data = class
+ppixiv.image_data = class extends EventTarget
 {
     constructor()
     {
+        super();
+        
         this.loaded_user_info = this.loaded_user_info.bind(this);
 
         this.illust_modified_callbacks = new callback_list();
@@ -41,11 +43,19 @@ ppixiv.image_data = class
     {
         console.log("User modified:", user_id);
         this.user_modified_callbacks.call(user_id);
+
+        let event = new Event("usermodified");
+        event.user_id = user_id;
+        this.dispatchEvent(event);
     }
 
     call_illust_modified_callbacks(media_id)
     {
         this.illust_modified_callbacks.call(media_id);
+
+        let event = new Event("mediamodified");
+        event.media_id = media_id;
+        this.dispatchEvent(event);
     }
 
     // Get media data asynchronously.
