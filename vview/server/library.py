@@ -41,6 +41,17 @@ from ..database.file_index import FileIndex
 from ..util.paths import open_path, PathBase
 from ..util.misc import TransientWriteConnection
 
+def _create_natsort():
+    """
+    Create our natural sort key.
+    """
+    # We only need to create the natsort key function once.
+    natsort_key = natsort.natsort_keygen(alg=natsort.IGNORECASE)
+    def key(entry):
+        return not entry.is_dir(), *natsort_key(entry.stem)
+
+    return key
+
 # Sort orders that we can use for listing and searching.
 #
 # Search sorts need to be handled in three places: our database, Windows search, and directly
@@ -89,7 +100,7 @@ sort_orders = {
     # This isn't supported for searching, but it's mostly useful for viewing single directories.
     # This is the default sort for Library.list.
     'natural': {
-        'fs': lambda entry: (not entry.is_dir(), *natsort.natsort_key(entry.stem)),
+        'fs': _create_natsort(),
     }
 }
 
