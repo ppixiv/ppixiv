@@ -135,10 +135,8 @@ class FileIndex(Database):
 
     @classmethod
     def split_keywords(self, filename):
-        keywords = re.split(r'([a-z0-9]+)', filename, flags=re.IGNORECASE)
-        keywords = { keyword.strip() for keyword in keywords }
-        keywords -= { '.', '' }
-        return keywords
+        keywords = re.findall(r'[\w\d]+', filename, flags=re.IGNORECASE)
+        return set(keywords)
 
     @property
     def keyword_fields(self):
