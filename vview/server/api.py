@@ -221,9 +221,42 @@ async def api_bookmark_tags(info):
 @reg('/illust/{type:[^:]+}:{path:.+}')
 async def api_illust(info):
     path = PurePosixPath(info.request.match_info['path'])
-    absolute_path = info.manager.resolve_path(path)
     generate_inpaint = info.data.get('generate_inpaint', True)
+    illust_info = await _get_api_illust_info(info, path, generate_inpaint=generate_inpaint)
+    return {
+        'success': True,
+        'illust': illust_info,
+    }
 
+# Batch retrieve info about files.
+@reg('/illusts')
+async def api_illust(info):
+    media_ids = info.data.get('ids', [])
+
+    results = []
+    for media_id in media_ids:
+        # Get the path from the media ID.
+        parts = media_id.split(':', 1)
+        if len(parts) < 2:
+            continue
+        path = parts[1]
+
+        try:
+            media_info = await _get_api_illust_info(info, path)
+        except misc.Error as e:
+            # Ignore errors for individual files.
+            print('Error loading %s: %s' % (media_id, e))
+            continue
+
+        results.append(media_info)
+
+    return {
+        'success': True,
+        'results': results,
+    }
+    
+async def _get_api_illust_info(info, media_id, *, generate_inpaint=False):
+    absolute_path = info.manager.resolve_path(media_id)
     entry = info.manager.library.get(absolute_path)
     if entry is None:
         raise misc.Error('not-found', 'File not in library')
@@ -243,10 +276,7 @@ async def api_illust(info):
         # inpaint file exists.
         info.manager.library.get(absolute_path, force_refresh=True)
 
-    return {
-        'success': True,
-        'illust': illust_info,
-    }
+    return illust_info
 
 @reg('/ids/{type:[^:]+}:{path:.+}')
 async def api_ids(info):
