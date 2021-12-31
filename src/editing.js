@@ -343,14 +343,14 @@ ppixiv.ImageEditingOverlayContainer = class extends HTMLElement
         `;
         this.shadowRoot.append(style);
 
-        this.attributeChangedCallback("image_src", null, this.getAttribute("image_src"));
-        this.attributeChangedCallback("inpaint_src", null, this.getAttribute("inpaint_src"));
+        this.setAttribute("image_src", "");
+        this.setAttribute("inpaint_src", "");
     }
 
     set_image_urls(image_url, inpaint_url)
     {
-        this.image_src = image_url;
-        this.inpaint_src = inpaint_url;
+        this.image_src = image_url || "";
+        this.inpaint_src = inpaint_url || "";
     }
 
     _onload(e)
@@ -368,9 +368,9 @@ ppixiv.ImageEditingOverlayContainer = class extends HTMLElement
     // Set the image URLs.  If set to null, use a blank image instead so we don't trigger
     // load errors.
     get image_src() { return this.getAttribute("image_src"); }
-    set image_src(value) { this.setAttribute("image_src", value || helpers.blank_image); }
+    set image_src(value) { this.setAttribute("image_src", value); }
     get inpaint_src() { return this.getAttribute("inpaint_src"); }
-    set inpaint_src(value) { this.setAttribute("inpaint_src", value || helpers.blank_image); }
+    set inpaint_src(value) { this.setAttribute("inpaint_src", value); }
 
     get complete()
     {
@@ -384,6 +384,8 @@ ppixiv.ImageEditingOverlayContainer = class extends HTMLElement
 
     attributeChangedCallback(name, oldValue, newValue)
     {
+        if(newValue == "")
+            newValue = helpers.blank_image;
         if(name == "image_src")
             this._main_img.src = newValue;
         if(name == "inpaint_src")
