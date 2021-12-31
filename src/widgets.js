@@ -167,7 +167,7 @@ ppixiv.illust_widget = class extends ppixiv.widget
         super(options);
 
         // Refresh when the image data changes.
-        image_data.singleton().illust_modified_callbacks.register(this.refresh.bind(this));
+        image_data.singleton().addEventListener("mediamodified", this.refresh.bind(this), { signal: this.shutdown_signal.signal });
     }
 
     // The data this widget needs.  This can be illust_id (nothing but the ID), illust_info,
