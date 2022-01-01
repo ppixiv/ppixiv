@@ -406,6 +406,12 @@ ppixiv.screen_search = class extends ppixiv.screen
             big: true,
             mode: "dropdown",
         });
+
+        this.scroll_container.addEventListener("scroll", (e) => {
+            this.schedule_store_scroll_position();
+        }, {
+            passive: true,
+        });
         
         // Create the tag widget used by the search data source.
         this.tag_widget = new tag_widget({
@@ -818,6 +824,9 @@ ppixiv.screen_search = class extends ppixiv.screen
 
         this.data_source = data_source;
 
+        // Cancel any async scroll restoration if the data source changes.
+        this.cancel_restore_scroll_pos();
+
         if(this.data_source == null)
             return;
         
@@ -1159,27 +1168,12 @@ ppixiv.screen_search = class extends ppixiv.screen
         return null;
     };
 
-    async set_active(active, { data_source, old_media_id, navigation_cause })
+    async set_active(active, { data_source, old_media_id })
     {
         if(this._active == active && this.data_source == data_source)
             return;
 
-        let was_active = this._active;
         this._active = active;
-
-        // We're either becoming active or inactive, or our data source is being changed.
-        // Store our scroll position on the data source, so we can restore it if it's
-        // reactivated.  There's only one instance of thumbnail_view, so this is safe.
-        // Only do this if we were previously active, or we're hidden and scrollTop may
-        // be 0.
-        if(was_active && this.data_source)
-        {
-            this.data_source.search_view_state = {
-                nearby_media_ids: this.get_nearby_media_ids(),
-                saved_scroll: this.save_scroll_position(),
-            };
-            console.log("Storing search view state:", this.data_source.search_view_state);
-        }
 
         await super.set_active(active);
         
@@ -1207,9 +1201,7 @@ ppixiv.screen_search = class extends ppixiv.screen
             // will force it to be included in the displayed results.
             this.refresh_images({ forced_media_id: old_media_id });
 
-            this.restore_scroll_pos(old_media_id, navigation_cause);
-
-            this.data_source.search_view_state = null;
+            this.restore_scroll_pos(old_media_id);
 
             // If we were displaying an image, pulse it to make it easier to find your place.
             if(old_media_id)
@@ -1220,13 +1212,15 @@ ppixiv.screen_search = class extends ppixiv.screen
         else
         {
             this.stop_pulsing_thumbnail();
-
+            this.cancel_restore_scroll_pos();
             main_context_menu.get.user_id = null;
         }
     }
 
-    restore_scroll_pos(old_media_id, navigation_cause)
+    async restore_scroll_pos(old_media_id)
     {
+        let restore_scroll_pos_id = this.restore_scroll_pos_id = new Object();
+
         // Handle scrolling for the new state.
         if(old_media_id != null)
         {
@@ -1239,26 +1233,55 @@ ppixiv.screen_search = class extends ppixiv.screen
             }
         }
 
-        if(navigation_cause == "navigation")
+        let args = helpers.args.location;
+        if(args.state.scroll_position == null)
         {
-            // If this is an initial navigation, eg. from a user clicking a link to a search, always
-            // scroll to the top.  If this data source exists previously in history, we don't want to
-            // restore the scroll position from back then.
             console.log("Scroll to top for new search");
             this.scroll_container.scrollTop = 0;
+            return;
         }
-        else if(this.data_source.search_view_state != null)
+        
+        // If we're restoring from history, we need to wait for the data source to finish the
+        // initial page load and thumbs to be created before we can scroll to them.
+        if(this.data_source)
+            await this.data_source.load_page(this.data_source.initial_page, { cause: "initial scroll" });
+
+        // Stop if restore_scroll_pos was called again while we were waiting, or if we
+        // were cancelled.
+        if(restore_scroll_pos_id !== this.restore_scroll_pos_id && !this._active)
+            return;
+            
+        if(this.restore_scroll_position(args.state.scroll_position))
+            console.log("Restored scroll position from history");
+    }
+
+    // Schedule storing the scroll position, resetting the timer if it's already running.
+    schedule_store_scroll_position()
+    {
+        if(this.scroll_position_timer != -1)
         {
-            // If we saved a scroll position when navigating away from a data source earlier,
-            // restore it.
-            console.log("restore to:", this.data_source.search_view_state.saved_scroll);
-            this.restore_scroll_position(this.data_source.search_view_state.saved_scroll);
+            clearTimeout(this.scroll_position_timer);
+            this.scroll_position_timer = -1;
         }
-        else
-        {
-            console.log("Scroll to top (default)");
-            this.scroll_container.scrollTop = 0;
-        }
+
+        this.scroll_position_timer = setTimeout(() => {
+            this.store_scroll_position();
+        }, 100);
+    }
+
+    // Save the current scroll position, so it can be restored from history.
+    store_scroll_position()
+    {
+        let args = helpers.args.location;
+        args.state.scroll_position = this.save_scroll_position();
+        args.state.nearby_media_ids = this.get_nearby_media_ids();
+        helpers.set_page_url(args, false, "viewing-page", { send_popstate: false });
+    }
+
+    // Cancel any call to restore_scroll_pos that's waiting for data.
+    cancel_restore_scroll_pos()
+    {
+        this.restore_scroll_pos_id = null;
     }
 
     get active()
@@ -1340,11 +1363,11 @@ ppixiv.screen_search = class extends ppixiv.screen
 
         // If we're restoring a scroll position, use the nearby media IDs that we
         // saved when we left, so we load the same range.
-        let nearby_media_ids = this.data_source.search_view_state?.nearby_media_ids;
-        if(nearby_media_ids)
+        let args = helpers.args.location;
+        if(args.state.nearby_media_ids)
         {
-            first_nearby_media_id = nearby_media_ids[0];
-            last_nearby_media_id = nearby_media_ids[1];
+            first_nearby_media_id = args.state.nearby_media_ids[0];
+            last_nearby_media_id = args.state.nearby_media_ids[1];
         }
 
         // The indices of each related media_id.  These can all be -1.  Note that it's
@@ -1762,14 +1785,15 @@ ppixiv.screen_search = class extends ppixiv.screen
     restore_scroll_position(scroll)
     {
         if(scroll == null)
-            return;
+            return false;
 
         // Find the thumbnail for the media_id the scroll position was saved at.
         let restore_scroll_position_node = this.scroll_container.querySelector(`[data-id="${helpers.escape_selector(scroll.media_id)}"]`);
         if(restore_scroll_position_node == null)
-            return;
+            return false;
 
         helpers.restore_scroll_position(this.scroll_container, restore_scroll_position_node, scroll.saved_scroll);
+        return true;
     }
 
     update_from_settings()

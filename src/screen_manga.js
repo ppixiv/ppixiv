@@ -18,6 +18,12 @@ ppixiv.screen_manga = class extends ppixiv.screen
 
         this.scroll_container = this.container.querySelector(".search-results");
 
+        this.scroll_container.addEventListener("scroll", (e) => {
+            this.schedule_store_scroll_position();
+        }, {
+            passive: true,
+        });
+
         // If the "view muted image" button is clicked, add view-muted to the URL.
         this.container.querySelector(".view-muted-image").addEventListener("click", (e) => {
             let args = helpers.args.location;
@@ -31,7 +37,6 @@ ppixiv.screen_manga = class extends ppixiv.screen
             parent: this,
             progress_bar: this.progress_bar,
         });
-        this.scroll_positions_by_media_id = {};
         
         image_data.singleton().user_modified_callbacks.register(this.refresh_ui);
         image_data.singleton().illust_modified_callbacks.register(this.refresh_ui);
@@ -74,17 +79,13 @@ ppixiv.screen_manga = class extends ppixiv.screen
         this.refresh_ui();
     }
 
-    async set_active(active, { media_id, old_media_id, navigation_cause })
+    async set_active(active, { media_id, old_media_id })
     {
         if(this._active == active && this.media_id == media_id)
             return;
 
         let was_active = this._active;
         this._active = active;
-
-        // If we're being deactivated, save the scroll position for the image we were on.
-        if(was_active && this.media_id)
-            this.scroll_positions_by_media_id[this.media_id] = this.scroll_container.scrollTop;
 
         if(this.media_id != media_id)
         {
@@ -121,13 +122,13 @@ ppixiv.screen_manga = class extends ppixiv.screen
         
         // The rest of the load happens async.  Although we're already in an async
         // function, it should return without waiting for API requests.
-        this.async_set_image(old_media_id, navigation_cause);
+        this.async_set_image(old_media_id);
 
         // Focus the container, so it receives keyboard events like home/end.
         this.container.querySelector(".search-results").focus();
     }
     
-    async async_set_image(old_media_id, navigation_cause)
+    async async_set_image(old_media_id)
     {
         console.log("Loading manga screen for:", this.media_id);
 
@@ -141,7 +142,7 @@ ppixiv.screen_manga = class extends ppixiv.screen
 
         await this.refresh_ui();
 
-        this.restore_scroll_pos(old_media_id, navigation_cause)
+        this.restore_scroll_pos(old_media_id)
     }
 
     get view_muted()
@@ -337,7 +338,8 @@ ppixiv.screen_manga = class extends ppixiv.screen
 
         return element;
     }
-    restore_scroll_pos(old_media_id, navigation_cause)
+
+    restore_scroll_pos(old_media_id)
     {
         // Handle scrolling for the new state.
         if(old_media_id != null)
@@ -351,26 +353,39 @@ ppixiv.screen_manga = class extends ppixiv.screen
             }
         }
 
-        console.error("restore for", this.media_id, this.scroll_positions_by_media_id[this.media_id]);
-        if(navigation_cause == "navigation")
+        let args = helpers.args.location;
+        if(args.state.scroll_position == null)
         {
-            // If this is an initial navigation, eg. from a user clicking a link to a search, always
-            // scroll to the top.  If this data source exists previously in history, we don't want to
-            // restore the scroll position from back then.
             console.log("Scroll to top for new search");
             this.container.scrollTop = 0;
+            return;
         }
-        else if(this.scroll_positions_by_media_id[this.media_id])
+
+        // Restore the scroll position from history.
+        this.scroll_container.scrollTop = args.state.scroll_position;
+    }
+
+    // Schedule storing the scroll position, resetting the timer if it's already running.
+    schedule_store_scroll_position()
+    {
+        if(this.scroll_position_timer != -1)
         {
-            // If we saved a scroll position when navigating away from a data source earlier,
-            // restore it.
-            this.scroll_container.scrollTop = this.scroll_positions_by_media_id[this.media_id];
-            delete this.scroll_positions_by_media_id[this.media_id];
+            clearTimeout(this.scroll_position_timer);
+            this.scroll_position_timer = -1;
         }
-        else
-        {
-            this.scroll_container.scrollTop = 0;
-        }
+
+        this.scroll_position_timer = setTimeout(() => {
+            this.store_scroll_position();
+        }, 100);
+    }
+
+    // Save the current scroll position, so it can be restored from history.
+    store_scroll_position()
+    {
+        let args = helpers.args.location;
+        args.state.scroll_position = this.scroll_container.scrollTop;
+        console.log(args.state);
+        helpers.set_page_url(args, false, "viewing-page", { send_popstate: false });
     }
 
     scroll_to_media_id(media_id)

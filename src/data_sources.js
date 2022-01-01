@@ -304,6 +304,7 @@ ppixiv.data_source = class
         this.id_list = new illust_id_list();
         this.update_callbacks = [];
         this.loading_pages = {};
+        this.loaded_pages = {};
         this.first_empty_page = -1;
         this.update_callbacks = [];
 
@@ -411,14 +412,17 @@ ppixiv.data_source = class
     // call callback.  Otherwise, return true.
     load_page(page, { cause }={})
     {
-        var result = this.loading_pages[page];
+        // Note that we don't remove entries from loading_pages when they finish, so
+        // future calls to load_page will still return a promise for that page that will
+        // resolve immediately.
+        let result = this.loaded_pages[page] || this.loading_pages[page];
         if(result == null)
         {
-            var result = this._load_page_async(page, cause);
+            result = this._load_page_async(page, cause);
             this.loading_pages[page] = result;
             result.finally(() => {
-                // console.log("finished loading page", page);
                 delete this.loading_pages[page];
+                this.loaded_pages[page] = result;
             });
         }
 
@@ -430,7 +434,7 @@ ppixiv.data_source = class
     {
         if(this.id_list.is_page_loaded(page))
             return true;
-        if(this.loading_pages[page])
+        if(this.loaded_pages[page] || this.loading_pages[page])
             return true;
         return false;
     }

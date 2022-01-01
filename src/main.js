@@ -123,7 +123,6 @@ ppixiv.main_controller = class
         window.addEventListener("keydown", this.onkeydown);
 
         this.current_screen_name = null;
-        this.current_history_index = helpers.current_history_state_index();
 
         // If the URL hash doesn't start with #ppixiv, the page was loaded with the base Pixiv
         // URL, and we're active by default.  Add #ppixiv to the URL.  If we don't do this, we'll
@@ -341,11 +340,6 @@ ppixiv.main_controller = class
         if(old_screen != null && old_screen != new_screen)
             await old_screen.set_active(false, { });
 
-        // Are we navigating forwards or back?
-        let new_history_index = helpers.current_history_state_index();
-        let navigating_forwards = cause == "history" && new_history_index > this.current_history_index;
-        this.current_history_index = new_history_index;
-
         if(new_screen != null)
         {
             // Restore state from history if this is an initial load (which may be
@@ -358,13 +352,8 @@ ppixiv.main_controller = class
                 data_source: data_source,
                 media_id: media_id,
 
-                // For scroll position restoration:
-                navigation_cause: cause,
-                navigating_forwards: navigating_forwards,
-
                 // Let the screen know what ID we were previously viewing, if any.
                 old_media_id: old_media_id,
-                navigation_cause: cause,
                 restore_history: restore_history,
             });
         }
