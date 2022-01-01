@@ -74,8 +74,18 @@ ppixiv.screen_manga = class extends ppixiv.screen
         this.refresh_ui();
     }
 
-    async set_active(active, { media_id })
+    async set_active(active, { media_id, old_media_id, navigation_cause })
     {
+        if(this._active == active && this.media_id == media_id)
+            return;
+
+        let was_active = this._active;
+        this._active = active;
+
+        // If we're being deactivated, save the scroll position for the image we were on.
+        if(was_active && this.media_id)
+            this.scroll_positions_by_media_id[this.media_id] = this.scroll_container.scrollTop;
+
         if(this.media_id != media_id)
         {
             // The load itself is async and might not happen immediately if we don't have page info yet.
@@ -93,10 +103,6 @@ ppixiv.screen_manga = class extends ppixiv.screen
 
         if(this._active && !active)
         {
-            // Save the old scroll position.
-            if(this.media_id != null)
-                this.scroll_positions_by_media_id[this.media_id] = this.container.scrollTop;
-
             // Hide the dropdown tag widget.
             this.ui.bookmark_tag_widget.visible = false;
 
@@ -115,13 +121,13 @@ ppixiv.screen_manga = class extends ppixiv.screen
         
         // The rest of the load happens async.  Although we're already in an async
         // function, it should return without waiting for API requests.
-        this.async_set_image();
+        this.async_set_image(old_media_id, navigation_cause);
 
         // Focus the container, so it receives keyboard events like home/end.
         this.container.querySelector(".search-results").focus();
     }
-
-    async async_set_image()
+    
+    async async_set_image(old_media_id, navigation_cause)
     {
         console.log("Loading manga screen for:", this.media_id);
 
@@ -134,6 +140,8 @@ ppixiv.screen_manga = class extends ppixiv.screen
         this.illust_info = illust_info;
 
         await this.refresh_ui();
+
+        this.restore_scroll_pos(old_media_id, navigation_cause)
     }
 
     get view_muted()
@@ -195,7 +203,7 @@ ppixiv.screen_manga = class extends ppixiv.screen
         let thumbnail_size = settings.get("manga-thumbnail-size", 4);
         thumbnail_size = thumbnail_size_slider_widget.thumbnail_size_for_value(thumbnail_size);
 
-        this.thumbnail_dimensions_style.textContent = helpers.make_thumbnail_sizing_style(ul, ".screen-manga-container", {
+        let [css, column_count] = helpers.make_thumbnail_sizing_style(ul, ".screen-manga-container", {
             wide: true,
             size: thumbnail_size,
             ratio: ratio,
@@ -204,6 +212,8 @@ ppixiv.screen_manga = class extends ppixiv.screen
             // can allow a high column count and just let the size take over.
             max_columns: 15,
         });
+
+        this.thumbnail_dimensions_style.textContent = css;
 
         for(var page = 0; page < this.illust_info.mangaPages.length; ++page)
         {
@@ -327,42 +337,56 @@ ppixiv.screen_manga = class extends ppixiv.screen
 
         return element;
     }
-
-    scroll_to_top()
+    restore_scroll_pos(old_media_id, navigation_cause)
     {
-        // Read offsetHeight to force layout to happen.  If we don't do this, setting scrollTop
-        // sometimes has no effect in Firefox.
-        this.container.offsetHeight;
-        this.container.scrollTop = 0;
-    }
-
-    restore_scroll_position()
-    {
-        // If we saved a scroll position when navigating away from a data source earlier,
-        // restore it now.  Only do this once.
-        var scroll_pos = this.scroll_positions_by_media_id[this.media_id];
-        if(scroll_pos != null)
+        // Handle scrolling for the new state.
+        if(old_media_id != null)
         {
-            this.container.scrollTop = scroll_pos;
+            // If we're navigating backwards or toggling, and we're switching from the image UI to thumbnails,
+            // try to scroll the search screen to the image that was displayed.
+            if(this.scroll_to_media_id(old_media_id))
+            {
+                console.log("Restored scroll position to:", old_media_id);
+                return;
+            }
+        }
+
+        console.error("restore for", this.media_id, this.scroll_positions_by_media_id[this.media_id]);
+        if(navigation_cause == "navigation")
+        {
+            // If this is an initial navigation, eg. from a user clicking a link to a search, always
+            // scroll to the top.  If this data source exists previously in history, we don't want to
+            // restore the scroll position from back then.
+            console.log("Scroll to top for new search");
+            this.container.scrollTop = 0;
+        }
+        else if(this.scroll_positions_by_media_id[this.media_id])
+        {
+            // If we saved a scroll position when navigating away from a data source earlier,
+            // restore it.
+            this.scroll_container.scrollTop = this.scroll_positions_by_media_id[this.media_id];
             delete this.scroll_positions_by_media_id[this.media_id];
         }
         else
-            this.scroll_to_top();
+        {
+            this.scroll_container.scrollTop = 0;
+        }
     }
 
     scroll_to_media_id(media_id)
     {
         if(media_id == null)
-            return;
+            return false;
 
         let thumb = this.container.querySelector(`[data-id="${helpers.escape_selector(media_id)}"]`);
         if(thumb == null)
-            return;
+            return false;
 
         // If the item isn't visible, center it.
         let scroll_pos = this.scroll_container.scrollTop;
         if(thumb.offsetTop < scroll_pos || thumb.offsetTop + thumb.offsetHeight > scroll_pos + this.scroll_container.offsetHeight)
             this.scroll_container.scrollTop = thumb.offsetTop + thumb.offsetHeight/2 - this.scroll_container.offsetHeight/2;
+        return true;
     }
 
     handle_onkeydown(e)

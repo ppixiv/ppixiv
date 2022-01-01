@@ -731,6 +731,12 @@ ppixiv.helpers = {
         return result;
     },
 
+    // Return i rounded up to interval.
+    round_up_to: function(i, interval)
+    {
+        return Math.floor((i+interval-1)/interval) * interval;
+    },    
+
     get_extension: function(fn)
     {
         var parts = fn.split(".");
@@ -1784,6 +1790,9 @@ ppixiv.helpers = {
     // top_selector is a CSS selector for the thumbnail block.  We should be able to
     // simply create a scoped stylesheet, but browsers don't understand the importance
     // of encapsulation.
+    //
+    // Return [css, columns], where css is the style to use and columns is the actual
+    // column count.
     make_thumbnail_sizing_style(container, top_selector, options)
     {
         // The total pixel size we want each thumbnail to have:
@@ -1860,7 +1869,7 @@ ppixiv.helpers = {
         `;
         if(container_width != null)
             css += `${top_selector} .thumbnails { max-width: ${container_width}px; }`;
-        return css;
+        return [css, best_columns];
     },
     
     // If the aspect ratio is very narrow, don't use any panning, since it becomes too spastic.
@@ -2746,29 +2755,22 @@ ppixiv.key_storage = class
 
 ppixiv.SaveScrollPosition = class
 {
-    constructor(node)
+    constructor(scroller, save_relative_to)
     {
-        this.node = node;
-        this.child = null;
-        this.original_scroll_top = this.node.scrollTop;
+        this.scroller = scroller;
+        this.original_scroll_top = this.scroller.scrollTop;
+        this.original_offset_top = save_relative_to.offsetTop;
     }
 
-    // Instead of saving the top-level scroll position, store the scroll position of a given child.
-    save_relative_to(child)
-    {
-        this.child = child;
-        this.original_offset_top = child.offsetTop;
-    }
-
-    restore()
+    restore_relative_to(restore_relative_to)
     {
         let scroll_top = this.original_scroll_top;
-        if(this.child)
+        if(restore_relative_to)
         {
-            let offset = this.child.offsetTop - this.original_offset_top;
+            let offset = restore_relative_to.offsetTop - this.original_offset_top;
             scroll_top += offset;
         }
-        this.node.scrollTop = scroll_top;
+        this.scroller.scrollTop = scroll_top;
     }
 };
 

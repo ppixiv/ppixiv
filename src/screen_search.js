@@ -365,6 +365,7 @@ ppixiv.screen_search = class extends ppixiv.screen
     {
         super(options);
         
+        this.thumbs_loaded = this.thumbs_loaded.bind(this);
         this.data_source_updated = this.data_source_updated.bind(this);
         this.onwheel = this.onwheel.bind(this);
 //        this.onmousemove = this.onmousemove.bind(this);
@@ -376,6 +377,7 @@ ppixiv.screen_search = class extends ppixiv.screen
 
         this.scroll_container = this.container.querySelector(".search-results");
 
+        window.addEventListener("thumbnailsloaded", this.thumbs_loaded);
         window.addEventListener("focus", this.visible_thumbs_changed);
 
         this.container.addEventListener("wheel", this.onwheel, { passive: false });
@@ -553,7 +555,7 @@ ppixiv.screen_search = class extends ppixiv.screen
             for(let entry of entries)
                 helpers.set_dataset(entry.target.dataset, "fullyOnScreen", entry.isIntersecting);
 
-            this.load_needed_thumb_data();
+            this.load_data_source_page();
             this.first_visible_thumbs_changed();
         }, {
             root: this.scroll_container,
@@ -561,12 +563,26 @@ ppixiv.screen_search = class extends ppixiv.screen
         }));
         
         this.intersection_observers.push(new IntersectionObserver((entries) => {
+            let any_changed = false;
             for(let entry of entries)
+            {
+                // Ignore special entries, 
+                if(entry.target.dataset.special)
+                    continue;
+
                 helpers.set_dataset(entry.target.dataset, "nearby", entry.isIntersecting);
+                any_changed = true;
+            }
+
+            // If no actual thumbnails changed, don't refresh.  We don't want to trigger a refresh
+            // from the special buttons being removed and added.
+            if(!any_changed)
+                return;
 
             // Set up any thumbs that just came nearby, and see if we need to load more search results.
+            this.refresh_images();
             this.set_visible_thumbs();
-            this.load_needed_thumb_data();
+            this.load_data_source_page();
         }, {
             root: this.scroll_container,
 
@@ -596,7 +612,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         
         this.update_from_settings();
         this.refresh_images();
-        this.load_needed_thumb_data();
+        this.load_data_source_page();
         this.refresh_whats_new_button();
     }
 
@@ -789,25 +805,20 @@ ppixiv.screen_search = class extends ppixiv.screen
         if(this.data_source != null)
             this.data_source.remove_update_listener(this.data_source_updated);
 
-        // If the search mode is changing (eg. we're going from a list of illustrations to a list
-        // of users), remove thumbs so we recreate them.  Otherwise, refresh_images will reuse them
-        // and they can be left on the wrong display type.
-        var old_search_mode = this.data_source? this.data_source.search_mode:"";
-        var new_search_mode = data_source? data_source.search_mode:"";
-        if(old_search_mode != new_search_mode)
+        // Clear the view when the data source changes.  If we leave old thumbs in the list,
+        // it confuses things if we change the sort and refresh_thumbs tries to load thumbs
+        // based on what's already loaded.
+        let ul = this.container.querySelector(".thumbnails");
+        while(ul.firstElementChild != null)
         {
-            var ul = this.container.querySelector(".thumbnails");
-            while(ul.firstElementChild != null)
-            {
-                let node = ul.firstElementChild;
-                node.remove();
+            let node = ul.firstElementChild;
+            node.remove();
 
-                // We should be able to just remove the element and get a callback that it's no longer visible.
-                // This works in Chrome since IntersectionObserver uses a weak ref, but Firefox is stupid and leaks
-                // the node.
-                for(let observer of this.intersection_observers)
-                    observer.unobserve(node);
-            }
+            // We should be able to just remove the element and get a callback that it's no longer visible.
+            // This works in Chrome since IntersectionObserver uses a weak ref, but Firefox is stupid and leaks
+            // the node.
+            for(let observer of this.intersection_observers)
+                observer.unobserve(node);
         }
 
         this.data_source = data_source;
@@ -823,27 +834,7 @@ ppixiv.screen_search = class extends ppixiv.screen
 
         // Listen to the data source loading new pages, so we can refresh the list.
         this.data_source.add_update_listener(this.data_source_updated);
-
-        this.load_needed_thumb_data();
     };
-
-    restore_scroll_position()
-    {
-        // If we saved a scroll position when navigating away from a data source earlier,
-        // restore it now.  Only do this once.
-        if(this.data_source.thumbnail_view_scroll_pos != null)
-        {
-            this.scroll_container.scrollTop = this.data_source.thumbnail_view_scroll_pos;
-            delete this.data_source.thumbnail_view_scroll_pos;
-        }
-        else
-            this.scroll_to_top();
-    }
-
-    scroll_to_top()
-    {
-        this.scroll_container.scrollTop = 0;
-    }
 
     refresh_ui()
     {
@@ -1173,7 +1164,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         return null;
     };
 
-    async set_active(active, { data_source })
+    async set_active(active, { data_source, old_media_id, navigation_cause })
     {
         if(this._active == active && this.data_source == data_source)
             return;
@@ -1181,14 +1172,19 @@ ppixiv.screen_search = class extends ppixiv.screen
         let was_active = this._active;
         this._active = active;
 
-
         // We're either becoming active or inactive, or our data source is being changed.
         // Store our scroll position on the data source, so we can restore it if it's
         // reactivated.  There's only one instance of thumbnail_view, so this is safe.
         // Only do this if we were previously active, or we're hidden and scrollTop may
         // be 0.
         if(was_active && this.data_source)
-            this.data_source.thumbnail_view_scroll_pos = this.scroll_container.scrollTop;
+        {
+            this.data_source.search_view_state = {
+                nearby_media_ids: this.get_nearby_media_ids(),
+                saved_scroll: this.save_scroll_position(),
+            };
+            console.log("Storing search view state:", this.data_source.search_view_state);
+        }
 
         await super.set_active(active);
         
@@ -1199,24 +1195,74 @@ ppixiv.screen_search = class extends ppixiv.screen
             this.initial_refresh_ui();
             this.refresh_ui();
 
-            // Refresh the images now, so it's possible to scroll to entries, but wait to start
-            // loading data to give the caller a chance to call scroll_to_media_id(), which needs
-            // to happen after refresh_images but before load_needed_thumb_data.  This way, if
-            // we're showing a page far from the top, we won't load the first page that we're about
-            // to scroll away from.
-            this.refresh_images();
+            console.log("Showing search, came from media ID:", old_media_id);
+
+            // We might get data_source_updated callbacks during load_data_source_page.
+            // Make sure we ignore those, since we want the first refresh_images call
+            // to be the one we make below.
+            this.activating = true;
+            try {
+                // Make the first call to load_data_source_page, to load the initial page of images.
+                await this.load_data_source_page();
+            } finally {
+                this.activating = false;
+            }
+
+            // Show images.  If we were displaying an image before we came here, forced_media_id
+            // will force it to be included in the displayed results.
+            this.refresh_images({ forced_media_id: old_media_id });
+
+            this.restore_scroll_pos(old_media_id, navigation_cause);
+
+            this.data_source.search_view_state = null;
+
+            // If we were displaying an image, pulse it to make it easier to find your place.
+            if(old_media_id)
+                this.pulse_thumbnail(old_media_id);
 
             this.container.querySelector(".search-results").focus();
-
-            helpers.yield(() => {
-                this.load_needed_thumb_data();
-            });
         }
         else
         {
             this.stop_pulsing_thumbnail();
 
             main_context_menu.get.user_id = null;
+        }
+    }
+
+    restore_scroll_pos(old_media_id, navigation_cause)
+    {
+        // Handle scrolling for the new state.
+        if(old_media_id != null)
+        {
+            // If we're navigating backwards or toggling, and we're switching from the image UI to thumbnails,
+            // try to scroll the search screen to the image that was displayed.
+            if(this.scroll_to_media_id(old_media_id))
+            {
+                console.log("Restored scroll position to:", old_media_id);
+                return;
+            }
+        }
+
+        if(navigation_cause == "navigation")
+        {
+            // If this is an initial navigation, eg. from a user clicking a link to a search, always
+            // scroll to the top.  If this data source exists previously in history, we don't want to
+            // restore the scroll position from back then.
+            console.log("Scroll to top for new search");
+            this.scroll_container.scrollTop = 0;
+        }
+        else if(this.data_source.search_view_state != null)
+        {
+            // If we saved a scroll position when navigating away from a data source earlier,
+            // restore it.
+            console.log("restore to:", this.data_source.search_view_state.saved_scroll);
+            this.restore_scroll_position(this.data_source.search_view_state.saved_scroll);
+        }
+        else
+        {
+            console.log("Scroll to top (default)");
+            this.scroll_container.scrollTop = 0;
         }
     }
 
@@ -1227,70 +1273,306 @@ ppixiv.screen_search = class extends ppixiv.screen
 
     data_source_updated()
     {
-        this.refresh_images();
-        this.load_needed_thumb_data();
         this.refresh_ui();
+
+        // Don't load or refresh images if we're in the middle of set_active.
+        if(this.activating)
+            return;
+
+        this.refresh_images();
+        this.load_data_source_page();
     }
 
-    // Recreate thumbnail images (the actual <img> elements).
-    //
-    // This is done when new pages are loaded, to create the correct number of images.
-    // We don't need to do this when scrolling around or when new thumbnail data is available.
-    refresh_images()
+    // Return all media IDs currently loaded in the data source, and the page
+    // each one is on.
+    get_data_source_media_ids()
     {
-        // Make a list of [media_id, page] thumbs to add.
-        let images_to_add = [];
-        if(this.data_source != null)
-        {
-            let id_list = this.data_source.id_list;
-            let min_page = id_list.get_lowest_loaded_page();
-            let max_page = id_list.get_highest_loaded_page();
-            let items_per_page = this.data_source.estimated_items_per_page;
-            for(let page = min_page; page <= max_page; ++page)
-            {
-                let media_ids = id_list.media_ids_by_page.get(page);
-                if(media_ids == null)
-                {
-                    // This page isn't loaded.  Fill the gap with items_per_page blank entries.
-                    for(let idx = 0; idx < items_per_page; ++idx)
-                        images_to_add.push({media_id: null, search_page: page});
-                    continue;
-                }
+        let media_ids = [];
+        let media_id_pages = {};
+        if(this.data_source == null)
+            return [media_ids, media_id_pages];
 
-                // Create an image for each ID.
-                for(let media_id of media_ids)
-                    images_to_add.push({media_id: media_id, search_page: page});
+        let id_list = this.data_source.id_list;
+        let min_page = id_list.get_lowest_loaded_page();
+        let max_page = id_list.get_highest_loaded_page();
+        for(let page = min_page; page <= max_page; ++page)
+        {
+            let media_ids_on_page = id_list.media_ids_by_page.get(page);
+            console.assert(media_ids_on_page != null);
+
+            // Create an image for each ID.
+            for(let media_id of media_ids_on_page)
+            {
+                media_ids.push(media_id);
+                media_id_pages[media_id] = page;
+            }
+        }
+
+        return [media_ids, media_id_pages];
+    }
+
+    // Make a list of media IDs that we want loaded.  This has a few inputs:
+    //
+    // - The thumbnails that are already loaded, if any.
+    // - A media ID that we want to have loaded.  If we're coming back from viewing an image
+    //   and it's in the search results, we always want that image loaded so we can scroll to
+    //   it.
+    // - The thumbnails that are near the scroll position (nearby thumbs).  These should always
+    //   be loaded.
+    // 
+    // Try to keep thumbnails that are already loaded in the list, since there's no performance
+    // benefit to unloading thumbs.  Creating thumbs can be expensive if we're creating thousands of
+    // them, but once they're created, content-visibility keeps things fast.
+    //
+    // If forced_media_id is set and it's in the search results, always include it in the results,
+    // extending the list to include it.  If forced_media_id is set and we also have thumbs already
+    // loaded, we'll extend the range to include both.  If this would result in too many images
+    // being added at once, we'll remove previously loaded thumbs so forced_media_id takes priority.
+    //
+    // If we have no nearby thumbs and no ID to force load, it's an initial load, so we'll just
+    // start at the beginning.
+    //
+    // The result is always a contiguous subset of media IDs from the data source.
+    get_media_ids_to_display({forced_media_id=null, column_count=null}={})
+    {
+        // Get all media IDs from the data source.
+        let [all_media_ids, media_id_pages] = this.get_data_source_media_ids();
+        if(all_media_ids.length == 0)
+            return [[], []];
+
+        let [first_nearby_media_id, last_nearby_media_id] = this.get_nearby_media_ids();
+        let [first_loaded_media_id, last_loaded_media_id] = this.get_loaded_media_ids();
+
+        // If we're restoring a scroll position, use the nearby media IDs that we
+        // saved when we left, so we load the same range.
+        let nearby_media_ids = this.data_source.search_view_state?.nearby_media_ids;
+        if(nearby_media_ids)
+        {
+            first_nearby_media_id = nearby_media_ids[0];
+            last_nearby_media_id = nearby_media_ids[1];
+        }
+
+        // The indices of each related media_id.  These can all be -1.  Note that it's
+        // possible for nearby entries to not be in the data source, if the data source
+        // was just refreshed and entries were removed.
+        let first_nearby_media_id_idx = all_media_ids.indexOf(first_nearby_media_id);
+        let last_nearby_media_id_idx = all_media_ids.indexOf(last_nearby_media_id);
+        let first_loaded_media_id_idx = all_media_ids.indexOf(first_loaded_media_id);
+        let last_loaded_media_id_idx = all_media_ids.indexOf(last_loaded_media_id);
+        let forced_media_id_idx = all_media_ids.indexOf(forced_media_id);
+
+        // Figure out the range of all_media_ids that we want to have loaded.
+        let start_idx = 999999;
+        let end_idx = 0;
+
+        // If there are visible thumbs, extend the range to include them.
+        if(first_nearby_media_id_idx != -1)
+            start_idx = Math.min(start_idx, first_nearby_media_id_idx);
+        if(last_nearby_media_id_idx != -1)
+            end_idx = Math.max(end_idx, last_nearby_media_id_idx);
+
+        // If we have a media ID to display, extend the range to include it.
+        if(forced_media_id_idx != -1)
+        {
+            start_idx = Math.min(start_idx, forced_media_id_idx);
+            end_idx = Math.max(end_idx, forced_media_id_idx);
+        }
+
+        // If we have a range, extend it outwards in both directions to load images
+        // around it.
+        if(start_idx != 999999)
+        {
+            start_idx -= 10;
+            end_idx += 10;
+        }
+
+        // If there are thumbs already loaded, extend the range to include them.  Do this
+        // after extending the range above.
+        if(first_loaded_media_id_idx != -1)
+            start_idx = Math.min(start_idx, first_loaded_media_id_idx);
+        if(last_loaded_media_id_idx != -1)
+            end_idx = Math.max(end_idx, last_loaded_media_id_idx);
+
+        // If we don't have anything, start at the beginning.
+        if(start_idx == 999999)
+        {
+            start_idx = 0;
+            end_idx = 0;
+        }
+
+        // Clamp the range.
+        start_idx = Math.max(start_idx, 0);
+        end_idx = Math.min(end_idx, all_media_ids.length-1);
+
+        // If we're forcing an image to be included, and we also have images already
+        // loaded, we can end up with a huge range if the two are far apart.  For example,
+        // if an image is loaded from a search, the user navigates for a long time in the
+        // image view and then returns to the search, we'll load the image he ended up on
+        // all the way to the images that were loaded before.  Check the number of images
+        // we're adding, and if it's too big, ignore the previously loaded thumbs and just
+        // load IDs around forced_media_id.
+        if(forced_media_id_idx != -1)
+        {
+            // See how many thumbs this would cause us to load.
+            let loading_thumb_count = 0;
+            let loaded_thumb_ids = this.get_loaded_thumb_ids();
+            for(let thumb_id of all_media_ids.slice(start_idx, end_idx+1))
+            {
+                if(!loaded_thumb_ids.has(thumb_id))
+                    loading_thumb_count++;
             }
 
-            // If this data source supports a start page and we started after page 1, add the "load more"
-            // button at the beginning.
-            if(this.data_source.initial_page > 1)
-                images_to_add.splice(0, 0, { media_id: "special:previous-page", page: null });
+            if(loading_thumb_count > 100)
+            {
+                console.log("Reducing loading_thumb_count from", loading_thumb_count);
+
+                start_idx = forced_media_id_idx - 10;
+                end_idx = forced_media_id_idx + 10;
+                start_idx = Math.max(start_idx, 0);
+                end_idx = Math.min(end_idx, all_media_ids.length-1);
+            }
         }
+
+        // Snap the start of the range to the column count, so images always stay on the
+        // same column if we add entries to the beginning of the list.  This only works if
+        // the data source provides all IDs at once, but if it doesn't then we won't
+        // auto-load earlier images anyway.
+        if(column_count != null)
+            start_idx -= start_idx % column_count;
+
+        let media_ids = all_media_ids.slice(start_idx, end_idx+1);
+        /*
+        console.log(
+            "Nearby range:", first_nearby_media_id_idx, "to", last_nearby_media_id_idx,
+            "Loaded range:", first_loaded_media_id_idx, "to", last_loaded_media_id_idx,
+            "Forced idx:", forced_media_id_idx,
+            "Returning:", start_idx, "to", end_idx);
+*/
+        // Load thumbnail info for the results.  We don't wait for this to finish.
+        this.load_thumbnail_data_for_media_ids(all_media_ids, start_idx, end_idx);
+
+        return [media_ids, media_id_pages];
+    }
+
+    load_thumbnail_data_for_media_ids(all_media_ids, start_idx, end_idx)
+    {
+        // Stop if the range is already loaded.
+        let media_ids = all_media_ids.slice(start_idx, end_idx+1);
+        if(thumbnail_data.singleton().are_all_media_ids_loaded_or_loading(media_ids))
+            return;
+
+        // Make a list of IDs that need to be loaded, removing ones that are already
+        // loaded.
+        let media_ids_to_load = [];
+        for(let media_id of media_ids)
+        {
+            if(!thumbnail_data.singleton().is_media_id_loaded_or_loading(media_id))
+                media_ids_to_load.push(media_id);
+        }
+
+        if(media_ids_to_load.length == 0)
+            return;
+
+        // Try not to request thumbnail info in tiny chunks.  If we load them as they
+        // scroll on, we'll make dozens of requests for 4-5 thumbnails each and spam
+        // the API.  Avoid this by extending the list outwards, so we load a bigger chunk
+        // in one request and then stop for a while.
+        //
+        // Don't do this for the local API.  Making lots of tiny requests is harmless
+        // there since it's all local, and requesting file info causes the file to be
+        // scanned if it's not yet cached, so it's better to make fine-grained requests.
+        let min_to_load = this.data_source?.name == "vview"? 10: 30;
+
+        let load_start_idx = start_idx;
+        let load_end_idx = end_idx;
+        while(media_ids_to_load.length < min_to_load && (load_start_idx >= 0 || load_end_idx < all_media_ids.length))
+        {
+            let media_id = all_media_ids[load_start_idx];
+            if(media_id != null && !thumbnail_data.singleton().is_media_id_loaded_or_loading(media_id))
+                media_ids_to_load.push(media_id);
+
+            media_id = all_media_ids[load_end_idx];
+            if(media_id != null && !thumbnail_data.singleton().is_media_id_loaded_or_loading(media_id))
+                media_ids_to_load.push(media_id);
+
+            load_start_idx--;
+            load_end_idx++;
+        }
+
+        thumbnail_data.singleton().get_thumbnail_info(media_ids_to_load);
+    }
+
+    // Return the first and last media IDs that are nearby.
+    get_nearby_media_ids()
+    {
+        let nearby_thumbs = this.scroll_container.querySelectorAll(`[data-id][data-nearby]:not([data-special])`);
+        let first_nearby_media_id = nearby_thumbs[0]?.dataset?.id;
+        let last_nearby_media_id = nearby_thumbs[nearby_thumbs.length-1]?.dataset?.id;
+        return [first_nearby_media_id, last_nearby_media_id];
+    }
+
+    // Return the first and last media IDs that's currently loaded into thumbs.
+    get_loaded_media_ids()
+    {
+        let loaded_thumbs = this.scroll_container.querySelectorAll(`[data-id]:not([data-special]`);
+        let first_loaded_media_id = loaded_thumbs[0]?.dataset?.id;
+        let last_loaded_media_id = loaded_thumbs[loaded_thumbs.length-1]?.dataset?.id;
+        return [first_loaded_media_id, last_loaded_media_id];
+    }
+
+    refresh_images({forced_media_id=null}={})
+    {
+        // Update the thumbnail size style.  This also tells us the number of columns being
+        // displayed.
+        let ul = this.container.querySelector(".thumbnails");
+        let thumbnail_size = settings.get("thumbnail-size", 4);
+        thumbnail_size = thumbnail_size_slider_widget.thumbnail_size_for_value(thumbnail_size);
+
+        let [dimensions_css, column_count] = helpers.make_thumbnail_sizing_style(ul, ".screen-search-container", {
+            wide: true,
+            size: thumbnail_size,
+            max_columns: 5,
+
+            // Set a minimum padding to make sure there's room for the popup text to fit between images.
+            min_padding: 15,
+        });
+        this.thumbnail_dimensions_style.textContent = dimensions_css;
+
+        // Get the thumbnail media IDs to display.
+        let [media_ids, media_id_pages] = this.get_media_ids_to_display({
+            column_count: column_count,
+            forced_media_id: forced_media_id,
+        });
+
+        // Save the scroll position relative to the first thumbnail.  Do this before making
+        // any changes.
+        let saved_scroll = this.save_scroll_position();
+
+        // Remove special:previous-page if it's in the list.  It'll confuse the insert logic.
+        // We'll add it at the end if it should be there.
+        let special = this.container.querySelector(`.thumbnails > [data-special]`);
+        if(special)
+            special.remove();
 
         // Add thumbs.
         //
         // Most of the time we're just adding thumbs to the list.  Avoid removing or recreating
         // thumbs that aren't actually changing, which reduces flicker.
         //
-        // Do this by looking for a range of thumbnails that matches a range in images_to_add.
+        // Do this by looking for a range of thumbnails that matches a range in media_ids.
         // If we're going to display [0,1,2,3,4,5,6,7,8,9], and the current thumbs are [4,5,6],
         // then 4,5,6 matches and can be reused.  We'll add [0,1,2,3] to the beginning and [7,8,9]
         // to the end.
         //
         // Most of the time we're just appending.  The main time that we add to the beginning is
         // the "load previous results" button.
-        let ul = this.container.querySelector(".thumbnails");
 
         // Make a dictionary of all illust IDs and pages, so we can look them up quickly.
-        let images_to_add_index = {};
-        for(let i = 0; i < images_to_add.length; ++i)
+        let media_id_index = {};
+        for(let i = 0; i < media_ids.length; ++i)
         {
-            let entry = images_to_add[i];
-            let media_id = entry.media_id;
-            let search_page = entry.search_page;
-            let index = media_id + "/" + search_page;
-            images_to_add_index[index] = i;
+            let media_id = media_ids[i];
+            media_id_index[media_id] = i;
         }
 
         let get_node_idx = function(node)
@@ -1299,9 +1581,7 @@ ppixiv.screen_search = class extends ppixiv.screen
                 return null;
 
             let media_id = node.dataset.id;
-            let search_page = node.dataset.searchPage;
-            let index = media_id + "/" + search_page;
-            return images_to_add_index[index];
+            return media_id_index[media_id];
         }
 
         // Find the first match (4 in the above example).
@@ -1324,19 +1604,6 @@ ppixiv.screen_search = class extends ppixiv.screen
             }
         }
 
-        // Save the scroll position relative to the first thumbnail, excluding things like
-        // the "load previous thumbs" button.
-        let saved_scroll_top = 0;
-        let saved_scroll_pos = 0;
-        let saved_scroll_pos_at_media_id = null;
-        let first_visible_thumb_node = this.get_first_visible_thumb();
-        if(first_visible_thumb_node != null)
-        {
-            saved_scroll_pos_at_media_id = first_visible_thumb_node.dataset.id;
-            saved_scroll_top = this.scroll_container.scrollTop;
-            saved_scroll_pos = first_visible_thumb_node.offsetTop;
-        }
-
         // If we have a range, delete all items outside of it.  Otherwise, just delete everything.
         while(first_matching_node && first_matching_node.previousElementSibling)
             first_matching_node.previousElementSibling.remove();
@@ -1353,9 +1620,8 @@ ppixiv.screen_search = class extends ppixiv.screen
            let first_idx = get_node_idx(first_matching_node);
            for(let idx = first_idx - 1; idx >= 0; --idx)
            {
-               let entry = images_to_add[idx];
-               let media_id = entry.media_id;
-               let search_page = entry.search_page;
+               let media_id = media_ids[idx];
+               let search_page = media_id_pages[media_id];
                let node = this.create_thumb(media_id, search_page);
                first_matching_node.insertAdjacentElement("beforebegin", node);
                first_matching_node = node;
@@ -1367,89 +1633,48 @@ ppixiv.screen_search = class extends ppixiv.screen
         if(last_matching_node)
            last_idx = get_node_idx(last_matching_node);
 
-        for(let idx = last_idx + 1; idx < images_to_add.length; ++idx)
+        for(let idx = last_idx + 1; idx < media_ids.length; ++idx)
         {
-            let entry = images_to_add[idx];
-            let media_id = entry.media_id;
-            let search_page = entry.search_page;
+            let media_id = media_ids[idx];
+            let search_page = media_id_pages[media_id];
             let node = this.create_thumb(media_id, search_page);
             ul.appendChild(node);
         }
 
-        if(this.container.offsetWidth == 0)
-            return;
-
-        let thumbnail_size = settings.get("thumbnail-size", 4);
-        thumbnail_size = thumbnail_size_slider_widget.thumbnail_size_for_value(thumbnail_size);
-
-        this.thumbnail_dimensions_style.textContent = helpers.make_thumbnail_sizing_style(ul, ".screen-search-container", {
-            wide: true,
-            size: thumbnail_size,
-            max_columns: 5,
-
-            // Set a minimum padding to make sure there's room for the popup text to fit between images.
-            min_padding: 15,
-        });
-
-        // Find the thumb with the same media ID as the one we saved the scroll
-        // position at and restore its position.
-        if(saved_scroll_pos_at_media_id != null)
+        // If this data source supports a start page and we started after page 1, add the "load more"
+        // button at the beginning.
+        if(this.data_source && this.data_source.initial_page > 1)
         {
-            let restore_scroll_position_node = this.scroll_container.querySelector(`[data-id="${helpers.escape_selector(saved_scroll_pos_at_media_id)}"]`);
-            if(restore_scroll_position_node != null)
-            {
-                let offset = restore_scroll_position_node.offsetTop - saved_scroll_pos;
-                let scroll_top = saved_scroll_top + offset;
-                this.scroll_container.scrollTop = scroll_top;
-            }
+            // Reuse the node if we removed it earlier.
+            if(special == null)
+                special = this.create_thumb("special:previous-page", null);
+            ul.insertAdjacentElement("afterbegin", special);
         }
+
+        this.restore_scroll_position(saved_scroll);
     }
 
     // Start loading data pages that we need to display visible thumbs, and start
     // loading thumbnail data for nearby thumbs.
-    async load_needed_thumb_data()
+    async load_data_source_page()
     {
-        // elements is a list of elements that are onscreen (or close to being onscreen).
-        // We want thumbnails loaded for these, even if we need to load more thumbnail data.
-        //
-        // nearby_elements is a list of elements that are a bit further out.  If we load
-        // thumbnail data for elements, we'll load these instead.  That way, if we scroll
-        // up a bit and two more thumbs become visible, we'll load a bigger chunk.
-        // That way, we make fewer batch requests instead of requesting two or three
-        // thumbs at a time.
-
-        // Make a list of pages that we need loaded, and illustrations that we want to have
-        // set.
-        var wanted_media_ids = [];
-
-        let elements = this.get_visible_thumbnails();
-        for(var element of elements)
-        {
-            if(element.dataset.id != null)
-            {
-                // If this is an illustration, file or folder, add it to wanted_media_ids so we
-                // load its thumbnail info.  Don't do this if it's a user.
-                if(helpers.parse_media_id(element.dataset.id).type != "user")
-                wanted_media_ids.push(element.dataset.id);
-            }
-        }
-
         // We load pages when the last thumbs on the previous page are loaded, but the first
         // time through there's no previous page to reach the end of.  Always make sure the
         // first page is loaded (usually page 1).
         let load_page = null;
-        let first_page = this.data_source? this.data_source.initial_page:1;
-        if(this.data_source && !this.data_source.is_page_loaded_or_loading(first_page))
-            load_page = first_page;
-
-        // If the last thumb in the list is being loaded, we need the next page to continue.
-        // Note that since get_visible_thumbnails returns thumbs before they actually scroll
-        // into view, this will happen before the last thumb is actually visible to the user.
-        var ul = this.container.querySelector(".thumbnails");
-        if(load_page == null && elements.length > 0 && elements[elements.length-1] == ul.lastElementChild)
+        if(this.data_source && !this.data_source.is_page_loaded_or_loading(this.data_source.initial_page))
+            load_page = this.data_source.initial_page;
+        else
         {
-            let last_element = elements[elements.length-1];
-            load_page = parseInt(last_element.dataset.searchPage)+1;
+            // If the last thumb in the list is visible, we need the next page to continue.
+            // Note that since get_nearby_thumbnails returns thumbs before they actually scroll
+            // into view, this will happen before the last thumb is actually visible to the user.
+            let elements = this.get_nearby_thumbnails();
+            if(elements.length > 0 && elements[elements.length-1].nextElementSibling == null)
+            {
+                let last_element = elements[elements.length-1];
+                load_page = parseInt(last_element.dataset.searchPage)+1;
+            }
         }
 
         // Hide "no results" if it's shown while we load data.
@@ -1467,23 +1692,7 @@ ppixiv.screen_search = class extends ppixiv.screen
 
         // If we have no IDs and nothing is loading, the data source is empty (no results).
         if(this.data_source && this.data_source.id_list.get_first_id() == null && !this.data_source.any_page_loading)
-        {
-            console.log("Showing no results");
             this.container.querySelector(".no-results").hidden = false;
-        }
-
-        if(!thumbnail_data.singleton().are_all_media_ids_loaded_or_loading(wanted_media_ids))
-        {
-            // At least one visible thumbnail needs to be loaded, so load more data at the same
-            // time.
-            let nearby_media_ids = this.get_thumbs_to_load();
-
-            // Load the thumbnail data if needed.
-            //
-            // Loading thumbnail info here very rarely happens anymore, since every data
-            // source provides thumbnail info with its illust IDs.
-            thumbnail_data.singleton().get_thumbnail_info(nearby_media_ids);
-        }
         
         this.set_visible_thumbs();
     }
@@ -1540,6 +1749,34 @@ ppixiv.screen_search = class extends ppixiv.screen
         return true;
     }
 
+    // Save the current scroll position relative to the first visible thumbnail.
+    // The result can be used with restore_scroll_position.
+    save_scroll_position()
+    {
+        let first_visible_thumb_node = this.get_first_visible_thumb();
+        if(first_visible_thumb_node == null)
+            return null;
+
+        return {
+            saved_scroll: new SaveScrollPosition(this.scroll_container, first_visible_thumb_node),
+            media_id: first_visible_thumb_node.dataset.id,
+        }
+    }
+
+    // Restore the scroll position from a position saved by save_scroll_position.
+    restore_scroll_position(scroll)
+    {
+        if(scroll == null)
+            return;
+
+        // Find the thumbnail for the media_id the scroll position was saved at.
+        let restore_scroll_position_node = this.scroll_container.querySelector(`[data-id="${helpers.escape_selector(scroll.media_id)}"]`);
+        if(restore_scroll_position_node == null)
+            return;
+
+        scroll.saved_scroll.restore_relative_to(restore_scroll_position_node);
+    }
+
     update_from_settings()
     {
         var thumbnail_mode = settings.get("thumbnail-size");
@@ -1567,7 +1804,7 @@ ppixiv.screen_search = class extends ppixiv.screen
     set_visible_thumbs()
     {
         // Make a list of IDs that we're assigning.
-        var elements = this.get_visible_thumbnails();
+        var elements = this.get_nearby_thumbnails();
         for(var element of elements)
         {
             let media_id = element.dataset.id;
@@ -1809,7 +2046,7 @@ ppixiv.screen_search = class extends ppixiv.screen
 
     // Return a list of thumbnails that are either visible, or close to being visible
     // (so we load thumbs before they actually come on screen).
-    get_visible_thumbnails()
+    get_nearby_thumbnails()
     {
         // If the container has a zero height, that means we're hidden and we don't want to load
         // thumbnail data at all.
@@ -1820,37 +2057,13 @@ ppixiv.screen_search = class extends ppixiv.screen
         return this.container.querySelectorAll(`.thumbnails > [data-id][data-nearby]:not([data-special])`);
     }
 
-    // Return media IDs that need thumbnail data loaded.
-    //
-    // Most data sources provide thumbnail data with the IDs.  For those, this will never return
-    // anything, since everything's already loaded.
-    get_thumbs_to_load()
+    get_loaded_thumb_ids()
     {
-        // If the container has a zero height, that means we're hidden and we don't want to load
-        // thumbnail data at all.
-        if(this.container.offsetHeight == 0)
-            return [];
+        let media_ids = new Set();
 
-        let results = [];
-        let onscreen_thumbs = this.container.querySelectorAll(`.thumbnails > [data-id][data-nearby]`);
-        for(let element of onscreen_thumbs)
-        {
-            let media_id = element.dataset.id;
-            if(media_id == null)
-                continue;
-
-            let { type } = helpers.parse_media_id(media_id);
-            if(type == "user")
-                continue;
-
-            // Skip this thumb if it's already loading.
-            if(thumbnail_data.singleton().is_media_id_loaded_or_loading(media_id))
-                continue;
-
-            results.push(media_id);
-        }
-        
-        return results;
+        for(let node of this.container.querySelectorAll(`.thumbnails > [data-id]:not([data-special])`))
+            media_ids.add(node.dataset.id);
+        return media_ids;
     }
 
     // Create a thumb placeholder.  This doesn't load the image yet.
@@ -1941,9 +2154,7 @@ ppixiv.screen_search = class extends ppixiv.screen
 
         // Mark that this thumb hasn't been filled in yet.
         entry.dataset.pending = true;
-
-        if(media_id != null)
-            entry.dataset.id = media_id;
+        entry.dataset.id = media_id;
 
         if(search_page != null)
             entry.dataset.searchPage = search_page;
@@ -1952,18 +2163,25 @@ ppixiv.screen_search = class extends ppixiv.screen
         return entry;
     }
 
+    // This is called when thumbnail_data has loaded more thumbnail info.
+    thumbs_loaded(e)
+    {
+        this.set_visible_thumbs();
+    }
+
     // Scroll to media_id if it's available.  This is called when we display the thumbnail view
     // after coming from an illustration.
     scroll_to_media_id(media_id)
     {
         var thumb = this.container.querySelector("[data-id='" + helpers.escape_selector(media_id) + "']");
         if(thumb == null)
-            return;
+            return false;
 
         // If the item isn't visible, center it.
         let scroll_pos = this.scroll_container.scrollTop;
         if(thumb.offsetTop < scroll_pos || thumb.offsetTop + thumb.offsetHeight > scroll_pos + this.scroll_container.offsetHeight)
             this.scroll_container.scrollTop = thumb.offsetTop + thumb.offsetHeight/2 - this.scroll_container.offsetHeight/2;
+        return true;
     };
 
     pulse_thumbnail(media_id)

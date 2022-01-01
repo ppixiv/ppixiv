@@ -107,7 +107,6 @@ ppixiv.main_controller = class
         if(preload != null)
         {
             preload = JSON.parse(preload.getAttribute("content"));
-            
             for(var preload_user_id in preload.user)
                 image_data.singleton().add_user_data(preload.user[preload_user_id]);
             for(var preload_illust_id in preload.illust)
@@ -282,9 +281,19 @@ ppixiv.main_controller = class
             }
         }
 
+        // Figure out which screen to display.
+        var new_screen_name;
+        let args = helpers.args.location;
+        if(!args.hash.has("view"))
+            new_screen_name = data_source.default_screen;
+        else
+            new_screen_name = args.hash.get("view");
+
         // If the data source is changing, set it up.
         if(this.data_source != data_source)
         {
+            console.log("New data source.  Screen:", new_screen_name, "Cause:", cause);
+
             if(this.data_source != null)
             {
                 // Shut down the old data source.
@@ -306,14 +315,8 @@ ppixiv.main_controller = class
             if(this.data_source != null)
                 this.data_source.startup();
         }
-
-        // Figure out which screen to display.
-        var new_screen_name;
-        let args = helpers.args.location;
-        if(!args.hash.has("view"))
-            new_screen_name = data_source.default_screen;
         else
-            new_screen_name = args.hash.get("view");
+            console.log("Same data source.  Screen:", new_screen_name, "Cause:", cause);
 
         // Update the media ID with the current manga page, if any.
         let media_id = data_source.get_current_media_id();
@@ -325,8 +328,6 @@ ppixiv.main_controller = class
         // tell context_menu that we're not viewing anything, so it disables bookmarking.
         if(new_screen_name == "search")
             media_id = null;
-
-        console.log("Loading data source.  Screen:", new_screen_name, "Cause:", cause, "URL:", ppixiv.location.href);
 
         // Mark the current screen.  Other code can watch for this to tell which view is
         // active.
@@ -341,9 +342,18 @@ ppixiv.main_controller = class
         // If we're changing between screens, update the active screen.
         let screen_changing = new_screen != old_screen;
 
+        // Dismiss any message when toggling between screens.
+        if(screen_changing)
+            message_widget.singleton.hide();
+
         // Make sure we deactivate the old screen before activating the new one.
         if(old_screen != null && old_screen != new_screen)
             await old_screen.set_active(false, { });
+
+        // Are we navigating forwards or back?
+        let new_history_index = helpers.current_history_state_index();
+        let navigating_forwards = cause == "history" && new_history_index > this.current_history_index;
+        this.current_history_index = new_history_index;
 
         if(new_screen != null)
         {
@@ -356,61 +366,16 @@ ppixiv.main_controller = class
             await new_screen.set_active(true, {
                 data_source: data_source,
                 media_id: media_id,
+
+                // For scroll position restoration:
+                navigation_cause: cause,
+                navigating_forwards: navigating_forwards,
+
+                // Let the screen know what ID we were previously viewing, if any.
+                old_media_id: old_media_id,
                 navigation_cause: cause,
                 restore_history: restore_history,
             });
-        }
-
-        // Dismiss any message when toggling between screens.
-        if(screen_changing)
-            message_widget.singleton.hide();
-
-        // If we're enabling the thumbnail, pulse the image that was just being viewed (or
-        // loading to be viewed), to make it easier to find your place.
-        if(new_screen_name == "search" && old_media_id != null)
-            this.screen_search.pulse_thumbnail(old_media_id);
-        
-        // Are we navigating forwards or back?
-        var new_history_index = helpers.current_history_state_index();
-        var navigating_forwards = cause == "history" && new_history_index > this.current_history_index;
-        this.current_history_index = new_history_index;
-
-        // Handle scrolling for the new state.
-        //
-        // We could do this better with history.state (storing each state's scroll position would
-        // allow it to restore across browser sessions, and if the same data source is multiple
-        // places in history).  Unfortunately there's no way to update history.state without
-        // calling history.replaceState, which is slow and causes jitter.  history.state being
-        // read-only is a design bug in the history API.
-        if(cause == "navigation")
-        {
-            // If this is an initial navigation, eg. from a user clicking a link to a search, always
-            // scroll to the top.  If this data source exists previously in history, we don't want to
-            // restore the scroll position from back then.
-            // console.log("Scroll to top for new search");
-            new_screen.scroll_to_top();
-        }
-        else if(cause == "leaving-virtual")
-        {
-            // We're backing out of a virtual URL used for quick view.  Don't change the scroll position.
-            new_screen.restore_scroll_position();
-        }
-        else if(navigating_forwards)
-        {
-            // On browser history forwards, try to restore the scroll position.
-            // console.log("Restore scroll position for forwards navigation");
-            new_screen.restore_scroll_position();
-        }
-        else if(screen_changing && old_media_id != null)
-        {
-            // If we're navigating backwards or toggling, and we're switching from the image UI to thumbnails,
-            // try to scroll the search screen to the image that was displayed.  Otherwise, tell
-            // it to restore any scroll position saved in the data source.
-            new_screen.scroll_to_media_id(old_media_id);
-        }
-        else
-        {
-            new_screen.restore_scroll_position();
         }
     }
 
