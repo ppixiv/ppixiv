@@ -33,8 +33,9 @@ ppixiv.thumbnail_data = class
     // We won't start fetching IDs that aren't loaded.
     are_all_media_ids_loaded_or_loading(media_ids)
     {
-        for(var media_id of media_ids)
+        for(let media_id of media_ids)
         {
+            media_id = helpers.get_media_id_first_page(media_id);
             if(this.thumbnail_data[media_id] == null && !this.loading_ids[media_id])
                 return false;
         }
@@ -43,6 +44,7 @@ ppixiv.thumbnail_data = class
    
     is_media_id_loaded_or_loading(media_id)
     {
+        media_id = helpers.get_media_id_first_page(media_id);
         return this.thumbnail_data[media_id] != null || this.loading_ids[media_id];
     }
     
@@ -52,6 +54,7 @@ ppixiv.thumbnail_data = class
     // to load thumbnail data in batches.
     get_one_thumbnail_info(media_id)
     {
+        media_id = helpers.get_media_id_first_page(media_id);
         return this.thumbnail_data[media_id];
     }
 
@@ -63,6 +66,7 @@ ppixiv.thumbnail_data = class
         var needed_media_ids = [];
         for(let media_id of media_ids)
         {
+            media_id = helpers.get_media_id_first_page(media_id);
             let data = this.thumbnail_data[media_id];
             if(data == null)
             {
@@ -91,6 +95,7 @@ ppixiv.thumbnail_data = class
         let illust_ids_to_load = [];
         for(let media_id of media_ids)
         {
+            media_id = helpers.get_media_id_first_page(media_id);
             if(this.loading_ids[media_id] != null)
                 continue;
 
@@ -544,6 +549,8 @@ ppixiv.thumbnail_data = class
     // This can't update tags.
     update_illust_data(media_id, data)
     {
+        media_id = helpers.get_media_id_first_page(media_id);
+
         let update_data = (update, keys) => {
             for(let key of keys)
             {

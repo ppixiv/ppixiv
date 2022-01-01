@@ -66,12 +66,12 @@ ppixiv.image_data = class extends EventTarget
     // it as image_data.ugoiraMetadata.
     get_media_info(media_id)
     {
+        media_id = helpers.get_media_id_first_page(media_id);
         if(media_id == null)
             return null;
 
         // Stop if we know this illust doesn't exist.
-        let base_media_id = this._get_base_media_id(media_id);
-        if(base_media_id in this.nonexistant_media_ids)
+        if(media_id in this.nonexistant_media_ids)
             return null;
 
         // If we already have the image data, just return it.
@@ -100,10 +100,11 @@ ppixiv.image_data = class extends EventTarget
     // If the image info isn't loaded, don't start a request and just return null.
     get_media_info_sync(media_id)
     {
+        media_id = helpers.get_media_id_first_page(media_id);
         return this.image_data[media_id];
     }
     
-    // Load illust_id and all data that it depends on.
+    // Load media_id and all data that it depends on.
     //
     // If we already have the image data (not necessarily the rest, like ugoira_metadata),
     // it can be supplied with illust_data.
@@ -113,6 +114,7 @@ ppixiv.image_data = class extends EventTarget
     // it sooner.
     async load_media_info(media_id, { illust_data=null, load_user_info=false }={})
     {
+        media_id = helpers.get_media_id_first_page(media_id);
         let [illust_id] = helpers.media_id_to_illust_id_and_page(media_id);
 
         // See if we already have data for this image.  If we do, stop.  We always load
@@ -120,8 +122,8 @@ ppixiv.image_data = class extends EventTarget
         if(this.image_data[media_id] != null)
             return;
 
-        let base_media_id = this._get_base_media_id(media_id);
-        delete this.nonexistant_media_ids[base_media_id];
+        media_id = helpers.get_media_id_first_page(media_id);
+        delete this.nonexistant_media_ids[media_id];
 
         // We need the illust data, user data, and ugoira metadata (for illustType 2).  (We could
         // load manga data too, but we currently let the manga view do that.)  We need to know the
@@ -166,7 +168,7 @@ ppixiv.image_data = class extends EventTarget
             {
                 let message = illust_result?.message || "Error loading illustration";
                 console.log(`Error loading illust ${illust_id}; ${message}`);
-                this.nonexistant_media_ids[base_media_id] = message;
+                this.nonexistant_media_ids[media_id] = message;
                 return null;
             }
 
@@ -256,19 +258,11 @@ ppixiv.image_data = class extends EventTarget
         return illust_data;
     }
 
-    // Clear the page number on media_id for use with nonexistant_media_ids.
-    _get_base_media_id(media_id)
-    {
-        let id = helpers.parse_media_id(media_id);
-        id.page = 0;
-        return helpers.encode_media_id(id);
-    }
-
     // If get_image_info or get_user_info returned null, return the error message.
     get_illust_load_error(media_id)
     {
-        let base_media_id = this._get_base_media_id(media_id);
-        return this.nonexistant_media_ids[base_media_id];
+        media_id = helpers.get_media_id_first_page(media_id);
+        return this.nonexistant_media_ids[media_id];
     }
     get_user_load_error(user_id) { return "user:" + this.nonexistant_media_ids[user_id]; }
 
@@ -278,8 +272,8 @@ ppixiv.image_data = class extends EventTarget
         let illust_data = await local_api.load_media_info(media_id);
         if(!illust_data.success)
         {
-            let base_media_id = this._get_base_media_id(media_id);
-            this.nonexistant_media_ids[base_media_id] = illust_data.reason;
+            media_id = helpers.get_media_id_first_page(media_id);
+            this.nonexistant_media_ids[media_id] = illust_data.reason;
             return null;
         }
 
@@ -478,6 +472,7 @@ ppixiv.image_data = class extends EventTarget
     {
         // If we know the image isn't bookmarked, we know there are no bookmark tags, so
         // we can skip this.
+        media_id = helpers.get_media_id_first_page(media_id);
         let thumb = thumbnail_data.singleton().get_illust_data_sync(media_id);
         if(thumb && thumb.bookmarkData == null)
             return [];
@@ -508,6 +503,8 @@ ppixiv.image_data = class extends EventTarget
     // a bookmark.
     update_cached_bookmark_image_tags(media_id, tags)
     {
+        media_id = helpers.get_media_id_first_page(media_id);
+
         if(tags == null)
             delete this.bookmarked_image_tags[media_id];
         else
@@ -517,7 +514,15 @@ ppixiv.image_data = class extends EventTarget
     }
 
     // Remember when we've liked an image recently, so we don't spam API requests.
-    get_liked_recently(media_id) { return this.recent_likes[media_id]; }
-    add_liked_recently(media_id) { this.recent_likes[media_id] = true; }
+    get_liked_recently(media_id)
+    {
+        media_id = helpers.get_media_id_first_page(media_id);
+        return this.recent_likes[media_id];
+    }
+    add_liked_recently(media_id)
+    {
+        media_id = helpers.get_media_id_first_page(media_id);
+        this.recent_likes[media_id] = true;
+    }
 }
 

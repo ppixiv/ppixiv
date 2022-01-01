@@ -2031,6 +2031,20 @@ ppixiv.helpers = {
         return { type: type, id: id, page: page };
     },
 
+    // Given a media ID, return the same media ID for the first page.
+    //
+    // Some things don't interact with pages, such as illust info loads, and
+    // only store data with the ID of the first page.
+    get_media_id_first_page(media_id)
+    {
+        if(media_id == null)
+            return null;
+            
+        let id = helpers.parse_media_id(media_id);
+        id.page = 0;
+        return helpers.encode_media_id(id);
+    },
+
     // Convert a Pixiv illustration ID and page number to a media ID.
     illust_id_to_media_id(illust_id, page)
     {
