@@ -1362,9 +1362,10 @@ ppixiv.screen_search = class extends ppixiv.screen
         let [first_loaded_media_id, last_loaded_media_id] = this.get_loaded_media_ids();
 
         // If we're restoring a scroll position, use the nearby media IDs that we
-        // saved when we left, so we load the same range.
+        // saved when we left, so we load the same range.  Only do this for the initial
+        // refresh, when we don't already have thumbs nearby.
         let args = helpers.args.location;
-        if(args.state.nearby_media_ids)
+        if(first_nearby_media_id == null && args.state.nearby_media_ids != null)
         {
             first_nearby_media_id = args.state.nearby_media_ids[0];
             last_nearby_media_id = args.state.nearby_media_ids[1];
