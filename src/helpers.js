@@ -1438,13 +1438,6 @@ ppixiv.helpers = {
         return result;
     },
 
-    // This is incremented whenever we navigate forwards, so we can tell in onpopstate
-    // whether we're navigating forwards or backwards.
-    current_history_state_index()
-    {
-        return (history.state && history.state.index != null)? history.state.index: 0;
-    },
-
     args: class
     {
         constructor(url)
@@ -1550,7 +1543,6 @@ ppixiv.helpers = {
         // Use the history state from args if it exists.
         let history_data = {
             ...args.state,
-            index: helpers.current_history_state_index(),
         };
 
         // If the state wouldn't change at all, don't set it, so we don't add junk to
