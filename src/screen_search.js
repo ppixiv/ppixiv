@@ -1422,6 +1422,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         // Clamp the range.
         start_idx = Math.max(start_idx, 0);
         end_idx = Math.min(end_idx, all_media_ids.length-1);
+        end_idx = Math.max(start_idx, end_idx); // make sure start_idx <= end_idx
 
         // If we're forcing an image to be included, and we also have images already
         // loaded, we can end up with a huge range if the two are far apart.  For example,
