@@ -59,7 +59,6 @@ ppixiv.context_menu_image_info_widget = class extends ppixiv.illust_widget
                 show_page_number = true;
             }
         }
-        console.log(current_page, page_count);
 
         let page_text = "";
         if(page_count > 1)
