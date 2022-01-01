@@ -45,6 +45,9 @@ ppixiv.thumbnail_data = class
     is_media_id_loaded_or_loading(media_id)
     {
         media_id = helpers.get_media_id_first_page(media_id);
+        if(helpers.is_media_id_local(media_id) && local_api.is_media_id_loading(media_id))
+            return true;
+        
         return this.thumbnail_data[media_id] != null || this.loading_ids[media_id];
     }
     
@@ -64,6 +67,7 @@ ppixiv.thumbnail_data = class
     {
         var result = {};
         var needed_media_ids = [];
+        let local_media_ids = [];
         for(let media_id of media_ids)
         {
             media_id = helpers.get_media_id_first_page(media_id);
@@ -72,6 +76,12 @@ ppixiv.thumbnail_data = class
             {
                 // Only load illust IDs.
                 let { type } = helpers.parse_media_id(media_id);
+                if(helpers.is_media_id_local(media_id))
+                {
+                    local_media_ids.push(media_id);
+                    continue;
+                }
+
                 if(type != "illust")
                     continue;
 
@@ -80,6 +90,10 @@ ppixiv.thumbnail_data = class
             }
             result[media_id] = data;
         }
+
+        // If any of these are local IDs, load them with local_api.
+        if(local_media_ids.length)
+            local_api.load_media_ids(local_media_ids);
 
         // Load any thumbnail data that we didn't have.
         if(needed_media_ids.length)

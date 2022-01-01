@@ -118,6 +118,53 @@ ppixiv.local_api = class
         return result;
     }
 
+    static loading_media_ids = {};
+    static is_media_id_loading(media_id)
+    {
+        return this.loading_media_ids[media_id];
+    }
+
+    // This is like thumbnail_data.loaded_thumbnail_info().
+    static async load_media_ids(media_ids)
+    {
+        // Filter out IDs that are already loading or loaded.
+        let media_ids_to_load = [];
+        for(let media_id of media_ids)
+        {
+            if(thumbnail_data.singleton().is_media_id_loaded_or_loading(media_id))
+                continue;
+
+            media_ids_to_load.push(media_id);
+            this.loading_media_ids[media_id] = true;
+        }
+
+        if(media_ids_to_load.length == 0)
+            return;
+
+        let result = await local_api.local_post_request(`/api/illusts`, {
+            ids: media_ids_to_load,
+        });
+
+        for(let media_id of media_ids)
+        {
+            delete this.loading_media_ids[media_id];
+        }
+
+        if(!result.success)
+        {
+            console.error("Error reading IDs:", result.reason);
+            return;
+        }
+
+        for(let illust of result.results)
+            ppixiv.local_api.adjust_illust_info(illust);
+
+        thumbnail_data.singleton().loaded_thumbnail_info(result.results, "internal");
+
+        // Broadcast that we have new thumbnail data available.
+        window.dispatchEvent(new Event("thumbnailsloaded"));
+    }
+
     static async bookmark_add(media_id, options)
     {
         let illust_info = await thumbnail_data.singleton().get_or_load_illust_data(media_id);
