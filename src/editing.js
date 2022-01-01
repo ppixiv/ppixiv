@@ -128,9 +128,8 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
     {
         settings.set("image_editing", this.visible);
 
-        // Explicitly hide our children, so they have a chance to hide any overlays.
-        this.crop_editor.visible = this.visible;
-        this.inpaint_editor.visible = this.visible;
+        // Refresh to update editor visibility.
+        this.refresh();
 
         this.onvisibilitychanged();
 
@@ -171,11 +170,11 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
         this.visible = settings.get("image_editing", false);
         helpers.set_class(this.save_edits, "dirty", this.dirty);
 
-        let showing_crop = settings.get("image_editing_mode", null) == "crop";
+        let showing_crop = settings.get("image_editing_mode", null) == "crop" && this.visible;
         this.crop_editor.visible = showing_crop;
         helpers.set_class(this.show_crop, "selected", showing_crop);
 
-        let showing_inpaint = settings.get("image_editing_mode", null) == "inpaint";
+        let showing_inpaint = settings.get("image_editing_mode", null) == "inpaint" && this.visible;
         this.inpaint_editor.visible = showing_inpaint;
         this.inpaint_buttons.hidden = !showing_inpaint;
         helpers.set_class(this.show_inpaint, "selected", showing_inpaint);
