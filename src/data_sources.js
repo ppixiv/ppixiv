@@ -144,10 +144,9 @@ class illust_id_list
 
         // If we're navigating forwards, grab thumbnail info to get the page count to
         // see if we're at the end. 
-        if(helpers.parse_media_id(media_id).type == "illust" && !skip_manga_pages)
+        let id = helpers.parse_media_id(media_id);
+        if(id.type == "illust" && !skip_manga_pages)
         {
-            let id = helpers.parse_media_id(media_id);
-
             // If we're navigating backwards and we're past page 1, just go to the previous page.
             if(!next && id.page > 0)
             {
@@ -178,7 +177,6 @@ class illust_id_list
 
         // We only know about the first page of each media ID.  Get the media ID for the first
         // page of media_id.
-        let id = helpers.parse_media_id(media_id);
         id.page = 0;
         media_id = helpers.encode_media_id(id);
 
@@ -374,7 +372,7 @@ ppixiv.data_source = class
         args.hash.delete("view");
 
         // illust_id in the hash is always just telling us which image within the current
-        // data source to view.  data_source_current_illust is different and is handled in
+        // data source to view.  data_sources.current_illust is different and is handled in
         // the subclass.
         args.hash.delete("illust_id");
 
