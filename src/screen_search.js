@@ -705,14 +705,9 @@ ppixiv.screen_search = class extends ppixiv.screen
         if(this.data_source == null || !this.data_source.supports_start_page || first_thumb.dataset.searchPage == null)
             return;
 
-        main_controller.singleton.temporarily_ignore_onpopstate = true;
-        try {
-            let args = helpers.args.location;
-            this.data_source.set_start_page(args, first_thumb.dataset.searchPage);
-            helpers.set_page_url(args, false, "viewing-page");
-        } finally {
-            main_controller.singleton.temporarily_ignore_onpopstate = false;
-        }
+        let args = helpers.args.location;
+        this.data_source.set_start_page(args, first_thumb.dataset.searchPage);
+        helpers.set_page_url(args, false, "viewing-page", { send_popstate: false });
     }
 
     // The thumbs actually visible onscreen have changed, or the window has gained focus.

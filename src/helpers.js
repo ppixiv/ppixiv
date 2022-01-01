@@ -1521,7 +1521,7 @@ ppixiv.helpers = {
     // For browser forwards/back, this won't be present.
     //
     // args can be a helpers.args object, or a URL object.
-    set_page_url(args, add_to_history, cause)
+    set_page_url(args, add_to_history, cause, { send_popstate=true }={})
     {
         if(args instanceof URL)
             args = new helpers.args(args);
@@ -1562,7 +1562,7 @@ ppixiv.helpers = {
         // People don't think things through.
         // console.log("Set URL to", ppixiv.location.toString(), add_to_history);
 
-        if(ppixiv.location.toString() != old_url)
+        if(send_popstate && ppixiv.location.toString() != old_url)
         {
             // Browsers don't send onpopstate for history changes, but we want them, so
             // send a synthetic one.
