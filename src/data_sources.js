@@ -3430,6 +3430,8 @@ ppixiv.data_sources.vview = class extends data_source
         this.next_page_uuid = null;
         this.next_page_offset = null;
         this.bookmark_tag_counts = null;
+
+        this.load_page(1, { cause: "preload" });
     }
 
     get supports_start_page() { return true; }
@@ -3486,12 +3488,37 @@ ppixiv.data_sources.vview = class extends data_source
         let { search_options } = local_api.get_search_options_for_args(args);
         let folder_id = local_api.get_local_id_from_args(args, { get_folder: true });
         if(args.hash.get("path") != null)
-        {
-            search_options = { }
-        }
+            search_options = null;
 
         let order = args.hash.get("order");
 
+        // If we have no search options, we're viewing a single directory.  Load the whole
+        // ID list with /ids.  This only returns media IDs, but returns the entire directory,
+        // and we can register the whole thing as one big page.  This lets us handle local
+        // files better: if you load a random file in a big directory and then back out to
+        // the search, we can show the file you were on instead of going back to the top.
+        // screen_search will load media info as needed when they're actually displayed.
+        if(search_options == null)
+        {
+            console.log("Loading folder contents:", folder_id);
+            let result_ids = await local_api.local_post_request(`/api/ids/${folder_id}`, {
+                ...search_options,
+                ids_only: true,
+
+                order: args.hash.get("order"),
+            });
+            if(!result_ids.success)
+            {
+                message_widget.singleton.show("Error reading directory: " + result.reason);
+                return result;
+            }
+    
+            this.reached_end = true;
+            this.add_page(page, result_ids.ids);
+            return;
+        }
+
+        // Note that this registers the results with thumbnail_data automatically.
         let result = await local_api.list(folder_id, {
             ...search_options,
 
@@ -3562,88 +3589,6 @@ ppixiv.data_sources.vview = class extends data_source
     set_page_icon()
     {
         helpers.set_icon({vview: true});
-    }
-
-    // Handle navigating to neighboring images.
-    //
-    // Normally, we only support navigating from illusts that we've loaded, since there's
-    // no general way to find the page an illustration is on.  If we start by viewing an
-    // illust on page 10, we can't figure out that it's on page 10 in order to load it.
-    //
-    // Handle this better if we're viewing a local directory, by loading the full contents
-    // of the directory.  This way, if we're started by viewing a local file, we can always
-    // navigate around the directory.
-    //
-    // This is only done if we're just viewing a directory without a search.  Doing it for
-    // searches is much slower since it can require scanning all results at once for filtering,
-    // and it's mostly important when viewing a file in a directory.
-    async get_or_load_neighboring_media_id(media_id, next, options={})
-    {
-        // If this is a search, use the regular behavior.
-        let args = new helpers.args(this.url);
-        let { search_options } = local_api.get_search_options_for_args(args);
-        if(search_options != null)
-            return super.get_or_load_neighboring_media_id(media_id, next, options);
-
-        // Try loading results with the normal path first.  If this succeeds, we don't need
-        // to make the slower api/ids call.
-        let result = await super.get_or_load_neighboring_media_id(media_id, next, options);
-        if(result != null)
-            return result;
-
-        // Load IDs if we haven't done so yet.
-        if(this.all_illust_ids == null)
-        {
-            // If we're already loading, wait for the existing request.
-            if(this.load_ids_promise == null)
-            {
-                let folder_id = local_api.get_local_id_from_args(args, { get_folder: true });
-                console.log("Loading folder contents for navigation:", folder_id);
-                this.load_ids_promise = local_api.local_post_request(`/api/ids/${folder_id}`, {
-                    ...search_options,
-                    ids_only: true,
-        
-                    order: args.hash.get("order"),
-                });
-            }
-
-            let result = await this.load_ids_promise;
-            if(!result.success)
-            {
-                console.error("Error loading IDs:", result.reason);
-                return;
-            }
-
-            this.all_illust_ids = result.ids;
-        }
-
-        // Find media_id.
-        let idx = this.all_illust_ids.indexOf(media_id);
-        if(idx == -1)
-        {
-            console.log("Illust ID not found in folder:", media_id);
-            return null;
-        }
-
-        // Find the next file, ignoring folders.
-        for(let i = 0; i < 100; ++i) // sanity limit
-        {
-            idx += next? +1:-1;
-            if(idx < 0 || idx >= this.all_illust_ids.length)
-            {
-                console.log("Reached the end of results");
-                return null;
-            }
-
-            // If it's not an illustration, keep looking.
-            let next_media_id = this.all_illust_ids[idx];
-            let { type } = helpers.parse_media_id(next_media_id);
-            if(type == "illust" || type == "file")
-                return next_media_id;
-        }
-
-        console.log("Couldn't find the next illust");
-        return null;
     }
 
     get_displaying_text()
