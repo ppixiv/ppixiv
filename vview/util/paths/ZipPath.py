@@ -234,7 +234,11 @@ class ZipPath(PathBase):
 
     @property
     def name(self):
-        return self._path.name
+        """
+        Return the basename of the path.
+        """
+        # Make sure that the root of the ZIP returns the name of the ZIP itself.
+        return self.path.name
         
     def __fspath__(self):
         """
