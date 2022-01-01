@@ -224,6 +224,16 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
                 });
             },
     
+            auto_pan: () => {
+                return new menu_option_toggle({
+                    ...global_options,
+                    label: "Pan viewed images",
+                    setting: "auto_pan",
+                    //<span class="material-icons">animation</span>
+                    explanation_enabled: "Pan images while viewing them (drag the image to stop)",
+                });
+            },
+    
             no_recent_history: () => {
                 return new menu_option_toggle({
                     ...global_options,
@@ -279,6 +289,7 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
         settings_widgets.disable_thumbnail_panning();
         settings_widgets.disable_thumbnail_zooming();
         settings_widgets.quick_view();
+        settings_widgets.auto_pan();
         settings_widgets.linked_tabs_enabled();
 
         if(!ppixiv.native)
