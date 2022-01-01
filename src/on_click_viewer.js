@@ -314,12 +314,8 @@ ppixiv.on_click_viewer = class
             this.preview_img = null;
         }
 
-        if(this.animations && remove_animation)
-        {
-            for(let animation of this.animations)
-                animation.cancel();
-            this.animations = null;
-        }
+        if(remove_animation)
+            this.stop_animation();
     }
 
     shutdown()
