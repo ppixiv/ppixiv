@@ -10,9 +10,15 @@ from . import video
 class InpaintError(Exception): pass
 class DataError(InpaintError): pass
 
-def draw(actions, width, height):
+def draw(actions, width, height, dilate=0):
     original_width = width
     original_height = height
+
+    output_settings = {
+        'blur_mask': 0,
+        'downscale': 1,
+        'max_resolution': 1500,
+    }
 
     # Align to 4, since PIL won't let us specify the stride
     width = (width + 3) & ~3
@@ -21,9 +27,8 @@ def draw(actions, width, height):
     ctx = cairo.Context(surface)
 
     ctx.set_line_cap(cairo.LineCap.ROUND)
+    ctx.set_line_join(cairo.LineCap.ROUND)
 
-    blur = None
-    downscale_ratio = None
     for action in actions:
         if not isinstance(action, dict):
             raise DataError('Invalid inpaint data')
@@ -33,18 +38,20 @@ def draw(actions, width, height):
             case 'settings':
                 # This is just a setting for how much we blur at the end.  We don't blur in the middle of drawing
                 # or allow changing it per stroke.
-                blur = action.get('blur', 0)
-                downscale_ratio = action.get('downscale', 1)
+                output_settings['blur_mask'] = action.get('blur', 0)
+                output_settings['downscale'] = action.get('downscale', 1)
+                output_settings['max_resolution'] = action.get('max_resolution', 800)
 
             case 'line':
                 thickness = action.get('thickness', 1)
+                thickness += dilate
                 ctx.set_line_width(thickness)
 
                 segments = action.get('line', [])
-                start_pos = segments.pop(0)
+                start_pos = segments[0]
                 ctx.move_to(start_pos[0], start_pos[1])
 
-                for point in segments:
+                for point in segments[1:]:
                     ctx.line_to(point[0], point[1])
 
                 ctx.stroke()
@@ -57,26 +64,54 @@ def draw(actions, width, height):
     # If we padded to align to 4, crop back to the source size.
     img = img.crop((0, 0, original_width, original_height))
 
-    return img, downscale_ratio, blur
+    return img, output_settings
+
+class tm:
+    def __init__(self):
+        self.t = time.time()
+        self.total = 0
+    def go(self, text):
+        now = time.time()
+        delta = now - self.t
+        self.total += delta
+        self.t = now
+        print('%30s %.3f %.3f' % (text, delta, self.total))
 
 async def _create_correction(source_image, lines):
+    s = tm()
     # We'll need to load the source file eventually, so do it now to catch any errors early.
     source_image.load()
 
+    s.go('load')
+
     # Draw the inpaint mask.
-    mask, downscale_ratio, blur = draw(lines, source_image.size[0], source_image.size[1])
+    mask, output_settings = draw(lines, source_image.size[0], source_image.size[1])
+
+    # The removelogo filter can take a long time if the image is very high-resolution, and
+    # often there's no point in running the filter at full resolution.  It's creating a
+    # blurry inpaint anyway.  Set a target resolution and scale the image down to that for inpainting.
+    target_size = 600 # output_settings['max_resolution']
+    target_ratio = target_size / max(source_image.size)
+    target_ratio = min(target_ratio, 1) # only if smaller
+    target_size = (int(source_image.size[0] * target_ratio), int(source_image.size[1] * target_ratio))
+
+    downscaled_source_image = source_image
+    downscaled_mask = mask
+    if target_ratio < 1:
+        downscaled_source_image = downscaled_source_image.resize(target_size, reducing_gap=2)
+        downscaled_mask = downscaled_mask.resize(target_size, reducing_gap=2)
+        s.go('pre-downscale')
 
     # Save the mask for ffmpeg.
-    mask.save('mask.bmp', format='bmp')
+    downscaled_mask.save('mask.bmp', format='bmp')
+    s.go('save mask')
 
     # Pipe the image to ffmpeg as a BMP.  This allows us to send embedded images, and avoids
     # having FFmpeg decompress PNGs a second time.
     source_bmp = BytesIO()
-    source_image.save(source_bmp, format='bmp')
+    downscaled_source_image.save(source_bmp, format='bmp')
+    s.go('save downscaled image')
 
-    # XXX: we should be able to downscale the image to make updating much faster
-    # needs to be done on a premultiplied image with the mask applied, so we don't
-    # blur in stuff that we're trying to paint out
     source_bmp.seek(0)
     stdin = video.pipe_to_process(source_bmp)
 
@@ -98,6 +133,7 @@ async def _create_correction(source_image, lines):
     ], stdin=stdin)
     if result != 0:
         raise Exception('Error running FFmpeg to create correction image')
+    s.go('ffmpeg')
 
     try:
         with temp_file.open('rb') as result:
@@ -106,38 +142,61 @@ async def _create_correction(source_image, lines):
             image.load()
     finally:
         temp_file.unlink()
+    s.go('load result')
 
-    if downscale_ratio is not None and downscale_ratio > 1:
-        # Downscale and restore the patch if requested.
-        image = image.resize((int(source_image.size[0] / downscale_ratio), int(source_image.size[1] / downscale_ratio)), reducing_gap=2)
-        image = image.resize(source_image.size, resample=Image.NEAREST)
+    # Rescale the inpaint back to the source size.
+    image = image.resize(source_image.size, resample=Image.BILINEAR)
+    
+    s.go('resize back')
 
     # Apply any blurring to the mask.  Don't blur the mask we give to FFmpeg.
-    if blur is not None:
-        # Before blurring, dilate the mask.  We only want to blur outwards: 
+
+    # If we downsampled for inpainting, blur the inpaint proportionally to
+    # the downscale to get rid of rescaling artifacts.  It's blurry anyway,
+    # this just gives a cleaner blur.  If we downscaled to 0.5, blur with a
+    # radius of 2.
+    image = image.filter(filter=ImageFilter.BoxBlur(1 / target_ratio))
+
+    s.go('target_ratio blur')
+
+    if output_settings['blur_mask'] > 0:
         # Any pixels fully masked should remain fully masked after blurring.  If we simply
         # blur, the edge of the mask will expand bidirectionally, and previously masked pixels
-        # will become visible.  Avoid this by dilating the mask first to expand it.  Set the
+        # will become visible.  Avoid this by dilating the mask first to expand it.  PIL's
+        # MaxFilter is really slow, so we just draw the mask again with a higher thickness.
+        # Set the
         # dilate radius to twice the blur radius.  Also, MaxFilter only accepts an odd radius.
-        dilate_radius = math.ceil(blur * 2)
-        if (dilate_radius % 2) == 0:
-            dilate_radius += 1
-        mask = mask.filter(filter=ImageFilter.MaxFilter(size=dilate_radius))
+        dilate_radius = math.ceil(output_settings['blur_mask'] * 2)
+        mask, _ = draw(lines, source_image.size[0], source_image.size[1], dilate=dilate_radius)
+        s.go('dilate')
 
         # Use a box blur instead of a gaussian blur, since the number of pixels blurred is
         # more accurate.
-        mask = mask.filter(filter=ImageFilter.BoxBlur(blur))
+        mask = mask.filter(filter=ImageFilter.BoxBlur(output_settings['blur_mask']))
+        s.go('blur')
+
+    if output_settings['downscale'] > 1:
+        # Downscale and restore the patch if requested.
+        post_downscale_size = (int(source_image.size[0] / output_settings['downscale']), int(source_image.size[1] / output_settings['downscale']))
+        image = image.resize(post_downscale_size, reducing_gap=2)
+        s.go('post-downscale')
+
+        # Resize back to the original size, to match the source image.
+        image = image.resize(source_image.size, resample=Image.NEAREST)
+        s.go('final resize ' + str(image.size))
 
     # Replace the alpha channel on the corrected image with the mask.  Don't use paste(mask) for
     # this, for some reason it seems to result in premultiplied alpha when everything else is
     # expecting straight alpha.  Do this after resampling, so the mask stays full resolution.
     image.putalpha(mask)
+    s.go('putalpha')
 
     # putalpha just puts alpha, which means the RGB channels still have data for completely
     # transparent pixels.  This will be saved to PNGs, which makes them huge.  Fix this by
     # alpha compositing the mask onto a blank image, which will clear transparent pixels.
     image2 = Image.new('RGBA', mask.size)
     image2 = Image.alpha_composite(image2, image)
+    s.go('alpha_composite')
 
     return image2
 
