@@ -1234,7 +1234,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         }
 
         let args = helpers.args.location;
-        if(args.state.scroll_position == null)
+        if(args.state.scroll == null)
         {
             console.log("Scroll to top for new search");
             this.scroll_container.scrollTop = 0;
@@ -1251,7 +1251,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         if(restore_scroll_pos_id !== this.restore_scroll_pos_id && !this._active)
             return;
             
-        if(this.restore_scroll_position(args.state.scroll_position))
+        if(this.restore_scroll_position(args.state.scroll?.scroll_position))
             console.log("Restored scroll position from history");
     }
 
@@ -1273,8 +1273,10 @@ ppixiv.screen_search = class extends ppixiv.screen
     store_scroll_position()
     {
         let args = helpers.args.location;
-        args.state.scroll_position = this.save_scroll_position();
-        args.state.nearby_media_ids = this.get_nearby_media_ids();
+        args.state.scroll = {
+            scroll_position: this.save_scroll_position(),
+            nearby_media_ids: this.get_nearby_media_ids(),
+        };
         helpers.set_page_url(args, false, "viewing-page", { send_popstate: false });
     }
 
@@ -1365,10 +1367,10 @@ ppixiv.screen_search = class extends ppixiv.screen
         // saved when we left, so we load the same range.  Only do this for the initial
         // refresh, when we don't already have thumbs nearby.
         let args = helpers.args.location;
-        if(first_nearby_media_id == null && args.state.nearby_media_ids != null)
+        if(first_nearby_media_id == null && args.state.scroll?.nearby_media_ids != null)
         {
-            first_nearby_media_id = args.state.nearby_media_ids[0];
-            last_nearby_media_id = args.state.nearby_media_ids[1];
+            first_nearby_media_id = args.state.scroll.nearby_media_ids[0];
+            last_nearby_media_id = args.state.scroll.nearby_media_ids[1];
         }
 
         // The indices of each related media_id.  These can all be -1.  Note that it's

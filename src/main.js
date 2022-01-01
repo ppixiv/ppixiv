@@ -236,6 +236,13 @@ ppixiv.main_controller = class
         // we load the new one.
         console.log("Refreshing data source for", ppixiv.location.toString());
         page_manager.singleton().create_data_source_for_url(ppixiv.location, true);
+
+        // Screens store their scroll position in args.state.scroll.  On refresh, clear it
+        // so we scroll to the top when we refresh.
+        let args = helpers.args.location;
+        delete args.state.scroll;
+        helpers.set_page_url(args, false, "refresh-data-source", { send_popstate: false });
+
         await this.set_current_data_source("refresh");
     }
 

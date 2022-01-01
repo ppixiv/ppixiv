@@ -354,7 +354,7 @@ ppixiv.screen_manga = class extends ppixiv.screen
         }
 
         let args = helpers.args.location;
-        if(args.state.scroll_position == null)
+        if(args.state.scroll?.scroll_position == null)
         {
             console.log("Scroll to top for new search");
             this.container.scrollTop = 0;
@@ -362,7 +362,7 @@ ppixiv.screen_manga = class extends ppixiv.screen
         }
 
         // Restore the scroll position from history.
-        this.scroll_container.scrollTop = args.state.scroll_position;
+        this.scroll_container.scrollTop = args.state.scroll.scroll_position;
     }
 
     // Schedule storing the scroll position, resetting the timer if it's already running.
@@ -383,7 +383,10 @@ ppixiv.screen_manga = class extends ppixiv.screen
     store_scroll_position()
     {
         let args = helpers.args.location;
-        args.state.scroll_position = this.scroll_container.scrollTop;
+        args.state.scroll = {
+            scroll_position: this.scroll_container.scrollTop,
+        };
+        
         console.log(args.state);
         helpers.set_page_url(args, false, "viewing-page", { send_popstate: false });
     }
