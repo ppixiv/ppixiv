@@ -666,13 +666,12 @@ class Library:
         elif sort_order == '-normal':
             sort_order = '-natural'
 
-        # There's no point to shuffling here.
-        if sort_order == 'shuffle':
-            sort_order = 'natural'
-
         scandir_results = path.scandir()
 
-        if sort_order is not None:
+        if sort_order == 'shuffle':
+            scandir_results = list(scandir_results)
+            random.shuffle(scandir_results)
+        elif sort_order is not None:
             sort_order_info = _get_sort(sort_order)
             if sort_order_info is not None:
                 scandir_results = sorted(scandir_results, key=sort_order_info['fs'], reverse=sort_order_info['reverse'])
@@ -753,6 +752,7 @@ class Library:
         """
         entry = None
         if not force_refresh:
+            # See if the file is already cached.
             entry = self.db.get(path=os.fspath(path), conn=conn)
 
             # If the entry isn't populated and we're populating, ignore the database entry, so
