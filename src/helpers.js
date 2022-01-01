@@ -743,6 +743,25 @@ ppixiv.helpers = {
         return parts[parts.length-1];
     },
 
+    save_scroll_position(scroller, save_relative_to)
+    {
+        return {
+            original_scroll_top: scroller.scrollTop,
+            original_offset_top: save_relative_to.offsetTop,
+        };
+    },
+
+    restore_scroll_position(scroller, restore_relative_to, saved_position)
+    {
+        let scroll_top = saved_position.original_scroll_top;
+        if(restore_relative_to)
+        {
+            let offset = restore_relative_to.offsetTop - saved_position.original_offset_top;
+            scroll_top += offset;
+        }
+        scroller.scrollTop = scroll_top;
+    },
+    
     encode_query: function(data) {
         var str = [];
         for (var key in data)
@@ -2752,27 +2771,6 @@ ppixiv.key_storage = class
         });
     }
 }
-
-ppixiv.SaveScrollPosition = class
-{
-    constructor(scroller, save_relative_to)
-    {
-        this.scroller = scroller;
-        this.original_scroll_top = this.scroller.scrollTop;
-        this.original_offset_top = save_relative_to.offsetTop;
-    }
-
-    restore_relative_to(restore_relative_to)
-    {
-        let scroll_top = this.original_scroll_top;
-        if(restore_relative_to)
-        {
-            let offset = restore_relative_to.offsetTop - this.original_offset_top;
-            scroll_top += offset;
-        }
-        this.scroller.scrollTop = scroll_top;
-    }
-};
 
 // VirtualHistory is a wrapper for document.location and window.history to allow
 // setting a virtual, temporary document location.  These are ppixiv.location and

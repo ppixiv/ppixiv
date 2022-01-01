@@ -223,15 +223,6 @@ ppixiv.main_controller = class
 
     window_onpopstate(e)
     {
-        // When the data sources supports_start_page, the page in the URL is changed as
-        // the user scrolls.  This doesn't trigger a data source change.
-        // XXX: can we handle this generically with get_canonical_url
-        if(this.temporarily_ignore_onpopstate)
-        {
-            // console.log("Not navigating for internal page change");
-            return;
-        }
-
         // Set the current data source and state.
         this.set_current_data_source(e.navigationCause || "history");
     }

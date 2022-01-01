@@ -1753,7 +1753,7 @@ ppixiv.screen_search = class extends ppixiv.screen
             return null;
 
         return {
-            saved_scroll: new SaveScrollPosition(this.scroll_container, first_visible_thumb_node),
+            saved_scroll: helpers.save_scroll_position(this.scroll_container, first_visible_thumb_node),
             media_id: first_visible_thumb_node.dataset.id,
         }
     }
@@ -1769,7 +1769,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         if(restore_scroll_position_node == null)
             return;
 
-        scroll.saved_scroll.restore_relative_to(restore_scroll_position_node);
+        helpers.restore_scroll_position(this.scroll_container, restore_scroll_position_node, scroll.saved_scroll);
     }
 
     update_from_settings()
