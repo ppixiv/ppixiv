@@ -895,7 +895,7 @@ ppixiv.on_click_viewer = class
         // This is like the thumbnail animation, which gives a reasonable default for both landscape
         // and portrait animations.
         let auto_pan_ease = ppixiv.settings.get("auto_pan_ease");
-        let pan_duration = this.slideshow? 30:3;
+        let pan_duration = this.slideshow_enabled? 30:3;
 
         let default_pan = {
             pan: [{
