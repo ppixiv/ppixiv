@@ -1188,15 +1188,27 @@ ppixiv.on_click_viewer = class
         // Commit the current state of the main animation so we can read where the image was.
         // This also commits the opacity, so if we're ending one image to display another the
         // image won't flash on screen.
-        for(let animation of this.animations)
-            animation.commitStyles();
+        let applied_animations = true;
+        try {
+            for(let animation of this.animations)
+                animation.commitStyles();
+        } catch {
+            applied_animations = false;
 
+        }
         // Cancel all animations.  We don't need to wait for animation.pending here.
         for(let animation of this.animations)
             animation.cancel();
 
         this.animations = null;
 
+        if(!applied_animations)
+        {
+            // For some reason, commitStyles throws an exception if we're not visible, which happens
+            // if we're shutting down.  In this case, just cancel the animations.
+            return;
+        }
+        
         // Figure out the zoom factor the animation left us with.  The zoom factor is 1 if
         // the image width equals this.width.
         let { width, left, top } = this.image_box.getBoundingClientRect();
