@@ -27,7 +27,7 @@ ppixiv.context_menu_image_info_widget = class extends ppixiv.illust_widget
         this.refresh();
     }
 
-    refresh_internal({ thumbnail_data, illust_data })
+    refresh_internal({ media_id, thumbnail_data, illust_data })
     {
         if(!illust_data)
             illust_data = thumbnail_data;
@@ -43,14 +43,31 @@ ppixiv.context_menu_image_info_widget = class extends ppixiv.illust_widget
             node.hidden = text == "";
         };
         
-        // Add the page count for manga.
-        var page_text = "";
-        if(illust_data.pageCount > 1)
+        // Add the page count for manga.  If the data source is data_source.vview, show
+        // the index of the current file if it's loaded all results.
+        let current_page = this._page;
+        let page_count = illust_data.pageCount;
+        let show_page_number = this._show_page_number;
+        if(this.data_source?.name == "vview" && this.data_source.all_pages_loaded)
         {
-            if(this._show_page_number)
-                page_text = "Page " + (this._page+1) + "/" + illust_data.pageCount;
+            let page = this.data_source.id_list.get_page_for_illust(media_id);
+            let ids = this.data_source.id_list.media_ids_by_page.get(page);
+            if(ids != null)
+            {
+                current_page = ids.indexOf(media_id);
+                page_count = ids.length;
+                show_page_number = true;
+            }
+        }
+        console.log(current_page, page_count);
+
+        let page_text = "";
+        if(page_count > 1)
+        {
+            if(show_page_number)
+                page_text = `Page ${current_page+1}/${page_count}`;
             else
-                page_text = illust_data.pageCount + " pages";
+                page_text = `${page_count} pages`;
         }
         set_info(".page-count", page_text);
 
@@ -77,6 +94,15 @@ ppixiv.context_menu_image_info_widget = class extends ppixiv.illust_widget
         let age = helpers.age_to_string(seconds_old) + " ago";
         this.container.querySelector(".post-age").dataset.popup = helpers.date_to_string(illust_data.createDate);
         set_info(".post-age", age);
+    }
+
+    set_data_source(data_source)
+    {
+        if(this.data_source == data_source)
+            return;
+
+        this.data_source = data_source;
+        this.refresh();
     }
 }
 
@@ -799,6 +825,13 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
             return;
 
         this.data_source = data_source;
+
+        for(let widget of this.illust_widgets)
+        {
+            if(widget.set_data_source)
+                widget.set_data_source(data_source);
+        }
+
         this.refresh();
     }
 

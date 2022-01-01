@@ -615,6 +615,9 @@ ppixiv.data_source = class
     // Some data sources can restart the search at a page.
     get supports_start_page() { return false; }
 
+    // If true, all pages are loaded.  This is only used by data_sources.vview.
+    get all_pages_loaded() { return false; }
+
     // Store the current page in the URL.
     //
     // This is only used if supports_start_page is true.
@@ -3432,11 +3435,16 @@ ppixiv.data_sources.vview = class extends data_source
         this.next_page_uuid = null;
         this.next_page_offset = null;
         this.bookmark_tag_counts = null;
+        this._all_pages_loaded = false;
 
         this.load_page(1, { cause: "preload" });
     }
 
     get supports_start_page() { return true; }
+
+    // If we've loaded all pages, this is true to let the context menu know it
+    // should display page numbers.
+    get all_pages_loaded() { return this._all_pages_loaded; }
 
     async load_page_internal(page)
     {
@@ -3516,6 +3524,7 @@ ppixiv.data_sources.vview = class extends data_source
             }
     
             this.reached_end = true;
+            this._all_pages_loaded = true;            
             this.add_page(page, result_ids.ids);
             return;
         }
