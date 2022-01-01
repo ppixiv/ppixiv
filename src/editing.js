@@ -347,6 +347,7 @@ ppixiv.ImageEditingOverlayContainer = class extends HTMLElement
         this.inpaint_src = inpaint_url || "";
     }
 
+    // Note that load will currently be fired twice, once for each image.
     _onload(e)
     {
         // Dispatch loaded on ourself if both images are loaded.
