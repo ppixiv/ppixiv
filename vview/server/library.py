@@ -827,12 +827,12 @@ class Library:
 
         assert paths
 
-        sort_order_info = _get_sort(sort_order)
-
         # if the sort order is shuffle, disable sorting within the actual searches.
         shuffle = sort_order == 'shuffle'
         if shuffle:
             sort_order_info = None
+        else:
+            sort_order_info = _get_sort(sort_order)
 
         # A sort order needs these keys to be used with searching.
         if sort_order_info is not None:
