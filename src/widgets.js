@@ -9,11 +9,15 @@ ppixiv.widget = class
         contents=null,
         parent=null,
         visible=true,
+        shutdown_signal=null,
         ...options}={})
     {
         this.options = options;
         this.templates = {};
-        this.shutdown_signal = new AbortController();
+
+        // If our parent is passing us a shared shutdown signal, use it.  Otherwise, create
+        // our own.
+        this.shutdown_signal = shutdown_signal || new AbortController();
 
         // We must have either a template or contents.
         if(template)
@@ -1355,7 +1359,12 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                             onclick: (e) => {
                                 e.stopPropagation();
 
-                                main_controller.singleton.link_tabs_popup.visible = true;
+
+                                new ppixiv.settings_dialog({
+                                    container: document.body,
+                                    show_page: "linked_tabs",
+                                });
+
                                 this.parent.hide();
                                 return true;
                             },

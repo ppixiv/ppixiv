@@ -3,17 +3,17 @@
 
 ppixiv.settings_dialog = class extends ppixiv.dialog_widget
 {
-    constructor({...options})
+    constructor({show_page="thumbnail", ...options})
     {
         super({...options, visible: true, template: `
             <div class="settings-dialog dialog">
                 <div class=content>
-                    <div class=scroll>
-                        <div class=header>Settings</div>
-                        <div class=items style="
-                            display: flex;
-                            flex-direction: column;
-                        "></div>
+                    <div class=header>Settings</div>
+
+                    <div class=box>
+                        <div class=sections></div>
+                        <div class=items>
+                        </div>
                     </div>
 
                     <div class=close-button>
@@ -23,7 +23,12 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
             </div>
         `});
 
-        this.container.querySelector(".close-button").addEventListener("click", (e) => { this.hide(); });
+        this.pages = {};
+        this.page_buttons = new Map();
+
+        this.container.querySelector(".close-button").addEventListener("click", (e) => {
+            this.shutdown();
+        }, { signal: this.shutdown_signal.signal });
 
         this.add_settings();
 
@@ -32,13 +37,25 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
             if(e.target != this.container)
                 return;
 
-            this.visible = false;
-        });
+            this.shutdown();
+        }, { signal: this.shutdown_signal.signal });
 
         // Hide on any state change.
         window.addEventListener("popstate", (e) => {
-            this.visible = false;
-        });
+            this.shutdown();
+        }, { signal: this.shutdown_signal.signal });
+
+        this.show_page(show_page);
+    }
+
+    shutdown()
+    {
+        super.shutdown();
+
+        this.visible = false;
+        this.container.remove();
+
+        this.link_tabs.shutdown();
     }
 
     visibility_changed()
@@ -54,13 +71,17 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
 
     add_settings()
     {
-        let container = this.container.querySelector(".scroll .items")
+        this.items = this.container.querySelector(".items");
 
         // Options that we pass to all menu_options:
         let global_options = {
-            container: container,
+            container: this.items,
             parent: this,
             classes: ["settings-row"],
+
+            // Share our shutdown signal with the widgets, so their event listeners will be
+            // shut down when we shut down.
+            shutdown_signal: this.shutdown_signal,
         };
 
         // Each settings widget.  Doing it this way lets us move widgets around in the
@@ -83,7 +104,7 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
                     ],
                 });
         
-                button.container.querySelector(".size-slider").style.flexGrow = .5;
+                button.container.querySelector(".size-slider").style.flexGrow = .25;
             },
 
             manga_thumbnail_size: () => {
@@ -103,7 +124,7 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
                     ],
                 });
         
-                button.container.querySelector(".size-slider").style.flexGrow = .5;
+                button.container.querySelector(".size-slider").style.flexGrow = .25;
             },
 
             disabled_by_default: () => {
@@ -227,7 +248,7 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
             auto_pan: () => {
                 return new menu_option_toggle({
                     ...global_options,
-                    label: "Pan viewed images",
+                    label: "Pan images",
                     setting: "auto_pan",
                     //<span class="material-icons">animation</span>
                     explanation_enabled: "Pan images while viewing them (drag the image to stop)",
@@ -254,62 +275,125 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
                     off_value: "illust",
                 });
             },
-    
-            linked_tabs_enabled: () => {
-                new menu_option_toggle({
+            link_tabs: () => {
+                return new link_tabs_popup({
                     ...global_options,
-                    label: "Linked tabs",
+                });
+            },
+            enable_linked_tabs: () => {
+                return new menu_option_toggle({
+                    ...global_options,
+                    label: "Enabled",
                     setting: "linked_tabs_enabled",
-                    explanation_enabled: "View images in multiple tabs",
-                    explanation_disabled: "View images in multiple tabs",
-                    buttons: [
-                        new menu_option_nested_button({
-                            ...global_options,
-                            parent: this,
-                            container: this.container,
-                            label: "Edit",
-                            classes: ["button"],
-            
-                            onclick: (e) => {
-                                this.visible = false;
-            
-                                main_controller.singleton.link_tabs_popup.visible = true;
-                                return true;
-                            },
-                        }),
-                    ],
+                });
+            },
+            unlink_all_tabs: () => {
+                return new menu_option_button({
+                    ...global_options,
+                    label: "Unlink all tabs",
+                    onclick: () => {
+                        settings.set("linked_tabs", []);
+                    },
                 });
             },
         };
 
-        settings_widgets.thumbnail_size();
-        settings_widgets.manga_thumbnail_size();
+        this.create_page("thumbnail", "Thumbnail options", global_options);
 
-        settings_widgets.disable_translations();
+        settings_widgets.thumbnail_size();
+        if(!ppixiv.native)
+            settings_widgets.manga_thumbnail_size();
         settings_widgets.disable_thumbnail_panning();
         settings_widgets.disable_thumbnail_zooming();
         settings_widgets.quick_view();
+        settings_widgets.ui_on_hover();
+
+        this.create_page("image", "Image viewing", global_options);
         settings_widgets.auto_pan();
-        settings_widgets.linked_tabs_enabled();
+        settings_widgets.view_mode();
+        settings_widgets.invert_scrolling();
+        settings_widgets.no_hide_cursor();
+        
+        this.create_page("linked_tabs", "Linked tabs", global_options);
+        this.link_tabs = settings_widgets.link_tabs();
+        settings_widgets.enable_linked_tabs();
+        settings_widgets.unlink_all_tabs();
+
+        this.create_page("other", "Other", global_options);
+        settings_widgets.disable_translations();
 
         if(!ppixiv.native)
             settings_widgets.disabled_by_default();
             
-        settings_widgets.no_hide_cursor();
-
         // Firefox's contextmenu behavior is broken, so hide this option.
         if(navigator.userAgent.indexOf("Firefox/") == -1)
             settings_widgets.invert_popup_hotkey();
 
         settings_widgets.ctrl_opens_popup();
-        settings_widgets.ui_on_hover();
-        settings_widgets.invert_scrolling();
         settings_widgets.theme();
 
-        settings_widgets.view_mode();
 
         // Hidden for now (not very useful)
         // settings_widgets.no_recent_history();
+    }
+
+    create_page(id, title, global_options)
+    {
+        let page = this.create_template({name: "settings-page", html: `
+            <div class=settings-page>
+            </div>
+        `});
+
+        this.items.appendChild(page);
+        global_options.container = page;
+
+        let page_button = this.create_template({name: "settings-page-button", html: `
+            <div class=box-link>
+            </div>
+        `});
+        page_button.innerText = title;
+        page.hidden = true;
+        page_button.addEventListener("click", (e) => {
+            this.show_page(id);
+        });
+        this.container.querySelector(".sections").appendChild(page_button);
+
+        this.pages[id] = {
+            page: page,
+            page_button: page_button,
+        };
+        this.page_buttons.set(page, page_button);
+        if(this.pages.length == 1)
+            this.show_page(page);
+
+        return page;
+    }
+
+    show_page(id)
+    {
+        if(this.visible_page != null)
+        {
+            helpers.set_class(this.visible_page.page_button, "selected", false);
+            this.visible_page.page.hidden = true;
+        }
+
+        this.visible_page = this.pages[id];
+        this.visible_page.page.hidden = false;
+        
+        helpers.set_class(this.visible_page.page_button, "selected", true);
+
+        this.refresh();
+    }
+
+    refresh()
+    {
+        this.link_tabs.visible = this.visible && this.visible_page == this.pages.linked_tabs;
+    }
+
+    visibility_changed()
+    {
+        super.visibility_changed();
+        this.refresh();
     }
 };
 
@@ -523,7 +607,7 @@ ppixiv.menu_option_toggle = class extends ppixiv.menu_option_button
         this.on_value = on_value;
         this.off_value = off_value;
         if(this.setting)
-            settings.register_change_callback(this.setting, this.refresh);
+            settings.changes.addEventListener(this.setting, this.refresh, { signal: this.shutdown_signal.signal });
     }
 
     refresh()

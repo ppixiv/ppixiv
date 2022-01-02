@@ -2431,6 +2431,13 @@ svg.heart-image .delete {
 
 .link-tab-popup
 {
+    .explanation {
+        max-width: 25em;
+        width: 100%;
+        text-align: center;
+        margin: 0 auto;
+    }
+
     .button {
         display: inline-block;
         cursor: pointer;
@@ -2741,13 +2748,100 @@ svg.heart-image .delete {
 
     .content {
         width: 80%;
-        height: 80%;
+        min-height: 30em;
+        min-width: 800px;
+        padding: 1em;
+
+        & .box {
+            display: flex;
+            flex-direction: row;
+    
+            // The section selector on the left side of the settings dialog:
+            .sections {
+                white-space: nowrap;
+                display: flex;
+                flex-direction: column;
+
+                > div {
+                    padding: 0.5em;
+                    cursor: pointer;
+
+                    &:not(.selected) {
+                        opacity: 0.65;
+                    }
+
+                    &:not(.active) {
+                        background: none;
+                    }
+
+                    &:hover {
+                        background-color: var(--box-link-hover-color);
+                    }
+                }
+            }
+
+            .items {
+                flex: 1;
+            }
+
+            .settings-page {
+                display: flex;
+                flex-direction: column;
+
+                .settings-row {
+                    padding: 0.5em 1em;
+                    gap: 1em;
+                }
+            
+                .box-link {
+                    // Disable some regular box-link styles:
+                    height: auto;
+                    background-color: inherit;
+                
+                    // Extra buttons (the linked tabs "edit" button):
+                    > .buttons > .box-link {
+                        padding: 0.35em .75em;
+                    }
+            
+                    &.button {
+                        background-color: var(--box-link-bg-color);
+                    }
+            
+                    &.clickable:hover:not(.disabled) {
+                        background-color: var(--box-link-hover-color);
+                    }
+            
+                    // If this isn't a clickable row, such as a slider, disable effects on hover.
+                    &:not(.clickable):hover {
+                        cursor: inherit;
+                        background: none;
+                    }
+            
+                    .label-box {
+                        margin-left: .25em;
+                        flex: 1;
+                        display: flex;
+                        flex-direction: column;
+                        gap: .25em;
+                        .label {
+                            padding-top: .25em; // adjust for descenders
+                            margin: 0; // disable regular margin
+                        }
+            
+                        .explanation {
+                            font-size: 16px;
+                            opacity: 0.75;
+                        }
+                    }
+                }            
+            }
+        }
     }
     
     .close-button {
         position: absolute;
         top: 5px;
-        right: -40px;
+        right: 5px;
         color: var(--button-color);
         background-color: var(--ui-bg-color);
         padding: 4px;
@@ -2758,53 +2852,6 @@ svg.heart-image .delete {
         }
         & > svg {
             display: block;
-        }
-    }
-    
-    .settings-row {
-        padding: 0.5em 1em;
-        gap: 1em;
-    }
-
-    .box-link {
-        // Disable some regular box-link styles:
-        height: auto;
-        background-color: inherit;
-    
-        // Extra buttons (the linked tabs "edit" button):
-        > .buttons > .box-link {
-            padding: 0.35em .75em;
-        }
-
-        &.button {
-            background-color: var(--box-link-bg-color);
-        }
-
-        &.clickable:hover:not(.disabled) {
-            background-color: var(--box-link-hover-color);
-        }
-
-        // If this isn't a clickable row, such as a slider, disable effects on hover.
-        &:not(.clickable):hover {
-            cursor: inherit;
-            background: none;
-        }
-
-        .label-box {
-            margin-left: .25em;
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            gap: .25em;
-            .label {
-                padding-top: .25em; // adjust for descenders
-                margin: 0; // disable regular margin
-            }
-
-            .explanation {
-                font-size: 16px;
-                opacity: 0.75;
-            }
         }
     }
 }

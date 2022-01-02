@@ -74,6 +74,8 @@ ppixiv.SendImage = class
         this.query_tabs();
     }
 
+    static messages = new EventTarget();
+
     static add_message_listener(message, func)
     {
         if(!this.listeners[message])
@@ -126,6 +128,10 @@ ppixiv.SendImage = class
         // If this message has a target and it's not us, ignore it.
         if(data.to && data.to.indexOf(SendImage.tab_id) == -1)
             return;
+
+        let event = new Event(data.message);
+        event.message = data;
+        this.messages.dispatchEvent(event);
 
         // Call any listeners for this message.
         if(this.listeners[data.message])
@@ -334,34 +340,17 @@ ppixiv.link_tabs_popup = class extends ppixiv.dialog_widget
     constructor({...options})
     {
         super({...options, template: `
-            <div class="link-tab-popup dialog">
-                <div class=content>
-                    <div class=close-button>
-                        <ppixiv-inline src="resources/close-button.svg"></ppixiv-inline>
-                    </div>
-
-                    <div class=header>Link Tabs</div>
-
-                    <div style="text-align: center; width: 100%;">
-                        <ppixiv-inline src="resources/multi-monitor.svg" class=tutorial-monitor></ppixiv-inline>
-                        <div style="margin: 10px 0 15px 0; font-size: 125%;">
-                            Open a 
-                            <img src="ppixiv:resources/activate-icon.png" style="width: 28px; vertical-align: bottom;">
-                            tab on another monitor and click "Link this tab" to send images to it
-                        </div>
-                    </div>
-
-                    <div class="buttons box-button-row" style="margin-top: 1em;">
-                        <div class=toggle-enabled></div>
-                        <div class="unlink-all box-link" hidden><span>Unlink all tabs</span></div>
+            <div class="link-tab-popup">
+                <div class=explanation>
+                    <ppixiv-inline src="resources/multi-monitor.svg" class=tutorial-monitor></ppixiv-inline>
+                    <div style="margin: 10px 0 15px 0; font-size: 125%;">
+                        Open a 
+                        <img src="ppixiv:resources/activate-icon.png" style="width: 28px; vertical-align: bottom;">
+                        tab on another monitor and click "Link this tab" to send images to it
                     </div>
                 </div>
             </div>
         `});
-
-        this.container.querySelector(".close-button").addEventListener("click", (e) => {
-            this.visible = false;
-        });
 
         // Close if the container is clicked, but not if something inside the container is clicked.
         this.container.addEventListener("click", (e) => {
@@ -371,24 +360,14 @@ ppixiv.link_tabs_popup = class extends ppixiv.dialog_widget
             this.visible = false;
         });
 
-        new menu_option_toggle({
-            container: this.container.querySelector(".toggle-enabled"),
-            label: "Enabled",
-            setting: "linked_tabs_enabled",
-        });
-
         // Refresh the "unlink all tabs" button when the linked tab list changes.
-        settings.register_change_callback("linked_tabs", this.refresh_unlink_all);
-        this.refresh_unlink_all();
-
-        this.container.querySelector(".unlink-all").addEventListener("click", (e) => {
-            settings.set("linked_tabs", []);
-            this.send_link_tab_message();
-        });
+        settings.changes.addEventListener("linked_tabs", this.send_link_tab_message.bind(this), { signal: this.shutdown_signal.signal });
 
         // The other tab will send these messages when the link and unlink buttons
         // are clicked.
-        SendImage.add_message_listener("link-this-tab", (message) => {
+        SendImage.messages.addEventListener("link-this-tab", (e) => {
+            let message = e.message;
+
             let tab_ids = settings.get("linked_tabs", []);
             if(tab_ids.indexOf(message.from) == -1)
                 tab_ids.push(message.from);
@@ -396,9 +375,10 @@ ppixiv.link_tabs_popup = class extends ppixiv.dialog_widget
             settings.set("linked_tabs", tab_ids);
 
             this.send_link_tab_message();
-        });
+        }, { signal: this.shutdown_signal.signal });
 
-        SendImage.add_message_listener("unlink-this-tab", (message) => {
+        SendImage.messages.addEventListener("unlink-this-tab", (e) => {
+            let message = e.message;
             let tab_ids = settings.get("linked_tabs", []);
             let idx = tab_ids.indexOf(message.from);
             if(idx != -1)
@@ -412,17 +392,8 @@ ppixiv.link_tabs_popup = class extends ppixiv.dialog_widget
         this.visible = false;
     }
 
-    refresh_unlink_all = () =>
-    {
-        let any_tabs_linked = settings.get("linked_tabs", []).length > 0;
-        this.container.querySelector(".unlink-all").hidden = !any_tabs_linked;
-    }
-
     send_link_tab_message = () =>
     {
-        // We should always be visible when this is called.
-        console.assert(this.visible);
-
         SendImage.send_message({
             message: "show-link-tab",
             linked_tabs: settings.get("linked_tabs", []),
