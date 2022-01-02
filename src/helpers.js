@@ -3639,3 +3639,24 @@ ppixiv.FixedDOMRect = class extends DOMRect
     get bottom() { return super.bottom; }
     set bottom(value) { this.height += value - this.bottom; }
 }
+
+// Add:
+//
+// await controller.signal.wait()
+//
+// to wait for an AbortSignal to be aborted.
+AbortSignal.prototype.wait = function()
+{
+    if(this._promise == null)
+    {
+        this._promise = new Promise((accept) => {
+            this._promise_accept = accept;
+        });
+
+        this.addEventListener("abort", (e) => {
+            console.log("done");
+            this._promise_accept();
+        }, { once: true });
+    }
+    return this._promise;
+};

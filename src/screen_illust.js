@@ -280,7 +280,18 @@ ppixiv.screen_illust = class extends ppixiv.screen
         this.viewer.load(media_id, {
             restore_history: restore_history,
             slideshow: slideshow,
-            onnextimage: () => {
+            onnextimage: async () => {
+                if(main_context_menu.get.visible)
+                {
+                    // If the context menu is open, wait until it's closed before going
+                    // to the next image, so we don't change images while the user is
+                    // editing a bookmark.
+                    await main_context_menu.get.wait_until_closed();
+                }
+
+                if(!this._active)
+                    return;
+
                 // The viewer wants to go to the next image, normally during slideshows.
                 this.navigate_to_next(1, { loop: true });
             },
