@@ -285,8 +285,6 @@ ppixiv.image_preloader = class
     // Return an array of preloaders to load resources for the given illustration.
     create_preloaders_for_illust(illust_data, media_id)
     {
-        let page = helpers.parse_media_id(media_id).page;
-
         // Don't precache muted images.
         if(muting.singleton.any_tag_muted(illust_data.tagList))
             return [];
@@ -317,8 +315,17 @@ ppixiv.image_preloader = class
             results.push(new img_preloader(url));
 
         // Preload the requested page.
+        let page = helpers.parse_media_id(media_id).page;
         if(page < illust_data.mangaPages.length)
             results.push(new img_preloader(illust_data.mangaPages[page].urls.original));
+        
+        // Preload the remaining pages.
+        for(let p = 0; p < illust_data.mangaPages.length; ++p)
+        {
+            if(p == page)
+                continue;
+            results.push(new img_preloader(illust_data.mangaPages[p].urls.original));                
+        }
 
         return results;
     }
