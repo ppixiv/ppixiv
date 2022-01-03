@@ -2339,6 +2339,7 @@ ppixiv.helpers = {
             // URLs for local files are handled differently.
             args = helpers.args.location;
             local_api.get_args_for_id(media_id, args);
+            args.hash.set("view", "illust");
         }
         else
         {
