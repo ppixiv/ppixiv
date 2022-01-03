@@ -254,7 +254,57 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
                     explanation_enabled: "Pan images while viewing them (drag the image to stop)",
                 });
             },
-    
+
+            auto_pan_speed: () => {
+                let button;
+                let slider = new menu_option_slider_setting({
+                    ...global_options,
+                    setting: "auto_pan_duration",
+                    list: [1, 2, 3, 5, 10, 15, 20, 30, 45, 60],
+                    classes: ["size-slider"],
+
+                    // Refresh the label when the value changes.
+                    onchange: function() { button.refresh(); },
+                });
+
+                button = new menu_option_button({
+                    ...global_options,
+                    label: "Time per image",
+                    get_label: () => {
+                        let seconds = settings.get("auto_pan_duration");;
+                        return `Pan duration: ${seconds} ${seconds != 1? "seconds":"second"}`;                                        
+                    },
+                    buttons: [slider],
+                });
+        
+                button.container.querySelector(".size-slider").style.flexGrow = .25;
+            },
+
+            slideshow_speed: () => {
+                let button;
+                let slider = new menu_option_slider_setting({
+                    ...global_options,
+                    setting: "slideshow_duration",
+                    list: [1, 2, 3, 5, 10, 15, 20, 30, 45, 60],
+                    classes: ["size-slider"],
+                    
+                    // Refresh the label when the value changes.
+                    onchange: function() { button.refresh(); },
+                });
+
+                button = new menu_option_button({
+                    ...global_options,
+                    label: "Time per image",
+                    get_label: () => {
+                        let seconds = settings.get("slideshow_duration");;
+                        return `Slideshow duration: ${seconds} ${seconds != 1? "seconds":"second"}`;
+                    },
+                    buttons: [slider],
+                });
+        
+                button.container.querySelector(".size-slider").style.flexGrow = .25;
+            },
+
             no_recent_history: () => {
                 return new menu_option_toggle({
                     ...global_options,
@@ -310,6 +360,9 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
 
         this.create_page("image", "Image viewing", global_options);
         settings_widgets.auto_pan();
+        settings_widgets.auto_pan_speed();
+        settings_widgets.slideshow_speed();
+        
         settings_widgets.view_mode();
         settings_widgets.invert_scrolling();
         settings_widgets.no_hide_cursor();
@@ -400,19 +453,24 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
 // Simple menu settings widgets.
 ppixiv.menu_option = class extends widget
 {
-    constructor({classes=[], ...options})
+    constructor({
+        classes=[],
+        onchange=null,
+        ...options
+    })
     {
         super(options);
         for(let class_name of classes)
             this.container.classList.add(class_name);
 
         this.refresh = this.refresh.bind(this);
+        this.onchange = onchange;
     }
 
     refresh()
     {
-        if(this.options.onchange)
-            this.options.onchange();
+        if(this.onchange)
+            this.onchange();
     }            
 }
 
@@ -451,6 +509,8 @@ ppixiv.menu_option_button = class extends ppixiv.menu_option
 {
     constructor({
         url=null,
+        label,
+        get_label=null,
         onclick=null,
         explanation_enabled=null,
         explanation_disabled=null,
@@ -484,6 +544,7 @@ ppixiv.menu_option_button = class extends ppixiv.menu_option
         this._enabled = true;
         this.explanation_enabled = explanation_enabled;
         this.explanation_disabled = explanation_disabled;
+        this.get_label = get_label;
 
         // If an icon was provided, add it.
         if(options.icon)
@@ -517,8 +578,17 @@ ppixiv.menu_option_button = class extends ppixiv.menu_option
         if(this.onclick_handler != null)
             this.container.classList.add("clickable");
 
-        this.container.querySelector(".label").innerText = options.label;
+
+        this.container.querySelector(".label").innerText = label;
         this.container.addEventListener("click", this.onclick);
+    }
+
+    refresh()
+    {
+        super.refresh();
+
+        if(this.get_label)
+            this.container.querySelector(".label").innerText = this.get_label();
     }
 
     set enabled(value)
@@ -559,6 +629,7 @@ ppixiv.menu_option_nested_button = class extends ppixiv.menu_option
 {
     constructor({
         onclick=null,
+        label,
         ...options})
     {
         super({...options, template: `
@@ -569,7 +640,7 @@ ppixiv.menu_option_nested_button = class extends ppixiv.menu_option
             </div>
         `});
 
-        this.container.querySelector(".label").innerText = options.label;
+        this.container.querySelector(".label").innerText = label;
         this.container.addEventListener("click", (e) => {
             e.stopPropagation();
             e.preventDefault();
@@ -641,22 +712,39 @@ ppixiv.menu_option_toggle = class extends ppixiv.menu_option_button
 
 class menu_option_slider extends ppixiv.menu_option
 {
-    constructor({...options})
+    constructor({
+        min=null,
+        max=null,
+
+        // If set, this is a list of allowed values.
+        list=null,
+        ...options
+    })
     {
         super({...options, template: `
             <div class="menu-slider thumbnail-size-box">
+                <span class=value></span>
                 <input class=thumbnail-size type=range>
             </div>
         `});
 
         this.oninput = this.oninput.bind(this);
+        this.list = list;
 
         this.container.addEventListener("input", this.oninput);
         this.container.addEventListener("click", (e) => { e.stopPropagation(); });
 
         this.slider = this.container.querySelector("input");
-        this.slider.min = this.options.min;
-        this.slider.max = this.options.max;
+        if(this.list != null)
+        {
+            this.slider.min = 0;
+            this.slider.max = this.list.length - 1;
+        }
+        else
+        {
+            this.slider.min = min;
+            this.slider.max = max;
+        }
     }
     
     refresh()
@@ -680,8 +768,37 @@ class menu_option_slider extends ppixiv.menu_option
         super.value = value;
     }
 
+    _slider_index_to_value(value)
+    {
+        if(this.list == null)
+            return value;
+        return this.list[value];
+    }
+
+    _value_to_slider_index(value)
+    {
+        if(this.list == null)
+            return value;
+
+        let closest_idx = -1;
+        let closest_distance = null;
+        for(let idx = 0; idx < this.list.length; ++idx)
+        {
+            let v = this.list[idx];
+            let distance = Math.abs(value - v);
+            if(closest_distance == null || distance < closest_distance)
+            {
+                closest_idx = idx;
+                closest_distance = distance;
+            }
+        }
+        return closest_idx;
+    }
+
     set _slider_value(value)
     {
+        value = this._value_to_slider_index(value);
+
         if(this.slider.value == value)
             return;
 
@@ -690,25 +807,46 @@ class menu_option_slider extends ppixiv.menu_option
 
     get _slider_value()
     {
-        return parseInt(this.slider.value);
+        let value = parseInt(this.slider.value);
+        value = this._slider_index_to_value(value);
+        return value;
     }
 }
 
 
-// A widget to control the thumbnail size slider.
-ppixiv.thumbnail_size_slider_widget = class extends menu_option_slider
+ppixiv.menu_option_slider_setting = class extends menu_option_slider
 {
     constructor({setting, ...options})
     {
         super(options);
 
         this.setting = setting;
-
-        this.refresh();
     }
 
     get min_value() { return this.options.min; }
     get max_value() { return this.options.max; }
+
+    get value()
+    {
+        return settings.get(this.setting);
+    }
+
+    set value(value)
+    {
+        settings.set(this.setting, value);
+        this.refresh();
+    }
+};
+
+// A widget to control the thumbnail size slider.
+ppixiv.thumbnail_size_slider_widget = class extends menu_option_slider_setting
+{
+    constructor({...options})
+    {
+        super(options);
+
+        this.refresh();
+    }
 
     // Increase or decrease zoom.
     move(down)
@@ -718,17 +856,13 @@ ppixiv.thumbnail_size_slider_widget = class extends menu_option_slider
 
     get value()
     {
-        let value = settings.get(this.setting);
+        let value = super.value;
         if(typeof(value) != "number" || isNaN(value))
             value = 4;
         return value;
     }
-    
-    set value(value)
-    {
-        settings.set(this.setting, value);
+    set value(value) { super.value = value; 
     }
-
     static thumbnail_size_for_value(value)
     {
         return 100 * Math.pow(1.3, value);

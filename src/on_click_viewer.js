@@ -891,13 +891,27 @@ ppixiv.on_click_viewer = class
         // This is like the thumbnail animation, which gives a reasonable default for both landscape
         // and portrait animations.
         let auto_pan_ease = ppixiv.settings.get("auto_pan_ease");
-        let pan_duration = this.slideshow_enabled? 30:3;
+
+        // The target duration of the animation:
+        let pan_duration = this.slideshow_enabled?
+            ppixiv.settings.get("slideshow_duration"):
+            ppixiv.settings.get("auto_pan_duration");        
+
+        // Max speed sets how fast the image is allowed to move.  If it's 0.5, the image shouldn't
+        // scroll more half a screen per second, and the duration will be increased if needed to slow
+        // it down.  This keeps the animation from being too fast for very tall and wide images.
+        //
+        // Scale the max speed based on the duration.  With a 5-second duration, allow the image
+        // to move half a screen per second.  With a 15-second duration, slow it down to no more
+        // than a quarter screen per second.
+        let max_speed = helpers.scale(pan_duration, 5, 15, 0.5, 0.25);
+        max_speed = helpers.clamp(max_speed, 0.25, 0.5);
 
         let default_pan = {
             pan: [{
                 x: 0, y: 0, zoom: 1,
                 max_speed: true,
-                speed: .25,
+                speed: max_speed,
                 duration: pan_duration,
                 ease: auto_pan_ease,
             }, {
@@ -918,7 +932,7 @@ ppixiv.on_click_viewer = class
             }, {
                 x: 0, y: 0, zoom: 1,
                 max_speed: true,
-                speed: .25,
+                speed: max_speed,
                 duration: pan_duration,
                 ease: auto_pan_ease,
             }, {

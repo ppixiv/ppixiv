@@ -1651,6 +1651,12 @@ ppixiv.helpers = {
         let distance = Math.pow(x1-x2, 2) + Math.pow(y1-y2, 2);
         return Math.pow(distance, 0.5);
     },
+
+    // Scale x from [l1,h2] to [l2,h2].
+    scale(x, l1, h1, l2, h2)
+    {
+        return (x - l1) * (h2 - l2) / (h1 - l1) + l2;
+    },
     
     // Return a promise that waits for img to load.
     //
