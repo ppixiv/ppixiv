@@ -12,10 +12,6 @@
 // image_preloader is told the media_id that we're currently showing, and the ID that we want
 // to speculatively load.  We'll run loads in parallel, giving the current image's resources
 // priority and cancelling loads when they're no longer needed.
-//
-// This doesn't handle thumbnail preloading.  Those are small and don't really need to be
-// cancelled, and since we don't fill the browser's load queue here, we shouldn't prevent
-// thumbnails from being able to load.
 
 // A base class for fetching a single resource:
 class preloader
