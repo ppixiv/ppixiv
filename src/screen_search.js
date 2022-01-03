@@ -1181,6 +1181,7 @@ ppixiv.screen_search = class extends ppixiv.screen
             this.refresh_ui();
 
             console.log("Showing search, came from media ID:", old_media_id);
+            old_media_id = helpers.get_media_id_first_page(old_media_id);
 
             // We might get data_source_updated callbacks during load_data_source_page.
             // Make sure we ignore those, since we want the first refresh_images call
