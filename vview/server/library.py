@@ -457,9 +457,7 @@ class Library:
     @classmethod
     def _create_file_record(cls, path: os.PathLike):
         mime_type = misc.mime_type(os.fspath(path))
-        if mime_type is None:
-            # This file type isn't supported.
-            return None
+        assert mime_type is not None, ('File not supported: %s' % path)
         
         stat = path.stat()
 
