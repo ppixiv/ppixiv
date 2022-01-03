@@ -235,6 +235,11 @@ ppixiv.on_click_viewer = class
         else if(restore_position == "history")
             this.restore_from_history();
 
+        // If we're in slideshow mode, we aren't using the preview image.  Pause the animation
+        // until we actually display it so it doesn't run while there's nothing visible.
+        if(this.slideshow_enabled)
+            this._pause_animation = true;
+
         this.reposition();
 
         // We've changed the view container, so call onviewcontainerchange.
@@ -249,7 +254,10 @@ ppixiv.on_click_viewer = class
 
         // If we added the main image, we're done.
         if(img_ready)
+        {
+            this._pause_animation = false;
             return;
+        }
 
         // If we don't have a main URL, stop here.  We only have the preview to display.
         if(url == null)
@@ -276,6 +284,9 @@ ppixiv.on_click_viewer = class
             decode_promise = this.decode_img(img);
         await decode_promise;
         signal.check();
+
+        // If we paused an animation, resume it.
+        this._pause_animation = false;
 
         this.img.hidden = false;
         this.preview_img.hidden = true;
@@ -1257,6 +1268,15 @@ ppixiv.on_click_viewer = class
     get slideshow_enabled()
     {
         return helpers.args.location.hash.get("slideshow") == "1";
+    }
+
+    set _pause_animation(pause)
+    {
+        if(this.animations == null)
+            return;
+
+        for(let animation of this.animations)
+            animation.updatePlaybackRate(pause? 0:1);
     }
 }
 
