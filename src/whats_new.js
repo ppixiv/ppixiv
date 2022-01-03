@@ -3,6 +3,25 @@
 // This should be inside whats_new, but Firefox is in the dark ages and doesn't support class fields.
 let _update_history = [
     {
+        version: 121,
+        text: `
+Added a slideshow mode.  Click
+<span class="material-icons" style="vertical-align: middle">wallpaper</span> at the top.
+<p>
+Added an option to pan images as they're viewed.
+<p>
+Double-clicking images now toggles fullscreen.
+<p>
+The background is now fully black when viewing an image, for better contrast.  Other screens are still dark grey.
+<p>
+Added an option to bookmark privately by default, such as when bookmarking by selecting
+a bookmark tag.
+<p>
+Reworked the animation UI.
+        `,
+    },
+
+    {
         version: 117,
         text: `
         Added Linked Tabs.  Enable linked tabs in preferences to show images
