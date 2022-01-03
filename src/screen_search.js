@@ -56,6 +56,10 @@ let thumbnail_ui = class extends ppixiv.widget
                         <ppixiv-inline src="resources/whats-new.svg"></ppixiv-inline>
                     </div>
 
+                    <a class="slideshow popup grey-icon" data-popup="Slideshow" style="margin: 0 2px 0 4px" href="#">
+                        <span class="material-icons" style="vertical-align: middle;">wallpaper</span>
+                    </a>
+
                     <div class="settings-menu-box popup" data-popup="Preferences">
                         <div class="grey-icon parent-highlight icon-button preferences-button">
                             <ppixiv-inline src="resources/settings-icon.svg"></ppixiv-inline>
@@ -121,10 +125,6 @@ let thumbnail_ui = class extends ppixiv.widget
 
                         <a class="box-link popup" data-type=order-shuffle data-popup="Shuffle" href=#>
                             <span class="material-icons">shuffle</span>
-                        </a>
-
-                        <a class="box-link slideshow popup" data-popup="Slideshow" href="#">
-                            <span class="material-icons">wallpaper</span>
                         </a>
                     </div>
                 </div>                
@@ -342,10 +342,6 @@ let thumbnail_ui = class extends ppixiv.widget
 
                         <a class="box-link local-shuffle popup" data-popup="Shuffle" href="#" data-type=local-sort-shuffle>
                             <span class="material-icons">shuffle</span>
-                        </a>
-
-                        <a class="box-link slideshow popup" data-popup="Slideshow" href="#">
-                            <span class="material-icons">wallpaper</span>
                         </a>
                     </div>
                     <div class="box-button-row local-bookmark-tag-list">
@@ -867,7 +863,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         var ui_box = this.container.querySelector(".thumbnail-ui-box");
         this.data_source.refresh_thumbnail_ui(ui_box, this);
 
-        this.refresh_slideshow_buttons();
+        this.refresh_slideshow_button();
         this.refresh_ui_for_user_id();
     };
 
@@ -1112,8 +1108,8 @@ ppixiv.screen_search = class extends ppixiv.screen
         main_context_menu.get.user_id = user_id;
     }
 
-    // Refresh the slideshow buttons.
-    refresh_slideshow_buttons()
+    // Refresh the slideshow button.
+    refresh_slideshow_button()
     {
         // For local images, set file=*.  For Pixiv, set the file to *.
         let args = helpers.args.location;
@@ -1125,8 +1121,8 @@ ppixiv.screen_search = class extends ppixiv.screen
         args.hash.set("slideshow", "1");
         args.hash.set("view", "illust");
 
-        for(let node of this.container.querySelectorAll("A.slideshow"))
-            node.href = args.url;
+        let node = this.container.querySelector("A.slideshow");
+        node.href = args.url;
     }
 
     // Use different icons for sites where you can give the artist money.  This helps make
