@@ -226,6 +226,16 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
                 });
             },
     
+            bookmark_privately_by_default: () => {
+                return new menu_option_toggle({
+                    ...global_options,
+                    label: "Bookmark privately by default",
+                    setting: "bookmark_privately_by_default",
+                    explanation_disabled: "Pressing Ctrl-B will bookmark publically",
+                    explanation_enabled: "Pressing Ctrl-B will bookmark privately",
+                });
+            },
+
             quick_view: () => {
                 return new menu_option_toggle({
                     ...global_options,
@@ -384,6 +394,7 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
 
         settings_widgets.ctrl_opens_popup();
         settings_widgets.theme();
+        settings_widgets.bookmark_privately_by_default();
 
 
         // Hidden for now (not very useful)

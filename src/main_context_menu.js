@@ -909,9 +909,12 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
                     return;
                 }
 
-                // Ctrl-B: bookmark
+                // Ctrl-B: bookmark with default privacy
                 // Ctrl-Alt-B: bookmark privately
-                let bookmark_privately = e.altKey;
+                let bookmark_privately = null;
+                if(e.altKey)
+                    bookmark_privately = true;
+
                 if(illust_data.bookmarkData != null)
                 {
                     message_widget.singleton.show("Already bookmarked (^B to remove bookmark)");

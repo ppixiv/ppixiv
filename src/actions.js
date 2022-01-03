@@ -85,6 +85,11 @@ ppixiv.actions = class
         if(options == null)
             options = {};
 
+        // If bookmark_privately_by_default is enabled and private wasn't specified
+        // explicitly, set it to true.
+        if(options.private == null && settings.get("bookmark_privately_by_default"))
+            options.private = true;
+
         let illust_info = await thumbnail_data.singleton().get_or_load_illust_data(media_id);
 
         console.log("Add bookmark for", media_id, "options:", options);
