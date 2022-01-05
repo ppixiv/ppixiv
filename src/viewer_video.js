@@ -289,7 +289,7 @@ ppixiv.viewer_video = class extends ppixiv.viewer
 
     refresh_focus()
     {
-        if(this.video == null)
+        if(this.source == null)
             return;
 
         let active = this.want_playing && !this.seeking && this._active;
