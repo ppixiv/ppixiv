@@ -804,7 +804,6 @@ ppixiv.LineEditorSegment = class extends ppixiv.widget
             edit_point.setAttribute("cy", segment[1]);
 
             let radius = this._thickness / 2;
-            radius = Math.max(radius, 25);
             edit_point.setAttribute("rx", radius);
             edit_point.setAttribute("ry", radius);
         }
