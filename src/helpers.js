@@ -683,14 +683,23 @@ ppixiv.helpers = {
 
     age_to_string: function(seconds)
     {
+        // If seconds is negative, return a time in the future.
+        let future = seconds < 0;
+        if(future)
+            seconds = -seconds;
+
         var to_plural = function(label, places, value)
         {
             var factor = Math.pow(10, places);
             var plural_value = Math.round(value * factor);
             if(plural_value > 1)
                 label += "s";
-            return value.toFixed(places) + " " + label;
+                
+            let result = value.toFixed(places) + " " + label;
+            result += future? " from now":" ago";
+            return result;
         };
+        console.log("xxx", seconds);
         if(seconds < 60)
             return to_plural("sec", 0, seconds);
         var minutes = seconds / 60;

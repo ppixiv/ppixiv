@@ -90,7 +90,7 @@ ppixiv.context_menu_image_info_widget = class extends ppixiv.illust_widget
         set_info(".image-info", info);
 
         let seconds_old = (new Date() - new Date(illust_data.createDate)) / 1000;
-        let age = helpers.age_to_string(seconds_old) + " ago";
+        let age = helpers.age_to_string(seconds_old);
         this.container.querySelector(".post-age").dataset.popup = helpers.date_to_string(illust_data.createDate);
         set_info(".post-age", age);
     }

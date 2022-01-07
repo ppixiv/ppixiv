@@ -338,7 +338,7 @@ ppixiv.image_ui = class extends ppixiv.widget
         };
 
         var seconds_old = (new Date() - new Date(illust_data.createDate)) / 1000;
-        set_info(".post-age", helpers.age_to_string(seconds_old) + " ago");
+        set_info(".post-age", helpers.age_to_string(seconds_old));
         post_info_container.querySelector(".post-age").dataset.popup = helpers.date_to_string(illust_data.createDate);
 
         var info = "";
