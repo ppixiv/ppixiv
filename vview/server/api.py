@@ -148,7 +148,7 @@ def get_illust_info(info, entry, base_url):
     if entry.get('inpaint'):
         image_info['inpaint'] = json.loads(entry['inpaint'])
         urls['inpaint'] = f'{base_url}/inpaint/{urllib.parse.quote(illust_id, safe="/:")}?{image_timestamp_with_inpaint}'
-        image_info['inpaint_generated'] = entry['inpaint_timestamp'] != 0
+        image_info['inpaint_generated'] = entry.get('inpaint_timestamp') != 0
 
     if entry.get('crop'):
         image_info['crop'] = json.loads(entry['crop'])
