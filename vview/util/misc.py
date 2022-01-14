@@ -568,3 +568,34 @@ class ThreadedQueue:
     def _join_thread(self):
         self.thread.join()
         self.results = None
+
+import unicodedata
+def split_keywords(s):
+    """
+    Split s into search keywords.
+
+    A split like re.findall(r'\w+') has some problems: it includes underscores,
+    which shouldn't be part of keywords, and it batches numbers with letters, which
+    isn't wanted.  For some reason it's hard to get regex to do this (why can't
+    you say [\w^\d] to say "\w minus \d"?), so do it ourself.
+    """
+    result = []
+    current_word = ''
+    current_category = None
+    for c in s:
+        category = unicodedata.category(c)[0]
+        # If the category changes, flush the current word.
+        if category != current_category:
+            current_category = category
+            if current_word:
+                result.append(current_word)
+                current_word = ''
+
+        # Only add letters and numbers.
+        if category not in ('L', 'N'):
+            continue
+        current_word += c
+
+    if current_word:
+        result.append(current_word)
+    return result

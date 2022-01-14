@@ -3,6 +3,7 @@ from enum import Enum
 from pathlib import Path
 from .database import Database, transaction
 from pprint import pprint
+from ..util import misc
 from ..util.misc import WithBuilder
 
 # This implements the database storage for library.  It stores similar data to
@@ -135,8 +136,7 @@ class FileIndex(Database):
 
     @classmethod
     def split_keywords(self, filename):
-        keywords = re.findall(r'[\w\d]+', filename, flags=re.IGNORECASE)
-        return set(keywords)
+        return set(misc.split_keywords(filename))
 
     @property
     def keyword_fields(self):
