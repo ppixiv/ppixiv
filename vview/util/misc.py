@@ -126,7 +126,7 @@ def read_metadata(f, mime_type):
     result['height'] = img.size[1]
 
     # PIL's parser for PNGs is very slow, so only support metadata from JPEG for now.
-    if mime_type == 'image/jpeg':
+    if mime_type == 'image/jpeg' and hasattr(img, '_getexif'):
         exif_dict = img._getexif()
         if exif_dict is None:
             exif_dict = { }
