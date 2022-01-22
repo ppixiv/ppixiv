@@ -392,7 +392,7 @@ async def handle_open(request):
     else:
         filename = None
 
-    url = '/#ppixiv' + urllib.parse.quote(str(path), safe='/: +')
+    url = '/#' + urllib.parse.quote(str(path), safe='/: +')
     if filename:
         filename = urllib.parse.quote(filename)
         url += '?view=illust'
@@ -400,4 +400,9 @@ async def handle_open(request):
 
     url = url.replace('+', '%2B')
     url = url.replace(' ', '+')
-    raise aiohttp.web.HTTPFound(location=url)
+
+    # HTTPFound reformats our URL incorrectly (why is it modifying our URL at all?), so
+    # replace its location URL with the one we want.
+    resp = aiohttp.web.HTTPFound(location='http://unused')
+    resp.headers['Location'] = url
+    raise resp
