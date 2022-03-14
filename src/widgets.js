@@ -1107,6 +1107,11 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
             if(shown_tags.indexOf(tag) == -1)
                 shown_tags.push(tag);
 
+        // Add any tags that are on the bookmark but not in recent tags.
+        for(let tag of active_tags)
+            if(shown_tags.indexOf(tag) == -1)
+                shown_tags.push(tag);
+
         shown_tags.sort((lhs, rhs) => {
             lhs = lhs.toLowerCase();
             rhs = rhs.toLowerCase();
