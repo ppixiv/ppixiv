@@ -309,6 +309,11 @@ let thumbnail_ui = class extends ppixiv.widget
 
                         <a class="box-link popup" data-type=local-bookmarks-only data-popup="Show bookmarks" href="#">Bookmarks</a>
 
+                        <div class=local-bookmark-tags-box>
+                            <div class="box-link popup-menu-box-button">Tags</div>
+                            <div class="popup-menu-box local-bookmark-tag-list vertical-list"></div>
+                        </div>
+
                         <span class="box-link popup-menu-box-button">Type</span>
                         <div hidden class="popup-menu-box vertical-list">
                             <a class=box-link data-type=local-type-all data-default=1 href="#ppixiv">All</a>
@@ -342,9 +347,6 @@ let thumbnail_ui = class extends ppixiv.widget
                         <a class="box-link local-shuffle popup" data-popup="Shuffle" href="#" data-type=local-sort-shuffle>
                             <span class="material-icons">shuffle</span>
                         </a>
-                    </div>
-                    <div class="box-button-row local-bookmark-tag-list">
-                        <span>Bookmark tags:</span>
                     </div>
                 </div>                
             </div>
@@ -419,6 +421,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         this.container.querySelector(".member-tags-box .post-tag-list").addEventListener("scroll", function(e) { e.stopPropagation(); }, true);
         this.container.querySelector(".search-tags-box .related-tag-list").addEventListener("scroll", function(e) { e.stopPropagation(); }, true);
         this.container.querySelector(".bookmark-tags-box .bookmark-tag-list").addEventListener("scroll", function(e) { e.stopPropagation(); }, true);
+        this.container.querySelector(".local-bookmark-tags-box .local-bookmark-tag-list").addEventListener("scroll", function(e) { e.stopPropagation(); }, true);
 
         // Set up hover popups.
         dropdown_menu_opener.create_handlers(this.container);

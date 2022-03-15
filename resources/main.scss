@@ -1694,7 +1694,8 @@ a.box-link, span.box-link
 /* Tag lists are usually inline.  Make the tag filter a vertical list. */
 .member-tags-box .post-tag-list,
 .search-tags-box .related-tag-list,
-.bookmark-tags-box .bookmark-tag-list {
+.bookmark-tags-box .bookmark-tag-list,
+.local-bookmark-tags-box .local-bookmark-tag-list {
     max-height: 50vh;
     min-width: 20em;
     overflow-x: hidden;
@@ -1705,7 +1706,8 @@ a.box-link, span.box-link
 // Adjusts the popup for the tag lists so they don't cover the tag.
 .member-tags-box .post-tag-list .following-tag:hover:after,
 .search-tags-box .related-tag-list .tag:hover:after,
-.bookmark-tags-box .bookmark-tag-list .tag:hover:after {
+.bookmark-tags-box .bookmark-tag-list .tag:hover:after,
+.local-bookmark-tags-box .local-bookmark-tag-list .tag:hover:after {
     left: auto;
     right: 0px;
 }

@@ -692,7 +692,10 @@ ppixiv.data_source = class
         this.set_item2(container, {type: type, fields: fields, default_values: default_values, current_url: current_url });
     }
 
-    set_item2(container, { type=null, fields=null, default_values=null, current_url=null, toggle=false }={})
+    set_item2(container, { type=null, fields=null, default_values=null, current_url=null, toggle=false,
+        // This can be used to adjust the link's URL without affecting anything else.
+        adjust_url=null
+    }={})
     {
         let link = container.querySelector(`[data-type='${type}']`);
         if(link == null)
@@ -747,6 +750,10 @@ ppixiv.data_source = class
         }
 
         helpers.set_class(link, "selected", button_is_selected);
+
+        if(adjust_url)
+            adjust_url(args);
+
         link.href = args.url.toString();
     };
 
@@ -3654,7 +3661,13 @@ ppixiv.data_sources.vview = class extends data_source
         // Hide the "copy local path" button if we don't have one.
         container.querySelector(".copy-local-path").hidden = this.local_path == null;
 
-        this.set_item2(container, { type: "local-bookmarks-only", fields: {"#bookmarks": 1}, toggle: true, current_url: current_args.url });
+        this.set_item2(container, { type: "local-bookmarks-only", fields: {"#bookmarks": "1"}, toggle: true, current_url: current_args.url,
+            adjust_url: (args) => {
+                // If the button is exiting bookmarks, remove bookmark-tag too.
+                if(!args.hash.has("bookmarks"))
+                    args.hash.delete("bookmark-tag");
+            }
+        });
 
         this.set_item2(container, { type: "local-type-all", fields: {"#type": null}, current_url: current_args.url });
         this.set_item2(container, { type: "local-type-videos", fields: {"#type": "videos"}, current_url: current_args.url });
@@ -3675,8 +3688,8 @@ ppixiv.data_sources.vview = class extends data_source
         this.set_item2(container, {type: "local-sort-oldest", fields: {"#order": "ctime"}, current_url: current_args.url });
         this.set_item2(container, {type: "local-sort-shuffle", fields: {"#order": "shuffle"}, toggle: true, current_url: current_args.url });
 
-        this.set_active_popup_highlight(container);
         this.refresh_bookmark_tag_list(container);
+        this.set_active_popup_highlight(container);
     }
 
     refresh_bookmark_tag_list(container)
@@ -3687,7 +3700,7 @@ ppixiv.data_sources.vview = class extends data_source
             tag.remove();
 
         // Hide the bookmark box if we're not showing bookmarks.
-        tag_list.hidden = !helpers.args.location.hash.has("bookmarks");
+        container.querySelector(".local-bookmark-tags-box").hidden = !helpers.args.location.hash.has("bookmarks");
 
         // Stop if we don't have the tag list yet.
         if(this.bookmark_tag_counts == null)
@@ -3703,7 +3716,7 @@ ppixiv.data_sources.vview = class extends data_source
 
             let tag_name = tag;
             if(tag_name == null)
-                tag_name = "All";
+                tag_name = "All bookmarks";
             else if(tag_name == "")
                 tag_name = "Untagged";
             a.innerText = tag_name;
@@ -3744,6 +3757,7 @@ ppixiv.data_sources.vview = class extends data_source
 
             add_tag_link(tag);
         }
+        this.set_active_popup_highlight(container);
     }
 
     async fetch_bookmark_tag_counts()
