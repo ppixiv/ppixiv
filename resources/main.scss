@@ -1695,7 +1695,8 @@ a.box-link, span.box-link
 .member-tags-box .post-tag-list,
 .search-tags-box .related-tag-list,
 .bookmark-tags-box .bookmark-tag-list {
-    max-height: 300px;
+    max-height: 50vh;
+    min-width: 20em;
     overflow-x: hidden;
     overflow-y: auto;
     white-space: nowrap;
