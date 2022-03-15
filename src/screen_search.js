@@ -1199,13 +1199,7 @@ ppixiv.screen_search = class extends ppixiv.screen
 
             // Show images.  If we were displaying an image before we came here, forced_media_id
             // will force it to be included in the displayed results.
-            this.refresh_images({ forced_media_id: old_media_id });
-
-            this.restore_scroll_pos(old_media_id);
-
-            // If we were displaying an image, pulse it to make it easier to find your place.
-            if(old_media_id)
-                this.pulse_thumbnail(old_media_id);
+            this.finish_load_and_restore_scroll_pos(old_media_id);
 
             this.container.querySelector(".search-results").focus();
         }
@@ -1217,13 +1211,37 @@ ppixiv.screen_search = class extends ppixiv.screen
         }
     }
 
-    async restore_scroll_pos(old_media_id)
+    // Wait for the initial page to finish loading, then restore the scroll position if possible.
+    async finish_load_and_restore_scroll_pos(old_media_id)
     {
+        // Before we can set the scroll position, we need to wait for the initial page load to finish
+        // so we can create thumbnails to scroll to.
         let restore_scroll_pos_id = this.restore_scroll_pos_id = new Object();
+        await this.data_source.load_page(this.data_source.initial_page, { cause: "initial scroll" });
 
-        // Handle scrolling for the new state.
+        // Stop if we were called again while we were waiting, or if we were cancelled.
+        if(restore_scroll_pos_id !== this.restore_scroll_pos_id || !this._active)
+            return;
+
+        // Create the initial thumbnails.  This will happen automatically, but we need to do it now so
+        // we can scroll to them.
+        this.refresh_images({ forced_media_id: old_media_id });
+
+        // If we have no saved scroll position or previous ID, scroll to the top.
+        let args = helpers.args.location;
+        if(args.state.scroll == null && old_media_id == null)
+        {
+            console.log("Scroll to top for new search");
+            this.scroll_container.scrollTop = 0;
+            return;
+        }
+
+        // If we have a previous media ID, try to scroll to it.
         if(old_media_id != null)
         {
+            // If we were displaying an image, pulse it to make it easier to find your place.
+            this.pulse_thumbnail(old_media_id);
+        
             // If we're navigating backwards or toggling, and we're switching from the image UI to thumbnails,
             // try to scroll the search screen to the image that was displayed.
             if(this.scroll_to_media_id(old_media_id))
@@ -1231,26 +1249,10 @@ ppixiv.screen_search = class extends ppixiv.screen
                 console.log("Restored scroll position to:", old_media_id);
                 return;
             }
+
+            console.log("Couldn't restore scroll position for:", old_media_id);
         }
 
-        let args = helpers.args.location;
-        if(args.state.scroll == null)
-        {
-            console.log("Scroll to top for new search");
-            this.scroll_container.scrollTop = 0;
-            return;
-        }
-        
-        // If we're restoring from history, we need to wait for the data source to finish the
-        // initial page load and thumbs to be created before we can scroll to them.
-        if(this.data_source)
-            await this.data_source.load_page(this.data_source.initial_page, { cause: "initial scroll" });
-
-        // Stop if restore_scroll_pos was called again while we were waiting, or if we
-        // were cancelled.
-        if(restore_scroll_pos_id !== this.restore_scroll_pos_id && !this._active)
-            return;
-            
         if(this.restore_scroll_position(args.state.scroll?.scroll_position))
             console.log("Restored scroll position from history");
     }
