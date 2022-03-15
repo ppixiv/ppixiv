@@ -67,13 +67,25 @@ ppixiv.local_api = class
     // but we fill it in from urls so we can treat it the same way.
     static adjust_illust_info(illust)
     {
-        illust.mangaPages = [{
-            width: illust.width,
-            height: illust.height,
-            urls: illust.urls,
-        }];
+        let { type } = helpers.parse_media_id(illust.id);
+        if(type == "folder")
+        {
+            illust.mangaPages = [];
+            illust.pageCount = 0;
 
-        illust.pageCount = 1;
+            // These metadata fields don't exist for folders.  Set them to null so thumbnail_data._check_illust_data doesn't complain.
+            illust.width = illust.height = illust.userName = null;
+            illust.illustType = 1;
+        }
+        else
+        {
+            illust.mangaPages = [{
+                width: illust.width,
+                height: illust.height,
+                urls: illust.urls,
+            }];
+            illust.pageCount = 1;
+        }
     }
 
     // This is called early in initialization.  If we're running natively and
