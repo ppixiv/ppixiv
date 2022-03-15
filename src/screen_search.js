@@ -123,6 +123,11 @@ let thumbnail_ui = class extends ppixiv.widget
                             <a class="box-link popup" data-type=private data-popup="Show private bookmarks" href=#>Private</a>
                         </span>
 
+                        <div class=bookmark-tags-box>
+                            <div class="box-link popup-menu-box-button">Tags</div>
+                            <div class="popup-menu-box bookmark-tag-list vertical-list"></div>
+                        </div>
+
                         <a class="box-link popup" data-type=order-shuffle data-popup="Shuffle" href=#>
                             <span class="material-icons">shuffle</span>
                         </a>
@@ -139,12 +144,6 @@ let thumbnail_ui = class extends ppixiv.widget
                         <span>Follow tags:</span>
                     </div>
                 </div>                
-                
-                <div class="data-source-specific" data-datasource="bookmarks">
-                    <div class="box-button-row bookmark-tag-list">
-                        <span>Bookmark tags:</span>
-                    </div>
-                </div>
 
                 <div class=data-source-specific data-datasource="bookmarks_new_illust">
                     <div class=box-button-row>
@@ -419,6 +418,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         // they seem like the same thing.
         this.container.querySelector(".member-tags-box .post-tag-list").addEventListener("scroll", function(e) { e.stopPropagation(); }, true);
         this.container.querySelector(".search-tags-box .related-tag-list").addEventListener("scroll", function(e) { e.stopPropagation(); }, true);
+        this.container.querySelector(".bookmark-tags-box .bookmark-tag-list").addEventListener("scroll", function(e) { e.stopPropagation(); }, true);
 
         // Set up hover popups.
         dropdown_menu_opener.create_handlers(this.container);

@@ -2226,7 +2226,7 @@ class data_source_bookmarks_base extends data_source
 
             let tag_name = tag;
             if(tag_name == null)
-                tag_name = "All";
+                tag_name = "All bookmarks";
             else if(tag_name == "")
                 tag_name = "Untagged";
             a.innerText = tag_name;
@@ -2235,7 +2235,7 @@ class data_source_bookmarks_base extends data_source
             if(tag_count != null)
             {
                 a.classList.add("popup");
-                a.dataset.popup = tag_count + (tag_count == 1? " bookmark":" bookmarks");
+                a.dataset.popup = tag_count;
             }
 
             let url = new URL(this.url);
@@ -2285,6 +2285,11 @@ class data_source_bookmarks_base extends data_source
 
         thumbnail_view.avatar_container.hidden = this.viewing_own_bookmarks();
         thumbnail_view.avatar_widget.set_user_id(this.viewing_user_id);
+
+        // Set whether the tags menu item is highlighted.
+        let box = container.querySelector(".bookmark-tags-box .box-link");
+        helpers.set_class(box, "active", current_tag != null);
+        this.set_active_popup_highlight(container);
     }
 
     get viewing_user_id()
