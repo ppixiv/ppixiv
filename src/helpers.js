@@ -699,7 +699,6 @@ ppixiv.helpers = {
             result += future? " from now":" ago";
             return result;
         };
-        console.log("xxx", seconds);
         if(seconds < 60)
             return to_plural("sec", 0, seconds);
         var minutes = seconds / 60;
