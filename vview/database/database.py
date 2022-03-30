@@ -225,5 +225,5 @@ class Database:
         """
         s = s.replace(escape, escape + escape)
         s = s.replace('_', escape + '_')
-        s = s.replace('%', escape + '_')
+        s = s.replace('%', escape + '%')
         return s
