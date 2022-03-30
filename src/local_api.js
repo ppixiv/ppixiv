@@ -31,7 +31,7 @@ ppixiv.local_api = class
         if(url == null)
             throw Error("Local API isn't enabled");
 
-        url.pathname = pathname;
+        url.pathname = encodeURI(pathname);
         var result = await helpers.send_pixiv_request({
             method: "POST",
             url: url.toString(),
