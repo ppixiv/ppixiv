@@ -49,14 +49,9 @@ ppixiv.viewer_video = class extends ppixiv.viewer
 
         this.video.autoplay = true;
         this.video.className = "filtering";
-
-        // Don't use object-fit to size the video, since Chrome's PIP display doesn't understand
-        // it and always scales to fill, which is really ugly.  Work around this by setting the
-        // video size to fill without using object-fit.
-        this.video.style.width = "auto";
+        this.video.style.width = "100%";
         this.video.style.height = "100%";
         this.video.style.display = "block";
-        this.video.style.margin = "0 auto";
 
         this.video_container = this.container.querySelector(".video-container");
         this.video_container.appendChild(this.video);
