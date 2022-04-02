@@ -3,6 +3,12 @@
 // This should be inside whats_new, but Firefox is in the dark ages and doesn't support class fields.
 let _update_history = [
     {
+        version: 123,
+        text: `
+            Added support for viewing completed requests.
+        `,
+    },
+    {
         version: 121,
         text: `
 Added a slideshow mode.  Click

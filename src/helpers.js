@@ -1500,19 +1500,27 @@ ppixiv.helpers = {
             return url;
         }
 
-        // Helpers to get and set arguments which can be in either the query or
-        // the hash.  Examples:
+        toString() { return this.url.toString(); }
+
+        // Helpers to get and set arguments which can be in either the query,
+        // the hash or the path.  Examples:
         //
         // get("page")        - get the query parameter "page"
         // get("#page")       - get the hash parameter "page"
+        // get("/1")          - get the first path parameter
         // set("page", 10)    - set the query parameter "page" to "10"
         // set("#page", 10)   - set the hash parameter "page" to "10"
+        // set("/1", 10)      - set the first path parameter to "10"
         // set("page", null)  - remove the query parameter "page"
         get(key)
         {
             let hash = key.startsWith("#");
-            if(hash)
+            let path = key.startsWith("/");
+            if(hash || path)
                 key = key.substr(1);
+
+            if(path)
+                return this.get_pathname_segment(parseInt(key));
 
             let params = hash? this.hash:this.query;
             return params.get(key);
@@ -1521,14 +1529,60 @@ ppixiv.helpers = {
         set(key, value)
         {
             let hash = key.startsWith("#");
-            if(hash)
+            let path = key.startsWith("/");
+            if(hash || path)
                 key = key.substr(1);
                 
+            if(path)
+            {
+                this.set_pathname_segment(parseInt(key), value);
+                return;
+            }
+
             let params = hash? this.hash:this.query;
             if(value != null)
                 params.set(key, value);
             else
                 params.delete(key);
+        }
+
+        // Return the pathname segment with the given index.  If the path is "/abc/def", "abc" is
+        // segment 0.  If idx is past the end, return "".
+        get_pathname_segment(idx)
+        {
+            // The first pathname segment is always empty, since the path always starts with a slash.
+            idx++;
+            let parts = this.path.split("/");
+            let result = parts[idx];
+            return result || "";
+        }
+
+        // Set the pathname segment with the given index.  If the path is "/abc/def", setting
+        // segment 0 to "ghi" results in "/ghi/def".
+        //
+        // If idx is at the end, a new segment will be added.  If it's more than one beyond the
+        // end a warning will be printed, since this usually shouldn't result in pathnames with
+        // empty segments.  If value is null, remove the segment instead.
+        set_pathname_segment(idx, value)
+        {
+            idx++;
+            let parts = this.path.split("/");
+            if(value != null)
+            {
+                if(idx < parts.length)
+                    parts[idx] = value;
+                else if(idx == parts.length)
+                    parts.push(value);
+                else
+                    console.warn(`Can't set pathname segment ${idx} to ${value} past the end: ${this.toString()}`);
+            } else {
+                if(idx == parts.length-1)
+                    parts.pop();
+                else if(idx < parts.length-1)
+                    console.warn(`Can't remove pathname segment ${idx} in the middle: ${this.toString()}`);
+            }
+
+            this.path = parts.join("/");
         }
     },
 

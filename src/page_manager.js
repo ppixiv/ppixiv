@@ -123,6 +123,8 @@ ppixiv.page_manager = class
             return data_sources.rankings;
         else if(url.pathname == "/search_user.php")
             return data_sources.search_users;
+        else if(url.pathname.startsWith("/request/complete"))
+            return data_sources.completed_requests;
         else if(url.pathname.startsWith(local_api.path))
             return data_sources.vview;
         else

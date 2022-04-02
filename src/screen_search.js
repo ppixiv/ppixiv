@@ -287,6 +287,27 @@ let thumbnail_ui = class extends ppixiv.widget
                     </div>
                 </div>
 
+                <div class="data-source-specific" data-datasource=completed-requests>
+                    <div class="box-button-row">
+                        <div style="margin-right: 25px;">
+                            <a class="box-link popup" data-type=completed-requests-latest data-popup="Show latest completed requests" href=#>Latest</a>
+                            <a class="box-link popup" data-type=completed-requests-recommended data-popup="Show recommmended completed requests" href=#>Recommended</a>
+                        </div>
+
+                        <div style="margin-right: 25px;">
+                            <a class="box-link popup" data-type=completed-requests-illust data-popup="Show illustrations only" href="#">Illustrations</a>
+                            <a class="box-link popup" data-type=completed-requests-ugoira data-popup="Show ugoira only" href="#">Ugoira</a>
+                            <a class="box-link popup" data-type=completed-requests-manga data-popup="Show manga only" href="#">Manga</a>
+                        </div>
+
+                        <div>
+                            <a class="box-link popup" data-type=completed-requests-all data-popup="Show all works" href="?mode=all#ppixiv">All</a>
+                            <a class="box-link popup" data-type=completed-requests-safe data-popup="Show all-ages works" href="?mode=safe#ppixiv">All ages</a>
+                            <a class="box-link popup r18" data-type=completed-requests-r18 data-popup="Show R18 works" href="?mode=r18#ppixiv">R18</a>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="data-source-specific" data-datasource=vview>
                     <div class="search-box local-tag-search-box">
                         <div class="input-field-container hover-menu-box">
@@ -640,10 +661,11 @@ ppixiv.screen_search = class extends ppixiv.screen
                 { label: "private", url: `/users/${window.global_data.user_id}/following?rest=hide#ppixiv` },
             ],
 
+            { label: "Rankings", url: "/ranking.php#ppixiv" },
             { label: "Recommended works", url: "/discovery#ppixiv" },
             { label: "Recommended users", url: "/discovery/users#ppixiv" },
+            { label: "Completed requests", url: "/request/complete/illust#ppixiv" },
             { label: "Search users", url: "/search_user.php#ppixiv" },
-            { label: "Rankings", url: "/ranking.php#ppixiv" },
             { label: "Recent history", url: "/history.php#ppixiv", classes: ["recent-history-link"] },
             { label: "Local search", url: `${local_api.path}#ppixiv/`, local: true, onclick: local_api.show_local_search },
         ];

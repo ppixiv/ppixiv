@@ -693,6 +693,11 @@ ppixiv.data_source = class
     }
 
     set_item2(container, { type=null, fields=null, default_values=null, current_url=null, toggle=false,
+        // If provided, this allows modifying URLs that put parameters in URL segments instead
+        // of the query where they belong.  If url_format is "abc/def/ghi", a key of "/abc" will modify
+        // the first segment, and so on.
+        url_format=null,
+
         // This can be used to adjust the link's URL without affecting anything else.
         adjust_url=null
     }={})
@@ -702,6 +707,16 @@ ppixiv.data_source = class
         {
             console.warn("Couldn't find button with selector", type);
             return;
+        }
+
+        // If url_parts is provided, create a map from "/segment" to a segment number like "/1" that
+        // args.set uses.
+        let url_parts = {};
+        if(url_format != null)
+        {
+            let parts = url_format.split("/");
+            for(let idx = 0; idx < parts.length; ++idx)
+                url_parts["/" + parts[idx]] = "/" + idx;
         }
 
         // The URL the button is relative to:
@@ -720,6 +735,17 @@ ppixiv.data_source = class
 
         for(let [key, value] of Object.entries(fields))
         {
+            // If the key is "/path", look up the path index.
+            if(key.startsWith("/"))
+            {
+                if(url_parts[key] == null)
+                {
+                    console.warn(`URL key ${key} not specified in URL: ${args}`);
+                    continue;
+                }
+                key = url_parts[key];
+            }
+
             // The value we're setting in the URL:
             var this_value = value;
             if(this_value == null && default_values != null)
@@ -3383,6 +3409,82 @@ ppixiv.data_sources.search_users = class extends data_source_from_page
     {
         return this.page_title;
     };
+}
+
+ppixiv.data_sources.completed_requests = class extends data_source
+{
+    get name() { return "completed-requests"; }
+  
+    get supports_start_page()
+    {
+        return true;
+    }
+
+    async load_page_internal(page)
+    {
+        let args = new helpers.args(new URL(this.url));
+        let showing = args.get("type") || "latest"; // "latest" or "recommended"
+        let mode = args.get("mode") || "all";
+        let type = args.get_pathname_segment(2); // "illust" in "request/complete/illust"
+
+        let url = `/ajax/commission/page/request/complete/${type}`;
+        let request_args = {
+            "mode": mode,
+            "p": page,
+            "lang": "en",
+        };
+        let result = await helpers.get_request(url, request_args);
+
+        // Convert the request data from an array to a dictionary.
+        let request_data = {};
+        for(let request of result.body.requests)
+            request_data[request.requestId] = request;
+        
+        for(let user of result.body.users)
+            image_data.singleton().add_user_data(user);
+
+        thumbnail_data.singleton().loaded_thumbnail_info(result.body.thumbnails.illust, "normal");
+        tag_translations.get().add_translations_dict(result.body.tagTranslation);
+
+        let media_ids = [];
+        let request_ids = result.body.page[showing == "latest"? "requestIds":"recommendRequestIds"];
+        for(let request_id of request_ids)
+        {
+            // This has info for the request, like the requester and request text, but we just show these
+            // as regular posts.
+            let request = request_data[request_id];
+            let request_post_id = request.postWork.postWorkId;
+            let media_id = helpers.illust_id_to_media_id(request_post_id);
+
+            // This returns a lot of post IDs that don't exist.  Why are people deleting so many of these?
+            // Check whether the post was in result.body.thumbnails.illust.
+            if(thumbnail_data.singleton().get_illust_data_sync(media_id) == null)
+                continue;
+
+            media_ids.push(media_id);
+        }
+
+        // Register the new page of data.
+        this.add_page(page, media_ids);
+    }
+
+    refresh_thumbnail_ui(container, thumbnail_view)
+    {
+        this.set_item2(container, { type: "completed-requests-latest", fields: {type: "latest"}, default_values: {type: "latest"}});
+        this.set_item2(container, { type: "completed-requests-recommended", fields: {type: "recommended"}, default_values: {type: "latest"}});
+
+        this.set_item2(container, { type: "completed-requests-all", fields: {mode: "all"}, default_values: {mode: "all"}});
+        this.set_item2(container, { type: "completed-requests-safe", fields: {mode: "safe"}, default_values: {mode: "all"}});
+        this.set_item2(container, { type: "completed-requests-r18", fields: {mode: "r18"}, default_values: {mode: "all"}});
+
+        let url_format = "request/complete/type";
+        this.set_item2(container, { url_format: url_format, type: "completed-requests-illust", fields: {"/type": "illust"} });
+        this.set_item2(container, { url_format: url_format, type: "completed-requests-ugoira", fields: {"/type": "ugoira"} });
+        this.set_item2(container, { url_format: url_format, type: "completed-requests-manga", fields: {"/type": "manga"} });
+    }
+
+    get page_title() { return "Completed requests"; };
+    get_displaying_text() { return "Completed requests"; }
 }
 
 // /history.php - Recent history
