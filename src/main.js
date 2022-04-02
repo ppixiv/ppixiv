@@ -808,12 +808,17 @@ ppixiv.main_controller = class
         var disabled_ui = helpers.create_node(resources['resources/disabled.html']);
         helpers.replace_inlines(disabled_ui);
 
-        // If we're on a page that we don't support, like the top page, rewrite the link to switch to
-        // a page we do support.
-        if(!page_manager.singleton().available_for_url(ppixiv.location))
-            disabled_ui.querySelector("a").href = "/ranking.php?mode=daily#ppixiv";
+        this.refresh_disabled_ui(disabled_ui);
 
         document.body.appendChild(disabled_ui);
+
+        // Newer Pixiv pages update the URL without navigating, so refresh our button with the current
+        // URL.  We should be able to do this in popstate, but that API has a design error: it isn't
+        // called on pushState, only on user navigation, so there's no way to tell when the URL changes.
+        // This results in the URL changing when it's clicked, but that's better than going to the wrong
+        // page.
+        disabled_ui.addEventListener("focus", (e) => { this.refresh_disabled_ui(disabled_ui); }, true);
+        window.addEventListener("popstate", (e) => { this.refresh_disabled_ui(disabled_ui); }, true);
 
         if(page_manager.singleton().available_for_url(ppixiv.location))
         {
@@ -841,5 +846,20 @@ ppixiv.main_controller = class
             });
         }
     };
+
+    refresh_disabled_ui(disabled_ui)
+    {
+        // If we're on a page that we don't support, like the top page, rewrite the link to switch to
+        // a page we do support.  Otherwise, replace the hash with #ppixiv.
+        console.log(ppixiv.location.toString());
+        if(page_manager.singleton().available_for_url(ppixiv.location))
+        {
+            let url = ppixiv.location;
+            url.hash = "#ppixiv";
+            disabled_ui.querySelector("a").href = url;
+        }
+        else
+            disabled_ui.querySelector("a").href = "/ranking.php?mode=daily#ppixiv";
+    }
 };
 
