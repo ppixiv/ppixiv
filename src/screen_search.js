@@ -1073,6 +1073,9 @@ ppixiv.screen_search = class extends ppixiv.screen
                         <span class="twitter-icon" hidden>
                             <ppixiv-inline src="resources/icon-twitter.svg"></ppixiv-inline>
                         </span>
+                        <span class="fanbox-icon" hidden>
+                            <ppixiv-inline src="resources/icon-fanbox.svg"></ppixiv-inline>
+                        </span>
                         <span class="webpage-link" hidden>
                             <ppixiv-inline src="resources/icon-webpage.svg"></ppixiv-inline>
                         </span>
@@ -1159,7 +1162,6 @@ ppixiv.screen_search = class extends ppixiv.screen
         let alt_icons = {
             ".shopping-cart": [
                 "dlsite.com",
-                "fanbox.cc",
                 "fantia.jp",
                 "skeb.jp",
                 "ko-fi.com",
@@ -1168,11 +1170,14 @@ ppixiv.screen_search = class extends ppixiv.screen
             ".twitter-icon": [
                 "twitter.com",
             ],
+            ".fanbox-icon": [
+                "fanbox.cc",
+            ],
         };
 
         // Special case for old Fanbox URLs that were under the Pixiv domain.
         if((url.hostname == "pixiv.net" || url.hostname == "www.pixiv.net") && url.pathname.startsWith("/fanbox/"))
-            return ".shopping-cart";
+            return ".fanbox-icon";
 
         for(let alt in alt_icons)
         {
@@ -1830,7 +1835,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         this.set_visible_thumbs();
         this.refresh_images();
 
-        document.body.dataset.theme = settings.get("theme");
+        document.body.dataset.theme = "dark"; //settings.get("theme");
         helpers.set_class(document.body, "disable-thumbnail-panning", settings.get("disable_thumbnail_panning"));
         helpers.set_class(document.body, "disable-thumbnail-zooming", settings.get("disable_thumbnail_zooming"));
         helpers.set_class(document.body, "ui-on-hover", settings.get("ui-on-hover"));

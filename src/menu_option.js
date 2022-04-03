@@ -393,7 +393,7 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
             settings_widgets.invert_popup_hotkey();
 
         settings_widgets.ctrl_opens_popup();
-        settings_widgets.theme();
+        // settings_widgets.theme();
         settings_widgets.bookmark_privately_by_default();
 
 

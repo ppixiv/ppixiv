@@ -1055,6 +1055,17 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
         .circlems-icon > svg {
             margin: 2px 0 0 0;
         }
+
+        .fanbox-icon > svg {
+            // This is weird, since Inkscape doesn't support setting obscure attributes like "class".
+            [inkscape\:label="edge"],
+            [inkscape\:label="ear-left"],
+            [inkscape\:label="ear-right"],
+            [inkscape\:label="hand-right"]
+            {
+                fill: currentColor !important;
+            }
+        }
     }
 
     /* .thumbnails is the actual thumbnail list. */

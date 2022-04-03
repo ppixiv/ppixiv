@@ -6,6 +6,9 @@ let _update_history = [
         version: 123,
         text: `
             Added support for viewing completed requests.
+            <p>
+            Disabled light mode for now.  It's a pain to maintain two color schemes and everyone
+            is probably using dark mode anyway.  If you really want it, let me know on GitHub.
         `,
     },
     {
