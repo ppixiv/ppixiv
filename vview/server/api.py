@@ -58,10 +58,10 @@ def get_illust_info(info, entry, base_url):
     image_timestamp_with_inpaint += entry.get('inpaint_timestamp', 0)
 
     # The URLs that this file might have:
-    remote_image_path = base_url + '/file/' + urllib.parse.quote(illust_id, safe='/:')
+    remote_image_path = f'{base_url}/file/{urllib.parse.quote(illust_id, safe="/:")}?{image_timestamp}'
     remote_thumb_path = f'{base_url}/thumb/{urllib.parse.quote(illust_id, safe="/:")}?{image_timestamp_with_inpaint}'
-    remote_poster_path = base_url + '/poster/' + urllib.parse.quote(illust_id, safe='/:')
-    remote_mjpeg_path = base_url + '/mjpeg-zip/' + urllib.parse.quote(illust_id, safe='/:')
+    remote_poster_path = f'{base_url}/poster/{urllib.parse.quote(illust_id, safe="/:")}?{image_timestamp}'
+    remote_mjpeg_path = f'{base_url}/mjpeg-zip/{urllib.parse.quote(illust_id, safe="/:")}?{image_timestamp}'
 
     if is_animation:
         # For MJPEGs, use the poster as the "original" image.  The video is retrieved
