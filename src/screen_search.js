@@ -1088,6 +1088,9 @@ ppixiv.screen_search = class extends ppixiv.screen
                         <span class="circlems-icon" hidden>
                             <ppixiv-inline src="resources/icon-circlems.svg"></ppixiv-inline>
                         </span>
+                        <span class="twitch-icon" hidden>
+                            <ppixiv-inline src="resources/logo-twitch.svg" style="margin: 4px 4px 0 4px;"></ppixiv-inline>
+                        </span>
                         <span class="contact-link" hidden>
                             <ppixiv-inline src="resources/send-message.svg"></ppixiv-inline>
                         </span>
@@ -1172,6 +1175,9 @@ ppixiv.screen_search = class extends ppixiv.screen
             ],
             ".fanbox-icon": [
                 "fanbox.cc",
+            ],
+            ".twitch-icon": [
+                "twitch.tv",
             ],
         };
 
