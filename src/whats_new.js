@@ -248,7 +248,7 @@ ppixiv.whats_new = class extends ppixiv.dialog_widget
 
         this.refresh();
 
-        this.container.querySelector(".close-button").addEventListener("click", (e) => { this.hide(); });
+        this.container.querySelector(".close-button").addEventListener("click", (e) => { this.visible = false;; });
 
         // Close if the container is clicked, but not if something inside the container is clicked.
         this.container.addEventListener("click", (e) => {
