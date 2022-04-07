@@ -225,8 +225,9 @@ async def create_inpaint(input_file, lines, *, patch_filename):
         source_image = Image.open(image_file)
         patch_image = await create_inpaint_patch(source_image, lines)
 
+    # Save the result, propagating any ICC profile from the source image.
     with patch_filename.open('w+b') as output:
-        patch_image.save(output, 'png')
+        patch_image.save(output, 'png', icc_profile=source_image.info.get('icc_profile'))
 
     return patch_filename, patch_image, 'image/png'
 
