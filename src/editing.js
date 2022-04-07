@@ -307,6 +307,9 @@ ppixiv.ImageEditingOverlayContainer = class extends HTMLElement
         this._inpaint_img = document.createElement("img");
         this._inpaint_img.dataset.img = "inpaint-image";
 
+        // Let pointer events through to the underlying image.
+        this._inpaint_img.style.pointerEvents = "none";
+
         for(let img of [this._main_img, this._inpaint_img])
         {
             img.classList.add("filtering");
