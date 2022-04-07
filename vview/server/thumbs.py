@@ -113,9 +113,9 @@ def threaded_create_thumb(path, inpaint_path=None):
         if image.mode not in ('RGB', 'L'):
             image = image.convert('RGB')
     
-    # Compress the image.
+    # Compress the image.  If the source image had an ICC profile, copy it too.
     f = io.BytesIO()
-    image.save(f, file_type, quality=70)
+    image.save(f, file_type, quality=70, icc_profile=image.info.get('icc_profile'))
     f.seek(0)
     return f, mime_type
 
