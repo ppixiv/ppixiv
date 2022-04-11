@@ -1,5 +1,4 @@
-This user script improves viewing illustrations on Pixiv.  This can be used
-with TamperMonkey and GreaseMonkey in Firefox, Chrome and Edge.
+This user script improves viewing illustrations on Pixiv.
 
 The most recent version [can be installed here](https://s3.amazonaws.com/ppixiv/ppixiv.user.js).
 
@@ -7,53 +6,53 @@ The most recent version [can be installed here](https://s3.amazonaws.com/ppixiv/
 
 Features:
 
-- Images are enlarged by default (no extra click to zoom images every time).
+- Fast endless search results and an uncluttered image view.
 - One-click bookmarks and following.
-- Download ugoira as an MKV.
+- Dark theme.
+- Download Pixiv animations (ugoira) as an MKV.
 - Download manga pages as a ZIP.
-- Ugoira seeking.
+- Seek, pause and fullscreen animations.
 - Navigate search results with the mouse wheel or keyboard (pgup, pgdn).
+- Faster image loading.
 - Background image loading for fast navigation.
-- Pause, rewind and frame advance videos.
-- Light and dark theme.
-- Faster ugoira loading.
-- Better scaling for pixel art images (ドット絵).
+- Better scaling for pixel art.
+- Slideshow mode for viewing bookmarks.
 
 When viewing an image:
 
-- Hover the top-left of the window to see the UI.
-- Click to zoom, and drag to pan around.
-- Click videos to pause and unpause (or press space).
+- Click to zoom and drag to pan around.
+- Right-click to like, bookmark, view the artist, edit bookmark tags, etc.
+- Right-click + mousewheel to adjust zoom.
+- Click videos to pause and unpause.
 - Click the thumbnail icon to switch to the result list (or press escape).
-- Mouse wheel switches to the next/previous image.
-- Press b to quick bookmark, B to bookmark privately, and v to like.
+- Mouse wheel to go the next/previous image.
+- Double-click to toggle fullscreen.
 
 Other stuff:
 
 - Click the Pixiv icon in any page to view the regular page, and click the Pp icon in the
   corner to come back.
+- Automatically pan images (optional).
 - When viewing an image:
   Page down: move to the next image
   Page up: move to the previous image
   Home: jump to the first manga page
   End: jump to the last manga page (useful to skip past very long posts)
+  ^B to quick bookmark, Alt-^B to bookmark privately, and ^V to like.
 - When playing a video:
   Home: rewind
-  Left/Right: frame advance
-  123456789: Change playback speed.  5 is normal speed, 1-4 play in slow motion, and 6...9 speed the
-  video up.
-- Tabs displaying a followed user have a yellow star in the icon.  Bookmarked images
-  show a star in the title text.
+  Space: pause
+  Q, W: frame advance
+  1-9: set playback speed
 
-These pages are supported:
+Supported pages:
 
-- Illustration viewing
+- Image and user searches
 - Artist work listings
 - Viewing bookmarks
-- Recommended works
-- Related works
+- Recommended works and users
+- Similar bookmarks, illustrations, artists
 - New following posts
-- Searching
 - Rankings
 
 Portions under MIT/BSD license as listed in source.  All other code is in the
