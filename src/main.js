@@ -24,6 +24,12 @@ ppixiv.main_controller = class
 
     async initial_setup()
     {
+        if(GM_info?.scriptHandler == "Greasemonkey")
+        {
+            console.info("ppixiv doesn't work with GreaseMonkey.  GreaseMonkey hasn't been updated in a long time, try TamperMonkey instead.");
+            return;
+        }
+
         // If we're not active, just see if we need to add our button, and stop without messing
         // around with the page more than we need to.
         if(!page_manager.singleton().active)
