@@ -24,7 +24,7 @@ ppixiv.main_controller = class
 
     async initial_setup()
     {
-        if(GM_info?.scriptHandler == "Greasemonkey")
+        if(window?.GM_info?.scriptHandler == "Greasemonkey")
         {
             console.info("ppixiv doesn't work with GreaseMonkey.  GreaseMonkey hasn't been updated in a long time, try TamperMonkey instead.");
             return;
