@@ -295,7 +295,7 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
                 let slider = new menu_option_slider_setting({
                     ...global_options,
                     setting: "slideshow_duration",
-                    list: [1, 2, 3, 5, 10, 15, 20, 30, 45, 60],
+                    list: [1, 2, 3, 5, 10, 15, 20, 30, 45, 60, 90, 120, 180],
                     classes: ["size-slider"],
                     
                     // Refresh the label when the value changes.
