@@ -459,12 +459,16 @@ class Library:
         mime_type = misc.mime_type(os.fspath(path))
         assert mime_type is not None, ('File not supported: %s' % path)
         
-        stat = path.stat()
+        try:
+            stat = path.stat()
 
-        # Open the file with all share modes active, so we don't lock the file and interfere
-        # with the user working with the file.
-        with path.open('rb', shared=True) as f:
-            media_metadata = misc.read_metadata(f, mime_type)
+            # Open the file with all share modes active, so we don't lock the file and interfere
+            # with the user working with the file.
+            with path.open('rb', shared=True) as f:
+                media_metadata = misc.read_metadata(f, mime_type)
+        except IOError as e:
+            print('Couldn\'t open %s: %s' % (path, e))
+            return None
         
         width = media_metadata.get('width')
         height = media_metadata.get('height')
@@ -504,7 +508,11 @@ class Library:
 
     @classmethod
     def _create_directory_record(cls, path: os.PathLike):
-        stat = path.stat()
+        try:
+            stat = path.stat()
+        except IOError as e:
+            print('Couldn\'t open %s: %s' % (path, e))
+            return None
 
         data = {
             'populated': True,
