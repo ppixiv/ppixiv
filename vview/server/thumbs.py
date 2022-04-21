@@ -110,7 +110,7 @@ def threaded_create_thumb(path, inpaint_path=None):
     else:
         file_type = 'JPEG'
         mime_type = 'image/jpeg'
-        if image.mode not in ('RGB', 'L'):
+        if image.mode not in ('RGB', 'L', 'CMYK'):
             image = image.convert('RGB')
     
     # Compress the image.  If the source image had an ICC profile, copy it too.
