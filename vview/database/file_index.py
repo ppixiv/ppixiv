@@ -22,6 +22,13 @@ class FileIndex(Database):
         # that much if it loses data during a power loss.
         conn.execute(f'PRAGMA {self.schema}.synchronous = OFF;')
 
+        # Make LIKE case-sensitive.
+        #
+        # SQLite's built-in case-insensitivity isn't very useful, since it only works for ASCII,
+        # and some queries expect case-insensitive LIKE, such as delete_recursively, where it's
+        # required for the files_path index to be used.
+        conn.execute(f'PRAGMA {self.schema}.case_sensitive_like = ON;')
+
         # Do first-time initialization and any migrations.
         self.upgrade(conn=conn)
 
