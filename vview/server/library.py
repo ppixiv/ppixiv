@@ -314,7 +314,7 @@ class Library:
                 # We might be adding thousands of files here, so only add an unpopulated entry.
                 # This imports bookmarrks, and any other metadata we stashed away in the
                 # metadata files.
-                self._get_entry(path=path, conn=conn, populate=False)
+                self._get_entry(path=path, conn=conn, populate=False, check_mtime=False)
             except FileNotFoundError as e:
                 print('Bookmarked file %s doesn\'t exist' % path)
                 continue
