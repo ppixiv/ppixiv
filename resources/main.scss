@@ -2606,6 +2606,15 @@ svg.heart-image .delete {
     {
         position: relative;
 
+        // Items can use content-visibility if they have no children, which makes the list
+        // much faster when there are a lot of items.  If an item has expanded children then
+        // the parent container doesn't have a fixed height since the children nodes are part
+        // of the parent, so this is only enabled for non-expanded items.
+        contain-intrinsic-height: 32px;
+        &.allow-content-visibility {
+            content-visibility: auto;
+        }
+
         // If this isn't the root node, add padding to the left of our children.
         &:not(.root) > .items {
             margin-left: 1em;

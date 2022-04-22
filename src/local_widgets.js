@@ -444,6 +444,7 @@ ppixiv.tree_widget_item = class extends ppixiv.widget
         this.expander.dataset.mode = this.displayed_expand_mode;
         this.expander.dataset.pending = this._pending;
         this.items.hidden = !this._expanded || this._pending;
+        helpers.set_class(this.container, "allow-content-visibility", this.displayed_expand_mode != "expanded");
     }
 
     select()
