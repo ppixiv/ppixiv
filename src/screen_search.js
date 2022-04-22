@@ -1076,6 +1076,9 @@ ppixiv.screen_search = class extends ppixiv.screen
                         <span class="fanbox-icon" hidden>
                             <ppixiv-inline src="resources/icon-fanbox.svg"></ppixiv-inline>
                         </span>
+                        <span class="booth-icon" hidden>
+                            <ppixiv-inline src="resources/icon-booth.svg"></ppixiv-inline>
+                        </span>
                         <span class="webpage-link" hidden>
                             <ppixiv-inline src="resources/icon-webpage.svg"></ppixiv-inline>
                         </span>
@@ -1103,7 +1106,6 @@ ppixiv.screen_search = class extends ppixiv.screen
                         <span class="similar-artists" hidden>
                             <ppixiv-inline src="resources/related-illusts.svg"></ppixiv-inline>
                         </span>
-                       
                     </a>
                 </div>
             `});
@@ -1175,6 +1177,9 @@ ppixiv.screen_search = class extends ppixiv.screen
             ],
             ".fanbox-icon": [
                 "fanbox.cc",
+            ],
+            ".booth-icon": [
+                "booth.pm",
             ],
             ".twitch-icon": [
                 "twitch.tv",

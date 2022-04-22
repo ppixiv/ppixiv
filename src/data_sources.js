@@ -1526,6 +1526,7 @@ ppixiv.data_sources.artist = class extends data_source
         super(url);
 
         this.fanbox_url = null;
+        this.booth_url = null;
     }
 
     get supports_start_page() { return true; }
@@ -1684,6 +1685,8 @@ ppixiv.data_sources.artist = class extends data_source
         // Add the Fanbox link to the list if we have one.
         if(this.fanbox_url)
             links.push({url: this.fanbox_url, label: "Fanbox"});
+        if(this.booth_url)
+            links.push({url: this.booth_url, label: "Booth"});
     }
 
     async load_all_results()
@@ -1711,6 +1714,11 @@ ppixiv.data_sources.artist = class extends data_source
             this.call_update_listeners();
         }
 
+        // If this user has a linked Booth account, look it up.  Only do this if the profile indicates
+        // that it exists.  Don't wait for this to complete.
+        if(result.body?.externalSiteWorksStatus?.booth)
+            this.load_booth();
+
         var illust_ids = [];
         if(type == "artworks" || type == "illustrations")
             for(var illust_id in result.body.illusts)
@@ -1731,6 +1739,25 @@ ppixiv.data_sources.artist = class extends data_source
 
         return media_ids;
     };
+
+    async load_booth()
+    {
+        let booth_request = await helpers.get_request("https://api.booth.pm/pixiv/shops/show.json", {
+            pixiv_user_id: this.viewing_user_id,
+            adult: "include",
+            limit: 24,
+        });
+
+        let booth = await booth_request;
+        if(booth.error)
+        {
+            console.log(`Error reading Booth profile for ${this.viewing_user_id}`);
+            reteurn;
+        }
+
+        this.booth_url = booth.body.url;
+        this.call_update_listeners();
+    }
 
     refresh_thumbnail_ui(container, thumbnail_view)
     {
