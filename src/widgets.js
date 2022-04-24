@@ -261,18 +261,23 @@ ppixiv.illust_widget = class extends ppixiv.widget
 }
 
 // Display messages in the popup widget.  This is a singleton.
-ppixiv.message_widget = class
+ppixiv.message_widget = class extends widget
 {
     static get singleton()
     {
         if(message_widget._singleton == null)
-            message_widget._singleton = new message_widget();
+            message_widget._singleton = new message_widget({container: document.body});
         return message_widget._singleton;
     }
-
-    constructor()
+    
+    constructor(options)
     {
-        this.container = document.body.querySelector(".hover-message");
+        super({...options, template: `
+            <div class=hover-message>
+                <div class=message></div>
+            </div>`,
+        });
+
         this.timer = null;
     }
 

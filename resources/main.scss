@@ -363,7 +363,7 @@ textarea:focus, input:focus, a:focus {
     transition: opacity .25s;
     opacity: 0;
     pointer-events: none;
-    z-index: 100;
+    z-index: 100000; /* over everything */
 
     &.show {
         opacity: 1;
