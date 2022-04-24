@@ -1476,8 +1476,11 @@ ppixiv.screen_search = class extends ppixiv.screen
         if(forced_media_id_idx != -1)
         {
             // See how many thumbs this would cause us to load.
+            let loaded_thumb_ids = new Set();
+            for(let node of this.get_loaded_thumbs())
+                loaded_thumb_ids.add(node.dataset.id);
+    
             let loading_thumb_count = 0;
-            let loaded_thumb_ids = this.get_loaded_thumb_ids();
             for(let thumb_id of all_media_ids.slice(start_idx, end_idx+1))
             {
                 if(!loaded_thumb_ids.has(thumb_id))
@@ -2120,13 +2123,9 @@ ppixiv.screen_search = class extends ppixiv.screen
         return this.container.querySelectorAll(`.thumbnails > [data-id][data-nearby]:not([data-special])`);
     }
 
-    get_loaded_thumb_ids()
+    get_loaded_thumbs()
     {
-        let media_ids = new Set();
-
-        for(let node of this.container.querySelectorAll(`.thumbnails > [data-id]:not([data-special])`))
-            media_ids.add(node.dataset.id);
-        return media_ids;
+        return this.container.querySelectorAll(`.thumbnails > [data-id]:not([data-special])`);
     }
 
     // Create a thumb placeholder.  This doesn't load the image yet.
