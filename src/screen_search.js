@@ -526,7 +526,8 @@ ppixiv.screen_search = class extends ppixiv.screen
         settings.register_change_callback("ui-on-hover", this.update_from_settings);
         settings.register_change_callback("no-hide-cursor", this.update_from_settings);
         settings.register_change_callback("no_recent_history", this.update_from_settings);
-
+        muting.singleton.addEventListener("mutes-changed", this.refresh_after_mute_change);
+        
         // Zoom the thumbnails on ctrl-mousewheel:
         this.container.addEventListener("wheel", (e) => {
             if(!e.ctrlKey)
@@ -1134,6 +1135,33 @@ ppixiv.screen_search = class extends ppixiv.screen
             // Add the node at the start, so earlier links are at the right.  This makes the
             // more important links less likely to move around.
             row.insertAdjacentElement("afterbegin", entry);
+        }
+
+        // Mute/unmute
+        if(user_id != null)
+        {
+            let entry = this.create_template({name: "mute-link", html: `
+                <div class=extra-profile-link-button>
+                    <span class="extra-link grey-icon bulb-button popup popup-bottom" rel="noreferer noopener">
+                        <span class="material-icons button" style="font-size: 28px;">block</span>
+                    </span>
+                </div>
+            `});
+            
+            let muted = muting.singleton.is_muted_user_id(user_id);
+            let a = entry.querySelector(".extra-link");
+            a.dataset.popup = `${muted? "Unmute":"Mute"} ${user_info?.name || "this user"}`;
+
+            row.insertAdjacentElement("beforeend", entry);
+            a.addEventListener("click", async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+
+                if(muting.singleton.is_muted_user_id(user_id))
+                    muting.singleton.unmute_user_id(user_id);
+                else
+                    await actions.add_mute(user_id, null, {type: "user"});
+            });
         }
 
         // Tell the context menu which user is being viewed (if we're viewing a user-specific
@@ -1946,11 +1974,10 @@ ppixiv.screen_search = class extends ppixiv.screen
             var muted_user = muting.singleton.is_muted_user_id(info.userId);
             if(muted_tag || muted_user)
             {
-                element.classList.add("muted");
-
                 // The image will be obscured, but we still shouldn't load the image the user blocked (which
                 // is something Pixiv does wrong).  Load the user profile image instead.
                 thumb.src = thumbnail_data.singleton().get_profile_picture_url(info.userId);
+                element.classList.add("muted");
 
                 let muted_label = element.querySelector(".muted-label");
 
@@ -1967,6 +1994,7 @@ ppixiv.screen_search = class extends ppixiv.screen
             else
             {
                 thumb.src = url;
+                element.classList.remove("muted");
 
                 // The search page thumbs are always square (aspect ratio 1).
                 helpers.set_thumbnail_panning_direction(element, info.width, info.height, 1);
@@ -2108,6 +2136,17 @@ ppixiv.screen_search = class extends ppixiv.screen
         
         thumbnail_element.querySelector(".heart.public").hidden = !show_bookmark_heart || thumbnail_info.bookmarkData.private;
         thumbnail_element.querySelector(".heart.private").hidden = !show_bookmark_heart || !thumbnail_info.bookmarkData.private;
+    }
+
+    // Force all thumbnails to refresh after the mute list changes, to refresh mutes.
+    refresh_after_mute_change = () =>
+    {
+        for(let thumb of this.get_loaded_thumbs())
+            thumb.dataset.pending = true;
+        this.set_visible_thumbs();
+
+        // Refresh the user ID-dependant UI so we refresh the mute/unmute button.
+        this.refresh_ui_for_user_id();
     }
 
     // Return a list of thumbnails that are either visible, or close to being visible

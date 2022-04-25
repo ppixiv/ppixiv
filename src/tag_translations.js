@@ -113,7 +113,7 @@ ppixiv.tag_translations = class
         return result;
     }
 
-    async get_translations(tags, language)
+    async get_translations(tags, language="en")
     {
         let info = await this.get_tag_info(tags);
         let result = {};

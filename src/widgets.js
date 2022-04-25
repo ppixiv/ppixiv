@@ -1269,7 +1269,42 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                     }
                 });
             },
-    
+
+            mute_user: () => {
+                return new menu_option_button({
+                    ...shared_options,
+                    label: "Mute user",
+                    icon: helpers.create_icon("block", "16px"),
+                    requires_user: true,
+
+                    hide_if_unavailable: true,
+                    available: () => { return !muting.singleton.is_muted_user_id(this.user_id); },
+
+                    onclick: async () => {
+                        this.parent.hide();
+                        await actions.add_mute(this.user_id, null, {type: "user"});
+                    }
+                });
+            },
+
+            unmute_user: () => {
+                return new menu_option_button({
+                    ...shared_options,
+                    label: "Unmute user",
+                    icon: helpers.create_icon("block", "16px"),
+                    requires_user: true,
+
+                    hide_if_unavailable: true,
+                    available: () => { return muting.singleton.is_muted_user_id(this.user_id); },
+
+                    onclick: async () => {
+                        this.parent.hide();
+
+                        muting.singleton.unmute_user_id(this.user_id);
+                    }
+                });
+            },
+
             // XXX: hook into progress bar
             download_image: () => {
                 return new menu_option_button({
@@ -1413,6 +1448,9 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
             this.menu_options.push(menu_options.similar_illustrations());
             this.menu_options.push(menu_options.similar_artists());
             this.menu_options.push(menu_options.similar_bookmarks());
+            this.menu_options.push(menu_options.mute_user());
+            this.menu_options.push(menu_options.unmute_user());
+            
             this.menu_options.push(menu_options.download_image());
             this.menu_options.push(menu_options.download_manga());
             this.menu_options.push(menu_options.download_video());

@@ -2883,6 +2883,22 @@ svg.heart-image .delete {
     }
 }
 
+.muted-tags-popup {
+    padding: 0.5em 1em;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5em;
+    max-height: 440px;
+    overflow-y: auto;
+
+    .mute-warning {
+        border: solid 2px black;
+        border-radius: 15px;
+        background-color: #000;
+        padding: 1em;
+    }
+}
+
 .close-local-search
 {
     padding: 0.5em;

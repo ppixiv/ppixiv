@@ -1,6 +1,5 @@
 source_files = [
     'src/actions.js',
-    'src/muting.js',
     'src/crc32.js',
     'src/helpers.js',
     'src/settings.js',
@@ -8,6 +7,7 @@ source_files = [
     'src/widgets.js',
     'src/local_api.js',
     'src/local_widgets.js',
+    'src/muting.js',
     'src/editing.js',
     'src/editing_crop.js',
     'src/editing_inpaint.js',

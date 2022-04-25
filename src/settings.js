@@ -162,7 +162,7 @@ ppixiv.settings.configure("view_mode", { default_value: "illust" });
 ppixiv.settings.configure("image_editing", { session: true });
 ppixiv.settings.configure("image_editing_mode", { session: true });
 ppixiv.settings.configure("inpaint_create_lines", { session: true });
-
 ppixiv.settings.configure("auto_pan_ease", { default_value: 1 });
 ppixiv.settings.configure("slideshow_duration", { default_value: 15 });
 ppixiv.settings.configure("auto_pan_duration", { default_value: 3 });
+ppixiv.settings.configure("extra_mutes", { default_value: [] });

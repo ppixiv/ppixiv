@@ -499,4 +499,153 @@ ppixiv.actions = class
         
         return bookmark_tags;
     }
+
+    // Mute a user or tag using the Pixiv mute list.  type must be "tag" or "user".
+    static async add_pixiv_mute(value, {type})
+    {
+        console.log(`Adding ${value} to the Pixiv ${type} mute list`);
+
+        if(!muting.singleton.can_add_pixiv_mutes)
+        {
+            message_widget.singleton.show("The Pixiv mute list is full.");
+            return;
+        }
+
+        // Stop if the value is already in the list.
+        let mute_list = type == "tag"? "pixiv_muted_tags":"pixiv_muted_user_ids";
+        let mutes = muting.singleton[mute_list];
+        if(mutes.indexOf(value) != -1)
+            return;
+
+        // Get the label.  If this is a tag, the label is the same as the tag, otherwise
+        // get the user's username.  We only need this for the message we'll display at the
+        // end.
+        let label = value;
+        if(type == "user")
+            label = (await image_data.singleton().get_user_info(value)).name;
+
+        // Note that this doesn't return an error if the mute list is full.  It returns success
+        // and silently does nothing.
+        let result = await helpers.rpc_post_request("/ajax/mute/items/add", {
+            context: "illust",
+            type: type,
+            value: value,
+        });
+
+        if(result.error)
+        {
+            message_widget.singleton.show(result.message);
+            return;
+        }
+
+        // The API call doesn't return the updated list, so we have to update it manually.
+        mutes.push(value);
+
+        // Pixiv sorts the muted tag list, so mute it here to match.
+        if(type == "tag")
+            mutes.sort();
+
+        muting.singleton[mute_list] = mutes;
+
+        message_widget.singleton.show(`Muted the ${type} ${label}`);
+    }
+
+    // Remove item from the Pixiv mute list.  type must be "tag" or "user".
+    static async remove_pixiv_mute(value, {type})
+    {
+        console.log(`Removing ${value} from the Pixiv muted ${type} list`);
+
+        // Get the label.  If this is a tag, the label is the same as the tag, otherwise
+        // get the user's username.  We only need this for the message we'll display at the
+        // end.
+        let label = value;
+        if(type == "user")
+            label = (await image_data.singleton().get_user_info(value)).name;
+
+        let result = await helpers.rpc_post_request("/ajax/mute/items/delete", {
+            context: "illust",
+            type: type,
+            value: value,
+        });
+
+        if(result.error)
+        {
+            message_widget.singleton.show(result.message);
+            return;
+        }
+
+        // The API call doesn't return the updated list, so we have to update it manually.
+        let mute_list = type == "tag"? "pixiv_muted_tags":"pixiv_muted_user_ids";
+        let mutes = muting.singleton[mute_list];
+        let idx = mutes.indexOf(value);
+        if(idx != -1)
+            mutes.splice(idx, 1);
+        muting.singleton[mute_list] = mutes;
+        message_widget.singleton.show(`Unmuted the ${type} ${label}`);
+    }
+
+    // value is a tag name or user ID.  label is the tag or username.  type must be
+    // "tag" or "user".
+    static async add_extra_mute(value, label, {type})
+    {
+        console.log(`Adding ${value} (${label}) to the extra muted ${type} list`);
+
+        // Stop if the item is already in the list.
+        let mutes = muting.singleton.extra_mutes;
+        for(let {value: muted_value, type: muted_type} of mutes)
+            if(value == muted_value && type == muted_type)
+            {
+                console.log("Item is already muted");
+                return;
+            }
+        
+        mutes.push({
+            type: type,
+            value: value,
+            label: label,
+        });
+        mutes.sort((lhs, rhs) => { return lhs.label.localeCompare(rhs.label); });
+        muting.singleton.extra_mutes = mutes;
+        message_widget.singleton.show(`Muted the ${type} ${label}`);
+    }
+
+    static async remove_extra_mute(value, {type})
+    {
+        console.log(`Removing ${value} from the extra muted ${type} list`);
+
+        let mutes = muting.singleton.extra_mutes;
+
+        for(let idx = 0; idx < mutes.length; ++idx)
+        {
+            let mute = mutes[idx];
+            if(mute.type == type && mute.value == value)
+            {
+                message_widget.singleton.show(`Unmuted the ${mute.type} ${mute.label}`);
+                mutes.splice(idx, 1);
+                break;
+            }
+        }
+
+        muting.singleton.extra_mutes = mutes;
+    }
+
+    // If the user has premium, add to Pixiv mutes.  Otherwise, add to extra mutes.
+    static async add_mute(value, label, {type})
+    {
+        if(window.global_data.premium)
+        {
+            await actions.add_pixiv_mute(value, {type: type});
+        }
+        else
+        {
+            if(type == "user" && label == null)
+            {
+                // We need to know the user's username to add to our local mute list.
+                let user_data = await image_data.singleton().get_user_info(value);
+                label = user_data.name;
+            }
+            
+            await actions.add_extra_mute(value, label, {type: type});
+        }
+    }
 }

@@ -3,6 +3,14 @@
 // This should be inside whats_new, but Firefox is in the dark ages and doesn't support class fields.
 let _update_history = [
     {
+        version: 126,
+        text: `
+            Muted tags and users can now be edited from the preferences menu.
+            <p>            
+            Any number of tags can be muted.  If you don't have Premium, mutes will be
+            saved to the browser instead of to your Pixiv account.
+        `,
+    }, {
         version: 123,
         text: `
             Added support for viewing completed requests.

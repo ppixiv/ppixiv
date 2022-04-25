@@ -657,8 +657,8 @@ ppixiv.main_controller = class
             else if(mute.type == 1)
                 muted_user_ids.push(mute.value);
         }
-        muting.singleton.set_muted_tags(muted_tags);
-        muting.singleton.set_muted_user_ids(muted_user_ids);
+        muting.singleton.pixiv_muted_tags = muted_tags;
+        muting.singleton.pixiv_muted_user_ids = muted_user_ids;
 
         window.global_data = {
             // Store the token for XHR requests.
