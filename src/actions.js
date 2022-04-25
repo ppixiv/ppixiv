@@ -243,13 +243,10 @@ ppixiv.actions = class
         // Hide the popup when we show the prompt.
         this.hide_temporarily = true;
 
-        var prompt = new text_prompt({});
-        try {
-            var tags = await prompt.result;
-        } catch(e) {
-            // The user cancelled the prompt.
-            return;
-        }
+        let prompt = new text_prompt({ title: "New tag:" });
+        let tags = await prompt.result;
+        if(tags == null)
+            return; // cancelled
 
         // Split the new tags.
         tags = tags.split(" ");

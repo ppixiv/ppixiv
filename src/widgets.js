@@ -853,7 +853,10 @@ ppixiv.tag_widget = class extends ppixiv.widget
 // This is currently special purpose for the add tag prompt.
 ppixiv.text_prompt = class extends ppixiv.dialog_widget
 {
-    constructor({...options}={})
+    constructor({
+        title,
+        ...options
+    }={})
     {
         super({...options,
             container: document.body,
@@ -863,11 +866,9 @@ ppixiv.text_prompt = class extends ppixiv.dialog_widget
                 <div class=strip>
                     <div class=box>
                         <div class=close-button>X</div>
-                        <div style="margin-bottom: 4px;">
-                            New tag:
-                        </div>
-                        <div class=tag-input-box>
-                            <input class=add-tag-input>
+                        <div class=title style="margin-bottom: 4px;"></div>
+                        <div class=input-box>
+                            <input>
                             <span class=submit-button>+</span>
                         </div>
                     </div>
@@ -880,12 +881,12 @@ ppixiv.text_prompt = class extends ppixiv.dialog_widget
 
         this.result = new Promise((completed, cancelled) => {
             this._completed = completed;
-            this._cancelled = cancelled;
         });
 
-        this.input = this.container.querySelector("input.add-tag-input");
+        this.input = this.container.querySelector("input");
         this.input.value = "";
 
+        this.container.querySelector(".title").innerText = title;
         this.container.querySelector(".close-button").addEventListener("click", (e) => { this.visible = false; });
         this.container.querySelector(".submit-button").addEventListener("click", this.submit);
 
@@ -934,7 +935,7 @@ ppixiv.text_prompt = class extends ppixiv.dialog_widget
             this.container.remove();
 
             // If we didn't complete by now, cancel.
-            this._cancelled("Cancelled by user");
+            this._completed(null);
         }
     }
 

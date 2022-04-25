@@ -2519,6 +2519,7 @@ svg.heart-image .delete {
 
 .tag-entry-popup
 {
+    z-index: 1000;
     position: fixed;
     top: 0;
     left: 0;
@@ -2553,12 +2554,13 @@ svg.heart-image .delete {
         cursor: pointer;
     }
 
-    .tag-input-box {
+    .input-box {
         position: relative;
         display: flex;
         align-items: center;
+        margin-top: .5em;
 
-        > .add-tag-input {
+        > input {
             flex: 1;
             padding: 4px;
         }
