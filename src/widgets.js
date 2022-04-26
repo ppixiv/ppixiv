@@ -1272,37 +1272,24 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                 });
             },
 
-            mute_user: () => {
+            edit_mutes: () => {
                 return new menu_option_button({
                     ...shared_options,
-                    label: "Mute user",
-                    icon: helpers.create_icon("block", "16px"),
-                    requires_user: true,
+                    label: "Edit mutes",
 
+                    // Only show this entry if we have at least a media ID or a user ID.
+                    requires: ({media_id, user_id}) => { return media_id != null || user_id != null; },
+
+                    icon: helpers.create_icon("block", "16px"),
                     hide_if_unavailable: true,
-                    available: () => { return !muting.singleton.is_muted_user_id(this.user_id); },
 
                     onclick: async () => {
                         this.parent.hide();
-                        await actions.add_mute(this.user_id, null, {type: "user"});
-                    }
-                });
-            },
-
-            unmute_user: () => {
-                return new menu_option_button({
-                    ...shared_options,
-                    label: "Unmute user",
-                    icon: helpers.create_icon("block", "16px"),
-                    requires_user: true,
-
-                    hide_if_unavailable: true,
-                    available: () => { return muting.singleton.is_muted_user_id(this.user_id); },
-
-                    onclick: async () => {
-                        this.parent.hide();
-
-                        muting.singleton.unmute_user_id(this.user_id);
+                        new muted_tags_for_post_popup({
+                            container: document.body,
+                            media_id: this.media_id,
+                            user_id: this.user_id,
+                        });
                     }
                 });
             },
@@ -1450,12 +1437,11 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
             this.menu_options.push(menu_options.similar_illustrations());
             this.menu_options.push(menu_options.similar_artists());
             this.menu_options.push(menu_options.similar_bookmarks());
-            this.menu_options.push(menu_options.mute_user());
-            this.menu_options.push(menu_options.unmute_user());
             
             this.menu_options.push(menu_options.download_image());
             this.menu_options.push(menu_options.download_manga());
             this.menu_options.push(menu_options.download_video());
+            this.menu_options.push(menu_options.edit_mutes());
         }
 
         this.menu_options.push(menu_options.send_to_tab());

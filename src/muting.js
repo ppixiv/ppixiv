@@ -167,7 +167,6 @@ ppixiv.muted_tags_popup = class extends ppixiv.dialog_widget
                             <span class="material-icons button" style="font-size: 24px; color: #ffff00; margin-right: 0.5em;">warning</span>
                             <span>Note</span>
                         </a>
-
                     </span>
                 </div>
 
@@ -457,5 +456,173 @@ ppixiv.muted_tags_popup = class extends ppixiv.dialog_widget
     {
         await actions.remove_pixiv_mute(tag, {type: "tag"});
         this.refresh();
+    }
+}
+
+// A popup for editing mutes related for a post (the user and the post's tags).
+ppixiv.muted_tags_for_post_popup = class extends ppixiv.dialog_widget
+{
+    constructor({
+        media_id,
+        user_id,
+        ...options})
+    {
+        super({...options, visible: true, template: `
+            <div class="edit-post-mute-dialog dialog">
+                <div class="muted-tags-popup content">
+                    <div style="display: flex; align-items: center;">
+                        <span class=title style="font-size: 1.5em;">Edit mutes</span>
+                        <span style="flex: 1;"></span>
+
+                        <span class=non-premium-mute-warning>
+                            <a class="box-link mute-warning-button clickable" href="#">
+                                <span class="material-icons button" style="font-size: 24px; color: #ffff00; margin-right: 0.5em;">warning</span>
+                                <span>Note</span>
+                            </a>
+                        </span>
+                    </div>
+
+                    <div class=mute-warning hidden>
+                        <div>
+                            You can mute any number of tags and users.
+                        </div>
+                        <p>
+                        <div>
+                            However, since you don't have Premium, mutes will only be saved in your browser
+                            and can't be saved to your Pixiv account.  They will be lost if you change
+                            browsers or clear site data.
+                        </div>
+                    </div>
+
+                    <div class=post-mute-list></div>
+
+                    <div class=close-button>
+                        <ppixiv-inline src="resources/close-button.svg"></ppixiv-inline>
+                    </div>
+                </div>
+            </div>
+        `});
+
+        this.media_id = media_id;
+        this.user_id = user_id;
+
+        this.container.querySelector(".close-button").addEventListener("click", (e) => {
+            this.shutdown();
+        }, { signal: this.shutdown_signal.signal });
+
+        // Close if the container is clicked, but not if something inside the container is clicked.
+        this.container.addEventListener("click", (e) => {
+            if(e.target != this.container)
+                return;
+
+            this.shutdown();
+        }, { signal: this.shutdown_signal.signal });
+
+        this.container.querySelector(".mute-warning-button").addEventListener("click", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            let mute_warning = this.container.querySelector(".mute-warning");
+            mute_warning.hidden = !mute_warning.hidden;
+
+        });
+
+        // Hide the warning for non-premium users if the user does have premium.
+        this.container.querySelector(".non-premium-mute-warning").hidden = window.global_data.premium;
+
+        this.refresh();
+    }
+    
+    refresh = async() =>
+    {
+        if(this.media_id != null)
+        {
+            // We have a media ID.  Load its info to get the tag list, and use the user ID and
+            // username from it.
+            let illust_data = await thumbnail_data.singleton().get_or_load_illust_data(this.media_id);
+            let tags = [];
+            for(let tag of illust_data.tags.tags)
+                tags.push(tag.tag);
+    
+            await this.refresh_for_data(tags, illust_data.userId, illust_data.userName);
+        }
+        else
+        {
+            // We only have a user ID, so look up the user to get the username.  Don't display
+            // any tags.
+            let user_info = await image_data.singleton().get_user_info(this.user_id);
+            await this.refresh_for_data([], this.user_id, user_info.name);
+        }       
+    }
+
+    async refresh_for_data(tags, user_id, username)
+    {
+        // Do a batch lookup of muted tag translations.
+        let translated_tags = await tag_translations.get().get_translations(tags);
+
+        let create_entry = (label, is_muted) =>
+        {
+            let entry = this.create_template({name: "muted-tag-or-user-entry", html: `
+                <div class=entry>
+                    <div class="box-link toggle-mute">
+                        <span class=label>Mute</span>
+                    </div>
+                    <span class=tag-name></span>
+                </div>
+            `});
+
+            helpers.set_class(entry, "muted", is_muted);
+            entry.querySelector(".toggle-mute .label").innerText = is_muted? "Muted":"Mute";
+            entry.querySelector(".tag-name").innerText = label;
+            muted_list.appendChild(entry);
+
+            return entry;
+        };    
+    
+        let muted_list = this.container.querySelector(".post-mute-list");
+        helpers.remove_elements(muted_list);
+
+        // Add an entry for the user.
+        {
+            let is_muted = muting.singleton.is_muted_user_id(user_id);
+            let entry = create_entry(`User: ${username}`, is_muted);
+
+            entry.querySelector(".toggle-mute").addEventListener("click", async (e) => {
+                if(is_muted)
+                {
+                    actions.remove_extra_mute(user_id, {type: "user"});
+                    await actions.remove_pixiv_mute(user_id, {type: "user"});
+                } else {
+                    await actions.add_mute(user_id, username, {type: "user"});
+                }
+                
+                this.refresh();
+            });
+        }
+
+        // Add each tag on the image.
+        for(let tag of tags)
+        {
+            let is_muted = muting.singleton.any_tag_muted([tag]);
+
+            let label = tag;
+            let tag_translation = translated_tags[tag];
+            if(tag_translation)
+                label = `${tag_translation} (${tag})`;
+
+            let entry = create_entry(label, is_muted);
+
+            entry.querySelector(".toggle-mute").addEventListener("click", async (e) => {
+                if(is_muted)
+                {
+                    actions.remove_extra_mute(tag, {type: "tag"});
+                    await actions.remove_pixiv_mute(tag, {type: "tag"});
+                } else {
+                    await actions.add_mute(tag, tag, {type: "tag"});
+                }
+
+                this.refresh();
+            });
+        }
     }
 }

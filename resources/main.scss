@@ -2863,6 +2863,15 @@ svg.heart-image .delete {
     }
 }
 
+.edit-post-mute-dialog {
+    & > .content {
+        width: 80%;
+        min-height: 10em;
+        min-width: 800px;
+        padding: 1em;
+    }
+}
+
 .muted-tags-popup {
     padding: 0.5em 1em;
     display: flex;
@@ -2870,12 +2879,36 @@ svg.heart-image .delete {
     gap: 0.5em;
     max-height: 440px;
     overflow-y: auto;
+}
 
+.edit-post-mute-dialog,
+.muted-tags-popup
+{
     .mute-warning {
         border: solid 2px black;
         border-radius: 15px;
         background-color: #000;
         padding: 1em;
+    }
+    .non-premium-mute-warning {
+        // For the edit tags dialog, prevent the button from overlapping the dialog
+        // close button.
+        margin-right: 40px;
+    }
+
+    .post-mute-list {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+
+        .entry {
+            display: flex;
+            align-items: center;
+            gap: 0.5em;
+            &.muted .tag-name {
+                color: #ffaaaa;
+            }
+        }
     }
 }
 
