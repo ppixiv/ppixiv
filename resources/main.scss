@@ -2379,7 +2379,7 @@ svg.heart-image .delete {
 .close-button {
     position: absolute;
     top: 5px;
-    right: -40px;
+    right: 5px;
     color: var(--button-color);
     background-color: var(--ui-bg-color);
     padding: 4px;
@@ -2547,11 +2547,8 @@ svg.heart-image .delete {
     }
 
     .close-button {
-        position: absolute;
         top: 0px;
         right: 0px;
-        padding: 8px;
-        cursor: pointer;
     }
 
     .input-box {
@@ -2862,23 +2859,6 @@ svg.heart-image .delete {
                     }
                 }            
             }
-        }
-    }
-    
-    .close-button {
-        position: absolute;
-        top: 5px;
-        right: 5px;
-        color: var(--button-color);
-        background-color: var(--ui-bg-color);
-        padding: 4px;
-        border-radius: 5px;
-        cursor: pointer;
-        &:hover {
-            color: var(--button-highlight-color);
-        }
-        & > svg {
-            display: block;
         }
     }
 }

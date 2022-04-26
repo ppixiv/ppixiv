@@ -865,7 +865,9 @@ ppixiv.text_prompt = class extends ppixiv.dialog_widget
             <div class="tag-entry-popup">
                 <div class=strip>
                     <div class=box>
-                        <div class=close-button>X</div>
+                        <div class=close-button>
+                            <ppixiv-inline src="resources/close-button.svg"></ppixiv-inline>
+                        </div>
                         <div class=title style="margin-bottom: 4px;"></div>
                         <div class=input-box>
                             <input>
