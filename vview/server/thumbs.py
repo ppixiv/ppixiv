@@ -80,7 +80,7 @@ def threaded_create_thumb(path, inpaint_path=None):
         try:
             image = Image.open(f)
             image.load()
-        except OSError as e:
+        except Exception as e:
             print('Couldn\'t read %s to create thumbnail: %s' % (path, e))
             return None, None
 
@@ -93,7 +93,7 @@ def threaded_create_thumb(path, inpaint_path=None):
             try:
                 inpaint = Image.open(f)
                 image = inpainting.apply_inpaint(image, inpaint)
-            except OSError as e:
+            except Exception as e:
                 # Just log errors for these, don't fail the request.
                 print('Couldn\'t read inpaint %s for thumbnail: %s' % (path, e))
 
@@ -480,7 +480,7 @@ def _threaded_convert_to_browser_image(path):
         try:
             image = Image.open(f)
             image.load()
-        except OSError as e:
+        except Exception as e:
             print('Couldn\'t read %s to convert for viewing: %s' % (path, e))
             return None, None
 

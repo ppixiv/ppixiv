@@ -121,7 +121,7 @@ def read_metadata(f, mime_type):
 
     try:
         img = Image.open(f)
-    except IOError as e:
+    except Exception as e: # should be IOError, but the WebP decoder sometimes fails with RuntimeError
         print('Couldn\'t read metadata from %s: %s' % (f, e))
         return { }
 
