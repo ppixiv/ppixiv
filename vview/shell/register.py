@@ -3,7 +3,7 @@
 import argparse, ctypes, os, sys, errno, ctypes, sys, tempfile, winreg
 from pathlib import Path
 
-_file_types = ['.png', '.jpg', '.jpeg', '.gif', '.tif', '.tiff', '.zip', '.webm', '.mp4', '.mkv']
+_file_types = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.tif', '.tiff', '.zip', '.webm', '.mp4', '.mkv']
 
 use_open_in_explorer_scheme = True
 use_file_associations = True

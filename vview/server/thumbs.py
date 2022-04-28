@@ -25,7 +25,7 @@ async def handle_file(request):
     mime_type = misc.mime_type_from_ext(absolute_path.suffix)
 
     # If this is an image and not a browser image format, convert it for browser viewing.
-    browser_image_types = ['image/png', 'image/jpeg', 'image/gif', 'image/bmp']
+    browser_image_types = ['image/png', 'image/jpeg', 'image/gif', 'image/bmp', 'image/webp']
     if convert_images and mime_type.startswith('image') and mime_type not in browser_image_types:
         return await _handle_browser_conversion(request)
     

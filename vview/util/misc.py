@@ -12,6 +12,7 @@ image_types = {
     '.jpeg': 'image/jpeg',
     '.bmp': 'image/bmp',
     '.gif': 'image/gif',
+    '.webp': 'image/webp',
     '.tif': 'image/tiff',
     '.tiff': 'image/tiff',
 }
