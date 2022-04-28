@@ -12,6 +12,8 @@ image_types = {
     '.jpeg': 'image/jpeg',
     '.bmp': 'image/bmp',
     '.gif': 'image/gif',
+    '.tif': 'image/tiff',
+    '.tiff': 'image/tiff',
 }
 
 video_types = {

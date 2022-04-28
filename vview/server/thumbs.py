@@ -16,11 +16,19 @@ max_thumbnail_pixels = 500*500
 # Serve direct file requests.
 async def handle_file(request):
     path = request.match_info['path']
+    convert_images = request.query.get('convert_images', '1') != '0'
+
     absolute_path = request.app['manager'].resolve_path(path)
     if not absolute_path.is_file():
         raise aiohttp.web.HTTPNotFound()
 
     mime_type = misc.mime_type_from_ext(absolute_path.suffix)
+
+    # If this is an image and not a browser image format, convert it for browser viewing.
+    browser_image_types = ['image/png', 'image/jpeg', 'image/gif', 'image/bmp']
+    if convert_images and mime_type.startswith('image') and mime_type not in browser_image_types:
+        return await _handle_browser_conversion(request)
+    
     return FileResponse(absolute_path, headers={
         'Cache-Control': 'public, immutable',
         'Content-Type': mime_type,
@@ -406,3 +414,87 @@ async def handle_open(request):
     resp = aiohttp.web.HTTPFound(location='http://unused')
     resp.headers['Location'] = url
     raise resp
+
+async def _handle_browser_conversion(request):
+    path = request.match_info['path']
+    absolute_path = request.app['manager'].resolve_path(path)
+    
+    if not absolute_path.is_file():
+        raise aiohttp.web.HTTPNotFound()
+
+    # Check cache before converting the image.
+    mtime = absolute_path.stat().st_mtime
+    if_modified_since = request.if_modified_since
+    if if_modified_since is not None:
+        modified_time = datetime.fromtimestamp(mtime, timezone.utc)
+        modified_time = modified_time.replace(microsecond=0)
+
+        if modified_time <= if_modified_since:
+            raise aiohttp.web.HTTPNotModified()
+
+    if misc.file_type(os.fspath(absolute_path)) is None:
+        raise aiohttp.web.HTTPNotFound()
+
+    # Generate the image in a thread.
+    converted_file, mime_type = await _convert_to_browser_image(absolute_path)
+    if converted_file is None:
+        raise aiohttp.web.HTTPNotFound()
+
+    response = aiohttp.web.Response(body=converted_file, headers={
+        'Content-Type': mime_type,
+        'Cache-Control': 'public, immutable',
+    })
+
+    # Fill in last-modified from the source file.
+    response.last_modified = mtime
+    return response
+
+async def _convert_to_browser_image(absolute_path):
+    return await asyncio.to_thread(_threaded_convert_to_browser_image, absolute_path)
+
+def _threaded_convert_to_browser_image(path):
+    """
+    Convert an image to one that browsers can read, to allow viewing images like TIFFs.
+
+    This is a little tricky.  We don't want to spend too much time compressing the image,
+    since we're sending to a browser on the same machine, and the browser is just going
+    to spend more time decompressing it.
+
+    We could send it completely uncompressed.  If we do that, we'd want to tell the browser
+    to not cache (or set a short cache period), so it doesn't waste space caching uncompressed
+    images.  However, there's no good browser format for uncompressed RGBA images.
+    
+    PNG has no uncompressed mode and is still pretty slow with a 0 compression level.
+    RGBA BMPs aren't really supported anywhere.
+
+    Lossless WebP is slow, even if it's set to the fastest compression level.  This is a
+    design mistake: the fastest lossless method should just be passing through uncompressed
+    data, so you can use the decoder support with zero compression overhead.
+
+    Instead, we use lossy WebP on a fast method.  It's about twice as fast as lossless WebP
+    in its fastest mode and 20% faster than PNG in compress_level=0.
+
+    For RGB images, we just use JPEG.  It's 10x faster than WebP.
+    """
+    with path.open('rb') as f:
+        try:
+            image = Image.open(f)
+            image.load()
+        except OSError as e:
+            print('Couldn\'t read %s to convert for viewing: %s' % (path, e))
+            return None, None
+
+    if _image_is_transparent(image):
+        file_type = 'WEBP'
+        mime_type = 'image/webp'
+    else:
+        file_type = 'JPEG'
+        mime_type = 'image/jpeg'
+        if image.mode not in ('RGB', 'L', 'CMYK'):
+            image = image.convert('RGB')
+    
+    # Compress the image.  If the source image had an ICC profile, copy it too.
+    f = io.BytesIO()
+    image.save(f, file_type, quality=80, method=0, icc_profile=image.info.get('icc_profile'))
+    f.seek(0)
+    return f, mime_type
