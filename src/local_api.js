@@ -453,8 +453,10 @@ ppixiv.local_api = class
             search_options.total_pixels = helpers.parse_range(range);
         }
 
-        if(title)
-            title += ` inside ${search_root}`;
+        if(title == null)
+            title = "Search";
+
+        title += ` inside ${search_root}`;
 
         // Clear search_options if it has no keys, to indicate that we're not in a search.
         if(Object.keys(search_options).length == 0)
