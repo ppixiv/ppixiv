@@ -112,14 +112,14 @@ ppixiv.image_data = class extends EventTarget
     // If load_user_info is true, we'll attempt to load user info in parallel.  It still
     // needs to be requested with get_user_info(), but loading it here can allow requesting
     // it sooner.
-    async load_media_info(media_id, { illust_data=null, load_user_info=false }={})
+    async load_media_info(media_id, { illust_data=null, load_user_info=false, force=false }={})
     {
         media_id = helpers.get_media_id_first_page(media_id);
         let [illust_id] = helpers.media_id_to_illust_id_and_page(media_id);
 
         // See if we already have data for this image.  If we do, stop.  We always load
         // everything we need if we load anything at all.
-        if(this.image_data[media_id] != null)
+        if(!force && this.image_data[media_id] != null)
             return;
 
         media_id = helpers.get_media_id_first_page(media_id);
@@ -255,6 +255,7 @@ ppixiv.image_data = class extends EventTarget
 
         // Store the image data.
         this.image_data[media_id] = illust_data;
+        this.call_illust_modified_callbacks(media_id);
         return illust_data;
     }
 
@@ -278,6 +279,7 @@ ppixiv.image_data = class extends EventTarget
         }
 
         this.image_data[media_id] = illust_data.illust;
+        this.call_illust_modified_callbacks(media_id);
         return illust_data.illust;
     }
 
@@ -523,6 +525,23 @@ ppixiv.image_data = class extends EventTarget
     {
         media_id = helpers.get_media_id_first_page(media_id);
         this.recent_likes[media_id] = true;
+    }
+
+    // Refresh image data and thumbnail info for the given media ID.
+    //
+    // Only data which is already loaded will be refreshed, so refreshing a search result
+    // where we haven't yet had any reason to load full image data will only refresh thumbnail
+    // data.
+    async refresh_media_info(media_id)
+    {
+        let promises = [];
+        if(this.image_data[media_id] != null)
+            promises.push(this.load_media_info(media_id, { force: true }));
+
+        if(thumbnail_data.singleton().get_one_thumbnail_info(media_id) != null)
+            promises.push(thumbnail_data.singleton().load_thumbnail_info([media_id], { force: true }));
+
+        await Promise.all(promises);
     }
 }
 

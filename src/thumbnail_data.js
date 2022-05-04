@@ -103,14 +103,14 @@ ppixiv.thumbnail_data = class
     }
 
     // Load thumbnail info for the given list of IDs.
-    async load_thumbnail_info(media_ids)
+    async load_thumbnail_info(media_ids, { force=false }={})
     {
         // Make a list of IDs that we're not already loading.
         let illust_ids_to_load = [];
         for(let media_id of media_ids)
         {
             media_id = helpers.get_media_id_first_page(media_id);
-            if(this.loading_ids[media_id] != null)
+            if(!force && this.loading_ids[media_id] != null)
                 continue;
 
             illust_ids_to_load.push(helpers.parse_media_id(media_id).id);

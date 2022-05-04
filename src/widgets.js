@@ -1294,6 +1294,23 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                 });
             },
 
+            refresh_image: () => {
+                return new menu_option_button({
+                    ...shared_options,
+                    label: "Refresh",
+
+                    requires_image: true,
+                    hide_if_unavailable: true,
+
+                    icon: helpers.create_icon("refresh", "20px"),
+
+                    onclick: async () => {
+                        this.parent.hide();
+                        image_data.singleton().refresh_media_info(this.media_id);
+                    }
+                });
+            },
+
             // XXX: hook into progress bar
             download_image: () => {
                 return new menu_option_button({
@@ -1448,6 +1465,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
         this.menu_options.push(menu_options.linked_tabs());
         this.menu_options.push(menu_options.toggle_slideshow());
         this.menu_options.push(menu_options.edit_inpainting());
+        this.menu_options.push(menu_options.refresh_image());
 
         if(!ppixiv.native)
             this.menu_options.push(menu_options.exit());
