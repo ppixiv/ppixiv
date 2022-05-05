@@ -274,7 +274,7 @@ ppixiv.actions = class
         
         // Edit the bookmark.
         if(helpers.is_media_id_local(media_id))
-            await local_api.bookmark_add(media_id, { tags: tags });
+            await local_api.bookmark_add(media_id, { tags: active_tags });
         else
             await actions.bookmark_add(media_id, { tags: active_tags, });
     }
