@@ -2173,10 +2173,11 @@ ppixiv.helpers = {
     },
 
     // Return the last count parts of path.
-    get_path_suffix(path, count=2)
+    get_path_suffix(path, count=2, remove_from_end=0)
     {
         let parts = path.split('/');
-        parts = parts.splice(parts.length-count); // take the last two parts
+        parts = parts.splice(0, parts.length - remove_from_end);
+        parts = parts.splice(parts.length-count); // take the last count parts
         return parts.join("/");
     },
 

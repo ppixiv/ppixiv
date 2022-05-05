@@ -20,9 +20,9 @@ ppixiv.image_ui = class extends ppixiv.widget
         <div>
             <span class="title-block">
                 <!-- Put the title and author in separate inline-blocks, to encourage
-                        the browser to wrap between them if possible, putting the author
-                        on its own line if they won\'t both fit, but still allowing the
-                        title to wrap if it\'s too long by itself. -->
+                     the browser to wrap between them if possible, putting the author
+                     on its own line if they won't both fit, but still allowing the
+                     title to wrap if it's too long by itself. -->
                 <span style="display: inline-block;" class="title-font">
                     <a class="title"></a>
                 </span>
@@ -30,6 +30,11 @@ ppixiv.image_ui = class extends ppixiv.widget
                     <span style="font-size: 12px;">by</span>
                     <a class="author"></a>
                 </span>
+                <span style="display: inline-block;" class=folder-block>
+                    <span style="font-size: 12px;">in</span>
+                    <a class="folder-text title-font"></a>
+                </span>
+
                 <a class=edit-post href=#>Edit post</a>
             </span>
         </div>
@@ -288,8 +293,23 @@ ppixiv.image_ui = class extends ppixiv.widget
         element_title.textContent = illust_info.illustTitle;
         element_title.href = helpers.get_url_for_id(this._media_id);
 
-        // If the author name is empty, hide it instead of leaving it empty.
+        // Show the folder if we're viewing a local image.
+        let folder_text_element = this.container.querySelector(".folder-text");
+        let show_folder = helpers.is_media_id_local(this._media_id);
+        if(show_folder)
+        {
+            let {id} = helpers.parse_media_id(this.media_id);
+            folder_text_element.innerText = helpers.get_path_suffix(id, 2, 1); // last two parent directories
+
+            let parent_folder_id = local_api.get_parent_folder(id);
+            let args = new helpers.args("/", ppixiv.location);
+            local_api.get_args_for_id(parent_folder_id, args);
+            folder_text_element.href = args.url;
+        }
+
+        // If the author name or folder are empty, hide it instead of leaving it empty.
         this.container.querySelector(".author-block").hidden = illust_info.userName == "";
+        this.container.querySelector(".folder-block").hidden = !show_folder;
         var element_author = this.container.querySelector(".author");
         if(illust_info.userName != "")
             element_author.textContent = illust_info.userName;
