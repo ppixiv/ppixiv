@@ -1037,6 +1037,67 @@ class Library:
     def get_all_bookmark_tags(self):
         return self.db.get_all_bookmark_tags()
 
+    def batch_rename_tag(self, from_tag, to_tag, paths=None, max_edits=100):
+        # Stop if we're not changing anything.
+        if from_tag == to_tag:
+            return []
+        
+        if not paths:
+            paths = self.mounts.values()
+
+        # Sanity checks:
+        assert paths
+        if ' ' in from_tag or ' ' in to_tag or to_tag == '':
+            raise misc.Error('invalid-request', 'Invalid tag rename')
+
+        # Search for images bookmarked with from_tag.
+        index_search = self.db.search(paths=[str(path) for path in paths], bookmarked=True, bookmark_tags=from_tag)
+
+        updates = []
+        for entry in index_search:
+            # Update the bookmark metadata file.  This is the authoritative data for bookmark tags.
+            path = open_path(entry['path'])
+            with metadata_storage.load_and_lock_file_metadata(path) as file_metadata:
+                # Our search is from the database, but the file metadata is authoritative.  Make sure
+                # the image is actually bookmarked and has the tag we're looking for.
+                if not file_metadata['bookmarked']:
+                    print(f"Path is bookmarked in the database, but not on disk: ${entry['path']}")
+                    continue
+
+                entry_bookmark_tags = file_metadata['bookmark_tags'].split(' ')
+                if from_tag not in entry_bookmark_tags:
+                    print(f"Path has tag ${from_tag} in the database, but not on disk: ${entry['path']}")
+                    continue
+
+                # Remove from_tag and add to_tag.
+                entry_bookmark_tags.remove(from_tag)
+                entry_bookmark_tags.append(to_tag)
+                entry_bookmark_tags = ' '.join(entry_bookmark_tags)
+                file_metadata['bookmark_tags'] = entry_bookmark_tags
+
+                # Save the new bookmark tags.
+                metadata_storage.save_file_metadata(path, file_metadata)
+
+            # Update the file in the index to update cached bookmark_tags.  We don't populate here,
+            # so we don't spend a lot of time populating unpopulated images.  This will cause
+            # populated entries to be unpopulated in the database, which is OK.  They'll be
+            # repopulated the next time they're accessed.
+            self._get_entry(path, force_refresh=True, populate=False)
+
+            # We don't return full media info here, since we'd need to populate all of the data to
+            # do that.  Instead, we just return the new tag lists, so the client can update tags
+            # for images it already knows about and ignore the rest.
+            updates.append({
+                'media_id': entry['id'],
+                'tags': entry_bookmark_tags,
+            })
+
+            # Stop if we've made the maximum number of updates in one pass.
+            if max_edits and len(updates) >= max_edits:
+                break
+
+        return updates
+
     def set_image_edits(self, entry, *, inpaint=None, crop=None):
         with metadata_storage.load_and_lock_file_metadata(entry['path']) as file_metadata:
             # If crop is set, it's either a array of four integers, or empty to unset cropping.

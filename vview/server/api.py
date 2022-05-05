@@ -216,6 +216,27 @@ async def api_bookmark_tags(info):
         'success': True,
         'tags': results,
     }
+@reg('/bookmark/tags/rename')
+async def api_bookmark_add(info):
+    """
+    Batch rename tags.
+
+    If path is specified, only rename tags underneath that path (including the directory
+    itself).
+
+    Since there may be a lot of tags to rename, this renames a block of tags and returns
+    the IDs that were edited.  Call this repeatedly until no more tags are modified.
+    """
+    path = info.data.get('path', None)
+    from_tag = info.data['from']
+    to_tag = info.data['to']
+
+    if path is not None:
+        path = info.manager.resolve_path(path)
+        info.manager.check_path(path, info.request, throw=True)
+
+    media_ids = info.manager.library.batch_rename_tag(from_tag, to_tag, paths=[path] if path else None, max_edits=100)
+    return { 'success': True, 'media_ids': media_ids }
 
 # Return info about a single file.
 @reg('/illust/{type:[^:]+}:{path:.+}')
