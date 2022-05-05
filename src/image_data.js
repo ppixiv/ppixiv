@@ -538,7 +538,7 @@ ppixiv.image_data = class extends EventTarget
         if(this.image_data[media_id] != null)
             promises.push(this.load_media_info(media_id, { force: true }));
 
-        if(thumbnail_data.singleton().get_one_thumbnail_info(media_id) != null)
+        if(!helpers.is_media_id_local(media_id) && thumbnail_data.singleton().get_one_thumbnail_info(media_id) != null)
             promises.push(thumbnail_data.singleton().load_thumbnail_info([media_id], { force: true }));
 
         await Promise.all(promises);
