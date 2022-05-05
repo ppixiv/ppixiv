@@ -102,6 +102,7 @@ class FileIndex(Database):
                     conn.execute(f'CREATE INDEX {self.schema}.files_parent on files(parent)')
                     conn.execute(f'CREATE INDEX {self.schema}.files_mime_type on files(mime_type)')
                     conn.execute(f'CREATE INDEX {self.schema}.files_animation on files(animation) WHERE animation')
+                    conn.execute(f'CREATE INDEX {self.schema}.files_bookmarked on files(bookmarked) WHERE bookmarked')
 
                     # This index is for the "normal" sort order.  See library.sort_orders.
                     conn.execute(f'CREATE INDEX {self.schema}.files_sort_normal on files(is_directory DESC, filesystem_name ASC)')
@@ -379,7 +380,8 @@ class FileIndex(Database):
         # If set, return only bookmarked or unbookmarked files.
         bookmarked=None,
 
-        # If set, this is an array of bookmark tags to filter for.
+        # If set, this is an array of bookmark tags to filter for.  bookmarked must be true
+        # for this to be used.
         bookmark_tags=None,
 
         # Only match images with width*height >= total_pixels.  If negative,
@@ -408,6 +410,7 @@ class FileIndex(Database):
         source=None,
 
         include_files=True, include_dirs=True,
+        debug=False,
         conn=None
     ):
         # If available_fields was supplied, disable searches that require unavailable
@@ -509,7 +512,7 @@ class FileIndex(Database):
                     where.append(f'bookmarked')
                 else:
                     joins.append(f'''
-                        LEFT JOIN {schema}bookmark_tags
+                        JOIN {schema}bookmark_tags
                         ON {schema}bookmark_tags.file_id = {schema}files.id
                     ''')
 
@@ -545,13 +548,14 @@ class FileIndex(Database):
             {where}
             {order}
         """
-#        print(query)
-#        print(params)
-#        for row in cursor.execute('EXPLAIN QUERY PLAN ' + query, params):
-#            result = dict(row)
-#            print('plan:', result)
-
         with self.cursor(conn) as cursor:
+            if debug:
+                print(query)
+                print(params)
+                for row in cursor.execute('EXPLAIN QUERY PLAN ' + query, params):
+                    result = dict(row)
+                    print('plan:', result)
+
             for row in cursor.execute(query, params):
                 result = dict(row)
                 try:
