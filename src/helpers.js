@@ -1099,8 +1099,6 @@ ppixiv.helpers = {
             recent_tags.splice(idx, 1);
         recent_tags.unshift(tag);
 
-        // Trim the list.
-        recent_tags.splice(50);
         settings.set("recent-tag-searches", recent_tags);
 
         window.dispatchEvent(new Event("recent-tag-searches-changed"));
