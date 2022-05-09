@@ -42,6 +42,7 @@ ppixiv.on_click_viewer = class
         this._cropped_size = null;
 
         this.center_pos = [0, 0];
+        this.drag_movement = [0,0];
 
         // Restore the most recent zoom mode.  We assume that there's only one of these on screen.
         this.locked_zoom = settings.get("zoom-mode") == "locked";
@@ -63,7 +64,7 @@ ppixiv.on_click_viewer = class
         });
 
         // This is like pointermove, but received during quick view from the source tab.
-        window.addEventListener("quickviewpointermove", this.pointermove, { signal: this.event_shutdown.signal });
+        window.addEventListener("quickviewpointermove", this.quickviewpointermove, { signal: this.event_shutdown.signal });
     }
 
     // Return the URL or preview URL being displayed.
@@ -643,25 +644,27 @@ ppixiv.on_click_viewer = class
         this.reposition();
     }
 
-    pointermove(e)
+    pointermove = (e) =>
+    {
+        // If we're animating, only start dragging after we pass a drag threshold, so we
+        // don't cancel the animation in quick view.  These thresholds match Windows's
+        // default SM_CXDRAG/SM_CYDRAG behavior.
+        this.drag_movement[0] += e.movementX;
+        this.drag_movement[1] += e.movementY;
+        if(this.animations && this.drag_movement[0] < 4 && this.drag_movement[1] < 4)
+            return;
+
+        this.apply_pointer_movement({movementX: e.movementX, movementY: e.movementY});
+    }
+
+    quickviewpointermove = (e) =>
     {
         this.apply_pointer_movement({movementX: e.movementX, movementY: e.movementY});
     }
 
     apply_pointer_movement({movementX, movementY})
     {
-        // If we're animating, only start dragging after we pass a drag threshold, so we
-        // don't cancel the animation in quick view.
-        this.drag_movement[0] += movementX;
-        this.drag_movement[1] += movementY;
-        if(this.animations)
-        {
-            // This matches Windows's default SM_CXDRAG/SM_CYDRAG behavior.
-            if(this.drag_movement[0] < 4 && this.drag_movement[1] < 4)
-                return;
-
-            this.stop_animation();
-        }
+        this.stop_animation();
 
         // Send pointer movements to linked tabs.
         SendImage.send_mouse_movement_to_linked_tabs(movementX, movementY);
