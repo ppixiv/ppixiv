@@ -140,8 +140,8 @@ ppixiv.tag_translations = class
         let tag_list = [];
         for(let tag of split_tags)
         {
-            let prefix_and_tag = helpers.split_tag_prefixes(tag);
-            tag_list.push(prefix_and_tag[1]);
+            let [prefix, unprefixed_tag] = helpers.split_tag_prefixes(tag);
+            tag_list.push(unprefixed_tag);
         }
 
         // Get translations.

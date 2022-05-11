@@ -1022,6 +1022,9 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
         }
         .displaying .word {
             padding: 0px 5px;
+
+            // Parentheses:
+            &.paren { font-weight: 400; }
         }
 
         .displaying .word:first-child {

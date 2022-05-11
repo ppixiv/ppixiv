@@ -1131,6 +1131,14 @@ ppixiv.helpers = {
     {
         // Replace full-width spaces with regular spaces.  Pixiv treats this as a delimiter.
         search = search.replace("　", " ");
+
+        // Make sure there's a single space around parentheses, so parentheses are treated as their own item.
+        // This makes it easier to translate tags inside parentheses, and style parentheses separately.
+        search = search.replace(/ *([\(\)]) */g, " $1 ");
+
+        // Remove repeated spaces.
+        search = search.replace(/ +/g, " ");
+
         return search.split(" ");
     },
     

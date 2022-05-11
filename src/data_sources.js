@@ -2844,6 +2844,8 @@ ppixiv.data_sources.search = class extends data_source
                 span.classList.add("word");
                 if(tag == "or")
                     span.classList.add("or");
+                else if(tag == "(" || tag == ")")
+                    span.classList.add("paren");
                 else
                     span.classList.add("tag");
                 
