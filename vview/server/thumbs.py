@@ -34,8 +34,7 @@ async def handle_file(request):
         'Content-Type': mime_type,
     })
 
-def _bake_exif_rotation(image):
-    exif = image.getexif()
+def _bake_exif_rotation(image, exif):
     ORIENTATION = 0x112
     image_orientation = exif.get(ORIENTATION, 0)
     if image_orientation <= 1:
@@ -80,6 +79,11 @@ def threaded_create_thumb(path, inpaint_path=None):
         try:
             image = Image.open(f)
             image.load()
+
+            # Read EXIF data, so we can bake rotations into the final image.  This might
+            # need to read the data from the file, so do it while we still have the file
+            # open.
+            exif = image.getexif()
         except Exception as e:
             print('Couldn\'t read %s to create thumbnail: %s' % (path, e))
             return None, None
@@ -109,7 +113,7 @@ def threaded_create_thumb(path, inpaint_path=None):
         raise aiohttp.web.HTTPUnsupportedMediaType()
 
     # If the image has EXIF rotations, bake them into the thumbnail.
-    image = _bake_exif_rotation(image)
+    image = _bake_exif_rotation(image, exif)
 
     # If the image is transparent, save it as PNG.  Otherwise, save it as JPEG.
     if _image_is_transparent(image):
