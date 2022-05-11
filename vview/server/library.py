@@ -1060,11 +1060,11 @@ class Library:
             with metadata_storage.load_and_lock_file_metadata(path) as file_metadata:
                 # Our search is from the database, but the file metadata is authoritative.  Make sure
                 # the image is actually bookmarked and has the tag we're looking for.
-                if not file_metadata['bookmarked']:
+                if not file_metadata.get('bookmarked'):
                     print(f"Path is bookmarked in the database, but not on disk: ${entry['path']}")
                     continue
 
-                entry_bookmark_tags = file_metadata['bookmark_tags'].split(' ')
+                entry_bookmark_tags = file_metadata.get('bookmark_tags', '').split(' ')
                 if from_tag not in entry_bookmark_tags:
                     print(f"Path has tag ${from_tag} in the database, but not on disk: ${entry['path']}")
                     continue
