@@ -24,10 +24,17 @@ ppixiv.main_controller = class
 
     async initial_setup()
     {
-        if(window?.GM_info?.scriptHandler == "Greasemonkey")
-        {
-            console.info("ppixiv doesn't work with GreaseMonkey.  GreaseMonkey hasn't been updated in a long time, try TamperMonkey instead.");
-            return;
+        try {
+            // GM_info isn't a property on window in all script managers, so we can't check it
+            // safely with window.GM_info?.scriptHandler.  Instead, try to check it and catch
+            // the exception if GM_info isn't there for some reason.
+            if(!ppixiv.native && GM_info?.scriptHandler == "Greasemonkey")
+            {
+                console.info("ppixiv doesn't work with GreaseMonkey.  GreaseMonkey hasn't been updated in a long time, try TamperMonkey instead.");
+                return;
+            }
+        } catch(e) {
+            console.error(e);
         }
 
         // If we're not active, just see if we need to add our button, and stop without messing
