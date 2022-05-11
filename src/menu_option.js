@@ -315,6 +315,16 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
                 button.container.querySelector(".size-slider").style.flexGrow = .25;
             },
 
+            slideshow_skips_manga: () => {
+                return new menu_option_toggle({
+                    ...global_options,
+                    label: "Slideshow skips manga pages",
+                    setting: "slideshow_skips_manga",
+                    explanation_enabled: "Slideshow mode will only show the first page.",
+                    explanation_disabled: "Slideshow mode will show all pages.",
+                });
+            },
+
             no_recent_history: () => {
                 return new menu_option_toggle({
                     ...global_options,
@@ -384,6 +394,8 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
         settings_widgets.auto_pan();
         settings_widgets.auto_pan_speed();
         settings_widgets.slideshow_speed();
+        if(!ppixiv.native) // native mode doesn't support manga pages
+            settings_widgets.slideshow_skips_manga();
         
         settings_widgets.view_mode();
         settings_widgets.invert_scrolling();

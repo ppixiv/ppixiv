@@ -293,7 +293,10 @@ ppixiv.screen_illust = class extends ppixiv.screen
                     return;
 
                 // The viewer wants to go to the next image, normally during slideshows.
-                this.navigate_to_next(1, { loop: true });
+                // Loop is true, so we loop back to the beginning of the search if we reach
+                // the end in a slideshow.
+                let skip_manga_pages = settings.get("slideshow_skips_manga");
+                this.navigate_to_next(1, { loop: true, skip_manga_pages });
             },
         });
 

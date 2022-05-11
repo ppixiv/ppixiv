@@ -166,3 +166,4 @@ ppixiv.settings.configure("auto_pan_ease", { default_value: 1 });
 ppixiv.settings.configure("slideshow_duration", { default_value: 15 });
 ppixiv.settings.configure("auto_pan_duration", { default_value: 3 });
 ppixiv.settings.configure("extra_mutes", { default_value: [] });
+ppixiv.settings.configure("slideshow_skips_manga", { default_value: false });
