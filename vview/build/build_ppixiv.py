@@ -147,7 +147,7 @@ class Build(object):
             kwargs['source_map_root'] = embed_source_root
 
         results = sass.compile(filename=str(path),
-                source_comments=True,
+                source_comments=False,
                 source_map_embed=source_map_embed,
                 **kwargs)
 
