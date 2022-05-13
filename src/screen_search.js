@@ -256,7 +256,7 @@ let thumbnail_ui = class extends ppixiv.widget
                             <a class=box-link data-type=bookmarks-5000 href=#>5000+</a>
                         </div>
                        
-                        <span class="box-link popup-menu-box-button premium-only">Time</span>
+                        <span class="box-link popup-menu-box-button">Time</span>
                         <div hidden class="popup-menu-box vertical-list">
                             <a class=box-link data-type=time-all data-default=1 href="#">All</a>
                             <a class=box-link data-type=time-week data-short-label="Weekly" href="#">This week</a>
