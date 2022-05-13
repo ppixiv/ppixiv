@@ -71,7 +71,9 @@ ppixiv.context_menu_image_info_widget = class extends ppixiv.illust_widget
         set_info(".page-count", page_text);
 
         // If we're on the first page then we only requested early info, and we can use the dimensions
-        // on it.  Otherwise, we have full info and we'll get dimensions from mangaPages.
+        // on it.  Otherwise, get dimensions from mangaPages from illust data.  If we're displaying a
+        // manga post and we don't have illust data yet, we don't have dimensions, so hide it until
+        // it's loaded.
         var info = "";
         let width = null, height = null;
         if(this._page == 0)
@@ -79,7 +81,7 @@ ppixiv.context_menu_image_info_widget = class extends ppixiv.illust_widget
             width = illust_data.width;
             height = illust_data.height;
         }
-        else
+        else if(illust_data.mangaPages)
         {
             width = illust_data.mangaPages[this._page].width;
             height = illust_data.mangaPages[this._page].height;
