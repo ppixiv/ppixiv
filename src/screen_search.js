@@ -2278,10 +2278,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         if(thumb == null)
             return false;
 
-        // If the item isn't visible, center it.
-        let scroll_pos = this.scroll_container.scrollTop;
-        if(thumb.offsetTop < scroll_pos || thumb.offsetTop + thumb.offsetHeight > scroll_pos + this.scroll_container.offsetHeight)
-            this.scroll_container.scrollTop = thumb.offsetTop + thumb.offsetHeight/2 - this.scroll_container.offsetHeight/2;
+        this.scroll_container.scrollTop = thumb.offsetTop + thumb.offsetHeight/2 - this.scroll_container.offsetHeight/2;
         return true;
     };
 
