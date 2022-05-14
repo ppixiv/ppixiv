@@ -52,6 +52,10 @@ let thumbnail_ui = class extends ppixiv.widget
                         <ppixiv-inline src="resources/refresh-icon.svg"></ppixiv-inline>
                     </div>
 
+                    <div class="grey-icon expand-manga-posts icon-button popup" style="margin: 0 -3px">
+                        <div class="material-icons" style="display: block; text-align: center;">open_in_full</div>
+                    </div>
+
                     <div class="whats-new-button popup" data-popup="What's New" style="margin-right: -2px;">
                         <ppixiv-inline src="resources/whats-new.svg"></ppixiv-inline>
                     </div>
@@ -394,6 +398,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         this.submit_user_search = this.submit_user_search.bind(this);
 
         this.scroll_container = this.container.querySelector(".search-results");
+        this.expanded_media_ids = new Map();
 
         window.addEventListener("thumbnailsloaded", this.thumbs_loaded);
         window.addEventListener("focus", this.visible_thumbs_changed);
@@ -470,6 +475,9 @@ ppixiv.screen_search = class extends ppixiv.screen
         this.container.querySelector(".refresh-search-button").addEventListener("click", this.refresh_search.bind(this));
         this.container.querySelector(".whats-new-button").addEventListener("click", this.whats_new.bind(this));
         this.container.querySelector(".thumbnails").addEventListener("click", this.thumbnail_onclick);
+        this.container.querySelector(".expand-manga-posts").addEventListener("click", (e) => {
+            this.toggle_expanding_media_ids_by_default();
+        });
 
         // Handle quick view.
         new ppixiv.pointer_listener({
@@ -526,6 +534,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         settings.register_change_callback("ui-on-hover", this.update_from_settings);
         settings.register_change_callback("no-hide-cursor", this.update_from_settings);
         settings.register_change_callback("no_recent_history", this.update_from_settings);
+        settings.register_change_callback("expand_manga_thumbnails", this.update_from_settings);
         muting.singleton.addEventListener("mutes-changed", this.refresh_after_mute_change);
         
         // Zoom the thumbnails on ctrl-mousewheel:
@@ -817,6 +826,8 @@ ppixiv.screen_search = class extends ppixiv.screen
             var ui_box = this.container.querySelector(".thumbnail-ui-box");
             this.data_source.initial_refresh_thumbnail_ui(ui_box, this);
         }
+
+        this.load_expanded_media_ids();
     }
 
     set_data_source(data_source)
@@ -891,6 +902,7 @@ ppixiv.screen_search = class extends ppixiv.screen
 
         this.refresh_slideshow_button();
         this.refresh_ui_for_user_id();
+        this.refresh_expand_manga_posts_button();
     };
 
     // Return the user ID we're viewing, or null if we're not viewing anything specific to a user.
@@ -1250,7 +1262,6 @@ ppixiv.screen_search = class extends ppixiv.screen
             this.refresh_ui();
 
             console.log("Showing search, came from media ID:", old_media_id);
-            old_media_id = helpers.get_media_id_first_page(old_media_id);
 
             // We might get data_source_updated callbacks during load_data_source_page.
             // Make sure we ignore those, since we want the first refresh_images call
@@ -1288,6 +1299,11 @@ ppixiv.screen_search = class extends ppixiv.screen
         // Stop if we were called again while we were waiting, or if we were cancelled.
         if(restore_scroll_pos_id !== this.restore_scroll_pos_id || !this._active)
             return;
+
+        // If this is a manga page beyond the first and it's not expanded, we're only showing the
+        // first page.
+        if(!this.is_media_id_expanded(old_media_id))
+            old_media_id = helpers.get_media_id_first_page(old_media_id);
 
         // Create the initial thumbnails.  This will happen automatically, but we need to do it now so
         // we can scroll to them.
@@ -1391,6 +1407,26 @@ ppixiv.screen_search = class extends ppixiv.screen
             // Create an image for each ID.
             for(let media_id of media_ids_on_page)
             {
+                // If this is a multi-page post and manga expansion is enabled, add a thumbnail for
+                // each page.  We can only do this if the data source registers thumbnail info from
+                // its results, not if we have to look it up asynchronously, but almost all data sources
+                // do.
+                if(this.is_media_id_expanded(media_id))
+                {
+                    let info = thumbnail_data.singleton().get_one_thumbnail_info(media_id);
+                    if(info != null && info.pageCount > 1)
+                    {
+                        let { type, id } = helpers.parse_media_id(media_id);
+                        for(let manga_page = 0; manga_page < info.pageCount; ++manga_page)
+                        {
+                            let page_media_id = helpers.encode_media_id({type, id, page: manga_page});
+                            media_ids.push(page_media_id);
+                            media_id_pages[page_media_id] = page;
+                        }
+                        continue;
+                    }
+                }
+
                 media_ids.push(media_id);
                 media_id_pages[media_id] = page;
             }
@@ -1421,12 +1457,10 @@ ppixiv.screen_search = class extends ppixiv.screen
     // start at the beginning.
     //
     // The result is always a contiguous subset of media IDs from the data source.
-    get_media_ids_to_display({forced_media_id=null, column_count=null}={})
+    get_media_ids_to_display({all_media_ids, forced_media_id, column_count})
     {
-        // Get all media IDs from the data source.
-        let [all_media_ids, media_id_pages] = this.get_data_source_media_ids();
         if(all_media_ids.length == 0)
-            return [[], []];
+            return [];
 
         let [first_nearby_media_id, last_nearby_media_id] = this.get_nearby_media_ids();
         let [first_loaded_media_id, last_loaded_media_id] = this.get_loaded_media_ids();
@@ -1544,7 +1578,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         // Load thumbnail info for the results.  We don't wait for this to finish.
         this.load_thumbnail_data_for_media_ids(all_media_ids, start_idx, end_idx);
 
-        return [media_ids, media_id_pages];
+        return media_ids;
     }
 
     load_thumbnail_data_for_media_ids(all_media_ids, start_idx, end_idx)
@@ -1631,12 +1665,6 @@ ppixiv.screen_search = class extends ppixiv.screen
         });
         this.thumbnail_dimensions_style.textContent = dimensions_css;
 
-        // Get the thumbnail media IDs to display.
-        let [media_ids, media_id_pages] = this.get_media_ids_to_display({
-            column_count: column_count,
-            forced_media_id: forced_media_id,
-        });
-
         // Save the scroll position relative to the first thumbnail.  Do this before making
         // any changes.
         let saved_scroll = this.save_scroll_position();
@@ -1646,6 +1674,29 @@ ppixiv.screen_search = class extends ppixiv.screen
         let special = this.container.querySelector(`.thumbnails > [data-special]`);
         if(special)
             special.remove();
+
+        // Get all media IDs from the data source.
+        let [all_media_ids, media_id_pages] = this.get_data_source_media_ids();
+
+        // Remove any thumbs that aren't present in all_media_ids, so we only need to 
+        // deal with adding thumbs below.  For example, this simplifies things when
+        // a manga post is collapsed.
+        {
+            let media_id_set = new Set(all_media_ids);
+            for(let thumb of this.scroll_container.querySelectorAll(`[data-id]`))
+            {
+                let thumb_media_id = thumb.dataset.id;
+                if(!media_id_set.has(thumb_media_id))
+                    thumb.remove();
+            }
+        }
+
+        // Get the thumbnail media IDs to display.
+        let media_ids = this.get_media_ids_to_display({
+            all_media_ids,
+            column_count: column_count,
+            forced_media_id: forced_media_id,
+        });
 
         // Add thumbs.
         //
@@ -1697,15 +1748,27 @@ ppixiv.screen_search = class extends ppixiv.screen
             }
         }
 
+        // When we remove thumbs, we'll cache them here, so if we end up reusing it we don't have
+        // to recreate it.
+        let removed_nodes = {};
+        function remove_node(node)
+        {
+            node.remove();
+            removed_nodes[node.dataset.id] = node;
+        }
+
         // If we have a range, delete all items outside of it.  Otherwise, just delete everything.
         while(first_matching_node && first_matching_node.previousElementSibling)
-            first_matching_node.previousElementSibling.remove();
+            remove_node(first_matching_node.previousElementSibling);
 
         while(last_matching_node && last_matching_node.nextElementSibling)
-            last_matching_node.nextElementSibling.remove();
+            remove_node(last_matching_node.nextElementSibling);
 
         if(!first_matching_node && !last_matching_node)
-            helpers.remove_elements(ul);
+        {
+            while(ul.firstElementChild != null)
+                remove_node(ul.firstElementChild);
+        }
 
         // If we have a matching range, add any new elements before it.
         if(first_matching_node)
@@ -1715,7 +1778,7 @@ ppixiv.screen_search = class extends ppixiv.screen
            {
                let media_id = media_ids[idx];
                let search_page = media_id_pages[media_id];
-               let node = this.create_thumb(media_id, search_page);
+               let node = this.create_thumb(media_id, search_page, { cached_nodes: removed_nodes });
                first_matching_node.insertAdjacentElement("beforebegin", node);
                first_matching_node = node;
            }
@@ -1730,7 +1793,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         {
             let media_id = media_ids[idx];
             let search_page = media_id_pages[media_id];
-            let node = this.create_thumb(media_id, search_page);
+            let node = this.create_thumb(media_id, search_page, { cached_nodes: removed_nodes });
             ul.appendChild(node);
         }
 
@@ -1740,7 +1803,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         {
             // Reuse the node if we removed it earlier.
             if(special == null)
-                special = this.create_thumb("special:previous-page", null);
+                special = this.create_thumb("special:previous-page", null, { cached_nodes: removed_nodes });
             ul.insertAdjacentElement("afterbegin", special);
         }
 
@@ -1800,6 +1863,17 @@ ppixiv.screen_search = class extends ppixiv.screen
     // This can also trigger for the "return to start" button if we happen to be on page 2.
     async thumbnail_onclick(e)
     {
+        let page_count_box = e.target.closest(".page-count-box");
+        if(page_count_box)
+        {
+            e.preventDefault();
+            e.stopPropagation();
+            let id_node = page_count_box.closest("[data-id]");
+            let media_id = id_node.dataset.id;
+            this.set_media_id_expanded(media_id, !this.is_media_id_expanded(media_id));
+            return;
+        }
+
         // This only matters if the data source supports start pages.
         if(!this.data_source.supports_start_page)
             return;
@@ -1871,17 +1945,139 @@ ppixiv.screen_search = class extends ppixiv.screen
         return true;
     }
 
+    // Set whether the given thumb is expanded.
+    //
+    // We can store a thumb being explicitly expanded or explicitly collapsed, overriding the
+    // current default.
+    set_media_id_expanded(media_id, new_value)
+    {
+        media_id = helpers.get_media_id_first_page(media_id);
+
+        this.expanded_media_ids.set(media_id, new_value);
+        this.save_expanded_media_ids();
+
+        // This will cause thumbnails to be added or removed, so refresh.
+        this.refresh_images();
+
+        // Refresh whether we're showing the expansion border.  refresh_images sets this when it's
+        // created, but it doesn't handle refreshing it.
+        this.refresh_expanded_thumb(media_id);
+    }
+
+    // Set whether thumbs are expanded or collapsed by default.
+    toggle_expanding_media_ids_by_default()
+    {
+        // If the new setting is the same as the expand_manga_thumbnails setting, just
+        // remove expand-thumbs.  Otherwise, set it to the overridden setting.
+        let args = helpers.args.location;
+        let new_value = !this.media_ids_expanded_by_default;
+        if(new_value == settings.get("expand_manga_thumbnails"))
+            args.hash.delete("expand-thumbs");
+        else
+            args.hash.set("expand-thumbs", new_value? "1":"0");
+
+        // Clear manually expanded/unexpanded thumbs, and navigate to the new setting.
+        delete args.state.expanded_media_ids;
+        helpers.set_page_url(args, true, "viewing-page");
+    }
+
+    load_expanded_media_ids()
+    {
+        // Load expanded_media_ids.
+        let args = helpers.args.location;
+        let media_ids = args.state.expanded_media_ids ?? {};
+        this.expanded_media_ids = new Map(Object.entries(media_ids));
+
+        // Load media_ids_expanded_by_default.
+        let expand_thumbs = args.hash.get("expand-thumbs");
+        if(expand_thumbs == null)
+            this.media_ids_expanded_by_default = settings.get("expand_manga_thumbnails");
+        else
+            this.media_ids_expanded_by_default = expand_thumbs == "1";
+    }
+
+    // Store this.expanded_media_ids to history.
+    save_expanded_media_ids()
+    {
+        let args = helpers.args.location;
+        args.state.expanded_media_ids = Object.fromEntries(this.expanded_media_ids);
+        console.log("save", args);
+        helpers.set_page_url(args, false, "viewing-page", { send_popstate: false });
+    }
+
+    is_media_id_expanded(media_id)
+    {
+        media_id = helpers.get_media_id_first_page(media_id);
+
+        // Only illust IDs can be expanded.
+        let { type } = helpers.parse_media_id(media_id);
+        if(type != "illust")
+            return false;
+
+        // Check if the user has manually expanded or collapsed the image.
+        if(this.expanded_media_ids.has(media_id))
+            return this.expanded_media_ids.get(media_id);
+
+        // The media ID hasn't been manually expanded or unexpanded.  If we're not expanding
+        // by default, it's unexpanded.
+        if(!this.media_ids_expanded_by_default)
+            return false;
+
+        // If the image is muted, never expand it by default, even if we're set to expand by default.
+        // We'll just show a wall of muted thumbs.
+        let info = thumbnail_data.singleton().get_one_thumbnail_info(media_id);
+        let muted_tag = muting.singleton.any_tag_muted(info.tagList);
+        let muted_user = muting.singleton.is_muted_user_id(info.userId);
+        if(muted_tag || muted_user)
+            return false;
+
+        // Otherwise, it's expanded by default if it has more than one page.
+        if(info == null || info.pageCount == 1)
+            return false;
+
+        return true;
+    }
+
+    // Refresh the expanded-thumb class on thumbnails after expanding or unexpanding a manga post.
+    refresh_expanded_thumb(media_id)
+    {
+        let expanded = this.is_media_id_expanded(media_id);
+        let thumb = this.container.querySelector(`[data-id="${helpers.escape_selector(media_id)}"]`);
+        if(thumb != null)
+            helpers.set_class(thumb, "expanded-thumb", expanded);
+    }
+
+    // Refresh all expanded thumbs.  This is only needed if the default changes.
+    refresh_expanded_thumb_all()
+    {
+        for(let thumb of this.get_loaded_thumbs())
+            this.refresh_expanded_thumb(thumb.dataset.id);
+    }
+
+    // Refresh the highlight for the "expand all posts" button.
+    refresh_expand_manga_posts_button()
+    {
+        let enabled = this.media_ids_expanded_by_default;
+        let button = this.container.querySelector(".expand-manga-posts");
+        helpers.set_class(button, "highlighted", enabled);
+        button.dataset.popup = enabled? "Collapse manga posts":"Expand manga posts";
+        
+        // Hide the button for native searches, since it doesn't do anything there.
+        button.hidden = this.data_source?.name == "vview";
+    }
+
     update_from_settings()
     {
-        var thumbnail_mode = settings.get("thumbnail-size");
         this.set_visible_thumbs();
         this.refresh_images();
+        this.refresh_expanded_thumb_all();
 
         document.body.dataset.theme = "dark"; //settings.get("theme");
         helpers.set_class(document.body, "disable-thumbnail-panning", settings.get("disable_thumbnail_panning"));
         helpers.set_class(document.body, "disable-thumbnail-zooming", settings.get("disable_thumbnail_zooming"));
         helpers.set_class(document.body, "ui-on-hover", settings.get("ui-on-hover"));
         helpers.set_class(this.container.querySelector(".recent-history-link"), "disabled", !ppixiv.recently_seen_illusts.get().enabled);
+        this.refresh_expand_manga_posts_button();
 
         // Flush the top UI transition, so it doesn't animate weirdly when toggling ui-on-hover.
         for(let box of document.querySelectorAll(".top-ui-box"))
@@ -1966,7 +2162,8 @@ ppixiv.screen_search = class extends ppixiv.screen
                 throw "Unexpected thumb type: " + thumb_type;
 
             // Set this thumb.
-            let url = info.previewUrls[0];
+            let { page } = helpers.parse_media_id(media_id);
+            let url = info.previewUrls[page];
             var thumb = element.querySelector(".thumb");
 
             // Check if this illustration is muted (blocked).
@@ -1996,7 +2193,9 @@ ppixiv.screen_search = class extends ppixiv.screen
                 thumb.src = url;
                 element.classList.remove("muted");
 
-                // The search page thumbs are always square (aspect ratio 1).
+                // The search page thumbs are always square (aspect ratio 1).  Note that if we're
+                // displaying a manga page beyond the first, we don't know the image dimensions, so
+                // we use the dimensions of the first page and hope for the best.
                 helpers.set_thumbnail_panning_direction(element, info.width, info.height, 1);
             }
 
@@ -2015,8 +2214,6 @@ ppixiv.screen_search = class extends ppixiv.screen
                 // data source.  The folder link retains any search parameters in the URL.
                 let args = helpers.args.location;
                 local_api.get_args_for_id(media_id, args);
-        
-                let link = element.querySelector("a.thumbnail-link");
                 link.href = args.url;
 
                 element.querySelector(".page-count-box").hidden = false;
@@ -2035,24 +2232,33 @@ ppixiv.screen_search = class extends ppixiv.screen
                 if(info.illustType == 2 || info.illustType == "video")
                     element.querySelector(".ugoira-icon").hidden = false;
 
-                if(info.pageCount > 1)
+                // Show the page count if this is a multi-page post.
+                if(info.pageCount > 1 && page == 0)
                 {
                     var pageCountBox = element.querySelector(".page-count-box");
                     pageCountBox.hidden = false;
                     element.querySelector(".page-count-box .page-count").textContent = info.pageCount;
                     element.querySelector(".page-count-box .page-count").hidden = false;
-
-                    let args = new helpers.args(link.href);
-                    args.hash.set("view", "manga");
-                    pageCountBox.href = args.url;
                 }
             }
 
+            let [illust_id, illust_page] = helpers.media_id_to_illust_id_and_page(media_id);
+
             helpers.set_class(element, "dot", helpers.tags_contain_dot(info));
+
+            // Set expanded-thumb if this is an expanded manga post.  This is also updated in
+            // set_media_id_expanded.  Set the border to a random-ish value to try to make it
+            // easier to see the boundaries between manga posts.  It's hard to guarantee that it
+            // won't be the same color as a neighboring post, but that's rare.  Using the illust
+            // ID means the color will always be the same.  The saturation is a bit low so these
+            // colors aren't blinding.
+            helpers.set_class(element, "expanded-thumb", this.is_media_id_expanded(media_id));
+            helpers.set_class(link, "first-page", illust_page == 0);
+            helpers.set_class(link, "last-page", illust_page == info.pageCount-1);
+            link.style.borderBottomColor = `hsl(${illust_id}deg 50% 50%)`;
 
             // On most pages, the suggestions button in thumbnails shows similar illustrations.  On following,
             // show similar artists instead.
-            let illust_id = helpers.media_id_to_illust_id_and_page(media_id)[0];
             if(search_mode == "users")
                 element.querySelector("A.similar-illusts-button").href = "/discovery/users#ppixiv?user_id=" + info.userId;
             else
@@ -2107,11 +2313,17 @@ ppixiv.screen_search = class extends ppixiv.screen
     // This is used to refresh the bookmark icon when changing a bookmark.
     refresh_thumbnail(media_id)
     {
-        var ul = this.container.querySelector(".thumbnails");
-        let thumbnail_element = ul.querySelector("[data-id=\"" + helpers.escape_selector(media_id) + "\"]");
-        if(thumbnail_element == null)
-            return;
-        this.refresh_bookmark_icon(thumbnail_element);
+        // If this is a manga post, refresh all thumbs for this media ID, since bookmarking
+        // a manga post is shown on all pages if it's expanded.
+        let thumbnail_info = thumbnail_data.singleton().get_one_thumbnail_info(media_id);
+        let ul = this.container.querySelector(".thumbnails");
+        for(let page = 0; page < thumbnail_info.pageCount; ++page)
+        {
+            media_id = helpers.get_media_id_for_page(media_id, page);
+            let thumbnail_element = ul.querySelector(`[data-id="${helpers.escape_selector(media_id)}"]`);
+            if(thumbnail_element != null)
+                this.refresh_bookmark_icon(thumbnail_element);
+        }
     }
 
     // Set the bookmarked heart for thumbnail_element.  This can change if the user bookmarks
@@ -2172,8 +2384,17 @@ ppixiv.screen_search = class extends ppixiv.screen
     // media_id is the illustration this will be if it's displayed, or null if this
     // is a placeholder for pages we haven't loaded.  page is the page this illustration
     // is on (whether it's a placeholder or not).
-    create_thumb(media_id, search_page)
+    //
+    // cached_nodes is a dictionary of previously-created nodes that we can reuse.
+    create_thumb(media_id, search_page, { cached_nodes })
     {
+        if(cached_nodes[media_id] != null)
+        {
+            let result = cached_nodes[media_id];
+            delete cached_nodes[media_id];
+            return result;
+        }
+
         let entry = null;
         if(media_id == "special:previous-page")
         {
@@ -2231,13 +2452,13 @@ ppixiv.screen_search = class extends ppixiv.screen
                                     <ppixiv-inline src="resources/play-button.svg"></ppixiv-inline>
                                 </div>
 
-                                <a class=page-count-box hidden>
+                                <div class=page-count-box style="cursor: pointer;" hidden>
                                     <span class=page-icon>
                                         <img class=regular src="ppixiv:resources/page-icon.png">
                                         <img class=hover src="ppixiv:resources/page-icon-hover.png">
                                     </span>
                                     <span class=page-count hidden>1234</span>
-                                </a>
+                                </div>
                             </div>
                         </div>
                         <div class=muted-text>

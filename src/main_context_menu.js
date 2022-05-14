@@ -63,7 +63,7 @@ ppixiv.context_menu_image_info_widget = class extends ppixiv.illust_widget
         let page_text = "";
         if(page_count > 1)
         {
-            if(show_page_number)
+            if(show_page_number || current_page > 0)
                 page_text = `Page ${current_page+1}/${page_count}`;
             else
                 page_text = `${page_count} pages`;

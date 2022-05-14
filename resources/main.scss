@@ -1185,6 +1185,14 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
     }
 }
 
+.thumbnail-box.expanded-thumb a.thumbnail-link {
+    border-bottom: 10px solid #a0a;
+    border-bottom-width: 10px;
+    border-bottom-style: solid;
+    &.first-page { border-bottom-left-radius: 30px; }
+    &.last-page { border-bottom-right-radius: 30px; }
+}
+
 .screen-search-container {
     .thumbnail-box {
         .similar-illusts-button {
@@ -1315,6 +1323,10 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
                     margin-left: -4px;
                 }
             }                
+        }
+
+        &.expanded-thumb .page-count {
+            // color: #0f0;
         }
     }
 
@@ -1672,6 +1684,10 @@ a.box-link, span.box-link
     &:hover,
     :hover > &.parent-highlight
     {
+        color: var(--button-highlight-color);
+    }
+
+    &.highlighted {
         color: var(--button-highlight-color);
     }
 

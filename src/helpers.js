@@ -2131,11 +2131,16 @@ ppixiv.helpers = {
     // only store data with the ID of the first page.
     get_media_id_first_page(media_id)
     {
+        return helpers.get_media_id_for_page(media_id, 0);
+    },
+
+    get_media_id_for_page(media_id, page=0)
+    {
         if(media_id == null)
             return null;
             
         let id = helpers.parse_media_id(media_id);
-        id.page = 0;
+        id.page = page;
         return helpers.encode_media_id(id);
     },
 

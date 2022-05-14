@@ -325,6 +325,14 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
                 });
             },
 
+            expand_manga_posts: () => {
+                return new menu_option_toggle({
+                    ...global_options,
+                    label: "Expand manga posts in search results",
+                    setting: "expand_manga_thumbnails",
+                });
+            },
+
             no_recent_history: () => {
                 return new menu_option_toggle({
                     ...global_options,
@@ -389,6 +397,7 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
         settings_widgets.disable_thumbnail_zooming();
         settings_widgets.quick_view();
         settings_widgets.ui_on_hover();
+        settings_widgets.expand_manga_posts();
 
         this.create_page("image", "Image viewing", global_options);
         settings_widgets.auto_pan();

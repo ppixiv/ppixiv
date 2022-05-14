@@ -3,6 +3,15 @@
 // This should be inside whats_new, but Firefox is in the dark ages and doesn't support class fields.
 let _update_history = [
     {
+        version: 129,
+        text: `
+            Added a new way of viewing manga posts.
+            <p>
+            You can now view manga posts in search results.  Click the page count in the corner of
+            thumbnails to show all manga pages.  You can also click <span class="material-icons" style="vertical-align: middle">open_in_full</span>
+            in the top menu to expand everything, or turn it on everywhere in settings.
+        `,
+    }, {
         version: 126,
         text: `
             Muted tags and users can now be edited from the preferences menu.
