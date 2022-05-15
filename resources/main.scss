@@ -1294,33 +1294,58 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
                 }
             }
 
-            .page-count-box {
-                display: inline-block;
-                padding: 4px 4px;
+            .manga-info-box {
+                display: inline-flex;
+                align-items: center;
+                gap: 4px;
                 background-color: rgba(0,0,0,.6);
                 border-radius: 6px;
                 transition: opacity .5s;
                 white-space: nowrap;
                 pointer-events: auto; // turn pointer events back on
-                // margin-top: 2px; // nudge to fix alignment with titles
-            
-                .page-icon {
-                    width: 16px;
-                    height: 16px;
-                    display: inline-block;
-                    vertical-align: middle;
+                border-radius: 6px;
+                overflow: hidden; // clip the hover background-color to our border radius
+
+                > :first-child {
+                    padding-left: 4px !important;
                 }
-            
-                &:hover .regular {
-                    display: none;
+                > :last-child {
+                    padding-right: 4px !important;
                 }
-                &:not(:hover) .hover {
-                    display: none;
+                .show-manga-pages-button {
+                    display: inline-flex;
+                    padding: 4px 0px;
+
+                    &:hover {
+                        background-color: rgba(0,20,120,.8);
+                    }
                 }
+
+                .expand-button {
+                    display: inline-flex;
+                    padding: 4px 0px;
+
+                    .page-icon {
+                        width: 16px;
+                        height: 16px;
+                        display: inline-block;
+                        vertical-align: middle;
+                    }
+                    &:hover {
+                        background-color: rgba(0,20,120,.8);
+                    }
+                    &:hover .regular {
+                        display: none;
+                    }
+                    &:not(:hover) .hover {
+                        display: none;
+                    }
             
-                .page-count {
-                    vertical-align: middle;
-                    margin-left: -4px;
+                    .page-count {
+                        vertical-align: middle;
+                        padding-left: 2px;
+                        margin-bottom: -4px; // hack to center correctly
+                    }
                 }
             }                
         }

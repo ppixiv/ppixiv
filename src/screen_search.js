@@ -1891,7 +1891,7 @@ ppixiv.screen_search = class extends ppixiv.screen
     // This can also trigger for the "return to start" button if we happen to be on page 2.
     async thumbnail_onclick(e)
     {
-        let page_count_box = e.target.closest(".page-count-box");
+        let page_count_box = e.target.closest(".expand-button");
         if(page_count_box)
         {
             e.preventDefault();
@@ -2256,7 +2256,7 @@ ppixiv.screen_search = class extends ppixiv.screen
                 local_api.get_args_for_id(media_id, args);
                 link.href = args.url;
 
-                element.querySelector(".page-count-box").hidden = false;
+                element.querySelector(".manga-info-box").hidden = false;
             }
             else
             {
@@ -2276,10 +2276,14 @@ ppixiv.screen_search = class extends ppixiv.screen
                 // manga view itself).
                 if(info.pageCount > 1 && page == 0 && this.data_source?.name != "manga")
                 {
-                    var pageCountBox = element.querySelector(".page-count-box");
+                    let pageCountBox = element.querySelector(".manga-info-box");
                     pageCountBox.hidden = false;
-                    element.querySelector(".page-count-box .page-count").textContent = info.pageCount;
-                    element.querySelector(".page-count-box .page-count").hidden = false;
+                    element.querySelector(".manga-info-box .page-count").textContent = info.pageCount;
+                    element.querySelector(".manga-info-box .page-count").hidden = false;
+
+                    let page_count_box2 = element.querySelector(".show-manga-pages-button");
+                    page_count_box2.hidden = false;
+                    page_count_box2.href = `/artworks/${illust_id}#ppixiv?manga=1`;
                 }
             }
 
@@ -2493,12 +2497,18 @@ ppixiv.screen_search = class extends ppixiv.screen
                                     <ppixiv-inline src="resources/play-button.svg"></ppixiv-inline>
                                 </div>
 
-                                <div class=page-count-box style="cursor: pointer;" hidden>
-                                    <span class=page-icon>
-                                        <img class=regular src="ppixiv:resources/page-icon.png">
-                                        <img class=hover src="ppixiv:resources/page-icon-hover.png">
+                                <div class=manga-info-box style="cursor: pointer;" hidden>
+                                    <a class=show-manga-pages-button hidden>
+                                        <span style="font-size: 16px;" class="material-icons">pages</span>
+                                    </a>
+
+                                    <span class=expand-button>
+                                        <span class=page-icon>
+                                            <img class=regular src="ppixiv:resources/page-icon.png">
+                                            <img class=hover src="ppixiv:resources/page-icon-hover.png">
+                                        </span>
+                                        <span class=page-count hidden>1234</span>
                                     </span>
-                                    <span class=page-count hidden>1234</span>
                                 </div>
                             </div>
                         </div>
