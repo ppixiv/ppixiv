@@ -618,6 +618,9 @@ ppixiv.data_source = class
     // If true, all pages are loaded.  This is only used by data_sources.vview.
     get all_pages_loaded() { return false; }
 
+    // The data source can override this to set the aspect ratio to use for thumbnails.
+    get_thumbnail_aspect_ratio() { return null; }
+
     // Store the current page in the URL.
     //
     // This is only used if supports_start_page is true.
@@ -1969,7 +1972,82 @@ ppixiv.data_sources.current_illust = class extends data_source
         if(this.user_info == null)
             return null;
         return this.user_info.userId;
+    }
+};
+
+// /artworks/illust_id?manga - Viewing manga pages for an illustration
+ppixiv.data_sources.manga = class extends data_source
+{
+    get name() { return "manga"; }
+
+    constructor(url)
+    {
+        super(url);
+
+        // /artworks/#
+        url = new URL(url);
+        url = helpers.get_url_without_language(url);
+        let parts = url.pathname.split("/");
+        let illust_id = parts[2];
+        this.media_id = helpers.illust_id_to_media_id(illust_id);
+    }
+
+    async load_page_internal(page)
+    {
+        if(page != 1)
+            return;
+
+        // We need full illust info for get_manga_aspect_ratio, but we can fill out most of the
+        // UI with thumbnail or illust info.  Load whichever one we have first and update, so we
+        // display initial info quickly.
+        this.thumbnail_data = await thumbnail_data.singleton().get_or_load_illust_data(this.media_id);
+        this.call_update_listeners();
+
+        // Load media info before continuing.
+        this.illust_info = await image_data.singleton().get_media_info(this.media_id);
+
+        let data = helpers.parse_media_id(this.media_id);
+        let page_media_ids = [];
+        for(let page = 0; page < this.illust_info.pageCount; ++page)
+        {
+            data.page = page;
+            page_media_ids.push(helpers.encode_media_id(data));
+        }
+
+        this.add_page(page, page_media_ids);
+    }
+
+    get page_title()
+    {
+        if(this.thumbnail_data)
+            return this.thumbnail_data.userName + " - " + this.thumbnail_data.illustTitle;
+        else
+            return "Illustrations";
+    }
+
+    get_displaying_text()
+    {
+        if(this.thumbnail_data)
+            return this.thumbnail_data.illustTitle + " by " + this.thumbnail_data.userName;
+        else
+            return "Illustrations";
     };
+
+    // If all pages of the manga post we're viewing have around the same aspect ratio, use it
+    // for thumbnails.
+    get_thumbnail_aspect_ratio()
+    {
+        if(this.illust_info == null)
+            return null;
+
+        return helpers.get_manga_aspect_ratio(this.illust_info.mangaPages);
+    }
+
+    refresh_thumbnail_ui(container, thumbnail_view)
+    {
+        thumbnail_view.avatar_container.hidden = false;
+        thumbnail_view.avatar_widget.set_user_id(this.thumbnail_data?.userId);
+    }
 };
 
 // bookmark.php

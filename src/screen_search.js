@@ -523,11 +523,9 @@ ppixiv.screen_search = class extends ppixiv.screen
             new ppixiv.settings_dialog({ container: document.body });
         });
 
-        settings.register_change_callback("thumbnail-size", () => {
-            // refresh_images first to update thumbnail_dimensions_style.
-            this.refresh_images();
-        });
-
+        // refresh_images first to update thumbnail_dimensions_style.
+        settings.register_change_callback("thumbnail-size", () => { this.refresh_images(); });
+        settings.register_change_callback("manga-thumbnail-size", () => { this.refresh_images(); });
         settings.register_change_callback("theme", this.update_from_settings);
         settings.register_change_callback("disable_thumbnail_zooming", this.update_from_settings);
         settings.register_change_callback("disable_thumbnail_panning", this.update_from_settings);
@@ -1189,11 +1187,12 @@ ppixiv.screen_search = class extends ppixiv.screen
     // Refresh the slideshow button.
     refresh_slideshow_button()
     {
-        // For local images, set file=*.  For Pixiv, set the file to *.
+        // For local images, set file=*.  For Pixiv, set the media ID to *.  Leave it alone
+        // if we're on the manga view and just add slideshow=1.
         let args = helpers.args.location;
         if(this.data_source.name == "vview")
             args.hash.set("file", "*");
-        else
+        else if(this.data_source?.name != "manga")
             this.data_source.set_current_media_id("*", args);
 
         args.hash.set("slideshow", "1");
@@ -1305,9 +1304,9 @@ ppixiv.screen_search = class extends ppixiv.screen
         if(restore_scroll_pos_id !== this.restore_scroll_pos_id || !this._active)
             return;
 
-        // If this is a manga page beyond the first and it's not expanded, we're only showing the
-        // first page.
-        if(!this.is_media_id_expanded(old_media_id))
+        // If the media ID isn't in the list, this might be a manga page beyond the first that
+        // isn't displayed, so try the first page instead.
+        if(old_media_id != null && this.get_thumbnail_for_media_id(old_media_id) == null)
             old_media_id = helpers.get_media_id_first_page(old_media_id);
 
         // Create the initial thumbnails.  This will happen automatically, but we need to do it now so
@@ -1669,16 +1668,25 @@ ppixiv.screen_search = class extends ppixiv.screen
 
     refresh_images({forced_media_id=null}={})
     {
+        if(this.data_source == null)
+            return;
+        
+        let manga_view = this.data_source?.name == "manga";
+
         // Update the thumbnail size style.  This also tells us the number of columns being
         // displayed.
         let ul = this.container.querySelector(".thumbnails");
-        let thumbnail_size = settings.get("thumbnail-size", 4);
+        let thumbnail_size = settings.get(manga_view? "manga-thumbnail-size":"thumbnail-size", 4);
         thumbnail_size = thumbnail_size_slider_widget.thumbnail_size_for_value(thumbnail_size);
 
         let [dimensions_css, column_count] = helpers.make_thumbnail_sizing_style(ul, ".screen-search-container", {
             wide: true,
             size: thumbnail_size,
-            max_columns: 5,
+            ratio: this.data_source.get_thumbnail_aspect_ratio(),
+
+            // Limit the number of columns on most views, so we don't load too much data at once.
+            // Allow more columns on the manga view, since that never loads more than one image.
+            max_columns: manga_view? 15:5,
 
             // Set a minimum padding to make sure there's room for the popup text to fit between images.
             min_padding: 15,
@@ -1981,7 +1989,8 @@ ppixiv.screen_search = class extends ppixiv.screen
 
         // Refresh whether we're showing the expansion border.  refresh_images sets this when it's
         // created, but it doesn't handle refreshing it.
-        this.refresh_expanded_thumb(media_id);
+        let thumb = this.get_thumbnail_for_media_id(media_id);
+        this.refresh_expanded_thumb(thumb);
     }
 
     // Set whether thumbs are expanded or collapsed by default.
@@ -2026,6 +2035,10 @@ ppixiv.screen_search = class extends ppixiv.screen
 
     is_media_id_expanded(media_id)
     {
+        // Never expand thumbnails on the manga data source.
+        if(this.data_source?.name == "manga")
+            return false;
+
         media_id = helpers.get_media_id_first_page(media_id);
 
         // Only illust IDs can be expanded.
@@ -2061,19 +2074,22 @@ ppixiv.screen_search = class extends ppixiv.screen
     }
 
     // Refresh the expanded-thumb class on thumbnails after expanding or unexpanding a manga post.
-    refresh_expanded_thumb(media_id)
+    refresh_expanded_thumb(thumb)
     {
-        let expanded = this.is_media_id_expanded(media_id);
-        let thumb = this.container.querySelector(`[data-id="${helpers.escape_selector(media_id)}"]`);
-        if(thumb != null)
-            helpers.set_class(thumb, "expanded-thumb", expanded);
+        if(thumb == null)
+            return;
+
+        // Don't set expanded-thumb on the manga view, since it's always expanded.
+        let media_id = thumb.dataset.id;
+        let show_expanded = this.data_source.name != "manga" && this.is_media_id_expanded(media_id);
+        helpers.set_class(thumb, "expanded-thumb", show_expanded);
     }
 
     // Refresh all expanded thumbs.  This is only needed if the default changes.
     refresh_expanded_thumb_all()
     {
         for(let thumb of this.get_loaded_thumbs())
-            this.refresh_expanded_thumb(thumb.dataset.id);
+            this.refresh_expanded_thumb(thumb);
     }
 
     // Refresh the highlight for the "expand all posts" button.
@@ -2084,8 +2100,9 @@ ppixiv.screen_search = class extends ppixiv.screen
         helpers.set_class(button, "highlighted", enabled);
         button.dataset.popup = enabled? "Collapse manga posts":"Expand manga posts";
         
-        // Hide the button for native searches, since it doesn't do anything there.
-        button.hidden = this.data_source?.name == "vview";
+        // Hide the button for native searches, since it doesn't do anything there, and on
+        // the manga view where thumbs are always expanded.
+        button.hidden = this.data_source?.name == "vview" || this.data_source?.name == "manga";
     }
 
     update_from_settings()
@@ -2123,6 +2140,7 @@ ppixiv.screen_search = class extends ppixiv.screen
             if(media_id == null)
                 continue;
 
+            let [illust_id, illust_page] = helpers.media_id_to_illust_id_and_page(media_id);
             var search_mode = this.data_source.search_mode;
 
             let { id: thumb_id, type: thumb_type } = helpers.parse_media_id(media_id);
@@ -2254,8 +2272,9 @@ ppixiv.screen_search = class extends ppixiv.screen
                 if(info.illustType == 2 || info.illustType == "video")
                     element.querySelector(".ugoira-icon").hidden = false;
 
-                // Show the page count if this is a multi-page post.
-                if(info.pageCount > 1 && page == 0)
+                // Show the page count if this is a multi-page post (unless we're on the
+                // manga view itself).
+                if(info.pageCount > 1 && page == 0 && this.data_source?.name != "manga")
                 {
                     var pageCountBox = element.querySelector(".page-count-box");
                     pageCountBox.hidden = false;
@@ -2263,8 +2282,6 @@ ppixiv.screen_search = class extends ppixiv.screen
                     element.querySelector(".page-count-box .page-count").hidden = false;
                 }
             }
-
-            let [illust_id, illust_page] = helpers.media_id_to_illust_id_and_page(media_id);
 
             helpers.set_class(element, "dot", helpers.tags_contain_dot(info));
 
@@ -2274,7 +2291,7 @@ ppixiv.screen_search = class extends ppixiv.screen
             // won't be the same color as a neighboring post, but that's rare.  Using the illust
             // ID means the color will always be the same.  The saturation is a bit low so these
             // colors aren't blinding.
-            helpers.set_class(element, "expanded-thumb", this.is_media_id_expanded(media_id));
+            this.refresh_expanded_thumb(element);
             helpers.set_class(link, "first-page", illust_page == 0);
             helpers.set_class(link, "last-page", illust_page == info.pageCount-1);
             link.style.borderBottomColor = `hsl(${illust_id}deg 50% 50%)`;
@@ -2354,7 +2371,7 @@ ppixiv.screen_search = class extends ppixiv.screen
     // or un-bookmarks an image.
     refresh_bookmark_icon(thumbnail_element)
     {
-        if(this.data_source && this.data_source.search_mode == "users")
+        if(this.data_source && this.data_source.search_mode == "users" || this.data_source.name == "manga")
             return;
 
         var media_id = thumbnail_element.dataset.id;

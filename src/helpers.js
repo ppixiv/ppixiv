@@ -1956,6 +1956,33 @@ ppixiv.helpers = {
             css += `${top_selector} .thumbnails { max-width: ${container_width}px; }`;
         return [css, best_columns];
     },
+
+    // Given a list of manga info, return the aspect ratio to use to display them.
+    // This can be passed as the "ratio" option to make_thumbnail_sizing_style.
+    get_manga_aspect_ratio(manga_info)
+    {
+        // A lot of manga posts use the same resolution for all images, or just have
+        // one or two exceptions for things like title pages.  If most images have
+        // about the same aspect ratio, use it.
+        let total = 0;
+        for(let manga_page of manga_info)
+            total += manga_page.width / manga_page.height;
+        let average_aspect_ratio = total / manga_info.length;
+
+        let illusts_far_from_average = 0;
+        for(var manga_page of manga_info)
+        {
+            let ratio = manga_page.width / manga_page.height;
+            if(Math.abs(average_aspect_ratio - ratio) > 0.1)
+                illusts_far_from_average++;
+        }
+
+        // If we didn't find a common aspect ratio, just use square thumbs.
+        if(illusts_far_from_average > 3)
+            return 1;
+        else
+            return average_aspect_ratio;
+    },    
     
     // If the aspect ratio is very narrow, don't use any panning, since it becomes too spastic.
     // If the aspect ratio is portrait, use vertical panning.

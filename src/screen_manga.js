@@ -200,7 +200,7 @@ ppixiv.screen_manga = class extends ppixiv.screen
             return;
 
         // Get the aspect ratio to crop images to.
-        var ratio = this.get_display_aspect_ratio(this.illust_info.mangaPages);
+        let ratio = helpers.get_manga_aspect_ratio(this.illust_info.mangaPages);
         let thumbnail_size = settings.get("manga-thumbnail-size", 4);
         thumbnail_size = thumbnail_size_slider_widget.thumbnail_size_for_value(thumbnail_size);
 
@@ -244,32 +244,6 @@ ppixiv.screen_manga = class extends ppixiv.screen
 
     // Navigating out goes back to the search.
     get navigate_out_target() { return "search"; }
-
-    // Given a list of manga infos, return the aspect ratio we'll crop them to.
-    get_display_aspect_ratio(manga_info)
-    {
-        // A lot of manga posts use the same resolution for all images, or just have
-        // one or two exceptions for things like title pages.  If most images have
-        // about the same aspect ratio, use it.
-        var total = 0;
-        for(var manga_page of manga_info)
-            total += manga_page.width / manga_page.height;
-        var average_aspect_ratio = total / manga_info.length;
-
-        var illusts_far_from_average = 0;
-        for(var manga_page of manga_info)
-        {
-            var ratio = manga_page.width / manga_page.height;
-            if(Math.abs(average_aspect_ratio - ratio) > 0.1)
-                illusts_far_from_average++;
-        }
-
-        // If we didn't find a common aspect ratio, just use square thumbs.
-        if(illusts_far_from_average > 3)
-            return 1;
-        else
-            return average_aspect_ratio;
-    }
 
     get_display_resolution(width, height)
     {
