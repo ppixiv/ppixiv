@@ -498,7 +498,7 @@ ppixiv.thumbnail_data = class
         "tagList",
     ];
     
-    // Return illust info or thumbnail data, whicihever is available.  If we don't have
+    // Return illust info or thumbnail data, whichever is available.  If we don't have
     // either, read full illust info.  If we have both, return illust info.
     //
     // This is used when we're displaying info for a single image, and the caller only

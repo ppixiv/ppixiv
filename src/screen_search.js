@@ -2041,10 +2041,13 @@ ppixiv.screen_search = class extends ppixiv.screen
         // If the image is muted, never expand it by default, even if we're set to expand by default.
         // We'll just show a wall of muted thumbs.
         let info = thumbnail_data.singleton().get_one_thumbnail_info(media_id);
-        let muted_tag = muting.singleton.any_tag_muted(info.tagList);
-        let muted_user = muting.singleton.is_muted_user_id(info.userId);
-        if(muted_tag || muted_user)
-            return false;
+        if(info != null)
+        {
+            let muted_tag = muting.singleton.any_tag_muted(info.tagList);
+            let muted_user = muting.singleton.is_muted_user_id(info.userId);
+            if(muted_tag || muted_user)
+                return false;
+        }
 
         // Otherwise, it's expanded by default if it has more than one page.
         if(info == null || info.pageCount == 1)
@@ -2331,6 +2334,9 @@ ppixiv.screen_search = class extends ppixiv.screen
         // If this is a manga post, refresh all thumbs for this media ID, since bookmarking
         // a manga post is shown on all pages if it's expanded.
         let thumbnail_info = thumbnail_data.singleton().get_one_thumbnail_info(media_id);
+        if(thumbnail_info == null)
+            return;
+
         let ul = this.container.querySelector(".thumbnails");
         for(let page = 0; page < thumbnail_info.pageCount; ++page)
         {
