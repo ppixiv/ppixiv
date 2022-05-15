@@ -64,8 +64,6 @@ ppixiv.screen_illust = class extends ppixiv.screen
 
         new hide_mouse_cursor_on_idle(this.container.querySelector(".mouse-hidden-box"));
 
-        // this.manga_thumbnails = new manga_thumbnail_widget({ container: this.container });
-
         this.container.addEventListener("wheel", this.onwheel, { passive: false });
 
         // A bar showing how far along in an image sequence we are:
@@ -388,9 +386,6 @@ ppixiv.screen_illust = class extends ppixiv.screen
     {
         this.remove_viewer();
 
-        if(this.manga_thumbnails)
-            this.manga_thumbnails.set_illust_info(null);
-        
         this.wanted_media_id = null;
         this.current_media_id = null;
 

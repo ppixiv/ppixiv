@@ -39,7 +39,6 @@ source_files = [
     'src/recently_seen_illusts.js',
     'src/tag_translations.js',
     'src/thumbnail_data.js',
-    'src/manga_thumbnail_widget.js',
     'src/page_manager.js',
     'src/remove_link_interstitial.js',
     'src/image_preloading.js',
