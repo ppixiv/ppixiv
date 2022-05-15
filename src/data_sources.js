@@ -1966,13 +1966,6 @@ ppixiv.data_sources.current_illust = class extends data_source
         parts[id_part] = illust_id;
         args.path = parts.join("/");
     }
-
-    get viewing_user_id()
-    {
-        if(this.user_info == null)
-            return null;
-        return this.user_info.userId;
-    }
 };
 
 // /artworks/illust_id?manga - Viewing manga pages for an illustration
