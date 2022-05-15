@@ -722,6 +722,11 @@ ppixiv.screen_search = class extends ppixiv.screen
         option_box.insertAdjacentElement("beforeend", search);
     }
 
+    get_thumbnail_for_media_id(media_id)
+    {
+        return this.container.querySelector(`[data-id='${helpers.escape_selector(media_id)}']`);
+    }
+
     get_first_visible_thumb()
     {
         // Find the first thumb that's fully onscreen.  Ignore elements not specific to a page (load previous results).
@@ -1952,7 +1957,7 @@ ppixiv.screen_search = class extends ppixiv.screen
             return false;
 
         // Find the thumbnail for the media_id the scroll position was saved at.
-        let restore_scroll_position_node = this.scroll_container.querySelector(`[data-id="${helpers.escape_selector(scroll.media_id)}"]`);
+        let restore_scroll_position_node = this.get_thumbnail_for_media_id(scroll.media_id);
         if(restore_scroll_position_node == null)
             return false;
 
@@ -2016,7 +2021,6 @@ ppixiv.screen_search = class extends ppixiv.screen
     {
         let args = helpers.args.location;
         args.state.expanded_media_ids = Object.fromEntries(this.expanded_media_ids);
-        console.log("save", args);
         helpers.set_page_url(args, false, "viewing-page", { send_popstate: false });
     }
 
@@ -2337,11 +2341,10 @@ ppixiv.screen_search = class extends ppixiv.screen
         if(thumbnail_info == null)
             return;
 
-        let ul = this.container.querySelector(".thumbnails");
         for(let page = 0; page < thumbnail_info.pageCount; ++page)
         {
             media_id = helpers.get_media_id_for_page(media_id, page);
-            let thumbnail_element = ul.querySelector(`[data-id="${helpers.escape_selector(media_id)}"]`);
+            let thumbnail_element = this.get_thumbnail_for_media_id(media_id);
             if(thumbnail_element != null)
                 this.refresh_bookmark_icon(thumbnail_element);
         }
@@ -2516,7 +2519,7 @@ ppixiv.screen_search = class extends ppixiv.screen
     // after coming from an illustration.
     scroll_to_media_id(media_id)
     {
-        var thumb = this.container.querySelector("[data-id='" + helpers.escape_selector(media_id) + "']");
+        let thumb = this.get_thumbnail_for_media_id(media_id);
         if(thumb == null)
             return false;
 
@@ -2526,7 +2529,7 @@ ppixiv.screen_search = class extends ppixiv.screen
 
     pulse_thumbnail(media_id)
     {
-        let thumb = this.container.querySelector("[data-id='" + helpers.escape_selector(media_id) + "']");
+        let thumb = this.get_thumbnail_for_media_id(media_id);
         if(thumb == null)
             return;
 
