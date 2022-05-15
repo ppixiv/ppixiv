@@ -1411,20 +1411,15 @@ ppixiv.screen_search = class extends ppixiv.screen
                 // each page.  We can only do this if the data source registers thumbnail info from
                 // its results, not if we have to look it up asynchronously, but almost all data sources
                 // do.
-                if(this.is_media_id_expanded(media_id))
+                let media_ids_on_page = this.get_expanded_pages(media_id);
+                if(media_ids_on_page != null)
                 {
-                    let info = thumbnail_data.singleton().get_one_thumbnail_info(media_id);
-                    if(info != null && info.pageCount > 1)
+                    for(let page_media_id of media_ids_on_page)
                     {
-                        let { type, id } = helpers.parse_media_id(media_id);
-                        for(let manga_page = 0; manga_page < info.pageCount; ++manga_page)
-                        {
-                            let page_media_id = helpers.encode_media_id({type, id, page: manga_page});
-                            media_ids.push(page_media_id);
-                            media_id_pages[page_media_id] = page;
-                        }
-                        continue;
+                        media_ids.push(page_media_id);
+                        media_id_pages[page_media_id] = page;
                     }
+                    continue;
                 }
 
                 media_ids.push(media_id);
@@ -1433,6 +1428,26 @@ ppixiv.screen_search = class extends ppixiv.screen
         }
 
         return [media_ids, media_id_pages];
+    }
+
+    // If media_id is an expanded multi-page post, return the pages.  Otherwise, return null.
+    get_expanded_pages(media_id)
+    {
+        if(!this.is_media_id_expanded(media_id))
+            return null;
+
+        let info = thumbnail_data.singleton().get_illust_data_sync(media_id);
+        if(info == null || info.pageCount <= 1)
+            return null;
+
+        let results = [];
+        let { type, id } = helpers.parse_media_id(media_id);
+        for(let manga_page = 0; manga_page < info.pageCount; ++manga_page)
+        {
+            let page_media_id = helpers.encode_media_id({type, id, page: manga_page});
+            results.push(page_media_id);
+        }
+        return results;
     }
 
     // Make a list of media IDs that we want loaded.  This has a few inputs:
