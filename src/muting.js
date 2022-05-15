@@ -91,7 +91,7 @@ ppixiv.muting = class extends EventTarget
             console.error("recursive");
             return;
         }
-        console.log("Received updated mutes:", data);
+
         this.handling_broadcast_mutes = true;
         try {
             this.pixiv_muted_tags = data.pixiv_muted_tags;
