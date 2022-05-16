@@ -360,7 +360,7 @@ ppixiv.link_tabs_popup = class extends ppixiv.dialog_widget
             this.visible = false;
         });
 
-        // Refresh the "unlink all tabs" button when the linked tab list changes.
+        // Refresh the "unlink all tabs" button on other tabs when the linked tab list changes.
         settings.changes.addEventListener("linked_tabs", this.send_link_tab_message.bind(this), { signal: this.shutdown_signal.signal });
 
         // The other tab will send these messages when the link and unlink buttons
@@ -392,8 +392,13 @@ ppixiv.link_tabs_popup = class extends ppixiv.dialog_widget
         this.visible = false;
     }
 
+    // Send show-link-tab to tell other tabs to display the "link this tab" popup.
+    // This includes the linked tab list, so they know whether to say "link" or "unlink".
     send_link_tab_message = () =>
     {
+        if(!this.visible)
+            return;
+
         SendImage.send_message({
             message: "show-link-tab",
             linked_tabs: settings.get("linked_tabs", []),
