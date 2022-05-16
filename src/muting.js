@@ -92,6 +92,12 @@ ppixiv.muting = class extends EventTarget
             return;
         }
 
+        // Don't fire the event if nothing is actually changing.  This happens a lot when new tabs
+        // are opened and they broadcast current mutes.
+        if(JSON.stringify(this.pixiv_muted_tags) == JSON.stringify(data.pixiv_muted_tags) &&
+           JSON.stringify(this.pixiv_muted_user_ids) == JSON.stringify(data.pixiv_muted_user_ids))
+            return;
+        
         this.handling_broadcast_mutes = true;
         try {
             this.pixiv_muted_tags = data.pixiv_muted_tags;
