@@ -235,7 +235,6 @@ ppixiv.screen_illust = class extends ppixiv.screen
         // Finalize the new illust ID.
         this.current_media_id = media_id;
         this.current_user_id = early_illust_data.userId;
-        this.viewing_manga = early_illust_data.pageCount > 1; // for navigate_out_target
         this.ui.media_id = media_id;
         this.refresh_ui();
 
@@ -462,15 +461,6 @@ ppixiv.screen_illust = class extends ppixiv.screen
     get displayed_media_id()
     {
         return this.wanted_media_id;
-    }
-
-    get navigate_out_target()
-    {
-        // If we're viewing a manga post, exit to the manga page view instead of the search.
-        if(this.viewing_manga)
-            return "manga";
-        else
-            return "search";
     }
 
     handle_onkeydown(e)

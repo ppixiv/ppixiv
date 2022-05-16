@@ -242,9 +242,6 @@ ppixiv.screen_manga = class extends ppixiv.screen
         return this.media_id;
     }
 
-    // Navigating out goes back to the search.
-    get navigate_out_target() { return "search"; }
-
     get_display_resolution(width, height)
     {
         var fit_width = 300;

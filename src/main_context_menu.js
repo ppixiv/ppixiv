@@ -121,7 +121,7 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
             <div class=popup-context-menu>
                 <div class=button-strip>
                     <div class=button-block>
-                        <div class="button button-return-to-search" data-level=0 data-popup="Return to search">
+                        <div class="button button-view-manga" data-level=0 data-popup="View manga pages">
                             <ppixiv-inline src="resources/thumbnails-icon.svg"></ppixiv-inline>
                         </div>
                     </div>
@@ -616,7 +616,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
             this.refresh();
         });
 
-        this.container.querySelector(".button-return-to-search").addEventListener("click", this.clicked_return_to_search.bind(this));
+        this.container.querySelector(".button-view-manga").addEventListener("click", this.clicked_view_manga.bind(this));
         this.container.querySelector(".button-fullscreen").addEventListener("click", this.clicked_fullscreen.bind(this));
         this.container.querySelector(".button-zoom").addEventListener("click", this.clicked_zoom_toggle.bind(this));
         this.container.querySelector(".button-browser-back").addEventListener("click", (e) => {
@@ -1161,11 +1161,9 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
     // Update selection highlight for the context menu.
     refresh()
     {
-        // Update the tooltip for the thumbnail toggle button.
-        var navigate_out_label = main_controller.singleton.navigate_out_label;
-        var title = navigate_out_label != null? ("Return to " + navigate_out_label):"";
-        this.container.querySelector(".button-return-to-search").dataset.popup = title;
-        helpers.set_class(this.container.querySelector(".button-return-to-search"), "enabled", navigate_out_label != null);
+        let button_view_manga = this.container.querySelector(".button-view-manga");
+        button_view_manga.dataset.popup = "View manga pages";
+        helpers.set_class(button_view_manga, "enabled", main_controller.singleton.navigate_out_enabled);
         this.refresh_tooltip();
 
         // Enable the zoom buttons if we're in the image view and we have an on_click_viewer.
@@ -1218,11 +1216,8 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         }
     }
 
-    clicked_return_to_search(e)
+    clicked_view_manga(e)
     {
-        e.preventDefault();
-        e.stopPropagation();
-
         main_controller.singleton.navigate_out();
     }
 

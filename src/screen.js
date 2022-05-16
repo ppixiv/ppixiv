@@ -16,9 +16,6 @@ ppixiv.screen = class extends ppixiv.widget
     {
     }
 
-    // Return the view that navigating back in the popup menu should go to.
-    get navigate_out_target() { return null; }
-
     // Return the media ID being displayed, or null if none.
     get displayed_media_id()
     {

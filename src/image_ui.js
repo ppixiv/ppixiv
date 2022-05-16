@@ -45,7 +45,7 @@ ppixiv.image_ui = class extends ppixiv.widget
             <ppixiv-inline class=grey-icon src="resources/pixiv-icon.svg" style="height: 100%; width: auto;" ></ppixiv-inline>
         </a>
 
-        <div class="navigate-out-button popup" data-popup="Show all">
+        <div class="view-manga-button popup" data-popup="View manga pages">
             <div class="grey-icon icon-button">
                 <ppixiv-inline src="resources/thumbnails-icon.svg"></ppixiv-inline>
             </div>
@@ -191,9 +191,9 @@ ppixiv.image_ui = class extends ppixiv.widget
         for(let button of this.container.querySelectorAll(".download-button"))
             button.addEventListener("click", this.clicked_download);
         this.container.querySelector(".download-manga-button").addEventListener("click", this.clicked_download);
-        this.container.querySelector(".navigate-out-button").addEventListener("click", function(e) {
+        this.container.querySelector(".view-manga-button").addEventListener("click", (e) => {
             main_controller.singleton.navigate_out();
-        }.bind(this));
+        });
 
         this.container.querySelector(".preferences-button").addEventListener("click", (e) => {
             new ppixiv.settings_dialog({ container: document.body });
@@ -339,11 +339,6 @@ ppixiv.image_ui = class extends ppixiv.widget
 
         let download_video_button = this.container.querySelector(".download-video-button");
         download_video_button.hidden = !actions.is_download_type_available("MKV", illust_info);
-
-        // Set the popup for the thumbnails button.
-        var navigate_out_label = main_controller.singleton.navigate_out_label;
-        var title = navigate_out_label != null? ("Return to " + navigate_out_label):"";
-        this.container.querySelector(".navigate-out-button").dataset.popup = title;
     }
 
     set_post_info(post_info_container)

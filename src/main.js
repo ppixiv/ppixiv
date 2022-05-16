@@ -469,44 +469,32 @@ ppixiv.main_controller = class
             delete args.state.zoom;
     }
 
-    // Navigate out.
-    //
-    // This navigates from the illust page to the manga page (for multi-page posts) or search, and
-    // from the manga page to search.
-    //
-    // This is similar to browser back, but allows moving up to the search even for new tabs.  It
-    // would be better for this to integrate with browser history (just browser back if browser back
-    // is where we're going), but for some reason you can't view history state entries even if they're
-    // on the same page, so there's no way to tell where History.back() would take us.
-    get navigate_out_label()
+    get navigate_out_enabled()
     {
-        let target = this.displayed_screen?.navigate_out_target;
-        switch(target)
-        {
-        case "manga": return "page list";
-        case "search": return "search";
-        default: return null;
-        }
+        if(this.current_screen_name != "illust" || this.data_source == null)
+            return false;
+
+        let media_id = this.data_source.get_current_media_id();
+        if(media_id == null)
+            return false;
+            
+        let info = thumbnail_data.singleton().get_illust_data_sync(media_id);
+        if(info == null)
+            return false;
+
+        return info.pageCount > 1;
     }
 
     navigate_out()
     {
-        let new_page = this.displayed_screen?.navigate_out_target;
-        if(new_page == null)
+        if(!this.navigate_out_enabled)
+            return;
+            
+        let media_id = this.data_source.get_current_media_id();
+        if(media_id == null)
             return;
 
-        // If the user clicks "return to search" while on data_sources.current_illust, go somewhere
-        // else instead, since that viewer never has any search results.
-        if(new_page == "search" && this.data_source instanceof data_sources.current_illust)
-        {
-            let args = new helpers.args("/bookmark_new_illust.php#ppixiv", ppixiv.location);
-            helpers.set_page_url(args, true /* add_to_history */, "out");
-            return;
-        }
-
-        // Update the URL to mark whether thumbs are displayed.
-        let args = helpers.args.location;
-        this._set_active_screen_in_url(args, new_page);
+        let args = new helpers.args(`/artworks/${media_id}#ppixiv?manga=1`);
         helpers.set_page_url(args, true /* add_to_history */, "out");
     }
 
