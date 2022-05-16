@@ -2130,7 +2130,7 @@ ppixiv.screen_search = class extends ppixiv.screen
     // Set the URL for all loaded thumbnails that are onscreen.
     //
     // This won't trigger loading any data (other than the thumbnails themselves).
-    set_visible_thumbs()
+    set_visible_thumbs({force=false}={})
     {
         // Make a list of IDs that we're assigning.
         var elements = this.get_nearby_thumbnails();
@@ -2156,7 +2156,7 @@ ppixiv.screen_search = class extends ppixiv.screen
             }
             
             // Leave it alone if it's already been loaded.
-            if(!("pending" in element.dataset))
+            if(!force && !("pending" in element.dataset))
                 continue;
 
             // Why is this not working in FF?  It works in the console, but not here.  Sandboxing
@@ -2398,9 +2398,8 @@ ppixiv.screen_search = class extends ppixiv.screen
     // Force all thumbnails to refresh after the mute list changes, to refresh mutes.
     refresh_after_mute_change = () =>
     {
-        for(let thumb of this.get_loaded_thumbs())
-            thumb.dataset.pending = true;
-        this.set_visible_thumbs();
+        // Force the update to refresh thumbs that have already been created.
+        this.set_visible_thumbs({force: true});
 
         // Refresh the user ID-dependant UI so we refresh the mute/unmute button.
         this.refresh_ui_for_user_id();
