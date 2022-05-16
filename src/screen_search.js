@@ -128,7 +128,7 @@ let thumbnail_ui = class extends ppixiv.widget
                         </span>
 
                         <div class=bookmark-tags-box>
-                            <div class="box-link popup-menu-box-button">Tags</div>
+                            <div class="box-link popup-menu-box-button"></div>
                             <div class="popup-menu-box bookmark-tag-list vertical-list"></div>
                         </div>
 
@@ -139,26 +139,30 @@ let thumbnail_ui = class extends ppixiv.widget
                 </div>                
 
                 <div class="data-source-specific" data-datasource=following>
-                    <div class="follows-public-private box-button-row">
-                        <a class="box-link popup" data-type=public-follows data-popup="Show publically followed users" href=#>Public</a>
-                        <a class="box-link popup" data-type=private-follows data-popup="Show privately followed users" href=#>Private</a>
-                    </div>
+                    <div class=box-button-row>
+                        <span class=follows-public-private style="margin-right: 25px;">
+                            <a class="box-link popup" data-type=public-follows data-popup="Show publically followed users" href=#>Public</a>
+                            <a class="box-link popup" data-type=private-follows data-popup="Show privately followed users" href=#>Private</a>
+                        </span>
 
-                    <div class="follow-tag-list box-button-row">
-                        <span>Follow tags:</span>
+                        <span class=followed-users-follow-tags>
+                            <span class="box-link popup-menu-box-button popup" data-popup="Follow tags"></span>
+                            <div class="popup-menu-box follow-tag-list vertical-list"></div>
+                        </span>
                     </div>
                 </div>                
 
                 <div class=data-source-specific data-datasource="bookmarks_new_illust">
                     <div class=box-button-row>
-                        <a class="box-link popup" data-type=bookmarks-new-illust-all data-popup="Show all works" href="#">All</a>
-                        <a class="box-link popup r18" data-type=bookmarks-new-illust-ages-r18 data-popup="Show R18 works" href="#">R18</a>
-                    </div>
+                        <span style="margin-right: 25px;">
+                            <a class="box-link popup" data-type=bookmarks-new-illust-all data-popup="Show all works" href="#">All</a>
+                            <a class="box-link popup r18" data-type=bookmarks-new-illust-ages-r18 data-popup="Show R18 works" href="#">R18</a>
+                        </span>
 
-                    <div class=box-button-row>
-                        <div class="follow-new-post-tag-list box-button-row">
-                            <span>Follow tags:</span>
-                        </div>
+                        <span class=new-post-follow-tags>
+                            <span class="box-link popup-menu-box-button popup" data-popup="Follow tags"></span>
+                            <div class="popup-menu-box new-post-follow-tag-list vertical-list"></div>
+                        </span>
                     </div>
                 </div>
 

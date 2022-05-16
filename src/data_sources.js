@@ -2767,9 +2767,9 @@ ppixiv.data_sources.bookmarks_new_illust = class extends data_source
     refresh_thumbnail_ui(container)
     {
         // Refresh the bookmark tag list.
-        let current_tag = this.url.searchParams.get("tag") || "All";
+        let current_tag = this.url.searchParams.get("tag") || "All tags";
 
-        var tag_list = container.querySelector(".follow-new-post-tag-list");
+        let tag_list = container.querySelector(".new-post-follow-tags  .vertical-list");
         for(let tag of tag_list.querySelectorAll(".following-tag"))
             tag.remove();
 
@@ -2781,7 +2781,7 @@ ppixiv.data_sources.bookmarks_new_illust = class extends data_source
             a.innerText = tag;
 
             var url = new URL(this.url);
-            if(tag != "All")
+            if(tag != "All tags")
                 url.searchParams.set("tag", tag);
             else
                 url.searchParams.delete("tag");
@@ -2792,10 +2792,15 @@ ppixiv.data_sources.bookmarks_new_illust = class extends data_source
             tag_list.appendChild(a);
         };
 
-        add_tag_link("All");
+        add_tag_link("All tags");
         for(var tag of this.bookmark_tags)
             add_tag_link(tag);
 
+        // If we don't have the tag list yet because we're still loading the page, fill in
+        // the current tag, to reduce flicker as the page loads.
+        if(this.bookmark_tags.length == 0 && current_tag != "All tags")
+            add_tag_link(current_tag);
+            
         var all_ages_link = container.querySelector("[data-type='bookmarks-new-illust-all']");
         var r18_link = container.querySelector("[data-type='bookmarks-new-illust-ages-r18']");
 
@@ -2811,6 +2816,9 @@ ppixiv.data_sources.bookmarks_new_illust = class extends data_source
         var currently_all_ages = url.pathname == "/bookmark_new_illust.php";
         helpers.set_class(all_ages_link, "selected", currently_all_ages);
         helpers.set_class(r18_link, "selected", !currently_all_ages);
+
+        // Set the contents of the tag menu button.
+        this.set_active_popup_highlight(container);
     }
 };
 
@@ -3214,7 +3222,7 @@ ppixiv.data_sources.follows = class extends data_source
     {
         super(url);
 
-        this.follow_tags = null;
+        this.follow_tags = [];
     }
 
     get supports_start_page()
@@ -3316,14 +3324,12 @@ ppixiv.data_sources.follows = class extends data_source
         this.set_item(container, "public-follows", {rest: "show"}, {rest: "show"});
         this.set_item(container, "private-follows", {rest: "hide"}, {rest: "show"});
 
-        var tag_list = container.querySelector(".follow-tag-list");
+        let tag_list = container.querySelector(".followed-users-follow-tags .vertical-list");
         for(let tag of tag_list.querySelectorAll(".following-tag"))
             tag.remove();
 
         // Refresh the bookmark tag list.  Remove the page number from these buttons.
-        let current_url = new URL(this.url);
-        current_url.searchParams.delete("p");
-        let current_query = current_url.searchParams.toString();
+        let current_tag = this.url.searchParams.get("tag") || "All tags";
 
         var add_tag_link = (tag) =>
         {
@@ -3339,20 +3345,28 @@ ppixiv.data_sources.follows = class extends data_source
             else
                 url.searchParams.delete("untagged", 1);
 
-            if(tag != "All")
+            if(tag != "All tags")
                 url.searchParams.set("tag", tag);
             else
                 url.searchParams.delete("tag");
 
             a.href = url.toString();
-            if(url.searchParams.toString() == current_query)
+            if(tag == current_tag)
                 a.classList.add("selected");
             tag_list.appendChild(a);
         };
 
-        add_tag_link("All");
-        for(var tag of this.follow_tags || [])
+        add_tag_link("All tags");
+        for(let tag of this.follow_tags)
             add_tag_link(tag);
+
+        // If we don't have the tag list yet because we're still loading the page, fill in
+        // the current tag, to reduce flicker as the page loads.
+        if(this.follow_tags.length == 0 && current_tag != "All tags")
+            add_tag_link(current_tag);
+
+        // Set the contents of the tag menu button.
+        this.set_active_popup_highlight(container);
     }
 
     get viewing_self()

@@ -1502,10 +1502,11 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
     flex-direction: row;
     flex-wrap: wrap;
     align-items: center;
+    row-gap: 0.25em; // space between lines if we wrap
 
     > .box-link {
-        margin: 0.25em .25em;
-        padding: 0 .5em;
+        margin: 0 0.25em; // horizontal spacing between buttons
+        padding: 0 .5em; // horizontal padding within the button
 
         // Place vertical padding on the contents rather than the box, so clicks are always
         // within one of the items and not on the small vertical padding around it.
