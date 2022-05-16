@@ -1151,40 +1151,6 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
     }
 }
 
-.thumbnail-box {
-    /* Hide pending images (they haven't been set up yet). */
-    &[data-pending] {
-        visibility: hidden;
-    }
-    .thumbnail-inner {
-        position: relative;
-    }
-
-    /*
-     * thumbnail-box[data-nearby] is set on thumbs that are close to being onscreen.
-     * If they don't have data-nearby, tell the browser they're not visible.  This
-     * significantly improves performance when we have a lot of thumbs loaded, making
-     * offscreen thumbs essentially free.
-     *
-     * Note that content-intrinsic-size is set programmatically.
-     */
-    &:not([data-nearby]) .thumbnail-inner {
-        content-visibility: hidden;
-    }
-
-    a.thumbnail-link {
-        display: block;
-        width: 100%;
-        height: 100%;
-
-        border-radius: 4px;
-        overflow: hidden;
-        position: relative;
-        text-decoration: none;
-        color: #fff;
-    }
-}
-
 .thumbnail-box.expanded-thumb a.thumbnail-link {
     border-bottom: 10px solid #a0a;
     border-bottom-width: 10px;
@@ -1363,8 +1329,7 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
     }
 }
 
-.thumbnail-box
-{
+.thumbnail-box {
     .thumb {
         object-fit: cover;
 
@@ -1375,9 +1340,37 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
         height: 100%;
     }
 
-    // Hide the image while it's pending, so we don't show a broken image icon.
-    &[data-pending] .thumb {
-        display: none;
+    /* Hide pending images (they haven't been set up yet). */
+    &[data-pending] {
+        visibility: hidden;
+    }
+
+    /*
+     * thumbnail-box[data-nearby] is set on thumbs that are close to being onscreen.
+     * If they don't have data-nearby, tell the browser they're not visible.  This
+     * significantly improves performance when we have a lot of thumbs loaded, making
+     * offscreen thumbs essentially free.
+     *
+     * Note that content-intrinsic-size is set programmatically.
+     */
+    &:not([data-nearby]) .thumbnail-inner {
+        content-visibility: hidden;
+    }
+
+    .thumbnail-inner {
+        position: relative;
+
+        a.thumbnail-link {
+            display: block;
+            width: 100%;
+            height: 100%;
+
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+            text-decoration: none;
+            color: #fff;
+        }
     }
 
     // Thumbnail zooming
