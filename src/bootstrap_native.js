@@ -55,8 +55,12 @@ let _load_source_file = function(__pixiv, __source) {
         // Just load binary resources and CSS as URLs.  This lets them be cached normally.
         // It also make CSS source maps work when running the script on Pixiv but hosting
         // it on a local server, which doesn't work if we load the stylesheet as text.
+        //
+        // If we're not native (we're running on Pixiv), don't do this for PNGs, since Chrome
+        // spams the console with mixed content warnings that weren't thought out very well.
+        // (Why is it warning about insecure connections to localhost?)
         let filename = (new URL(path, root_url)).pathname;
-        if(filename.endsWith(".png") || filename.endsWith(".scss"))
+        if((env.native && filename.endsWith(".png")) || filename.endsWith(".scss"))
         {
             env.resources[path] = url;
             continue;
