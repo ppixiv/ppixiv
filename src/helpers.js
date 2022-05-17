@@ -1083,7 +1083,7 @@ ppixiv.helpers = {
             recent_bookmark_tags.unshift(tag_list[i]);
 
         // Remove tags that haven't been used in a long time.
-        recent_bookmark_tags.splice(20);
+        recent_bookmark_tags.splice(100);
         helpers.set_recent_bookmark_tags(recent_bookmark_tags);
     },
 
