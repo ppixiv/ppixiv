@@ -169,8 +169,6 @@ class Build(object):
         """
         print('Building resources: %s' % self.debug_resources_path)
 
-        source_map_root = self.get_source_root_url()
-
         # Collect resources into an OrderedDict, so we always output data in the same order.
         # This prevents the output from changing.
         resources = collections.OrderedDict()
@@ -246,24 +244,20 @@ class Build(object):
             assert version.startswith('r')
             version = version[1:]
         result.append('// @version     %s' % version)
-
-        if for_debug:
-            # Add the GM_getResourceText permission.  Only the debug build uses this.  It
-            # isn't added to the base permissions since it might prompt people for permission.
-            # (There's no reason at all for this to even be a special permission.)
-            result.append('// @grant       GM_getResourceText')
-
-            root = self.get_local_root_url()
-
-            result.append('//')
-            result.append('// @require   %s/src/bootstrap.js' % root)
-
-            for fn in all_resources:
-                include_line = '// @resource  %s   %s/%s' % (fn, root, fn)
-                result.append(include_line)
-
         result.append('// ==/UserScript==')
 
+        if for_debug:
+            # Add the loading code for debug builds, which just runs bootstrap_native.js.
+            result.append('''
+// Load and run the bootstrap script.  Note that we don't do this with @reqruire, since TamperMonkey caches
+// requires overly aggressively, ignoring server cache headers.
+(async() => {
+    let resp = await fetch("http://127.0.0.1:8235/client/js/bootstrap_native.js");
+    eval(await resp.text());
+})();
+            ''')
+            return '\n'.join(result) + '\n'
+            
         if not for_debug:
             # Encapsulate the script.
             result.append('(function() {\n')

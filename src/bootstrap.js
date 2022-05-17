@@ -44,89 +44,37 @@
 
             console.log("ppixiv bootstrap");
 
-            // If env is the window, this script was run directly, which means this is a
-            // development build and we need to do some extra setup.  If this is a release build,
-            // the environment will be set up already.
-            if(env === window)
-                this.devel_setup();
-            else
-                this.env = env;
-
-            this.launch();
-        }
-
-        devel_setup()
-        {
-            // In a development build, our source and binary assets are in @resources, and we need
-            // to pull them out into an environment manually.
-            let env = {};
-            env.resources = {};
-        
-            env.resources["output/setup.js"] = JSON.parse(GM_getResourceText("output/setup.js"));
             let setup = env.resources["output/setup.js"];
             let source_list = setup.source_files;
-
-            // Add the file containing binary resources to the list.
-            source_list.unshift("output/resources.js");
-
-            for(let path of source_list)
-            {
-                // Load the source file.
-                let source = GM_getResourceText(path);
-                if(source == null)
-                {
-                    // launch() will show an error for this, so don't do it here too.
-                    continue;
-                }
-
-                // Add sourceURL to each file, so they show meaningful filenames in logs.
-                // Since we're loading the files as-is and line numbers don't change, we
-                // don't need a source map.
-                //
-                // This uses a path that pretends to be on the same URL as the site, which
-                // seems to be needed to make VS Code map the paths correctly.
-                source += "\n";
-                source += `//# sourceURL=${document.location.origin}/ppixiv/${path}\n`;
-
-                env.resources[path] = source;
-            }
-
-            this.env = env;
-        }
-
-        launch()
-        {
-            let setup = this.env.resources["output/setup.js"];
-            let source_list = setup.source_files;
-            unsafeWindow.ppixiv = this.env;
+            unsafeWindow.ppixiv = env;
 
             // Load each source file.
             for(let path of source_list)
             {
-                let source = this.env.resources[path];
+                let source = env.resources[path];
                 if(!source)
                 {
                     console.error("Source file missing:", path);
                     continue;
                 }
 
-                _load_source_file(this.env, source);
+                _load_source_file(env, source);
             }
 
             // Load the stylesheet into a URL.  This is just so we behave the same
             // as bootstrap_native.
-            for(let [name, data] of Object.entries(this.env.resources))
+            for(let [name, data] of Object.entries(env.resources))
             {
                 if(!name.endsWith(".scss"))
                     continue;
 
                 let blob = new Blob([data]);
                 let blobURL = URL.createObjectURL(blob);
-                this.env.resources[name] = blobURL;
+                env.resources[name] = blobURL;
             }
     
             // Create the main controller.
-            this.env.main_controller.launch();
+            env.main_controller.launch();
         }
     }(this);
 })();
