@@ -444,12 +444,6 @@ textarea:focus, input:focus, a:focus {
     }
 }
 
-.screen-manga-container .ui-container {
-    width: 600px;
-    max-width: 90%;
-    pointer-events: auto;
-}
-
 .ui-box
 {
     background-color: var(--ui-bg-color);
@@ -491,17 +485,6 @@ textarea:focus, input:focus, a:focus {
             opacity: 1;
             transform: translate(0, 0);
             pointer-events: inherit;
-        }
-    }
-
-    /* Since the UI isn't a popup on the manga page, hide the description and
-    * tag list to make it smaller.  These can be viewed while viewing a page. */
-    .screen-manga-container &
-    {
-        & > .description,
-        & > .tag-list
-        {
-            display: none;
         }
     }
 

@@ -221,12 +221,10 @@ ppixiv.main_controller = class
         // Create the screens.
         this.screen_search = new screen_search({ contents: this.container.querySelector(".screen-search-container") });
         this.screen_illust = new screen_illust({ contents: this.container.querySelector(".screen-illust-container") });
-        this.screen_manga = new screen_manga({ contents: this.container.querySelector(".screen-manga-container") });
 
         this.screens = {
             search: this.screen_search,
             illust: this.screen_illust,
-            manga: this.screen_manga,
         };
 
         // Create the data source for this page.
@@ -456,12 +454,12 @@ ppixiv.main_controller = class
         else
             args.hash.set("view", screen);
 
-        // If we're going to the search or manga page, remove the page.
-        // If we're going to the manga page, remove just the page.
-        if(screen == "search" || screen == "manga")
-            args.hash.delete("page");
+        // If we're going to the search screen, remove the page and illust ID.
         if(screen == "search")
+        {
+            args.hash.delete("page");
             args.hash.delete("illust_id");
+        }
 
         // If we're going somewhere other than illust, remove zoom state, so
         // it's not still around the next time we view an image.
