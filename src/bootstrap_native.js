@@ -50,8 +50,20 @@ let _load_source_file = function(__pixiv, __source) {
 
     for(let [path, url] of Object.entries(init.resources))
     {
-        // Load the resource.
         url = new URL(url, root_url);
+
+        // Just load binary resources and CSS as URLs.  This lets them be cached normally.
+        // It also make CSS source maps work when running the script on Pixiv but hosting
+        // it on a local server, which doesn't work if we load the stylesheet as text.
+        let filename = (new URL(path, root_url)).pathname;
+        if(filename.endsWith(".png") || filename.endsWith(".scss"))
+        {
+            env.resources[path] = url;
+            continue;
+        }
+
+        // Other resources are loaded as text resources.  This is needed for SVG because we
+        // sometimes need to preprocess them, so we can't just point at their URL.
         source_fetches[path] = fetch(url);
     }
 
@@ -61,30 +73,18 @@ let _load_source_file = function(__pixiv, __source) {
     for(let [path, source_fetch] of Object.entries(source_fetches))
     {
         source_fetch = await source_fetch;
-        let data = null;
-        if(path.endsWith(".png"))
-        {
-            // Load binary resources into object URLs.
-            data = await source_fetch.blob();
-            if(data == null)
-                continue
-            data = URL.createObjectURL(data);
-        }
-        else
-        {
-            data = await source_fetch.text();
-            if(data == null)
-                continue
+        let data = await source_fetch.text();
+        if(data == null)
+            continue
 
-            // Add sourceURL to source files.  Remove the mtime query so it doesn't clutter logs.
-            let url = new URL(source_fetch.url);
-            url.search = "";
+        // Add sourceURL to source files.  Remove the mtime query so it doesn't clutter logs.
+        let url = new URL(source_fetch.url);
+        url.search = "";
 
-            if(url.pathname.endsWith(".js"))
-            {
-                data += "\n";
-                data += `//# sourceURL=${url}\n`;
-            }
+        if(url.pathname.endsWith(".js"))
+        {
+            data += "\n";
+            data += `//# sourceURL=${url}\n`;
         }
 
         env.resources[path] = data;

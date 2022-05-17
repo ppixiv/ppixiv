@@ -113,6 +113,18 @@
                 _load_source_file(this.env, source);
             }
 
+            // Load the stylesheet into a URL.  This is just so we behave the same
+            // as bootstrap_native.
+            for(let [name, data] of Object.entries(this.env.resources))
+            {
+                if(!name.endsWith(".scss"))
+                    continue;
+
+                let blob = new Blob([data]);
+                let blobURL = URL.createObjectURL(blob);
+                this.env.resources[name] = blobURL;
+            }
+    
             // Create the main controller.
             this.env.main_controller.launch();
         }

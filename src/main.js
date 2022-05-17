@@ -185,8 +185,13 @@ ppixiv.main_controller = class
             }
         `);
 
-        // Add the main CSS style.
-        helpers.add_style("main", resources['resources/main.scss']);
+        // Add the main stylesheet.
+        {
+            let link = document.realCreateElement("link");
+            link.href = resources['resources/main.scss'];
+            link.rel = "stylesheet";
+            document.querySelector("head").appendChild(link);
+        }
        
         // Create the page from our HTML resource.
         let font_link = document.createElement("link");
