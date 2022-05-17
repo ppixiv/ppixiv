@@ -90,6 +90,12 @@ def handle_client(request):
     path = request.match_info['path']
     path = Path(path)
 
+    cache_control = 'public, immutable'
+    if path == Path('js/bootstrap_native.js'):
+        # Don't cache bootstrap_native.js.  That's where the URL cache busting itself
+        # actually happens, so we can't cache it or we'll have no way of refreshing it.
+        cache_control = 'no-store'
+
     if path.parts[0] == 'js':
         path = Path(*path.parts[1:])
         path = 'src' / path
@@ -108,7 +114,7 @@ def handle_client(request):
         raise aiohttp.web.HTTPNotFound()
 
     response = aiohttp.web.FileResponse(path, headers={
-        'Cache-Control': 'public, immutable',
+        'Cache-Control': cache_control,
     })
 
     # mimetypes doesn't know about .scss.  Fill it in, so these URLs open normally.
