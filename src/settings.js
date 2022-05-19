@@ -143,7 +143,7 @@ ppixiv.settings = class
             value = 4;
 
         value += down?-1:+1;
-        value = helpers.clamp(value, 0, 5);
+        value = helpers.clamp(value, 0, 7);
         this._slider_value = value;
         this.value = this._slider_value;
 
