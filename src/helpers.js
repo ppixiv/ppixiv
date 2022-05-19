@@ -1942,7 +1942,7 @@ ppixiv.helpers = {
         var container_width = max_columns * (max_width+padding*2);
 
         var css = `
-            ${top_selector} .thumbnail-inner { 
+            ${top_selector} .thumbnail-box { 
                 width: ${max_width}px;
                 height: ${max_height}px;
                 contain-intrinsic-size: ${max_width}px ${max_height}px;

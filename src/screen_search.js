@@ -2468,62 +2468,60 @@ ppixiv.screen_search = class extends ppixiv.screen
         {
             entry = this.create_template({ name: "template-thumbnail", html: `
                 <div class=thumbnail-box>
-                    <div class=thumbnail-inner>
-                        <a class=thumbnail-link href=#>
-                            <img class=thumb>
-                        </a>
+                    <a class=thumbnail-link href=#>
+                        <img class=thumb>
+                    </a>
 
-                        <div class=last-viewed-image-marker>
-                            <ppixiv-inline class=last-viewed-image-marker src="resources/last-viewed-image-marker.svg"></ppixiv-inline>
+                    <div class=last-viewed-image-marker>
+                        <ppixiv-inline class=last-viewed-image-marker src="resources/last-viewed-image-marker.svg"></ppixiv-inline>
+                    </div>
+
+                    <div class=bottom-row>
+                        <div class=bottom-left-icon>
+                            <div class="heart button-bookmark public bookmarked" hidden>
+                                <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
+                            </div>
+                            <div class="heart button-bookmark private bookmarked" hidden>
+                                <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
+                            </div>
+                            <a hidden href=# class="similar-illusts-button bulb-button grey-icon">
+                                <ppixiv-inline src="resources/related-illusts.svg"></ppixiv-inline>
+                            </a>
                         </div>
 
-                        <div class=bottom-row>
-                            <div class=bottom-left-icon>
-                                <div class="heart button-bookmark public bookmarked" hidden>
-                                    <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
-                                </div>
-                                <div class="heart button-bookmark private bookmarked" hidden>
-                                    <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
-                                </div>
-                                <a hidden href=# class="similar-illusts-button bulb-button grey-icon">
-                                    <ppixiv-inline src="resources/related-illusts.svg"></ppixiv-inline>
-                                </a>
+                        <div style="flex: 1;"></div>
+
+                        <div class=thumbnail-label hidden>
+                            <span class="thumbnail-ellipsis-box">
+                                <span class=label></span>
+                            </span>
+                        </div>
+
+                        <div style="flex: 1;"></div>
+
+                        <div class=bottom-right-icon>
+                            <div class=ugoira-icon hidden>
+                                <ppixiv-inline src="resources/play-button.svg"></ppixiv-inline>
                             </div>
 
-                            <div style="flex: 1;"></div>
+                            <div class=manga-info-box style="cursor: pointer;" hidden>
+                                <a class=show-manga-pages-button hidden>
+                                    <span style="font-size: 16px;" class="material-icons">pages</span>
+                                </a>
 
-                            <div class=thumbnail-label hidden>
-                                <span class="thumbnail-ellipsis-box">
-                                    <span class=label></span>
+                                <span class=expand-button>
+                                    <span class=page-icon>
+                                        <img class=regular src="ppixiv:resources/page-icon.png">
+                                        <img class=hover src="ppixiv:resources/page-icon-hover.png">
+                                    </span>
+                                    <span class=page-count hidden>1234</span>
                                 </span>
                             </div>
-
-                            <div style="flex: 1;"></div>
-
-                            <div class=bottom-right-icon>
-                                <div class=ugoira-icon hidden>
-                                    <ppixiv-inline src="resources/play-button.svg"></ppixiv-inline>
-                                </div>
-
-                                <div class=manga-info-box style="cursor: pointer;" hidden>
-                                    <a class=show-manga-pages-button hidden>
-                                        <span style="font-size: 16px;" class="material-icons">pages</span>
-                                    </a>
-
-                                    <span class=expand-button>
-                                        <span class=page-icon>
-                                            <img class=regular src="ppixiv:resources/page-icon.png">
-                                            <img class=hover src="ppixiv:resources/page-icon-hover.png">
-                                        </span>
-                                        <span class=page-count hidden>1234</span>
-                                    </span>
-                                </div>
-                            </div>
                         </div>
-                        <div class=muted-text>
-                            <span>Muted:</span>
-                            <span class=muted-label></span>
-                        </div>
+                    </div>
+                    <div class=muted-text>
+                        <span>Muted:</span>
+                        <span class=muted-label></span>
                     </div>
                 </div>
             `});
