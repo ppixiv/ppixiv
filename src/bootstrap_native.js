@@ -41,14 +41,27 @@ let _load_source_file = function(__pixiv, __source) {
 
     // Fetch each source file.  Do this in parallel.
     let source_fetches = {};
-    for(let path of init.source_files)
+
+    async function fetch_source(path)
     {
         // Load the source file.
         let url = new URL(path, root_url);
-        source_fetches[path] = fetch(url);
+        let source_fetch = await fetch(url);
+
+        let data = await source_fetch.text();
+        if(data == null)
+            return;
+
+        // Add sourceURL to source files.  Remove the mtime query so it doesn't clutter logs.
+        let source_url = new URL(source_fetch.url);
+        source_url.search = "";
+        data += "\n";
+        data += `//# sourceURL=${url}\n`;
+
+        env.resources[path] = data;
     }
 
-    for(let [path, url] of Object.entries(init.resources))
+    async function load_resource(path, url)
     {
         url = new URL(url, root_url);
 
@@ -63,36 +76,50 @@ let _load_source_file = function(__pixiv, __source) {
         if((env.native && filename.endsWith(".png")) || filename.endsWith(".scss"))
         {
             env.resources[path] = url;
-            continue;
+            return;
         }
 
         // Other resources are loaded as text resources.  This is needed for SVG because we
         // sometimes need to preprocess them, so we can't just point at their URL.
-        source_fetches[path] = fetch(url);
-    }
+        let source_fetch = await fetch(url);
 
-    // Wait for all fetches to complete.
-    await Promise.all(Object.values(source_fetches));
+        if(path.endsWith(".png"))
+        {
+            // Load any binary resources into object URLs.
+            let blob = await source_fetch.blob();
+            if(blob == null)
+                return;
 
-    for(let [path, source_fetch] of Object.entries(source_fetches))
-    {
-        source_fetch = await source_fetch;
+            env.resources[path] = URL.createObjectURL(blob);
+            return;
+        }
+
         let data = await source_fetch.text();
         if(data == null)
-            continue
+            return;
 
         // Add sourceURL to source files.  Remove the mtime query so it doesn't clutter logs.
-        let url = new URL(source_fetch.url);
-        url.search = "";
+        let source_url = new URL(url);
+        source_url.search = "";
 
         if(url.pathname.endsWith(".js"))
         {
             data += "\n";
-            data += `//# sourceURL=${url}\n`;
+            data += `//# sourceURL=${source_url}\n`;
         }
 
         env.resources[path] = data;
     }
+
+    // Fetch each source file.  Do this in parallel.
+    for(let path of init.source_files)
+        source_fetches[path] = fetch_source(path);
+
+    for(let [path, url] of Object.entries(init.resources))
+        source_fetches[path] = load_resource(path, url);
+
+    // Wait for all fetches to complete.
+    await Promise.all(Object.values(source_fetches));
 
     // Load each source file.
     for(let path of init.source_files)
