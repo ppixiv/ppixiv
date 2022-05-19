@@ -547,7 +547,8 @@ ppixiv.screen_search = class extends ppixiv.screen
             e.preventDefault();
             e.stopImmediatePropagation();
     
-            settings.adjust_zoom("thumbnail-size", e.deltaY > 0);
+            let manga_view = this.data_source?.name == "manga";
+            settings.adjust_zoom(manga_view? "manga-thumbnail-size":"thumbnail-size", e.deltaY > 0);
         }, { passive: false });
             
         this.container.addEventListener("keydown", (e) => {
@@ -556,7 +557,9 @@ ppixiv.screen_search = class extends ppixiv.screen
             {
                 e.preventDefault();
                 e.stopImmediatePropagation();
-                settings.adjust_zoom("thumbnail-size", zoom < 0);
+
+                let manga_view = this.data_source?.name == "manga";
+                settings.adjust_zoom(manga_view? "manga-thumbnail-size":"thumbnail-size", zoom < 0);
             }
         });
 
