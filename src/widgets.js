@@ -171,7 +171,7 @@ ppixiv.illust_widget = class extends ppixiv.widget
         super(options);
 
         // Refresh when the image data changes.
-        image_data.singleton().addEventListener("mediamodified", this.refresh.bind(this), { signal: this.shutdown_signal.signal });
+        image_data.singleton().addEventListener("mediamodified", this.refresh.pbind(this), { signal: this.shutdown_signal.signal });
     }
 
     // The data this widget needs.  This can be illust_id (nothing but the ID), illust_info,
@@ -644,15 +644,15 @@ ppixiv.avatar_widget = class extends widget
         new creepy_eye_widget(this.container.querySelector(".unfollow-button .eye-image"));
 
         for(let button of avatar_popup.querySelectorAll(".follow-button.public"))
-            button.addEventListener("click", this.clicked_follow.bind(this, false), false);
+            button.addEventListener("click", this.clicked_follow.pbind(this, false), false);
         for(let button of avatar_popup.querySelectorAll(".follow-button.private"))
-            button.addEventListener("click", this.clicked_follow.bind(this, true), false);
+            button.addEventListener("click", this.clicked_follow.pbind(this, true), false);
         for(let button of avatar_popup.querySelectorAll(".unfollow-button"))
-            button.addEventListener("click", this.clicked_follow.bind(this, true), false);
+            button.addEventListener("click", this.clicked_follow.pbind(this, true), false);
         this.element_follow_folder = avatar_popup.querySelector(".folder");
 
         // Follow publically when enter is pressed on the follow folder input.
-        helpers.input_handler(avatar_popup.querySelector(".folder"), this.clicked_follow.bind(this, false));
+        helpers.input_handler(avatar_popup.querySelector(".folder"), this.clicked_follow.pbind(this, false));
     }
 
     shutdown()
@@ -982,8 +982,8 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
             this.visible = false;
         });
 
-        image_data.singleton().illust_modified_callbacks.register(this.refresh.bind(this));
-        settings.register_change_callback("recent-bookmark-tags", this.refresh.bind(this));
+        image_data.singleton().illust_modified_callbacks.register(this.refresh.pbind(this));
+        settings.register_change_callback("recent-bookmark-tags", this.refresh.pbind(this));
     }
 
     // Return an array of tags selected in the tag dropdown.
@@ -1553,7 +1553,7 @@ ppixiv.bookmark_button_widget = class extends ppixiv.illust_widget
 
         this.container.addEventListener("click", this.clicked_bookmark);
 
-        image_data.singleton().illust_modified_callbacks.register(this.refresh.bind(this));
+        image_data.singleton().illust_modified_callbacks.register(this.refresh.pbind(this));
     }
 
     refresh_internal({ media_id, thumbnail_data })
@@ -1653,7 +1653,7 @@ ppixiv.bookmark_count_widget = class extends ppixiv.illust_widget
     {
         super(options);
 
-        image_data.singleton().illust_modified_callbacks.register(this.refresh.bind(this));
+        image_data.singleton().illust_modified_callbacks.register(this.refresh.pbind(this));
     }
 
     refresh_internal({ illust_data })
@@ -1672,7 +1672,7 @@ ppixiv.like_button_widget = class extends ppixiv.illust_widget
 
         this.container.addEventListener("click", this.clicked_like);
 
-        image_data.singleton().illust_modified_callbacks.register(this.refresh.bind(this));
+        image_data.singleton().illust_modified_callbacks.register(this.refresh.pbind(this));
     }
 
     async refresh_internal({ media_id })
@@ -1703,7 +1703,7 @@ ppixiv.like_count_widget = class extends ppixiv.illust_widget
     constructor(options)
     {
         super(options);
-        image_data.singleton().illust_modified_callbacks.register(this.refresh.bind(this));
+        image_data.singleton().illust_modified_callbacks.register(this.refresh.pbind(this));
     }
 
     async refresh_internal({ illust_data })

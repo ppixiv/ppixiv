@@ -438,6 +438,19 @@ ppixiv.helpers = {
     // might have done before we were able to start.
     cleanup_environment: function()
     {
+        // This is a heavy-handed way of trying to prevent more Pixiv site scripts from running.
+        // Override function.bind() to return a no-op function, which prevents most of it from
+        // doing anything.  Since we need bind() ourself in a few places, put the real bind()
+        // function on pbind().
+        //
+        // We do this when running natively too, so we don't accidentally use bind() instead of
+        // pbind() when testing locally.
+        Function.prototype.pbind = Function.prototype.bind;
+        let noop = () => { };
+        Function.prototype.bind = () => {
+            return noop;
+        };
+
         if(ppixiv.native)
         {
             // We're running in a local environment and not on Pixiv, so we don't need to do
@@ -559,18 +572,18 @@ ppixiv.helpers = {
 
         // TamperMonkey reimplements setTimeout, etc. for some reason, which is slower
         // than the real versions.  Grab them instead.
-        ppixiv.setTimeout = unsafeWindow.setTimeout.bind(unsafeWindow);
-        ppixiv.setInterval = unsafeWindow.setInterval.bind(unsafeWindow);
-        ppixiv.clearTimeout = unsafeWindow.clearTimeout.bind(unsafeWindow);
-        ppixiv.clearInterval = unsafeWindow.clearInterval.bind(unsafeWindow);
+        ppixiv.setTimeout = unsafeWindow.setTimeout.pbind(unsafeWindow);
+        ppixiv.setInterval = unsafeWindow.setInterval.pbind(unsafeWindow);
+        ppixiv.clearTimeout = unsafeWindow.clearTimeout.pbind(unsafeWindow);
+        ppixiv.clearInterval = unsafeWindow.clearInterval.pbind(unsafeWindow);
 
         // Disable the page's timers.  This helps prevent things like GTM from running.
         unsafeWindow.setTimeout = (f, ms) => { return -1; };
         unsafeWindow.setInterval = (f, ms) => { return -1; };
         unsafeWindow.clearTimeout = () => { };
 
-        window.addEventListener = Window.prototype.addEventListener.bind(unsafeWindow);
-        window.removeEventListener = Window.prototype.removeEventListener.bind(unsafeWindow);
+        window.addEventListener = Window.prototype.addEventListener.pbind(unsafeWindow);
+        window.removeEventListener = Window.prototype.removeEventListener.pbind(unsafeWindow);
         
         // Try to freeze the document.  This works in Chrome but not Firefox.
         try {
@@ -3421,7 +3434,7 @@ class SentinelAborted extends Error { };
 ppixiv.SentinelGuard = function(func, self)
 {
     if(self)
-        func = func.bind(self);
+        func = func.pbind(self);
     let sentinel = null;
 
     let abort = () =>
