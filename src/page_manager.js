@@ -32,7 +32,6 @@ ppixiv.page_manager = class
 {
     constructor()
     {
-        this.window_popstate = this.window_popstate.bind(this);
         window.addEventListener("popstate", this.window_popstate, true);
 
         this.data_sources_by_canonical_url = {};
@@ -189,7 +188,7 @@ ppixiv.page_manager = class
         return this.get_data_source_for_url(url) != null;
     };
 
-    window_popstate(e)
+    window_popstate = (e) =>
     {
         var currently_active = this._active_internal();
         if(this.active == currently_active)

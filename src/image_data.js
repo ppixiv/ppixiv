@@ -11,8 +11,6 @@ ppixiv.image_data = class extends EventTarget
     {
         super();
         
-        this.loaded_user_info = this.loaded_user_info.bind(this);
-
         this.illust_modified_callbacks = new callback_list();
         this.user_modified_callbacks = new callback_list();
 
@@ -419,7 +417,7 @@ ppixiv.image_data = class extends EventTarget
         return remapped_user_data;
     }
 
-    loaded_user_info(user_result)
+    loaded_user_info = (user_result) =>
     {
         if(user_result.error)
             return;

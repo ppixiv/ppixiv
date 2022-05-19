@@ -72,11 +72,6 @@ ppixiv.main_controller = class
     {
         console.log("ppixiv controller setup");
 
-        this.onkeydown = this.onkeydown.bind(this);
-        this.redirect_event_to_screen = this.redirect_event_to_screen.bind(this);
-        this.window_onclick_capture = this.window_onclick_capture.bind(this);
-        this.window_onpopstate = this.window_onpopstate.bind(this);
-
         // Create the page manager.
         page_manager.singleton();
 
@@ -236,7 +231,7 @@ ppixiv.main_controller = class
         this.set_current_data_source("initialization");
     };
 
-    window_onpopstate(e)
+    window_onpopstate = (e) =>
     {
         // Set the current data source and state.
         this.set_current_data_source(e.navigationCause || "history");
@@ -510,7 +505,7 @@ ppixiv.main_controller = class
     //
     // This only affects left clicks (middle clicks into a new tab still behave
     // normally).
-    window_onclick_capture(e)
+    window_onclick_capture = (e) =>
     {
         // Only intercept regular left clicks.
         if(e.button != 0 || e.metaKey || e.ctrlKey || e.altKey)
@@ -670,7 +665,7 @@ ppixiv.main_controller = class
     };
 
     // Redirect keyboard events that didn't go into the active screen.
-    redirect_event_to_screen(e)
+    redirect_event_to_screen = (e) =>
     {
         let screen = this.displayed_screen;
         if(screen == null)
@@ -697,7 +692,7 @@ ppixiv.main_controller = class
         }
     }
 
-    onkeydown(e)
+    onkeydown = (e) =>
     {
         // Ignore keypresses if we haven't set up the screen yet.
         let screen = this.displayed_screen;

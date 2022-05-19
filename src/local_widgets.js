@@ -15,8 +15,6 @@ ppixiv.tree_widget = class extends ppixiv.widget
             </div>
         `});
 
-        this.illust_modified = this.illust_modified.bind(this);
-
         this.label_popup = this.create_template({html: `
             <div class=tree-popup>
                 <div class=label></div>
@@ -47,7 +45,7 @@ ppixiv.tree_widget = class extends ppixiv.widget
         }
     }
 
-    illust_modified(media_id)
+    illust_modified = (media_id) =>
     {
         if(this.root == null)
             return;
@@ -249,8 +247,6 @@ ppixiv.tree_widget_item = class extends ppixiv.widget
                 <div class=items></div>
             </div>
         `});
-
-        this.ondblclick = this.ondblclick.bind(this);
 
         // If this is the root node, hide .self, and add .root so our children
         // aren't indented.
@@ -470,7 +466,7 @@ ppixiv.tree_widget_item = class extends ppixiv.widget
         this.parent = null;
     }
 
-    async ondblclick(e)
+    ondblclick = async(e) =>
     {
         e.preventDefault();
         e.stopImmediatePropagation();
@@ -903,9 +899,6 @@ ppixiv.local_search_box_widget = class extends ppixiv.widget
     {
         super(options);
 
-        this.input_onfocus = this.input_onfocus.bind(this);
-        this.submit_search = this.submit_search.bind(this);
-
         this.input_element = this.container.querySelector(".input-field-container > input");
 
         this.dropdown_widget = new local_search_dropdown_widget({
@@ -968,13 +961,13 @@ ppixiv.local_search_box_widget = class extends ppixiv.widget
     // unfocused and this.container isn't being hovered.  This way, the input focus
     // can leave the input box to manipulate the dropdown without it being hidden,
     // but we don't rely on hovering to keep the dropdown open.
-    input_onfocus(e)
+    input_onfocus = (e) =>
     {
         this.input_focused = true;
         this.dropdown_widget.show();
     }
 
-    submit_search(e)
+    submit_search = (e) =>
     {
         let tags = this.input_element.value.trim();
         if(tags.length == 0)
@@ -1023,10 +1016,6 @@ ppixiv.local_search_dropdown_widget = class extends ppixiv.widget
             </div>
         `});
 
-        this.dropdown_onclick = this.dropdown_onclick.bind(this);
-        this.window_onclick = this.window_onclick.bind(this);
-        this.populate_dropdown = this.populate_dropdown.bind(this);
-
         this.input_element = input_element;
 
         // While we're open, we'll close if the user clicks outside focus_parent.
@@ -1067,7 +1056,7 @@ ppixiv.local_search_dropdown_widget = class extends ppixiv.widget
     }
 
     // Hide if the user clicks outside us.
-    window_onclick(e)
+    window_onclick = (e) =>
     {
         if(helpers.is_above(this.focus_parent, e.target))
             return;
@@ -1075,7 +1064,7 @@ ppixiv.local_search_dropdown_widget = class extends ppixiv.widget
         this.hide();
     }
 
-    dropdown_onclick(e)
+    dropdown_onclick = (e) =>
     {
         var remove_entry = e.target.closest(".remove-history-entry");
         if(remove_entry != null)
@@ -1147,7 +1136,7 @@ ppixiv.local_search_dropdown_widget = class extends ppixiv.widget
     }
 
     // Populate the tag dropdown.
-    populate_dropdown()
+    populate_dropdown = () =>
     {
         let tag_searches = settings.get("local_searches") || [];
         tag_searches.sort();

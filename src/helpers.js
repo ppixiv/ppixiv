@@ -296,10 +296,10 @@ ppixiv.helpers = {
         //
         // If we revoke the URL now, or with a small timeout, Firefox sometimes just doesn't show
         // the save dialog, and there's no way to know when we can, so just use a large timeout.
-        setTimeout(function() {
+        setTimeout(() => {
             window.URL.revokeObjectURL(blobUrl);
             a.parentNode.removeChild(a);
-        }.bind(this), 1000);
+        }, 1000);
     },
 
     // Return a Uint8Array containing a blank (black) image with the given dimensions and type.
@@ -2515,7 +2515,6 @@ ppixiv.view_hidden_listener = class
 
     constructor(element, callback)
     {
-        this.onviewhidden = this.onviewhidden.bind(this);
         this.callback = callback;
 
         // There's no way to listen on events on any parent, so we have to add listeners
@@ -2538,7 +2537,7 @@ ppixiv.view_hidden_listener = class
         this.listening_on_elements = [];
     }
 
-    onviewhidden(e)
+    onviewhidden = (e) =>
     {
         this.callback(e);
     }
@@ -2562,7 +2561,7 @@ ppixiv.image_canvas_filter = class
         this.overlay = overlay;
         this.ctx = this.canvas.getContext("2d");
 
-        this.img.addEventListener("load", this.update_canvas.bind(this));
+        this.img.addEventListener("load", this.update_canvas);
 
         // For some reason, browsers can't be bothered to implement onloadstart, a seemingly
         // fundamental progress event.  So, we have to use a mutation observer to tell when
@@ -2590,7 +2589,7 @@ ppixiv.image_canvas_filter = class
         this.current_url = helpers.blank_image;
     }
 
-    update_canvas()
+    update_canvas = () =>
     {
         // The URL for the image we're rendering.  If the image isn't complete, use the blank image
         // URL instead, since we're just going to clear.
@@ -3388,7 +3387,6 @@ ppixiv.key_listener = class
 {
     constructor(key, callback, {signal=null}={})
     {
-        this.key_changed = this.key_changed.bind(this);
         this.callback = callback;
         this.pressed = false;
 
@@ -3402,7 +3400,7 @@ ppixiv.key_listener = class
         }
     }
 
-    key_changed(pressed)
+    key_changed = (pressed) =>
     {
         if(this.pressed == pressed)
             return;

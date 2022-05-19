@@ -22,10 +22,6 @@ ppixiv.fix_chrome_clicks = class
         if(!this.enabled)
             return;
 
-        this.onpointer = this.onpointer.bind(this);
-        this.onclick = this.onclick.bind(this);
-        this.oncontextmenu = this.oncontextmenu.bind(this);
-
         this.container = container;
         this.pressed_node = null;
 
@@ -70,7 +66,7 @@ ppixiv.fix_chrome_clicks = class
     // instead of pointerdown or pointerup if another button is already pressed.  That's
     // completely useless, so we have to just listen to all of them the same way and
     // deduce what's happening from the button mask.
-    onpointer(e)
+    onpointer = (e) =>
     {
         if(e.type == "pointerdown")
         {
@@ -123,7 +119,7 @@ ppixiv.fix_chrome_clicks = class
         this.send_click_event(click_target, e);
     }
 
-    oncontextmenu(e)
+    oncontextmenu = (e) =>
     {
         if(this.pressed_node != null && !e.defaultPrevented)
         {
@@ -142,7 +138,7 @@ ppixiv.fix_chrome_clicks = class
     // be broken in Chrome and has no effect.
     //
     // So, we just cancel all button 0 click events that weren't sent by us.
-    onclick(e)
+    onclick = (e) =>
     {
         if(e.button != 0)
             return;

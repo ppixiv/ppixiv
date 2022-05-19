@@ -9,11 +9,6 @@ ppixiv.on_click_viewer = class
 {
     constructor({container, onviewcontainerchange})
     {
-        this.onresize = this.onresize.bind(this);
-        this.pointermove = this.pointermove.bind(this);
-        this.block_event = this.block_event.bind(this);
-        this.window_blur = this.window_blur.bind(this);
-
         this.set_new_image = new SentinelGuard(this.set_new_image, this);
         this.image_container = container;
 
@@ -398,12 +393,12 @@ ppixiv.on_click_viewer = class
         this.center_pos = zoom_center;
     }
 
-    block_event(e)
+    block_event = (e) =>
     {
         e.preventDefault();
     }
 
-    onresize(e)
+    onresize = (e) =>
     {
         this.reposition();
 
@@ -411,7 +406,7 @@ ppixiv.on_click_viewer = class
             this.refresh_autopan();
     }
 
-    window_blur(e)
+    window_blur = (e) =>
     {
         this.stop_dragging();
     }

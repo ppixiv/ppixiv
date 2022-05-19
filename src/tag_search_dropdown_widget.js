@@ -7,12 +7,6 @@ ppixiv.tag_search_box_widget = class extends ppixiv.widget
     {
         super(options);
 
-        this.input_onfocus = this.input_onfocus.bind(this);
-        this.input_onblur = this.input_onblur.bind(this);
-        this.container_onmouseenter = this.container_onmouseenter.bind(this);
-        this.container_onmouseleave = this.container_onmouseleave.bind(this);
-        this.submit_search = this.submit_search.bind(this);
-
         this.input_element = this.container.querySelector(".input-field-container > input");
 
         this.dropdown_widget = new tag_search_dropdown_widget({
@@ -85,12 +79,12 @@ ppixiv.tag_search_box_widget = class extends ppixiv.widget
         this.edit_widget.hide();
     }
 
-    container_onmouseenter(e)
+    container_onmouseenter = (e) =>
     {
         this.mouse_over_parent = true;
     }
 
-    container_onmouseleave(e)
+    container_onmouseleave = (e) =>
     {
         this.mouse_over_parent = false;
         if(this.dropdown_widget.shown && !this.input_focused && !this.mouse_over_parent)
@@ -101,21 +95,21 @@ ppixiv.tag_search_box_widget = class extends ppixiv.widget
     // unfocused and this.container isn't being hovered.  This way, the input focus
     // can leave the input box to manipulate the dropdown without it being hidden,
     // but we don't rely on hovering to keep the dropdown open.
-    input_onfocus(e)
+    input_onfocus = (e) =>
     {
         this.input_focused = true;
         if(!this.dropdown_widget.shown && !this.edit_widget.shown)
             this.show_history();
     }
 
-    input_onblur(e)
+    input_onblur = (e) =>
     {
         this.input_focused = false;
         if(this.dropdown_widget.shown && !this.input_focused && !this.mouse_over_parent)
             this.hide();
     }
 
-    submit_search(e)
+    submit_search = (e) =>
     {
         // This can be sent to either the search page search box or the one in the
         // navigation dropdown.  Figure out which one we're on.
@@ -159,11 +153,6 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
             </div>
         `});
 
-        this.dropdown_onclick = this.dropdown_onclick.bind(this);
-        this.input_onkeydown = this.input_onkeydown.bind(this);
-        this.input_oninput = this.input_oninput.bind(this);
-        this.populate_dropdown = this.populate_dropdown.bind(this);
-
         // Find the <input>.
         this.input_element = input_element.querySelector("input");
 
@@ -206,7 +195,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         });
     }
 
-    dropdown_onclick(e)
+    dropdown_onclick = (e) =>
     {
         var remove_entry = e.target.closest(".remove-history-entry");
         if(remove_entry != null)
@@ -225,7 +214,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
             this.hide();
     }
 
-    input_onkeydown(e)
+    input_onkeydown = (e) =>
     {
         // Only handle inputs when we're open.
         if(this.container.hidden)
@@ -243,7 +232,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         
     }
 
-    input_oninput(e)
+    input_oninput = (e) =>
     {
         if(this.container.hidden)
             return;
@@ -464,7 +453,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
     // Network APIs should be async, but local I/O should not be forced async.)  If another
     // call to populate_dropdown() is made before this completes or cancel_populate_dropdown
     // cancels it, return false.  If it completes, return true.
-    async populate_dropdown()
+    populate_dropdown = async() =>
     {
         // If another populate_dropdown is already running, cancel it and restart.
         this.cancel_populate_dropdown();
@@ -542,9 +531,6 @@ ppixiv.tag_search_edit_widget = class extends ppixiv.widget
             </div>
         `});
 
-        this.dropdown_onclick = this.dropdown_onclick.bind(this);
-        this.populate_dropdown = this.populate_dropdown.bind(this);
-
         this.input_element = input_element.querySelector("input");
 
         // Refresh the dropdown when the tag search history changes.
@@ -571,7 +557,7 @@ ppixiv.tag_search_edit_widget = class extends ppixiv.widget
         this.container.hidden = true;
     }
 
-    dropdown_onclick(e)
+    dropdown_onclick = (e) =>
     {
         e.preventDefault();
         e.stopImmediatePropagation();
@@ -668,7 +654,7 @@ ppixiv.tag_search_edit_widget = class extends ppixiv.widget
     // Network APIs should be async, but local I/O should not be forced async.)  If another
     // call to populate_dropdown() is made before this completes or cancel_populate_dropdown
     // cancels it, return false.  If it completes, return true.
-    async populate_dropdown()
+    populate_dropdown = async() =>
     {
         // If another populate_dropdown is already running, cancel it and restart.
         this.cancel_populate_dropdown();

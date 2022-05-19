@@ -10,9 +10,6 @@ ppixiv.track_mouse_movement = class
     {
         track_mouse_movement._singleton = this;
 
-        this.idle = this.idle.bind(this);
-        this.onmousemove = this.onmousemove.bind(this);
-
         this.force_hidden_until = null;
         this.set_mouse_anchor_timeout = -1;
         this.last_mouse_pos = null;
@@ -35,7 +32,7 @@ ppixiv.track_mouse_movement = class
         this.idle();
     }
 
-    onmousemove(e)
+    onmousemove = (e) =>
     {
         let mouse_pos = [e.screenX, e.screenY];
         this.last_mouse_pos = mouse_pos;
@@ -105,7 +102,7 @@ ppixiv.track_mouse_movement = class
     }
 
     // The timer has expired (or was forced to expire).
-    idle()
+    idle = () =>
     {
         this.remove_timer();
 
@@ -131,8 +128,8 @@ ppixiv.hide_mouse_cursor_on_idle = class
         
         this.element = element;
 
-        window.addEventListener("mouseactive", this.refresh_cursor_stationary.bind(this));
-        window.addEventListener("mouseinactive", this.refresh_cursor_stationary.bind(this));
+        window.addEventListener("mouseactive", this.refresh_cursor_stationary);
+        window.addEventListener("mouseinactive", this.refresh_cursor_stationary);
 
         settings.register_change_callback("no-hide-cursor", hide_mouse_cursor_on_idle.update_from_settings);
         hide_mouse_cursor_on_idle.update_from_settings();
@@ -210,7 +207,7 @@ ppixiv.hide_mouse_cursor_on_idle = class
         return !settings.get("no-hide-cursor") && this.disabled_by.size == 0;
     }
 
-    refresh_cursor_stationary(e)
+    refresh_cursor_stationary = (e) =>
     {
         this.refresh_hide_cursor();
     }

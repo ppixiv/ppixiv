@@ -38,8 +38,6 @@ ppixiv.CropEditor = class extends ppixiv.widget
             </div>
         `});
 
-        this.pointermove = this.pointermove.bind(this);
-    
         this.shutdown_signal = new AbortController();
         this.width = 1;
         this.height = 1;
@@ -49,11 +47,11 @@ ppixiv.CropEditor = class extends ppixiv.widget
         this.editor_overlay.slot = "crop-editor";
         this.current_crop = null;
 
-        this.editor_overlay.addEventListener("dblclick", this.ondblclick.bind(this), { signal: this.shutdown_signal.signal });
+        this.editor_overlay.addEventListener("dblclick", this.ondblclick, { signal: this.shutdown_signal.signal });
 
         this.pointer_listener = new ppixiv.pointer_listener({
             element: this.editor_overlay,
-            callback: this.pointerevent.bind(this),
+            callback: this.pointerevent,
             signal: this.shutdown_signal.signal,
         });
         
@@ -62,7 +60,7 @@ ppixiv.CropEditor = class extends ppixiv.widget
     }
 
     // Clear the crop on double-click.
-    ondblclick(e)
+    ondblclick = (e) =>
     {
         e.preventDefault();
         e.stopPropagation();
@@ -72,7 +70,7 @@ ppixiv.CropEditor = class extends ppixiv.widget
         this.refresh();
     }
 
-    pointerevent(e)
+    pointerevent = (e) =>
     {
         e.preventDefault();
         e.stopPropagation();
@@ -123,7 +121,7 @@ ppixiv.CropEditor = class extends ppixiv.widget
         return { x: x, y: y };
     }
 
-    pointermove(e)
+    pointermove = (e) =>
     {
         // Get the delta in client coordinates.  Don't use movementX/movementY, since it's
         // in screen pixels and will be wrong if the browser is scaled.

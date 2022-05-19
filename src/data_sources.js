@@ -2860,8 +2860,6 @@ ppixiv.data_sources.search = class extends data_source
     {
         super(url);
 
-        this.cache_search_title = this.cache_search_title.bind(this);
-
         // Add the search tags to tag history.  We only do this at the start when the
         // data source is created, not every time we navigate back to the search.
         let tag = this._search_tags;
@@ -2907,7 +2905,7 @@ ppixiv.data_sources.search = class extends data_source
         settings.unregister_change_callback("disable-translations", this.cache_search_title);
     }
 
-    async cache_search_title()
+    cache_search_title = async() =>
     {
         this.title = "Search: ";
         let tags = this._search_tags;

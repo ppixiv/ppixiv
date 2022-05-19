@@ -31,12 +31,11 @@ ppixiv.SendImage = class
             return;
         this.initialized = true;
 
-        this.broadcast_tab_info = this.broadcast_tab_info.bind(this);
         this.pending_movement = [0, 0];
 
         this.listeners = {};
 
-        window.addEventListener("unload", this.window_onunload.bind(this));
+        window.addEventListener("unload", this.window_onunload);
 
         // Let other tabs know when the info we send in tab info changes.  For resize, delay this
         // a bit so we don't spam broadcasts while the user is resizing the window.
@@ -68,7 +67,7 @@ ppixiv.SendImage = class
             }
         });
 
-        SendImage.send_image_channel.addEventListener("message", this.received_message.bind(this));
+        SendImage.send_image_channel.addEventListener("message", this.received_message);
         this.broadcast_tab_info();
 
         this.query_tabs();
@@ -86,7 +85,7 @@ ppixiv.SendImage = class
 
     // If we're sending an image and the page is unloaded, try to cancel it.  This is
     // only registered when we're sending an image.
-    static window_onunload(e)
+    static window_onunload = (e) =>
     {
         // Tell other tabs that this tab has closed.
         SendImage.send_message({ message: "tab-closed" });
@@ -121,7 +120,7 @@ ppixiv.SendImage = class
         }, false);
     }
 
-    static received_message(e)
+    static received_message = (e) =>
     {
         let data = e.data;
 
@@ -245,7 +244,7 @@ ppixiv.SendImage = class
         }
     }
 
-    static broadcast_tab_info()
+    static broadcast_tab_info = () =>
     {
         let screen = main_controller.singleton.displayed_screen;
         let media_id = screen? screen.displayed_media_id:null;
@@ -361,7 +360,7 @@ ppixiv.link_tabs_popup = class extends ppixiv.dialog_widget
         });
 
         // Refresh the "unlink all tabs" button on other tabs when the linked tab list changes.
-        settings.changes.addEventListener("linked_tabs", this.send_link_tab_message.bind(this), { signal: this.shutdown_signal.signal });
+        settings.changes.addEventListener("linked_tabs", this.send_link_tab_message, { signal: this.shutdown_signal.signal });
 
         // The other tab will send these messages when the link and unlink buttons
         // are clicked.

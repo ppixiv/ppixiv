@@ -136,8 +136,6 @@ ppixiv.image_ui = class extends ppixiv.widget
 </div>
             `});
 
-        this.clicked_download = this.clicked_download.bind(this);
-        this.refresh = this.refresh.bind(this);
 
         this.progress_bar = progress_bar;
 
@@ -248,7 +246,7 @@ ppixiv.image_ui = class extends ppixiv.widget
     {
     }
 
-    async refresh()
+    refresh = async() =>
     {
         // Don't do anything if we're not visible.
         if(!this.visible)
@@ -391,7 +389,7 @@ ppixiv.image_ui = class extends ppixiv.widget
         set_info(".page-count", page_text);
     }
 
-    clicked_download(e)
+    clicked_download = (e) =>
     {
         if(this.illust_data == null)
             return;

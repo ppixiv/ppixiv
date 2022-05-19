@@ -23,12 +23,6 @@ ppixiv.viewer_video = class extends ppixiv.viewer
             parent: this,
         });
 
-        this.refresh_focus = this.refresh_focus.bind(this);
-        this.clicked_video = this.clicked_video.bind(this);
-        this.onkeydown = this.onkeydown.bind(this);
-        this.update_seek_bar = this.update_seek_bar.bind(this);
-        this.seek_callback = this.seek_callback.bind(this);
-
         this.seek_bar = this.video_ui.seek_bar;
         this.seek_bar.set_current_time(0);
         this.seek_bar.set_callback(this.seek_callback);
@@ -172,7 +166,7 @@ ppixiv.viewer_video = class extends ppixiv.viewer
             this.video.poster = this.illust_data.mangaPages[0].urls.small;
     }
 
-    update_seek_bar()
+    update_seek_bar = () =>
     {
         if(this.seek_bar != null)
         {
@@ -190,7 +184,7 @@ ppixiv.viewer_video = class extends ppixiv.viewer
     }
 
     // This is sent manually by the UI handler so we can control focus better.
-    onkeydown(e)
+    onkeydown = (e) =>
     {
         if(this.video == null)
             return;
@@ -294,14 +288,14 @@ ppixiv.viewer_video = class extends ppixiv.viewer
             this.video.pause(); 
     };
 
-    async clicked_video(e)
+    clicked_video = async(e) =>
     {
         this.set_want_playing(!this.want_playing);
         this.refresh_focus();
     }
 
     // This is called when the user interacts with the seek bar.
-    seek_callback(pause, seconds)
+    seek_callback = (pause, seconds) =>
     {
         this.seeking = pause;
         this.refresh_focus();
@@ -556,8 +550,6 @@ class volume_slider_widget extends ppixiv.widget
     {
         super(options);
 
-        this.pointermove = this.pointermove.bind(this);
-
         this.ondrag = ondrag;
         this.started_dragging = started_dragging;
         this.stopped_dragging = stopped_dragging;
@@ -588,7 +580,7 @@ class volume_slider_widget extends ppixiv.widget
         return this.captured_pointer_id != null;
     }
 
-    pointermove(e)
+    pointermove = (e) =>
     {
         this.handle_drag(e);
     }

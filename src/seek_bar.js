@@ -16,10 +16,6 @@ ppixiv.seek_bar = class extends widget
             `
         });
 
-        this.mousedown = this.mousedown.bind(this);
-        this.mouseup = this.mouseup.bind(this);
-        this.mousemove = this.mousemove.bind(this);
-
         this.container.addEventListener("mousedown", this.mousedown);
 
         this.current_time = 0;
@@ -29,7 +25,7 @@ ppixiv.seek_bar = class extends widget
         this.set_callback(null);
     };
 
-    mousedown(e)
+    mousedown = (e) =>
     {
         // Never start dragging while we have no callback.  This generally shouldn't happen
         // since we should be hidden.
@@ -66,12 +62,12 @@ ppixiv.seek_bar = class extends widget
             this.callback(false, null);
     }
 
-    mouseup(e)
+    mouseup = (e) =>
     {
         this.stop_dragging();
     }
 
-    mousemove(e)
+    mousemove = (e) =>
     {
         this.set_drag_pos(e);
     }

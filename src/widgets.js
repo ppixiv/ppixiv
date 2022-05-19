@@ -319,8 +319,6 @@ ppixiv.click_outside_listener = class
 {
     constructor(node_list, callback)
     {
-        this.window_onmousedown = this.window_onmousedown.bind(this);
-
         this.node_list = node_list;
         this.callback = callback;
 
@@ -338,7 +336,7 @@ ppixiv.click_outside_listener = class
         return false;
     }
 
-    window_onmousedown(e)
+    window_onmousedown = (e) =>
     {
         // Close the popup if anything outside the dropdown is clicked.  Don't
         // prevent the click event, so the click still happens.
@@ -380,8 +378,6 @@ ppixiv.dropdown_menu_opener = class
     // When button is clicked, show box.
     constructor(button, box)
     {
-        this.box_onclick = this.box_onclick.bind(this);
-
         this.button = button;
         this.box = box;
 
@@ -484,7 +480,7 @@ ppixiv.dropdown_menu_opener = class
 
     // Close the popup when something inside is clicked.  This can be prevented with
     // stopPropagation, or with the keep-menu-open class.
-    box_onclick(e)
+    box_onclick = (e) =>
     {
         if(e.target.closest(".keep-menu-open"))
             return;
@@ -507,8 +503,6 @@ ppixiv.creepy_eye_widget = class
 {
     constructor(eye)
     {
-        this.onevent = this.onevent.bind(this);
-
         this.eye = eye;
 
         this.eye.addEventListener("mouseenter", this.onevent);
@@ -517,7 +511,7 @@ ppixiv.creepy_eye_widget = class
         this.eye_middle = this.eye.querySelector(".middle");
     }
 
-    onevent(e)
+    onevent = (e) =>
     {
         if(e.type == "mouseenter")
             this.hover = true;
@@ -614,9 +608,6 @@ ppixiv.avatar_widget = class extends widget
         if(this.options.mode != "dropdown" && this.options.mode != "overlay")
             throw "Invalid avatar widget mode";
 
-        this.clicked_follow = this.clicked_follow.bind(this);
-        this.user_changed = this.user_changed.bind(this);
-
         helpers.set_class(this.container, "big", this.options.big);
 
         image_data.singleton().user_modified_callbacks.register(this.user_changed);
@@ -646,8 +637,8 @@ ppixiv.avatar_widget = class extends widget
         let avatar_popup = this.container; //container.querySelector(".avatar-popup");
         if(this.options.mode == "dropdown")
         {
-            avatar_popup.addEventListener("mouseover", function(e) { helpers.set_class(avatar_popup, "popup-visible", true); }.bind(this));
-            avatar_popup.addEventListener("mouseout", function(e) { helpers.set_class(avatar_popup, "popup-visible", false); }.bind(this));
+            avatar_popup.addEventListener("mouseover", (e) => { helpers.set_class(avatar_popup, "popup-visible", true); });
+            avatar_popup.addEventListener("mouseout", (e) => { helpers.set_class(avatar_popup, "popup-visible", false); });
         }
 
         new creepy_eye_widget(this.container.querySelector(".unfollow-button .eye-image"));
@@ -677,7 +668,7 @@ ppixiv.avatar_widget = class extends widget
     }
     
     // Refresh when the user changes.
-    user_changed(user_id)
+    user_changed = (user_id) =>
     {
         if(this.user_id == null || this.user_id != user_id)
             return;
@@ -769,7 +760,7 @@ ppixiv.avatar_widget = class extends widget
 
     // Note that in some cases we'll only have the user's ID and name, so we won't be able
     // to tell if we're following.
-    clicked_follow(follow_privately, e)
+    clicked_follow = (follow_privately, e) =>
     {
         e.preventDefault();
         e.stopPropagation();
@@ -878,9 +869,6 @@ ppixiv.text_prompt = class extends ppixiv.dialog_widget
             </div>
         `});
         
-        this.submit = this.submit.bind(this);
-        this.onkeydown = this.onkeydown.bind(this);
-
         this.result = new Promise((completed, cancelled) => {
             this._completed = completed;
         });
@@ -903,7 +891,7 @@ ppixiv.text_prompt = class extends ppixiv.dialog_widget
         });
     }
 
-    onkeydown(e)
+    onkeydown = (e) =>
     {
         if(e.key == "Escape")
         {
@@ -942,7 +930,7 @@ ppixiv.text_prompt = class extends ppixiv.dialog_widget
     }
 
     // Close the popup and call the completion callback with the result.
-    submit()
+    submit = () =>
     {
         let result = this.input.value;
         this._completed(result);
@@ -978,7 +966,7 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
 
         this.displaying_media_id = null;
 
-        this.container.addEventListener("click", this.clicked_bookmark_tag.bind(this), true);
+        this.container.addEventListener("click", this.clicked_bookmark_tag, true);
 
         this.container.querySelector(".add-tag").addEventListener("click", async (e) => {
             await actions.add_new_tag(this._media_id);
@@ -1181,7 +1169,7 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
     }
 
     // Toggle tags on click.  We don't save changes until we're closed.
-    async clicked_bookmark_tag(e)
+    clicked_bookmark_tag = async(e) =>
     {
         let a = e.target.closest(".popup-bookmark-tag-entry");
         if(a == null)
@@ -1563,7 +1551,7 @@ ppixiv.bookmark_button_widget = class extends ppixiv.illust_widget
         this.bookmark_type = bookmark_type;
         this.bookmark_tag_widget = bookmark_tag_widget;
 
-        this.container.addEventListener("click", this.clicked_bookmark.bind(this));
+        this.container.addEventListener("click", this.clicked_bookmark);
 
         image_data.singleton().illust_modified_callbacks.register(this.refresh.bind(this));
     }
@@ -1602,7 +1590,7 @@ ppixiv.bookmark_button_widget = class extends ppixiv.illust_widget
     }
     
     // Clicked one of the top-level bookmark buttons or the tag list.
-    async clicked_bookmark(e)
+    clicked_bookmark = async(e) =>
     {
         // See if this is a click on a bookmark button.
         let a = e.target.closest(".button-bookmark");

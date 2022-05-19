@@ -515,11 +515,10 @@ ppixiv.menu_option = class extends widget
         for(let class_name of classes)
             this.container.classList.add(class_name);
 
-        this.refresh = this.refresh.bind(this);
         this.onchange = onchange;
     }
 
-    refresh()
+    refresh = () =>
     {
         if(this.onchange)
             this.onchange();
@@ -590,8 +589,6 @@ ppixiv.menu_option_button = class extends ppixiv.menu_option
             </{type}>
         `});
 
-        this.onclick = this.onclick.bind(this);
-
         this.onclick_handler = onclick;
         this._enabled = true;
         this.explanation_enabled = explanation_enabled;
@@ -654,7 +651,7 @@ ppixiv.menu_option_button = class extends ppixiv.menu_option
         return this._enabled;
     }
 
-    onclick(e)
+    onclick = (e) =>
     {
         // If consume_clicks is true, stopPropagation to stop the menu we're inside from
         // closing.
@@ -780,7 +777,6 @@ class menu_option_slider extends ppixiv.menu_option
             </div>
         `});
 
-        this.oninput = this.oninput.bind(this);
         this.list = list;
 
         this.container.addEventListener("input", this.oninput);
@@ -805,7 +801,7 @@ class menu_option_slider extends ppixiv.menu_option
         super.refresh();
     }
 
-    oninput(e)
+    oninput = (e) =>
     {
         this.value = this._slider_value;
     }

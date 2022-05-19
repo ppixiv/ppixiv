@@ -13,7 +13,6 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         });
 
         this.manga_page_bar = options.manga_page_bar;
-        this.onkeydown = this.onkeydown.bind(this);
         this.restore_history = false;
 
         this.load = new SentinelGuard(this.load, this);
@@ -213,7 +212,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         }
     }
 
-    onkeydown(e)
+    onkeydown = (e) =>
     {
         if(e.ctrlKey || e.altKey || e.metaKey)
             return;

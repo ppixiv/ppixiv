@@ -9,8 +9,6 @@ ppixiv.thumbnail_data = class
 {
     constructor()
     {
-        this.loaded_thumbnail_info = this.loaded_thumbnail_info.bind(this);
-
         // Cached data:
         this.thumbnail_data = { };
         this.quick_user_data = { };
@@ -219,7 +217,7 @@ ppixiv.thumbnail_data = class
     // These have the same data, but for some reason everything has different names.  
     // Remap them to "normal", and check that all fields we expect exist, to make it
     // easier to notice if something is wrong.
-    loaded_thumbnail_info(thumb_result, source)
+    loaded_thumbnail_info = (thumb_result, source) =>
     {
         if(thumb_result.error)
             return;

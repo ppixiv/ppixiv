@@ -42,9 +42,6 @@ ppixiv.InpaintEditor = class extends ppixiv.widget
             </div>
         `});
 
-        this.pointermove_drag_point = this.pointermove_drag_point.bind(this);
-        this.onmousehover = this.onmousehover.bind(this);
-
         this.shutdown_signal = new AbortController();
 
         this.width = 100;
@@ -129,7 +126,7 @@ ppixiv.InpaintEditor = class extends ppixiv.widget
 
         this.pointer_listener = new ppixiv.pointer_listener({
             element: this.editor_overlay,
-            callback: this.pointerevent.bind(this),
+            callback: this.pointerevent,
             signal: this.shutdown_signal.signal,
         });
 
@@ -152,7 +149,7 @@ ppixiv.InpaintEditor = class extends ppixiv.widget
         this._create_lines = settings.get("inpaint_create_lines", false);
 
         // Prevent fullscreening if a UI element is double-clicked.
-        this.editor_overlay.addEventListener("dblclick", this.ondblclick.bind(this), { signal: this.shutdown_signal.signal });
+        this.editor_overlay.addEventListener("dblclick", this.ondblclick, { signal: this.shutdown_signal.signal });
         this.editor_overlay.addEventListener("mouseover", this.onmousehover, { signal: this.shutdown_signal.signal });
 
         this.refresh_pointer_events();
@@ -370,7 +367,7 @@ ppixiv.InpaintEditor = class extends ppixiv.widget
         this._blur = 0;
     }
 
-    onmousehover(e)
+    onmousehover = (e) =>
     {
         let over = e.target.closest(".inpaint-line, .inpaint-handle") != null;
         this._overlay_container.hide_inpaint = over;
@@ -435,7 +432,7 @@ ppixiv.InpaintEditor = class extends ppixiv.widget
         return { inpaint_segment: inpaint_segment, control_point_idx: control_point_idx, inpaint_line_idx: inpaint_line_idx };
     }
     
-    pointerevent(e)
+    pointerevent = (e) =>
     {
         let { x, y } = this.get_point_from_click(e);
         let { inpaint_segment, control_point_idx, inpaint_line_idx } = this.get_control_point_from_element(e.target);
@@ -538,7 +535,7 @@ ppixiv.InpaintEditor = class extends ppixiv.widget
         return { x: x, y: y };
     }
 
-    ondblclick(e)
+    ondblclick = (e) =>
     {
         // Block double-clicks to stop screen_illust from toggling fullscreen.
         e.stopPropagation();
@@ -562,7 +559,7 @@ ppixiv.InpaintEditor = class extends ppixiv.widget
         }
     }
 
-    pointermove_drag_point(e)
+    pointermove_drag_point = (e) =>
     {
         // Get the delta in client coordinates.  Don't use movementX/movementY, since it's
         // in screen pixels and will be wrong if the browser is scaled.

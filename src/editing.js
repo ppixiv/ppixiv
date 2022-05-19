@@ -293,9 +293,6 @@ ppixiv.ImageEditingOverlayContainer = class extends HTMLElement
     {
         super();
 
-        this._onload = this._onload.bind(this);
-        this._onerror = this._onerror.bind(this);
-
         this.attachShadow({mode: "open"});
 
         let container = document.createElement("div");
@@ -351,14 +348,14 @@ ppixiv.ImageEditingOverlayContainer = class extends HTMLElement
     }
 
     // Note that load will currently be fired twice, once for each image.
-    _onload(e)
+    _onload = (e) =>
     {
         // Dispatch loaded on ourself if both images are loaded.
         if(this.complete)
             this.dispatchEvent(new Event("load"));
     }
 
-    _onerror(e)
+    _onerror = (e) =>
     {
         this.dispatchEvent(new Event("error"));
     }

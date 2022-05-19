@@ -7,10 +7,6 @@ ppixiv.screen_illust = class extends ppixiv.screen
     {
         super(options);
         
-        this.onwheel = this.onwheel.bind(this);
-        this.refresh_ui = this.refresh_ui.bind(this);
-        this.data_source_updated = this.data_source_updated.bind(this);
-
         this.current_media_id = null;
         this.latest_navigation_direction_down = true;
 
@@ -402,7 +398,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
         });
     }
 
-    data_source_updated()
+    data_source_updated = () =>
     {
         this.refresh_ui();
     }
@@ -413,7 +409,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
     }
 
     // Refresh the UI for the current image.
-    refresh_ui()
+    refresh_ui = () =>
     {
         // Don't refresh if the thumbnail view is active.  We're not visible, and we'll just
         // step over its page title, etc.
@@ -445,7 +441,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
             this.viewer.illust_data_changed();
     }
 
-    onwheel(e)
+    onwheel = (e) =>
     {
         if(!this._active)
             return;        

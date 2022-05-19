@@ -391,16 +391,6 @@ ppixiv.screen_search = class extends ppixiv.screen
     {
         super(options);
         
-        this.thumbs_loaded = this.thumbs_loaded.bind(this);
-        this.data_source_updated = this.data_source_updated.bind(this);
-        this.onwheel = this.onwheel.bind(this);
-//        this.onmousemove = this.onmousemove.bind(this);
-        this.refresh_thumbnail = this.refresh_thumbnail.bind(this);
-        this.refresh_images = this.refresh_images.bind(this);
-        this.update_from_settings = this.update_from_settings.bind(this);
-        this.thumbnail_onclick = this.thumbnail_onclick.bind(this);
-        this.submit_user_search = this.submit_user_search.bind(this);
-
         this.scroll_container = this.container.querySelector(".search-results");
         this.expanded_media_ids = new Map();
 
@@ -410,7 +400,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         this.container.addEventListener("wheel", this.onwheel, { passive: false });
 //        this.container.addEventListener("mousemove", this.onmousemove);
 
-        image_data.singleton().user_modified_callbacks.register(this.refresh_ui.bind(this));
+        image_data.singleton().user_modified_callbacks.register(this.refresh_ui);
 
         // When a bookmark is modified, refresh the heart icon.
         image_data.singleton().illust_modified_callbacks.register(this.refresh_thumbnail);
@@ -473,8 +463,8 @@ ppixiv.screen_search = class extends ppixiv.screen
             await image_data.singleton().get_media_info(a.dataset.mediaId);
         }, true);
  
-        this.container.querySelector(".refresh-search-button").addEventListener("click", this.refresh_search.bind(this));
-        this.container.querySelector(".whats-new-button").addEventListener("click", this.whats_new.bind(this));
+        this.container.querySelector(".refresh-search-button").addEventListener("click", this.refresh_search);
+        this.container.querySelector(".whats-new-button").addEventListener("click", this.whats_new);
         this.container.querySelector(".thumbnails").addEventListener("click", this.thumbnail_onclick);
         this.container.querySelector(".expand-manga-posts").addEventListener("click", (e) => {
             this.toggle_expanding_media_ids_by_default();
@@ -774,7 +764,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         ppixiv.recently_seen_illusts.get().add_illusts(visible_media_ids);
     }
 
-    refresh_search()
+    refresh_search = () =>
     {
         main_controller.singleton.refresh_current_data_source();
     }
@@ -792,7 +782,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         helpers.set_class(this.container.querySelector(".whats-new-button"), "updates", new_updates);
     }
 
-    whats_new()
+    whats_new = () =>
     {
         settings.set("whats-new-last-viewed-version", whats_new.latest_history_revision());
         this.refresh_whats_new_button();
@@ -803,7 +793,7 @@ ppixiv.screen_search = class extends ppixiv.screen
     /* This scrolls the thumbnail when you hover over it.  It's sort of neat, but it's pretty
      * choppy, and doesn't transition smoothly when the mouse first hovers over the thumbnail,
      * causing it to pop to a new location. 
-    onmousemove(e)
+    onmousemove = (e) =>
     {
         var thumb = e.target.closest(".thumbnail-box a");
         if(thumb == null)
@@ -819,7 +809,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         img.style.objectPosition = x + "% " + y + "%";
     }
 */
-    onwheel(e)
+    onwheel = (e) =>
     {
         // Stop event propagation so we don't change images on any viewer underneath the thumbs.
         e.stopPropagation();
@@ -879,7 +869,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         this.data_source.add_update_listener(this.data_source_updated);
     };
 
-    refresh_ui()
+    refresh_ui = () =>
     {
         if(!this.active)
             return;
@@ -1382,7 +1372,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         return this._active;
     }
 
-    data_source_updated()
+    data_source_updated = () =>
     {
         this.refresh_ui();
 
@@ -1669,7 +1659,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         return [first_loaded_media_id, last_loaded_media_id];
     }
 
-    refresh_images({forced_media_id=null}={})
+    refresh_images = ({forced_media_id=null}={}) =>
     {
         if(this.data_source == null)
             return;
@@ -1898,7 +1888,7 @@ ppixiv.screen_search = class extends ppixiv.screen
     // already loaded.
     //
     // This can also trigger for the "return to start" button if we happen to be on page 2.
-    async thumbnail_onclick(e)
+    thumbnail_onclick = async(e) =>
     {
         let page_count_box = e.target.closest(".expand-button");
         if(page_count_box)
@@ -2114,7 +2104,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         button.hidden = this.data_source?.name == "vview" || this.data_source?.name == "manga";
     }
 
-    update_from_settings()
+    update_from_settings = () =>
     {
         this.set_visible_thumbs();
         this.refresh_images();
@@ -2363,7 +2353,7 @@ ppixiv.screen_search = class extends ppixiv.screen
     // Refresh the thumbnail for media_id.
     //
     // This is used to refresh the bookmark icon when changing a bookmark.
-    refresh_thumbnail(media_id)
+    refresh_thumbnail = (media_id) =>
     {
         // If this is a manga post, refresh all thumbs for this media ID, since bookmarking
         // a manga post is shown on all pages if it's expanded.
@@ -2543,7 +2533,7 @@ ppixiv.screen_search = class extends ppixiv.screen
     }
 
     // This is called when thumbnail_data has loaded more thumbnail info.
-    thumbs_loaded(e)
+    thumbs_loaded = (e) =>
     {
         this.set_visible_thumbs();
     }
@@ -2586,7 +2576,7 @@ ppixiv.screen_search = class extends ppixiv.screen
     };
 
     // Handle submitting searches on the user search page.
-    submit_user_search(e)
+    submit_user_search = (e) =>
     {
         let search = this.container.querySelector(".user-search-box input.search-users").value;
         let url = new URL("/search_user.php#ppixiv", ppixiv.location);

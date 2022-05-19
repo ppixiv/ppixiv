@@ -213,8 +213,6 @@ ppixiv.ZipImagePlayer = class
 {
     constructor(options)
     {
-        this.next_frame = this.next_frame.bind(this);
-
         this.op = options;
         this.interface = new ZipVideoInterface(this);
 
@@ -470,7 +468,7 @@ ppixiv.ZipImagePlayer = class
         return meta.delay;
     }
 
-    next_frame(frame)
+    next_frame = (frame) =>
     {
         this.timer = null;
 

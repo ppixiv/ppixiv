@@ -11,18 +11,14 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
             </div>
         `});
         
+        this.refresh_focus = this.refresh_focus.pbind(this);
+
         // Create the video UI.
         this.video_ui = new ppixiv.video_ui({
             container: this.container.querySelector(".video-ui-container"),
             parent: this,
         });
 
-        this.refresh_focus = this.refresh_focus.bind(this);
-        this.clicked_canvas = this.clicked_canvas.bind(this);
-        this.onkeydown = this.onkeydown.bind(this);
-        this.ontimeupdate = this.ontimeupdate.bind(this);
-        this.progress = this.progress.bind(this);
-        this.seek_callback = this.seek_callback.bind(this);
         this.load = new SentinelGuard(this.load, this);
 
         this.seek_bar = this.video_ui.seek_bar;
@@ -53,10 +49,10 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
         window.addEventListener("visibilitychange", this.refresh_focus);
     }
 
-    async load(signal, media_id, {
+    load = async(signal, media_id, {
         slideshow=false,
         onnextimage=null,
-    }={})
+    }={}) =>
     {
         this.unload();
 
@@ -241,7 +237,7 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
         this.refresh_focus();
     }
 
-    progress(value)
+    progress = (value) =>
     {
         if(this.seek_bar)
         {
@@ -253,7 +249,7 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
 
     // Once we draw a frame, hide the preview and show the canvas.  This avoids
     // flicker when the first frame is drawn.
-    ontimeupdate()
+    ontimeupdate = () =>
     {
         if(this.preview_img1)
             this.preview_img1.hidden = true;
@@ -270,7 +266,7 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
     }
 
     // This is sent manually by the UI handler so we can control focus better.
-    onkeydown(e)
+    onkeydown = (e) =>
     {
         if(e.keyCode >= 49 && e.keyCode <= 57)
         {
@@ -381,14 +377,14 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
             this.player.pause(); 
     };
 
-    clicked_canvas(e)
+    clicked_canvas = (e) =>
     {
         this.set_want_playing(!this.want_playing);
         this.refresh_focus();
     }
 
     // This is called when the user interacts with the seek bar.
-    seek_callback(pause, seconds)
+    seek_callback = (pause, seconds) =>
     {
         this.seeking = pause;
         this.refresh_focus();

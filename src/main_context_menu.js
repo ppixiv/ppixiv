@@ -222,12 +222,6 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
             </div>
         `});
 
-        this.window_onblur = this.window_onblur.bind(this);
-        this.onmouseover = this.onmouseover.bind(this);
-        this.onmouseout = this.onmouseout.bind(this);
-        this.onkeyevent = this.onkeyevent.bind(this);
-        this.hide = this.hide.bind(this);
-        this.cancel_event = this.cancel_event.bind(this);
         this.visible = false;
 
         this.pointer_listener = new ppixiv.pointer_listener({
@@ -240,7 +234,7 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
         window.addEventListener("keyup", this.onkeyevent);
 
         // Use key_listener to watch for ctrl being held.
-        new key_listener("Control", this.ctrl_pressed.bind(this));
+        new key_listener("Control", this.ctrl_pressed);
 
         // Work around glitchiness in Chrome's click behavior (if we're in Chrome).
         new fix_chrome_clicks(this.container);
@@ -331,7 +325,7 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
     // is open or not.
     handle_key_event(e) { return false; }
 
-    onkeyevent(e)
+    onkeyevent = (e) =>
     {
         if(e.repeat)
             return;
@@ -349,7 +343,7 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
         }
     }
 
-    ctrl_pressed(down)
+    ctrl_pressed = (down) =>
     {
         if(!settings.get("ctrl_opens_popup"))
             return;
@@ -378,7 +372,7 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
             this.hide();
     }
 
-    window_onblur(e)
+    window_onblur = (e) =>
     {
         this.hide();
     }
@@ -495,12 +489,12 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
             this.container.querySelector(".tooltip-display-text").textContent = element.dataset.popup;
     }
 
-    onmouseover(e)
+    onmouseover = (e) =>
     {
         this.show_tooltip_for_element(e.target);
     }
 
-    onmouseout(e)
+    onmouseout = (e) =>
     {
         this.show_tooltip_for_element(e.relatedTarget);
     }
@@ -536,7 +530,7 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
         helpers.set_class(this.container, "visible", visible);
     }
 
-    hide()
+    hide = () =>
     {
         if(!this.visible)
             return;
@@ -565,7 +559,7 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
         this._closed_signal = null;
     }
 
-    cancel_event(e)
+    cancel_event = (e) =>
     {
         e.preventDefault();
         e.stopPropagation();
@@ -588,14 +582,11 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
             throw "Singleton already exists";
         main_context_menu._singleton = this;
 
-        this.onwheel = this.onwheel.bind(this);
-        this.handle_link_click = this.handle_link_click.bind(this);
-
         this._on_click_viewer = null;
         this._media_id = null;
 
         // Refresh the menu when the view changes.
-        this.mode_observer = new MutationObserver(function(mutationsList, observer) {
+        this.mode_observer = new MutationObserver((mutationsList, observer) => {
             for(var mutation of mutationsList) {
                 if(mutation.type == "attributes")
                 {
@@ -603,7 +594,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
                         this.refresh();
                 }
             }
-        }.bind(this));
+        });
 
         this.mode_observer.observe(document.body, {
             attributes: true, childList: false, subtree: false
@@ -616,9 +607,9 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
             this.refresh();
         });
 
-        this.container.querySelector(".button-view-manga").addEventListener("click", this.clicked_view_manga.bind(this));
-        this.container.querySelector(".button-fullscreen").addEventListener("click", this.clicked_fullscreen.bind(this));
-        this.container.querySelector(".button-zoom").addEventListener("click", this.clicked_zoom_toggle.bind(this));
+        this.container.querySelector(".button-view-manga").addEventListener("click", this.clicked_view_manga);
+        this.container.querySelector(".button-fullscreen").addEventListener("click", this.clicked_fullscreen);
+        this.container.querySelector(".button-zoom").addEventListener("click", this.clicked_zoom_toggle);
         this.container.querySelector(".button-browser-back").addEventListener("click", (e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -627,10 +618,10 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         });
 
         this.container.addEventListener("click", this.handle_link_click);
-        this.container.querySelector(".button-parent-folder").addEventListener("click", this.clicked_go_to_parent.bind(this));
+        this.container.querySelector(".button-parent-folder").addEventListener("click", this.clicked_go_to_parent);
 
         for(var button of this.container.querySelectorAll(".button-zoom-level"))
-            button.addEventListener("click", this.clicked_zoom_level.bind(this));
+            button.addEventListener("click", this.clicked_zoom_level);
 
         this.avatar_widget = new avatar_widget({
             container: this.container.querySelector(".avatar-widget-container"),
@@ -711,7 +702,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
     //
     // This only affects links inside the context menu, which is currently only the author link, and
     // most people probably use middle-click anyway, so this will have to do.
-    handle_link_click(e)
+    handle_link_click = (e) =>
     {
         // Do nothing if opening the popup while holding ctrl is disabled.
         if(!settings.get("ctrl_opens_popup"))
@@ -1016,7 +1007,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         return false;
     }
 
-    onwheel(e)
+    onwheel = (e) =>
     {
         // RMB-wheel zooming is confusing in toggle mode.
         if(this.toggle_mode)
@@ -1216,12 +1207,12 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         }
     }
 
-    clicked_view_manga(e)
+    clicked_view_manga = (e) =>
     {
         main_controller.singleton.navigate_out();
     }
 
-    clicked_fullscreen(e)
+    clicked_fullscreen = (e) =>
     {
         e.preventDefault();
         e.stopPropagation();
@@ -1230,7 +1221,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
     }
 
     // "Zoom lock", zoom as if we're holding the button constantly
-    clicked_zoom_toggle(e)
+    clicked_zoom_toggle = (e) =>
     {
         e.preventDefault();
         e.stopPropagation();
@@ -1247,7 +1238,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         this.refresh();
     }
 
-    clicked_zoom_level(e)
+    clicked_zoom_level = (e) =>
     {
         e.preventDefault();
         e.stopPropagation();
@@ -1311,7 +1302,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         return parent_folder_id;
     }
 
-    clicked_go_to_parent(e)
+    clicked_go_to_parent = (e) =>
     {
         e.preventDefault();
             
