@@ -422,9 +422,6 @@ ppixiv.screen_search = class extends ppixiv.screen
 
         this.create_main_search_menu();
 
-        this.thumbnail_dimensions_style = helpers.create_style("");
-        document.body.appendChild(this.thumbnail_dimensions_style);
-        
         // Create the avatar widget shown on the artist data source.
         this.avatar_container = this.container.querySelector(".avatar-container");
         this.avatar_widget = new avatar_widget({
@@ -527,7 +524,6 @@ ppixiv.screen_search = class extends ppixiv.screen
             new ppixiv.settings_dialog({ container: document.body });
         });
 
-        // refresh_images first to update thumbnail_dimensions_style.
         settings.register_change_callback("thumbnail-size", () => { this.refresh_images(); });
         settings.register_change_callback("manga-thumbnail-size", () => { this.refresh_images(); });
         settings.register_change_callback("theme", this.update_from_settings);
@@ -1686,7 +1682,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         let thumbnail_size = settings.get(manga_view? "manga-thumbnail-size":"thumbnail-size", 4);
         thumbnail_size = thumbnail_size_slider_widget.thumbnail_size_for_value(thumbnail_size);
 
-        let {css, columns} = helpers.make_thumbnail_sizing_style(ul, ".screen-search-container", {
+        let {columns, padding, max_width, max_height, container_width} = helpers.make_thumbnail_sizing_style(ul, {
             wide: true,
             size: thumbnail_size,
             ratio: this.data_source.get_thumbnail_aspect_ratio(),
@@ -1700,7 +1696,11 @@ ppixiv.screen_search = class extends ppixiv.screen
             // Set a minimum padding to make sure there's room for the popup text to fit between images.
             min_padding: 15,
         });
-        this.thumbnail_dimensions_style.textContent = css;
+
+        this.container.style.setProperty('--thumb-width', `${max_width}px`);
+        this.container.style.setProperty('--thumb-height', `${max_height}px`);
+        this.container.style.setProperty('--thumb-padding', `${padding}px`);
+        this.container.style.setProperty('--container-width', `${container_width}px`);
 
         // Save the scroll position relative to the first thumbnail.  Do this before making
         // any changes.

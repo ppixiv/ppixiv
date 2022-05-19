@@ -1865,20 +1865,12 @@ ppixiv.helpers = {
         });
     },
     
-    // Return a CSS style to specify thumbnail resolutions.
-    //
     // Based on the dimensions of the container and a desired pixel size of thumbnails,
     // figure out how many columns to display to bring us as close as possible to the
-    // desired size.
+    // desired size.  Return the corresponding CSS style attributes.
     //
     // container is the containing block (eg. ul.thumbnails).
-    // top_selector is a CSS selector for the thumbnail block.  We should be able to
-    // simply create a scoped stylesheet, but browsers don't understand the importance
-    // of encapsulation.
-    //
-    // Return [css, columns], where css is the style to use and columns is the actual
-    // column count.
-    make_thumbnail_sizing_style(container, top_selector, options)
+    make_thumbnail_sizing_style(container, options)
     {
         // The total pixel size we want each thumbnail to have:
         var desired_size = options.size || 300;
@@ -1941,20 +1933,7 @@ ppixiv.helpers = {
         // Clamp the width of the container to the number of columns we expect.
         var container_width = max_columns * (max_width+padding*2);
 
-        var css = `
-            ${top_selector} .thumbnail-box { 
-                width: ${max_width}px;
-                height: ${max_height}px;
-                contain-intrinsic-size: ${max_width}px ${max_height}px;
-            }
-            ${top_selector} .thumbnails { gap: ${padding}px; }
-            ${top_selector} .last-viewed-image-marker { 
-                width: ${max_width/4}px;
-            }
-        `;
-        if(container_width != null)
-            css += `${top_selector} .thumbnails { max-width: ${container_width}px; }`;
-        return {css, columns: best_columns};
+        return {columns: best_columns, padding, max_width, max_height, container_width};
     },
 
     // Given a list of manga info, return the aspect ratio to use to display them.

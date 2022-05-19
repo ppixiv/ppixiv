@@ -1320,6 +1320,10 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
 
 .thumbnail-box {
     position: relative;
+    width: var(--thumb-width);
+    height: var(--thumb-height);
+    contain-intrinsic-size: var(--thumb-width) var(--thumb-height);
+
     .thumb {
         object-fit: cover;
 
