@@ -56,7 +56,7 @@ let _load_source_file = function(__pixiv, __source) {
         let source_url = new URL(source_fetch.url);
         source_url.search = "";
         data += "\n";
-        data += `//# sourceURL=${url}\n`;
+        data += `//# sourceURL=${source_url}\n`;
 
         env.resources[path] = data;
     }
