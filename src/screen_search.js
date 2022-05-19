@@ -1693,7 +1693,9 @@ ppixiv.screen_search = class extends ppixiv.screen
 
             // Limit the number of columns on most views, so we don't load too much data at once.
             // Allow more columns on the manga view, since that never loads more than one image.
-            max_columns: manga_view? 15:5,
+            // Allow unlimited columns for local images.
+            max_columns: manga_view? 15: 
+                this.data_source?.name == "vview"? 100:5,
 
             // Set a minimum padding to make sure there's room for the popup text to fit between images.
             min_padding: 15,
