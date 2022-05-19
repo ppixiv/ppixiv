@@ -1954,7 +1954,7 @@ ppixiv.helpers = {
         `;
         if(container_width != null)
             css += `${top_selector} .thumbnails { max-width: ${container_width}px; }`;
-        return [css, best_columns];
+        return {css, columns: best_columns};
     },
 
     // Given a list of manga info, return the aspect ratio to use to display them.

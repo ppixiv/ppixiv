@@ -1483,7 +1483,7 @@ ppixiv.screen_search = class extends ppixiv.screen
     // start at the beginning.
     //
     // The result is always a contiguous subset of media IDs from the data source.
-    get_media_ids_to_display({all_media_ids, forced_media_id, column_count})
+    get_media_ids_to_display({all_media_ids, forced_media_id, columns})
     {
         if(all_media_ids.length == 0)
             return [];
@@ -1590,8 +1590,8 @@ ppixiv.screen_search = class extends ppixiv.screen
         // same column if we add entries to the beginning of the list.  This only works if
         // the data source provides all IDs at once, but if it doesn't then we won't
         // auto-load earlier images anyway.
-        if(column_count != null)
-            start_idx -= start_idx % column_count;
+        if(columns != null)
+            start_idx -= start_idx % columns;
 
         let media_ids = all_media_ids.slice(start_idx, end_idx+1);
         /*
@@ -1686,7 +1686,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         let thumbnail_size = settings.get(manga_view? "manga-thumbnail-size":"thumbnail-size", 4);
         thumbnail_size = thumbnail_size_slider_widget.thumbnail_size_for_value(thumbnail_size);
 
-        let [dimensions_css, column_count] = helpers.make_thumbnail_sizing_style(ul, ".screen-search-container", {
+        let {css, columns} = helpers.make_thumbnail_sizing_style(ul, ".screen-search-container", {
             wide: true,
             size: thumbnail_size,
             ratio: this.data_source.get_thumbnail_aspect_ratio(),
@@ -1700,7 +1700,7 @@ ppixiv.screen_search = class extends ppixiv.screen
             // Set a minimum padding to make sure there's room for the popup text to fit between images.
             min_padding: 15,
         });
-        this.thumbnail_dimensions_style.textContent = dimensions_css;
+        this.thumbnail_dimensions_style.textContent = css;
 
         // Save the scroll position relative to the first thumbnail.  Do this before making
         // any changes.
@@ -1731,8 +1731,8 @@ ppixiv.screen_search = class extends ppixiv.screen
         // Get the thumbnail media IDs to display.
         let media_ids = this.get_media_ids_to_display({
             all_media_ids,
-            column_count: column_count,
-            forced_media_id: forced_media_id,
+            columns,
+            forced_media_id,
         });
 
         // Add thumbs.
