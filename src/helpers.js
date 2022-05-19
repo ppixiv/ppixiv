@@ -490,11 +490,26 @@ ppixiv.helpers = {
             while(orig_func.__sentry_original__)
                 orig_func = orig_func.__sentry_original__;
             obj[name] = orig_func;
-        }        
+        }
+
+        // Delete owned properties on an object.  This removes wrappers around class functions
+        // like document.addEventListener, so it goes back to the browser implementation, and
+        // freezes the object to prevent them from being added in the future.
+        function delete_overrides(obj)
+        {
+            for(let prop of Object.getOwnPropertyNames(obj))
+            {
+                try {
+                    delete obj[prop];
+                } catch(e) {
+                    // A couple properties like document.location are normal and can't be deleted.
+                }
+            }
+
+            Object.freeze(obj);
+        }
 
         try {
-            unwrap_func(document, "addEventListener");
-            unwrap_func(document, "removeEventListener");
             unwrap_func(unsafeWindow, "fetch");
             unwrap_func(unsafeWindow, "setTimeout");
             unwrap_func(unsafeWindow, "setInterval");
@@ -506,6 +521,11 @@ ppixiv.helpers = {
             // We might get here before the mangling happens, which means it might happen
             // in the future.  Freeze the objects to prevent this.
             Object.freeze(EventTarget.prototype);
+
+            // Delete wrappers on window.history set by the site, and freeze it so they can't
+            // be added.
+            delete_overrides(unsafeWindow.history);
+            delete_overrides(document);
 
             // Remove Pixiv's wrappers from console.log, etc., and then apply our own to console.error
             // to silence its error spam.  This will cause all error messages out of console.error
