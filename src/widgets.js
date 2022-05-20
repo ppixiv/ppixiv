@@ -569,10 +569,7 @@ ppixiv.avatar_widget = class extends widget
         super({...options, template: `
             <div class="follow-container">
                 <a href=# class=avatar-link style="position: relative;">
-                    <div class="avatar popup popup-bottom">
-                        <canvas class=main></canvas>
-                        <canvas class=highlight></canvas>
-                    </div>
+                    <canvas class="avatar popup popup-bottom"></canvas>
 
                     <div class=follow-buttons>
                         <!-- We either show the following icon if we're already following (which acts as the unfollow
@@ -618,18 +615,7 @@ ppixiv.avatar_widget = class extends widget
 
         // A canvas filter for the avatar.  This has no actual filters.  This is just to kill off any
         // annoying GIF animations in people's avatars.
-        this.base_filter = new image_canvas_filter(this.img, element_author_avatar.querySelector("canvas.main"));
-
-        // The actual highlight filter:
-        this.highlight_filter = new image_canvas_filter(this.img, element_author_avatar.querySelector("canvas.highlight"), "brightness(150%)", (ctx, img) => {
-            ctx.globalCompositeOperation = "destination-in";
-
-            let feather = 25;
-            let radius = 15;
-            ctx.filter = "blur(" + feather + "px)";
-            helpers.draw_round_rect(ctx, feather, feather + this.img.naturalHeight/2, this.img.naturalWidth - feather*2, this.img.naturalHeight - feather*2, radius);
-            ctx.fill();
-        });
+        this.base_filter = new image_canvas_filter(this.img, element_author_avatar);
         
         this.container.dataset.mode = this.options.mode;
 

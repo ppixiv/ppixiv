@@ -570,25 +570,13 @@ body[data-theme="light"] .whats-new-button.updates > svg {
         display: block;
         position: relative;
         box-shadow: 0 0 10px 4px #000;
+        filter: contrast(1);
+        transition: filter .25s;
+        border-radius: 5px;
+        object-fit: cover;
 
-        /* .avatar contains an image, and a canvas overlaid on top for hover effects. */
-        & > canvas {
-            border-radius: 5px;
-            object-fit: cover;
-            width: 100%;
-            height: 100%;
-            position: absolute;
-            top: 0;
-            left: 0;
-        }
-
-        & > canvas.highlight {
-            opacity: 0;
-            transition: opacity .25s;
-        }
-
-        &:hover > canvas.highlight {
-            opacity: 1;
+        &:hover {
+            filter: contrast(1.3);
         }
     }
 
