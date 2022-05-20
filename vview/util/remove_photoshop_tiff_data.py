@@ -58,15 +58,21 @@ def _remove_photoshop_tiff_data_inner(f):
         tag, typ, count, data = _read_unpack(tag_fmt, f, endian)
         tags.append((tag, typ, count, data))
 
+    # A list of (pos, size) that we don't need to include in the output.
+    skips = []
     removed_any_tags = False
     new_tags = []
-    for tag, typ, count, data in tags:
+    for tag, tag_type, count, data in tags:
         # Remove ImageSourceData.
         if tag == 37724:
+            pos, = struct.unpack(f'{endian}Q' if bigtiff else f'{endian}L', data)
+            skips.append((pos, count))
             removed_any_tags = True
             continue
 
-        new_tags.append((tag, typ, count, data))
+        new_tags.append((tag, tag_type, count, data))
+
+    skips.sort()
 
     f.seek(0)
 
@@ -78,8 +84,31 @@ def _remove_photoshop_tiff_data_inner(f):
     # Since we're replacing the tag list, read the file into memory.  In principle
     # we could use a file wrapper to just replace the start of the file, but PIL
     # doesn't handle that and would just load the file into memory anyway.
-    output = f.read()
-    output = io.BytesIO(output)
+    #
+    # skips is a list of blocks in the output file that we don't need, so we don't
+    # spend time loading data for the tags we're omitting.  We'll just skip over that
+    # region and leave it empty.
+    if skips:
+        output = io.BytesIO()
+        for pos, size in skips:
+            # Read up to the start of the skipped block.
+            to_read = pos - f.tell()
+            output.write(f.read(to_read))
+
+            # Seek past the skipped block.
+            f.seek(size, io.SEEK_CUR)
+            output.seek(size, io.SEEK_CUR)
+
+        # Read the read of the file.
+        rest = f.read()
+
+        output.write(rest)
+
+        # The generated file should always be the same size as the original.
+        assert f.tell() == output.tell()
+    else:
+        output = f.read()
+        output = io.BytesIO(output)
 
     # Overwrite the tag list.  It'll always be smaller than the original.  The extra
     # leftover data will be ignored.
