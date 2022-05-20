@@ -490,17 +490,21 @@ def _threaded_convert_to_browser_image(path):
             print('Couldn\'t read %s to convert for viewing: %s' % (path, e))
             return None, None
 
+    options = {}
     if _image_is_transparent(image):
         file_type = 'WEBP'
         mime_type = 'image/webp'
     else:
         file_type = 'JPEG'
         mime_type = 'image/jpeg'
+        options = {
+            'subsampling': '4:4:4',
+        }
         if image.mode not in ('RGB', 'L', 'CMYK'):
             image = image.convert('RGB')
     
     # Compress the image.  If the source image had an ICC profile, copy it too.
     f = io.BytesIO()
-    image.save(f, file_type, quality=80, method=0, icc_profile=image.info.get('icc_profile'))
+    image.save(f, file_type, quality=95, method=0, icc_profile=image.info.get('icc_profile'), **options)
     f.seek(0)
     return f, mime_type
