@@ -7,6 +7,7 @@ from shutil import copyfile
 
 from ..util import misc, mjpeg_mkv_to_zip, gif_to_zip, inpainting, video
 from ..util.paths import open_path
+from ..util.remove_photoshop_tiff_data import remove_photoshop_tiff_data
 
 resource_path = (Path(__file__) / '../../../resources').resolve()
 blank_image = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=')
@@ -481,6 +482,7 @@ def _threaded_convert_to_browser_image(path):
     For RGB images, we just use JPEG.  It's 10x faster than WebP.
     """
     with path.open('rb') as f:
+        f = remove_photoshop_tiff_data(f)
         try:
             image = Image.open(f)
             image.load()
