@@ -569,11 +569,14 @@ body[data-theme="light"] .whats-new-button.updates > svg {
         transition: filter .25s;
         display: block;
         position: relative;
-        box-shadow: 0 0 10px 4px #000;
         filter: contrast(1);
         transition: filter .25s;
         border-radius: 5px;
         object-fit: cover;
+
+        &.loaded {
+            box-shadow: 0 0 10px 4px #000;
+        }
 
         &:hover {
             filter: contrast(1.3);

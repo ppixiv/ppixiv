@@ -2612,7 +2612,9 @@ ppixiv.image_canvas_filter = class
 
         if(current_url == this.current_url)
             return;
-        
+
+        helpers.set_class(this.canvas, "loaded", false);
+
         this.canvas.width = this.img.naturalWidth;
         this.canvas.height = this.img.naturalHeight;
         this.clear();
@@ -2640,6 +2642,7 @@ ppixiv.image_canvas_filter = class
         // Use destination-over to draw the image underneath the overlay we just drew.
         this.ctx.globalCompositeOperation = "destination-over";
         this.ctx.drawImage(this.img, 0, 0);
+        helpers.set_class(this.canvas, "loaded", true);
     }
 }
 
