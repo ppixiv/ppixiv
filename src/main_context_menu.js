@@ -223,6 +223,7 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
         `});
 
         this.visible = false;
+        this.hide = this.hide.pbind(this);
 
         this.pointer_listener = new ppixiv.pointer_listener({
             element: window,
@@ -530,7 +531,7 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
         helpers.set_class(this.container, "visible", visible);
     }
 
-    hide = () =>
+    hide()
     {
         if(!this.visible)
             return;
