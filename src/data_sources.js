@@ -855,8 +855,8 @@ ppixiv.data_source = class
             // Find the selected item in the dropdown, if any.
             let selected_item = box.querySelector(".selected");
             let selected_default = selected_item == null || selected_item.dataset["default"];
-            helpers.set_class(button, "active", !selected_default);
-            helpers.set_class(box, "active", !selected_default);
+            helpers.set_class(button, "selected", !selected_default);
+            helpers.set_class(box, "selected", !selected_default);
 
             // Store the original text, so we can restore it when the default is selected.
             if(button.dataset.originalText == null)
@@ -1840,7 +1840,7 @@ ppixiv.data_sources.artist = class extends data_source
         // Set whether the tags menu item is highlighted.  We don't use set_active_popup_highlight
         // here so we don't need to load the tag list.
         var box = container.querySelector(".member-tags-box");
-        helpers.set_class(box, "active", query_args.has("tag"));
+        helpers.set_class(box, "selected", query_args.has("tag"));
     }
 
     // This is called when the tag list dropdown is opened.
@@ -2422,7 +2422,7 @@ class data_source_bookmarks_base extends data_source
 
         // Set whether the tags menu item is highlighted.
         let box = container.querySelector(".bookmark-tags-box .box-link");
-        helpers.set_class(box, "active", current_tag != null);
+        helpers.set_class(box, "selected", current_tag != null);
         this.set_active_popup_highlight(container);
     }
 

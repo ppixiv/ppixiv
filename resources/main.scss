@@ -1575,11 +1575,6 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
             height: 1em;
         }
     }
-
-    // This is set by set_active_popup_highlight.
-    &.active {
-        background-color: var(--box-link-selected-color);
-    }
 }
 
 // box-link buttons that are A or SPAN don't have children, so put the padding on the box itself.
