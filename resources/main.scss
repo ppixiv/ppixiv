@@ -2092,24 +2092,14 @@ a.box-link, span.box-link
         > .tag-name {
             flex: 1;
         }
-                   &.active {
+                   &.selected {
             background-color: #008;
         }
-        body[data-theme="light"] &.active {
-            background-color: #00c;
-            color: #fff;
-        }
-                   &.active:hover {
+                   &.selected:hover {
             background-color: #00a;
         }
-        body[data-theme="light"] &.active:hover {
-            background-color: #00a;
-        }
-                   &:not(.active):hover {
+                   &:not(.selected):hover {
             background-color: #222;
-        }
-        body[data-theme="light"] &:not(.active):hover {
-            background-color: #ccc;
         }
     }
 }

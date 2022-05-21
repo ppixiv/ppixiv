@@ -979,7 +979,7 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
         var bookmark_tags = this.container;
         for(var entry of bookmark_tags.querySelectorAll(".popup-bookmark-tag-entry"))
         {
-            if(!entry.classList.contains("active"))
+            if(!entry.classList.contains("selected"))
                 continue;
             tag_list.push(entry.dataset.tag);
         }
@@ -1113,7 +1113,7 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
             entry.querySelector(".tag-name").innerText = tag;
 
             let active = active_tags.indexOf(tag) != -1;
-            helpers.set_class(entry, "active", active);
+            helpers.set_class(entry, "selected", active);
         }
     }
 
@@ -1167,7 +1167,7 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
         // Toggle this tag.  Don't actually save it immediately, so if we make multiple
         // changes we don't spam requests.
         let tag = a.dataset.tag;
-        helpers.set_class(a, "active", !a.classList.contains("active"));
+        helpers.set_class(a, "selected", !a.classList.contains("selected"));
     }
 }
 
