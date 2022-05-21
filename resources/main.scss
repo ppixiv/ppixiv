@@ -46,6 +46,7 @@ body {
     --box-link-disabled-color: #888;
     --box-link-hover-color: #443;
     --box-link-selected-color: #008;
+    --box-link-selected-hover-color: #338;
 
     /* Color for the minor text style, eg. the bookmark and like counts.
      * This is smaller text, with a text border applied to make it readable. */
@@ -1532,9 +1533,19 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
     height: 2em;
 
     color: var(--box-link-fg-color);
-    background-color: var(--box-link-bg-color);
     user-select: none;
     white-space: nowrap;
+
+    background-color: var(--box-link-bg-color);
+
+    &.selected {
+        background-color: var(--box-link-selected-color);
+    }
+
+    &:hover:not(.disabled) {
+        background-color: var(--box-link-hover-color);
+        &.selected { background-color: var(--box-link-selected-hover-color); }    
+    }
 
     &.disabled {
         color: var(--box-link-disabled-color);
@@ -1542,14 +1553,6 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
 
         // Also prevent disabled links from showing an unfilled URL:
         pointer-events: none;
-    }
-
-    &:hover:not(.disabled) {
-        background-color: var(--box-link-hover-color);
-    }
-
-    &.selected {
-        background-color: var(--box-link-selected-color);
     }
 
     &.tag {
