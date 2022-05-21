@@ -105,15 +105,33 @@ class illust_id_list
         this.media_ids_by_page.set(page, media_ids);
     };
 
-    // Return the page number illust_id is on, or null if we don't know.
-    get_page_for_illust(illust_id)
+    // Return the page number media_id is on and the index within the page.
+    //
+    // If check_first_page is true and media_id isn't in the list, try the first page
+    // of media_id too, so if we're looking for page 3 of a manga post and the data
+    // source only contains the first page, we'll use that.
+    get_page_for_illust(media_id, { check_first_page=true }={})
     {
         for(let [page, ids] of this.media_ids_by_page)
         {
-            if(ids.indexOf(illust_id) != -1)
-                return page;
+            let idx = ids.indexOf(media_id);
+            if(idx != -1)
+                return { page, idx, media_id };
         }
-        return null;
+
+        if(!check_first_page)
+            return { };
+
+        // Try the first page.
+        media_id = helpers.get_media_id_first_page(media_id);
+        for(let [page, ids] of this.media_ids_by_page)
+        {
+            let idx = ids.indexOf(media_id);
+            if(ids.indexOf(media_id) != -1)
+                return { page, idx, media_id };
+        }
+
+        return { };
     };
 
     // Return the next or previous illustration.  If we don't have that page, return null.
@@ -175,17 +193,11 @@ class illust_id_list
             }
         }
 
-        // We only know about the first page of each media ID.  Get the media ID for the first
-        // page of media_id.
-        id.page = 0;
-        media_id = helpers.encode_media_id(id);
-
-        let page = this.get_page_for_illust(media_id);
+        let { page, idx } = this.get_page_for_illust(media_id);
         if(page == null)
             return null;
 
         let ids = this.media_ids_by_page.get(page);
-        let idx = ids.indexOf(media_id);
         let new_idx = idx + (next? +1:-1);
         let new_media_id = null;
         if(new_idx < 0)
@@ -233,12 +245,11 @@ class illust_id_list
     // makes sense if get_neighboring_illust returns null.
     get_page_for_neighboring_illust(illust_id, next)
     {
-        let page = this.get_page_for_illust(illust_id);
+        let { page, idx } = this.get_page_for_illust(illust_id);
         if(page == null)
             return null;
 
         let ids = this.media_ids_by_page.get(page);
-        let idx = ids.indexOf(illust_id);
         let new_idx = idx + (next? +1:-1);
         if(new_idx >= 0 && new_idx < ids.length)
             return page;
@@ -578,7 +589,7 @@ ppixiv.data_source = class
             // the user clicks something that came from page 6 while the top of the search results
             // were on page 5, we'll start the search at page 5 if the page is reloaded and not find
             // the image, which is confusing.
-            var original_page = this.id_list.get_page_for_illust(illust_id);
+            let { page: original_page } = this.id_list.get_page_for_illust(illust_id);
             if(original_page != null)
                 this.set_start_page(args, original_page);
         }
@@ -884,6 +895,7 @@ ppixiv.data_source = class
     // we won't try another page.
     async get_or_load_neighboring_media_id(media_id, next, options={})
     {
+        // See if it's already loaded.
         let new_media_id = this.id_list.get_neighboring_media_id(media_id, next, options);
         if(new_media_id != null)
             return new_media_id;
