@@ -78,6 +78,7 @@ def threaded_create_thumb(path, inpaint_path=None):
     # pixel count.
     with path.open('rb') as f:
         try:
+            f = remove_photoshop_tiff_data(f)
             image = Image.open(f)
             image.load()
 
