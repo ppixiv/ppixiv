@@ -676,11 +676,7 @@ ppixiv.screen_search = class extends ppixiv.screen
             let button = new menu_option_button({
                 container: option_box,
                 parent: this,
-                no_icon_padding: true,
-                label: option.label,
-                url: option.url,
-                classes: option.classes,
-                onclick: option.onclick,
+                ...option
             })
 
             // Hide the local search menu option if it's not enabled.

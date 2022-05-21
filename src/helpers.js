@@ -162,14 +162,79 @@ ppixiv.helpers = {
         }
     },
 
-    create_icon(name, size)
+    // Create a general-purpose box link.
+    create_box_link({
+        label,
+        link=null,
+        classes="",
+        icon=null,
+        popup=null,
+
+        // If set, this is an extra explanation line underneath the label.
+        explanation=null,
+
+        // By default, return HTML as text, which is used to add these into templates, which
+        // is the more common usage.  If as_element is true, an element will be returned instead.
+        as_element=false,
+    })
     {
-        let span = document.createElement("span");
-        span.classList = "material-icons";
-        span.innerText = name;
-        if(size != null)
-            span.style.fontSize = size;
-        return span;
+        // XXX: We prefix material icon names with "mat:", so in the future we can have a custom
+        // icon font if we want using a different prefix.
+        if(icon && icon.startsWith && icon.startsWith("mat:"))
+            icon = icon.substr(4);
+
+        // We always create an anchor, even if we don't have a link.  Browsers just treat it as
+        // a span when there's no href attribute.
+        //
+        // label-box encloses the icon and label, so they're aligned to each other with text spacing,
+        // which is needed to get text to align with font icons.  The resulting box is then spaced as
+        // a unit within box-link's flexbox.
+        let html = `
+            <a class=box-link>
+                <div class=label-box>
+                    <span hidden class=icon>
+                        <span class=material-icons></span>
+                    </span>
+                    <span class=label></span>
+                    <span hidden class=explanation></span>
+                </div>
+            </a>
+        `;
+
+        let template = document.createElement("template");
+        template.innerHTML = html;
+        let node = helpers.create_from_template(template);
+
+        node.querySelector(".label").innerText = label;
+        if(link)
+            node.href = link;
+
+        for(let className of classes || [])
+            node.classList.add(className);
+
+        if(popup)
+        {
+            node.classList.add("popup");
+            node.dataset.popup = popup;
+        }
+
+        if(icon)
+        {
+            node.querySelector(".icon").hidden = false;
+            node.querySelector(".material-icons").innerText = icon;
+        }
+
+        if(explanation != null)
+        {
+            let explanation_node = node.querySelector(".explanation");
+            explanation_node.hidden = false;
+            explanation_node.innerText = explanation;
+        }
+
+        if(as_element)
+            return node;
+        else
+            return node.outerHTML;
     },
 
     create_ppixiv_inline(src)

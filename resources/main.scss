@@ -1538,6 +1538,12 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
 
     background-color: var(--box-link-bg-color);
 
+    .label {
+        // This is so the label text aligns correctly with .icon .material-icons.
+        vertical-align: middle;
+        white-space: nowrap;
+    }
+
     &.selected {
         background-color: var(--box-link-selected-color);
     }
@@ -1564,11 +1570,16 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
     }
 
     // An icon on the left side.
-    > .icon {
+    .icon {
+        // If this is a material icon, .material-icons will try to change the font size, which
+        // is rude.  Override it to inherit the current font size.
+        .material-icons {
+            font-size: inherit;
+            vertical-align: middle;
+        }
         display: inline-block;
         width: 1em;
         position: relative;
-        top: 0.125em;
         margin-right: 0.25em;
         svg {
             width: auto;
@@ -2680,7 +2691,7 @@ svg.heart-image .delete {
                 display: flex;
                 flex-direction: column;
 
-                > div {
+                > .box-link {
                     padding: 0.5em;
                     cursor: pointer;
 

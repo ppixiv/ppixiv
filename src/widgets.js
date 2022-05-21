@@ -497,6 +497,35 @@ ppixiv.dropdown_menu_opener = class
     }
 };
 
+ppixiv.checkbox_widget = class extends ppixiv.widget
+{
+    constructor({
+        value=false,
+        ...options})
+    {
+        super({...options, template: `
+            <span class="checkbox material-icons"></span>
+        `});
+
+        this._checked = true;
+    };
+
+    set checked(value)
+    {
+        if(this._checked == value)
+            return;
+
+        this._checked = value;
+        this.refresh();
+    }
+    get checked() { return this._checked; }
+
+    async refresh()
+    {
+        this.container.innerText = this.checked? "check_box":"check_box_outline_blank";
+    }
+};
+
 // A pointless creepy eye.  Looks away from the mouse cursor when hovering over
 // the unfollow button.
 ppixiv.creepy_eye_widget = class
@@ -1204,7 +1233,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                 return new menu_option_button({
                     ...shared_options,
                     label: "Similar illustrations",
-                    icon: "resources/related-illusts.svg",
+                    icon: "mat:lightbulb",
                     requires_image: true,
                     onclick: () => {
                         this.parent.hide();
@@ -1219,7 +1248,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                 return new menu_option_button({
                     ...shared_options,
                     label: "Similar artists",
-                    icon: "resources/related-illusts.svg",
+                    icon: "mat:lightbulb",
                     requires_user: true,
                     onclick: () => {
                         this.parent.hide();
@@ -1234,7 +1263,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                 return new menu_option_button({
                     ...shared_options,
                     label: "Similar bookmarks",
-                    icon: "resources/related-illusts.svg",
+                    icon: "mat:lightbulb",
                     requires_image: true,
                     onclick: () => {
                         this.parent.hide();
@@ -1254,7 +1283,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                     // Only show this entry if we have at least a media ID or a user ID.
                     requires: ({media_id, user_id}) => { return media_id != null || user_id != null; },
 
-                    icon: helpers.create_icon("block", "16px"),
+                    icon: "mat:block",
                     hide_if_unavailable: true,
 
                     onclick: async () => {
@@ -1276,7 +1305,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                     requires_image: true,
                     hide_if_unavailable: true,
 
-                    icon: helpers.create_icon("refresh", "20px"),
+                    icon: "mat:refresh",
 
                     onclick: async () => {
                         this.parent.hide();
@@ -1290,7 +1319,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                 return new menu_option_button({
                     ...shared_options,
                     label: "Download image",
-                    icon: "resources/download-icon.svg",
+                    icon: "mat:download",
                     hide_if_unavailable: true,
                     requires_image: true,
                     available: () => { return this.thumbnail_data && actions.is_download_type_available("image", this.thumbnail_data); },
@@ -1305,7 +1334,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                 return new menu_option_button({
                     ...shared_options,
                     label: "Download manga ZIP",
-                    icon: "resources/download-manga-icon.svg",
+                    icon: "mat:download",
                     hide_if_unavailable: true,
                     requires_image: true,
                     available: () => { return this.thumbnail_data && actions.is_download_type_available("ZIP", this.thumbnail_data); },
@@ -1320,7 +1349,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                 return new menu_option_button({
                     ...shared_options,
                     label: "Download video MKV",
-                    icon: "resources/download-icon.svg",
+                    icon: "mat:download",
                     hide_if_unavailable: true,
                     requires_image: true,
                     available: () => { return this.thumbnail_data && actions.is_download_type_available("MKV", this.thumbnail_data); },
@@ -1336,7 +1365,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                     ...shared_options,
                     label: "Send to tab",
                     classes: ["button-send-image"],
-                    icon: "resources/send-to-tab.svg",
+                    icon: "mat:open_in_new",
                     requires_image: true,
                     onclick: () => {
                         main_controller.singleton.send_image_popup.show_for_illust(this.media_id);
@@ -1349,7 +1378,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                 return new menu_option_button({
                     ...shared_options,
                     label: "Slideshow",
-                    icon: helpers.create_icon("wallpaper", "16px"),
+                    icon: "mat:wallpaper",
                     requires_image: true,
                     onclick: () => {
                         // Add or remove slideshow=1 from the hash.
@@ -1373,14 +1402,13 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                     parent: this,
                     label: "Linked tabs",
                     setting: "linked_tabs_enabled",
-                    icon: helpers.create_icon("link", "16px"),
+                    icon: "mat:link",
                     buttons: [
                         new menu_option_button({
                             container: option_box,
                             parent: this,
                             label: "Edit",
                             classes: ["small-font"],
-                            no_icon_padding: true,
 
                             onclick: (e) => {
                                 e.stopPropagation();
@@ -1403,7 +1431,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                 return new menu_option_toggle({
                     ...shared_options,
                     label: "Edit image",
-                    icon: helpers.create_icon("brush", "16px"),
+                    icon: "mat:brush",
                     hide_if_unavailable: true,
                     setting: "image_editing",
                     requires: ({media_id}) => {
@@ -1416,7 +1444,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                 return new menu_option_button({
                     ...shared_options,
                     label: "Return to Pixiv",
-                    icon: "resources/pixiv-icon.svg",
+                    icon: "mat:logout",
                     url: "#no-ppixiv",
                 });
             },

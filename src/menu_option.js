@@ -450,11 +450,13 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
         this.items.appendChild(page);
         global_options.container = page;
 
-        let page_button = this.create_template({name: "settings-page-button", html: `
-            <div class=box-link>
-            </div>
-        `});
-        page_button.innerText = title;
+        let page_button = this.create_template({
+            html: helpers.create_box_link({
+                label: title,
+                classes: ["settings-page-button"],
+            }),
+        });
+
         page.hidden = true;
         page_button.addEventListener("click", (e) => {
             this.show_page(id);
@@ -568,45 +570,27 @@ ppixiv.menu_option_button = class extends ppixiv.menu_option
         buttons=[],
         ...options})
     {
-        // If we've been given a URL, make this a link.  Otherwise, make it a div and
-        // onclick will handle it.
-        let type = "div";
-        let href = "";
-        if(url != null)
-        {
-            type = "a";
-            href = `href="${encodeURI(url)}"`;
-        }
-
         super({...options, template: `
-            <${type} ${href} class="menu-toggle box-link">
-                <span class=icon hidden></span>
-                <div class=label-box>
-                    <span class=label></span>
-                    <span class=explanation hidden></span>
-                </div>
-                <div style="flex: 1;"></div>
-            </{type}>
+            ${helpers.create_box_link({
+                label: label,
+                // If a font icon was specified, use it.  Otherwise, if an image
+                icon: options.icon,
+                link: url,
+                classes: ["menu-toggle"],
+                explanation: "", // create the explanation field
+            })}
         `});
+
+        // Add a flex block to the right of the label, to push buttons to the right:
+        let flex = document.createElement("div");
+        flex.style.flex = 1;
+        this.container.appendChild(flex);
 
         this.onclick_handler = onclick;
         this._enabled = true;
         this.explanation_enabled = explanation_enabled;
         this.explanation_disabled = explanation_disabled;
         this.get_label = get_label;
-
-        // If an icon was provided, add it.
-        if(options.icon)
-        {
-            // This can be a resource name, or an element, usually created with helpers.create_icon.
-            let node = options.icon;
-            if(!(node instanceof HTMLElement))
-                node = helpers.create_ppixiv_inline(node);
-
-            let icon = this.container.querySelector(".icon");
-            icon.appendChild(node);
-            icon.hidden = false;
-        }
 
         // Add items.
         for(let item of buttons)
@@ -617,16 +601,8 @@ ppixiv.menu_option_button = class extends ppixiv.menu_option
             this.container.appendChild(item_container);
         }
 
-        // If a button was provided, add it.
-        if(options.button)
-        {
-            let node = helpers.create_ppixiv_inline(options.button);
-            this.container.appendChild(node);
-        }
-
         if(this.onclick_handler != null)
             this.container.classList.add("clickable");
-
 
         this.container.querySelector(".label").innerText = label;
         this.container.addEventListener("click", this.onclick);
@@ -712,8 +688,15 @@ ppixiv.menu_option_toggle = class extends ppixiv.menu_option_button
         off_value=false,
         ...options})
     {
+        // Add a checkbox_widget to the button list.
+        let checkbox = new checkbox_widget({ });
+
+        buttons = [
+            ...buttons,
+            checkbox,
+        ];
+
         super({...options,
-            button: "resources/checkbox.svg",
             buttons: buttons,
             onclick: (e) => {
                 if(this.options && this.options.check && !this.options.check())
@@ -723,6 +706,7 @@ ppixiv.menu_option_toggle = class extends ppixiv.menu_option_button
             },
         });
 
+        this.checkbox = checkbox;
         this.setting = setting;
         this.on_value = on_value;
         this.off_value = off_value;
@@ -738,8 +722,7 @@ ppixiv.menu_option_toggle = class extends ppixiv.menu_option_button
         if(this.options.invert_display)
             value = !value;
 
-        // element.hidden doesn't work on SVG:
-        this.container.querySelector(".checkbox").style.display = value? "":"none";
+        this.checkbox.checked = value;
 
         // Update the explanation text.
         let text = value? this.explanation_enabled:this.explanation_disabled;
