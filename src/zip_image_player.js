@@ -130,6 +130,9 @@ ppixiv.ZipImageDownloader = class
         // Wait for start_download to complete, if it hasn't yet.
         await this.start_promise;
 
+        if(this.reader == null)
+            return null;
+        
         // Read the local file header up to the filename.
         let header = await this.reader.read(30);
         let view = new DataView(header);
