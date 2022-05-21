@@ -2095,14 +2095,14 @@ a.box-link, span.box-link
         > .tag-name {
             flex: 1;
         }
-                   &.selected {
-            background-color: #008;
+
+        background-color: var(--box-link-bg-color);
+        &.selected {
+            background-color: var(--box-link-selected-color);
         }
-                   &.selected:hover {
-            background-color: #00a;
-        }
-                   &:not(.selected):hover {
-            background-color: #222;
+        &:hover {
+            background-color: var(--box-link-hover-color);
+            &.selected { background-color: var(--box-link-selected-hover-color); }
         }
     }
 }
