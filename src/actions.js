@@ -346,8 +346,10 @@ ppixiv.actions = class
 
         // This doesn't return any data.  Record that we're following and refresh the UI.
         let user_data = await image_data.singleton().get_user_info(user_id);
-        user_data.isFollowed = true;
-        image_data.singleton().call_user_modified_callbacks(user_data.userId);
+        image_data.singleton().update_cached_follow_info(user_id, true, {
+            following_privately: follow_privately,
+            tags: new Set(tags),
+        });
 
         var message = "Followed " + user_data.name;
         if(follow_privately)
@@ -366,10 +368,10 @@ ppixiv.actions = class
             id: user_id,
         });
 
-        // Record that we're no longer following and refresh the UI.
         let user_data = await image_data.singleton().get_user_info(user_id);
-        user_data.isFollowed = false;
-        image_data.singleton().call_user_modified_callbacks(user_data.userId);
+
+        // Record that we're no longer following and refresh the UI.
+        image_data.singleton().update_cached_follow_info(user_id, false);
 
         message_widget.singleton.show("Unfollowed " + user_data.name);
     }

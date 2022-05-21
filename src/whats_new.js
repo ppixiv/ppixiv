@@ -3,6 +3,13 @@
 // This should be inside whats_new, but Firefox is in the dark ages and doesn't support class fields.
 let _update_history = [
     {
+        version: 132,
+        text: `
+            Improved following users, allowing changing a follow to public or private and
+            adding support for follow tags.
+        `,
+    },
+    {
         version: 129,
         text: `
             Added a new way of viewing manga posts.

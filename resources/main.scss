@@ -565,7 +565,10 @@ body[data-theme="light"] .whats-new-button.updates > svg {
     right: -10px;
 }
 
-.follow-container {
+.avatar-widget-follow-container {
+    // Set relative so we're the positioning container for the follow dropdown.
+    position: relative;
+    
     .avatar {
         transition: filter .25s;
         display: block;
@@ -599,29 +602,26 @@ body[data-theme="light"] .whats-new-button.updates > svg {
         width: 44px;
         height: 44px;
     }
-}
-
-/* Hide the avatar while we're waiting for user data to load, since the follow icons aren't
- * updated until then. */
-.follow-container.loading {
-    visibility: hidden;
-    pointer-events: none;
-}
-
-/* The API doesn't tell us whether a follow is private or not, so we can't show
- * it.  The lock is only used to distinguish the "follow" and "follow privately"
- * buttons. */
-.follow-icon {
-    .lock {
-        stroke: #888;
+    
+    // Position the follow dropdown.
+    .follow-box {
+        position: absolute;
+        top: 100%;
     }
 
-    &:not(.private) .lock {
-        display: none !important;
+    // When we're in the context menu, push the dropdown down a bit so it's aligned with the edge
+    // of the menu instead of the avatar icon inside it.
+    &:not(.big) .follow-box {
+        top: calc(100% + 10px);
     }
-}
 
-.follow-container {
+    // Hide the avatar while we're waiting for user data to load, since the follow icon isn't
+    // updated until then.
+    &.loading {
+        visibility: hidden;
+        pointer-events: none;
+    }
+    
     .follow-icon {
         position: absolute;
         bottom: 0;
@@ -629,110 +629,23 @@ body[data-theme="light"] .whats-new-button.updates > svg {
         height: auto;
         width: 50%; /* half the size of the container */
         max-width: 50px; /* limit the size for larger avatar displays */
+        right: 0;
 
-        &.bottom-left {
-            left: 0;
-        }
-
-        &.bottom-right {
-            right: 0;
-        }
-    }
-
-    .follow-icon:not(:hover) .outline1 {
-        stroke: none !important;
-    }
-
-    /* Hide the following icon if we're not following. */
-    &:not(.followed) .follow-icon.following-icon {
-        display: none;
-    }
-
-    /* Hide the follow buttons if we're already following. */
-    &.followed .follow-icon.follow-button {
-        display: none;
-    }
-
-    /* Only show the follow buttons on hover (but always show the following icon). */
-    &:not(:hover) .follow-icon.follow-button {
-        display: none;
-    }
-
-    /* If use-dropdown is set, this avatar is using the dropdown UI and doesn't show the
-     * follow/unfollow overlay buttons. */
-    &[data-mode="dropdown"] .follow-icon.follow-button {
-        display: none;
-    }
-
-    /* Don't show follow buttons or the follow popup for the user himself. */
-    &.self .follow-icon,
-    &.self .follow-popup
-    {
-        display: none;
-    }
-
-    /* In small avatar buttons, nudge the follow buttons down off of the
-     * avatar, so they don't appear right under the cursor when you're trying
-     * to click the avatar itself.  Only do this with the follow buttons that
-     * appears on hover, not the following icon (unfollow button), and don't
-     * do it with the big avatars. */
-    &:not(.big) .follow-button {
-        top: calc(100% - 5px);
-    }
-
-    .follow-icon > svg {
-        display: block;
-        width: 100%;
-        height: auto;
-        transition: opacity .25s;
-
-        /* Move the icon down, so the bottom of the eye is along the bottom of the
-         * container and the lock (if visible) overlaps. */
-        margin-bottom: -20%;
-    }
-
-    &:not(:hover) .follow-icon > svg {
-        opacity: 0.5;
-    }
-
-    /* Don't fade the icons in the context menu, since it's too small and it makes
-     * it too hard to see at a glance. */
-    .popup-context-menu & .follow-icon > svg {
-        opacity: 1;
-    }
-
-    .follow-icon > svg .middle {
-        transition: transform .1s ease-in-out;
-        transform: translate(0px, -2px);
-    }
-
-    .follow-icon.unfollow-button > svg .middle {
-        transform: translate(-2px, -5px);
-    }
-
-    .follow-icon.unfollow-button:hover > svg .middle {
-        transform: translate(2px, 5px);
-    }
-
-    .follow-popup {
-        margin-top: 10px;
-        right: 0px;
-
-        .folder {
+        > svg {
             display: block;
             width: 100%;
+            height: auto;
+            transition: opacity .25s;
+
+            /* Move the icon down, so the bottom of the eye is along the bottom of the
+            * container and the lock (if visible) overlaps. */
+            margin-bottom: -20%;
         }
 
-        .follow-container.followed & .not-following { display: none; }
-        .follow-container:not(.followed) & .following { display: none; }
-
-        input {
-            padding: .25em;
+        > svg .middle {
+            transition: transform .1s ease-in-out;
+            transform: translate(0px, -2px);
         }
-    }
-
-    .hover-area {
-        top: -12px;
     }
 
     .avatar-link {
@@ -740,9 +653,24 @@ body[data-theme="light"] .whats-new-button.updates > svg {
     }
 }
 
-/* Hide the follow dropdown when following, since there's nothing in it. */
-.follow-container.followed.popup-visible .popup-menu-box.hover-menu-box {
-    visibility: hidden;
+.follow-container
+{
+    display: flex;
+    flex-direction: column;
+    background-color: var(--frame-bg-color);
+    border: 1px solid var(--frame-border-color);
+    padding: .25em;
+
+    .separator {
+        width: 100%;
+        height: 2px;
+        background-color: #fff;
+        margin: 2px 0;
+    }
+
+    .material-icons {
+        margin-right: 8px;
+    }
 }
 
 .title-block {

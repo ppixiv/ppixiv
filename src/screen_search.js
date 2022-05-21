@@ -860,6 +860,7 @@ ppixiv.screen_search = class extends ppixiv.screen
 
         // Disable the avatar widget unless the data source enables it.
         this.avatar_container.hidden = true;
+        this.avatar_widget.set_user_id(null);
 
         // Listen to the data source loading new pages, so we can refresh the list.
         this.data_source.add_update_listener(this.data_source_updated);

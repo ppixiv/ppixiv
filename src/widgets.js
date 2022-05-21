@@ -596,37 +596,16 @@ ppixiv.avatar_widget = class extends widget
     constructor(options)
     {
         super({...options, template: `
-            <div class="follow-container">
+            <div class=avatar-widget-follow-container>
                 <a href=# class=avatar-link style="position: relative;">
-                    <canvas class="avatar popup popup-bottom"></canvas>
+                    <canvas class=avatar></canvas>
 
-                    <div class=follow-buttons>
-                        <!-- We either show the following icon if we're already following (which acts as the unfollow
-                            button), or the public and private follow buttons.  The follow button is only shown on hover. -->
-                        <div class="follow-icon follow-button public bottom-left popup popup-bottom" data-popup="Follow publically">
-                            <ppixiv-inline src="resources/eye-icon.svg"></ppixiv-inline>
-                        </div>
-                        <div class="follow-icon follow-button private bottom-right popup popup-bottom" data-popup="Follow privately">
-                            <ppixiv-inline src="resources/eye-icon.svg"></ppixiv-inline>
-                        </div>
-                        <div class="follow-icon following-icon unfollow-button bottom-right popup popup-bottom" data-popup="Unfollow">
-                            <ppixiv-inline src="resources/eye-icon.svg"></ppixiv-inline>
-                        </div>
+                    <div class=follow-icon>
+                        <ppixiv-inline src="resources/eye-icon.svg"></ppixiv-inline>
                     </div>
                 </a>
-                <div class="popup-menu-box hover-menu-box follow-popup">
-                    <div class=hover-area></div>
-                    <div class=not-following>
-                        <div class="button follow-button public">
-                            Follow
-                        </div>
-                        <div class="button follow-button private">
-                            Follow&nbsp;Privately
-                        </div>
-                        <input class="folder premium-only" placeholder="Folder">
-                        </input>
-                    </div>
-                </div>
+
+                <div class=follow-box></div>
             </div>
         `});
 
@@ -639,11 +618,38 @@ ppixiv.avatar_widget = class extends widget
         image_data.singleton().user_modified_callbacks.register(this.user_changed);
 
         let element_author_avatar = this.container.querySelector(".avatar");
+        let avatar_link = this.container.querySelector(".avatar-link");
 
-        this.img = document.createElement("img");
+        let box = this.container.querySelector(".follow-box");
+        this.follow_widget = new ppixiv.follow_widget({
+            container: box,
+            parent: this,
+            open_button: avatar_link,
+        });
+
+        avatar_link.addEventListener("click", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.follow_widget.visible = !this.follow_widget.visible;
+        }, {
+            // Hack: capture this event so we get clicks even over the eye widget.  We can't
+            // set it to pointer-events: none since it reacts to mouse movement.
+            capture: true,
+        });
+
+        // Clicking the avatar used to go to the user page, but now it opens the follow dropdown.
+        // Allow doubleclicking it instead, to keep it quick to go to the user.
+        avatar_link.addEventListener("dblclick", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            let args = new helpers.args(`/users/${this.user_id}/artworks#ppixiv`);
+            helpers.set_page_url(args, true /* add_to_history */, "navigation");
+        });
 
         // A canvas filter for the avatar.  This has no actual filters.  This is just to kill off any
         // annoying GIF animations in people's avatars.
+        this.img = document.createElement("img");
         this.base_filter = new image_canvas_filter(this.img, element_author_avatar);
         
         this.container.dataset.mode = this.options.mode;
@@ -656,18 +662,7 @@ ppixiv.avatar_widget = class extends widget
             avatar_popup.addEventListener("mouseout", (e) => { helpers.set_class(avatar_popup, "popup-visible", false); });
         }
 
-        new creepy_eye_widget(this.container.querySelector(".unfollow-button .eye-image"));
-
-        for(let button of avatar_popup.querySelectorAll(".follow-button.public"))
-            button.addEventListener("click", this.clicked_follow.pbind(this, false), false);
-        for(let button of avatar_popup.querySelectorAll(".follow-button.private"))
-            button.addEventListener("click", this.clicked_follow.pbind(this, true), false);
-        for(let button of avatar_popup.querySelectorAll(".unfollow-button"))
-            button.addEventListener("click", this.clicked_follow.pbind(this, true), false);
-        this.element_follow_folder = avatar_popup.querySelector(".folder");
-
-        // Follow publically when enter is pressed on the follow folder input.
-        helpers.input_handler(avatar_popup.querySelector(".folder"), this.clicked_follow.pbind(this, false));
+        new creepy_eye_widget(this.container.querySelector(".follow-icon .eye-image"));
     }
 
     shutdown()
@@ -681,7 +676,7 @@ ppixiv.avatar_widget = class extends widget
 
         this.refresh();
     }
-    
+
     // Refresh when the user changes.
     user_changed = (user_id) =>
     {
@@ -694,6 +689,7 @@ ppixiv.avatar_widget = class extends widget
     async set_user_id(user_id)
     {
         this.user_id = user_id;
+        this.follow_widget.user_id = user_id;
         this.refresh();
     }
 
@@ -727,21 +723,16 @@ ppixiv.avatar_widget = class extends widget
         // Clear stuff we need user info for, so we don't show old data while loading.
         helpers.set_class(this.container, "followed", false);
         this.container.querySelector(".avatar").dataset.popup = "";
-        this.container.querySelector(".follow-buttons").hidden = true;
-        this.container.querySelector(".follow-popup").hidden = true;
 
         this.container.classList.remove("loading");
+        this.container.querySelector(".follow-icon").hidden = true;
 
         let user_data = await image_data.singleton().get_user_info(this.user_id);
         this.user_data = user_data;
         if(user_data == null)
             return;
 
-        helpers.set_class(this.container, "self", this.user_id == global_data.user_id);
-
-        // We can't tell if we're followed privately or not, only that we're following.
-        helpers.set_class(this.container, "followed", this.user_data.isFollowed);
-
+        this.container.querySelector(".follow-icon").hidden = !this.user_data.isFollowed;
         this.container.querySelector(".avatar").dataset.popup = "View " + this.user_data.name + "'s posts";
 
         // If we don't have an image because we're loaded from a source that doesn't give us them,
@@ -751,47 +742,325 @@ ppixiv.avatar_widget = class extends widget
             this.img.src = this.user_data[key];
         else
             this.img.src = helpers.blank_image;
-
-        this.container.querySelector(".follow-buttons").hidden = false;
-        this.container.querySelector(".follow-popup").hidden = false;
     }
-    
-    async follow(follow_privately)
+};
+
+ppixiv.follow_widget = class extends widget
+{
+    constructor({
+        // The button used to open this widget.  We close on clicks outside of our box, but
+        // we won't close if this button is clicked, so toggling the widget works properly.
+        open_button=null,
+
+        ...options
+    })
     {
-        if(this.user_id == null)
+        super({
+            visible: false,
+
+            ...options, template: `
+            <div class="follow-container" style="
+                background-color: #000;
+            ">
+                <!-- Buttons for following and unfollowing: -->
+                ${helpers.create_box_link({
+                    label: "Follow",
+                    icon: "public",
+                    classes: ["follow-button-public"],
+                })}
+
+                ${helpers.create_box_link({
+                    label: "Follow Privately",
+                    icon: "lock",
+                    classes: ["follow-button-private"],
+                })}
+
+                ${helpers.create_box_link({
+                    label: "Unfollow",
+                    icon: "delete",
+                    classes: ["unfollow-button"],
+                })}
+
+                <!-- Buttons for toggling a follow between public and private.  This is separate
+                     from the buttons above, since it comes after to make sure that the unfollow
+                     button is above the toggle buttons. -->
+                ${helpers.create_box_link({
+                    label: "Change to public",
+                    icon: "public",
+                    classes: ["toggle-follow-button-public"],
+                })}
+
+                ${helpers.create_box_link({
+                    label: "Change to private",
+                    icon: "lock",
+                    classes: ["toggle-follow-button-private"],
+                })}
+
+                <!-- A separator before follow tags.  Hide this if the user doesn't have premium,
+                     since he won't have access to tags and this will be empty. -->
+                <div class="separator premium-only"></div>
+
+                ${helpers.create_box_link({
+                    label: "Add new tag",
+                    icon: "add",
+                    classes: ["premium-only", "add-follow-tag"],
+                })}
+            </div>
+        `});
+
+        this.open_button = open_button;
+        this._user_id = null;
+
+        this.container.querySelector(".follow-button-public").addEventListener("click", (e) => { this.clicked_follow(false); });
+        this.container.querySelector(".follow-button-private").addEventListener("click", (e) => { this.clicked_follow(true); });
+        this.container.querySelector(".toggle-follow-button-public").addEventListener("click", (e) => { this.clicked_follow(false); });
+        this.container.querySelector(".toggle-follow-button-private").addEventListener("click", (e) => { this.clicked_follow(true); });
+        this.container.querySelector(".unfollow-button").addEventListener("click", (e) => { this.clicked_unfollow(); });
+
+        this.container.querySelector(".add-follow-tag").addEventListener("click", (e) => {
+            this.add_follow_tag();
+        });
+
+        // Refresh if the user we're displaying changes.
+        image_data.singleton().user_modified_callbacks.register(this.user_changed);
+
+        // Close if our container closes.
+        new view_hidden_listener(this.container, (e) => {
+            this.visible = false;
+        });
+    }
+
+    user_changed = (user_id) =>
+    {
+        if(!this.visible || user_id != this.user_id)
             return;
 
-        var tags = this.element_follow_folder.value;
-        await actions.follow(this.user_id, follow_privately, tags);
-    }
+        this.refresh();
+    };
 
-    async unfollow()
+    set user_id(value)
     {
-        if(this.user_id == null)
+        if(this._user_id == value)
             return;
 
-        await actions.unfollow(this.user_id);
+        this._user_id = value;
+        if(value == null)
+            this.visible = false;
     }
+    get user_id() { return this._user_id; }
 
-    // Note that in some cases we'll only have the user's ID and name, so we won't be able
-    // to tell if we're following.
-    clicked_follow = (follow_privately, e) =>
+    visibility_changed()
     {
-        e.preventDefault();
-        e.stopPropagation();
+        super.visibility_changed();
 
-        if(this.user_data == null)
-            return;
-
-        if(this.user_data.isFollowed)
+        if(this.visible)
         {
-            // Unfollow the user.
-            this.unfollow();
+            this.refresh();
+
+            // Close on clicks outside of our menu.  Include our parent's button which opens
+            // us, so we don't close when it's going to toggle us.
+            this.click_outside_listener = new click_outside_listener([this.container, this.open_button], () => {
+                this.visible = false;
+            });
+        }
+        else
+        {
+            if(this.click_outside_listener)
+            {
+                this.click_outside_listener.shutdown();
+                this.click_outside_listener = null;
+            }
+        }
+    }
+
+    async refresh()
+    {
+        if(!this.visible)
+            return;
+
+        if(this.refreshing)
+        {
+            console.error("Already refreshing");
             return;
         }
 
-        // Follow the user.
-        this.follow(follow_privately);
+        this.refreshing = true;
+        try {
+            if(this._user_id == null)
+            {
+                console.log("Follow widget has no user ID");
+                return;
+            }
+            
+            // Refresh with no data.
+            this.refresh_with_data();
+
+            // Refresh with whether we're followed or not, so the follow/unfollow UI is
+            // displayed as early as possible.
+            let user_data = await image_data.singleton().get_user_info(this.user_id);
+            if(!this.visible)
+                return;
+
+            this.refresh_with_data({ following: user_data.isFollowed });
+            
+            if(!user_data.isFollowed)
+            {
+                // We're not following, so just load the follow tag list.
+                let all_tags = await image_data.singleton().load_all_user_follow_tags();
+                this.refresh_with_data({ following: user_data.isFollowed, all_tags, selected_tags: new Set() });
+                return;
+            }
+
+            // Get full follow info to find out if the follow is public or private, and which
+            // tags are selected.
+            let follow_info = await image_data.singleton().load_user_follow_info(this.user_id);
+            let all_tags = await image_data.singleton().load_all_user_follow_tags();
+            this.refresh_with_data({following: true, following_privately: follow_info?.following_privately, all_tags, selected_tags: follow_info?.tags});
+        } finally {
+            this.refreshing = false;
+        }
+    }
+
+    // Refresh the UI with as much data as we have.  This data comes in a bunch of little pieces,
+    // so we get it incrementally.
+    refresh_with_data({following=null, following_privately=null, all_tags=null, selected_tags=null}={})
+    {
+        if(!this.visible)
+            return;
+
+        this.container.querySelector(".follow-button-public").hidden = true;
+        this.container.querySelector(".follow-button-private").hidden = true;
+        this.container.querySelector(".toggle-follow-button-public").hidden = true;
+        this.container.querySelector(".toggle-follow-button-private").hidden = true;
+        this.container.querySelector(".unfollow-button").hidden = true;
+        this.container.querySelector(".add-follow-tag").hidden = true;
+        this.container.querySelector(".separator").hidden = true;
+        
+        // If following is null, we're still waiting for the initial user data request
+        // and we don't have any data yet.  
+        if(following == null)
+            return;
+
+        if(following)
+        {
+            // If we know whether we're following privately or publically, we can show the
+            // button to change the follow mode.  If we don't have that yet, we can only show
+            // unfollow.
+            if(following_privately != null)
+            {
+                this.container.querySelector(".toggle-follow-button-public").hidden = !following_privately;
+                this.container.querySelector(".toggle-follow-button-private").hidden = following_privately;
+            }
+
+            this.container.querySelector(".unfollow-button").hidden = false;
+        }
+        else
+        {
+            this.container.querySelector(".follow-button-public").hidden = false;
+            this.container.querySelector(".follow-button-private").hidden = false;
+        }
+
+        // If we've loaded follow tags, fill in the list.
+        let follow_tags = this.container.querySelectorAll(".follow-tag");
+        for(let element of follow_tags)
+            element.remove();
+
+        if(all_tags != null)
+        {
+            // Show the separator and "add tag" button once we have the tag list.
+            this.container.querySelector(".add-follow-tag").hidden = false;
+            this.container.querySelector(".separator").hidden = false;
+
+            for(let tag of all_tags)
+            {
+                let button = helpers.create_box_link({
+                    label: tag,
+                    classes: ["follow-tag"],
+                    icon: "bookmark",
+                    as_element: true,
+                });
+    
+                // True if the user is bookmarked with this tag.
+                let selected = selected_tags.has(tag);
+                helpers.set_class(button, "selected", selected);
+
+                this.container.appendChild(button);
+
+                button.addEventListener("click", (e) => {
+                    this.toggle_follow_tag(tag);
+                });
+            }
+        }
+    }
+
+    async clicked_follow(follow_privately)
+    {
+        await actions.follow(this._user_id, follow_privately, []);
+    }
+
+    async clicked_unfollow()
+    {
+        await actions.unfollow(this._user_id);
+    }
+
+    async add_follow_tag()
+    {
+        let prompt = new text_prompt({ title: "New folder:" });
+        let folder = await prompt.result;
+        if(folder == null)
+            return; // cancelled
+
+        await this.toggle_follow_tag(folder);
+    }
+
+    async toggle_follow_tag(tag)
+    {
+        // Make a copy of user_id, in case it changes while we're async.
+        let user_id = this.user_id;
+
+        // If the user isn't followed, the first tag is added by following.
+        let user_data = await image_data.singleton().get_user_info(user_id);
+        if(!user_data.isFollowed)
+        {
+            // There's no setting to inherit privacy from, so use bookmark_privately_by_default
+            // by default.
+            let follow_privately = settings.get("bookmark_privately_by_default");
+            await actions.follow(this._user_id, follow_privately, [tag]);
+            return;
+        }
+
+        // We're already following, so update the existing tags.
+        let follow_info = await image_data.singleton().load_user_follow_info(this.user_id);
+        if(follow_info == null)
+        {
+            console.log("Error retrieving follow info to update tags");
+            return;
+        }
+
+        let tag_was_selected = follow_info.tags.has(tag);
+
+        let data = await helpers.rpc_post_request("/rpc/index.php", {
+            mode: tag_was_selected? "following_user_tag_delete":"following_user_tag_add",
+            user_id: user_id,
+            tag,
+        });
+
+        if(data.error)
+        {
+            console.log(`Error editing follow tags: ${data.message}`);
+            return;
+        }
+
+        // Update cached follow tags.
+        if(tag_was_selected)
+            follow_info.tags.delete(tag);
+        else
+        {
+            follow_info.tags.add(tag);
+            image_data.singleton().add_to_cached_all_user_follow_tags(tag);            
+        }
+
+        image_data.singleton().update_cached_follow_info(user_id, true, follow_info);
     }
 };
 

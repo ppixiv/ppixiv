@@ -19,13 +19,18 @@ ppixiv.image_data = class extends EventTarget
         this.user_data = { };
         this.bookmarked_image_tags = { };
         this.recent_likes = { }
+        this.all_user_follow_tags = null;
+        this.user_follow_info = { };
 
         // Negative cache to remember illusts that don't exist, so we don't try to
         // load them repeatedly:
         this.nonexistant_media_ids = { };
 
+        // Promises for ongoing requests:
         this.illust_loads = {};
         this.user_info_loads = {};
+        this.follow_info_loads = {};
+        this.user_follow_tags_load = null;
     };
 
     // Return the singleton, creating it if needed.
@@ -511,6 +516,140 @@ ppixiv.image_data = class extends EventTarget
             this.bookmarked_image_tags[media_id] = tags;
 
         this.call_illust_modified_callbacks(media_id);
+    }
+
+    // Load the follow info for a followed user, which includes follow tags and whether the
+    // follow is public or private.  If the user isn't followed, return null.
+    // 
+    // This can also fetch the results of load_all_user_follow_tags and will cache it if
+    // available, so if you're calling both load_user_follow_info and load_all_user_follow_tags,
+    // call this first.
+    async load_user_follow_info(user_id, { refresh=false }={})
+    {
+        // If we request following info for a user we're not following, we'll get a 400.  This
+        // isn't great, since it means we have to make an extra API call first to see if we're
+        // following to avoid spamming request errors.
+        let user_data = await this.get_user_info(user_id);
+        if(!user_data.isFollowed)
+        {
+            delete this.user_follow_info[user_id];
+            return null;
+        }
+
+        // Stop if this user's follow info is already loaded.
+        if(!refresh && this.user_follow_info[user_id])
+            return this.user_follow_info[user_id];
+
+        // If another request is already running for this user, wait for it to finish and use
+        // its result.
+        if(this.follow_info_loads[user_id])
+        {
+            await this.follow_info_loads[user_id];
+            return this.user_follow_info[user_id];
+        }
+
+        this.follow_info_loads[user_id] = helpers.rpc_get_request("/rpc/index.php", {
+            mode: "following_user_detail",
+            user_id: user_id,
+            lang: "en",
+        });
+        
+        let data = await this.follow_info_loads[user_id];
+        this.follow_info_loads[user_id] = null;
+
+        if(data.error)
+        {
+            console.log(`Couldn't request follow info for ${user_id}`);
+            return null;
+        }
+
+        // This returns both selected tags and all follow tags, so we can also update
+        // all_user_follow_tags.
+        let all_tags = [];
+        let tags = new Set();
+        for(let tag_info of data.body.tags)
+        {
+            all_tags.push(tag_info.name);
+            if(tag_info.selected)
+                tags.add(tag_info.name);
+        }
+
+        this.all_user_follow_tags = all_tags;
+        this.user_follow_info[user_id] = {
+            tags,
+            following_privately: data.body.restrict == "1",
+        }
+        return this.user_follow_info[user_id];
+    }
+
+    // Load all of the user's follow tags.  This is cached unless refresh is true.
+    async load_all_user_follow_tags({ refresh=false }={})
+    {
+        // Follow tags require premium.
+        if(!window.global_data.premium)
+            return [];
+
+        if(!refresh && this.all_user_follow_tags != null)
+            return this.all_user_follow_tags;
+
+        // If another call is already running, wait for it to finish and use its result.
+        if(this.user_follow_tags_load)
+        {
+            await this.user_follow_tags_load;
+            return this.all_user_follow_tags;
+        }
+
+        // The only ways to get this list seem to be from looking at an already-followed
+        // user, or looking at the follow list.
+        this.user_follow_tags_load = helpers.get_request(`/ajax/user/${window.global_data.user_id}/following`, {
+            offset: 0,
+            limit: 1,
+            rest: "show",
+        });
+        
+        let result = await this.user_follow_tags_load;
+        this.user_follow_tags_load = null;
+
+        if(result.error)
+            console.log("Error retrieving follow tags");
+        else
+        {
+            this.all_user_follow_tags = result.body.followUserTags;
+            this.all_user_follow_tags.sort();
+        }
+
+        return this.all_user_follow_tags;
+    }
+
+    // Add a new tag to all_user_follow_tags When the user creates a new one.
+    add_to_cached_all_user_follow_tags(tag)
+    {
+        if(this.all_user_follow_tags == null || this.all_user_follow_tags.indexOf(tag) != -1)
+            return;
+
+        this.all_user_follow_tags.push(tag);
+        this.all_user_follow_tags.sort();
+    }
+
+    // Update the follow info for a user.  This is used after updating a follow.
+    update_cached_follow_info(user_id, followed, follow_info)
+    {
+        // If user info isn't loaded, follow info isn't either.
+        let user_info = this.get_user_info_sync(user_id);
+        if(user_info == null)
+            return;
+
+        user_info.isFollowed = followed;
+        if(!followed)
+        {
+            delete this.user_follow_info[user_id];
+        }
+        else
+        {
+            this.user_follow_info[user_id] = follow_info;
+        }
+
+        this.call_user_modified_callbacks(user_id);
     }
 
     // Remember when we've liked an image recently, so we don't spam API requests.
