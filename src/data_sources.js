@@ -876,15 +876,6 @@ ppixiv.data_source = class
     {
     }
 
-    // Return the next or previous illustration.  If we don't have that page, return null.
-    //
-    // This only returns illustrations, skipping over any special entries like user:12345.
-    get_neighboring_media_id(media_id, next, options={})
-    {
-        return this.id_list.get_neighboring_media_id(media_id, next, options);
-    }
-
-
     // Return the next or previous image to navigate to from illust_id.  If we're at the end of
     // the loaded results, load the next or previous page.  If illust_id is null, return the first
     // image.  This only returns illusts, not users or folders.
@@ -893,7 +884,7 @@ ppixiv.data_source = class
     // we won't try another page.
     async get_or_load_neighboring_media_id(media_id, next, options={})
     {
-        let new_media_id = this.get_neighboring_media_id(media_id, next, options);
+        let new_media_id = this.id_list.get_neighboring_media_id(media_id, next, options);
         if(new_media_id != null)
             return new_media_id;
 
