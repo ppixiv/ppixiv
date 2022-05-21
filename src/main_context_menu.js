@@ -960,12 +960,15 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
                     return;
                 }
             
-                // Ctrl-F: follow
+                // Ctrl-F: follow with default privacy
                 // Ctrl-Alt-F: follow privately
                 //
                 // It would be better to check if we're following publically or privately to match the hotkey, but
                 // Pixiv doesn't include that information.
-                let follow_privately = e.altKey;
+                let follow_privately = null;
+                if(e.altKey)
+                    follow_privately = true;
+
                 if(user_info.isFollowed)
                 {
                     message_widget.singleton.show("Already following this user");

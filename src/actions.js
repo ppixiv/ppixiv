@@ -330,6 +330,11 @@ ppixiv.actions = class
         if(user_id == -1)
             return;
 
+        // If bookmark_privately_by_default is enabled and private wasn't specified
+        // explicitly, set it to true.
+        if(follow_privately == null && settings.get("bookmark_privately_by_default"))
+            follow_privately = true;
+
         var result = await helpers.rpc_post_request("/bookmark_add.php", {
             mode: "add",
             type: "user",

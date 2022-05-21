@@ -145,7 +145,7 @@ let thumbnail_ui = class extends ppixiv.widget
                             <a class="box-link popup" data-type=private-follows data-popup="Show privately followed users" href=#>Private</a>
                         </span>
 
-                        <span class=followed-users-follow-tags>
+                        <span class="followed-users-follow-tags premium-only">
                             <span class="box-link popup-menu-box-button popup" data-popup="Follow tags"></span>
                             <div class="popup-menu-box follow-tag-list vertical-list"></div>
                         </span>
@@ -159,7 +159,7 @@ let thumbnail_ui = class extends ppixiv.widget
                             <a class="box-link popup r18" data-type=bookmarks-new-illust-ages-r18 data-popup="Show R18 works" href="#">R18</a>
                         </span>
 
-                        <span class=new-post-follow-tags>
+                        <span class="new-post-follow-tags premium-only">
                             <span class="box-link popup-menu-box-button popup" data-popup="Follow tags"></span>
                             <div class="popup-menu-box new-post-follow-tag-list vertical-list"></div>
                         </span>

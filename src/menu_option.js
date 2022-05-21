@@ -229,7 +229,7 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
             bookmark_privately_by_default: () => {
                 return new menu_option_toggle({
                     ...global_options,
-                    label: "Bookmark privately by default",
+                    label: "Bookmark and follow privately by default",
                     setting: "bookmark_privately_by_default",
                     explanation_disabled: "Pressing Ctrl-B will bookmark publically",
                     explanation_enabled: "Pressing Ctrl-B will bookmark privately",
