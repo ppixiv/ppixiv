@@ -1758,7 +1758,7 @@ ppixiv.data_sources.artist = class extends data_source
         if(booth.error)
         {
             console.log(`Error reading Booth profile for ${this.viewing_user_id}`);
-            reteurn;
+            return;
         }
 
         this.booth_url = booth.body.url;
