@@ -456,7 +456,7 @@ ppixiv.image_data = class extends EventTarget
     // we have any fetches in the air already, we'll leave them running.
     add_illust_data(illust_data)
     {
-        let media_id = helpers.illust_id_to_media_id(illust_data.illustId);
+        let media_id = helpers.illust_id_to_media_id(illust_data.id);
         var load_promise = this.load_media_info(media_id, { illust_data: illust_data });
         this._started_loading_image_info(media_id, load_promise);
     }

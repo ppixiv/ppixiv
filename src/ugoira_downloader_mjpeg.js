@@ -81,7 +81,7 @@ ppixiv.ugoira_downloader_mjpeg = class
             
             // Build the file.
             var mkv = encoder.build();
-            var filename = this.illust_data.userName + " - " + this.illust_data.illustId + " - " + this.illust_data.illustTitle + ".mkv";
+            var filename = this.illust_data.userName + " - " + this.illust_data.id + " - " + this.illust_data.illustTitle + ".mkv";
             helpers.save_blob(mkv, filename);
         } catch(e) {
             console.error(e);

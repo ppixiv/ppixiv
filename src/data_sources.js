@@ -1093,7 +1093,7 @@ ppixiv.data_sources.related_illusts = class extends data_source
         source_link.hidden = this.illust_info == null;
         if(this.illust_info)
         {
-            source_link.href = "/artworks/" + this.illust_info.illustId + "#ppixiv";
+            source_link.href = `/artworks/${this.illust_info.id}#ppixiv`;
 
             var img = source_link.querySelector(".image-for-suggestions > img");
             img.src = this.illust_info.previewUrls[0];
@@ -3459,7 +3459,7 @@ ppixiv.data_sources.related_favorites = class extends data_source_from_page
         source_link.hidden = this.illust_info == null;
         if(this.illust_info)
         {
-            source_link.href = "/artworks/" + this.illust_info.illustId + "#ppixiv";
+            source_link.href = `/artworks/${this.illust_info.id}#ppixiv`;
 
             var img = source_link.querySelector(".image-for-suggestions > img");
             img.src = this.illust_info.previewUrls[0];
