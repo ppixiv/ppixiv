@@ -2733,9 +2733,9 @@ ppixiv.data_sources.new_illust = class extends data_source
 }
 
 // bookmark_new_illust.php, bookmark_new_illust_r18.php
-ppixiv.data_sources.bookmarks_new_illust = class extends data_source
+ppixiv.data_sources.new_works_by_following = class extends data_source
 {
-    get name() { return "bookmarks_new_illust"; }
+    get name() { return "new_works_by_following"; }
 
     constructor(url)
     {

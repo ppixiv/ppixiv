@@ -152,7 +152,7 @@ let thumbnail_ui = class extends ppixiv.widget
                     </div>
                 </div>                
 
-                <div class=data-source-specific data-datasource="bookmarks_new_illust">
+                <div class=data-source-specific data-datasource="new_works_by_following">
                     <div class=box-button-row>
                         <span style="margin-right: 25px;">
                             ${ helpers.create_box_link({label: "All",    popup: "Show all works",   data_type: "bookmarks-new-illust-all", classes: ["r18"] }) }
