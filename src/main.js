@@ -521,11 +521,11 @@ ppixiv.main_controller = class
 
         // Look up from the target for a link.
         var a = e.target.closest("A");
-        if(a == null)
+        if(a == null || !a.hasAttribute("href"))
             return;
 
         // If this isn't a #ppixiv URL, let it run normally.
-        var url = new URL(a.href, document.href);
+        let url = new unsafeWindow.URL(a.href, document.href);
         if(!helpers.is_ppixiv_url(url))
             return;
 
@@ -536,7 +536,6 @@ ppixiv.main_controller = class
         // If this is a link to an image (usually /artworks/#), navigate to the image directly.
         // This way, we actually use the URL for the illustration on this data source instead of
         // switching to /artworks.  This also applies to local image IDs, but not folders.
-        var url = new unsafeWindow.URL(url);
         url = helpers.get_url_without_language(url);
         let illust = this.get_illust_at_element(a);
         if(illust?.media_id)

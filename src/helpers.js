@@ -1402,7 +1402,7 @@ ppixiv.helpers = {
         node.addEventListener("click", function(e) {
             if(e.defaultPrevented)
                 return;
-            if(e.target.tagName != "A")
+            if(e.target.tagName != "A" || !e.target.hasAttribute("href"))
                 return;
 
             // Only look at "/tags/TAG" URLs.
