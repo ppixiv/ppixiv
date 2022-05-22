@@ -1703,6 +1703,12 @@ ppixiv.screen_search = class extends ppixiv.screen
         // Get all media IDs from the data source.
         let [all_media_ids, media_id_pages] = this.get_data_source_media_ids();
 
+        // Sanity check: there should never be any duplicate media IDs from the data source.
+        // Refuse to continue if there are duplicates, since it'll break our logic badly and
+        // can cause infinite loops.  This is always a bug.
+        if(all_media_ids.length != (new Set(all_media_ids)).size)
+            throw Error("Duplicate media IDs");
+
         // Remove any thumbs that aren't present in all_media_ids, so we only need to 
         // deal with adding thumbs below.  For example, this simplifies things when
         // a manga post is collapsed.
@@ -2032,8 +2038,9 @@ ppixiv.screen_search = class extends ppixiv.screen
 
     is_media_id_expanded(media_id)
     {
-        // Never expand thumbnails on the manga data source.
-        if(this.data_source?.name == "manga")
+        // Never expand manga posts on data sources that include manga pages themselves.
+        // This can result in duplicate media IDs.
+        if(this.data_source?.includes_manga_pages)
             return false;
 
         media_id = helpers.get_media_id_first_page(media_id);
@@ -2078,7 +2085,7 @@ ppixiv.screen_search = class extends ppixiv.screen
 
         // Don't set expanded-thumb on the manga view, since it's always expanded.
         let media_id = thumb.dataset.id;
-        let show_expanded = this.data_source.name != "manga" && this.is_media_id_expanded(media_id);
+        let show_expanded = !this.data_source?.includes_manga_pages && this.is_media_id_expanded(media_id);
         helpers.set_class(thumb, "expanded-thumb", show_expanded);
     }
 
@@ -2098,8 +2105,8 @@ ppixiv.screen_search = class extends ppixiv.screen
         button.dataset.popup = enabled? "Collapse manga posts":"Expand manga posts";
         
         // Hide the button for native searches, since it doesn't do anything there, and on
-        // the manga view where thumbs are always expanded.
-        button.hidden = this.data_source?.name == "vview" || this.data_source?.name == "manga";
+        // the views that return manga pages directly.
+        button.hidden = this.data_source?.name == "vview" || this.data_source?.includes_manga_pages;
     }
 
     update_from_settings = () =>

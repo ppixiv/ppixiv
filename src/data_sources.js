@@ -632,6 +632,11 @@ ppixiv.data_source = class
     // The data source can override this to set the aspect ratio to use for thumbnails.
     get_thumbnail_aspect_ratio() { return null; }
 
+    // If true, this data source can return individual manga pages.  Most data sources only
+    // return the first page of manga posts.  The search UI will only allow the user to expand
+    // manga posts if this is false.
+    get includes_manga_pages() { return false; }
+
     // Store the current page in the URL.
     //
     // This is only used if supports_start_page is true.
@@ -1993,6 +1998,7 @@ ppixiv.data_sources.current_illust = class extends data_source
 ppixiv.data_sources.manga = class extends data_source
 {
     get name() { return "manga"; }
+    get includes_manga_pages() { return true; }
 
     constructor(url)
     {
@@ -3622,19 +3628,19 @@ ppixiv.data_sources.completed_requests = class extends data_source
 ppixiv.data_sources.recent = class extends data_source
 {
     get name() { return "recent"; }
+    get includes_manga_pages() { return true; }
 
     async load_page_internal(page)
     {
         // Read illust_ids once and paginate them so we don't return them all at once.
         if(this.illust_ids == null)
         {
-            let illust_ids = await ppixiv.recently_seen_illusts.get().get_recent_media_ids();
-            this.pages = paginate_illust_ids(illust_ids, this.estimated_items_per_page);
+            let media_ids = await ppixiv.recently_seen_illusts.get().get_recent_media_ids();
+            this.pages = paginate_illust_ids(media_ids, this.estimated_items_per_page);
         }
 
         // Register this page.
         let media_ids = this.pages[page-1] || [];
-        let found_media_ids = [];
 
         // Get thumbnail data for this page.  Some thumbnail data might be missing if it
         // expired before this page was viewed.  Don't add illust IDs that we don't have
@@ -3642,8 +3648,14 @@ ppixiv.data_sources.recent = class extends data_source
         let thumbs = await ppixiv.recently_seen_illusts.get().get_thumbnail_info(media_ids);
         thumbnail_data.singleton().loaded_thumbnail_info(thumbs, "internal");
 
+        let known_illust_ids = new Set();
         for(let thumb of thumbs)
-            found_media_ids.push(helpers.illust_id_to_media_id(thumb.id));
+            known_illust_ids.add(thumb.id);
+
+        let found_media_ids = media_ids.filter((media_id) => {
+            let [illust_id] = helpers.media_id_to_illust_id_and_page(media_id);
+            return known_illust_ids.has(illust_id);
+        });
 
         this.add_page(page, found_media_ids);
     };
