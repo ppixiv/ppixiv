@@ -97,7 +97,7 @@ let thumbnail_ui = class extends ppixiv.widget
                     <div class="checked-links box-button-row">
                         ${ helpers.create_box_link({label: "All",           popup: "Show all works",           data_type: "content-all" }) }
                         ${ helpers.create_box_link({label: "Illustrations", popup: "Show illustrations only",  data_type: "content-illust" }) }
-                        ${ helpers.create_box_link({label: "Ugoira",        popup: "Show animations only",     data_type: "content-ugoira" }) }
+                        ${ helpers.create_box_link({label: "Animations",    popup: "Show animations only",     data_type: "content-ugoira" }) }
                         ${ helpers.create_box_link({label: "Manga",         popup: "Show manga only",          data_type: "content-manga" }) }
                     </div>
 
@@ -146,7 +146,7 @@ let thumbnail_ui = class extends ppixiv.widget
                         </span>
 
                         <span class="followed-users-follow-tags premium-only">
-                            ${ helpers.create_box_link({label: "",    popup: "Follow tags", classes: ["popup-menu-box-button"] }) }
+                            ${ helpers.create_box_link({label: "",    popup: "Follow tags", icon: "bookmark", classes: ["popup-menu-box-button"] }) }
                             <div class="popup-menu-box follow-tag-list vertical-list"></div>
                         </span>
                     </div>
@@ -160,7 +160,7 @@ let thumbnail_ui = class extends ppixiv.widget
                         </span>
 
                         <span class="new-post-follow-tags premium-only">
-                            ${ helpers.create_box_link({label: "",    popup: "Follow tags", classes: ["popup-menu-box-button"] }) }
+                            ${ helpers.create_box_link({label: "",    popup: "Follow tags", icon: "bookmark", classes: ["popup-menu-box-button"] }) }
                             <div class="popup-menu-box new-post-follow-tag-list vertical-list"></div>
                         </span>
                     </div>
@@ -173,7 +173,7 @@ let thumbnail_ui = class extends ppixiv.widget
                         ${ helpers.create_box_link({label: "Manga",    popup: "Show manga only",           data_type: "artist-manga" }) }
 
                         <div class=member-tags-box>
-                            ${ helpers.create_box_link({label: "Tags",    popup: "Tags", classes: ["popup-menu-box-button"] }) }
+                            ${ helpers.create_box_link({label: "Tags",    popup: "Tags", icon: "bookmark", classes: ["popup-menu-box-button"] }) }
                             <div class="popup-menu-box post-tag-list vertical-list"></div>
                         </div>
                     </div>
@@ -194,7 +194,7 @@ let thumbnail_ui = class extends ppixiv.widget
                             </div>
 
                             <div class="search-tags-box box-button-row" style="display: inline-block;">
-                                ${ helpers.create_box_link({label: "Related tags",    classes: ["popup-menu-box-button"] }) }
+                                ${ helpers.create_box_link({label: "Related tags",    icon: "bookmark", classes: ["popup-menu-box-button"] }) }
                                 <div class="popup-menu-box related-tag-list vertical-list"></div>
                             </div>
                         </div>
@@ -224,7 +224,7 @@ let thumbnail_ui = class extends ppixiv.widget
                             ${ helpers.create_box_link({label: "All",             data_type: "search-type-all",    dataset: { default: true } }) }
                             ${ helpers.create_box_link({label: "Illustrations",   data_type: "search-type-illust" }) }
                             ${ helpers.create_box_link({label: "Manga",           data_type: "search-type-manga" }) }
-                            ${ helpers.create_box_link({label: "Ugoira",          data_type: "search-type-ugoira" }) }
+                            ${ helpers.create_box_link({label: "Animations",      data_type: "search-type-ugoira" }) }
                         </div>
 
                         ${ helpers.create_box_link({label: "Search mode",    classes: ["popup-menu-box-button"] }) }
@@ -244,10 +244,10 @@ let thumbnail_ui = class extends ppixiv.widget
                         
                         ${ helpers.create_box_link({label: "Aspect ratio",    classes: ["popup-menu-box-button"] }) }
                         <div hidden class="popup-menu-box vertical-list">
-                            ${ helpers.create_box_link({label: "All",               data_type: "aspect-ratio-all",    dataset: { default: true } }) }
-                            ${ helpers.create_box_link({label: "Landscape",         data_type: "aspect-ratio-landscape" }) }
-                            ${ helpers.create_box_link({label: "Portrait",          data_type: "aspect-ratio-portrait" }) }
-                            ${ helpers.create_box_link({label: "Square",            data_type: "aspect-ratio-square" }) }
+                            ${ helpers.create_box_link({label: "All",               data_type: "aspect-ratio-all",       icon: "", dataset: { default: true } }) }
+                            ${ helpers.create_box_link({label: "Landscape",         data_type: "aspect-ratio-landscape", icon: "panorama" }) }
+                            ${ helpers.create_box_link({label: "Portrait",          data_type: "aspect-ratio-portrait",  icon: "portrait" }) }
+                            ${ helpers.create_box_link({label: "Square",            data_type: "aspect-ratio-square",    icon: "crop_square" }) }
                         </div>
 
                         ${ helpers.create_box_link({label: "Bookmarks",    classes: ["popup-menu-box-button"] }) }
@@ -340,7 +340,7 @@ let thumbnail_ui = class extends ppixiv.widget
                         ${ helpers.create_box_link({label: "Bookmarks",           popup: "Show bookmarks",                       data_type: "local-bookmarks-only" }) }
 
                         <div class=local-bookmark-tags-box>
-                            ${ helpers.create_box_link({label: "Tags",    classes: ["popup-menu-box-button"] }) }
+                            ${ helpers.create_box_link({label: "Tags",    icon: "bookmark", classes: ["popup-menu-box-button"] }) }
                             <div class="popup-menu-box local-bookmark-tag-list vertical-list"></div>
                         </div>
 

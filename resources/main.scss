@@ -1512,6 +1512,11 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
         display: inline-block;
         position: relative;
         margin-right: 0.25em;
+
+        // Force the width to 1em, so the icon takes up space even if it's empty.  If there should be
+        // no space at all, the icon will be hidden.
+        width: 1em;
+
         svg {
             width: auto;
             height: 1em;

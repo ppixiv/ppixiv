@@ -226,7 +226,7 @@ ppixiv.helpers = {
             node.dataset.popup = popup;
         }
 
-        if(icon)
+        if(icon != null)
         {
             node.querySelector(".icon").hidden = false;
             node.querySelector(".material-icons").innerText = icon;
