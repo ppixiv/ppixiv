@@ -169,10 +169,7 @@ ppixiv.muted_tags_popup = class extends ppixiv.dialog_widget
                     <span style="flex: 1;"></span>
 
                     <span class=non-premium-mute-warning>
-                        <a class="box-link mute-warning-button clickable" href="#">
-                            <span class="material-icons button" style="font-size: 24px; color: #ffff00; margin-right: 0.5em;">warning</span>
-                            <span>Note</span>
-                        </a>
+                        ${ helpers.create_box_link({label: "Note",      icon: "warning",  classes: ["mute-warning-button"] }) }
                     </span>
                 </div>
 
@@ -189,7 +186,7 @@ ppixiv.muted_tags_popup = class extends ppixiv.dialog_widget
                 </div>
 
                 <div class=add-muted-tag-box> <!-- prevent full-line button styling -->
-                    <a class="box-link add-muted-tag clickable" href="#">Add</a>
+                    ${ helpers.create_box_link({label: "Add",      icon: "add",  classes: ["add-muted-tag"] }) }
                 </div>
 
                 <span class=add-muted-user-box>
@@ -481,10 +478,7 @@ ppixiv.muted_tags_for_post_popup = class extends ppixiv.dialog_widget
                         <span style="flex: 1;"></span>
 
                         <span class=non-premium-mute-warning>
-                            <a class="box-link mute-warning-button clickable" href="#">
-                                <span class="material-icons button" style="font-size: 24px; color: #ffff00; margin-right: 0.5em;">warning</span>
-                                <span>Note</span>
-                            </a>
+                            ${ helpers.create_box_link({label: "Note",      icon: "warning",  classes: ["mute-warning-button", "clickable"] }) }
                         </span>
                     </div>
 
@@ -570,9 +564,7 @@ ppixiv.muted_tags_for_post_popup = class extends ppixiv.dialog_widget
         {
             let entry = this.create_template({name: "muted-tag-or-user-entry", html: `
                 <div class=entry>
-                    <div class="box-link toggle-mute">
-                        <span class=label>Mute</span>
-                    </div>
+                    ${ helpers.create_box_link({label: "Mute",      classes: ["toggle-mute"] }) }
                     <span class=tag-name></span>
                 </div>
             `});

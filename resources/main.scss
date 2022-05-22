@@ -1463,6 +1463,7 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
     align-content: center;
     align-items: center;
     height: 2em;
+    border-radius: 2px;
 
     color: var(--box-link-fg-color);
     user-select: none;
@@ -1503,23 +1504,28 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
 
     // An icon on the left side.
     .icon {
+        display: inline-block;
+        // position: relative;
+
         // If this is a material icon, .material-icons will try to change the font size, which
         // is rude.  Override it to inherit the current font size.
-        .material-icons {
-            font-size: inherit;
-            vertical-align: middle;
+        font-size: inherit;
+        vertical-align: middle;
+
+        // .icon.with-text is an icon that has a label next to it, which is most of them.  If .with-text
+        // isn't set, this is an icon-only button, like the shuffle button.
+        &.with-text {
+            margin-right: 0.5em;
+
+            // Force the width to 1ch, so the icon takes up space even if it's empty.  This keeps labels
+            // in lists  aligned if some items have icons and some don't.  If there should be no space at
+            // all, the icon will be hidden.
+            width: 1ch;
         }
-        display: inline-block;
-        position: relative;
-        margin-right: 0.25em;
-
-        // Force the width to 1em, so the icon takes up space even if it's empty.  If there should be
-        // no space at all, the icon will be hidden.
-        width: 1em;
-
-        svg {
-            width: auto;
-            height: 1em;
+        
+        &:not(.with-text) {
+            // There's no text, so increase the size of the icon to fill the button better.
+            font-size: 150%;
         }
     }
 }
@@ -2644,7 +2650,7 @@ svg.heart-image .delete {
                 flex: 1;
             }
 
-            .settings-page {
+            .settings-list {
                 display: flex;
                 flex-direction: column;
 
@@ -2726,10 +2732,16 @@ svg.heart-image .delete {
         background-color: #000;
         padding: 1em;
     }
+
     .non-premium-mute-warning {
         // For the edit tags dialog, prevent the button from overlapping the dialog
         // close button.
         margin-right: 40px;
+
+        .icon {
+            font-size: 24px;
+            color: #ffff00;
+        }
     }
 
     .post-mute-list {
@@ -2767,28 +2779,13 @@ svg.heart-image .delete {
     z-index: 1; // above the image
     pointer-events: none;
 
-    .save-edits {
-        &.dirty {
-            color: #0f0;
-        }
-
-        & .spinner {
-            position: absolute;
-            top: 0;
-            left: 0;
-            background-color: var(--box-link-bg-color);
-            width: 100%;
-            height: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            & > span {
-                display: block;
-                font-size: 40px;
-            }
-        }
+    .save-edits.dirty {
+        color: #0f0;
     }
 
+    .spinner .icon {
+        animation: spin 1000ms linear infinite forwards;
+    }
     .image-editor-buttons {
         // If no editor is actually active, hide the top buttons with the mouse cursor.
         .mouse-hidden-box:not(.show-cursor) &.top {
@@ -2811,10 +2808,6 @@ svg.heart-image .delete {
         .image-editor-button-row {
             pointer-events: auto;
         }
-    }
-
-    .spin {
-        animation: spin 1000ms linear infinite forwards;
     }
     
     @keyframes spin {

@@ -388,7 +388,7 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
             },
         };
 
-        this.create_page("thumbnail", "Thumbnail options", global_options);
+        this.create_page("thumbnail", "Thumbnail options", global_options, { settings_list: true });
 
         settings_widgets.thumbnail_size();
         if(!ppixiv.native)
@@ -399,7 +399,7 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
         settings_widgets.ui_on_hover();
         settings_widgets.expand_manga_posts();
 
-        this.create_page("image", "Image viewing", global_options);
+        this.create_page("image", "Image viewing", global_options, { settings_list: true });
         settings_widgets.auto_pan();
         settings_widgets.auto_pan_speed();
         settings_widgets.slideshow_speed();
@@ -416,12 +416,12 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
         this.create_page("user_muting", "Muted users", global_options);
         this.muted_users = settings_widgets.muted_users();
 
-        this.create_page("linked_tabs", "Linked tabs", global_options);
+        this.create_page("linked_tabs", "Linked tabs", global_options, { settings_list: true });
         this.link_tabs = settings_widgets.link_tabs();
         settings_widgets.enable_linked_tabs();
         settings_widgets.unlink_all_tabs();
 
-        this.create_page("other", "Other", global_options);
+        this.create_page("other", "Other", global_options, { settings_list: true });
         settings_widgets.disable_translations();
 
         if(!ppixiv.native)
@@ -440,12 +440,18 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
         // settings_widgets.no_recent_history();
     }
 
-    create_page(id, title, global_options)
+    create_page(id, title, global_options, {settings_list=false}={})
     {
         let page = this.create_template({name: "settings-page", html: `
             <div class=settings-page>
             </div>
         `});
+
+        // If settings_list is true, this page is a list of options, like the thumbnail options
+        // page.  This class enables styling for these lists.  If it's another type of settings
+        // page with its own styling, this is disabled.
+        if(settings_list)
+            page.classList.add("settings-list");
 
         this.items.appendChild(page);
         global_options.container = page;

@@ -9,25 +9,17 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
             <div class=image-editor>
                 <div class="image-editor-buttons top">
                     <div class="image-editor-button-row box-button-row">
-                        <div class="box-link save-edits popup popup-bottom" style="position: relative" data-popup="Save">
-                            <span class="material-icons">save</span>
-                            
-                            <div class=spinner hidden>
-                                <span style="" class="material-icons spin">refresh</span>
-                            </div>
-                        </div>
-
-                        <div class="box-link show-crop popup popup-bottom" data-popup="Crop">
-                            <span class="material-icons">crop</span>
-                        </div>
-                        <div class="box-link show-inpaint popup popup-bottom" data-popup="Inpainting">
-                            <span class="material-icons">brush</span>
-                        </div>
+                        ${ helpers.create_box_link({icon: "save",     popup: "Save",          classes: ["save-edits", "popup-bottom"] }) }
+                        ${ helpers.create_box_link({icon: "refresh",  popup: "Saving...",     classes: ["spinner"] }) }
+                        ${ helpers.create_box_link({icon: "crop",     popup: "Crop",          classes: ["show-crop", "popup-bottom"] }) }
+                        ${ helpers.create_box_link({icon: "brush",    popup: "Inpainting",    classes: ["show-inpaint", "popup-bottom"] }) }
                     </div>
                 </div>
                 <div class="image-editor-buttons bottom"></div>
             </div>
         `});
+
+        this.container.querySelector(".spinner").hidden = true;
 
         this.crop_editor = new ppixiv.CropEditor({
             container: this.container,
@@ -242,7 +234,8 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
         // it back to true if there's an error saving.
         this.dirty = false;
 
-        let spinner = this.save_edits.querySelector(".spinner");
+        let spinner = this.container.querySelector(".spinner");
+        this.save_edits.hidden = true;
         spinner.hidden = false;
         try {
             // Get data from each editor, so we can save them together.
@@ -264,6 +257,7 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
             // Let the widgets know that we saved.
             await this.inpaint_editor.after_save(result);
         } finally {
+            this.save_edits.hidden = false;
             spinner.hidden = true;
         }
     }

@@ -196,9 +196,7 @@ ppixiv.helpers = {
         let html = `
             <a class=box-link>
                 <div class=label-box>
-                    <span hidden class=icon>
-                        <span class=material-icons></span>
-                    </span>
+                    <span hidden class="icon material-icons"></span>
                     <span hidden class=label></span>
                     <span hidden class=explanation></span>
                 </div>
@@ -229,7 +227,12 @@ ppixiv.helpers = {
         if(icon != null)
         {
             node.querySelector(".icon").hidden = false;
-            node.querySelector(".material-icons").innerText = icon;
+            node.querySelector(".icon").innerText = icon;
+
+            // .with.text is set for icons that have text next to them, to enable padding
+            // and spacing.
+            if(label != null)
+                node.querySelector(".icon").classList.add("with-text");
         }
 
         if(explanation != null)

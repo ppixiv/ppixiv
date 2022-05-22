@@ -132,9 +132,7 @@ let thumbnail_ui = class extends ppixiv.widget
                             <div class="popup-menu-box bookmark-tag-list vertical-list"></div>
                         </div>
 
-                        <a class="box-link popup" data-type=order-shuffle data-popup="Shuffle" href=#>
-                            <span class="material-icons">shuffle</span>
-                        </a>
+                        ${ helpers.create_box_link({ popup: "Shuffle", icon: "shuffle",   data_type: "order-shuffle" }) }
                     </div>
                 </div>                
 
@@ -374,9 +372,7 @@ let thumbnail_ui = class extends ppixiv.widget
                             ${ helpers.create_box_link({label: "Oldest",         data_type: "local-sort-oldest" }) }
                         </div>
 
-                        <a class="box-link local-shuffle popup" data-popup="Shuffle" href="#" data-type=local-sort-shuffle>
-                            <span class="material-icons">shuffle</span>
-                        </a>
+                        ${ helpers.create_box_link({ popup: "Shuffle", icon: "shuffle",   data_type: "local-sort-shuffle" }) }
                     </div>
                 </div>                
             </div>

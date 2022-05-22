@@ -1033,9 +1033,9 @@ ppixiv.data_sources.discovery = class extends data_source
     {
         // Set .selected on the current mode.
         let current_mode = this.url.searchParams.get("mode") || "all";
-        helpers.set_class(container.querySelector(".box-link[data-type=all]"), "selected", current_mode == "all");
-        helpers.set_class(container.querySelector(".box-link[data-type=safe]"), "selected", current_mode == "safe");
-        helpers.set_class(container.querySelector(".box-link[data-type=r18]"), "selected", current_mode == "r18");
+        helpers.set_class(container.querySelector("[data-type=all]"), "selected", current_mode == "all");
+        helpers.set_class(container.querySelector("[data-type=safe]"), "selected", current_mode == "safe");
+        helpers.set_class(container.querySelector("[data-type=r18]"), "selected", current_mode == "r18");
     }
 }
 
@@ -3665,17 +3665,7 @@ ppixiv.data_sources.recent = class extends data_source
 
     // This data source is transient, so it's recreated each time the user navigates to it.
     get transient() { return true; }
-    
-    refresh_thumbnail_ui(container)
-    {
-        // Set .selected on the current mode.
-        let current_mode = this.url.searchParams.get("mode") || "all";
-        helpers.set_class(container.querySelector(".box-link[data-type=all]"), "selected", current_mode == "all");
-        helpers.set_class(container.querySelector(".box-link[data-type=safe]"), "selected", current_mode == "safe");
-        helpers.set_class(container.querySelector(".box-link[data-type=r18]"), "selected", current_mode == "r18");
-    }
 }
-
 
 ppixiv.data_sources.vview = class extends data_source
 {
