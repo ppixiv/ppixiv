@@ -1106,19 +1106,20 @@ ppixiv.tag_widget = class extends ppixiv.widget
 
         for(let tag of tag_list)
         {
-            let a = this.container.appendChild(document.createElement("a"));
-            a.classList.add("tag");
-            a.classList.add("box-link");
-
-            let popup = null;
             let translated_tag = tag;
             if(translated_tags[tag])
                 translated_tag = translated_tags[tag];
 
-            a.dataset.tag = tag;
-            a.textContent = translated_tag;
+            let a = helpers.create_box_link({
+                label: translated_tag,
+                classes: ["tag-entry"],
+                link: this.format_tag_link(tag),
+                as_element: true,
+            });
 
-            a.href = this.format_tag_link(tag);
+            this.container.appendChild(a);
+
+            a.dataset.tag = tag;
         }
     }
 };

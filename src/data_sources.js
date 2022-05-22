@@ -862,16 +862,25 @@ ppixiv.data_source = class
             if(button.dataset.originalText == null)
                 button.dataset.originalText = button.innerText;
 
+            let label = button.querySelector(".label");
+            // XXX: remove
+            if(label == null)
+                label = button;
+
             // If an option is selected, replace the menu button text with the selection's label.
             if(selected_default)
-                button.innerText = button.dataset.originalText;
+                label.innerText = button.dataset.originalText;
             else
             {
                 // The short label is used to try to keep these labels from causing the menu buttons to
                 // overflow the container, and for labels like "2 years ago" where the menu text doesn't
                 // make sense.
-                let label = selected_item.dataset.shortLabel;
-                button.innerText = label? label:selected_item.innerText;
+                let text = selected_item.dataset.shortLabel;
+                let selected_label = selected_item.querySelector(".label");
+                // XXX delete
+                if(selected_label == null)
+                    selected_label = selected_item;
+                label.innerText = text? text:selected_label.innerText;
             }
         }
     }
@@ -1794,17 +1803,8 @@ ppixiv.data_sources.artist = class extends data_source
 
             let tag = tag_info.tag;
             let translated_tag = tag;
-            if(this.translated_tags[tag])
+            if(this.translated_tags && this.translated_tags[tag])
                 translated_tag = this.translated_tags[tag];
-
-            var a = document.createElement("a");
-            a.classList.add("box-link");
-            a.classList.add("following-tag");
-            a.innerText = translated_tag;
-
-            // Show the post count in the popup.
-            a.classList.add("popup");
-            a.dataset.popup = tag_info.cnt != null? tag_info.cnt:"";
 
             let url = new URL(this.url);
             url.hash = "#ppixiv";
@@ -1812,14 +1812,22 @@ ppixiv.data_sources.artist = class extends data_source
             if(tag != "All")
                 url.searchParams.set("tag", tag);
             else
-            {
                 url.searchParams.delete("tag");
-                a.dataset["default"] = 1;
-            }
+    
+            let a = helpers.create_box_link({
+                label: translated_tag,
+                classes: ["tag-entry"],
+                popup: tag_info?.cnt,
+                link: url.toString(),
+                as_element: true,
+            });
 
-            a.href = url.toString();
             if(url.searchParams.toString() == current_query)
                 a.classList.add("selected");
+
+            if(tag == "All")
+                a.dataset["default"] = 1;
+
             tag_list.appendChild(a);
         };
 
@@ -2347,33 +2355,27 @@ class data_source_bookmarks_base extends data_source
         var tag_list = container.querySelector(".bookmark-tag-list");
         let current_tag = this.displaying_tag;
         
-        for(let tag of tag_list.querySelectorAll(".following-tag"))
+        for(let tag of tag_list.querySelectorAll(".tag-entry"))
             tag.remove();
 
         var add_tag_link = (tag) =>
         {
-            let tag_count = this.bookmark_tag_counts[tag];
-
-            var a = document.createElement("a");
-            a.classList.add("box-link");
-            a.classList.add("following-tag");
-
             let tag_name = tag;
             if(tag_name == null)
                 tag_name = "All bookmarks";
             else if(tag_name == "")
                 tag_name = "Untagged";
-            a.innerText = tag_name;
-
-            // Show the bookmark count in the popup.
-            if(tag_count != null)
-            {
-                a.classList.add("popup");
-                a.dataset.popup = tag_count;
-            }
 
             let url = new URL(this.url);
             url.searchParams.delete("p");
+    
+            let a = helpers.create_box_link({
+                label: tag_name,
+                classes: ["tag-entry"],
+                popup: this.bookmark_tag_counts[tag],
+                link: url.toString(),
+                as_element: true,
+            });
 
             if(tag == current_tag)
                 a.classList.add("selected");
@@ -2770,23 +2772,24 @@ ppixiv.data_sources.bookmarks_new_illust = class extends data_source
         let current_tag = this.url.searchParams.get("tag") || "All tags";
 
         let tag_list = container.querySelector(".new-post-follow-tags  .vertical-list");
-        for(let tag of tag_list.querySelectorAll(".following-tag"))
+        for(let tag of tag_list.querySelectorAll(".tag-entry"))
             tag.remove();
 
         let add_tag_link = (tag) =>
         {
-            var a = document.createElement("a");
-            a.classList.add("box-link");
-            a.classList.add("following-tag");
-            a.innerText = tag;
-
             var url = new URL(this.url);
             if(tag != "All tags")
                 url.searchParams.set("tag", tag);
             else
                 url.searchParams.delete("tag");
 
-            a.href = url.toString();
+            let a = helpers.create_box_link({
+                label: tag,
+                classes: ["tag-entry"],
+                link: url.toString(),
+                as_element: true,
+            });
+
             if(tag == current_tag)
                 a.classList.add("selected");
             tag_list.appendChild(a);
@@ -3323,7 +3326,7 @@ ppixiv.data_sources.follows = class extends data_source
         this.set_item(container, "private-follows", {rest: "hide"}, {rest: "show"});
 
         let tag_list = container.querySelector(".followed-users-follow-tags .vertical-list");
-        for(let tag of tag_list.querySelectorAll(".following-tag"))
+        for(let tag of tag_list.querySelectorAll(".tag-entry"))
             tag.remove();
 
         // Refresh the bookmark tag list.  Remove the page number from these buttons.
@@ -3331,11 +3334,6 @@ ppixiv.data_sources.follows = class extends data_source
 
         var add_tag_link = (tag) =>
         {
-            var a = document.createElement("a");
-            a.classList.add("box-link");
-            a.classList.add("following-tag");
-            a.innerText = tag;
-
             let url = new URL(this.url);
             url.searchParams.delete("p");
             if(tag == "Untagged")
@@ -3348,7 +3346,13 @@ ppixiv.data_sources.follows = class extends data_source
             else
                 url.searchParams.delete("tag");
 
-            a.href = url.toString();
+            let a = helpers.create_box_link({
+                label: tag,
+                classes: ["tag-entry"],
+                link: url.toString(),
+                as_element: true,
+            });
+
             if(tag == current_tag)
                 a.classList.add("selected");
             tag_list.appendChild(a);

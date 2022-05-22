@@ -1213,10 +1213,13 @@ ppixiv.close_search_widget = class extends ppixiv.widget
     constructor({input_element, focus_parent, ...options})
     {
         super({...options, template: `
-            <div class="close-local-search box-link">
-                <span class="material-icons" style="transform: scale(-1, 1)">exit_to_app</span>
-                <span style="padding-top: 1px;">Close search</span>
-            </div>
+            ${
+                helpers.create_box_link({
+                    label: "Close search",
+                    icon: 'exit_to_app',
+                    classes: ["close-local-search"],
+                })
+            }
         `});
 
         window.addEventListener("popstate", (e) => {

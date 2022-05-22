@@ -425,12 +425,8 @@ ppixiv.link_this_tab_popup = class extends ppixiv.dialog_widget
         super({...options, template: `
             <div class="link-this-tab-popup dialog">
                 <div class=content>
-                    <div class="button box-link link-this-tab">
-                        Link this tab
-                    </div>
-                    <div class="button box-link unlink-this-tab">
-                        Unlink this tab
-                    </div>
+                    ${ helpers.create_box_link({ label: "Link this tab", classes: ["link-this-tab"]}) }
+                    ${ helpers.create_box_link({ label: "Unlink this tab", classes: ["unlink-this-tab"]}) }
                 </div>
             </div>
         `});
@@ -550,9 +546,7 @@ ppixiv.send_here_popup = class extends ppixiv.dialog_widget
         super({...options, template: `
             <div class="send-image-here-popup dialog">
                 <div class=content>
-                    <div class="button box-link link-this-tab">
-                        Click to send image here
-                    </div>
+                    ${ helpers.create_box_link({ label: "Click to send image here", classes: ["link-this-tab"]}) }
                 </div>
             </div>
         `});
