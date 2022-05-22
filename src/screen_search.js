@@ -402,6 +402,11 @@ ppixiv.screen_search = class extends ppixiv.screen
         // When a bookmark is modified, refresh the heart icon.
         image_data.singleton().illust_modified_callbacks.register(this.refresh_thumbnail);
 
+        this.container.addEventListener("load", (e) => {
+            if(e.target.classList.contains("thumb"))
+                this.thumb_image_load_finished(e.target.closest(".thumbnail-box"), { cause: "onload" });
+        }, { capture: true } );
+
         new thumbnail_ui({
             parent: this,
             container: this.container.querySelector(".thumbnail-ui-box-container"),
@@ -2233,10 +2238,8 @@ ppixiv.screen_search = class extends ppixiv.screen
                 thumb.src = url;
                 element.classList.remove("muted");
 
-                // The search page thumbs are always square (aspect ratio 1).  Note that if we're
-                // displaying a manga page beyond the first, we don't know the image dimensions, so
-                // we use the dimensions of the first page and hope for the best.
-                helpers.set_thumbnail_panning_direction(element, info.width, info.height, 1);
+                // Try to set up the aspect ratio.
+                this.thumb_image_load_finished(element, { cause: "setup" });
             }
 
             // Set the link.  Setting dataset.mediaId will allow this to be handled with in-page
@@ -2349,6 +2352,51 @@ ppixiv.screen_search = class extends ppixiv.screen
                 first_page_link.href = args.url;
             }
         }
+    }
+
+    // Set things up based on the image dimensions.  We can do this immediately if we know the
+    // thumbnail dimensions already, otherwise we'll do it based on the thumbnail once it loads.
+    thumb_image_load_finished(element, { cause })
+    {
+        if(element.dataset.thumbLoaded)
+            return;
+
+        let media_id = element.dataset.id;
+        let [illust_id, illust_page] = helpers.media_id_to_illust_id_and_page(media_id);
+        let thumb = element.querySelector(".thumb");
+
+        // Try to use thumbnail info first.  Preferring this makes things more consistent,
+        // since naturalWidth may or may not be loaded depending on browser cache.
+        let width, height;
+        if(illust_page == 0)
+        {
+            let info = thumbnail_data.singleton().get_one_thumbnail_info(media_id);
+            if(info != null)
+            {
+                width = info.width;
+                height = info.height;
+            }
+        }
+
+        // If that wasn't available, try to use the dimensions from the image.  This is the size
+        // of the thumb rather than the image, but all we care about is the aspect ratio.
+        if(width == null && thumb.naturalWidth != 0)
+        {
+            width = thumb.naturalWidth;
+            height = thumb.naturalHeight;
+        }
+
+        if(width == null)
+            return;
+
+        element.dataset.thumbLoaded = "1";
+
+        // Set up the thumbnail panning direction, which is based on the image aspect ratio and the
+        // displayed thumbnail aspect ratio.  Ths thumbnail aspect ratio is usually 1 for square thumbs,
+        // but it can be different on the manga page.
+        let thumb_aspect_ratio = thumb.offsetWidth / thumb.offsetHeight;
+        // console.log(`Thumbnail ${media_id} loaded at ${cause}: ${width} ${height} ${thumb.src}`);
+        helpers.set_thumbnail_panning_direction(element, width, height, thumb_aspect_ratio);
     }
 
     // Refresh the thumbnail for media_id.
