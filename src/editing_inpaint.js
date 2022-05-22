@@ -12,8 +12,8 @@ ppixiv.InpaintEditor = class extends ppixiv.widget
                 </div>
 
                 <div class="image-editor-button-row box-button-row">
-                    <div class="box-link view-inpaint">View</div>
-                    <div class="box-link create-lines">Create lines</div>
+                    ${ helpers.create_box_link({label: "View",       classes: ["view-inpaint"] }) }
+                    ${ helpers.create_box_link({label: "Create lines",       classes: ["create-lines"] }) }
 
                     <div class="inpaint-line-width-box box-link">
                         <span>Thickness</span>

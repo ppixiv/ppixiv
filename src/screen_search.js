@@ -74,61 +74,61 @@ let thumbnail_ui = class extends ppixiv.widget
                 </div>
 
                 <div class="data-source-specific box-button-row" data-datasource=discovery>
-                    <a class="box-link popup" data-type=all data-popup="Show all works" href="?mode=all#ppixiv">All</a>
-                    <a class="box-link popup" data-type=safe data-popup="Show all-ages works" href="?mode=safe#ppixiv">All ages</a>
-                    <a class="box-link popup r18" data-type=r18 data-popup="Show R18 works" href="?mode=r18#ppixiv">R18</a>
+                    ${ helpers.create_box_link({label: "All",      link: "?mode=all#ppixiv",     popup: "Show all works",    data_type: "all" }) }
+                    ${ helpers.create_box_link({label: "All ages", link: "?mode=safe#ppixiv",    popup: "All ages",          data_type: "safe" }) }
+                    ${ helpers.create_box_link({label: "R18",      link: "?mode=r18#ppixiv",     popup: "R18",               data_type: "r18", classes: ["r18"] }) }
                 </div>
 
                 <div class="data-source-specific box-button-row" data-datasource=new_illust>
-                    <a class="box-link popup" data-type=new-illust-type-illust data-popup="Show illustrations" href="#">Illustrations</a>
-                    <a class="box-link popup" data-type=new-illust-type-manga data-popup="Show manga only" href="#">Manga</a>
+                    ${ helpers.create_box_link({label: "Illustrations", popup: "Show illustrations",     data_type: "new-illust-type-illust" }) }
+                    ${ helpers.create_box_link({label: "Manga",         popup: "Show manga only",        data_type: "new-illust-type-manga" }) }
 
-                    <a class="box-link popup" data-type=new-illust-ages-all data-popup="Show all-ages works" href="#">All ages</a>
-                    <a class="box-link popup r18" data-type=new-illust-ages-r18 data-popup="Show R18 works" href="#">R18</a>
+                    ${ helpers.create_box_link({label: "All ages",      popup: "Show all-ages works",    data_type: "new-illust-ages-all" }) }
+                    ${ helpers.create_box_link({label: "R18",           popup: "Show R18 works",         data_type: "new-illust-ages-r18" }) }
                 </div>
                 
                 <div class="data-source-specific" data-datasource=rankings>
                     <div class=box-button-row>
-                        <a class="nav-tomorrow box-link popup" data-popup="Show the next day" href="#"><span>Next day</span></a>
+                        ${ helpers.create_box_link({label: "Next day", popup: "Show the next day",     data_type: "new-illust-type-illust", classes: ["nav-tomorrow"] }) }
                         <span class=nav-today style="margin: 0 0.25em;"></span>
-                        <a class="nav-yesterday box-link popup" data-popup="Show the previous day" href="#"><span>Previous day</span></a>
+                        ${ helpers.create_box_link({label: "Previous day", popup: "Show the previous day",     data_type: "new-illust-type-illust", classes: ["nav-yesterday"] }) }
                     </div>
 
                     <div class="checked-links box-button-row">
-                        <a class="box-link popup" data-type=content-all data-popup="Show all works" href="#">All</a>
-                        <a class="box-link popup" data-type=content-illust data-popup="Show illustrations only" href="#">Illustrations</a>
-                        <a class="box-link popup" data-type=content-ugoira data-popup="Show ugoira only" href="#">Ugoira</a>
-                        <a class="box-link popup" data-type=content-manga data-popup="Show manga only" href="#">Manga</a>
+                        ${ helpers.create_box_link({label: "All",           popup: "Show all works",           data_type: "content-all" }) }
+                        ${ helpers.create_box_link({label: "Illustrations", popup: "Show illustrations only",  data_type: "content-illust" }) }
+                        ${ helpers.create_box_link({label: "Ugoira",        popup: "Show animations only",     data_type: "content-ugoira" }) }
+                        ${ helpers.create_box_link({label: "Manga",         popup: "Show manga only",          data_type: "content-manga" }) }
                     </div>
 
                     <div class="checked-links box-button-row">
-                        <a class="box-link popup" data-type=mode-daily data-popup="Daily rankings" href="#">Daily</a>
-                        <a class="box-link popup r18" data-type=mode-daily-r18 data-popup="Show R18 works (daily only)" href="#">R18</a>
-                        <a class="box-link popup r18g" data-type=mode-r18g data-popup="Show R18G works (weekly only)" href="#">R18G</a>
-                        <a class="box-link popup" data-type=mode-weekly data-popup="Weekly rankings" href="#">Weekly</a>
-                        <a class="box-link popup" data-type=mode-monthly data-popup="Monthly rankings" href="#">Monthly</a>
-                        <a class="box-link popup" data-type=mode-rookie data-popup="Rookie rankings" href="#">Rookie</a>
-                        <a class="box-link popup" data-type=mode-original data-popup="Original rankings" href="#">Original</a>
-                        <a class="box-link popup" data-type=mode-male data-popup="Popular with men" href="#">Male</a>
-                        <a class="box-link popup" data-type=mode-female data-popup="Popular with women" href="#">Female</a>
+                        ${ helpers.create_box_link({label: "Daily",         popup: "Daily rankings",           data_type: "mode-daily" }) }
+                        ${ helpers.create_box_link({label: "R18",           popup: "Show R18 works (daily only)",     data_type: "mode-daily-r18", classes: ["r18"] }) }
+                        ${ helpers.create_box_link({label: "R18G",          popup: "Show R18G works (weekly only)",   data_type: "mode-r18g", classes: ["r18g"] }) }
+                        ${ helpers.create_box_link({label: "Weekly",        popup: "Weekly rankings",          data_type: "mode-weekly" }) }
+                        ${ helpers.create_box_link({label: "Monthly",       popup: "Monthly rankings",         data_type: "mode-monthly" }) }
+                        ${ helpers.create_box_link({label: "Rookie",        popup: "Rookie rankings",          data_type: "mode-rookie" }) }
+                        ${ helpers.create_box_link({label: "Original",      popup: "Original rankings",        data_type: "mode-original" }) }
+                        ${ helpers.create_box_link({label: "Male",          popup: "Popular with men",         data_type: "mode-male" }) }
+                        ${ helpers.create_box_link({label: "Female",        popup: "Popular with women",       data_type: "mode-female" }) }
                     </div>
                 </div>
                  
                 <div class="data-source-specific box-button-row" data-datasource=recent>
-                    <a class="box-link popup" data-type=clear-recents data-popup="Clear recent history" href=#>Clear</a>
+                    ${ helpers.create_box_link({label: "Clear",        popup: "Clear recent history",       data_type: "clear-recents" }) }
                 </div>
                 
                 <div class="data-source-specific" data-datasource=bookmarks>
                     <div class=box-button-row>
                         <!-- These are hidden if you're viewing somebody else's bookmarks. -->
                         <span class=bookmarks-public-private style="margin-right: 25px;">
-                            <a class="box-link popup" data-type=all data-popup="Show all bookmarks" href=#>All</a>
-                            <a class="box-link popup" data-type=public data-popup="Show public bookmarks" href=#>Public</a>
-                            <a class="box-link popup" data-type=private data-popup="Show private bookmarks" href=#>Private</a>
+                            ${ helpers.create_box_link({label: "All",        popup: "Show all bookmarks",       data_type: "all" }) }
+                            ${ helpers.create_box_link({label: "Public",     popup: "Show public bookmarks",    data_type: "public" }) }
+                            ${ helpers.create_box_link({label: "Private",    popup: "Show private bookmarks",   data_type: "private" }) }
                         </span>
 
                         <div class=bookmark-tags-box>
-                            <div class="box-link popup-menu-box-button"></div>
+                            ${ helpers.create_box_link({label: "",    popup: "Bookmark tags", classes: ["popup-menu-box-button"] }) }
                             <div class="popup-menu-box bookmark-tag-list vertical-list"></div>
                         </div>
 
@@ -141,12 +141,12 @@ let thumbnail_ui = class extends ppixiv.widget
                 <div class="data-source-specific" data-datasource=following>
                     <div class=box-button-row>
                         <span class=follows-public-private style="margin-right: 25px;">
-                            <a class="box-link popup" data-type=public-follows data-popup="Show publically followed users" href=#>Public</a>
-                            <a class="box-link popup" data-type=private-follows data-popup="Show privately followed users" href=#>Private</a>
+                            ${ helpers.create_box_link({label: "Public",    popup: "Show publically followed users",   data_type: "public-follows" }) }
+                            ${ helpers.create_box_link({label: "Private",    popup: "Show privately followed users",   data_type: "private-follows" }) }
                         </span>
 
                         <span class="followed-users-follow-tags premium-only">
-                            <span class="box-link popup-menu-box-button popup" data-popup="Follow tags"></span>
+                            ${ helpers.create_box_link({label: "",    popup: "Follow tags", classes: ["popup-menu-box-button"] }) }
                             <div class="popup-menu-box follow-tag-list vertical-list"></div>
                         </span>
                     </div>
@@ -155,12 +155,12 @@ let thumbnail_ui = class extends ppixiv.widget
                 <div class=data-source-specific data-datasource="bookmarks_new_illust">
                     <div class=box-button-row>
                         <span style="margin-right: 25px;">
-                            <a class="box-link popup" data-type=bookmarks-new-illust-all data-popup="Show all works" href="#">All</a>
-                            <a class="box-link popup r18" data-type=bookmarks-new-illust-ages-r18 data-popup="Show R18 works" href="#">R18</a>
+                            ${ helpers.create_box_link({label: "All",    popup: "Show all works",   data_type: "bookmarks-new-illust-all", classes: ["r18"] }) }
+                            ${ helpers.create_box_link({label: "R18",    popup: "Show R18 works",   data_type: "bookmarks-new-illust-ages-r18", classes: ["r18"] }) }
                         </span>
 
                         <span class="new-post-follow-tags premium-only">
-                            <span class="box-link popup-menu-box-button popup" data-popup="Follow tags"></span>
+                            ${ helpers.create_box_link({label: "",    popup: "Follow tags", classes: ["popup-menu-box-button"] }) }
                             <div class="popup-menu-box new-post-follow-tag-list vertical-list"></div>
                         </span>
                     </div>
@@ -168,12 +168,12 @@ let thumbnail_ui = class extends ppixiv.widget
 
                 <div class="data-source-specific" data-datasource=artist>
                     <div class="box-button-row search-options-row">
-                        <a class="box-link popup" data-type=artist-works data-popup="Show all works" href=#>Works</a>
-                        <a class="box-link popup" data-type=artist-illust data-popup="Show illustrations only" href=#>Illusts</a>
-                        <a class="box-link popup" data-type=artist-manga data-popup="Show manga only" href=#>Manga</a>
+                        ${ helpers.create_box_link({label: "Works",    popup: "Show all works",            data_type: "artist-works" }) }
+                        ${ helpers.create_box_link({label: "Illusts",  popup: "Show illustrations only",   data_type: "artist-illust" }) }
+                        ${ helpers.create_box_link({label: "Manga",    popup: "Show manga only",           data_type: "artist-manga" }) }
 
                         <div class=member-tags-box>
-                            <div class="box-link popup-menu-box-button">Tags</div>
+                            ${ helpers.create_box_link({label: "Tags",    popup: "Tags", classes: ["popup-menu-box-button"] }) }
                             <div class="popup-menu-box post-tag-list vertical-list"></div>
                         </div>
                     </div>
@@ -194,7 +194,7 @@ let thumbnail_ui = class extends ppixiv.widget
                             </div>
 
                             <div class="search-tags-box box-button-row" style="display: inline-block;">
-                                <div class="box-link popup-menu-box-button">Related tags</div>
+                                ${ helpers.create_box_link({label: "Related tags",    classes: ["popup-menu-box-button"] }) }
                                 <div class="popup-menu-box related-tag-list vertical-list"></div>
                             </div>
                         </div>
@@ -203,86 +203,87 @@ let thumbnail_ui = class extends ppixiv.widget
                     <!-- We don't currently have popup text for these, since it's a little annoying to
                          have it pop over the menu. -->
                     <div class="box-button-row search-options-row">
-                        <span class="box-link popup-menu-box-button">Ages</span>
+                        ${ helpers.create_box_link({label: "Ages",    classes: ["popup-menu-box-button"] }) }
                         <div hidden class="popup-menu-box vertical-list">
-                            <a class=box-link data-type=ages-all data-default=1 href="?mode=all#ppixiv">All</a>
-                            <a class=box-link data-type=ages-safe href="?mode=safe#ppixiv">All ages</a>
-                            <a class="box-link r18" data-type=ages-r18 href="?mode=r18#ppixiv">R18</a>
+                            ${ helpers.create_box_link({label: "All",  data_type: "ages-all", dataset: { default: true } }) }
+                            ${ helpers.create_box_link({label: "All ages",  data_type: "ages-safe" }) }
+                            ${ helpers.create_box_link({label: "R18",  data_type: "ages-r18", classes: ["r18"] }) }
                         </div>
 
-                        <span class="box-link popup-menu-box-button">Sort</span>
+                        ${ helpers.create_box_link({label: "Sort",    classes: ["popup-menu-box-button"] }) }
                         <div hidden class="popup-menu-box vertical-list">
-                            <a class=box-link data-type=order-newest data-default=1 href="?order=all#ppixiv">Newest</a>
-                            <a class=box-link data-type=order-oldest href="?order=all#ppixiv">Oldest</a>
-                            <a class="box-link premium-only" data-type=order-all href="?order=popular_d#ppixiv">Popularity</a>
-                            <a class="box-link premium-only" data-type=order-male href="?order=popular_male_d#ppixiv" data-short-label="Popular ♂">Popular with men</a>
-                            <a class="box-link premium-only" data-type=order-female href="?order=popular_female_d#ppixiv" data-short-label="Popular ♀">Popular with women</a>
+                            ${ helpers.create_box_link({label: "Newest",              data_type: "order-newest", dataset: { default: true } }) }
+                            ${ helpers.create_box_link({label: "Oldest",              data_type: "order-oldest" }) }
+                            ${ helpers.create_box_link({label: "Popularity",          data_type: "order-all",    classes: ["premium-only"] }) }
+                            ${ helpers.create_box_link({label: "Popular with men",    data_type: "order-male",   classes: ["premium-only"] }) }
+                            ${ helpers.create_box_link({label: "Popular with women",  data_type: "order-female", classes: ["premium-only"] }) }
                         </div>
 
-                        <span class="box-link popup-menu-box-button">Type</span>
+                        ${ helpers.create_box_link({label: "Type",    classes: ["popup-menu-box-button"] }) }
                         <div hidden class="popup-menu-box vertical-list">
-                            <a class=box-link data-type=search-type-all data-default=1 href="?type=all#ppixiv">All</a>
-                            <a class=box-link data-type=search-type-illust data-short-label="Illusts" href="?type=illust#ppixiv">Illustrations</a>
-                            <a class=box-link data-type=search-type-manga href="?type=manga#ppixiv">Manga</a>
-                            <a class=box-link data-type=search-type-ugoira href="?type=ugoira#ppixiv">Ugoira</a>
+                            ${ helpers.create_box_link({label: "All",             data_type: "search-type-all",    dataset: { default: true } }) }
+                            ${ helpers.create_box_link({label: "Illustrations",   data_type: "search-type-illust" }) }
+                            ${ helpers.create_box_link({label: "Manga",           data_type: "search-type-manga" }) }
+                            ${ helpers.create_box_link({label: "Ugoira",          data_type: "search-type-ugoira" }) }
                         </div>
 
-                        <span class="box-link popup-menu-box-button">Search mode</span>
+                        ${ helpers.create_box_link({label: "Search mode",    classes: ["popup-menu-box-button"] }) }
                         <div hidden class="popup-menu-box vertical-list">
-                            <a class=box-link data-type=search-all data-default=1 href="?#ppixiv">Tag</a>
-                            <a class=box-link data-type=search-exact data-short-label="Exact match" href="?s_mode=s_tag_full#ppixiv">Exact tag match</a>
-                            <a class=box-link data-type=search-text href="?s_mode=s_tc#ppixiv">Text search</a>
+                            ${ helpers.create_box_link({label: "Tag",               data_type: "search-all",    dataset: { default: true } }) }
+                            ${ helpers.create_box_link({label: "Exact tag match",   data_type: "search-exact" }) }
+                            ${ helpers.create_box_link({label: "Text search",       data_type: "search-text" }) }
                         </div>
 
-                        <span class="box-link popup-menu-box-button">Image size</span>
+                        ${ helpers.create_box_link({label: "Image size",    classes: ["popup-menu-box-button"] }) }
                         <div hidden class="popup-menu-box vertical-list">
-                            <a class=box-link data-type=res-all data-default=1 href="#">All</a>
-                            <a class=box-link data-type=res-high href="?wlt=3000&hlt=3000#ppixiv">High-res</a>
-                            <a class=box-link data-type=res-medium href="?wlt=1000&wgt=2999&hlt=1000&hgt=2999#ppixiv">Medium-res</a>
-                            <a class=box-link data-type=res-low href="?wgt=999&hgt=999#ppixiv">Low-res</a>
+                            ${ helpers.create_box_link({label: "All",               data_type: "res-all",    dataset: { default: true } }) }
+                            ${ helpers.create_box_link({label: "High-res",          data_type: "res-high" }) }
+                            ${ helpers.create_box_link({label: "Medium-res",        data_type: "res-medium" }) }
+                            ${ helpers.create_box_link({label: "Low-res",           data_type: "res-low" }) }
                         </div>
                         
-                        <span class="box-link popup-menu-box-button">Aspect ratio</span>
+                        ${ helpers.create_box_link({label: "Aspect ratio",    classes: ["popup-menu-box-button"] }) }
                         <div hidden class="popup-menu-box vertical-list">
-                            <a class=box-link data-type=aspect-ratio-all data-default=1 href="?ratio=0.5#ppixiv">All</a>
-                            <a class=box-link data-type=aspect-ratio-landscape href="?ratio=0.5#ppixiv">Landscape</a>
-                            <a class=box-link data-type=aspect-ratio-portrait href="?ratio=-0.5#ppixiv">Portrait</a>
-                            <a class=box-link data-type=aspect-ratio-square href="?ratio=0#ppixiv">Square</a>
+                            ${ helpers.create_box_link({label: "All",               data_type: "aspect-ratio-all",    dataset: { default: true } }) }
+                            ${ helpers.create_box_link({label: "Landscape",         data_type: "aspect-ratio-landscape" }) }
+                            ${ helpers.create_box_link({label: "Portrait",          data_type: "aspect-ratio-portrait" }) }
+                            ${ helpers.create_box_link({label: "Square",            data_type: "aspect-ratio-square" }) }
                         </div>
 
-                        <span class="box-link popup-menu-box-button premium-only">Bookmarks</span>
+                        ${ helpers.create_box_link({label: "Bookmarks",    classes: ["popup-menu-box-button"] }) }
                         <div hidden class="popup-menu-box vertical-list">
                             <!-- The Pixiv search form shows 300-499, 500-999 and 1000-.  That's not
                                  really useful and the query parameters let us filter differently, so we
                                  replace it with a more useful "minimum bookmarks" filter. -->
-                            <a class=box-link data-type=bookmarks-all data-default=1 href="#ppixiv">All</a>
-                            <a class=box-link data-type=bookmarks-100 href=#>100+</a>
-                            <a class=box-link data-type=bookmarks-250 href=#>250+</a>
-                            <a class=box-link data-type=bookmarks-500 href=#>500+</a>
-                            <a class=box-link data-type=bookmarks-1000 href=#>1000+</a>
-                            <a class=box-link data-type=bookmarks-2500 href=#>2500+</a>
-                            <a class=box-link data-type=bookmarks-5000 href=#>5000+</a>
+                            ${ helpers.create_box_link({label: "All",               data_type: "bookmarks-all",    dataset: { default: true } }) }
+                            ${ helpers.create_box_link({label: "100+",              data_type: "bookmarks-100" }) }
+                            ${ helpers.create_box_link({label: "250+",              data_type: "bookmarks-250" }) }
+                            ${ helpers.create_box_link({label: "500+",              data_type: "bookmarks-500" }) }
+                            ${ helpers.create_box_link({label: "1000+",             data_type: "bookmarks-1000" }) }
+                            ${ helpers.create_box_link({label: "2500+",             data_type: "bookmarks-2500" }) }
+                            ${ helpers.create_box_link({label: "5000+",             data_type: "bookmarks-5000" }) }
                         </div>
                        
-                        <span class="box-link popup-menu-box-button">Time</span>
+                        ${ helpers.create_box_link({label: "Time",    classes: ["popup-menu-box-button"] }) }
                         <div hidden class="popup-menu-box vertical-list">
-                            <a class=box-link data-type=time-all data-default=1 href="#">All</a>
-                            <a class=box-link data-type=time-week data-short-label="Weekly" href="#">This week</a>
-                            <a class=box-link data-type=time-month data-short-label="Monthly" href="#">This month</a>
-                            <a class=box-link data-type=time-year data-short-label="Yearly" href="#">This year</a>
+                            ${ helpers.create_box_link({label: "All",               data_type: "time-all",  dataset: { default: true } }) }
+                            ${ helpers.create_box_link({label: "This week",         data_type: "time-week", dataset: { shortLabel: "Weekly" } }) }
+                            ${ helpers.create_box_link({label: "This month",        data_type: "time-month" }) }
+                            ${ helpers.create_box_link({label: "This year",         data_type: "time-year" }) }
+
                             <div class=years-ago>
-                                <a class=box-link data-type=time-years-ago-1 data-short-label="1 year" href="#">1</a>
-                                <a class=box-link data-type=time-years-ago-2 data-short-label="2 years" href="#">2</a>
-                                <a class=box-link data-type=time-years-ago-3 data-short-label="3 years" href="#">3</a>
-                                <a class=box-link data-type=time-years-ago-4 data-short-label="4 years" href="#">4</a>
-                                <a class=box-link data-type=time-years-ago-5 data-short-label="5 years" href="#">5</a>
-                                <a class=box-link data-type=time-years-ago-6 data-short-label="6 years" href="#">6</a>
-                                <a class=box-link data-type=time-years-ago-7 data-short-label="7 years" href="#">7</a>
+                                ${ helpers.create_box_link({label: "1",             data_type: "time-years-ago-1", dataset: { shortLabel: "1 year" } }) }
+                                ${ helpers.create_box_link({label: "2",             data_type: "time-years-ago-2", dataset: { shortLabel: "2 years" } }) }
+                                ${ helpers.create_box_link({label: "3",             data_type: "time-years-ago-3", dataset: { shortLabel: "3 years" } }) }
+                                ${ helpers.create_box_link({label: "4",             data_type: "time-years-ago-4", dataset: { shortLabel: "4 years" } }) }
+                                ${ helpers.create_box_link({label: "5",             data_type: "time-years-ago-5", dataset: { shortLabel: "5 years" } }) }
+                                ${ helpers.create_box_link({label: "6",             data_type: "time-years-ago-6", dataset: { shortLabel: "6 years" } }) }
+                                ${ helpers.create_box_link({label: "7",             data_type: "time-years-ago-7", dataset: { shortLabel: "7 years" } }) }
                                 <span>years ago</span>
                             </div>
                         </div>
                         
-                        <a href=# class="reset-search box-link popup" data-popup="Clear all search options">Reset</a>
+                        ${ helpers.create_box_link({label: "Reset", popup: "Clear all search options", classes: ["reset-search"] }) }
                     </div>
                 </div>
 
@@ -298,20 +299,20 @@ let thumbnail_ui = class extends ppixiv.widget
                 <div class="data-source-specific" data-datasource=completed-requests>
                     <div class="box-button-row">
                         <div style="margin-right: 25px;">
-                            <a class="box-link popup" data-type=completed-requests-latest data-popup="Show latest completed requests" href=#>Latest</a>
-                            <a class="box-link popup" data-type=completed-requests-recommended data-popup="Show recommmended completed requests" href=#>Recommended</a>
+                            ${ helpers.create_box_link({label: "Latest",        popup: "Show latest completed requests",       data_type: "completed-requests-latest" }) }
+                            ${ helpers.create_box_link({label: "Recommended",   popup: "Show recommmended completed requests", data_type: "completed-requests-recommended" }) }
                         </div>
 
                         <div style="margin-right: 25px;">
-                            <a class="box-link popup" data-type=completed-requests-illust data-popup="Show illustrations only" href="#">Illustrations</a>
-                            <a class="box-link popup" data-type=completed-requests-ugoira data-popup="Show ugoira only" href="#">Ugoira</a>
-                            <a class="box-link popup" data-type=completed-requests-manga data-popup="Show manga only" href="#">Manga</a>
+                            ${ helpers.create_box_link({label: "Illustrations", popup: "Show latest completed requests",       data_type: "completed-requests-illust" }) }
+                            ${ helpers.create_box_link({label: "Animations",    popup: "Show animations only",                 data_type: "completed-requests-ugoira" }) }
+                            ${ helpers.create_box_link({label: "Manga",         popup: "Show manga only",                      data_type: "completed-requests-manga" }) }
                         </div>
 
                         <div>
-                            <a class="box-link popup" data-type=completed-requests-all data-popup="Show all works" href="?mode=all#ppixiv">All</a>
-                            <a class="box-link popup" data-type=completed-requests-safe data-popup="Show all-ages works" href="?mode=safe#ppixiv">All ages</a>
-                            <a class="box-link popup r18" data-type=completed-requests-r18 data-popup="Show R18 works" href="?mode=r18#ppixiv">R18</a>
+                            ${ helpers.create_box_link({label: "All",           popup: "Show all works",                       data_type: "completed-requests-all" }) }
+                            ${ helpers.create_box_link({label: "All ages",      popup: "Show all-ages works",                  data_type: "completed-requests-safe" }) }
+                            ${ helpers.create_box_link({label: "R18",           popup: "Show R18 works",                       data_type: "completed-requests-r18", classes: ["r18"] }) }
                         </div>
                     </div>
                 </div>
@@ -336,41 +337,41 @@ let thumbnail_ui = class extends ppixiv.widget
                             <span class="material-icons">content_copy</span>
                         </span>
 
-                        <a class="box-link popup" data-type=local-bookmarks-only data-popup="Show bookmarks" href="#">Bookmarks</a>
+                        ${ helpers.create_box_link({label: "Bookmarks",           popup: "Show bookmarks",                       data_type: "local-bookmarks-only" }) }
 
                         <div class=local-bookmark-tags-box>
-                            <div class="box-link popup-menu-box-button">Tags</div>
+                            ${ helpers.create_box_link({label: "Tags",    classes: ["popup-menu-box-button"] }) }
                             <div class="popup-menu-box local-bookmark-tag-list vertical-list"></div>
                         </div>
 
-                        <span class="box-link popup-menu-box-button">Type</span>
+                        ${ helpers.create_box_link({label: "Type",    classes: ["popup-menu-box-button"] }) }
                         <div hidden class="popup-menu-box vertical-list">
-                            <a class=box-link data-type=local-type-all data-default=1 href="#ppixiv">All</a>
-                            <a class=box-link data-type=local-type-videos href="#ppixiv">Videos</a>
-                            <a class=box-link data-type=local-type-images href="#ppixiv">Images</a>
+                            ${ helpers.create_box_link({label: "All",           data_type: "local-type-all", dataset: { default: "1"} }) }
+                            ${ helpers.create_box_link({label: "Videos",        data_type: "local-type-videos" }) }
+                            ${ helpers.create_box_link({label: "Images",        data_type: "local-type-images" }) }
                         </div>
                         
-                        <span class="box-link popup-menu-box-button">Aspect ratio</span>
+                        ${ helpers.create_box_link({label: "Aspect ratio",    classes: ["popup-menu-box-button"] }) }
                         <div hidden class="popup-menu-box vertical-list">
-                            <a class=box-link data-type=local-aspect-ratio-all data-default=1>All</a>
-                            <a class=box-link data-type=local-aspect-ratio-landscape>Landscape</a>
-                            <a class=box-link data-type=local-aspect-ratio-portrait>Portrait</a>
+                            ${ helpers.create_box_link({label: "All",           data_type: "local-aspect-ratio-all", dataset: { default: "1"} }) }
+                            ${ helpers.create_box_link({label: "Landscape",     data_type: "local-aspect-ratio-landscape" }) }
+                            ${ helpers.create_box_link({label: "Portrait",      data_type: "local-aspect-ratio-portrait" }) }
                         </div>
                         
-                        <span class="box-link popup-menu-box-button">Image size</span>
+                        ${ helpers.create_box_link({label: "Image size",    classes: ["popup-menu-box-button"] }) }
                         <div hidden class="popup-menu-box vertical-list">
-                            <a class=box-link data-type=local-res-all data-default=1 href="#">All</a>
-                            <a class=box-link data-type=local-res-high href="?wlt=3000&hlt=3000#ppixiv">High-res</a>
-                            <a class=box-link data-type=local-res-medium href="?wlt=1000&wgt=2999&hlt=1000&hgt=2999#ppixiv">Medium-res</a>
-                            <a class=box-link data-type=local-res-low href="?wgt=999&hgt=999#ppixiv">Low-res</a>
+                            ${ helpers.create_box_link({label: "All",           data_type: "local-res-all", dataset: { default: "1"} }) }
+                            ${ helpers.create_box_link({label: "High-res",      data_type: "local-res-high" }) }
+                            ${ helpers.create_box_link({label: "Medium-res",    data_type: "local-res-medium" }) }
+                            ${ helpers.create_box_link({label: "Low-res",       data_type: "local-res-low" }) }
                         </div>
 
-                        <span class="box-link popup-menu-box-button">Order</span>
+                        ${ helpers.create_box_link({label: "Order",    classes: ["popup-menu-box-button"] }) }
                         <div hidden class="popup-menu-box vertical-list">
-                            <a class=box-link data-type=local-sort-normal data-default=1 href="#">Name</a>
-                            <a class=box-link data-type=local-sort-invert href="#">Name (inverse)</a>
-                            <a class=box-link data-type=local-sort-newest href="#">Newest</a>
-                            <a class=box-link data-type=local-sort-oldest href="#">Oldest</a>
+                            ${ helpers.create_box_link({label: "Name",           data_type: "local-sort-normal", dataset: { default: "1"} }) }
+                            ${ helpers.create_box_link({label: "Name (inverse)", data_type: "local-sort-invert" }) }
+                            ${ helpers.create_box_link({label: "Newest",         data_type: "local-sort-newest" }) }
+                            ${ helpers.create_box_link({label: "Oldest",         data_type: "local-sort-oldest" }) }
                         </div>
 
                         <a class="box-link local-shuffle popup" data-popup="Shuffle" href="#" data-type=local-sort-shuffle>

@@ -823,6 +823,7 @@ ppixiv.data_source = class
 
         // Adjust the URL for this button.
         let url = new URL(this.url);
+        url = helpers.get_url_without_language(url);
 
         // Don't include the page number in search buttons, so clicking a filter goes
         // back to page 1.
@@ -860,12 +861,12 @@ ppixiv.data_source = class
 
             // Store the original text, so we can restore it when the default is selected.
             if(button.dataset.originalText == null)
-                button.dataset.originalText = button.innerText;
+            {
+                let button_label = button.querySelector(".label");
+                button.dataset.originalText = button_label.innerText;
+            }
 
             let label = button.querySelector(".label");
-            // XXX: remove
-            if(label == null)
-                label = button;
 
             // If an option is selected, replace the menu button text with the selection's label.
             if(selected_default)
@@ -877,9 +878,6 @@ ppixiv.data_source = class
                 // make sense.
                 let text = selected_item.dataset.shortLabel;
                 let selected_label = selected_item.querySelector(".label");
-                // XXX delete
-                if(selected_label == null)
-                    selected_label = selected_item;
                 label.innerText = text? text:selected_label.innerText;
             }
         }
@@ -1596,8 +1594,15 @@ ppixiv.data_sources.artist = class extends data_source
 
     async load_page_internal(page)
     {
-        let viewing_type = this.type;
-        
+        // We'll load translations for all tags if the tag dropdown is opened, but for now
+        // just load the translation for the selected tag, so it's available for the button text.
+        let current_tag = this.current_tag;
+        if(current_tag != null)
+        {
+            this.translated_tags = await tag_translations.get().get_translations([current_tag], "en");
+            this.call_update_listeners();
+        }
+
         // Make sure the user info is loaded.  This should normally be preloaded by globalInitData
         // in main.js, and this won't make a request.
         this.user_info = await image_data.singleton().get_user_info_full(this.viewing_user_id);
@@ -1708,7 +1713,6 @@ ppixiv.data_sources.artist = class extends data_source
     {
         this.call_update_listeners();
 
-        var query_args = this.url.searchParams;
         let type = this.viewing_type;
 
         var result = await helpers.get_request("/ajax/user/" + this.viewing_user_id + "/profile/all", {});
@@ -1774,22 +1778,25 @@ ppixiv.data_sources.artist = class extends data_source
         this.call_update_listeners();
     }
 
+    // If we're filtering a follow tag, return it.  Otherwise, return null.
+    get current_tag()
+    {
+        let args = new helpers.args(this.url);
+        return args.query.get("tag");
+    }
+
     refresh_thumbnail_ui(container, thumbnail_view)
     {
         thumbnail_view.avatar_container.hidden = false;
         thumbnail_view.avatar_widget.set_user_id(this.viewing_user_id);
 
-        let viewing_type = this.viewing_type;
-        let url = new URL(this.url);
-
-        this.set_path_item(container, "artist-works", 2, "");
+        this.set_path_item(container, "artist-works", 2, "artworks");
         this.set_path_item(container, "artist-illust", 2, "illustrations");
         this.set_path_item(container, "artist-manga", 2, "manga");
 
+        let current_tag = this.current_tag;
+
         // Refresh the post tag list.
-        var query_args = this.url.searchParams;
-        var current_query = query_args.toString();
-        
         var tag_list = container.querySelector(".post-tag-list");
         helpers.remove_elements(tag_list);
         
@@ -1822,7 +1829,8 @@ ppixiv.data_sources.artist = class extends data_source
                 as_element: true,
             });
 
-            if(url.searchParams.toString() == current_query)
+            let match_tag = tag != "All"? tag:null;
+            if(match_tag == current_tag)
                 a.classList.add("selected");
 
             if(tag == "All")
@@ -1840,15 +1848,17 @@ ppixiv.data_sources.artist = class extends data_source
         else
         {
             // Tags aren't loaded yet.  We'll be refreshed after tag_list_opened loads tags.
+            // If a tag is selected, fill in just that tag so the button text works.
             var span = document.createElement("span");
             span.innerText = "Loading...";
             tag_list.appendChild(span);
+
+            add_tag_link({ tag: "All" });
+            if(current_tag != null)
+                add_tag_link({ tag: current_tag });
         }
 
-        // Set whether the tags menu item is highlighted.  We don't use set_active_popup_highlight
-        // here so we don't need to load the tag list.
-        var box = container.querySelector(".member-tags-box");
-        helpers.set_class(box, "selected", query_args.has("tag"));
+        this.set_active_popup_highlight(container);
     }
 
     // This is called when the tag list dropdown is opened.
@@ -3927,41 +3937,42 @@ ppixiv.data_sources.vview = class extends data_source
         if(this.bookmark_tag_counts == null)
             return;
 
+        let current_tag = helpers.args.location.hash.get("bookmark-tag");
+
         let add_tag_link = (tag) =>
         {
             let tag_count = this.bookmark_tag_counts[tag];
-
-            let a = document.createElement("a");
-            a.classList.add("box-link");
-            a.classList.add("following-tag");
 
             let tag_name = tag;
             if(tag_name == null)
                 tag_name = "All bookmarks";
             else if(tag_name == "")
                 tag_name = "Untagged";
-            a.innerText = tag_name;
-
-            // Show the bookmark count in the popup.
-            if(tag_count != null)
-            {
-                a.classList.add("popup");
-                a.dataset.popup = tag_count + (tag_count == 1? " bookmark":" bookmarks");
-            }
 
             let args = helpers.args.location;
-
-            let current_tag = args.hash.get("bookmark-tag");
-            if(tag == current_tag)
-                a.classList.add("selected");
-
             args.hash.delete("path");
             if(tag == null)
                 args.hash.delete("bookmark-tag");
             else
                 args.hash.set("bookmark-tag", tag);
             args.query.delete("p");
-            a.href = args.url.toString();
+
+            // Show the bookmark count in the popup.
+            let popup = null;
+            if(tag_count != null)
+                popup = tag_count + (tag_count == 1? " bookmark":" bookmarks");
+
+            let a = helpers.create_box_link({
+                label: tag_name,
+                classes: ["following-tag"],
+                popup,
+                link: args.url.toString(),
+                as_element: true,
+            });
+
+            if(tag == current_tag)
+                a.classList.add("selected");
+
             tag_list.appendChild(a);
         };
 

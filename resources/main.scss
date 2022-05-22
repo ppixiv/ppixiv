@@ -1236,6 +1236,10 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
     .thumbnail-box:hover .ugoira-icon {
         opacity: 0.5;
     }
+
+    [data-type="order-shuffle"] .icon {
+        font-size: 24px;
+    }
 }
 
 .thumbnail-box {
@@ -1506,7 +1510,6 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
             vertical-align: middle;
         }
         display: inline-block;
-        width: 1em;
         position: relative;
         margin-right: 0.25em;
         svg {
@@ -1671,10 +1674,10 @@ a.box-link, span.box-link
 }
 
 // Adjusts the popup for the tag lists so they don't cover the tag.
-.member-tags-box .post-tag-list .following-tag:hover:after,
-.search-tags-box .related-tag-list .tag:hover:after,
-.bookmark-tags-box .bookmark-tag-list .tag:hover:after,
-.local-bookmark-tags-box .local-bookmark-tag-list .tag:hover:after {
+.member-tags-box .post-tag-list .tag-entry:hover:after,
+.search-tags-box .related-tag-list .tag-entry:hover:after,
+.bookmark-tags-box .bookmark-tag-list .tag-entry:hover:after,
+.local-bookmark-tags-box .local-bookmark-tag-list .tag-entry:hover:after {
     left: auto;
     right: 0px;
 }
@@ -2343,11 +2346,6 @@ svg.heart-image .delete {
         color: #fff;
         padding: 1em;
     }
-
-    .button {
-        cursor: pointer;
-        padding: 1em;
-    }
 }
 
 .tag-entry-popup
@@ -2748,6 +2746,11 @@ svg.heart-image .delete {
 .close-local-search
 {
     padding: 0.5em;
+
+    // Flip the icon to point to the left.
+    .material-icons {
+        transform: scale(-1, 1);
+    }
 }
 
 .image-editor {

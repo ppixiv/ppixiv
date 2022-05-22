@@ -176,6 +176,10 @@ ppixiv.helpers = {
         // By default, return HTML as text, which is used to add these into templates, which
         // is the more common usage.  If as_element is true, an element will be returned instead.
         as_element=false,
+
+        // Helpers for screen_search:
+        dataset={},
+        data_type=null,
     })
     {
         // XXX: We prefix material icon names with "mat:", so in the future we can have a custom
@@ -195,7 +199,7 @@ ppixiv.helpers = {
                     <span hidden class=icon>
                         <span class=material-icons></span>
                     </span>
-                    <span class=label></span>
+                    <span hidden class=label></span>
                     <span hidden class=explanation></span>
                 </div>
             </a>
@@ -205,7 +209,11 @@ ppixiv.helpers = {
         template.innerHTML = html;
         let node = helpers.create_from_template(template);
 
-        node.querySelector(".label").innerText = label;
+        if(label != null)
+        {
+            node.querySelector(".label").hidden = false;
+            node.querySelector(".label").innerText = label;
+        }
         if(link)
             node.href = link;
 
@@ -230,6 +238,11 @@ ppixiv.helpers = {
             explanation_node.hidden = false;
             explanation_node.innerText = explanation;
         }
+
+        if(data_type != null)
+            node.dataset.type = data_type;
+        for(let [key, value] of Object.entries(dataset))
+            node.dataset[key] = value;
 
         if(as_element)
             return node;

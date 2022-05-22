@@ -657,13 +657,7 @@ ppixiv.menu_option_nested_button = class extends ppixiv.menu_option
         label,
         ...options})
     {
-        super({...options, template: `
-            <div class="box-link clickable">
-                <div class=label-box>
-                    <span class=label></span>
-                </div>
-            </div>
-        `});
+        super({...options, template: helpers.create_box_link({label: "",   classes: ["clickable"] })});
 
         this.container.querySelector(".label").innerText = label;
         this.container.addEventListener("click", (e) => {
