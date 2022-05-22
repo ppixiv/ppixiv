@@ -975,7 +975,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
                     return;
                 }
             
-                await actions.follow(user_id, follow_privately, []);
+                await actions.follow(user_id, follow_privately);
             })();
 
             return true;

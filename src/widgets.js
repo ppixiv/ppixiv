@@ -913,7 +913,7 @@ ppixiv.follow_widget = class extends widget
 
             // Get full follow info to find out if the follow is public or private, and which
             // tags are selected.
-            let follow_info = await image_data.singleton().load_user_follow_info(this.user_id);
+            let follow_info = await image_data.singleton().get_user_follow_info(this.user_id);
             let all_tags = await image_data.singleton().load_all_user_follow_tags();
             this.refresh_with_data({following: true, following_privately: follow_info?.following_privately, all_tags, selected_tags: follow_info?.tags});
         } finally {
@@ -995,7 +995,7 @@ ppixiv.follow_widget = class extends widget
 
     async clicked_follow(follow_privately)
     {
-        await actions.follow(this._user_id, follow_privately, []);
+        await actions.follow(this._user_id, follow_privately);
     }
 
     async clicked_unfollow()
@@ -1025,12 +1025,12 @@ ppixiv.follow_widget = class extends widget
             // There's no setting to inherit privacy from, so use bookmark_privately_by_default
             // by default.
             let follow_privately = settings.get("bookmark_privately_by_default");
-            await actions.follow(this._user_id, follow_privately, [tag]);
+            await actions.follow(this._user_id, follow_privately, { tags: [tag] });
             return;
         }
 
         // We're already following, so update the existing tags.
-        let follow_info = await image_data.singleton().load_user_follow_info(this.user_id);
+        let follow_info = await image_data.singleton().get_user_follow_info(this.user_id);
         if(follow_info == null)
         {
             console.log("Error retrieving follow info to update tags");

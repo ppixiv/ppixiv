@@ -325,7 +325,11 @@ ppixiv.actions = class
         }
     }
 
-    static async follow(user_id, follow_privately, tags)
+    // Note that tags is only used for new follows, and is ignored if we're already following.
+    // The caller needs to check this before calling this with tags set.  To add or remove tags
+    // to existing follows, use following_user_tag_add and following_user_tag_delete.  However,
+    // this can be used to change privacy.
+    static async follow(user_id, follow_privately, { tags=null }={})
     {
         if(user_id == -1)
             return;
@@ -346,10 +350,19 @@ ppixiv.actions = class
 
         // This doesn't return any data.  Record that we're following and refresh the UI.
         let user_data = await image_data.singleton().get_user_info(user_id);
-        image_data.singleton().update_cached_follow_info(user_id, true, {
-            following_privately: follow_privately,
-            tags: new Set(tags),
-        });
+
+        let info = image_data.singleton().get_user_follow_info_sync(user_id);
+        if(info != null)
+        {
+            // Update cached follow info.  If tags is null, we're just changing privacy and not
+            // affecting tags, so don't change info.tags.
+            console.log("update", tags);
+            info.following_privately = follow_privately;
+            if(tags != null)
+                info.tags = new Set(tags);
+        
+            image_data.singleton().update_cached_follow_info(user_id, true, info);
+        }
 
         var message = "Followed " + user_data.name;
         if(follow_privately)

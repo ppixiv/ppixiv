@@ -522,9 +522,9 @@ ppixiv.image_data = class extends EventTarget
     // follow is public or private.  If the user isn't followed, return null.
     // 
     // This can also fetch the results of load_all_user_follow_tags and will cache it if
-    // available, so if you're calling both load_user_follow_info and load_all_user_follow_tags,
+    // available, so if you're calling both get_user_follow_info and load_all_user_follow_tags,
     // call this first.
-    async load_user_follow_info(user_id, { refresh=false }={})
+    async get_user_follow_info(user_id, { refresh=false }={})
     {
         // If we request following info for a user we're not following, we'll get a 400.  This
         // isn't great, since it means we have to make an extra API call first to see if we're
@@ -579,6 +579,11 @@ ppixiv.image_data = class extends EventTarget
             tags,
             following_privately: data.body.restrict == "1",
         }
+        return this.user_follow_info[user_id];
+    }
+
+    get_user_follow_info_sync(user_id)
+    {
         return this.user_follow_info[user_id];
     }
 
