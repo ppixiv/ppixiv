@@ -878,6 +878,9 @@ ppixiv.follow_widget = class extends widget
         if(!this.visible)
             return;
 
+        // Fit the tag scroll box within however much space we have available.
+        helpers.set_max_height(this.container, { max_height: 400, bottom_padding: 10 });
+
         if(this.refreshing)
         {
             console.error("Already refreshing");

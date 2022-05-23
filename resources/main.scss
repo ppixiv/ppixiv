@@ -660,6 +660,7 @@ body[data-theme="light"] .whats-new-button.updates > svg {
     background-color: var(--frame-bg-color);
     border: 1px solid var(--frame-border-color);
     padding: .25em;
+    overflow-y: auto;
 
     .separator {
         width: 100%;
