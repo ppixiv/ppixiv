@@ -952,25 +952,25 @@ ppixiv.screen_search = class extends ppixiv.screen
         {
             extra_links.push({
                 url: new URL(`/messages.php?receiver_id=${user_info.userId}`, ppixiv.location),
-                type: ".contact-link",
+                type: "contact-link",
                 label: "Send a message",
             });
             
             extra_links.push({
                 url: new URL(`/users/${user_info.userId}/following#ppixiv`, ppixiv.location),
-                type: ".following-link",
+                type: "following-link",
                 label: `View ${user_info.name}'s followed users`,
             });
 
             extra_links.push({
                 url: new URL(`/users/${user_info.userId}/bookmarks/artworks#ppixiv`, ppixiv.location),
-                type: ".bookmarks-link",
+                type: "bookmarks-link",
                 label: user_info? `View ${user_info.name}'s bookmarks`:`View bookmarks`,
             });
 
             extra_links.push({
                 url: new URL(`/discovery/users#ppixiv?user_id=${user_info.userId}`, ppixiv.location),
-                type: ".similar-artists",
+                type: "similar-artists",
                 label: "Similar artists",
             });
         }
@@ -981,7 +981,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         {
             extra_links.push({
                 url: pawoo_url,
-                type: ".pawoo-icon",
+                type: "pawoo-icon",
                 label: "Pawoo",
             });
         }
@@ -992,7 +992,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         {
             extra_links.push({
                 url: twitter_url,
-                type: ".twitter-icon",
+                type: "twitter-icon",
             });
         }
 
@@ -1002,7 +1002,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         {
             extra_links.push({
                 url: circlems_url,
-                type: ".circlems-icon",
+                type: "circlems-icon",
                 label: "Circle.ms",
             });
         }
@@ -1017,7 +1017,7 @@ ppixiv.screen_search = class extends ppixiv.screen
             let type = this.find_link_image_type(webpage_url);
             extra_links.push({
                 url: webpage_url,
-                type: type || ".webpage-link",
+                type: type || "webpage-link",
                 label: "Webpage",
             });
         }
@@ -1051,6 +1051,23 @@ ppixiv.screen_search = class extends ppixiv.screen
         for(let div of row.querySelectorAll(".extra-profile-link-button"))
             div.remove();
         
+        // Map from link types to icons:
+        let link_types = {
+            ["default-icon"]: "resources/link-icon.svg",
+            ["shopping-cart"]: "resources/shopping-cart.svg",
+            ["twitter-icon"]: "resources/icon-twitter.svg",
+            ["fanbox-icon"]: "resources/icon-fanbox.svg",
+            ["booth-icon"]: "resources/icon-booth.svg",
+            ["webpage-link"]: "resources/icon-webpage.svg",
+            ["pawoo-icon"]: "resources/icon-pawoo.svg",
+            ["circlems-icon"]: "resources/icon-circlems.svg",
+            ["twitch-icon"]: "resources/logo-twitch.svg",
+            ["contact-link"]: "resources/send-message.svg",
+            ["following-link"]: "resources/followed-users-eye.svg",
+            ["bookmarks-link"]: "resources/icon-bookmarks.svg",
+            ["similar-artists"]: "resources/related-illusts.svg",
+        };
+
         let seen_links = {};
         for(let {url, label, type} of extra_links)
         {
@@ -1070,61 +1087,26 @@ ppixiv.screen_search = class extends ppixiv.screen
             if(type == null)
                 type = this.find_link_image_type(url);
 
+            if(type == null)
+                type = "default-icon";
+
             let entry = this.create_template({name: "extra-link", html: `
                 <div class=extra-profile-link-button>
-                    <a href=# class="extra-link grey-icon bulb-button popup popup-bottom" rel="noreferer noopener">
-                        <span class="default-icon">
-                            <ppixiv-inline src="resources/link-icon.svg"></ppixiv-inline>
-                        </span>
-                        <span class="shopping-cart" hidden>
-                            <ppixiv-inline src="resources/shopping-cart.svg"></ppixiv-inline>
-                        </span>
-                        <span class="twitter-icon" hidden>
-                            <ppixiv-inline src="resources/icon-twitter.svg"></ppixiv-inline>
-                        </span>
-                        <span class="fanbox-icon" hidden>
-                            <ppixiv-inline src="resources/icon-fanbox.svg"></ppixiv-inline>
-                        </span>
-                        <span class="booth-icon" hidden>
-                            <ppixiv-inline src="resources/icon-booth.svg"></ppixiv-inline>
-                        </span>
-                        <span class="webpage-link" hidden>
-                            <ppixiv-inline src="resources/icon-webpage.svg"></ppixiv-inline>
-                        </span>
-                        <span class="webpage-link" hidden>
-                            <ppixiv-inline src="resources/icon-webpage.svg"></ppixiv-inline>
-                        </span>
-                        <span class="pawoo-icon" hidden>
-                            <ppixiv-inline src="resources/icon-pawoo.svg"></ppixiv-inline>
-                        </span>
-                        <span class="circlems-icon" hidden>
-                            <ppixiv-inline src="resources/icon-circlems.svg"></ppixiv-inline>
-                        </span>
-                        <span class="twitch-icon" hidden>
-                            <ppixiv-inline src="resources/logo-twitch.svg" style="margin: 4px 4px 0 4px;"></ppixiv-inline>
-                        </span>
-                        <span class="contact-link" hidden>
-                            <ppixiv-inline src="resources/send-message.svg"></ppixiv-inline>
-                        </span>
-                        <span class="following-link" hidden>
-                            <ppixiv-inline src="resources/followed-users-eye.svg"></ppixiv-inline>
-                        </span>
-                        <span class="bookmarks-link" hidden>
-                            <ppixiv-inline src="resources/icon-bookmarks.svg"></ppixiv-inline>
-                        </span>
-                        <span class="similar-artists" hidden>
-                            <ppixiv-inline src="resources/related-illusts.svg"></ppixiv-inline>
-                        </span>
-                    </a>
+                    <a href=# class="extra-link grey-icon bulb-button popup popup-bottom" rel="noreferer noopener"></a>
                 </div>
             `});
-            
+
+            let image_name = link_types[type];
+            let icon = helpers.create_ppixiv_inline(image_name);
+            icon.classList.add(type);
+            entry.querySelector(".extra-link").appendChild(icon);
+
             let a = entry.querySelector(".extra-link");
             a.href = url;
 
             // If this is a Twitter link, parse out the ID.  We do this here so this works
             // both for links in the profile text and the profile itself.
-            if(type == ".twitter-icon")
+            if(type == "twitter-icon")
             {
                 let parts = url.pathname.split("/");
                 label = parts.length > 1? ("@" + parts[1]):"Twitter";
@@ -1133,12 +1115,6 @@ ppixiv.screen_search = class extends ppixiv.screen
             if(label == null)
                 label = a.href;
             a.dataset.popup = label;
-
-            if(type != null)
-            {
-                entry.querySelector(".default-icon").hidden = true;
-                entry.querySelector(type).hidden = false;
-            }
 
             // Add the node at the start, so earlier links are at the right.  This makes the
             // more important links less likely to move around.
@@ -1202,30 +1178,30 @@ ppixiv.screen_search = class extends ppixiv.screen
         url = new URL(url);
 
         let alt_icons = {
-            ".shopping-cart": [
+            "shopping-cart": [
                 "dlsite.com",
                 "fantia.jp",
                 "skeb.jp",
                 "ko-fi.com",
                 "dmm.co.jp",
             ],
-            ".twitter-icon": [
+            "twitter-icon": [
                 "twitter.com",
             ],
-            ".fanbox-icon": [
+            "fanbox-icon": [
                 "fanbox.cc",
             ],
-            ".booth-icon": [
+            "booth-icon": [
                 "booth.pm",
             ],
-            ".twitch-icon": [
+            "twitch-icon": [
                 "twitch.tv",
             ],
         };
 
         // Special case for old Fanbox URLs that were under the Pixiv domain.
         if((url.hostname == "pixiv.net" || url.hostname == "www.pixiv.net") && url.pathname.startsWith("/fanbox/"))
-            return ".fanbox-icon";
+            return "fanbox-icon";
 
         for(let alt in alt_icons)
         {

@@ -706,12 +706,6 @@ body[data-theme="light"] .bulb-button:hover > .icon-button {
     margin-top: -3px;
 }
 
-.extra-profile-link-button {
-    .default-icon svg {
-        transform: translate(0, 2px);
-    }
-}
-
 .post-info > * {
     display: inline-block;
     background-color: var(--box-link-bg-color);
@@ -941,36 +935,46 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
             color: #bbb;
         }
 
-        .bookmarks-link > svg,
-        .following-link > svg {
-            width: 32px;
-            height: 32px;
-        }
+        .user-links {
+            .default-icon {
+                transform: translate(0, 2px);
+            }
+        
+            .twitch-icon {
+                margin: 4px 4px 0 4px;
+            }
+                
+            .bookmarks-link,
+            .following-link {
+                width: 32px;
+                height: 32px;
+            }
 
-        .contact-link > svg {
-            width: 31px;
-            height: 31px;
-            margin: 0 3px;
-        }
+            .contact-link {
+                width: 31px;
+                height: 31px;
+                margin: 0 3px;
+            }
 
-        .webpage-link > svg {
-            margin: 0 2px;
-            width: 26px;
-            height: 26px;
-        }
+            .webpage-link {
+                margin: 0 2px;
+                width: 26px;
+                height: 26px;
+            }
 
-        .circlems-icon > svg {
-            margin: 2px 0 0 0;
-        }
+            .circlems-icon {
+                margin: 2px 0 0 0;
+            }
 
-        .fanbox-icon > svg {
-            // This is weird, since Inkscape doesn't support setting obscure attributes like "class".
-            [inkscape\:label="edge"],
-            [inkscape\:label="ear-left"],
-            [inkscape\:label="ear-right"],
-            [inkscape\:label="hand-right"]
-            {
-                fill: currentColor !important;
+            .fanbox-icon {
+                // This is weird, since Inkscape doesn't support setting obscure attributes like "class".
+                [inkscape\:label="edge"],
+                [inkscape\:label="ear-left"],
+                [inkscape\:label="ear-right"],
+                [inkscape\:label="hand-right"]
+                {
+                    fill: currentColor !important;
+                }
             }
         }
     }
