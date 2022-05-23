@@ -2197,9 +2197,6 @@ ppixiv.screen_search = class extends ppixiv.screen
                 label.hidden = false;
                 label.querySelector(".label").innerText = quick_user_data.userName;
 
-                // Point the "similar illustrations" thumbnail button to similar users for this result, so you can
-                // chain from one set of suggested users to another.
-                element.querySelector("A.similar-illusts-button").href = "/discovery/users#ppixiv?user_id=" + user_id;
                 continue;
             }
 
@@ -2302,13 +2299,6 @@ ppixiv.screen_search = class extends ppixiv.screen
             helpers.set_class(link, "first-page", illust_page == 0);
             helpers.set_class(link, "last-page", illust_page == info.pageCount-1);
             link.style.borderBottomColor = `hsl(${illust_id}deg 50% 50%)`;
-
-            // On most pages, the suggestions button in thumbnails shows similar illustrations.  On following,
-            // show similar artists instead.
-            if(search_mode == "users")
-                element.querySelector("A.similar-illusts-button").href = "/discovery/users#ppixiv?user_id=" + info.userId;
-            else
-                element.querySelector("A.similar-illusts-button").href = "/bookmark_detail.php?illust_id=" + illust_id + "#ppixiv?recommendations=1";
 
             this.refresh_bookmark_icon(element);
 
@@ -2523,9 +2513,6 @@ ppixiv.screen_search = class extends ppixiv.screen
                             <div class="heart button-bookmark private bookmarked" hidden>
                                 <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
                             </div>
-                            <a hidden href=# class="similar-illusts-button bulb-button grey-icon">
-                                <ppixiv-inline src="resources/related-illusts.svg"></ppixiv-inline>
-                            </a>
                         </div>
 
                         <div style="flex: 1;"></div>

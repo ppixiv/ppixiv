@@ -1071,31 +1071,6 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
 
 .screen-search-container {
     .thumbnail-box {
-        .similar-illusts-button {
-            display: block;
-            width: 32px;
-            height: 32px;
-            margin-top: -2px;
-        }
-
-        &:not(:hover) .similar-illusts-button {
-            visibility: hidden;
-        }
-
-        .similar-illusts-button {
-            color: #FF0 !important; /* override grey-icon hover color */
-            opacity: 0.5;
-
-            /* Use a very subtle stroke when not hovered, so it's not completely invisible
-             * on light backgrounds. */
-            stroke: rgba(0,0,0,0.5);
-        }
-
-        .similar-illusts-button:hover {
-            opacity: 1;
-            stroke: #000;
-        }
-
         .bottom-row {
             position: absolute;
             display: flex;
