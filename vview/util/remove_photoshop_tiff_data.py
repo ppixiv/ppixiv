@@ -25,7 +25,7 @@ def _remove_photoshop_tiff_data_inner(f):
     """
 
     # Read the header.
-    endianness = _read_unpack('2c', f, '<')
+    endianness = _read_unpack('<2c', f)
 
     # II: little-endian
     # MM: big-endian
@@ -36,7 +36,7 @@ def _remove_photoshop_tiff_data_inner(f):
     else:
         return f
 
-    flags, = _read_unpack('H', f, endian)
+    flags, = _read_unpack(f'{endian}H', f)
 
     # TiffImagePlugin looks at byte 3 for the "BigTIFF" header.  Isn't that wrong for
     # big-endian files?
@@ -44,18 +44,18 @@ def _remove_photoshop_tiff_data_inner(f):
     if flags not in (42, 43):
         raise OSError(f'Not a TIFF file')
 
-    tag_index_offset, = _read_unpack('Q' if bigtiff else 'L', f, endian)
+    tag_index_offset, = _read_unpack(f'{endian}Q' if bigtiff else f'{endian}L', f)
 
     # Seek to the tag index and read it.  We don't actually look at tag data, only the
     # index, so this is trivial.
     f.seek(tag_index_offset)
     tag_count_fmt = 'Q' if bigtiff else 'H'
-    tag_count, = _read_unpack(tag_count_fmt, f, endian)
+    tag_count, = _read_unpack(f'{endian}{tag_count_fmt}', f)
 
     tags = []
     tag_fmt = 'HHQ8s' if bigtiff else 'HHL4s'
     for i in range(tag_count):
-        tag, typ, count, data = _read_unpack(tag_fmt, f, endian)
+        tag, typ, count, data = _read_unpack(f'{endian}{tag_fmt}', f)
         tags.append((tag, typ, count, data))
 
     # A list of (pos, size) that we don't need to include in the output.
@@ -121,10 +121,10 @@ def _remove_photoshop_tiff_data_inner(f):
     output.write(new_tag_list.getvalue())
     return output
 
-def _read_unpack(fmt, f, endian):
+def _read_unpack(fmt, f):
     size = struct.calcsize(fmt)
     data = f.read(size)
     if len(data) != size:
         raise OSError(f'Corrupt EXIF data')
     
-    return struct.unpack(endian + fmt, data)
+    return struct.unpack(fmt, data)
