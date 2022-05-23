@@ -176,7 +176,6 @@ ppixiv.main_controller = class
         helpers.add_style("image-styles", `
             body {
                 --dark-noise: url("${resources['resources/noise.png']}");
-                --light-noise: url("${resources['resources/noise-light.png']}");
             }
         `);
 
