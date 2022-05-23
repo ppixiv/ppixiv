@@ -802,7 +802,7 @@ ppixiv.follow_widget = class extends widget
 
                 ${helpers.create_box_link({
                     label: "Add new tag",
-                    icon: "add",
+                    icon: "add_circle",
                     classes: ["premium-only", "add-follow-tag"],
                 })}
             </div>
