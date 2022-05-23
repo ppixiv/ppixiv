@@ -53,7 +53,7 @@ let thumbnail_ui = class extends ppixiv.widget
                     </div>
 
                     <div class="grey-icon expand-manga-posts icon-button popup" style="margin: 0 -3px">
-                        <div class="material-icons" style="display: block; text-align: center;">open_in_full</div>
+                        <div class="material-icons" style="display: block; text-align: center;"></div>
                     </div>
 
                     <div class="whats-new-button popup" data-popup="What's New" style="margin-right: -2px;">
@@ -2103,8 +2103,8 @@ ppixiv.screen_search = class extends ppixiv.screen
     {
         let enabled = this.media_ids_expanded_by_default;
         let button = this.container.querySelector(".expand-manga-posts");
-        helpers.set_class(button, "highlighted", enabled);
         button.dataset.popup = enabled? "Collapse manga posts":"Expand manga posts";
+        button.querySelector(".material-icons").innerText = enabled? "close_fullscreen":"open_in_full";
         
         // Hide the button for native searches, since it doesn't do anything there, and on
         // the views that return manga pages directly.
