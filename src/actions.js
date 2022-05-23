@@ -48,6 +48,12 @@ ppixiv.actions = class
             },
         });
 
+        // Broadcast that this illust was bookmarked.  This is for my own external
+        // helper scripts.
+        let e = new Event("bookmarked");
+        e.illust_id = illust_id;
+        window.dispatchEvent(e);
+
         // Even if we weren't given tags, we still know that they're unset, so set tags so
         // we won't need to request bookmark details later.
         image_data.singleton().update_cached_bookmark_image_tags(media_id, request.tags);
