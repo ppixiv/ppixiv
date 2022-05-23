@@ -451,15 +451,16 @@ ppixiv.screen_search = class extends ppixiv.screen
             if(e.button != 0)
                 return;
 
-            // Don't do this when viewing followed users, since we'll be loading the user rather than the post.
-            if(this.data_source && this.data_source.search_mode == "users")
-                return;
-
             var a = e.target.closest("a.thumbnail-link");
             if(a == null)
                 return;
 
             if(a.dataset.mediaId == null)
+                return;
+
+            // Only do this for illustrations.
+            let {type} = helpers.parse_media_id(a.dataset.mediaId);
+            if(type != "illust")
                 return;
 
             await image_data.singleton().get_media_info(a.dataset.mediaId);
@@ -2146,7 +2147,6 @@ ppixiv.screen_search = class extends ppixiv.screen
                 continue;
 
             let [illust_id, illust_page] = helpers.media_id_to_illust_id_and_page(media_id);
-            var search_mode = this.data_source.search_mode;
 
             let { id: thumb_id, type: thumb_type } = helpers.parse_media_id(media_id);
 
@@ -2241,14 +2241,8 @@ ppixiv.screen_search = class extends ppixiv.screen
 
             // Set the link.  Setting dataset.mediaId will allow this to be handled with in-page
             // navigation, and the href will allow middle click, etc. to work normally.
-            //
-            // If we're on the followed users page, set these to the artist page instead.
             var link = element.querySelector("a.thumbnail-link");
-            if(search_mode == "users")
-            {
-                link.href = "/users/" + info.userId + "#ppixiv";
-            }
-            else if(thumb_type == "folder")
+            if(thumb_type == "folder")
             {
                 // This is a local directory.  We only expect to see this while on the local
                 // data source.  The folder link retains any search parameters in the URL.
@@ -2266,25 +2260,20 @@ ppixiv.screen_search = class extends ppixiv.screen
             link.dataset.mediaId = media_id;
             link.dataset.userId = info.userId;
 
-            // Don't show this UI when we're in the followed users view.
-            if(search_mode == "illusts")
+            element.querySelector(".ugoira-icon").hidden = info.illustType != 2 && info.illustType != "video";
+
+            // Show the page count if this is a multi-page post (unless we're on the
+            // manga view itself).
+            if(info.pageCount > 1 && page == 0 && this.data_source?.name != "manga")
             {
-                if(info.illustType == 2 || info.illustType == "video")
-                    element.querySelector(".ugoira-icon").hidden = false;
+                let pageCountBox = element.querySelector(".manga-info-box");
+                pageCountBox.hidden = false;
+                element.querySelector(".manga-info-box .page-count").textContent = info.pageCount;
+                element.querySelector(".manga-info-box .page-count").hidden = false;
 
-                // Show the page count if this is a multi-page post (unless we're on the
-                // manga view itself).
-                if(info.pageCount > 1 && page == 0 && this.data_source?.name != "manga")
-                {
-                    let pageCountBox = element.querySelector(".manga-info-box");
-                    pageCountBox.hidden = false;
-                    element.querySelector(".manga-info-box .page-count").textContent = info.pageCount;
-                    element.querySelector(".manga-info-box .page-count").hidden = false;
-
-                    let page_count_box2 = element.querySelector(".show-manga-pages-button");
-                    page_count_box2.hidden = false;
-                    page_count_box2.href = `/artworks/${illust_id}#ppixiv?manga=1`;
-                }
+                let page_count_box2 = element.querySelector(".show-manga-pages-button");
+                page_count_box2.hidden = false;
+                page_count_box2.href = `/artworks/${illust_id}#ppixiv?manga=1`;
             }
 
             helpers.set_class(element, "dot", helpers.tags_contain_dot(info));
@@ -2304,11 +2293,7 @@ ppixiv.screen_search = class extends ppixiv.screen
 
             // Set the label.  This is only actually shown in following views.
             var label = element.querySelector(".thumbnail-label");
-            if(search_mode == "users") {
-                label.hidden = false;
-                label.querySelector(".label").innerText = info.userName;
-            }
-            else if(thumb_type == "folder")
+            if(thumb_type == "folder")
             {
                 // The ID is based on the filename.  Use it to show the directory name in the thumbnail.
                 let parts = media_id.split("/");
@@ -2413,7 +2398,7 @@ ppixiv.screen_search = class extends ppixiv.screen
     // or un-bookmarks an image.
     refresh_bookmark_icon(thumbnail_element)
     {
-        if(this.data_source && this.data_source.search_mode == "users" || this.data_source.name == "manga")
+        if(this.data_source && this.data_source.name == "manga")
             return;
 
         var media_id = thumbnail_element.dataset.id;

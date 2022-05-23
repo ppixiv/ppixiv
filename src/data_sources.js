@@ -3262,7 +3262,6 @@ ppixiv.data_sources.follows = class extends data_source
         var query_args = this.url.searchParams;
         let user_id = query_args.get("id");
         if(user_id == null)
-
             return window.global_data.user_id;
         
         return user_id;
