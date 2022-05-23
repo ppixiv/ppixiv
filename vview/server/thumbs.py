@@ -7,7 +7,7 @@ from shutil import copyfile
 
 from ..util import misc, mjpeg_mkv_to_zip, gif_to_zip, inpainting, video
 from ..util.paths import open_path
-from ..util.remove_photoshop_tiff_data import remove_photoshop_tiff_data
+from ..util.tiff import remove_photoshop_tiff_data
 
 resource_path = (Path(__file__) / '../../../resources').resolve()
 blank_image = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=')
