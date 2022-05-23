@@ -2113,6 +2113,7 @@ ppixiv.screen_search = class extends ppixiv.screen
 
     update_from_settings = () =>
     {
+        this.load_expanded_media_ids(); // in case expand_manga_thumbnails has changed
         this.set_visible_thumbs();
         this.refresh_images();
         this.refresh_expanded_thumb_all();
