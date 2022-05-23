@@ -30,6 +30,20 @@ let _load_source_file = function(__pixiv, __source) {
     env.native = window.location.hostname != "pixiv.net" && window.location.hostname != "www.pixiv.net";
     env.resources = {};
 
+    // If we're running natively, set unsafeWindow like a user script would have.
+    if(env.native)
+        window.unsafeWindow = window;
+
+    // Make sure that we're not loaded more than once.  This can happen if we're installed in
+    // multiple script managers, or if the release and debug versions are enabled simultaneously.
+    if(unsafeWindow.loaded_ppixiv)
+    {
+        console.error("ppixiv has been loaded twice.  Is it loaded in multiple script managers?");
+        return;
+    }
+
+    unsafeWindow.loaded_ppixiv = true;
+
     // If we're running natively, the scripts are on the same root path we're on, and we can
     // just resolve URLs relatively.  If we're on Pixiv then we need to load scripts from the
     // native server instead.
@@ -134,9 +148,6 @@ let _load_source_file = function(__pixiv, __source) {
         _load_source_file(env, source);
     }
 
-    // If we're running natively, set unsafeWindow like a user script would have.
-    if(env.native)
-        window.unsafeWindow = window;
     window.ppixiv = env;
 
     // Create the main controller.

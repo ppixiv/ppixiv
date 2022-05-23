@@ -42,6 +42,16 @@
             if(window.location.hostname != "www.pixiv.net")
                 return;
 
+            // Make sure that we're not loaded more than once.  This can happen if we're installed in
+            // multiple script managers, or if the release and debug versions are enabled simultaneously.
+            if(unsafeWindow.loaded_ppixiv)
+            {
+                console.error("ppixiv has been loaded twice.  Is it loaded in multiple script managers?");
+                return;
+            }
+
+            unsafeWindow.loaded_ppixiv = true;
+
             console.log("ppixiv bootstrap");
 
             let setup = env.resources["output/setup.js"];
