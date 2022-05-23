@@ -106,6 +106,19 @@ class SearchDirEntryStat:
         self._st_mtime = self._data['System.DateModified'].timestamp() - time.timezone
         return self._st_mtime
 
+def _matches_range(range, value):
+    """
+    range is (min, max).  Return true if min <= value <= max.  If range is None, there's no
+    filter, so the value always matches.  min and max can be None.
+    """
+    if range is None:
+        return True
+    if range[0] is not None and range[0] > value:
+        return False
+    if range[1] is not None and range[1] < value:
+        return False
+    return True
+
 class SearchDirEntry(os.PathLike):
     """
     A DirEntry-like class for search results.
@@ -147,6 +160,9 @@ class SearchDirEntry(os.PathLike):
     def is_file(self, *, follow_symlinks=True):
         return self._data['System.ItemType'] != 'Directory'
 
+    def exists(self, *, follow_symlinks=True):
+        return True
+
     @property
     def is_symlink(self):
         return False
@@ -163,7 +179,7 @@ class SearchDirEntry(os.PathLike):
         pass
 
     def __fspath__(self):
-        return _path
+        return self._path
 
     def __repr__(self):
         return 'SearchDirEntry(%s)' % self._path
@@ -185,9 +201,6 @@ def search(*,
         recurse=True,
         contents=None,
         media_type=None, # "images" or "videos"
-
-        # These filters are unsupported.  We accept them so we take the same parameters
-        # as file_index.search(), but it's up to the caller to actually filter these.
         total_pixels=None,
         aspect_ratio=None,
 
@@ -316,6 +329,17 @@ def search(*,
             with conn.cursor() as cursor:
                 cursor.execute(query)
                 for row in cursor:
+                    # Handle search filters that the index doesn't do for us.  This is just a best-effort
+                    # to filter these early, since if we can do it directly from the search rows, it's faster
+                    # than having it go through the higher-level filtering.
+                    if row['System.Image.HorizontalSize'] is not None and row['System.Image.VerticalSize'] is not None:
+                        if not _matches_range(aspect_ratio, row['System.Image.HorizontalSize'] / row['System.Image.VerticalSize']):
+                            continue
+
+                    if row['System.Image.HorizontalSize'] is not None and row['System.Image.VerticalSize'] is not None:
+                        if not _matches_range(total_pixels, row['System.Image.HorizontalSize'] * row['System.Image.VerticalSize']):
+                            continue
+
                     entry = SearchDirEntry(row)
                     yield entry
 

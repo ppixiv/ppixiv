@@ -388,8 +388,7 @@ class FileIndex(Database):
         # match images with width*height <= -total_pixels.
         total_pixels=None,
 
-        # Only match images with width / height >= aspect_ratio.  if negative,
-        # match width / height <= -aspect_ratio.
+        # Only match images with aspect_ratio[0] <= width / height >= aspect_ratio[1].
         aspect_ratio=None,
 
         # An SQL ORDER BY statement to order results.  See library.sort_orders.
