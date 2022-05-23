@@ -324,12 +324,11 @@ def search(*,
         # exception is just "Exception occurred".  Make a guess by comparing the duration
         # to what we expect the timeout to be.  The timeout is an integer, so it can never
         # be less than one full second.
-        if timeout != 0:
-            runtime = time.time() - start_time
-            if runtime >= timeout - 0.5:
-                # Exit the exception handler before yielding the timeout, so any exceptions
-                # during that yield don't cause nested exceptions.
-                timed_out = True
+        runtime = time.time() - start_time
+        if timeout != 0 and runtime >= timeout - 0.5:
+            # Exit the exception handler before yielding the timeout, so any exceptions
+            # during that yield don't cause nested exceptions.
+            timed_out = True
         else:
             print('Windows search error:', e)
 
