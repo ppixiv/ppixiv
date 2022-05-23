@@ -1495,7 +1495,7 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
         // .icon.with-text is an icon that has a label next to it, which is most of them.  If .with-text
         // isn't set, this is an icon-only button, like the shuffle button.
         &.with-text {
-            margin-right: 0.5em;
+            margin-right: 0.25em;
 
             // Force the width to 1ch, so the icon takes up space even if it's empty.  This keeps labels
             // in lists  aligned if some items have icons and some don't.  If there should be no space at

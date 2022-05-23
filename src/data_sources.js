@@ -2389,6 +2389,9 @@ class data_source_bookmarks_base extends data_source
                 as_element: true,
             });
 
+            if(tag_name == "All bookmarks")
+                a.dataset.default = 1;
+
             if(tag == current_tag)
                 a.classList.add("selected");
 
@@ -2783,7 +2786,7 @@ ppixiv.data_sources.new_works_by_following = class extends data_source
         // Refresh the bookmark tag list.
         let current_tag = this.url.searchParams.get("tag") || "All tags";
 
-        let tag_list = container.querySelector(".new-post-follow-tags  .vertical-list");
+        let tag_list = container.querySelector(".new-post-follow-tags .vertical-list");
         for(let tag of tag_list.querySelectorAll(".tag-entry"))
             tag.remove();
 
@@ -2805,6 +2808,9 @@ ppixiv.data_sources.new_works_by_following = class extends data_source
                 link: url.toString(),
                 as_element: true,
             });
+
+            if(tag == "All tags")
+                a.dataset.default = 1;
 
             if(tag == current_tag)
                 a.classList.add("selected");
@@ -3371,6 +3377,8 @@ ppixiv.data_sources.follows = class extends data_source
                 link: url.toString(),
                 as_element: true,
             });
+            if(tag == "All tags")
+                a.dataset.default = 1;
 
             if(tag == current_tag)
                 a.classList.add("selected");
@@ -3975,6 +3983,8 @@ ppixiv.data_sources.vview = class extends data_source
                 link: args.url.toString(),
                 as_element: true,
             });
+            if(tag_name == "All bookmarks")
+                a.dataset.default = 1;
 
             if(tag == current_tag)
                 a.classList.add("selected");

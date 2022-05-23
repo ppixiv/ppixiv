@@ -128,7 +128,7 @@ let thumbnail_ui = class extends ppixiv.widget
                         </span>
 
                         <div class=bookmark-tags-box>
-                            ${ helpers.create_box_link({label: "",    popup: "Bookmark tags", classes: ["popup-menu-box-button"] }) }
+                            ${ helpers.create_box_link({label: "All bookmarks",    popup: "Bookmark tags",  icon: "bookmark", classes: ["popup-menu-box-button"] }) }
                             <div class="popup-menu-box bookmark-tag-list vertical-list"></div>
                         </div>
 
@@ -144,7 +144,7 @@ let thumbnail_ui = class extends ppixiv.widget
                         </span>
 
                         <span class="followed-users-follow-tags premium-only">
-                            ${ helpers.create_box_link({label: "",    popup: "Follow tags", icon: "bookmark", classes: ["popup-menu-box-button"] }) }
+                            ${ helpers.create_box_link({label: "All tags",    popup: "Follow tags", icon: "bookmark", classes: ["popup-menu-box-button"] }) }
                             <div class="popup-menu-box follow-tag-list vertical-list"></div>
                         </span>
                     </div>
@@ -158,7 +158,7 @@ let thumbnail_ui = class extends ppixiv.widget
                         </span>
 
                         <span class="new-post-follow-tags premium-only">
-                            ${ helpers.create_box_link({label: "",    popup: "Follow tags", icon: "bookmark", classes: ["popup-menu-box-button"] }) }
+                            ${ helpers.create_box_link({label: "All tags",    popup: "Follow tags", icon: "bookmark", classes: ["popup-menu-box-button"] }) }
                             <div class="popup-menu-box new-post-follow-tag-list vertical-list"></div>
                         </span>
                     </div>
