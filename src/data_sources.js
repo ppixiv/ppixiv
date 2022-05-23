@@ -240,24 +240,7 @@ class illust_id_list
 
         return new_media_id;
     };
-
-    // Return the page we need to load to get the next or previous illustration.  This only
-    // makes sense if get_neighboring_illust returns null.
-    get_page_for_neighboring_illust(illust_id, next)
-    {
-        let { page, idx } = this.get_page_for_illust(illust_id);
-        if(page == null)
-            return null;
-
-        let ids = this.media_ids_by_page.get(page);
-        let new_idx = idx + (next? +1:-1);
-        if(new_idx >= 0 && new_idx < ids.length)
-            return page;
-
-        page += next? +1:-1;
-        return page;
-    };
-
+    
     // Return the first ID, or null if we don't have any.
     get_first_id()
     {
@@ -916,18 +899,29 @@ ppixiv.data_source = class
 
         // We didn't have the new illustration, so we may need to load another page of search results.
         // Find the page this illustration is on, or use the initial page if media_id is null.
-        let next_page = this.id_list.get_page_for_neighboring_illust(media_id, next, options);
+        let next_page;
         if(media_id == null)
-            next_page = this.initial_page;
-
-        // If we can't find the next page, then the image isn't actually loaded in the current
-        // search results.  This can happen if the page is reloaded: we'll show the previous
-        // image, but we won't have the results loaded (and the results may have changed).
-        if(next_page == null)
         {
-            // We should normally know which page the illustration we're currently viewing is on.
-            console.log("Don't know the next page for illust", media_id);
-            return null;
+            next_page = this.initial_page;
+        }
+        else
+        {
+            // Return the page we need to load to get the next or previous illustration.  This only
+            // makes sense if get_neighboring_illust returns null.
+            let { page } = this.id_list.get_page_for_illust(media_id);
+
+            // If media_id isn't loaded, then we're trying to navigate from an image that isn't
+            // actually in the search results.  This can happen if the page is reloaded, and we're
+            // showing the previous image but don't have any corresponding search results.
+            if(page == null)
+            {
+                console.log("Don't know the next page for illust", media_id);
+                return null;
+            }
+
+            next_page = page + (next? +1:-1);
+            if(next_page < 1)
+                return null;
         }
 
         console.log("Loading the next page of results:", next_page);
