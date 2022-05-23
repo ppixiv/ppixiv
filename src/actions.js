@@ -325,51 +325,141 @@ ppixiv.actions = class
         }
     }
 
-    // Note that tags is only used for new follows, and is ignored if we're already following.
-    // The caller needs to check this before calling this with tags set.  To add or remove tags
-    // to existing follows, use following_user_tag_add and following_user_tag_delete.  However,
-    // this can be used to change privacy.
-    static async follow(user_id, follow_privately, { tags=null }={})
+    // Follow user_id with the given privacy and tag list.
+    //
+    // The follow editing API has a bunch of quirks.  You can call bookmark_add on a user
+    // you're already following, but it'll only update privacy and not tags.  Editing tags
+    // is done with following_user_tag_add/following_user_tag_delete (and can only be done
+    // one at a time).
+    //
+    // A tag can only be set with this call if the caller knows we're not already following
+    // the user, eg. if the user clicks a tag in the follow dropdown for an unfollowed user.
+    // If we're editing an existing follow's tag, use change_follow_tags below.  We do handle
+    // changing privacy here.
+    static async follow(user_id, follow_privately, { tag=null }={})
     {
         if(user_id == -1)
             return;
 
+        // We need to do this differently depending on whether we were already following the user.
+        let user_info = await image_data.singleton().get_user_info_full(user_id);
+        if(user_info.isFollowed)
+        {
+            // If we were already following, we're just updating privacy.  We don't update follow
+            // tags for existing follows this way.
+            console.assert(tag == null);
+            return await actions.change_follow_privacy(user_id, follow_privately);
+        }
+
+        // This is a new follow.
+        //
         // If bookmark_privately_by_default is enabled and private wasn't specified
         // explicitly, set it to true.
         if(follow_privately == null && settings.get("bookmark_privately_by_default"))
             follow_privately = true;
 
-        var result = await helpers.rpc_post_request("/bookmark_add.php", {
+        // This doesn't return any data (not even an error flag).
+        await helpers.rpc_post_request("/bookmark_add.php", {
             mode: "add",
             type: "user",
-            user_id: user_id,
-            tag: tags,
+            user_id,
+            tag: tag ?? "",
             restrict: follow_privately? 1:0,
             format: "json",
         });
 
-        // This doesn't return any data.  Record that we're following and refresh the UI.
-        let user_data = await image_data.singleton().get_user_info(user_id);
-
-        let info = image_data.singleton().get_user_follow_info_sync(user_id);
-        if(info != null)
+        // Cache follow info for this new follow.  Since we weren't followed before, we know
+        // we can just create a new entry.
+        let tag_set = new Set();
+        if(tag != null)
         {
-            // Update cached follow info.  If tags is null, we're just changing privacy and not
-            // affecting tags, so don't change info.tags.
-            console.log("update", tags);
-            info.following_privately = follow_privately;
-            if(tags != null)
-                info.tags = new Set(tags);
-        
-            image_data.singleton().update_cached_follow_info(user_id, true, info);
+            tag_set.add(tag);
+            image_data.singleton().add_to_cached_all_user_follow_tags(tag);
         }
+        let info = {
+            tags: tag_set,
+            following_privately: follow_privately,
+        };
 
-        var message = "Followed " + user_data.name;
+        image_data.singleton().update_cached_follow_info(user_id, true, info);
+
+        var message = "Followed " + user_info.name;
         if(follow_privately)
             message += " privately";
         message_widget.singleton.show(message);
     }
-   
+
+    // Change the privacy status of a user we're already following.
+    static async change_follow_privacy(user_id, follow_privately)
+    {
+        let data = await helpers.rpc_post_request("/rpc/index.php", {
+            mode: "following_user_restrict_change",
+            user_id: user_id,
+            restrict: follow_privately? 1:0,
+        });
+
+        if(data.error)
+        {
+            console.log(`Error editing follow tags: ${data.message}`);
+            return;
+        }
+
+        // If we had cached follow info, update it with the new privacy.
+        let info = image_data.singleton().get_user_follow_info_sync(user_id);
+        if(info  != null)
+        {
+            console.log("Updating cached follow privacy");
+            info.following_privately = follow_privately;
+            image_data.singleton().update_cached_follow_info(user_id, true, info);
+        }
+
+        let user_info = await image_data.singleton().get_user_info(user_id);
+        let message = `Now following ${user_info.name} ${follow_privately? "privately":"publically"}`;
+        message_widget.singleton.show(message);
+    }
+
+    // Add or remove a follow tag for a user we're already following.  The API only allows
+    // editing one tag per call.
+    static async change_follow_tags(user_id, {tag, add})
+    {
+        let data = await helpers.rpc_post_request("/rpc/index.php", {
+            mode: add? "following_user_tag_add":"following_user_tag_delete",
+            user_id: user_id,
+            tag,
+        });
+
+        if(data.error)
+        {
+            console.log(`Error editing follow tags: ${data.message}`);
+            return;
+        }
+
+        let user_info = await image_data.singleton().get_user_info(user_id);
+        let message = `${add? "Added":"Removed"} the tag "${tag}" from ${user_info.name}`;
+        message_widget.singleton.show(message);
+
+        // Get follow info so we can update the tag list.  This will usually already be loaded,
+        // since the caller will have had to load it to show the UI in the first place.
+        let follow_info = await image_data.singleton().get_user_follow_info(user_id);
+        if(follow_info == null)
+        {
+            console.log("Error retrieving follow info to update tags");
+            return;
+        }
+
+        if(add)
+        {
+            follow_info.tags.add(tag);
+
+            // Make sure the tag is in the full tag list too.
+            image_data.singleton().add_to_cached_all_user_follow_tags(tag);
+        }
+        else
+            follow_info.tags.delete(tag);
+
+        image_data.singleton().update_cached_follow_info(user_id, true, follow_info);
+    }
+
     static async unfollow(user_id)
     {
         if(user_id == -1)

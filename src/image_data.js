@@ -574,7 +574,7 @@ ppixiv.image_data = class extends EventTarget
                 tags.add(tag_info.name);
         }
 
-        this.all_user_follow_tags = all_tags;
+        this.set_cached_all_user_follow_tags(all_tags);
         this.user_follow_info[user_id] = {
             tags,
             following_privately: data.body.restrict == "1",
@@ -618,12 +618,26 @@ ppixiv.image_data = class extends EventTarget
         if(result.error)
             console.log("Error retrieving follow tags");
         else
-        {
-            this.all_user_follow_tags = result.body.followUserTags;
-            this.all_user_follow_tags.sort();
-        }
+            this.set_cached_all_user_follow_tags(result.body.followUserTags);
 
         return this.all_user_follow_tags;
+    }
+
+    set_cached_all_user_follow_tags(tags)
+    {
+        tags.sort();
+
+        // Work around a Pixiv bug.  If you ever use the follow user API with a tag
+        // of null (instead of ""), it returns an internal error and you end up with
+        // a "null" tag in your tag list that never goes away.  It seems like it stores
+        // the actual null value, which then gets coerced to the string "null" in the
+        // API.  Remove it, since it's annoying (sorry if you really wanted to tag
+        // people as "null").
+        let idx = tags.indexOf("null");
+        if(idx != -1)
+            tags.splice(idx, 1);
+
+        this.all_user_follow_tags = tags;
     }
 
     // Add a new tag to all_user_follow_tags When the user creates a new one.

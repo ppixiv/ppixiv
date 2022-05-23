@@ -770,7 +770,7 @@ ppixiv.follow_widget = class extends widget
                 })}
 
                 ${helpers.create_box_link({
-                    label: "Follow Privately",
+                    label: "Follow privately",
                     icon: "lock",
                     classes: ["follow-button-private"],
                 })}
@@ -1022,15 +1022,14 @@ ppixiv.follow_widget = class extends widget
         let user_data = await image_data.singleton().get_user_info(user_id);
         if(!user_data.isFollowed)
         {
-            // There's no setting to inherit privacy from, so use bookmark_privately_by_default
-            // by default.
-            let follow_privately = settings.get("bookmark_privately_by_default");
-            await actions.follow(this._user_id, follow_privately, { tags: [tag] });
+            // We're not following, so follow the user with default privacy and the
+            // selected tag.
+            await actions.follow(user_id, null, { tag });
             return;
         }
 
         // We're already following, so update the existing tags.
-        let follow_info = await image_data.singleton().get_user_follow_info(this.user_id);
+        let follow_info = await image_data.singleton().get_user_follow_info(user_id);
         if(follow_info == null)
         {
             console.log("Error retrieving follow info to update tags");
@@ -1038,29 +1037,7 @@ ppixiv.follow_widget = class extends widget
         }
 
         let tag_was_selected = follow_info.tags.has(tag);
-
-        let data = await helpers.rpc_post_request("/rpc/index.php", {
-            mode: tag_was_selected? "following_user_tag_delete":"following_user_tag_add",
-            user_id: user_id,
-            tag,
-        });
-
-        if(data.error)
-        {
-            console.log(`Error editing follow tags: ${data.message}`);
-            return;
-        }
-
-        // Update cached follow tags.
-        if(tag_was_selected)
-            follow_info.tags.delete(tag);
-        else
-        {
-            follow_info.tags.add(tag);
-            image_data.singleton().add_to_cached_all_user_follow_tags(tag);            
-        }
-
-        image_data.singleton().update_cached_follow_info(user_id, true, follow_info);
+        actions.change_follow_tags(user_id, {tag: tag, add: !tag_was_selected});
     }
 };
 

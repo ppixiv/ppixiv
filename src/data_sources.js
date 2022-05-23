@@ -2793,6 +2793,10 @@ ppixiv.data_sources.new_works_by_following = class extends data_source
 
         let add_tag_link = (tag) =>
         {
+            // Work around Pixiv always returning a follow tag named "null" for some users.
+            if(tag == "null")
+                return;
+
             var url = new URL(this.url);
             if(tag != "All tags")
                 url.searchParams.set("tag", tag);
@@ -3350,6 +3354,10 @@ ppixiv.data_sources.follows = class extends data_source
 
         var add_tag_link = (tag) =>
         {
+            // Work around Pixiv always returning a follow tag named "null" for some users.
+            if(tag == "null")
+                return;
+
             let url = new URL(this.url);
             url.searchParams.delete("p");
             if(tag == "Untagged")
