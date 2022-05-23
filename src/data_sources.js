@@ -337,8 +337,10 @@ ppixiv.data_source = class
     // the thumbnail view with that name.
     get name() { return null; }
     
-    // Most data sources are for illustrations.  This is set to "users" for the followed view.
-    get search_mode() { return "illusts"; }
+    // Returns true if the data source might return manga pages that the user might want to
+    // expand.  This is usually true, except for things like user lists and local files.  This
+    // just hides the expand/collapse button at the top when it can't do anything.
+    get can_return_manga() { return true; }
 
     // Return a canonical URL for this data source.  If the canonical URL is the same,
     // the same instance of the data source should be used.
@@ -3237,7 +3239,7 @@ ppixiv.data_sources.search = class extends data_source
 ppixiv.data_sources.follows = class extends data_source
 {
     get name() { return "following"; }
-    get search_mode() { return "users"; }
+    get can_return_manga() { return false; }
   
     constructor(url)
     {
@@ -3434,7 +3436,7 @@ ppixiv.data_sources.follows = class extends data_source
 ppixiv.data_sources.related_favorites = class extends data_source_from_page
 {
     get name() { return "illust-bookmarks"; }
-    get search_mode() { return "users"; }
+    get can_return_manga() { return false; }
   
     constructor(url)
     {
@@ -3510,7 +3512,7 @@ ppixiv.data_sources.related_favorites = class extends data_source_from_page
 ppixiv.data_sources.search_users = class extends data_source_from_page
 {
     get name() { return "search-users"; }
-    get search_mode() { return "users"; }
+    get can_return_manga() { return false; }
   
     parse_document(doc)
     {
@@ -3677,6 +3679,7 @@ ppixiv.data_sources.recent = class extends data_source
 ppixiv.data_sources.vview = class extends data_source
 {
     get name() { return "vview"; }
+    get can_return_manga() { return false; }
 
     constructor(url)
     {

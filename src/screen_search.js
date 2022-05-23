@@ -2106,10 +2106,12 @@ ppixiv.screen_search = class extends ppixiv.screen
         button.dataset.popup = enabled? "Collapse manga posts":"Expand manga posts";
         button.querySelector(".material-icons").innerText = enabled? "close_fullscreen":"open_in_full";
         
-        // Hide the button for native searches, since it doesn't do anything there, and on
-        // the views that return manga pages directly.
-        button.hidden = this.data_source?.name == "vview" || this.data_source?.includes_manga_pages;
-    }
+        // Hide the button if the data source can never return manga posts to be expanded, or
+        // if it's the manga page itself which always expands.
+        button.hidden =
+            !this.data_source?.can_return_manga ||
+            this.data_source?.includes_manga_pages;
+        }
 
     update_from_settings = () =>
     {
