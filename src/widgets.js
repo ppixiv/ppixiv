@@ -733,7 +733,7 @@ ppixiv.avatar_widget = class extends widget
             return;
 
         this.container.querySelector(".follow-icon").hidden = !this.user_data.isFollowed;
-        this.container.querySelector(".avatar").dataset.popup = "View " + this.user_data.name + "'s posts";
+        this.container.querySelector(".avatar").dataset.popup = this.user_data.name;
 
         // If we don't have an image because we're loaded from a source that doesn't give us them,
         // just hide the avatar image.
