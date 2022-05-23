@@ -3,6 +3,7 @@ import asyncio, concurrent, os, io, struct, os, threading, time, traceback, sys,
 from contextlib import contextmanager
 from PIL import Image, ExifTags
 from pprint import pprint
+from ..util.tiff import get_tiff_metadata
 
 from .video_metadata import mp4, mkv, gif
 
@@ -116,6 +117,10 @@ def read_metadata(f, mime_type):
             'frame_durations': data['frame_durations'],
             'animation': len(data['frame_durations']) > 1,
         }
+
+    # Use our faster implementation to get metadata from TIFFs.
+    if mime_type == 'image/tiff':
+        return get_tiff_metadata(f)
 
     result = { }
 

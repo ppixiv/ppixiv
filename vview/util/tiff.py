@@ -121,6 +121,60 @@ def _remove_photoshop_tiff_data_inner(f):
     output.write(new_tag_list.getvalue())
     return output
 
+def get_tiff_metadata(f):
+    """
+    Get image metadata from a TIFF.
+
+    This is just a quick hack to read this metadata quickly.  PIL can be very
+    slow with TIFFs.  We have remove_photoshop_tiff_data to speed it up, but it
+    creates a copy of the file and we can do it much more quickly when all we
+    need is basic metadata.
+    """
+    # Read the header.
+    endianness = _read_unpack('<2c', f)
+
+    # II: little-endian
+    # MM: big-endian
+    if endianness == (b'I', b'I'):
+        endian = '<'
+    elif endianness == (b'M', b'M'):
+        endian = '>'
+    else:
+        return f
+
+    flags, = _read_unpack(f'{endian}H', f)
+
+    # TiffImagePlugin looks at byte 3 for the "BigTIFF" header.  Isn't that wrong for
+    # big-endian files?
+    bigtiff = flags == 43
+    if flags not in (42, 43):
+        raise OSError(f'Not a TIFF file')
+
+    tag_index_offset, = _read_unpack(f'{endian}Q' if bigtiff else f'{endian}L', f)
+
+    # Seek to the tag index and read it.
+    f.seek(tag_index_offset)
+    tag_count_fmt = 'Q' if bigtiff else 'H'
+    tag_count, = _read_unpack(f'{endian}{tag_count_fmt}', f)
+
+    IMAGE_WIDTH = 256
+    IMAGE_HEIGHT = 257 # Tiff calls height "length".  No.
+
+    metadata = { }
+    tag_fmt = 'HHQ8s' if bigtiff else 'HHL4s'
+    for i in range(tag_count):
+        tag, typ, count, data = _read_unpack(f'{endian}{tag_fmt}', f)
+
+        # Remove ImageSourceData.
+        if tag in (IMAGE_WIDTH, IMAGE_HEIGHT):
+            value, = struct.unpack(f'{endian}Q' if bigtiff else f'{endian}L', data)
+            if tag == IMAGE_WIDTH:
+                metadata['width'] = value
+            elif tag == IMAGE_HEIGHT:
+                metadata['height'] = value
+
+    return metadata
+
 def _read_unpack(fmt, f):
     size = struct.calcsize(fmt)
     data = f.read(size)
