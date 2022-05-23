@@ -762,6 +762,12 @@ ppixiv.follow_widget = class extends widget
             <div class="follow-container" style="
                 background-color: #000;
             ">
+                ${helpers.create_box_link({
+                    label: "View posts",
+                    icon: "image",
+                    classes: ["view-posts"],
+                })}
+
                 <!-- Buttons for following and unfollowing: -->
                 ${helpers.create_box_link({
                     label: "Follow",
@@ -900,17 +906,17 @@ ppixiv.follow_widget = class extends widget
 
             // Refresh with whether we're followed or not, so the follow/unfollow UI is
             // displayed as early as possible.
-            let user_data = await image_data.singleton().get_user_info(this.user_id);
+            let user_info = await image_data.singleton().get_user_info(this.user_id);
             if(!this.visible)
                 return;
 
-            this.refresh_with_data({ following: user_data.isFollowed });
+            this.refresh_with_data({ user_info, following: user_info.isFollowed });
             
-            if(!user_data.isFollowed)
+            if(!user_info.isFollowed)
             {
                 // We're not following, so just load the follow tag list.
                 let all_tags = await image_data.singleton().load_all_user_follow_tags();
-                this.refresh_with_data({ following: user_data.isFollowed, all_tags, selected_tags: new Set() });
+                this.refresh_with_data({ user_info, following: user_info.isFollowed, all_tags, selected_tags: new Set() });
                 return;
             }
 
@@ -918,7 +924,7 @@ ppixiv.follow_widget = class extends widget
             // tags are selected.
             let follow_info = await image_data.singleton().get_user_follow_info(this.user_id);
             let all_tags = await image_data.singleton().load_all_user_follow_tags();
-            this.refresh_with_data({following: true, following_privately: follow_info?.following_privately, all_tags, selected_tags: follow_info?.tags});
+            this.refresh_with_data({user_info, following: true, following_privately: follow_info?.following_privately, all_tags, selected_tags: follow_info?.tags});
         } finally {
             this.refreshing = false;
         }
@@ -926,7 +932,7 @@ ppixiv.follow_widget = class extends widget
 
     // Refresh the UI with as much data as we have.  This data comes in a bunch of little pieces,
     // so we get it incrementally.
-    refresh_with_data({following=null, following_privately=null, all_tags=null, selected_tags=null}={})
+    refresh_with_data({user_info=null, following=null, following_privately=null, all_tags=null, selected_tags=null}={})
     {
         if(!this.visible)
             return;
@@ -939,6 +945,10 @@ ppixiv.follow_widget = class extends widget
         this.container.querySelector(".add-follow-tag").hidden = true;
         this.container.querySelector(".separator").hidden = true;
         
+        let view_text = user_info != null? `View ${user_info.name}'s posts`:`View posts`;
+        this.container.querySelector(".view-posts .label").innerText = view_text;
+        this.container.querySelector(".view-posts").href = `/users/${this._user_id}/artworks#ppixiv`;
+
         // If following is null, we're still waiting for the initial user data request
         // and we don't have any data yet.  
         if(following == null)
