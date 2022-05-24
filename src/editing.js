@@ -144,24 +144,50 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
 
     async refresh_internal({ illust_data })
     {
-        // If the illust ID hasn't changed, don't reimport data from illust_data.  Just
-        // import it once when media_id is set so we don't erase edits.  Allow refreshing
-        // anyway if we're not visible, so we'll see changes if an image is refreshed.
         let media_id = illust_data?.id;
-        if(this.visible && illust_data && media_id == this.editing_media_id)
-            return;
+        let editor_is_open = this.open_editor != null;
+        let media_id_changing = media_id != this.editing_media_id;
 
-        // Clear undo/redo on load.
-        this.undo_stack = [];
-        this.redo_stack = [];
         this.editing_media_id = media_id;
 
-        this.crop_editor.set_illust_data(illust_data);
-        this.safe_zone_editor.set_illust_data(illust_data);
-        this.inpaint_editor.set_illust_data(illust_data);
+        // Clear undo/redo when the media ID changes.
+        let saved_state = null;
+        if(editor_is_open && !media_id_changing)
+        {
+            // If we're updating an image while editors are open, save the current state
+            // so we can undo it after refreshing to prevent clobbering the user's edits.
+            saved_state = this.get_state();
+        }
 
-        // We just loaded, so clear dirty.
-        this.dirty = false;
+        // Give the editors the new illust data.
+        for(let editor of [this.inpaint_editor, this.crop_editor, this.safe_zone_editor])
+            editor.set_illust_data(illust_data);
+
+        if(editor_is_open && !media_id_changing)
+        {
+            // Restore the state we saved above.
+            this.set_state(saved_state);
+        }
+
+        // If no editor is open, make sure the undo stack is cleared and clear dirty.
+        if(!editor_is_open)
+        {
+            // Otherwise, just make sure the undo stack is cleared.
+            this.undo_stack = [];
+            this.redo_stack = [];
+            this.dirty = false;
+        }
+    }
+
+    get open_editor()
+    {
+        for(let editor of [this.inpaint_editor, this.crop_editor, this.safe_zone_editor])
+        {
+            if(editor.visible)
+                return editor;
+        }
+
+        return null;
     }
 
     // This is called when the ImageEditingOverlayContainer changes.
@@ -245,7 +271,6 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
 
     set_state(state)
     {
-        console.log(state);
         this.inpaint_editor.set_inpaint_data(state.inpaint);
         this.crop_editor.set_state(state.crop);
         this.safe_zone_editor.set_state(state.safe_zone);
