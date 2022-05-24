@@ -2,7 +2,12 @@
 
 ppixiv.CropEditor = class extends ppixiv.widget
 {
-    constructor(options)
+    constructor({
+        // This is used for editing both cropping and safe zones, since they both just
+        // pick a rectangular region.  mode is either "crop" or "safe-zone" to tell us
+        // which one we are.
+        mode,
+        ...options})
     {
         super({...options, template: `
             <div>
@@ -38,6 +43,7 @@ ppixiv.CropEditor = class extends ppixiv.widget
             </div>
         `});
 
+        this.mode = mode;
         this.shutdown_signal = new AbortController();
         this.width = 1;
         this.height = 1;
@@ -206,7 +212,7 @@ ppixiv.CropEditor = class extends ppixiv.widget
         this.height = illust_data.height;
         this.svg.setAttribute("viewBox", `0 0 ${this.width} ${this.height}`);
     
-        this.set_state(illust_data.crop);
+        this.set_state(illust_data[this.mode]);
         this.refresh();
     }
 
@@ -225,9 +231,14 @@ ppixiv.CropEditor = class extends ppixiv.widget
         let crop = this.get_state();
         if(crop == null)
             crop = [];
-        return {
-            crop: crop,
-        }
+        if(this.mode == "crop")
+            return {
+                crop: crop,
+            };
+        else
+            return {
+                safe_zone: crop,
+            };
     }
 
     get_state()

@@ -12,6 +12,7 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
                         ${ helpers.create_box_link({icon: "save",     popup: "Save",          classes: ["save-edits", "popup-bottom"] }) }
                         ${ helpers.create_box_link({icon: "refresh",  popup: "Saving...",     classes: ["spinner"] }) }
                         ${ helpers.create_box_link({icon: "crop",     popup: "Crop",          classes: ["show-crop", "popup-bottom"] }) }
+                        ${ helpers.create_box_link({icon: "wallpaper",popup: "Slideshow safe zones", classes: ["show-safe-zones", "popup-bottom"] }) }
                         ${ helpers.create_box_link({icon: "brush",    popup: "Inpainting",    classes: ["show-inpaint", "popup-bottom"] }) }
                     </div>
                 </div>
@@ -24,6 +25,13 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
         this.crop_editor = new ppixiv.CropEditor({
             container: this.container,
             parent: this,
+            mode: "crop",
+        });
+
+        this.safe_zone_editor = new ppixiv.CropEditor({
+            container: this.container,
+            parent: this,
+            mode: "safe_zone",
         });
 
         this.inpaint_editor = new ppixiv.InpaintEditor({
@@ -41,6 +49,11 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
         this.show_crop = this.container.querySelector(".show-crop");
         this.show_crop.addEventListener("click", (e) => {
             settings.set("image_editing_mode", settings.get("image_editing_mode", null) == "crop"? null:"crop");
+        });
+
+        this.show_safe_zones = this.container.querySelector(".show-safe-zones");
+        this.show_safe_zones.addEventListener("click", (e) => {
+            settings.set("image_editing_mode", settings.get("image_editing_mode", null) == "safe_zones"? null:"safe_zones");
         });
 
         this.show_inpaint = this.container.querySelector(".show-inpaint");
@@ -112,6 +125,7 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
     {
         this.crop_editor.shutdown();
         this.inpaint_editor.shutdown();
+        this.safe_zone_editor.shutdown();
 
         super.shutdown();
     }
@@ -131,17 +145,19 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
     async refresh_internal({ illust_data })
     {
         // If the illust ID hasn't changed, don't reimport data from illust_data.  Just
-        // import it once when media_id is set so we don't erase edits.
+        // import it once when media_id is set so we don't erase edits.  Allow refreshing
+        // anyway if we're not visible, so we'll see changes if an image is refreshed.
         let media_id = illust_data?.id;
-        if(illust_data && media_id == this.editing_media_id)
+        if(this.visible && illust_data && media_id == this.editing_media_id)
             return;
 
         // Clear undo/redo on load.
         this.undo_stack = [];
         this.redo_stack = [];
         this.editing_media_id = media_id;
-    
+
         this.crop_editor.set_illust_data(illust_data);
+        this.safe_zone_editor.set_illust_data(illust_data);
         this.inpaint_editor.set_illust_data(illust_data);
 
         // We just loaded, so clear dirty.
@@ -153,6 +169,7 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
     {
         this.inpaint_editor.overlay_container = overlay_container;
         this.crop_editor.overlay_container = overlay_container;
+        this.safe_zone_editor.overlay_container = overlay_container;
     }
 
     refresh()
@@ -165,6 +182,10 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
         let showing_crop = settings.get("image_editing_mode", null) == "crop" && this.visible;
         this.crop_editor.visible = showing_crop;
         helpers.set_class(this.show_crop, "selected", showing_crop);
+
+        let showing_safe_zones = settings.get("image_editing_mode", null) == "safe_zones" && this.visible;
+        this.safe_zone_editor.visible = showing_safe_zones;
+        helpers.set_class(this.show_safe_zones, "selected", showing_safe_zones);
 
         let showing_inpaint = settings.get("image_editing_mode", null) == "inpaint" && this.visible;
         this.inpaint_editor.visible = showing_inpaint;
@@ -218,6 +239,7 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
         return {
             inpaint: this.inpaint_editor.get_inpaint_data(),
             crop: this.crop_editor.get_state(),
+            safe_zone: this.safe_zone_editor.get_state(),
         };
     }
 
@@ -226,6 +248,7 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
         console.log(state);
         this.inpaint_editor.set_inpaint_data(state.inpaint);
         this.crop_editor.set_state(state.crop);
+        this.safe_zone_editor.set_state(state.safe_zone);
     }
 
     async save()
@@ -240,7 +263,7 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
         try {
             // Get data from each editor, so we can save them together.
             let edits = { };
-            for(let editor of [this.inpaint_editor, this.crop_editor])
+            for(let editor of [this.inpaint_editor, this.crop_editor, this.safe_zone_editor])
             {
                 for(let [key, value] of Object.entries(editor.get_data_to_save()))
                     edits[key] = value;
