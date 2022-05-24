@@ -100,6 +100,9 @@ ppixiv.on_click_viewer = class
 
         // If set, this is a FixedDOMRect to crop the image to.
         crop=null,
+
+        // If set, this is a FixedDOMRect of the safe zone for slideshow mode.
+        safe_zone=null,
     }={}) =>
     {
         // When quick view displays an image on mousedown, we want to see the mousedown too
@@ -203,6 +206,7 @@ ppixiv.on_click_viewer = class
         this.original_width = width;
         this.original_height = height;
         this._cropped_size = crop? new FixedDOMRect(crop[0], crop[1], crop[2], crop[3]):null;
+        this._safe_zone = safe_zone? new FixedDOMRect(safe_zone[0], safe_zone[1], safe_zone[2], safe_zone[3]):null;        
         this.img = img;
         this.preview_img = preview_img;
         this.onnextimage = onnextimage;
@@ -387,10 +391,19 @@ ppixiv.on_click_viewer = class
         this.set_initial_image_position = true;
         this.initial_image_position_aspect = aspect;
     
-        // Similar to how we display thumbnails for portrait images starting at the top, default to the top
-        // if we'll be panning vertically when in cover mode.
-        let zoom_center = [0.5, aspect == "portrait"? 0:0.5];
-        this.center_pos = zoom_center;
+        if(this._safe_zone)
+        {
+            // If the image has a safe zone, center it by default.
+            let safe_zone = this.unit_safe_zone;
+            this.center_pos = [safe_zone.middleHorizontal, safe_zone.middleVertical];
+        }
+        else
+        {
+            // Similar to how we display thumbnails for portrait images starting at the top, default to the top
+            // if we'll be panning vertically when in cover mode.
+            let zoom_center = [0.5, aspect == "portrait"? 0:0.5];
+            this.center_pos = zoom_center;
+        }
     }
 
     block_event = (e) =>
@@ -730,6 +743,24 @@ ppixiv.on_click_viewer = class
     get container_width() { return this.image_container.offsetWidth || 0; }
     get container_height() { return this.image_container.offsetHeight || 0; }
 
+    // If the image has a safe zone, return it in unit coordinates relative to the original image.
+    get unit_safe_zone()
+    {
+        if(this._safe_zone == null)
+            return null;
+
+        let cropped_size = this.cropped_size;
+            
+        let left = helpers.scale(this._safe_zone.left, cropped_size.left, cropped_size.right, 0, 1);
+        let right = helpers.scale(this._safe_zone.right, cropped_size.left, cropped_size.right, 0, 1);
+        let top = helpers.scale(this._safe_zone.top, cropped_size.top, cropped_size.bottom, 0, 1);
+        let bottom = helpers.scale(this._safe_zone.bottom, cropped_size.top, cropped_size.bottom, 0, 1);
+
+        return new FixedDOMRect(
+            left, top, right, bottom
+        );
+    }
+
     get current_zoom_pos()
     {
         if(this.zoom_active)
@@ -993,30 +1024,68 @@ ppixiv.on_click_viewer = class
         let screen_width = this.container_width;
         let screen_height = this.container_height;
 
-        // At 1x zoom, the image will fit the screen.  At _zoom_factor_cover, the image will
-        // cover the screen.  For auto-pan mode, scale the image to _zoom_factor_cover, so
-        // the default size is to fill the screen.  1/_zoom_factor_cover is then the minimum
-        // zoom we'll allow, which allows scaling down just enough to fit the image onscreen.
-        // This also means that a 0x zoom can be used to zoom to fit the image onscreen.
+        // default_width and default_height are the dimensions assigned to the image while we're
+        // animating, so it's the size of the image when there's no scaling applied.  Set this
+        // to _zoom_factor_cover, so a 1x transition zoom covers the screen.
         let zoom_factor_cover = this._zoom_factor_cover;
         animation.default_width = this.width * zoom_factor_cover;
         animation.default_height = this.height * zoom_factor_cover;
 
+        // Don't let the zoom go below the original 1:1 size.  This allows panning to 1:1
+        // by setting zoom to 0.  Unless we have a safe zone, there's no inherent max zoom.
+        let minimum_zoom = 1 / zoom_factor_cover;
+        let maximum_zoom = 999;
+
+        // Set up the safe zone zoom if we're in slideshow mode.  This isn't used for panning,
+        // since we currently don't transition nicely from these zooms to regular non-animated
+        // mode.
+        let safe_zone = null;
+        if(this.slideshow_enabled && this._safe_zone != null)
+        {
+            // We're given the safe zone in image coordinates.  Scale them to unit coordinates, since
+            // that's easier to work with.
+            safe_zone = this.unit_safe_zone;
+
+            // Clamp the maximum zoom so it's always possible to keep the safe zone onscreen.
+            // The size of the safe zone when we're at 1x zoom:
+            let safe_zone_size = [safe_zone.width * animation.default_width, safe_zone.height * animation.default_height];
+
+            // Clamp the zoom so the safe zone size fits in the container.
+            let max_zoom_x = this.container_width / safe_zone_size[0];
+            let max_zoom_y = this.container_height / safe_zone_size[1];
+            maximum_zoom = Math.min(max_zoom_x, max_zoom_y);
+        }
+
         // Calculate the scale and translate for each point.
         for(let point of animation.pan)
         {
-            // Don't let the zoom go below the original 1:1 size.  This allows panning to 1:1
-            // by setting zoom to 0.
-            let minimum_zoom = 1 / zoom_factor_cover;
-            let zoom = Math.max(minimum_zoom, point.zoom);
+            let zoom = helpers.clamp(point.zoom, minimum_zoom, maximum_zoom);
 
             // The screen size the image will have:
             let zoomed_width = animation.default_width * zoom;
             let zoomed_height = animation.default_height * zoom;
 
-            // The amount we're allowed to move down and right:
-            let max_x = zoomed_width - screen_width;
-            let max_y = zoomed_height - screen_height;
+            // The top-left and bottom-right corners we're allowed to display of the image.
+            // By default, clamp to the edge of the image.  These are in screen space coordinates.
+            let min_x = 0, min_y = 0;
+            let max_x = zoomed_width - screen_width, max_y = zoomed_height - screen_height;
+
+            if(safe_zone != null)
+            {
+                // Scale the safe zone coordinates to this zoom level, so they're in the same
+                // coordinate space as the screen.
+                let zoomed_safe_zone = new FixedDOMRect(
+                    safe_zone.left * zoomed_width, safe_zone.top * zoomed_height,
+                    safe_zone.right * zoomed_width, safe_zone.bottom * zoomed_height
+                );
+
+                // Clamp the max coordinates so we don't pan the safe zone offscreen.
+                max_x = Math.min(max_x, zoomed_safe_zone.left); // don't move the left edge past the left edge of the screen
+                max_y = Math.min(max_y, zoomed_safe_zone.top); // don't move the top edge past the top edge of the screen
+                min_x = Math.max(min_x, zoomed_safe_zone.right - screen_width); // don't move the right edge past the right edge of the screen
+                min_y = Math.max(min_y, zoomed_safe_zone.bottom - screen_height); // don't move the bottom edge past the bottom edge of the screen
+                // console.log("zoomed_width", zoomed_width, zoomed_safe_zone[1][0], min_x);
+            }
 
             // By default, the image will be aligned to the top-left of the screen.  Shift right and
             // down to center the top-left of the image on the screen:
@@ -1027,10 +1096,12 @@ ppixiv.on_click_viewer = class
             move_x -= point.x*zoomed_width;
             move_y -= point.y*zoomed_height;
 
+            // Clamp to the minimum and maximum translation.
             // move_x and move_y are negative to move the image up and left.  Clamp this so it never
-            // moves right/down, and doesn't move the right/bottom of the image past the edge of the screen.
-            move_x = Math.max(-max_x, Math.min(move_x, 0));
-            move_y = Math.max(-max_y, Math.min(move_y, 0));
+            // moves right/down, and doesn't move the bottom-right corner of the image past the edge
+            // of the screen.
+            move_x = Math.max(-max_x, Math.min(move_x, -min_x));
+            move_y = Math.max(-max_y, Math.min(move_y, -min_y));
     
             // If the image isn't filling the screen on either axis, center it.  This only applies at
             // keyframes (we won't always be centered while animating).

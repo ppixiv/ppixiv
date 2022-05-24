@@ -3840,6 +3840,9 @@ ppixiv.FixedDOMRect = class extends DOMRect
     set right(value) { this.width += value - this.right; }
     get bottom() { return super.bottom; }
     set bottom(value) { this.height += value - this.bottom; }
+
+    get middleHorizontal() { return (super.right + super.left) / 2; }
+    get middleVertical() { return (super.top + super.bottom) / 2; }
 }
 
 // Add:
