@@ -143,7 +143,7 @@ ppixiv.page_manager = class
     // previously created one.
     create_data_source_for_url(url, force)
     {
-        var data_source_class = this.get_data_source_for_url(url);
+        let data_source_class = this.get_data_source_for_url(url);
         if(data_source_class == null)
         {
             console.error("Unexpected path:", url.pathname);
@@ -152,16 +152,14 @@ ppixiv.page_manager = class
 
         // Canonicalize the URL to see if we already have a data source for this URL.
         let canonical_url = data_source_class.get_canonical_url(url);
-
-        // console.log("url", url.toString(), "becomes", canonical_url);
         if(!force && canonical_url in this.data_sources_by_canonical_url)
         {
             // console.log("Reusing data source for", url.toString());
             return this.data_sources_by_canonical_url[canonical_url];
         }
         
-        // console.log("Creating new data source for", url.toString());
-        var source = new data_source_class(url.href);
+        // console.log(`Creating new data source for ${canonical_url}`);
+        let source = new data_source_class(canonical_url);
         this.data_sources_by_canonical_url[canonical_url] = source;
         return source;
     }
