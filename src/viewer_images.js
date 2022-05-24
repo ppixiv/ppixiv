@@ -77,6 +77,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
                 width: early_illust_data.width,
                 height: early_illust_data.height,
                 crop: early_illust_data.crop, // not per-page
+                safe_zone: early_illust_data.safe_zone, // not per-page
             }];
 
             this.refresh();
@@ -107,6 +108,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
                 width: manga_page.width,
                 height: manga_page.height,
                 crop: this.illust_data.crop, // not per-page
+                safe_zone: this.illust_data.safe_zone, // not per-page
             });
         }
 
@@ -184,6 +186,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
             width: current_image.width,
             height: current_image.height,
             crop: this.image_editor.editing_crop? null:current_image.crop, // no cropping while editing cropping
+            safe_zone: current_image.safe_zone,
             restore_position: this.restore_history? "history":"auto",
 
             // Only enable editing for local images.
