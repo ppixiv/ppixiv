@@ -88,6 +88,9 @@ class FileIndex(Database):
                             -- If the image is cropped, a JSON array of crop data.
                             crop,
 
+                            -- The slideshow safe zone, as a JSON array.
+                            safe_zone,
+
                             -- The current inpaint data, its filename ID and timestamp.
                             inpaint,
                             inpaint_id,
