@@ -347,7 +347,7 @@ ppixiv.on_click_viewer = class
         // Figure out whether the image is relatively portrait or landscape compared to the screen.
         let screen_width = Math.max(this.container_width, 1); // might be 0 if we're hidden
         let screen_height = Math.max(this.container_height, 1);
-        return (screen_width/this.cropped_width) > (screen_height/this.cropped_height)? "portrait":"landscape";
+        return (screen_width/this.cropped_size.width) > (screen_height/this.cropped_size.height)? "portrait":"landscape";
     }
 
     // Set the pan position to the default for this image, or start the selected animation.
@@ -705,17 +705,22 @@ ppixiv.on_click_viewer = class
         if(screen_width == 0 || screen_height == 0)
             return 1;
 
-        return Math.min(screen_width/this.cropped_width, screen_height/this.cropped_height);
+        return Math.min(screen_width/this.cropped_size.width, screen_height/this.cropped_size.height);
+    }
+
+    // Return the DOMRect of the cropped size of the image.  If we're not cropping, this
+    // is the size of the image itself.
+    get cropped_size()
+    {
+        if(this._cropped_size != null)
+            return this._cropped_size;
+        else
+            return new FixedDOMRect(0, 0, this.original_width, this.original_height);
     }
     
-    // If we're cropping, this is the natural size of the crop rectangle.  If we're
-    // not cropping, this is just the size of the image.
-    get cropped_width() { return this._cropped_size? this._cropped_size.width:this.original_width; }
-    get cropped_height() { return this._cropped_size? this._cropped_size.height:this.original_height; }
-
     // Return the width and height of the image when at 1x zoom.
-    get width() { return this.cropped_width * this._image_to_screen_ratio; }
-    get height() { return this.cropped_height * this._image_to_screen_ratio; }
+    get width() { return this.cropped_size.width * this._image_to_screen_ratio; }
+    get height() { return this.cropped_size.height * this._image_to_screen_ratio; }
 
     // The actual size of the image with its current zoom.
     get onscreen_width() { return this.width * this._zoom_factor_current; }
@@ -970,7 +975,7 @@ ppixiv.on_click_viewer = class
 
         // If the image's aspect ratio is very close to the screen's, a pan animation has nowhere to
         // go.  If we're in slideshow mode, switch to a zoom.  This
-        let image_screen_ratio = (this.cropped_width/this.cropped_height) / (this.container_width/this.container_height);
+        let image_screen_ratio = (this.cropped_size.width/this.cropped_size.height) / (this.container_width/this.container_height);
         if(this.slideshow_enabled && Math.abs(image_screen_ratio - 1) < 0.05)
             animation = this.prepare_animation(pull_in_with_fade);
 
