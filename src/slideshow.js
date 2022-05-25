@@ -74,11 +74,13 @@ ppixiv.slideshow = class
     {
         let animation = this.get_default_pan();
         animation = this.prepare_animation(animation);
-        if(animation.max_speed >= 0.01)
+        if(animation.max_speed >= 0.01 || !this.slideshow_enabled)
             return animation;
 
         // If the animation is moving very slowly, the visible area's aspect ratio very closely
         // matches the screen's, so there's nowhere to pan.  Use a pull-in animation instead.
+        // We don't currently use this in pan mode, because zooming the image when in pan mode
+        // and controlling multiple tabs can be annoying.
         console.log(`Slideshow: pan animation had nowhere to move, using a pull-in instead (max_speed ${animation.max_speed})`);
         return this.prepare_animation(this.get_pull_in());
     }
