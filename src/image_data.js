@@ -747,5 +747,53 @@ ppixiv.image_data = class extends EventTarget
 
         return data;
     }
+
+    // Helpers
+
+    // Return the extra info for an image, given its image info.
+    //
+    // For local images, the extra info is simply stored on image_info.  This doesn't need
+    // to be used if you know you're working with a local image.
+    //
+    // For Pixiv images, extra info is stored in image_info.extraData, with page media IDs
+    // as keys.
+    static get_extra_data(image_info, media_id, page=null)
+    {
+        if(image_info == null)
+            return { };
+
+        if(helpers.is_media_id_local(media_id))
+            return image_info;
+
+        // If page is null, media_id is already this page's ID.
+        if(page != null)
+            media_id = helpers.get_media_id_for_page(media_id, page);
+        
+        return image_info.extraData[media_id] ?? {};
+    }
+
+    // Get the width and height of media_id from image_info.
+    //
+    // If this is a local image, or this is the first page, the width and height are on
+    // image_info.  If this isn't the first page of a manga post, get the dimensions from
+    // mangaPages.  If this is the first page, get it directly from image_info, so this
+    // can accept thumbnail data too.
+    static get_dimensions(image_info, media_id, page=null)
+    {
+        if(image_info == null)
+            return { width: 1, height: 1 };
+
+        let page_info = image_info;
+        if(!helpers.is_media_id_local(media_id))
+        {
+            if(page == null)
+                page = helpers.media_id_to_illust_id_and_page(media_id)[1];
+
+            if(page > 0)
+                page_info = image_info.mangaPages[page];
+        }
+
+        return { width: page_info.width, height: page_info.height };
+    }
 }
 

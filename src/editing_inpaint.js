@@ -231,9 +231,11 @@ ppixiv.InpaintEditor = class extends ppixiv.widget
         }
     }
 
-    async after_save(result)
+    async after_save(illust)
     {
-        let illust = result.illust;
+        if(illust.urls == null)
+            return;
+
         if(illust.urls.inpaint)
         {
             // Saving the new inpaint data will change the inpaint URL.  It'll be generated the first

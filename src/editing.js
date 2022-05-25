@@ -142,6 +142,10 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
         super.visibility_changed();
     }
 
+    // In principle we could refresh from thumbnail data if this is the first manga page, since
+    // all we need is the image dimensions.  However, the editing container is only displayed
+    // by on_click_viewer after we have full image data anyway since it's treated as part of the
+    // main image, so we won't be displayed until then anyway.
     async refresh_internal({ media_id, illust_data })
     {
         // We can get the media ID before we have illust_data.  Ignore it until we have both.
@@ -157,9 +161,16 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
         // editor is closed.  If the editor is open and we're not changing images, don't
         // clobber ongoing edits.
         let replace_editor_data = media_id_changing || !editor_is_open;
-        let width = illust_data.width ?? 1;
-        let height = illust_data.height ?? 1;
-        let extra_data = illust_data;
+
+        // For local images, editing data is simply stored as a field on the illust data, which
+        // we can save to the server.
+        //
+        // For Pixiv images, we store editing data locally in IndexedDB.  All pages are stored on
+        // the data for the first page, as an extraData dictionary with page media IDs as keys.
+        //
+        // Pull out the dictionary containing editing data for this image to give to the editor.
+        let { width, height } = image_data.get_dimensions(illust_data, media_id);
+        let extra_data = image_data.get_extra_data(illust_data, media_id);
 
         // Give the editors the new illust data.
         for(let editor of [this.inpaint_editor, this.crop_editor, this.safe_zone_editor])
@@ -290,16 +301,28 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
                     edits[key] = value;
             }
 
-            let result = await local_api.local_post_request(`/api/set-image-edits/${this.media_id}`, edits);
-            if(!result.success)
+            let result;
+            if(helpers.is_media_id_local(this.media_id))
             {
-                console.error("Error saving image edits:", result);
-                this.dirty = true;
-                return;
+                result = await local_api.local_post_request(`/api/set-image-edits/${this.media_id}`, edits);
+                if(!result.success)
+                {
+                    console.error("Error saving image edits:", result);
+                    this.dirty = true;
+                    return;
+                }
+
+                result = result.illust;
+            }
+            else
+            {
+                // Save data for Pixiv images to image_data.
+                result = await image_data.singleton().save_extra_image_data(this.media_id, edits);                
             }
 
             // Let the widgets know that we saved.
-            await this.inpaint_editor.after_save(result);
+            if(this.inpaint_editor)
+                await this.inpaint_editor.after_save(result);
         } finally {
             this.save_edits.hidden = false;
             spinner.hidden = true;
