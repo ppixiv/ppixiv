@@ -142,32 +142,28 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
         super.visibility_changed();
     }
 
-    async refresh_internal({ illust_data })
+    async refresh_internal({ media_id, illust_data })
     {
-        let media_id = illust_data?.id;
+        // We can get the media ID before we have illust_data.  Ignore it until we have both.
+        if(illust_data == null)
+            media_id = null;
+
         let editor_is_open = this.open_editor != null;
         let media_id_changing = media_id != this.editing_media_id;
 
         this.editing_media_id = media_id;
 
-        // Clear undo/redo when the media ID changes.
-        let saved_state = null;
-        if(editor_is_open && !media_id_changing)
-        {
-            // If we're updating an image while editors are open, save the current state
-            // so we can undo it after refreshing to prevent clobbering the user's edits.
-            saved_state = this.get_state();
-        }
+        // Only tell the editor to replace its own data if we're changing images, or the
+        // editor is closed.  If the editor is open and we're not changing images, don't
+        // clobber ongoing edits.
+        let replace_editor_data = media_id_changing || !editor_is_open;
+        let width = illust_data.width ?? 1;
+        let height = illust_data.height ?? 1;
+        let extra_data = illust_data;
 
         // Give the editors the new illust data.
         for(let editor of [this.inpaint_editor, this.crop_editor, this.safe_zone_editor])
-            editor.set_illust_data(illust_data);
-
-        if(editor_is_open && !media_id_changing)
-        {
-            // Restore the state we saved above.
-            this.set_state(saved_state);
-        }
+            editor.set_illust_data({ media_id, extra_data, width, height, replace_editor_data });
 
         // If no editor is open, make sure the undo stack is cleared and clear dirty.
         if(!editor_is_open)

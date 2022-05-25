@@ -70,7 +70,6 @@ ppixiv.CropEditor = class extends ppixiv.widget
     {
         e.preventDefault();
         e.stopPropagation();
-        console.log("clear");
         this.parent.save_undo();
         this.current_crop = null;
         this.refresh();
@@ -203,16 +202,18 @@ ppixiv.CropEditor = class extends ppixiv.widget
         this.shutdown_signal = null;
     }
 
-    set_illust_data(illust_data)
+    set_illust_data({replace_editor_data, extra_data, width, height})
     {
-        if(illust_data == null)
+        if(extra_data == null)
             return;
 
-        this.width = illust_data.width;
-        this.height = illust_data.height;
+        this.width = width;
+        this.height = height;
         this.svg.setAttribute("viewBox", `0 0 ${this.width} ${this.height}`);
     
-        this.set_state(illust_data[this.mode]);
+        if(replace_editor_data)
+            this.set_state(extra_data[this.mode]);
+
         this.refresh();
     }
 

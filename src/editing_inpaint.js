@@ -198,24 +198,26 @@ ppixiv.InpaintEditor = class extends ppixiv.widget
         this.editor_overlay.hidden = !this.visible;
     }
 
-    set_illust_data(illust_data)
+    set_illust_data({replace_editor_data, extra_data, width, height})
     {
         // Scale the thickness slider to the size of the image.
-        let size = illust_data? Math.min(illust_data.width, illust_data.height):50;
+        let size = Math.min(width, height);
         this.line_width_slider.max = size / 25;
 
-        this.clear();
+        if(replace_editor_data)
+        {
+            this.clear();
+            this.set_inpaint_data(extra_data.inpaint);
+        }
 
-        if(illust_data == null)
+        if(extra_data == null)
             return;
 
         // Match the size of the image.
-        this.set_size(illust_data.width, illust_data.height);
-
-        this.set_inpaint_data(illust_data.inpaint);
+        this.set_size(width, height);
 
         // If there's no data at all, load the user's defaults.
-        if(illust_data.inpaint == null)
+        if(extra_data.inpaint == null)
         {
             this.downscale_ratio = settings.get("inpaint_default_downscale", 1);
             this.blur = settings.get("inpaint_default_blur", 0);
