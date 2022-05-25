@@ -120,7 +120,7 @@ ppixiv.SendImage = class
         }, false);
     }
 
-    static received_message = (e) =>
+    static received_message = async(e) =>
     {
         let data = e.data;
 
@@ -184,7 +184,7 @@ ppixiv.SendImage = class
             // If this message has illust info or thumbnail info, register it.
             let thumbnail_info = data.thumbnail_info;
             if(thumbnail_info != null)
-                thumbnail_data.singleton().loaded_thumbnail_info([thumbnail_info], "internal");
+                await thumbnail_data.singleton().loaded_thumbnail_info([thumbnail_info], "internal");
 
             let user_info = data.user_info;
             if(user_info != null)

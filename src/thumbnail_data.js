@@ -138,7 +138,7 @@ ppixiv.thumbnail_data = class
             exclude_muted_illusts: 1,
         });
 
-        this.loaded_thumbnail_info(result, "illust_list");
+        await this.loaded_thumbnail_info(result, "illust_list");
     }
 
     // Get the user's profile picture URL, or a fallback if we haven't seen it.
@@ -217,7 +217,7 @@ ppixiv.thumbnail_data = class
     // These have the same data, but for some reason everything has different names.  
     // Remap them to "normal", and check that all fields we expect exist, to make it
     // easier to notice if something is wrong.
-    loaded_thumbnail_info = (thumb_result, source) =>
+    loaded_thumbnail_info = async (thumb_result, source) =>
     {
         if(thumb_result.error)
             return;

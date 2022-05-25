@@ -126,7 +126,7 @@ ppixiv.local_api = class
         for(let illust of result.results)
             ppixiv.local_api.adjust_illust_info(illust);
 
-        thumbnail_data.singleton().loaded_thumbnail_info(result.results, "internal");
+        await thumbnail_data.singleton().loaded_thumbnail_info(result.results, "internal");
         return result;
     }
 
@@ -171,7 +171,7 @@ ppixiv.local_api = class
         for(let illust of result.results)
             ppixiv.local_api.adjust_illust_info(illust);
 
-        thumbnail_data.singleton().loaded_thumbnail_info(result.results, "internal");
+        await thumbnail_data.singleton().loaded_thumbnail_info(result.results, "internal");
 
         // Broadcast that we have new thumbnail data available.
         window.dispatchEvent(new Event("thumbnailsloaded"));
