@@ -120,7 +120,6 @@ ppixiv.CropEditor = class extends ppixiv.widget
     get_point_from_click({clientX, clientY})
     {
         let {width, height, top, left} = this.editor_overlay.getBoundingClientRect();
-        console.log("overlay size", width, height, this.width, this.height);
         let x = (clientX - left) / width * this.width;
         let y = (clientY - top) / height * this.height;
         return { x: x, y: y };
@@ -244,6 +243,7 @@ ppixiv.CropEditor = class extends ppixiv.widget
     {
         if(this.current_crop == null)
             return null;
+
         return [
             Math.round(this.current_crop.left),
             Math.round(this.current_crop.top),
