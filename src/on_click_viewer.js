@@ -1307,7 +1307,13 @@ ppixiv.on_click_viewer = class
             // if we're shutting down.  In this case, just cancel the animations.
             return;
         }
-        
+
+        // In case the animation was fading while it was cancelled, make sure opacity is reset.
+        // There's a slight transition on opacity, which both prevents it from popping in suddenly
+        // and helps prevent images from flashing onscreen if we immediately remove it to display
+        // something else.
+        this.image_box.style.opacity = "";
+
         // Figure out the zoom factor the animation left us with.  The zoom factor is 1 if
         // the image width equals this.width.
         let { width, left, top } = this.image_box.getBoundingClientRect();
