@@ -95,9 +95,6 @@ ppixiv.on_click_viewer = class
         // If we're animating, this will be called when the animation finishes.
         onnextimage=null,
 
-        // True if we should support inpaint images and editing (local only).
-        enable_editing=false,
-
         // If set, this is a FixedDOMRect to crop the image to.
         crop=null,
 
@@ -134,14 +131,11 @@ ppixiv.on_click_viewer = class
         img.style.height = "100%";
         img.style.position = "absolute";
 
-        // If image editing is enabled, wrap the image in an ImageEditingOverlayContainer.  This acts like
-        // an image as far as we're concerned.  If editing isn't enabled, skip this.
-        if(enable_editing)
-        {
-            let inpaint_container = new ImageEditingOverlayContainer();
-            inpaint_container.set_image_urls(url, inpaint_url);
-            img = inpaint_container;
-        }
+        // Wrap the image in an ImageEditingOverlayContainer.  This acts like an image as far
+        // as we're concerned.
+        let inpaint_container = new ImageEditingOverlayContainer();
+        inpaint_container.set_image_urls(url, inpaint_url);
+        img = inpaint_container;
 
         // Create the low-res preview.  This loads the thumbnail underneath the main image.  Don't set the
         // "filtering" class, since using point sampling for the thumbnail doesn't make sense.  If preview_url
@@ -205,8 +199,8 @@ ppixiv.on_click_viewer = class
         this.media_id = media_id;
         this.original_width = width;
         this.original_height = height;
-        this._cropped_size = crop? new FixedDOMRect(crop[0], crop[1], crop[2], crop[3]):null;
-        this._safe_zone = safe_zone? new FixedDOMRect(safe_zone[0], safe_zone[1], safe_zone[2], safe_zone[3]):null;        
+        this._cropped_size = crop && crop.length == 4? new FixedDOMRect(crop[0], crop[1], crop[2], crop[3]):null;
+        this._safe_zone = safe_zone && safe_zone.length == 4? new FixedDOMRect(safe_zone[0], safe_zone[1], safe_zone[2], safe_zone[3]):null;        
         this.img = img;
         this.preview_img = preview_img;
         this.onnextimage = onnextimage;

@@ -51,8 +51,8 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         this._slideshow = slideshow;
         this._onnextimage = onnextimage;
 
-        // If this is a local image, tell the inpaint editor about it.
-        this.image_editor.set_media_id(helpers.is_media_id_local(this.media_id)? this.media_id:null);
+        // Tell the inpaint editor about the image.
+        this.image_editor.set_media_id(this.media_id);
 
         // First, load early illust data.  This is enough info to set up the image list
         // with preview URLs, so we can start the image view early.  This can return either
@@ -71,13 +71,15 @@ ppixiv.viewer_images = class extends ppixiv.viewer
             // We got illust data and not thumbnail data, so we have all we need.
             this.illust_data = early_illust_data;
         } else {
-            // We got thumbnail data, which only gives us the image dimensions for page 1.
+            // We got thumbnail data, which only gives us the image dimensions for page 1.  We'll still
+            // have any extra_data.
+            let extra_data = image_data.get_extra_data(early_illust_data, this.media_id);
             this.images = [{
                 preview_url: early_illust_data.previewUrls[0],
                 width: early_illust_data.width,
                 height: early_illust_data.height,
-                crop: early_illust_data.crop, // not per-page
-                safe_zone: early_illust_data.safe_zone, // not per-page
+                crop: extra_data?.crop,
+                safe_zone: extra_data?.safe_zone,
             }];
 
             this.refresh();
@@ -99,16 +101,17 @@ ppixiv.viewer_images = class extends ppixiv.viewer
             return;
 
         this.images = [];
-        for(let manga_page of this.illust_data.mangaPages)
+        for(let [page, manga_page] of Object.entries(this.illust_data.mangaPages))
         {
+            let extra_data = image_data.get_extra_data(this.illust_data, this.media_id, page);
             this.images.push({
                 url: manga_page.urls.original,
                 preview_url: manga_page.urls.small,
                 inpaint_url: manga_page.urls.inpaint,
                 width: manga_page.width,
                 height: manga_page.height,
-                crop: this.illust_data.crop, // not per-page
-                safe_zone: this.illust_data.safe_zone, // not per-page
+                crop: extra_data?.crop,
+                safe_zone: extra_data?.safe_zone,
             });
         }
 
@@ -188,9 +191,6 @@ ppixiv.viewer_images = class extends ppixiv.viewer
             crop: this.image_editor.editing_crop? null:current_image.crop, // no cropping while editing cropping
             safe_zone: current_image.safe_zone,
             restore_position: this.restore_history? "history":"auto",
-
-            // Only enable editing for local images.
-            enable_editing: helpers.is_media_id_local(this.media_id),
 
             slideshow: this._slideshow,
             onnextimage: this._onnextimage,
