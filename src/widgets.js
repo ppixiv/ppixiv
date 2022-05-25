@@ -1657,7 +1657,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
             },
 
             linked_tabs: () => {
-                return new menu_option_toggle({
+                return new menu_option_toggle_setting({
                     container: option_box,
                     parent: this,
                     label: "Linked tabs",
@@ -1688,7 +1688,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
             },
 
             image_editing: () => {
-                return new menu_option_toggle({
+                return new menu_option_toggle_setting({
                     ...shared_options,
                     label: "Edit image",
                     icon: "mat:brush",

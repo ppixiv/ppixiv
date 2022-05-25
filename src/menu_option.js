@@ -128,7 +128,7 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
             },
 
             disabled_by_default: () => {
-                return new menu_option_toggle({
+                return new menu_option_toggle_setting({
                     ...global_options,
                     label: "Disabled by default",
                     setting: "disabled-by-default",
@@ -138,7 +138,7 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
             },
     
             no_hide_cursor: () => {
-                return new menu_option_toggle({
+                return new menu_option_toggle_setting({
                     ...global_options,
                     label: "Hide cursor",
                     setting: "no-hide-cursor",
@@ -149,7 +149,7 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
             },
     
             invert_popup_hotkey: () => {
-                return new menu_option_toggle({
+                return new menu_option_toggle_setting({
                     ...global_options,
                     label: "Shift-right-click to show the popup menu",
                     setting: "invert-popup-hotkey",
@@ -159,7 +159,7 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
             },
 
             ctrl_opens_popup: () => {
-                    return new menu_option_toggle({
+                    return new menu_option_toggle_setting({
                     ...global_options,
                     label: "Hold ctrl to show the popup menu",
                     setting: "ctrl_opens_popup",
@@ -168,7 +168,7 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
             },
 
             ui_on_hover: () => {
-                new menu_option_toggle({
+                new menu_option_toggle_setting({
                     ...global_options,
                     label: "Hover to show search box",
                     setting: "ui-on-hover",
@@ -179,7 +179,7 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
             },
 
             invert_scrolling: () => {
-                return new menu_option_toggle({
+                return new menu_option_toggle_setting({
                     ...global_options,
                     label: "Invert image panning",
                     setting: "invert-scrolling",
@@ -189,7 +189,7 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
             },
 
             theme: () => {
-                return new menu_option_toggle({
+                return new menu_option_toggle_setting({
                     ...global_options,
                     label: "Light mode",
                     setting: "theme",
@@ -200,7 +200,7 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
             },
     
             disable_translations: () => {
-                return new menu_option_toggle({
+                return new menu_option_toggle_setting({
                     ...global_options,
                     label: "Show tag translations when available",
                     setting: "disable-translations",
@@ -209,7 +209,7 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
             },
     
             disable_thumbnail_panning: () => {
-                return new menu_option_toggle({
+                return new menu_option_toggle_setting({
                     ...global_options,
                     label: "Pan thumbnails while hovering over them",
                     setting: "disable_thumbnail_panning",
@@ -218,7 +218,7 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
             },
     
             disable_thumbnail_zooming: () => {
-                return new menu_option_toggle({
+                return new menu_option_toggle_setting({
                     ...global_options,
                     label: "Zoom out thumbnails while hovering over them",
                     setting: "disable_thumbnail_zooming",
@@ -227,7 +227,7 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
             },
     
             bookmark_privately_by_default: () => {
-                return new menu_option_toggle({
+                return new menu_option_toggle_setting({
                     ...global_options,
                     label: "Bookmark and follow privately by default",
                     setting: "bookmark_privately_by_default",
@@ -237,7 +237,7 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
             },
 
             quick_view: () => {
-                return new menu_option_toggle({
+                return new menu_option_toggle_setting({
                     ...global_options,
                     label: "Quick view",
                     setting: "quick_view",
@@ -256,7 +256,7 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
             },
     
             auto_pan: () => {
-                return new menu_option_toggle({
+                return new menu_option_toggle_setting({
                     ...global_options,
                     label: "Pan images",
                     setting: "auto_pan",
@@ -316,7 +316,7 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
             },
 
             slideshow_skips_manga: () => {
-                return new menu_option_toggle({
+                return new menu_option_toggle_setting({
                     ...global_options,
                     label: "Slideshow skips manga pages",
                     setting: "slideshow_skips_manga",
@@ -326,7 +326,7 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
             },
 
             expand_manga_posts: () => {
-                return new menu_option_toggle({
+                return new menu_option_toggle_setting({
                     ...global_options,
                     label: "Expand manga posts in search results",
                     setting: "expand_manga_thumbnails",
@@ -334,7 +334,7 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
             },
 
             no_recent_history: () => {
-                return new menu_option_toggle({
+                return new menu_option_toggle_setting({
                     ...global_options,
                     label: "Remember recent history",
                     setting: "no_recent_history",
@@ -345,7 +345,7 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
             },
     
             view_mode: () => {
-                new menu_option_toggle({
+                new menu_option_toggle_setting({
                     ...global_options,
                     label: "Return to the top when changing images",
                     setting: "view_mode",
@@ -359,7 +359,7 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
                 });
             },
             enable_linked_tabs: () => {
-                return new menu_option_toggle({
+                return new menu_option_toggle_setting({
                     ...global_options,
                     label: "Enabled",
                     setting: "linked_tabs_enabled",
@@ -680,7 +680,7 @@ ppixiv.menu_option_nested_button = class extends ppixiv.menu_option
     }
 }
 
-ppixiv.menu_option_toggle = class extends ppixiv.menu_option_button
+ppixiv.menu_option_toggle_setting = class extends ppixiv.ppixiv.menu_option_button
 {
     constructor({
         setting=null,
