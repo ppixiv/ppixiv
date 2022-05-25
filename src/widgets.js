@@ -1687,7 +1687,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                 });
             },
 
-            edit_inpainting: () => {
+            image_editing: () => {
                 return new menu_option_toggle({
                     ...shared_options,
                     label: "Edit image",
@@ -1726,7 +1726,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
         this.menu_options.push(menu_options.send_to_tab());
         this.menu_options.push(menu_options.linked_tabs());
         this.menu_options.push(menu_options.toggle_slideshow());
-        this.menu_options.push(menu_options.edit_inpainting());
+        this.menu_options.push(menu_options.image_editing());
         this.menu_options.push(menu_options.refresh_image());
 
         if(!ppixiv.native)
