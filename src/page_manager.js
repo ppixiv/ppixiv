@@ -130,6 +130,15 @@ ppixiv.page_manager = class
             return data_sources.completed_requests;
         else if(url.pathname.startsWith(local_api.path))
             return data_sources.vview;
+        else if(first_part == "")
+        {
+            // Data sources that don't have a corresponding Pixiv page:
+            let args = new helpers.args(url);
+            if(args.hash_path == "/edits")
+                return data_sources.edited_images;
+            else
+                return null;
+        }
         else
             return null;
     };
