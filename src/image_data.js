@@ -179,6 +179,10 @@ ppixiv.image_data = class extends EventTarget
         }
         tag_translations.get().add_translations(illust_data.tags.tags);
 
+        // If we have extra data stored for this image, load it.
+        let extra_data = await extra_image_data.get.load_all_pages_for_illust(illust_id);
+        illust_data.extraData = extra_data;
+
         // Now that we have illust data, load anything we weren't able to load before.
         start_loading(illust_data.userId, illust_data.illustType, illust_data.pageCount);
 
@@ -698,6 +702,50 @@ ppixiv.image_data = class extends EventTarget
             promises.push(thumbnail_data.singleton().load_thumbnail_info([media_id], { force: true }));
 
         await Promise.all(promises);
+    }
+
+    // Save data to extra_image_data, and update cached data.  Returns the updated extra data.
+    async save_extra_image_data(media_id, edits)
+    {
+        let [illust_id] = helpers.media_id_to_illust_id_and_page(media_id);
+
+        // Load the current data from the database, in case our cache is out of date.
+        let results = await extra_image_data.get.load_illust_data([media_id]);
+        let data = results[media_id] ?? { illust_id: illust_id };
+
+        // Update each key, removing any keys which are null.
+        for(let [key, value] of Object.entries(edits))
+                data[key] = value;
+
+        // Delete any null keys.
+        for(let [key, value] of Object.entries(data))
+        {
+            if(value == null)
+                delete data[key];
+        }
+
+        // Update the edited timestamp.
+        data.edited_at = Date.now() / 1000;
+
+        // Save the new data.  If the only fields left are illust_id and edited_at, delete the record.
+        if(Object.keys(data).length == 2)
+            await extra_image_data.get.delete_illust(media_id);
+        else
+            await extra_image_data.get.save_illust(media_id, data);
+
+        // If the image is loaded in image_data, update illust_data.extraData.
+        let illust_data = this.get_media_info_sync(media_id);
+        if(illust_data != null)
+            illust_data.extraData[media_id] = data;
+
+        // If the image is loaded in thumbnail_data, update illust_data.extraData.
+        let thumbnail_info = thumbnail_data.singleton().get_one_thumbnail_info(media_id);
+        if(thumbnail_info)
+            thumbnail_info.extraData[media_id] = data;
+
+        this.call_illust_modified_callbacks(media_id);
+
+        return data;
     }
 }
 

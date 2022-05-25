@@ -45,4 +45,5 @@ source_files = [
     'src/send_image.js',
     'src/main.js',
     'src/slideshow.js',
+    'src/extra_image_data.js',
 ]

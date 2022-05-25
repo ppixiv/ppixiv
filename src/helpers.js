@@ -443,6 +443,18 @@ ppixiv.helpers = {
         }
     },
 
+    // Like Promise.all, but takes a dictionary of {key: promise}, returning a
+    // dictionary of {key: result}.
+    async await_map(map)
+    {
+        Promise.all(Object.values(map));
+
+        let results = {};
+        for(let [key, promise] of Object.entries(map))
+            results[key] = await promise;
+        return results;
+    },
+
     // setInterval using an AbortSignal to remove the interval.
     //
     // If call_immediately is true, call callback() now, rather than waiting
@@ -2947,6 +2959,14 @@ ppixiv.key_storage = class
                 promises.push(key_storage.await_request(request));
             }
             return Promise.all(promises);
+        });
+    }
+
+    async delete(key)
+    {
+        return await this.db_op(async (db) => {
+            let store = this.get_store(db);
+            return key_storage.await_request(store.delete(key));
         });
     }
 

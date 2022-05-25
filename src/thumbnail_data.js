@@ -222,14 +222,15 @@ ppixiv.thumbnail_data = class
         if(thumb_result.error)
             return;
 
-        let remapped_thumb_info = null;
-        for(var thumb_info of thumb_result)
+        let all_thumb_info = [];
+        for(let thumb_info of thumb_result)
         {
             // Ignore entries with "isAdContainer".  These aren't search results at all and just contain
             // stuff we're not interested in.
             if(thumb_info.isAdContainer)
                 continue;
 
+            let remapped_thumb_info = null;
             if(source == "normal")
             {
                 // The data is already in the format we want.  The only change we make is
@@ -389,25 +390,35 @@ ppixiv.thumbnail_data = class
                 delete remapped_thumb_info.tags;
             }
 
-            thumb_info = remapped_thumb_info;
-
-            // Store the data.
-            this.add_thumbnail_info(thumb_info);
-
-            let media_id = helpers.illust_id_to_media_id(thumb_info.id);
-            delete this.loading_ids[media_id];
-
             // This is really annoying: the profile picture is the only field that's present in thumbnail
             // info but not illust info.  We want a single basic data set for both, so that can't include
             // the profile picture.  But, we do want to display it in places where we can't get user
             // info (muted search results), so store it separately.
-            if(thumb_info.profileImageUrl)
+            if(remapped_thumb_info.profileImageUrl)
             {
-                let profile_image_url = thumb_info.profileImageUrl;
+                let profile_image_url = remapped_thumb_info.profileImageUrl;
                 profile_image_url = profile_image_url.replace("_50.", "_170."),
-                this.user_profile_urls[thumb_info.userId] = profile_image_url;
-                delete thumb_info.profileImageUrl;
+                this.user_profile_urls[remapped_thumb_info.userId] = profile_image_url;
+                delete remapped_thumb_info.profileImageUrl;
             }
+
+            all_thumb_info[remapped_thumb_info.id] = remapped_thumb_info;
+        }
+
+        // Load any extra image data stored for these media IDs.
+        let illust_ids = Object.keys(all_thumb_info);
+        let extra_data = await extra_image_data.get.load_illust_data(illust_ids);
+
+        for(let [illust_id, info] of Object.entries(all_thumb_info))
+        {
+            // Store extra data for each page.
+            info.extraData = extra_data[illust_id]?.pages || {};
+
+            // Store the data.
+            this.add_thumbnail_info(info);
+
+            let media_id = helpers.illust_id_to_media_id(illust_id);
+            delete this.loading_ids[media_id];
         }
 
         // Broadcast that we have new thumbnail data available.
