@@ -151,6 +151,9 @@ def _get_sort(sort_order):
 
     return order
 
+# This parameter to set_image_edits means to leave the existing value unchanged.
+no_change = object()
+
 class Library:
     """
     Handle indexing and searching for a directory tree.
@@ -1099,27 +1102,28 @@ class Library:
 
         return updates
 
-    def set_image_edits(self, entry, *, inpaint=None, crop=None, safe_zone=None):
+    def set_image_edits(self, entry, *, inpaint=no_change, crop=no_change, safe_zone=no_change):
+        print(inpaint, crop, safe_zone)
         with metadata_storage.load_and_lock_file_metadata(entry['path']) as file_metadata:
             # If crop is set, it's either a array of four integers, or empty to unset cropping.
-            if crop is not None and file_metadata.get('crop') != crop:
-                assert isinstance(crop, list)
-                if not crop:
+            if crop is not no_change and file_metadata.get('crop') != crop:
+                assert (isinstance(crop, list) and len(crop) == 4) or crop is None
+
+                if crop is None:
                     file_metadata.pop('crop', None)
                 else:
-                    assert len(crop) == 4
                     file_metadata['crop'] = crop
 
-            if safe_zone is not None and file_metadata.get('safe_zone') != safe_zone:
-                assert isinstance(safe_zone, list)
+            if safe_zone is not no_change and file_metadata.get('safe_zone') != safe_zone:
+                assert (isinstance(safe_zone, list) and len(safe_zone) == 4) or safe_zone is None
+
                 if not safe_zone:
                     file_metadata.pop('safe_zone', None)
                 else:
-                    assert len(safe_zone) == 4
                     file_metadata['safe_zone'] = safe_zone
 
-            if inpaint is not None and file_metadata.get('inpaint') != inpaint:
-                assert isinstance(inpaint, list)
+            if inpaint is not no_change and file_metadata.get('inpaint') != inpaint:
+                assert isinstance(inpaint, list) or inpaint is None
 
                 # Delete the previous cached inpaint file, if there is one.
                 old_inpaint_id = entry.get('inpaint_id')
@@ -1127,7 +1131,7 @@ class Library:
                     old_inpaint_path = inpainting.get_inpaint_cache_path(old_inpaint_id, data_dir=self._data_dir)
                     old_inpaint_path.unlink()
 
-                if inpaint:
+                if inpaint is not None:
                     file_metadata['inpaint'] = inpaint
                     file_metadata['inpaint_id'] = inpainting.get_inpaint_id(entry['path'], inpaint)
                     file_metadata['inpaint_timestamp'] = time.time()

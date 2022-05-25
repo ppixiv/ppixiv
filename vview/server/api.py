@@ -548,14 +548,15 @@ async def api_edit_inpainting(info):
     if entry is None:
         raise misc.Error('not-found', 'File not in library')
 
-    inpaint = info.data.get('inpaint', None)
-    crop = info.data.get('crop', None)
-    safe_zone = info.data.get('safe_zone', None)
+    changes = { }
+    if 'inpaint' in info.data: changes['inpaint'] = info.data['inpaint']
+    if 'crop' in info.data: changes['crop'] = info.data['crop']
+    if 'safe_zone' in info.data: changes['safe_zone'] = info.data['safe_zone']
 
     # Save the new inpaint data.  This won't actually generate the inpaint image.
-    entry = info.manager.library.set_image_edits(entry, inpaint=inpaint, crop=crop, safe_zone=safe_zone)
+    entry = info.manager.library.set_image_edits(entry, **changes)
 
-    if inpaint is not None:
+    if changes.get('inpaint') is not None:
         # Generate the inpaint image now.
         await inpainting.create_inpaint_for_entry(entry, info.manager)
 

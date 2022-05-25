@@ -229,16 +229,14 @@ ppixiv.CropEditor = class extends ppixiv.widget
     get_data_to_save()
     {
         // If there's no crop, save an empty array to clear it.
-        let crop = this.get_state();
-        if(crop == null)
-            crop = [];
+        let state = this.get_state();
         if(this.mode == "crop")
             return {
-                crop: crop,
+                crop: state,
             };
         else
             return {
-                safe_zone: crop,
+                safe_zone: state,
             };
     }
 

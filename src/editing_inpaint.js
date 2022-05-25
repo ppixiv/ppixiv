@@ -271,7 +271,7 @@ ppixiv.InpaintEditor = class extends ppixiv.widget
     get_inpaint_data({for_saving=false}={})
     {
         if(for_saving && this.lines.length == 0)
-            return [];
+            return null;
 
         let result = [];
 
