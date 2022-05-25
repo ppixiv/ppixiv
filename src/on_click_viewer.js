@@ -387,9 +387,22 @@ ppixiv.on_click_viewer = class
     
         if(this._safe_zone)
         {
-            // If the image has a safe zone, center it by default.
+            // Use the safe zone as a default position.
             let safe_zone = this.unit_safe_zone;
-            this.center_pos = [safe_zone.middleHorizontal, safe_zone.middleVertical];
+
+            // The unit size of one screen height at the current zoom level:
+            let zoomed_screen_height = this.container_height / this.onscreen_height;
+            if(safe_zone.height <= zoomed_screen_height)
+            {
+                // The safe zone fits onscreen, so just center it.
+                this.center_pos = [safe_zone.middleHorizontal, safe_zone.middleVertical];
+            }
+            else
+            {
+                // The safe zone doesn't fit onscreen at the current zoom level.  Align the top
+                // of the screen to the top of the safe zone.
+                this.center_pos = [safe_zone.middleHorizontal, safe_zone.top + zoomed_screen_height * 0.5];
+            }
         }
         else
         {
