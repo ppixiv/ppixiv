@@ -125,6 +125,10 @@ ppixiv.screen_illust = class extends ppixiv.screen
 
             this.stop_displaying_image();
             
+            // We leave editing on when navigating between images, but turn it off when we exit to
+            // the search.
+            settings.set("image_editing_mode", null);
+
             return;
         }
 
