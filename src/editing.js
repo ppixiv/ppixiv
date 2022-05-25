@@ -362,8 +362,7 @@ ppixiv.ImageEditingOverlayContainer = class extends HTMLElement
         crop_slot.name = "crop-editor";
         container.append(crop_slot);        
 
-        let style = document.createElement("style");
-        style.textContent = `
+        let style = helpers.create_style(`
             .container, .container > * {
                 position: absolute;
                 top: 0;
@@ -372,7 +371,7 @@ ppixiv.ImageEditingOverlayContainer = class extends HTMLElement
                 height: 100%;
             }
             img { will-change: transform; }
-        `;
+        `);
         this.shadowRoot.append(style);
 
         this.setAttribute("image_src", "");
