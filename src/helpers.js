@@ -567,14 +567,15 @@ ppixiv.helpers = {
         }
 
         // Try to unwrap functions that might have been wrapped by page scripts.
-        function unwrap_func(obj, name)
+        function unwrap_func(obj, name, { ignore_missing=false }={})
         {
             // Both prototypes and instances might be wrapped.  If this is an instance, look
             // at the prototype to find the original.
             let orig_func = obj.__proto__[name]? obj.__proto__[name]:obj[name];
             if(!orig_func)
             {
-                console.log("Couldn't find function to unwrap:", name);
+                if(!ignore_missing)
+                    console.log("Couldn't find function to unwrap:", name);
                 return;
             }
 
@@ -625,8 +626,8 @@ ppixiv.helpers = {
             // to silence its error spam.  This will cause all error messages out of console.error
             // to come from this line, which is usually terrible, but our logs come from window.console
             // and not unsafeWindow.console, so this doesn't affect us.
-            for(let func in window.console)
-                unsafeWindow.console[func] = window.console[func];
+            for(let name of Object.keys(window.console))
+                unwrap_func(console, name, { ignore_missing: true });
             Object.freeze(unsafeWindow.console);
 
             // Some Pixiv pages load jQuery and spam a bunch of error due to us stopping
