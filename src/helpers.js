@@ -1823,11 +1823,6 @@ ppixiv.helpers = {
         node.style.maxHeight = `${height}px`;
     },
     
-    clamp(value, min, max)
-    {
-        return Math.min(Math.max(value, min), max);
-    },
-
     distance([x1,y1], [x2,y2])
     {
         let distance = Math.pow(x1-x2, 2) + Math.pow(y1-y2, 2);
@@ -1838,6 +1833,18 @@ ppixiv.helpers = {
     scale(x, l1, h1, l2, h2)
     {
         return (x - l1) * (h2 - l2) / (h1 - l1) + l2;
+    },
+
+    // Clamp value between min and max.
+    clamp(value, min, max)
+    {
+        return Math.min(Math.max(value, min), max);
+    },
+
+    // Scale x from [l1,h2] to [l2,h2], clamping to l2,h2.
+    scale_clamp(x, l1, h1, l2, h2)
+    {
+        return helpers.clamp(helpers.scale(x, l1, h1, l2, h2), l2, h2);
     },
     
     // Return a promise that waits for img to load.
@@ -3843,6 +3850,17 @@ ppixiv.FixedDOMRect = class extends DOMRect
 
     get middleHorizontal() { return (super.right + super.left) / 2; }
     get middleVertical() { return (super.top + super.bottom) / 2; }
+
+    // Return a new FixedDOMRect with the edges pushed outwards by value.
+    extendOutwards(value)
+    {
+        return new FixedDOMRect(
+            this.left - value,
+            this.top - value,
+            this.right + value,
+            this.bottom + value
+        )
+    }
 }
 
 // Add:

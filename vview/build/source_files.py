@@ -44,4 +44,5 @@ source_files = [
     'src/whats_new.js',
     'src/send_image.js',
     'src/main.js',
+    'src/slideshow.js',
 ]
