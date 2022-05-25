@@ -410,11 +410,14 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
         settings_widgets.invert_scrolling();
         settings_widgets.no_hide_cursor();
         
-        this.create_page("tag_muting", "Muted tags", global_options);
-        this.muted_tags = settings_widgets.muted_tags();
+        if(!ppixiv.native)
+        {
+            this.create_page("tag_muting", "Muted tags", global_options);
+            this.muted_tags = settings_widgets.muted_tags();
 
-        this.create_page("user_muting", "Muted users", global_options);
-        this.muted_users = settings_widgets.muted_users();
+            this.create_page("user_muting", "Muted users", global_options);
+            this.muted_users = settings_widgets.muted_users();
+        }
 
         this.create_page("linked_tabs", "Linked tabs", global_options, { settings_list: true });
         this.link_tabs = settings_widgets.link_tabs();
@@ -499,8 +502,10 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
     refresh()
     {
         this.link_tabs.visible = this.visible && this.visible_page == this.pages.linked_tabs;
-        this.muted_tags.visible = this.visible && this.visible_page == this.pages.tag_muting;
-        this.muted_users.visible = this.visible && this.visible_page == this.pages.user_muting;
+        if(this.muted_tags)
+            this.muted_tags.visible = this.visible && this.visible_page == this.pages.tag_muting;
+        if(this.muted_users)
+            this.muted_users.visible = this.visible && this.visible_page == this.pages.user_muting;
     }
 
     visibility_changed()
