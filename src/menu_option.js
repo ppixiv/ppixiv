@@ -680,18 +680,13 @@ ppixiv.menu_option_nested_button = class extends ppixiv.menu_option
     }
 }
 
-ppixiv.menu_option_toggle_setting = class extends ppixiv.ppixiv.menu_option_button
+ppixiv.menu_option_toggle = class extends ppixiv.menu_option_button
 {
     constructor({
-        setting=null,
         buttons=[],
-
-        // Most settings are just booleans, but this can be used to toggle between
-        // string keys.  This can make adding more values to the option easier later
-        // on.  A default value should be set in settings.js if this is used.
-        on_value=true,
-        off_value=false,
-        ...options})
+        checked=false,
+        ...options
+    })
     {
         // Add a checkbox_widget to the button list.
         let checkbox = new checkbox_widget({ });
@@ -701,8 +696,28 @@ ppixiv.menu_option_toggle_setting = class extends ppixiv.ppixiv.menu_option_butt
             checkbox,
         ];
 
+        super({
+            buttons,
+            ...options});
+
+        this.checkbox = checkbox;
+        this.checkbox.checked = checked;
+    }
+}
+
+ppixiv.menu_option_toggle_setting = class extends ppixiv.menu_option_toggle
+{
+    constructor({
+        setting=null,
+
+        // Most settings are just booleans, but this can be used to toggle between
+        // string keys.  This can make adding more values to the option easier later
+        // on.  A default value should be set in settings.js if this is used.
+        on_value=true,
+        off_value=false,
+        ...options})
+    {
         super({...options,
-            buttons: buttons,
             onclick: (e) => {
                 if(this.options && this.options.check && !this.options.check())
                     return;
@@ -711,7 +726,6 @@ ppixiv.menu_option_toggle_setting = class extends ppixiv.ppixiv.menu_option_butt
             },
         });
 
-        this.checkbox = checkbox;
         this.setting = setting;
         this.on_value = on_value;
         this.off_value = off_value;

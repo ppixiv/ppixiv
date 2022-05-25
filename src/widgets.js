@@ -1635,11 +1635,12 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
             },
 
             toggle_slideshow: () => {
-                return new menu_option_button({
+                return new menu_option_toggle({
                     ...shared_options,
                     label: "Slideshow",
                     icon: "mat:wallpaper",
                     requires_image: true,
+                    checked: helpers.args.location.hash.get("slideshow") == "1",
                     onclick: () => {
                         // Add or remove slideshow=1 from the hash.
                         let args = helpers.args.location;
@@ -1648,6 +1649,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                             args.hash.delete("slideshow");
                         else
                             args.hash.set("slideshow", "1");
+                        this.value = enabled;
         
                         helpers.set_page_url(args, false, "toggle slideshow");
 
