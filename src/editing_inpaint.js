@@ -498,7 +498,7 @@ ppixiv.InpaintEditor = class extends ppixiv.widget
 
             return;
         }
-        else if(this.dragging_segment)
+        else if(this.dragging_segment && !e.pressed)
         {
             // We released dragging a segment.
             this.dragging_segment_point = -1;
