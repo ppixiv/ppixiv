@@ -1694,11 +1694,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                     ...shared_options,
                     label: "Edit image",
                     icon: "mat:brush",
-                    hide_if_unavailable: true,
                     setting: "image_editing",
-                    requires: ({media_id}) => {
-                        return media_id != null && helpers.is_media_id_local(media_id);
-                    },
                 });
             },
 
@@ -1727,8 +1723,11 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
 
         this.menu_options.push(menu_options.send_to_tab());
         this.menu_options.push(menu_options.linked_tabs());
-        this.menu_options.push(menu_options.toggle_slideshow());
-        this.menu_options.push(menu_options.image_editing());
+        if(main_controller.singleton.current_screen_name == "illust")
+        {
+            this.menu_options.push(menu_options.toggle_slideshow());
+            this.menu_options.push(menu_options.image_editing());
+        }
         this.menu_options.push(menu_options.refresh_image());
 
         if(!ppixiv.native)
