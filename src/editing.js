@@ -57,6 +57,7 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
         });
 
         this.show_inpaint = this.container.querySelector(".show-inpaint");
+        this.show_inpaint.hidden = true;
         this.show_inpaint.addEventListener("click", (e) => {
             settings.set("image_editing_mode", settings.get("image_editing_mode", null) == "inpaint"? null:"inpaint");
         });
@@ -212,6 +213,10 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
         this.visible = settings.get("image_editing", false);
         helpers.set_class(this.save_edits, "dirty", this.dirty);
 
+        let is_local = helpers.is_media_id_local(this.media_id);
+        if(this.media_id != null)
+            this.show_inpaint.hidden = !is_local;
+
         let showing_crop = settings.get("image_editing_mode", null) == "crop" && this.visible;
         this.crop_editor.visible = showing_crop;
         helpers.set_class(this.show_crop, "selected", showing_crop);
@@ -220,7 +225,7 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
         this.safe_zone_editor.visible = showing_safe_zones;
         helpers.set_class(this.show_safe_zones, "selected", showing_safe_zones);
 
-        let showing_inpaint = settings.get("image_editing_mode", null) == "inpaint" && this.visible;
+        let showing_inpaint = is_local && settings.get("image_editing_mode", null) == "inpaint" && this.visible;
         this.inpaint_editor.visible = showing_inpaint;
         this.inpaint_buttons.hidden = !showing_inpaint;
         helpers.set_class(this.show_inpaint, "selected", showing_inpaint);
