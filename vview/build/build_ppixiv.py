@@ -243,42 +243,41 @@ class Build(object):
         # included in source_files.
         all_resources = [self.setup_filename] + all_resources
 
-        if not for_debug:
-            # Encapsulate the script.
-            result.append('(function() {\n')
-            result.append('const ppixiv = this;\n')
+        # Encapsulate the script.
+        result.append('(function() {\n')
+        result.append('const ppixiv = this;\n')
 
-            result.append('with(this) {\n')
-            result.append('ppixiv.resources = {};\n')
+        result.append('with(this) {\n')
+        result.append('ppixiv.resources = {};\n')
 
-            output_resources = collections.OrderedDict()
+        output_resources = collections.OrderedDict()
 
-            # Add resources.  These are already encoded as JavaScript strings, including quotes
-            # around the string), so just add them directly.
-            for fn, data in self.resources.items():
-                output_resources[fn] = data
+        # Add resources.  These are already encoded as JavaScript strings, including quotes
+        # around the string), so just add them directly.
+        for fn, data in self.resources.items():
+            output_resources[fn] = data
 
-            for fn in all_resources:
-                with open(fn, 'rt', encoding='utf-8') as input_file:
-                    script = input_file.read()
+        for fn in all_resources:
+            with open(fn, 'rt', encoding='utf-8') as input_file:
+                script = input_file.read()
 
-                    # Wrap source files in a function, so we can load them when we're ready in bootstrap.js.
-                    if fn in source_files:
-                        script += '\n//# sourceURL=%s%s\n' % (self.get_source_root_url(), fn)
-                        script = to_javascript_string(script)
+                # Wrap source files in a function, so we can load them when we're ready in bootstrap.js.
+                if fn in source_files:
+                    script += '\n//# sourceURL=%s%s\n' % (self.get_source_root_url(), fn)
+                    script = to_javascript_string(script)
 
-                    output_resources[fn] = script
+                output_resources[fn] = script
 
-            for fn, data in output_resources.items():
-                data = '''ppixiv.resources["%s"] = %s;''' % (fn, data)
-                result.append(data)
+        for fn, data in output_resources.items():
+            data = '''ppixiv.resources["%s"] = %s;''' % (fn, data)
+            result.append(data)
 
-            # Add the bootstrap code directly.
-            bootstrap = open('src/bootstrap.js', 'rt', encoding='utf-8').read()
-            result.append(bootstrap)
+        # Add the bootstrap code directly.
+        bootstrap = open('src/bootstrap.js', 'rt', encoding='utf-8').read()
+        result.append(bootstrap)
 
-            result.append('}\n')
-            result.append('}).call({});\n')
+        result.append('}\n')
+        result.append('}).call({});\n')
 
         return '\n'.join(result) + '\n'
 
