@@ -236,11 +236,14 @@ class Build(object):
         if for_debug:
             # Add the loading code for debug builds, which just runs bootstrap_native.js.
             result.append('''
-// Load and run the bootstrap script.  Note that we don't do this with @reqruire, since TamperMonkey caches
-// requires overly aggressively, ignoring server cache headers.
-(async() => {
-    let resp = await fetch("http://127.0.0.1:8235/client/js/bootstrap_native.js");
-    eval(await resp.text());
+// Load and run the bootstrap script.  Note that we don't do this with @require, since TamperMonkey caches
+// requires overly aggressively, ignoring server cache headers.  Use sync XHR so we don't allow the site
+// to continue loading while we're setting up.
+(() => {
+    let xhr = new XMLHttpRequest();
+    xhr.open("GET", "http://127.0.0.1:8235/client/js/bootstrap_native.js", false);
+    xhr.send();
+    eval(xhr.responseText);
 })();
             ''')
             return '\n'.join(result) + '\n'

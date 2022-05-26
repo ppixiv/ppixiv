@@ -52,9 +52,58 @@ let _load_source_file = function(__pixiv, __source) {
     // native server instead.
     let root_url = env.native? window.location:"http://127.0.0.1:8235";
 
+    // When we load into Pixiv with the regular loader (bootstrap.js), we're always loading
+    // synchronously, since everything is packaged into the user script.  Here we're loading
+    // for development and downloading the source files from the local server.  To make this
+    // behave the same as the regular script, we need to load the files synchronously.  Otherwise,
+    // the site will have a chance to start running, and it'll start setting up event handlers
+    // and other things that we won't be able to remove.
+    //
+    // Browser developers assume that if they can't think of a use case for something, it doesn't
+    // exist, and that they should life make difficult for anyone who needs to do something they
+    // didn't think of.  As a result, they've intentionally made sync XHR hard to use: it won't
+    // let us set responseType: blob for loading binary resources.  We work around this by requesting
+    // a data URL from the local server instead.  It'll be loaded into a blob later in the same way
+    // it is with the packaged script.
+    //
+    // We don't need to be sync if we're running natively, since we're not racing against a website
+    // loading, so we switch back to normal async fetch if possible.  It avoids browsers screaming
+    // bloody murder about sync XHR, and it loads a bit faster.
+    async function get(url, { as_url=false }={})
+    {
+        if(env.native)
+        {
+            let result = await fetch(new URL(url, root_url));
+            if(as_url)
+            {
+                let blob = await result.blob();
+                return URL.createObjectURL(blob);
+            }
+            else
+                return await result.text();
+        }
+        else
+        {
+            // If the caller wants a data URL, add data=1 to the URL.
+            if(as_url)
+            {
+                let query = new URLSearchParams(url.search);
+                query.set("data", "1");
+                url = new URL(url);
+                url.search = query.toString();
+            }    
+    
+            let xhr = new XMLHttpRequest();
+            xhr.open("GET", url, false);
+            xhr.send();
+            
+            return xhr.response;
+        }
+    }
+
     // init.js gives us the list of source and resource files to load.
-    let result = await fetch(new URL("/client/init.js", root_url));
-    let init = await result.json();
+    let result = await get(new URL("/client/init.js", root_url));
+    let init = JSON.parse(result);
 
     // Fetch each source file.  Do this in parallel.
     let source_fetches = {};
@@ -63,14 +112,12 @@ let _load_source_file = function(__pixiv, __source) {
     {
         // Load the source file.
         let url = new URL(path, root_url);
-        let source_fetch = await fetch(url);
-
-        let data = await source_fetch.text();
+        let data = await get(url);
         if(data == null)
             return;
 
         // Add sourceURL to source files.  Remove the mtime query so it doesn't clutter logs.
-        let source_url = new URL(source_fetch.url);
+        let source_url = new URL(url);
         source_url.search = "";
         data += "\n";
         data += `//# sourceURL=${source_url}\n`;
@@ -98,22 +145,18 @@ let _load_source_file = function(__pixiv, __source) {
 
         // Other resources are loaded as text resources.  This is needed for SVG because we
         // sometimes need to preprocess them, so we can't just point at their URL.
-        let source_fetch = await fetch(url);
-
-        if(path.endsWith(".png"))
-        {
-            // Load any binary resources into object URLs.
-            let blob = await source_fetch.blob();
-            if(blob == null)
-                return;
-
-            env.resources[path] = URL.createObjectURL(blob);
-            return;
-        }
-
-        let data = await source_fetch.text();
+        // let source_fetch = await fetch(url);
+        let as_url = path.endsWith(".png");
+        let data = await get(url, { as_url });
         if(data == null)
             return;
+
+        if(as_url)
+        {
+            // Load any binary resources into object URLs.
+            env.resources[path] = data;
+            return;
+        }
 
         // Add sourceURL to source files.  Remove the mtime query so it doesn't clutter logs.
         let source_url = new URL(url);
