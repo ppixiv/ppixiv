@@ -458,11 +458,15 @@ ppixiv.image_data = class extends EventTarget
 
     // Add image and user data to the cache that we received from other sources.  Note that if
     // we have any fetches in the air already, we'll leave them running.
+    //
+    // This will trigger loads for secondary data like manga pages if it's not included in
+    // illust_data.
     add_illust_data(illust_data)
     {
         let media_id = helpers.illust_id_to_media_id(illust_data.id);
         var load_promise = this.load_media_info(media_id, { illust_data: illust_data, force: true });
         this._started_loading_image_info(media_id, load_promise);
+        return load_promise;
     }
 
     add_user_data(user_data)
