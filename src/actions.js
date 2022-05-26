@@ -41,7 +41,7 @@ ppixiv.actions = class
             throw "Didn't get a bookmark ID";
 
         // Store the ID of the new bookmark, so the unbookmark button works.
-        thumbnail_data.singleton().update_illust_data(media_id, {
+        image_data.singleton().update_media_info(media_id, {
             bookmarkData: {
                 id: new_bookmark_id,
                 private: !!request.restrict,
@@ -188,7 +188,7 @@ ppixiv.actions = class
 
         console.log("Removing bookmark finished");
 
-        thumbnail_data.singleton().update_illust_data(media_id, {
+        image_data.singleton().update_media_info(media_id, {
             bookmarkData: null
         });
 
@@ -228,7 +228,7 @@ ppixiv.actions = class
         });
 
         // Update bookmark info.
-        thumbnail_data.singleton().update_illust_data(media_id, {
+        image_data.singleton().update_media_info(media_id, {
             bookmarkData: {
                 id: bookmark_id,
                 private: private_bookmark,

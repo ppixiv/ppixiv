@@ -258,7 +258,7 @@ ppixiv.InpaintEditor = class extends ppixiv.widget
 
         // Update the thumbnail URL, so the new image shows up in search results and the
         // load preview.
-        thumbnail_data.singleton().update_illust_data(illust.id, {
+        image_data.singleton().update_media_info(illust.id, {
             previewUrls: [illust.urls.small],
         });
 

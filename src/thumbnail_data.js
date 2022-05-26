@@ -566,37 +566,5 @@ ppixiv.thumbnail_data = class
             }
         }
     }
-
-    // Update illustration data in both thumbnail info and illust info.
-    //
-    // This is used in places that use get_or_load_illust_data to get thumbnail
-    // info, and then need to save changes to it.  Update both sources.
-    //
-    // This can't update tags.
-    update_illust_data(media_id, data)
-    {
-        media_id = helpers.get_media_id_first_page(media_id);
-
-        let update_data = (update, keys) => {
-            for(let key of keys)
-            {
-                if(!(key in data))
-                    continue;
-
-                console.assert(key != "tags");
-                update[key] = data[key];
-            }
-        };
-
-        let thumb_data = thumbnail_data.singleton().get_one_thumbnail_info(media_id);
-        if(thumb_data)
-            update_data(thumb_data, this.thumbnail_info_keys);
-
-        let illust_info = image_data.singleton().get_media_info_sync(media_id);
-        if(illust_info != null)
-            update_data(illust_info, this.thumbnail_info_keys);
-
-        image_data.singleton().call_illust_modified_callbacks(media_id);
-    }
 }
 

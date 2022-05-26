@@ -195,8 +195,7 @@ ppixiv.local_api = class
 
         // Update bookmark tags and thumbnail data.
         image_data.singleton().update_cached_bookmark_image_tags(media_id, result.bookmark.tags);
-
-        thumbnail_data.singleton().update_illust_data(media_id, {
+        image_data.singleton().update_media_info(media_id, {
             bookmarkData: result.bookmark
         });
 
@@ -222,7 +221,7 @@ ppixiv.local_api = class
         if(!result.success)
             return;
 
-        thumbnail_data.singleton().update_illust_data(media_id, {
+        image_data.singleton().update_media_info(media_id, {
             bookmarkData: null
         });
 

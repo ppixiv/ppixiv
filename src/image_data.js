@@ -748,6 +748,44 @@ ppixiv.image_data = class extends EventTarget
         return data;
     }
 
+    // Update cached illust info.
+    //
+    // illust_info can contain any or all illust info keys.  We'll only update the keys
+    // that are present.  For example,
+    //
+    // update_media_info(media_id, { likeCount: 10 });
+    //
+    // will update likeCount on the image.
+    //
+    // This updates both thumbnail info and illust info.  if illust_info isn't already loaded,
+    // we won't load it here.  Only illusts that are already loaded will be updated 
+    update_media_info(media_id, keys)
+    {
+        media_id = helpers.get_media_id_first_page(media_id);
+
+        let image_data = this.image_data[media_id];
+        if(image_data != null)
+        {
+            for(let [key, value] of Object.entries(keys))
+                image_data[key] = value;
+        }
+
+        let thumbnail_info = thumbnail_data.singleton().get_one_thumbnail_info(media_id);
+        if(thumbnail_info)
+        {
+            for(let [key, value] of Object.entries(keys))
+            {
+                // Ignore data that isn't included in thumbnail info.
+                if(thumbnail_data.singleton().thumbnail_info_keys.indexOf(key) == -1)
+                    continue;
+
+                thumbnail_info[key] = value;
+            }
+        }
+
+        this.call_illust_modified_callbacks(media_id);
+    }
+
     // Helpers
 
     // Return the extra info for an image, given its image info.
