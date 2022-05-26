@@ -67,6 +67,8 @@ ppixiv.SendImage = class
             }
         });
 
+        image_data.singleton().illust_modified_callbacks.register((media_id) => { this.broadcast_illust_changes(media_id); });
+
         SendImage.send_image_channel.addEventListener("message", this.received_message);
         this.broadcast_tab_info();
 
@@ -116,6 +118,42 @@ ppixiv.SendImage = class
             action: action, // "temp-view" or "display"
             thumbnail_info: thumbnail_info,
             illust_data: illust_data,
+            user_info: user_info,
+        }, false);
+    }
+
+    static broadcast_illust_changes(media_id)
+    {
+        // Don't do this if this is coming from another tab, so we don't re-broadcast data
+        // we just received.
+        if(this.handling_broadcasted_image_info)
+            return;
+        
+        // Broadcast the new info to other tabs.
+        this.broadcast_image_info(media_id);
+    }
+
+    // Send image info to other tabs.  We do this when we know about modifications to
+    // an image that other tabs might be displaying, such as the like count and crop
+    // info.  This isn't done when we simply load image data from the server, so we're
+    // not constantly sending all search results to all tabs.  We don't currently update
+    // thumbnail data from image data, so if a tab edits image data while it doesn't have
+    // thumbnail data loaded, other tabs with only thumbnail data loaded won't see it.
+    static broadcast_image_info(media_id)
+    {
+        // Send everything we know about the image, so the receiver doesn't have to
+        // do a lookup.
+        let thumbnail_info = thumbnail_data.singleton().get_one_thumbnail_info(media_id);
+        let illust_data = image_data.singleton().get_media_info_sync(media_id);
+
+        let user_id = illust_data?.userId;
+        let user_info = user_id? image_data.singleton().get_user_info_sync(user_id):null;
+
+        this.send_message({
+            message: "image-info",
+            from: SendImage.tab_id,
+            media_id: media_id,
+            illust_data: illust_data ?? thumbnail_info,
             user_info: user_info,
         }, false);
     }
@@ -226,6 +264,27 @@ ppixiv.SendImage = class
                 // preview history entry.
                 add_to_history: !ppixiv.history.virtual,
             });
+        }
+        else if(data.message == "image-info")
+        {
+            // update_media_info will trigger illust_modified_callbacks below.  Make sure we don't rebroadcast
+            // info that we're receiving here.  Note that add_illust_data can trigger loads, and we won't
+            // send any info for changes that happen before those complete since we have to wait
+            // for it to finish, but normally this receives all info for an illust anyway.
+            this.handling_broadcasted_image_info = true;
+            try {
+                // Another tab is broadcasting updated image info.  If we have this image loaded,
+                // update it.
+                let illust_data = data.illust_data;
+                if(illust_data != null)
+                    image_data.singleton().update_media_info(data.media_id, illust_data);
+
+                let user_info = data.user_info;
+                if(user_info != null)
+                    image_data.singleton().add_user_data(user_info);
+            } finally {
+                this.handling_broadcasted_image_info = false;
+            }
         }
         else if(data.message == "preview-mouse-movement")
         {
