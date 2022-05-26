@@ -27,7 +27,6 @@ def to_javascript_string(s):
 class Build(object):
     github_root = 'https://raw.githubusercontent.com/ppixiv/ppixiv/'
     setup_filename = 'output/setup.js'
-    debug_resources_path = 'output/resources.js'
 
     def build(self):
         # This is a release if it has a tag and the working copy is clean.
@@ -65,16 +64,6 @@ class Build(object):
 
         self.create_environment()
         self.resources = self.build_resources()
-
-        # For debug builds, write resources to a file that we can include with @resources, so we
-        # can update them without having to change the debug script.  Write output/resources.js
-        # for when we're in debug mode.
-        output = io.StringIO()
-        for fn, data in self.resources.items():
-            output.write('ppixiv.resources["%s"] = %s;\n' % (fn, data))
-        with open(self.debug_resources_path, 'w+t', encoding='utf-8') as f:
-            f.write(output.getvalue())
-
         self.build_release()
         self.build_debug()
 
@@ -167,7 +156,7 @@ class Build(object):
         These are base64-encoded and not easily read in the output file.  We should only use this for
         markup and images and not scripts, since we don't want to obfuscate code in the output.
         """
-        print('Building resources: %s' % self.debug_resources_path)
+        print('Building resources')
 
         # Collect resources into an OrderedDict, so we always output data in the same order.
         # This prevents the output from changing.
@@ -212,17 +201,6 @@ class Build(object):
         return resources
 
     def build_output(self, for_debug):
-        # All resources that we include in the script.
-        all_resources = list(source_files)
-
-        # Include setup.js in resources.  It's JSON data and not a source file, so it's not
-        # included in source_files.
-        all_resources = [self.setup_filename] + all_resources
-
-        # In debug builds, add resources.js to the resource list.
-        if for_debug:
-            all_resources.append(self.debug_resources_path)
-
         result = []
         with open('src/header.js', 'rt', encoding='utf-8') as input_file:
             for line in input_file.readlines():
@@ -258,6 +236,13 @@ class Build(object):
             ''')
             return '\n'.join(result) + '\n'
             
+        # All resources that we include in the script.
+        all_resources = list(source_files)
+
+        # Include setup.js in resources.  It's JSON data and not a source file, so it's not
+        # included in source_files.
+        all_resources = [self.setup_filename] + all_resources
+
         if not for_debug:
             # Encapsulate the script.
             result.append('(function() {\n')
