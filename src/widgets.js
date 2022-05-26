@@ -171,7 +171,7 @@ ppixiv.illust_widget = class extends ppixiv.widget
         super(options);
 
         // Refresh when the image data changes.
-        image_data.singleton().addEventListener("mediamodified", this.refresh.pbind(this), { signal: this.shutdown_signal.signal });
+        image_data.singleton().addEventListener("mediamodified", this.refresh.bind(this), { signal: this.shutdown_signal.signal });
     }
 
     // The data this widget needs.  This can be illust_id (nothing but the ID), illust_info,
@@ -1257,8 +1257,8 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
             this.visible = false;
         });
 
-        image_data.singleton().illust_modified_callbacks.register(this.refresh.pbind(this));
-        settings.register_change_callback("recent-bookmark-tags", this.refresh.pbind(this));
+        image_data.singleton().illust_modified_callbacks.register(this.refresh.bind(this));
+        settings.register_change_callback("recent-bookmark-tags", this.refresh.bind(this));
     }
 
     // Return an array of tags selected in the tag dropdown.
@@ -1826,7 +1826,7 @@ ppixiv.bookmark_button_widget = class extends ppixiv.illust_widget
 
         this.container.addEventListener("click", this.clicked_bookmark);
 
-        image_data.singleton().illust_modified_callbacks.register(this.refresh.pbind(this));
+        image_data.singleton().illust_modified_callbacks.register(this.refresh.bind(this));
     }
 
     refresh_internal({ media_id, thumbnail_data })
@@ -1926,7 +1926,7 @@ ppixiv.bookmark_count_widget = class extends ppixiv.illust_widget
     {
         super(options);
 
-        image_data.singleton().illust_modified_callbacks.register(this.refresh.pbind(this));
+        image_data.singleton().illust_modified_callbacks.register(this.refresh.bind(this));
     }
 
     refresh_internal({ illust_data })
@@ -1945,7 +1945,7 @@ ppixiv.like_button_widget = class extends ppixiv.illust_widget
 
         this.container.addEventListener("click", this.clicked_like);
 
-        image_data.singleton().illust_modified_callbacks.register(this.refresh.pbind(this));
+        image_data.singleton().illust_modified_callbacks.register(this.refresh.bind(this));
     }
 
     async refresh_internal({ media_id })
@@ -1976,7 +1976,7 @@ ppixiv.like_count_widget = class extends ppixiv.illust_widget
     constructor(options)
     {
         super(options);
-        image_data.singleton().illust_modified_callbacks.register(this.refresh.pbind(this));
+        image_data.singleton().illust_modified_callbacks.register(this.refresh.bind(this));
     }
 
     async refresh_internal({ illust_data })

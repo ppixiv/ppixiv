@@ -730,7 +730,7 @@ ppixiv.menu_option_toggle_setting = class extends ppixiv.menu_option_toggle
         this.on_value = on_value;
         this.off_value = off_value;
         if(this.setting)
-            settings.changes.addEventListener(this.setting, this.refresh.pbind(this), { signal: this.shutdown_signal.signal });
+            settings.changes.addEventListener(this.setting, this.refresh.bind(this), { signal: this.shutdown_signal.signal });
     }
 
     refresh()

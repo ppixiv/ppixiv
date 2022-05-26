@@ -11,7 +11,7 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
             </div>
         `});
         
-        this.refresh_focus = this.refresh_focus.pbind(this);
+        this.refresh_focus = this.refresh_focus.bind(this);
 
         // Create the video UI.
         this.video_ui = new ppixiv.video_ui({
