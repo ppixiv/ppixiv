@@ -65,6 +65,25 @@ class Build(object):
         self.build_release()
         self.build_debug()
 
+    def build_release(self):
+        """
+        Build the final output/ppixiv.user.js script.
+        """
+        output_file = 'output/ppixiv.user.js'
+        print('Building: %s' % output_file)
+        with open(output_file, 'w+t', encoding='utf-8') as output_file:
+            header = self.build_output(for_debug=False)
+            output_file.write(header)
+
+    def build_debug(self):
+        output_file = 'output/ppixiv-debug.user.js'
+        print('Building: %s' % output_file)
+
+        lines = self.build_output(for_debug=True)
+
+        with open(output_file, 'w+t', encoding='utf-8') as f:
+            f.write(lines)
+
     def get_local_root_url(self):
         """
         Return the file:/// path containing local source.
@@ -81,9 +100,6 @@ class Build(object):
             cwd = '%s:/%s' % (parts[1], '/'.join(parts[2:]))
 
         return 'file:///%s/' % cwd
-
-    def __init__(self):
-        pass
 
     def get_source_root_url(self):
         """
@@ -266,25 +282,6 @@ class Build(object):
         result.append('}).call({});\n')
 
         return '\n'.join(result) + '\n'
-
-    def build_release(self):
-        """
-        Build the final output/ppixiv.user.js script.
-        """
-        output_file = 'output/ppixiv.user.js'
-        print('Building: %s' % output_file)
-        with open(output_file, 'w+t', encoding='utf-8') as output_file:
-            header = self.build_output(for_debug=False)
-            output_file.write(header)
-
-    def build_debug(self):
-        output_file = 'output/ppixiv-debug.user.js'
-        print('Building: %s' % output_file)
-
-        lines = self.build_output(for_debug=True)
-
-        with open(output_file, 'w+t', encoding='utf-8') as f:
-            f.write(lines)
 
 if __name__=='__main__':
     Build().build()
