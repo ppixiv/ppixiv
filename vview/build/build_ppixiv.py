@@ -26,7 +26,6 @@ def to_javascript_string(s):
 
 class Build(object):
     github_root = 'https://raw.githubusercontent.com/ppixiv/ppixiv/'
-    setup_filename = 'output/setup.js'
 
     def build(self):
         # This is a release if it has a tag and the working copy is clean.
@@ -62,7 +61,6 @@ class Build(object):
             if e.errno != errno.EEXIST:
                 raise
 
-        self.create_environment()
         self.resources = self.build_resources()
         self.build_release()
         self.build_debug()
@@ -99,18 +97,6 @@ class Build(object):
             return self.github_root + self.git_tag + '/'
         else:
             return self.get_local_root_url()
-
-    def create_environment(self):
-        print('Building: %s' % self.setup_filename)
-
-        # Output the environment file for bootstrap.js.
-        environment = {
-            'source_files': source_files,
-        }
-
-
-        with open(self.setup_filename, 'w+t', encoding='utf-8') as f:
-            f.write(json.dumps(environment, indent=4) + '\n')
 
     def get_resource_list(self):
         results = collections.OrderedDict()
@@ -239,10 +225,6 @@ class Build(object):
         # All resources that we include in the script.
         all_resources = list(source_files)
 
-        # Include setup.js in resources.  It's JSON data and not a source file, so it's not
-        # included in source_files.
-        all_resources = [self.setup_filename] + all_resources
-
         # Encapsulate the script.
         result.append('(function() {\n')
         result.append('const ppixiv = this;\n')
@@ -267,6 +249,12 @@ class Build(object):
                     script = to_javascript_string(script)
 
                 output_resources[fn] = script
+
+        # Add the list of source files to resources, so bootstrap.js knows what to load.
+        setup = {
+            'source_files': source_files,
+        }
+        output_resources['setup.js'] = json.dumps(setup, indent=4) + '\n'
 
         for fn, data in output_resources.items():
             data = '''ppixiv.resources["%s"] = %s;''' % (fn, data)

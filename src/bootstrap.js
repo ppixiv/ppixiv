@@ -14,9 +14,6 @@
     // The empty {} object is our environment.  It can be assigned to as "this" at the
     // top level of scripts, and it's included in scope using with(this) so it's searched
     // as a global scope.
-    //
-    // If we're in a debug build, this script runs standalone, and we set up the environment
-    // here.
     
     // Our source files are stored as text, so we can attach sourceURL to them to give them
     // useful filenames.  "this" is set to the ppixiv context, and we load them out here so
@@ -54,8 +51,10 @@
 
             console.log("ppixiv bootstrap");
 
-            let setup = env.resources["output/setup.js"];
+            let setup = env.resources["setup.js"];
             let source_list = setup.source_files;
+
+            // This is just for development, so we can access ourself in the console.
             unsafeWindow.ppixiv = env;
 
             // Load each source file.
