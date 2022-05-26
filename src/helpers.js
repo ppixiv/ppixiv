@@ -583,7 +583,7 @@ ppixiv.helpers = {
         {
             // Both prototypes and instances might be wrapped.  If this is an instance, look
             // at the prototype to find the original.
-            let orig_func = obj.__proto__[name]? obj.__proto__[name]:obj[name];
+            let orig_func = obj.__proto__ && obj.__proto__[name]? obj.__proto__[name]:obj[name];
             if(!orig_func)
             {
                 if(!ignore_missing)
