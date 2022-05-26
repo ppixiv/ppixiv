@@ -613,7 +613,11 @@ ppixiv.helpers = {
                 }
             }
 
-            Object.freeze(obj);
+            try {
+                Object.freeze(obj);
+            } catch(e) {
+                console.error(`Error freezing ${obj}: ${e}`);
+            }
         }
 
         try {
@@ -632,7 +636,7 @@ ppixiv.helpers = {
             // Delete wrappers on window.history set by the site, and freeze it so they can't
             // be added.
             delete_overrides(unsafeWindow.history);
-            delete_overrides(document);
+            delete_overrides(unsafeWindow.document);
 
             // Remove Pixiv's wrappers from console.log, etc., and then apply our own to console.error
             // to silence its error spam.  This will cause all error messages out of console.error
@@ -678,13 +682,6 @@ ppixiv.helpers = {
 
         window.addEventListener = Window.prototype.addEventListener.pbind(unsafeWindow);
         window.removeEventListener = Window.prototype.removeEventListener.pbind(unsafeWindow);
-        
-        // Try to freeze the document.  This works in Chrome but not Firefox.
-        try {
-            Object.freeze(document);
-        } catch(e) {
-            console.error("Error unwrapping environment", e);
-        }
 
         // We have to use unsafeWindow.fetch in Firefox, since window.fetch is from a different
         // context and won't send requests with the site's origin, which breaks everything.  In
