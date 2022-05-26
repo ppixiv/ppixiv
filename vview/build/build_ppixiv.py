@@ -27,7 +27,8 @@ def to_javascript_string(s):
 class Build(object):
     github_root = 'https://raw.githubusercontent.com/ppixiv/ppixiv/'
 
-    def build(self):
+    @classmethod
+    def build(cls):
         # This is a release if it has a tag and the working copy is clean.
         result = subprocess.run(['git', 'describe', '--tags', '--match=r*', '--exact-match'], capture_output=True)
         is_tagged = result.returncode == 0
@@ -35,16 +36,18 @@ class Build(object):
         result = subprocess.run(['git', 'status', '--porcelain', '--untracked-files=no'], capture_output=True)
         is_clean = len(result.stdout) == 0
 
-        self.is_release = is_tagged and is_clean
+        is_release = is_tagged and is_clean
 
         if len(sys.argv) > 1 and sys.argv[1] == '--release':
-            self.is_release = True
+            is_release = True
 
-        if self.is_release:
-            self.git_tag = get_git_tag()
+        if is_release:
+            git_tag = get_git_tag()
+        else:
+            git_tag = None
 
-        if self.is_release:
-            print('Release build: %s' % self.git_tag)
+        if is_release:
+            print('Release build: %s' % git_tag)
         else:
             reason = []
             if not is_clean:
@@ -60,6 +63,12 @@ class Build(object):
             # exists"?
             if e.errno != errno.EEXIST:
                 raise
+
+        cls().build_with_settings(is_release=is_release, git_tag=git_tag)
+
+    def build_with_settings(self, *, is_release=False, git_tag='devel'):
+        self.is_release = is_release
+        self.git_tag = git_tag
 
         self.resources = self.build_resources()
         self.build_release()
