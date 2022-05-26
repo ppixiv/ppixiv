@@ -1,8 +1,9 @@
 # This handles serving the UI so it can be run independently.
 
-import aiohttp, asyncio, json
+import aiohttp, asyncio, base64, os, json
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
+from ..util import misc
 from ..util.paths import open_path
 from ..build.build_ppixiv import Build
 from ..build.source_files import source_files
@@ -88,6 +89,7 @@ def handle_source_files(request):
 
 def handle_client(request):
     path = request.match_info['path']
+    as_data_url = 'data' in request.query
     path = Path(path)
 
     cache_control = 'public, immutable'
@@ -113,9 +115,22 @@ def handle_client(request):
     if not path.exists():
         raise aiohttp.web.HTTPNotFound()
 
-    response = aiohttp.web.FileResponse(path, headers={
+    headers = {
         'Cache-Control': cache_control,
-    })
+    }
+    
+    if as_data_url:
+        with open(path, 'rb') as f:
+            data = f.read()
+            
+        mime_type = misc.mime_type(path.name) or 'application/octet-stream'
+        data = base64.b64encode(data).decode('ascii')
+        data = f'data:{mime_type};base64,' + data
+        headers['Content-Type'] = 'text/plain'
+        response = aiohttp.web.Response(body=data, headers=headers)
+        response.last_modified = os.stat(path).st_mtime
+    else:
+        response = aiohttp.web.FileResponse(path, headers=headers)
 
     # mimetypes doesn't know about .scss.  Fill it in, so these URLs open normally.
     if path.suffix == '.scss':
