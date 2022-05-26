@@ -1652,8 +1652,6 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                         this.value = enabled;
         
                         helpers.set_page_url(args, false, "toggle slideshow");
-
-                        this.parent.hide();
                     }
                 });
             },
