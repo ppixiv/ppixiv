@@ -44,6 +44,9 @@ let _load_source_file = function(__pixiv, __source) {
 
     unsafeWindow.loaded_ppixiv = true;
 
+    // This is just for development, so we can access ourself in the console.
+    unsafeWindow.ppixiv = env;
+
     // If we're running natively, the scripts are on the same root path we're on, and we can
     // just resolve URLs relatively.  If we're on Pixiv then we need to load scripts from the
     // native server instead.
