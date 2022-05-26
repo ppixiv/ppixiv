@@ -142,8 +142,6 @@ class Build(object):
         These are base64-encoded and not easily read in the output file.  We should only use this for
         markup and images and not scripts, since we don't want to obfuscate code in the output.
         """
-        print('Building resources')
-
         # Collect resources into an OrderedDict, so we always output data in the same order.
         # This prevents the output from changing.
         resources = collections.OrderedDict()
