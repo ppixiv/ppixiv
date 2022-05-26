@@ -39,7 +39,6 @@ source_files = [
     'src/tag_translations.js',
     'src/thumbnail_data.js',
     'src/page_manager.js',
-    'src/remove_link_interstitial.js',
     'src/image_preloading.js',
     'src/whats_new.js',
     'src/send_image.js',
