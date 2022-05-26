@@ -512,6 +512,22 @@ ppixiv.image_data = class extends EventTarget
         return this.bookmarked_image_tags[media_id]; 
     }
 
+    // Return bookmark tags if they're already loaded, otherwise return null.
+    get_bookmark_details_sync(media_id)
+    {
+        if(helpers.is_media_id_local(media_id))
+        {
+            let thumb = thumbnail_data.singleton().get_illust_data_sync(media_id);
+            if(thumb && thumb.bookmarkData == null)
+                return [];
+   
+            this.bookmarked_image_tags[media_id] = thumb.bookmarkData.tags;
+            return this.bookmarked_image_tags[media_id]; 
+        }
+        else
+            return this.bookmarked_image_tags[media_id]; 
+    }
+
     // Replace our cache of bookmark tags for an image.  This is used after updating
     // a bookmark.
     update_cached_bookmark_image_tags(media_id, tags)
