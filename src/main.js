@@ -78,9 +78,6 @@ ppixiv.main_controller = class
         // Run any one-time settings migrations.
         settings.migrate();
 
-        // Migrate the translation database.  We don't need to wait for this.
-        update_translation_storage.run();
-
         // Set up the pointer_listener singleton.
         pointer_listener.install_global_handler();
         new ppixiv.global_key_listener;
