@@ -149,7 +149,7 @@ ppixiv.image_data = class extends EventTarget
                 user_info_promise = this.get_user_info(user_id);
             
             // If we know the illust type and haven't started loading other data yet, start them.
-            if(page_count != null && page_count > 1 && manga_promise == null && (illust_data == null || illust_data.mangaPages == null))
+            if(page_count != null && page_count > 1 && manga_promise == null && illust_data?.mangaPages == null)
                 manga_promise = helpers.get_request("/ajax/illust/" + illust_id + "/pages", {});
             if(illust_type == 2 && ugoira_promise == null && (illust_data == null || illust_data.ugoiraMetadata == null))
                 ugoira_promise = helpers.get_request("/ajax/illust/" + illust_id + "/ugoira_meta");
@@ -461,7 +461,7 @@ ppixiv.image_data = class extends EventTarget
     add_illust_data(illust_data)
     {
         let media_id = helpers.illust_id_to_media_id(illust_data.id);
-        var load_promise = this.load_media_info(media_id, { illust_data: illust_data });
+        var load_promise = this.load_media_info(media_id, { illust_data: illust_data, force: true });
         this._started_loading_image_info(media_id, load_promise);
     }
 
