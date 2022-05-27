@@ -12,7 +12,7 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
                         ${ helpers.create_box_link({icon: "save",     popup: "Save",          classes: ["save-edits", "popup-bottom"] }) }
                         ${ helpers.create_box_link({icon: "refresh",  popup: "Saving...",     classes: ["spinner"] }) }
                         ${ helpers.create_box_link({icon: "crop",     popup: "Crop",          classes: ["show-crop", "popup-bottom"] }) }
-                        ${ helpers.create_box_link({icon: "wallpaper",popup: "Slideshow safe zones", classes: ["show-safe-zones", "popup-bottom"] }) }
+                        ${ helpers.create_box_link({icon: "wallpaper",popup: "Slideshow safe zones", classes: ["show-safe-zone", "popup-bottom"] }) }
                         ${ helpers.create_box_link({icon: "brush",    popup: "Inpainting",    classes: ["show-inpaint", "popup-bottom"] }) }
                     </div>
                 </div>
@@ -22,22 +22,28 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
 
         this.container.querySelector(".spinner").hidden = true;
 
-        this.crop_editor = new ppixiv.CropEditor({
+        let crop_editor = new ppixiv.CropEditor({
             container: this.container,
             parent: this,
             mode: "crop",
         });
 
-        this.safe_zone_editor = new ppixiv.CropEditor({
+        let safe_zone_editor = new ppixiv.CropEditor({
             container: this.container,
             parent: this,
             mode: "safe_zone",
         });
 
-        this.inpaint_editor = new ppixiv.InpaintEditor({
+        let inpaint_editor = new ppixiv.InpaintEditor({
             container: this.container,
             parent: this,
         });
+
+        this.editors = {
+            inpaint: inpaint_editor,
+            crop: crop_editor,
+            safe_zone: safe_zone_editor,
+        };
 
         this.onvisibilitychanged = onvisibilitychanged;
         this._dirty = false;
@@ -48,18 +54,18 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
 
         this.show_crop = this.container.querySelector(".show-crop");
         this.show_crop.addEventListener("click", (e) => {
-            settings.set("image_editing_mode", settings.get("image_editing_mode", null) == "crop"? null:"crop");
+            this.active_editor_name = this.active_editor_name == "crop"? null:"crop";
         });
 
-        this.show_safe_zones = this.container.querySelector(".show-safe-zones");
-        this.show_safe_zones.addEventListener("click", (e) => {
-            settings.set("image_editing_mode", settings.get("image_editing_mode", null) == "safe_zones"? null:"safe_zones");
+        this.show_safe_zone = this.container.querySelector(".show-safe-zone");
+        this.show_safe_zone.addEventListener("click", (e) => {
+            this.active_editor_name = this.active_editor_name == "safe_zone"? null:"safe_zone";
         });
 
         this.show_inpaint = this.container.querySelector(".show-inpaint");
         this.show_inpaint.hidden = true;
         this.show_inpaint.addEventListener("click", (e) => {
-            settings.set("image_editing_mode", settings.get("image_editing_mode", null) == "inpaint"? null:"inpaint");
+            this.active_editor_name = this.active_editor_name == "inpaint"? null:"inpaint";
         });
 
         // Refresh when these settings change.
@@ -111,7 +117,7 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
         }, { signal: this.shutdown_signal.signal });
 
         // Steal buttons from the individual editors.
-        this.inpaint_buttons = this.inpaint_editor.container.querySelector(".image-editor-button-row");
+        this.inpaint_buttons = this.editors.inpaint.container.querySelector(".image-editor-button-row");
         this.inpaint_buttons.remove();
         this.container.querySelector(".image-editor-buttons.bottom").appendChild(this.inpaint_buttons);
     }
@@ -119,14 +125,13 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
     // Return true if the crop editor is active.
     get editing_crop()
     {
-        return settings.get("image_editing", false) && settings.get("image_editing_mode", null) == "crop";
+        return settings.get("image_editing", false) && this.active_editor_name == "crop";
     }
 
     shutdown()
     {
-        this.crop_editor.shutdown();
-        this.inpaint_editor.shutdown();
-        this.safe_zone_editor.shutdown();
+        for(let editor of Object.values(this.editors))
+            editor.shutdown();
 
         super.shutdown();
     }
@@ -174,7 +179,7 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
         let extra_data = image_data.get_extra_data(illust_data, media_id);
 
         // Give the editors the new illust data.
-        for(let editor of [this.inpaint_editor, this.crop_editor, this.safe_zone_editor])
+        for(let editor of Object.values(this.editors))
             editor.set_illust_data({ media_id, extra_data, width, height, replace_editor_data });
 
         // If no editor is open, make sure the undo stack is cleared and clear dirty.
@@ -189,7 +194,7 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
 
     get open_editor()
     {
-        for(let editor of [this.inpaint_editor, this.crop_editor, this.safe_zone_editor])
+        for(let editor of Object.values(this.editors))
         {
             if(editor.visible)
                 return editor;
@@ -201,9 +206,8 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
     // This is called when the ImageEditingOverlayContainer changes.
     set overlay_container(overlay_container)
     {
-        this.inpaint_editor.overlay_container = overlay_container;
-        this.crop_editor.overlay_container = overlay_container;
-        this.safe_zone_editor.overlay_container = overlay_container;
+        for(let editor of Object.values(this.editors))
+            editor.overlay_container = overlay_container;
     }
 
     refresh()
@@ -217,16 +221,16 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
         if(this.media_id != null)
             this.show_inpaint.hidden = !is_local;
 
-        let showing_crop = settings.get("image_editing_mode", null) == "crop" && this.visible;
-        this.crop_editor.visible = showing_crop;
+        let showing_crop = this.active_editor_name == "crop" && this.visible;
+        this.editors.crop.visible = showing_crop;
         helpers.set_class(this.show_crop, "selected", showing_crop);
 
-        let showing_safe_zones = settings.get("image_editing_mode", null) == "safe_zones" && this.visible;
-        this.safe_zone_editor.visible = showing_safe_zones;
-        helpers.set_class(this.show_safe_zones, "selected", showing_safe_zones);
+        let showing_safe_zone = this.active_editor_name == "safe_zone" && this.visible;
+        this.editors.safe_zone.visible = showing_safe_zone;
+        helpers.set_class(this.show_safe_zone, "selected", showing_safe_zone);
 
-        let showing_inpaint = is_local && settings.get("image_editing_mode", null) == "inpaint" && this.visible;
-        this.inpaint_editor.visible = showing_inpaint;
+        let showing_inpaint = is_local && this.active_editor_name == "inpaint" && this.visible;
+        this.editors.inpaint.visible = showing_inpaint;
         this.inpaint_buttons.hidden = !showing_inpaint;
         helpers.set_class(this.show_inpaint, "selected", showing_inpaint);
 
@@ -258,7 +262,7 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
         this.set_state(this.undo_stack.pop());
 
         // If InpaintEditor was adding a line, we just undid the first point, so end it.
-        this.inpaint_editor.adding_line = null;
+        this.editors.inpaint.adding_line = null;
     }
 
     // Redo the last undo.
@@ -274,18 +278,16 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
     // Load and save state, for undo.
     get_state()
     {
-        return {
-            inpaint: this.inpaint_editor.get_inpaint_data(),
-            crop: this.crop_editor.get_state(),
-            safe_zone: this.safe_zone_editor.get_state(),
-        };
+        let result = {};
+        for(let [name, editor] of Object.entries(this.editors))
+            result[name] = editor.get_state();
+        return result;
     }
 
     set_state(state)
     {
-        this.inpaint_editor.set_inpaint_data(state.inpaint);
-        this.crop_editor.set_state(state.crop);
-        this.safe_zone_editor.set_state(state.safe_zone);
+        for(let [name, editor] of Object.entries(this.editors))
+            editor.set_state(state[name]);
     }
 
     async save()
@@ -300,7 +302,7 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
         try {
             // Get data from each editor, so we can save them together.
             let edits = { };
-            for(let editor of [this.inpaint_editor, this.crop_editor, this.safe_zone_editor])
+            for(let editor of Object.values(this.editors))
             {
                 for(let [key, value] of Object.entries(editor.get_data_to_save()))
                     edits[key] = value;
@@ -326,12 +328,35 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
             }
 
             // Let the widgets know that we saved.
-            if(this.inpaint_editor)
-                await this.inpaint_editor.after_save(result);
+            let current_editor = this.active_editor;
+            if(current_editor?.after_save)
+                current_editor.after_save(result);
         } finally {
             this.save_edits.hidden = false;
             spinner.hidden = true;
         }
+    }
+
+    get active_editor_name()
+    {
+        return settings.get("image_editing_mode", null);
+    }
+
+    set active_editor_name(editor_name)
+    {
+        if(editor_name != null && this.editors[editor_name] == null)
+            throw new Error(`Invalid editor name ${editor_name}`);
+
+        settings.set("image_editing_mode", editor_name);
+    }
+
+    get active_editor()
+    {
+        let current_editor = this.active_editor_name;
+        if(current_editor == null)
+            return null;
+        else
+            return this.editors[current_editor];
     }
 
     get dirty() { return this._dirty; }

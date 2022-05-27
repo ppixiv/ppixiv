@@ -207,7 +207,7 @@ ppixiv.InpaintEditor = class extends ppixiv.widget
         if(replace_editor_data)
         {
             this.clear();
-            this.set_inpaint_data(extra_data.inpaint);
+            this.set_state(extra_data.inpaint);
         }
 
         if(extra_data == null)
@@ -227,7 +227,7 @@ ppixiv.InpaintEditor = class extends ppixiv.widget
     get_data_to_save()
     {
         return {
-            inpaint: this.get_inpaint_data({for_saving: true}),
+            inpaint: this.get_state({for_saving: true}),
         }
     }
 
@@ -270,7 +270,7 @@ ppixiv.InpaintEditor = class extends ppixiv.widget
     // If for_saving is true, return data to send to the server.  This clears the
     // data entirely if there are no lines, so the inpaint data is removed entirely.
     // Otherwise, returns the full state, which is used for things like undo.
-    get_inpaint_data({for_saving=false}={})
+    get_state({for_saving=false}={})
     {
         if(for_saving && this.lines.length == 0)
             return null;
@@ -306,7 +306,7 @@ ppixiv.InpaintEditor = class extends ppixiv.widget
     }
 
     // Replace the inpaint data.
-    set_inpaint_data(inpaint)
+    set_state(inpaint)
     {
         this.clear();
 
