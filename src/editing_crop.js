@@ -91,7 +91,7 @@ ppixiv.CropEditor = class extends ppixiv.widget
         let clicked_handle;
         if(this.current_crop == null)
         {
-            let {x,y} = this.get_point_from_click(e);
+            let {x,y} = this.client_to_container_pos({ x: e.clientX, y: e.clientY });
             this.current_crop = new FixedDOMRect(x, y, x, y);
             clicked_handle = "bottomright";
         }
@@ -101,48 +101,47 @@ ppixiv.CropEditor = class extends ppixiv.widget
         // Which dimensions each handle moves:
         let drag_parts = {
             all: "move",
-            topleft: ["top", "left"],
-            top: ["top"],
-            topright: ["top", "right"],
-            left: ["left"],
-            right: ["right"],
-            bottomleft: ["bottom", "left"],
-            bottom: ["bottom"],
-            bottomright: ["bottom", "right"],
+            topleft: {y: "y1", x: "x1"},
+            top: {y: "y1"},
+            topright: {y: "y1", x: "x2"},
+            left: {x: "x1"},
+            right: {x: "x2"},
+            bottomleft: {y: "y2", x: "x1"},
+            bottom: { y: "y2" },
+            bottomright: { x: "x2", y: "y2" },
         }
 
         window.addEventListener("pointermove", this.pointermove);
         this.dragging = drag_parts[clicked_handle];
-        this.drag_pos = [e.clientX, e.clientY];
+        this.drag_pos = this.client_to_container_pos({ x: e.clientX, y: e.clientY });
         this.refresh();
     }
 
-    get_point_from_click({clientX, clientY})
+    client_to_container_pos({x, y})
     {
         let {width, height, top, left} = this.editor_overlay.getBoundingClientRect();
-        let x = (clientX - left) / width * this.width;
-        let y = (clientY - top) / height * this.height;
-        return { x: x, y: y };
+        x -= left;
+        y -= top;
+
+        // Scale movement from client coordinates to the size of the container.
+        x *= this.width / width;
+        y *= this.height / height;
+        return {x, y};
     }
 
     pointermove = (e) =>
     {
         // Get the delta in client coordinates.  Don't use movementX/movementY, since it's
         // in screen pixels and will be wrong if the browser is scaled.
-        let delta_x = e.clientX - this.drag_pos[0];
-        let delta_y = e.clientY - this.drag_pos[1];
-        this.drag_pos = [e.clientX, e.clientY];
-
-        // Scale movement from client coordinates to the size of the container.
-        let {width, height} = this.editor_overlay.getBoundingClientRect();
-        delta_x *= this.width / width;
-        delta_y *= this.height / height;
+        let pos = this.client_to_container_pos({ x: e.clientX, y: e.clientY });
+        let delta = { x: pos.x - this.drag_pos.x, y: pos.y - this.drag_pos.y };
+        this.drag_pos = pos;
 
         // Apply the drag.
         if(this.dragging == "move")
         {
-            this.current_crop.x += delta_x;
-            this.current_crop.y += delta_y;
+            this.current_crop.x += delta.x;
+            this.current_crop.y += delta.y;
             this.current_crop.x = Math.max(0, this.current_crop.x);
             this.current_crop.y = Math.max(0, this.current_crop.y);
             this.current_crop.x = Math.min(this.width - this.current_crop.width, this.current_crop.x);
@@ -150,34 +149,74 @@ ppixiv.CropEditor = class extends ppixiv.widget
         }
         else
         {
-            for(let part of this.dragging)
-            {
-                let min_size = 1;
-                switch(part)
-                {
-                case "left":
-                    this.current_crop.left += Math.min(this.current_crop.width - min_size, delta_x);
-                    break;
-                case "top":
-                    this.current_crop.top += Math.min(this.current_crop.height - min_size, delta_y);
-                    break;
-                case "right":
-                    this.current_crop.right -= Math.min(this.current_crop.width - min_size, -delta_x);
-                    break;
-                case "bottom":
-                    this.current_crop.bottom -= Math.min(this.current_crop.height - min_size, -delta_y);
-                    break;
-                }
-            }
-
-            // Clamp the crop to the image bounds.
-            this.current_crop.left = Math.max(0, this.current_crop.left);
-            this.current_crop.top = Math.max(0, this.current_crop.top);
-            this.current_crop.right = Math.min(this.width, this.current_crop.right);
-            this.current_crop.bottom = Math.min(this.height, this.current_crop.bottom);
+            let dragging = this.dragging;
+            if(dragging.x != null)
+                this.current_crop[dragging.x] += delta.x;
+            if(dragging.y != null)
+                this.current_crop[dragging.y] += delta.y;
         }
 
         this.refresh();
+    }
+
+    // Return the current crop.  If we're dragging, clean up the rectangle, making sure it
+    // has a minimum size and isn't inverted.
+    get effective_crop()
+    {
+        // If we're not dragging, just return the current crop rectangle.
+        if(this.dragging == null)
+            return this.current_crop;
+
+        let crop = new FixedDOMRect(
+            this.current_crop.x1,
+            this.current_crop.y1,
+            this.current_crop.x2,
+            this.current_crop.y2,
+        );
+
+        // Keep the rect from being too small.  If the width is too small, push the horizontal
+        // edge we're dragging away from the other side.
+        if(this.dragging != "move")
+        {
+            let opposites = {
+                x1: "x2",
+                x2: "x1",
+                y1: "y2",
+                y2: "y1",
+            }
+
+            let min_size = 5;
+            if(this.dragging.x != null && Math.abs(crop.width) < min_size)
+            {
+                let opposite_x = opposites[this.dragging.x];
+                if(crop[this.dragging.x] < crop[opposite_x])
+                    crop[this.dragging.x] = crop[opposite_x] - min_size;
+                else
+                    crop[this.dragging.x] = crop[opposite_x] + min_size;
+            }
+
+            if(this.dragging.y != null && Math.abs(crop.height) < min_size)
+            {
+                let opposite_y = opposites[this.dragging.y];
+                if(crop[this.dragging.y] < crop[opposite_y])
+                    crop[this.dragging.y] = crop[opposite_y] - min_size;
+                else
+                    crop[this.dragging.y] = crop[opposite_y] + min_size;
+            }            
+        }
+
+        // If we've dragged across the opposite edge, flip the sides back around.
+        crop = new FixedDOMRect(crop.left, crop.top, crop.right, crop.bottom);
+
+        // Clamp to the image bounds.
+        crop = new FixedDOMRect(
+            Math.max(crop.left, 0),
+            Math.max(crop.top, 0),
+            Math.min(crop.right, this.width),
+            Math.min(crop.bottom, this.height),
+        );
+
+        return crop;
     }
 
     refresh()
@@ -187,10 +226,11 @@ ppixiv.CropEditor = class extends ppixiv.widget
         if(this.current_crop == null)
             return;
 
-        box.style.width = `${100 * this.current_crop.width / this.width}%`;
-        box.style.height = `${100 * this.current_crop.height / this.height}%`;
-        box.style.left = `${100 * this.current_crop.left / this.width}%`;
-        box.style.top = `${100 * this.current_crop.top / this.height}%`;
+        let crop = this.effective_crop;
+        box.style.width = `${100 * crop.width / this.width}%`;
+        box.style.height = `${100 * crop.height / this.height}%`;
+        box.style.left = `${100 * crop.left / this.width}%`;
+        box.style.top = `${100 * crop.top / this.height}%`;
     }
 
     shutdown()
@@ -251,11 +291,12 @@ ppixiv.CropEditor = class extends ppixiv.widget
         if(this.current_crop == null)
             return null;
 
+        let crop = this.effective_crop;
         return [
-            Math.round(this.current_crop.left),
-            Math.round(this.current_crop.top),
-            Math.round(this.current_crop.right),
-            Math.round(this.current_crop.bottom),
+            Math.round(crop.left),
+            Math.round(crop.top),
+            Math.round(crop.right),
+            Math.round(crop.bottom),
         ]
     }
 

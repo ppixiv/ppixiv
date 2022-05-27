@@ -3834,26 +3834,17 @@ ppixiv.FixedDOMRect = class extends DOMRect
         super(left, top, right-left, bottom-top);
     }
 
-    get left() { return super.left; }
-    set left(value)
-    {
-        let delta = value - this.x;
-        this.x += delta;
-        this.width -= delta;
-    }
-
-    get top() { return super.top; }
-    set top(value)
-    {
-        let delta = value - this.y;
-        this.y += delta;
-        this.height -= delta;
-    }
-
-    get right() { return super.right; }
-    set right(value) { this.width += value - this.right; }
-    get bottom() { return super.bottom; }
-    set bottom(value) { this.height += value - this.bottom; }
+    // Allow editing the rect as a pair of x1,y1/x2,y2 coordinates, which is more natural
+    // than x,y and width,height.  x1 and y1 can be greater than x2 and y2 if the rect is
+    // inverted (width or height are negative).
+    get x1() { return this.x; }
+    get y1() { return this.y; }
+    get x2() { return this.x + this.width; }
+    get y2() { return this.y + this.height; }
+    set x1(value) { this.width += this.x - value; this.x = value; }
+    set y1(value) { this.height += this.y - value; this.y = value; }
+    set x2(value) { this.width = value - super.x; }
+    set y2(value) { this.height = value - super.y; }
 
     get middleHorizontal() { return (super.right + super.left) / 2; }
     get middleVertical() { return (super.top + super.bottom) / 2; }
