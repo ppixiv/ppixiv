@@ -315,6 +315,10 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
                 signal: this.abort_autocomplete.signal,
             });
 
+            // If result is null, we were probably aborted.
+            if(result == null)
+                return;
+
             this.autocomplete_request_finished(tags, result);
         } catch(e) {
             console.info("Tag autocomplete aborted:", e);
