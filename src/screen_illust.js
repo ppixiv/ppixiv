@@ -20,26 +20,15 @@ ppixiv.screen_illust = class extends ppixiv.screen
             progress_bar: this.progress_bar,
         });
         
-        var ui_box = this.ui.container;
-
-        var ui_visibility_changed = () => {
-            // Hide the dropdown tag widget when the hover UI is hidden.
-            let visible = ui_box.classList.contains("hovering-over-box") || ui_box.classList.contains("hovering-over-sphere");
-            if(!visible)
-            {
-                this.ui.bookmark_tag_widget.visible = false; // XXX remove
-                view_hidden_listener.send_viewhidden(ui_box);
-            }
-
-            // Tell the image UI when it's visible.
-            this.ui.visible = visible;
-        };
-        ui_box.addEventListener("mouseenter", (e) => { helpers.set_class(ui_box, "hovering-over-box", true); ui_visibility_changed(); });
-        ui_box.addEventListener("mouseleave", (e) => { helpers.set_class(ui_box, "hovering-over-box", false); ui_visibility_changed(); });
+        this.ui.container.addEventListener("mouseenter", (e) => { this.hovering_over_box = true; this.refresh_overlay_ui_visibility(); });
+        this.ui.container.addEventListener("mouseleave", (e) => { this.hovering_over_box = false; this.refresh_overlay_ui_visibility(); });
 
         var hover_circle = this.container.querySelector(".ui .hover-circle");
-        hover_circle.addEventListener("mouseenter", (e) => { helpers.set_class(ui_box, "hovering-over-sphere", true); ui_visibility_changed(); });
-        hover_circle.addEventListener("mouseleave", (e) => { helpers.set_class(ui_box, "hovering-over-sphere", false); ui_visibility_changed(); });
+        hover_circle.addEventListener("mouseenter", (e) => { this.hovering_over_sphere = true; this.refresh_overlay_ui_visibility(); });
+        hover_circle.addEventListener("mouseleave", (e) => { this.hovering_over_sphere = false; this.refresh_overlay_ui_visibility(); });
+        settings.changes.addEventListener("image_editing", () => { this.refresh_overlay_ui_visibility(); });
+        settings.changes.addEventListener("image_editing_mode", () => { this.refresh_overlay_ui_visibility(); });
+        this.refresh_overlay_ui_visibility();
 
         image_data.singleton().user_modified_callbacks.register(this.refresh_ui);
         image_data.singleton().illust_modified_callbacks.register(this.refresh_ui);
@@ -67,6 +56,28 @@ ppixiv.screen_illust = class extends ppixiv.screen
 
         this.set_active(false, { });
         this.flashed_page_change = false;
+    }
+
+    refresh_overlay_ui_visibility()
+    {
+        // Hide widgets inside the hover UI when it's hidden.
+        let visible = this.hovering_over_box || this.hovering_over_sphere;
+
+        // Don't show the hover UI while editing, since it can get in the way of trying to
+        // click the image.
+        let editing = settings.get("image_editing") && settings.get("image_editing_mode") != null;
+        if(editing)
+            visible = false;
+
+        if(!visible)
+            view_hidden_listener.send_viewhidden(this.ui.container);
+
+        // Tell the image UI when it's visible.
+        this.ui.visible = visible;
+
+        // Hide the UI's container too when we're editing, so the hover boxes don't get in
+        // the way.
+        this.container.querySelector(".ui").hidden = editing;
     }
 
     set_data_source(data_source)
