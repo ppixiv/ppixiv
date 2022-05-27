@@ -228,6 +228,8 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
         if(this.media_id != null)
             this.show_inpaint.hidden = !is_local;
 
+        this.show_safe_zone.hidden = !settings.get("experimental", false);
+
         let showing_crop = this.active_editor_name == "crop" && this.visible;
         this.editors.crop.visible = showing_crop;
         helpers.set_class(this.show_crop, "selected", showing_crop);
