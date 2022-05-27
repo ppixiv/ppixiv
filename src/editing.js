@@ -14,6 +14,7 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
                         ${ helpers.create_box_link({icon: "crop",     popup: "Crop",          classes: ["show-crop", "popup-bottom"] }) }
                         ${ helpers.create_box_link({icon: "wallpaper",popup: "Slideshow safe zones", classes: ["show-safe-zone", "popup-bottom"] }) }
                         ${ helpers.create_box_link({icon: "brush",    popup: "Inpainting",    classes: ["show-inpaint", "popup-bottom"] }) }
+                        ${ helpers.create_box_link({icon: "close",    popup: "Stop editing",  classes: ["close-editor", "popup-bottom"] }) }
                     </div>
                 </div>
                 <div class="image-editor-buttons bottom"></div>
@@ -90,6 +91,12 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
         this.save_edits = this.container.querySelector(".save-edits");
         this.save_edits.addEventListener("click", async (e) => {
             this.save();
+        }, { signal: this.shutdown_signal.signal });
+
+        this.close_editor = this.container.querySelector(".close-editor");
+        this.close_editor.addEventListener("click", async (e) => {
+            settings.set("image_editing", null);
+            settings.set("image_editing_mode", null);
         }, { signal: this.shutdown_signal.signal });
 
         // Hotkeys:
