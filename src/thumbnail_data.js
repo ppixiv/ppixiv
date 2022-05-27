@@ -407,12 +407,12 @@ ppixiv.thumbnail_data = class
 
         // Load any extra image data stored for these media IDs.
         let illust_ids = Object.keys(all_thumb_info);
-        let extra_data = await extra_image_data.get.load_illust_data(illust_ids);
+        let extra_data = await extra_image_data.get.batch_load_all_pages_for_illust(illust_ids);
 
         for(let [illust_id, info] of Object.entries(all_thumb_info))
         {
             // Store extra data for each page.
-            info.extraData = extra_data[illust_id]?.pages || {};
+            info.extraData = extra_data[illust_id] || {};
 
             // Store the data.
             this.add_thumbnail_info(info);
