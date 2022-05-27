@@ -89,6 +89,13 @@ ppixiv.SendImage = class
     // only registered when we're sending an image.
     static window_onunload = (e) =>
     {
+        // If we were sending an image to another tab, cancel it if this tab is closed.
+        SendImage.send_message({
+            message: "send-image",
+            action: "cancel",
+            to: settings.get("linked_tabs", []),
+        });
+
         // Tell other tabs that this tab has closed.
         SendImage.send_message({ message: "tab-closed" });
     }
