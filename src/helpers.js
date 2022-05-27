@@ -1835,6 +1835,8 @@ ppixiv.helpers = {
     // Clamp value between min and max.
     clamp(value, min, max)
     {
+        if(min > max)
+            [min, max] = [max, min];
         return Math.min(Math.max(value, min), max);
     },
 
@@ -3865,6 +3867,17 @@ ppixiv.FixedDOMRect = class extends DOMRect
             this.right + value,
             this.bottom + value
         )
+    }
+
+    // Crop this rect to fit within outer.
+    cropTo(outer)
+    {
+        return new FixedDOMRect(
+            helpers.clamp(this.left, outer.left, outer.right),
+            helpers.clamp(this.top, outer.top, outer.bottom),
+            helpers.clamp(this.right, outer.left, outer.right),
+            helpers.clamp(this.bottom, outer.top, outer.bottom),
+        );
     }
 }
 

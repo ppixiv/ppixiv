@@ -205,6 +205,10 @@ ppixiv.on_click_viewer = class
         this.preview_img = preview_img;
         this.onnextimage = onnextimage;
 
+        // Make sure safe_zone fits inside the crop.
+        if(this._cropped_size && this._safe_zone)
+            this._safe_zone = this._safe_zone.cropTo(this._cropped_size);
+
         this.crop_box.appendChild(img);
         this.crop_box.appendChild(preview_img);
 
