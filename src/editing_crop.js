@@ -28,16 +28,16 @@ ppixiv.CropEditor = class extends ppixiv.widget
 
                         <!-- Hidden drag handles inside the drag region.  This makes sure there's something to
                             drag at the edge if the crop is flush with the edge of the image. -->
-                        <div class="edge-handle handle" data-crop=top           style="width: 100%;   height: 5vh; top: 0;"></div>
-                        <div class="edge-handle handle" data-crop=bottom        style="width: 100%;   height: 5vh; bottom: 0;"></div>
-                        <div class="edge-handle handle" data-crop=left          style="width: 5vh;    height: 100%; left: 0;"></div>
-                        <div class="edge-handle handle" data-crop=right         style="width: 5vh;    height: 100%; right: 0;"></div>
+                        <div class="edge-handle handle" data-crop=top           style="width: 100%;                   height: calc(min(5vh, 50%)); top: 0;"></div>
+                        <div class="edge-handle handle" data-crop=bottom        style="width: 100%;                   height: calc(min(5vh, 50%)); bottom: 0;"></div>
+                        <div class="edge-handle handle" data-crop=left          style="width: calc(min(5vh, 50%));    height: 100%; left: 0;"></div>
+                        <div class="edge-handle handle" data-crop=right         style="width: calc(min(5vh, 50%));    height: 100%; right: 0;"></div>
 
                         <!-- Make sure the corner handles are above the edge handles. -->
-                        <div class="edge-handle handle" data-crop=topleft       style="width: 5vh;    height: 5vh; top: 0; left: 0;"></div>
-                        <div class="edge-handle handle" data-crop=topright      style="width: 5vh;    height: 5vh; top: 0; right: 0;"></div>
-                        <div class="edge-handle handle" data-crop=bottomleft    style="width: 5vh;    height: 5vh; bottom: 0; left: 0;"></div>
-                        <div class="edge-handle handle" data-crop=bottomright   style="width: 5vh;    height: 5vh; bottom: 0; right: 0;"></div>
+                        <div class="edge-handle handle" data-crop=topleft       style="width: calc(min(5vh, 50%));    height: calc(min(5vh, 50%)); top: 0; left: 0;"></div>
+                        <div class="edge-handle handle" data-crop=topright      style="width: calc(min(5vh, 50%));    height: calc(min(5vh, 50%)); top: 0; right: 0;"></div>
+                        <div class="edge-handle handle" data-crop=bottomleft    style="width: calc(min(5vh, 50%));    height: calc(min(5vh, 50%)); bottom: 0; left: 0;"></div>
+                        <div class="edge-handle handle" data-crop=bottomright   style="width: calc(min(5vh, 50%));    height: calc(min(5vh, 50%)); bottom: 0; right: 0;"></div>
                     </div>
                 </div>
             </div>
