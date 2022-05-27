@@ -1693,6 +1693,11 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                     label: "Edit image",
                     icon: "mat:brush",
                     setting: "image_editing",
+                    onchange: () => {
+                        // When editing is turned off, clear the editing mode too.
+                        if(!settings.get("image_editing"))
+                            settings.set("image_editing_mode", null);
+                    },
                 });
             },
 
