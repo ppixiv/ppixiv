@@ -1162,6 +1162,7 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
                 display: inline-flex;
                 align-items: center;
                 gap: 4px;
+                padding: 0 4px;
                 background-color: rgba(0,0,0,.6);
                 border-radius: 6px;
                 transition: opacity .5s;
@@ -1170,12 +1171,6 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
                 border-radius: 6px;
                 overflow: hidden; // clip the hover background-color to our border radius
 
-                > :first-child {
-                    padding-left: 4px !important;
-                }
-                > :last-child {
-                    padding-right: 4px !important;
-                }
                 .show-manga-pages-button {
                     display: inline-flex;
                     padding: 4px 0px;
