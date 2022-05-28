@@ -1960,6 +1960,7 @@ ppixiv.screen_search = class extends ppixiv.screen
     // current default.
     set_media_id_expanded(media_id, new_value)
     {
+        let page = helpers.media_id_to_illust_id_and_page(media_id)[1];
         media_id = helpers.get_media_id_first_page(media_id);
 
         this.expanded_media_ids.set(media_id, new_value);
@@ -1972,6 +1973,18 @@ ppixiv.screen_search = class extends ppixiv.screen
         // created, but it doesn't handle refreshing it.
         let thumb = this.get_thumbnail_for_media_id(media_id);
         this.refresh_expanded_thumb(thumb);
+
+        if(!new_value)
+        {
+            media_id = helpers.get_media_id_first_page(media_id);
+
+            // If we're collapsing a manga post on the first page, we know we don't need to
+            // scroll since the user clicked the first page.  Leave it where it is so we don't
+            // move the button he clicked around.  If we're collapsing a later page, scroll
+            // the first page onscreen so we don't end up in a random scroll position two pages down.
+            if(page != 0)
+                this.scroll_to_media_id(helpers.get_media_id_first_page(media_id));
+        }
     }
 
     // Set whether thumbs are expanded or collapsed by default.
@@ -2065,6 +2078,28 @@ ppixiv.screen_search = class extends ppixiv.screen
         let media_id = thumb.dataset.id;
         let show_expanded = !this.data_source?.includes_manga_pages && this.is_media_id_expanded(media_id);
         helpers.set_class(thumb, "expanded-thumb", show_expanded);
+
+        let info = thumbnail_data.singleton().get_one_thumbnail_info(media_id);        
+        let [illust_id, illust_page] = helpers.media_id_to_illust_id_and_page(media_id);
+        
+        helpers.set_class(thumb, "expanded-manga-post", show_expanded);
+        helpers.set_class(thumb, "first-manga-page", illust_page == 0);
+
+        // Show the page count if this is a multi-page post (unless we're on the
+        // manga view itself).
+        if(info.pageCount > 1 && this.data_source?.name != "manga")
+        {
+            let pageCountBox = thumb.querySelector(".manga-info-box");
+            pageCountBox.hidden = false;
+
+            let text = show_expanded? `${illust_page+1}/${info.pageCount}`:info.pageCount;
+            thumb.querySelector(".manga-info-box .page-count").textContent = text;
+            thumb.querySelector(".manga-info-box .page-count").hidden = false;
+
+            let page_count_box2 = thumb.querySelector(".show-manga-pages-button");
+            page_count_box2.hidden = false;
+            page_count_box2.href = `/artworks/${illust_id}#ppixiv?manga=1`;
+        }
     }
 
     // Refresh all expanded thumbs.  This is only needed if the default changes.
@@ -2240,20 +2275,6 @@ ppixiv.screen_search = class extends ppixiv.screen
             link.dataset.userId = info.userId;
 
             element.querySelector(".ugoira-icon").hidden = info.illustType != 2 && info.illustType != "video";
-
-            // Show the page count if this is a multi-page post (unless we're on the
-            // manga view itself).
-            if(info.pageCount > 1 && page == 0 && this.data_source?.name != "manga")
-            {
-                let pageCountBox = element.querySelector(".manga-info-box");
-                pageCountBox.hidden = false;
-                element.querySelector(".manga-info-box .page-count").textContent = info.pageCount;
-                element.querySelector(".manga-info-box .page-count").hidden = false;
-
-                let page_count_box2 = element.querySelector(".show-manga-pages-button");
-                page_count_box2.hidden = false;
-                page_count_box2.href = `/artworks/${illust_id}#ppixiv?manga=1`;
-            }
 
             helpers.set_class(element, "dot", helpers.tags_contain_dot(info));
 

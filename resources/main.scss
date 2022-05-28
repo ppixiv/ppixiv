@@ -1084,6 +1084,16 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
 
 .screen-search-container {
     .thumbnail-box {
+        // Hide the manga page button beyond the first page when not hovering.
+        &.expanded-manga-post:not(:hover):not(.first-manga-page) .manga-info-box {
+            display: none;
+        }
+        
+        // Hide the manga index button beyond the first page.
+        &:not(.first-manga-page) .show-manga-pages-button {
+            display: none !important;
+        }
+
         .bottom-row {
             position: absolute;
             display: flex;
