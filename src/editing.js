@@ -329,6 +329,7 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
                 }
 
                 result = result.illust;
+                image_data.singleton().update_media_info(this.media_id, result);
             }
             else
             {
