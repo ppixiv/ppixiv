@@ -51,6 +51,9 @@ ppixiv.on_click_viewer = class
         this.image_container.addEventListener("dragstart", this.block_event, { signal: this.event_shutdown.signal });
         this.image_container.addEventListener("selectstart", this.block_event, { signal: this.event_shutdown.signal });
 
+        // Start or stop panning if the user changes it while we're active, eg. by pressing ^P.
+        settings.changes.addEventListener("auto_pan", this.refresh_autopan.bind(this), { signal: this.event_shutdown.signal });
+        
         this.pointer_listener = new ppixiv.pointer_listener({
             element: this.image_container,
             button_mask: 1,

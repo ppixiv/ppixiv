@@ -923,6 +923,15 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
             return true;
         }
 
+        if(e.key.toUpperCase() == "P")
+        {
+            let enable = !ppixiv.settings.get("auto_pan", false);
+            ppixiv.settings.set("auto_pan", enable);
+
+            message_widget.singleton.show(`Image panning ${enable? "enabled":"disabled"}`);
+            return true;
+        }
+
         return false;
     }
 
