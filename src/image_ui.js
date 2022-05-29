@@ -289,7 +289,7 @@ ppixiv.image_ui = class extends ppixiv.widget
 
         var element_title = this.container.querySelector(".title");
         element_title.textContent = illust_info.illustTitle;
-        element_title.href = helpers.get_url_for_id(this._media_id);
+        element_title.href = helpers.get_url_for_id(this._media_id).url;
 
         // Show the folder if we're viewing a local image.
         let folder_text_element = this.container.querySelector(".folder-text");

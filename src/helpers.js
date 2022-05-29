@@ -2550,7 +2550,7 @@ ppixiv.helpers = {
         if(page != null && page > 1)
             args.query.set("page", page);
 
-        return args.url;
+        return args;
     },
 };
 

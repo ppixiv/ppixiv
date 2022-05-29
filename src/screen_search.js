@@ -2268,7 +2268,7 @@ ppixiv.screen_search = class extends ppixiv.screen
             }
             else
             {
-                link.href = helpers.get_url_for_id(media_id);
+                link.href = helpers.get_url_for_id(media_id).url;
             }
 
             link.dataset.mediaId = media_id;
