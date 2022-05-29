@@ -83,6 +83,9 @@ ppixiv.CropEditor = class extends ppixiv.widget
         if(!e.pressed)
         {
             window.removeEventListener("pointermove", this.pointermove);
+
+            // If the crop was inverted, fix it up now.
+            this.current_crop = this.effective_crop;
             return;
         }
 
