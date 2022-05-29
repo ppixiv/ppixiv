@@ -229,9 +229,10 @@ ppixiv.on_click_viewer = class
 
         // Restore history or set the initial position, then call reposition() to apply it
         // and do any clamping.  Do this atomically with updating the images, so the caller
-        // knows that restore_position happens when displaying_url changes.  If the caller
-        // wants to update 
-        if(restore_position == "auto" || this.slideshow_enabled)
+        // knows that restore_position happens when displaying_url changes.  Also do this if
+        // we already have animations running, so we update the slideshow/panning if the mode
+        // changes.
+        if(restore_position == "auto" || this.slideshow_enabled || this.animations != null)
             this.reset_position();
         else if(restore_position == "history")
             this.restore_from_history();
@@ -946,6 +947,12 @@ ppixiv.on_click_viewer = class
             this.stop_animation();
             return;
         }
+
+        // If we were already animating for slideshow and we're now panning instead or
+        // vice versa, stop the animation so we start the new type.
+        if(this.animation_enabled_for_slideshow != this.slideshow_enabled)
+            this.stop_animation();
+        this.animation_enabled_for_slideshow = this.slideshow_enabled;
 
         let slideshow = new ppixiv.slideshow({
             // this.width/this.height are the size of the image at 1x zoom, which is to fit
