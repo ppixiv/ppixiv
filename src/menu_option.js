@@ -172,7 +172,7 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
                     ...global_options,
                     label: "Hover to show search box",
                     setting: "ui-on-hover",
-                    onchange: this.update_from_settings,
+                    refresh: this.update_from_settings,
                     explanation_enabled: "Only show the search box when hovering over it",
                     explanation_disabled: "Always show the search box",
                 });
@@ -274,7 +274,7 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
                     classes: ["size-slider"],
 
                     // Refresh the label when the value changes.
-                    onchange: function() { button.refresh(); },
+                    refresh: function() { button.refresh(); },
                 });
 
                 button = new menu_option_button({
@@ -520,7 +520,7 @@ ppixiv.menu_option = class extends widget
 {
     constructor({
         classes=[],
-        onchange=null,
+        refresh=null,
         ...options
     })
     {
@@ -528,13 +528,13 @@ ppixiv.menu_option = class extends widget
         for(let class_name of classes)
             this.container.classList.add(class_name);
 
-        this.onchange = onchange;
+        this.onrefresh = refresh;
     }
 
     refresh()
     {
-        if(this.onchange)
-            this.onchange();
+        if(this.onrefresh)
+            this.onrefresh();
     }            
 }
 
