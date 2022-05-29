@@ -19,7 +19,7 @@ let _load_source_file = function(__pixiv, __source) {
 
 (async() =>
 {
-    console.log("ppixiv bootstrap");
+    console.log("ppixiv native bootstrap");
 
     // In a development build, our source and binary assets are in @resources, and we need
     // to pull them out into an environment manually.
@@ -28,6 +28,7 @@ let _load_source_file = function(__pixiv, __source) {
     // If we're not running on Pixiv, set env.native to indicate that we're in our native
     // environment.
     env.native = window.location.hostname != "pixiv.net" && window.location.hostname != "www.pixiv.net";
+    env.version = 'native';
     env.resources = {};
 
     // If we're running natively, set unsafeWindow like a user script would have.

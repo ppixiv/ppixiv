@@ -49,7 +49,7 @@
 
             unsafeWindow.loaded_ppixiv = true;
 
-            console.log("ppixiv bootstrap");
+            console.log(`ppixiv r${env.version} bootstrap`);
 
             let setup = env.resources["setup.js"];
             let source_list = setup.source_files;

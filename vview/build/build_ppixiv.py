@@ -256,6 +256,7 @@ class Build(object):
         result.append('const ppixiv = this;\n')
 
         result.append('with(this) {\n')
+        result.append(f'ppixiv.version = "{version}";')
         result.append('ppixiv.resources = {};\n')
 
         output_resources = collections.OrderedDict()
