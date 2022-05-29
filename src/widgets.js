@@ -1544,7 +1544,6 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                     requires: ({media_id, user_id}) => { return media_id != null || user_id != null; },
 
                     icon: "mat:block",
-                    hide_if_unavailable: true,
 
                     onclick: async () => {
                         this.parent.hide();
@@ -1560,10 +1559,9 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
             refresh_image: () => {
                 return new menu_option_button({
                     ...shared_options,
-                    label: "Refresh",
+                    label: "Refresh image",
 
                     requires_image: true,
-                    hide_if_unavailable: true,
 
                     icon: "mat:refresh",
 
@@ -1642,16 +1640,25 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                     requires_image: true,
                     checked: helpers.args.location.hash.get("slideshow") == "1",
                     onclick: () => {
-                        // Add or remove slideshow=1 from the hash.
+                        // Add or remove slideshow=1 from the hash.  If we're not on the illust view, use
+                        // the URL of the image the user clicked, otherwise modify the current URL.
                         let args = helpers.args.location;
+                        let viewing_illust = main_controller.singleton.current_screen_name == "illust";
+                        if(viewing_illust)
+                            args = helpers.args.location;
+                        else
+                            args = main_controller.singleton.get_media_url(this.media_id);
+
                         let enabled = args.hash.get("slideshow") == "1";
                         if(enabled)
                             args.hash.delete("slideshow");
                         else
                             args.hash.set("slideshow", "1");
                         this.value = enabled;
-        
-                        helpers.set_page_url(args, false, "toggle slideshow");
+
+                        // If we're on the illust view this replaces the current URL since it's just a
+                        // settings change, otherwise this is a navigation.
+                        helpers.set_page_url(args, !viewing_illust, "toggle slideshow");
                     }
                 });
             },
@@ -1690,12 +1697,15 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
             image_editing: () => {
                 return new menu_option_toggle_setting({
                     ...shared_options,
-                    label: "Edit image",
+                    label: "Image editing",
                     icon: "mat:brush",
                     setting: "image_editing",
-                    onchange: () => {
+                    requires_image: true,
+
+                    onclick: () => {
                         // When editing is turned off, clear the editing mode too.
-                        if(!settings.get("image_editing"))
+                        let enabled = settings.get("image_editing");
+                        if(!enabled)
                             settings.set("image_editing_mode", null);
                     },
                 });
@@ -1726,11 +1736,8 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
 
         this.menu_options.push(menu_options.send_to_tab());
         this.menu_options.push(menu_options.linked_tabs());
-        if(main_controller.singleton.current_screen_name == "illust")
-        {
-            this.menu_options.push(menu_options.toggle_slideshow());
-            this.menu_options.push(menu_options.image_editing());
-        }
+        this.menu_options.push(menu_options.toggle_slideshow());
+        this.menu_options.push(menu_options.image_editing());
         this.menu_options.push(menu_options.refresh_image());
 
         if(!ppixiv.native)

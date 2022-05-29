@@ -709,6 +709,7 @@ ppixiv.menu_option_toggle_setting = class extends ppixiv.menu_option_toggle
 {
     constructor({
         setting=null,
+        onclick=null,
 
         // Most settings are just booleans, but this can be used to toggle between
         // string keys.  This can make adding more values to the option easier later
@@ -723,6 +724,10 @@ ppixiv.menu_option_toggle_setting = class extends ppixiv.menu_option_toggle
                     return;
         
                 this.value = !this.value;
+
+                // Call the user's onclick, if any.
+                if(onclick)
+                    onclick(e);
             },
         });
 

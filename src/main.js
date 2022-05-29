@@ -388,7 +388,7 @@ ppixiv.main_controller = class
     // Show an illustration by ID.
     //
     // This actually just sets the history URL.  We'll do the rest of the work in popstate.
-    show_media(media_id, {add_to_history=false, screen="illust", temp_view=false, source=""}={})
+    get_media_url(media_id, {screen="illust", temp_view=false}={})
     {
         console.assert(media_id != null, "Invalid illust_id", media_id);
 
@@ -426,6 +426,12 @@ ppixiv.main_controller = class
             args.hash.delete("temp-view");
         }
 
+        return args;
+    }
+    
+    show_media(media_id, {add_to_history=false, source="", ...options}={})
+    {
+        let args = this.get_media_url(media_id, options);
         helpers.set_page_url(args, add_to_history, "navigation");
     }
 
