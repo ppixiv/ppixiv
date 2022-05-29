@@ -406,11 +406,14 @@ ppixiv.screen_illust = class extends ppixiv.screen
         image_preloader.singleton.set_speculative_image(null);
 
         // If remote quick view is active, cancel it if we leave the image.
-        SendImage.send_message({
-            message: "send-image",
-            action: "cancel",
-            to: settings.get("linked_tabs", []),
-        });
+        if(settings.get("linked_tabs_enabled"))
+        {
+            SendImage.send_message({
+                message: "send-image",
+                action: "cancel",
+                to: settings.get("linked_tabs", []),
+            });
+        }
     }
 
     data_source_updated = () =>
