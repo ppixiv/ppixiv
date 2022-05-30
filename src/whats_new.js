@@ -3,6 +3,19 @@
 // This should be inside whats_new, but Firefox is in the dark ages and doesn't support class fields.
 let _update_history = [
     {
+        version: 133,
+        text: `
+            Pressing Ctrl-P now toggles image panning.
+            <p>        
+            Added image cropping for trimming borders from images.
+            Enable <span class="material-icons" style="vertical-align: bottom;">settings</span>
+            Image Editing in the context menu to display the editor.
+            <p>
+            The page number is now shown over expanded manga posts while hovering over
+            the image, so you can collapse long posts without having to scroll back up.
+        `,
+    },
+    {
         version: 132,
         text: `
             Improved following users, allowing changing a follow to public or private and
