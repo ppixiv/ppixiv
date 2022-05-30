@@ -299,7 +299,7 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
                     classes: ["size-slider"],
                     
                     // Refresh the label when the value changes.
-                    onchange: function() { button.refresh(); },
+                    refresh: function() { button.refresh(); },
                 });
 
                 button = new menu_option_button({
