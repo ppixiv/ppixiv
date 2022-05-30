@@ -1114,7 +1114,7 @@ ppixiv.screen_search = class extends ppixiv.screen
 
             if(label == null)
                 label = a.href;
-            a.dataset.popup = label;
+            a.dataset.popup = decodeURIComponent(label);
 
             // Add the node at the start, so earlier links are at the right.  This makes the
             // more important links less likely to move around.
