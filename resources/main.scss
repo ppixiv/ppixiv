@@ -1088,7 +1088,7 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
         &.expanded-manga-post:not(:hover):not(.first-manga-page) .manga-info-box {
             display: none;
         }
-        
+
         // Hide the manga index button beyond the first page.
         &:not(.first-manga-page) .show-manga-pages-button {
             display: none !important;
@@ -2821,27 +2821,55 @@ svg.heart-image .delete {
 
     .crop-box {
         position: relative;
-        cursor: move !important;        
-        .crop-dim {
-            position: absolute;
-            background-color: #000;
-            opacity: 0.5;
+
+        // This sets how far the handles overlap into the middle area.
+        --overlap: 1vh;
+
+        [data-crop="all"] {
+            // A large box shadow around the middle area to dim the image:
+            box-shadow: 0px 0px 0px 10000px #00000080;
         }
-    }
 
-    .handle {
-        &[data-crop="topleft"] { cursor: nw-resize !important; }
-        &[data-crop="top"] { cursor: n-resize !important; }
-        &[data-crop="topright"] { cursor: ne-resize !important; }
-        &[data-crop="left"] { cursor: w-resize !important; }
-        &[data-crop="right"] { cursor: e-resize !important; }
-        &[data-crop="bottomleft"] { cursor: sw-resize !important; }
-        &[data-crop="bottom"] { cursor: s-resize !important; }
-        &[data-crop="bottomright"] { cursor: se-resize !important; }
-    }
+        &[data-mode="crop"] [data-crop="all"] {
+            outline: 3px solid #fff;
+            outline-style: ridge;
+        }
 
-    .edge-handle {
-        position: absolute;
+        &[data-mode="safe_zone"] [data-crop="all"] {
+            // Use a different outline style in this mode as a visual cue for which mode you're in.
+            outline: 1px solid #fff;
+            outline-offset: 1px;
+
+            // When editing the safe zone, dragging the middle moves the image instead of the rect, so
+            // it's easier to move the view around.  
+            pointer-events: none;
+        }
+
+        .handle {
+            position: absolute;
+
+            &[data-crop="top"]         { cursor: n-resize !important; }
+            &[data-crop="left"]        { cursor: w-resize !important; }
+            &[data-crop="right"]       { cursor: e-resize !important; }
+            &[data-crop="bottom"]      { cursor: s-resize !important; }
+            &[data-crop="topleft"]     { cursor: nw-resize !important; }
+            &[data-crop="topright"]    { cursor: ne-resize !important; }
+            &[data-crop="bottomleft"]  { cursor: sw-resize !important; }
+            &[data-crop="bottomright"] { cursor: se-resize !important; }
+            &[data-crop="all"]         { cursor: move !important; }
+
+            // Handle positions:
+            &[data-crop="top"]         { width: 100%;    height: 10000px; bottom: calc(100% - var(--overlap)); }
+            &[data-crop="left"]        { width: 10000px; height: 100%;    right:  calc(100% - var(--overlap)); }
+            &[data-crop="right"]       { width: 10000px; height: 100%;    left:   calc(100% - var(--overlap)); }
+            &[data-crop="bottom"]      { width: 100%;    height: 10000px; top:    calc(100% - var(--overlap)); }
+
+            &[data-crop="topleft"]     { width: 10000px; height: 10000px; right:  calc(100% - var(--overlap)); bottom: calc(100% - var(--overlap)); }
+            &[data-crop="topright"]    { width: 10000px; height: 10000px; bottom: calc(100% - var(--overlap)); left: calc(100% - var(--overlap)); }
+            &[data-crop="bottomleft"]  { width: 10000px; height: 10000px; top:    calc(100% - var(--overlap)); right: calc(100% - var(--overlap)); }
+            &[data-crop="bottomright"] { width: 10000px; height: 10000px; top:    calc(100% - var(--overlap)); left: calc(100% - var(--overlap)); }
+            &[data-crop="all"] { width: 100%;    height: 100%;    left:   0; }
+        }
     }
 }
 

@@ -13,31 +13,22 @@ ppixiv.CropEditor = class extends ppixiv.widget
             <div>
                 <!-- This node is removed and placed on top of the image.-->
                 <div class=crop-editor-overlay>
-                    <div class=crop-box data-crop=all>
+                    <!-- overlap sets how far the handles overlap into the middle area. -->
+                    <div class=crop-box>
+                        <!-- Middle section for the outline on top of the others: -->
+                        <div class=handle data-crop=all></div>
+
                         <!-- A dimmer in each direction: -->
-                        <div class="crop-dim handle" data-crop=topleft     style="width: 10000px; height: 10000px; right:  100%; bottom: 100%;"></div>
-                        <div class="crop-dim handle" data-crop=top         style="width: 100%;    height: 10000px; bottom: 100%;"></div>
-                        <div class="crop-dim handle" data-crop=topright    style="width: 10000px; height: 10000px; bottom: 100%; left: 100%;"></div>
-
-                        <div class="crop-dim handle" data-crop=left        style="width: 10000px; height: 100%;    right:  100%;"></div>
-                        <div class="crop-dim handle" data-crop=right       style="width: 10000px; height: 100%;    left:   100%;"></div>
-
-                        <div class="crop-dim handle" data-crop=bottomleft  style="width: 10000px; height: 10000px; top:    100%; right: 100%"></div>
-                        <div class="crop-dim handle" data-crop=bottom      style="width: 100%;    height: 10000px; top:    100%;"></div>
-                        <div class="crop-dim handle" data-crop=bottomright style="width: 10000px; height: 10000px; top:    100%; left: 100%;"></div>
-
-                        <!-- Hidden drag handles inside the drag region.  This makes sure there's something to
-                            drag at the edge if the crop is flush with the edge of the image. -->
-                        <div class="edge-handle handle" data-crop=top           style="width: 100%;                   height: calc(min(5vh, 50%)); top: 0;"></div>
-                        <div class="edge-handle handle" data-crop=bottom        style="width: 100%;                   height: calc(min(5vh, 50%)); bottom: 0;"></div>
-                        <div class="edge-handle handle" data-crop=left          style="width: calc(min(5vh, 50%));    height: 100%; left: 0;"></div>
-                        <div class="edge-handle handle" data-crop=right         style="width: calc(min(5vh, 50%));    height: 100%; right: 0;"></div>
+                        <div class=handle data-crop=top></div>
+                        <div class=handle data-crop=left></div>
+                        <div class=handle data-crop=right></div>
+                        <div class=handle data-crop=bottom></div>
 
                         <!-- Make sure the corner handles are above the edge handles. -->
-                        <div class="edge-handle handle" data-crop=topleft       style="width: calc(min(5vh, 50%));    height: calc(min(5vh, 50%)); top: 0; left: 0;"></div>
-                        <div class="edge-handle handle" data-crop=topright      style="width: calc(min(5vh, 50%));    height: calc(min(5vh, 50%)); top: 0; right: 0;"></div>
-                        <div class="edge-handle handle" data-crop=bottomleft    style="width: calc(min(5vh, 50%));    height: calc(min(5vh, 50%)); bottom: 0; left: 0;"></div>
-                        <div class="edge-handle handle" data-crop=bottomright   style="width: calc(min(5vh, 50%));    height: calc(min(5vh, 50%)); bottom: 0; right: 0;"></div>
+                        <div class=handle data-crop=topleft></div>
+                        <div class=handle data-crop=topright></div>
+                        <div class=handle data-crop=bottomleft></div>
+                        <div class=handle data-crop=bottomright></div>
                     </div>
                 </div>
             </div>
@@ -61,7 +52,9 @@ ppixiv.CropEditor = class extends ppixiv.widget
             signal: this.shutdown_signal.signal,
         });
         
-        this.svg = this.editor_overlay.querySelector(".crop-box");
+        this.box = this.editor_overlay.querySelector(".crop-box");
+        this.box.dataset.mode = this.mode;
+
         this.refresh();
     }
 
@@ -77,11 +70,11 @@ ppixiv.CropEditor = class extends ppixiv.widget
 
     pointerevent = (e) =>
     {
-        e.preventDefault();
-        e.stopPropagation();
-
         if(!e.pressed)
         {
+            e.preventDefault();
+            e.stopPropagation();
+
             window.removeEventListener("pointermove", this.pointermove);
 
             // If the crop was inverted, fix it up now.
@@ -89,9 +82,7 @@ ppixiv.CropEditor = class extends ppixiv.widget
             return;
         }
 
-        this.parent.save_undo();
-
-        let clicked_handle;
+        let clicked_handle = null;
         if(this.current_crop == null)
         {
             let {x,y} = this.client_to_container_pos({ x: e.clientX, y: e.clientY });
@@ -100,6 +91,12 @@ ppixiv.CropEditor = class extends ppixiv.widget
         }
         else
             clicked_handle = e.target.dataset.crop;
+        if(clicked_handle == null)
+            return;
+
+        e.preventDefault();
+        e.stopPropagation();
+        this.parent.save_undo();
 
         // Which dimensions each handle moves:
         let drag_parts = {
@@ -145,10 +142,14 @@ ppixiv.CropEditor = class extends ppixiv.widget
         {
             this.current_crop.x += delta.x;
             this.current_crop.y += delta.y;
-            this.current_crop.x = Math.max(0, this.current_crop.x);
-            this.current_crop.y = Math.max(0, this.current_crop.y);
-            this.current_crop.x = Math.min(this.width - this.current_crop.width, this.current_crop.x);
-            this.current_crop.y = Math.min(this.height - this.current_crop.height, this.current_crop.y);
+
+            if(this.mode == "crop")
+            {
+                this.current_crop.x = Math.max(0, this.current_crop.x);
+                this.current_crop.y = Math.max(0, this.current_crop.y);
+                this.current_crop.x = Math.min(this.width - this.current_crop.width, this.current_crop.x);
+                this.current_crop.y = Math.min(this.height - this.current_crop.height, this.current_crop.y);
+            }
         }
         else
         {
@@ -211,13 +212,17 @@ ppixiv.CropEditor = class extends ppixiv.widget
         // If we've dragged across the opposite edge, flip the sides back around.
         crop = new FixedDOMRect(crop.left, crop.top, crop.right, crop.bottom);
 
-        // Clamp to the image bounds.
-        crop = new FixedDOMRect(
-            Math.max(crop.left, 0),
-            Math.max(crop.top, 0),
-            Math.min(crop.right, this.width),
-            Math.min(crop.bottom, this.height),
-        );
+        if(this.mode == "crop")
+        {
+            // Clamp to the image bounds.  Don't do this when editing safe areas, since there
+            // are cases where it's useful.
+            crop = new FixedDOMRect(
+                Math.max(crop.left, 0),
+                Math.max(crop.top, 0),
+                Math.min(crop.right, this.width),
+                Math.min(crop.bottom, this.height),
+            );
+        }
 
         return crop;
     }
@@ -251,7 +256,7 @@ ppixiv.CropEditor = class extends ppixiv.widget
 
         this.width = width;
         this.height = height;
-        this.svg.setAttribute("viewBox", `0 0 ${this.width} ${this.height}`);
+        this.box.setAttribute("viewBox", `0 0 ${this.width} ${this.height}`);
     
         if(replace_editor_data)
             this.set_state(extra_data[this.mode]);
