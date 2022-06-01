@@ -116,7 +116,7 @@ ppixiv.extra_image_data = class
         return await this.db.db_op(async (db) => {
             let store = this.db.get_store(db);
             let index = sort == "time"? store.index("edited_at"):store;
-            let cursor = index.openKeyCursor();
+            let cursor = index.openKeyCursor(null, sort == "time"? "prev":"next"); // descending for time
             let results = [];
             for await (let entry of cursor)
             {
