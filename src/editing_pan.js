@@ -10,8 +10,10 @@ ppixiv.PanEditor = class extends ppixiv.widget
             <div class=pan-editor>
                 <!-- This node is removed and placed on top of the image.-->
                 <div class=pan-editor-overlay>
-                    <ppixiv-inline class="pan-container" src="resources/pan-editor-marker.svg"></ppixiv-inline>
-                    <div class=monitor-preview-box><div class=box></div></div>
+                    <div class=pan-editor-crop-region>
+                        <ppixiv-inline class="pan-container" src="resources/pan-editor-marker.svg"></ppixiv-inline>
+                        <div class=monitor-preview-box><div class=box></div></div>
+                    </div>
                 </div>
 
                 <div class="image-editor-button-row box-button-row">
@@ -61,6 +63,7 @@ ppixiv.PanEditor = class extends ppixiv.widget
         // Remove .pan-editor-overlay.  It's inserted into the image overlay when we
         // have one, so it pans and zooms with the image.
         this.editor_overlay = this.container.querySelector(".pan-editor-overlay");
+        this.editor_crop_region = this.container.querySelector(".pan-editor-crop-region");
         this.editor_overlay.remove();
         this.editor_overlay.slot = "crop-editor"; // XXX merge these
         this.svg = this.editor_overlay.querySelector(".pan-container");
@@ -169,6 +172,29 @@ ppixiv.PanEditor = class extends ppixiv.widget
         // Match the size of the image.
         this.width = width;
         this.height = height;
+
+        // Handling crops and pans together is tricky.  The pan values are relative to the cropped
+        // area: panning to 0.5x0.5 always goes to the center of the crop region, not the original
+        // image.  But, these editors are all positioned and scaled relative to the original image.
+        // This editor wants to be relative to the crop, so we scale and shift our own area relative
+        // to the crop if there is one.
+        if(extra_data?.crop)
+        {
+            let crop = new FixedDOMRect(extra_data.crop[0], extra_data.crop[1], extra_data.crop[2], extra_data.crop[3]);
+            this.width = crop.width;
+            this.height = crop.height;
+
+            this.editor_crop_region.style.width = `${100 * crop.width / width}%`;
+            this.editor_crop_region.style.height = `${100 * crop.height / height}%`;
+            this.editor_crop_region.style.top = `${100 * crop.top / height}%`;
+            this.editor_crop_region.style.left = `${100 * crop.left / width}%`;
+        }
+        else
+        {
+            this.editor_crop_region.style.width = this.editor_crop_region.style.height = ``;
+            this.editor_crop_region.style.top = this.editor_crop_region.style.left = ``;
+        }
+
         this.svg.setAttribute("viewBox", `0 0 ${this.width} ${this.height}`);
 
         if(replace_editor_data)
@@ -355,7 +381,7 @@ ppixiv.PanEditor = class extends ppixiv.widget
         this.drag_pos = [e.clientX, e.clientY];
 
         // Scale movement from client coordinates to the size of the container.
-        let {width, height} = this.editor_overlay.getBoundingClientRect();
+        let {width, height} = this.editor_crop_region.getBoundingClientRect();
         delta_x /= width;
         delta_y /= height;
 
