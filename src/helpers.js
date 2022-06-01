@@ -3864,10 +3864,10 @@ ppixiv.FixedDOMRect = class extends DOMRect
     cropTo(outer)
     {
         return new FixedDOMRect(
-            helpers.clamp(this.left, outer.left, outer.right),
-            helpers.clamp(this.top, outer.top, outer.bottom),
-            helpers.clamp(this.right, outer.left, outer.right),
-            helpers.clamp(this.bottom, outer.top, outer.bottom),
+            helpers.clamp(this.x1, outer.x1, outer.x2),
+            helpers.clamp(this.y1, outer.y1, outer.y2),
+            helpers.clamp(this.x2, outer.x1, outer.x2),
+            helpers.clamp(this.y2, outer.y1, outer.y2),
         );
     }
 }

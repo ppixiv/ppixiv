@@ -13,7 +13,6 @@ ppixiv.CropEditor = class extends ppixiv.widget
             <div>
                 <!-- This node is removed and placed on top of the image.-->
                 <div class=crop-editor-overlay>
-                    <!-- overlap sets how far the handles overlap into the middle area. -->
                     <div class=crop-box>
                         <!-- Middle section for the outline on top of the others: -->
                         <div class=handle data-crop=all></div>
@@ -266,7 +265,7 @@ ppixiv.CropEditor = class extends ppixiv.widget
 
     set overlay_container(overlay_container)
     {
-        console.assert(overlay_container instanceof ImageEditingOverlayContainer)
+        console.assert(overlay_container instanceof ImageEditingOverlayContainer);
         if(this.editor_overlay.parentNode)
             this.editor_overlay.remove();
         overlay_container.appendChild(this.editor_overlay);

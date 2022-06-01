@@ -101,6 +101,9 @@ ppixiv.on_click_viewer = class
         // If set, this is a FixedDOMRect to crop the image to.
         crop=null,
 
+        // If set, this is a pan created by PanEditor.
+        pan=null,
+
         // If set, this is a FixedDOMRect of the safe zone for slideshow mode.
         safe_zone=null,
     }={}) =>
@@ -204,6 +207,7 @@ ppixiv.on_click_viewer = class
         this.original_height = height;
         this._cropped_size = crop && crop.length == 4? new FixedDOMRect(crop[0], crop[1], crop[2], crop[3]):null;
         this._safe_zone = safe_zone && safe_zone.length == 4? new FixedDOMRect(safe_zone[0], safe_zone[1], safe_zone[2], safe_zone[3]):null;        
+        this.pan = pan;
         this.img = img;
         this.preview_img = preview_img;
         this.onnextimage = onnextimage;
@@ -970,8 +974,8 @@ ppixiv.on_click_viewer = class
             minimum_zoom: 1 / this._zoom_factor_cover,
         });
 
-        // Try to create a vertical or horizontal pan.
-        let animation = slideshow.get_default_animation();
+        // Try to create a vertical or horizontal pan, or load the user's transition if there is one.
+        let animation = this.pan? slideshow.get_animation_from_pan(this.pan): slideshow.get_default_animation();
         this.run_animation(animation);
     }
 

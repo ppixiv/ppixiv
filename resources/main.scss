@@ -2803,6 +2803,7 @@ svg.heart-image .delete {
 
         .image-editor-button-row {
             pointer-events: auto;
+            margin-bottom: 0.5em;
         }
     }
     
@@ -2928,6 +2929,31 @@ svg.heart-image .delete {
             opacity: 0.25;
             stroke: #000;
             pointer-events: all;
+        }
+    }
+}
+
+.pan-editor-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+
+    .monitor-preview-box {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        transform-origin: 0 0;
+
+        > .box {
+            // A large box shadow to dim the image:
+            box-shadow: 0px 0px 0px 100000px #00000080;
+            outline: 1px dashed #fff;
+            width: 100%;
+            height: 100%;
         }
     }
 }

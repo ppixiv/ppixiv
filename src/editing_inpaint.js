@@ -54,6 +54,8 @@ ppixiv.InpaintEditor = class extends ppixiv.widget
         this.drag_start = null;
         this.selected_line_idx = -1;
 
+        this.ui = this.container.querySelector(".image-editor-button-row");
+
         // Remove .inpaint-editor-overlay.  It's inserted into the image overlay when we
         // have one, so it pans and zooms with the image.
         this.editor_overlay = this.container.querySelector(".inpaint-editor-overlay");
@@ -196,6 +198,7 @@ ppixiv.InpaintEditor = class extends ppixiv.widget
     {
         super.visibility_changed();
         this.editor_overlay.hidden = !this.visible;
+        this.ui.hidden = !this.visible;
     }
 
     set_illust_data({replace_editor_data, extra_data, width, height})

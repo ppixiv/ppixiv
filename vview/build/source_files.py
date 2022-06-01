@@ -11,6 +11,7 @@ source_files = [
     'src/editing.js',
     'src/editing_crop.js',
     'src/editing_inpaint.js',
+    'src/editing_pan.js',
     'src/menu_option.js',
     'src/main_context_menu.js',
     'src/create_zip.js',

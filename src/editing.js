@@ -12,7 +12,8 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
                         ${ helpers.create_box_link({icon: "save",     popup: "Save",          classes: ["save-edits", "popup-bottom"] }) }
                         ${ helpers.create_box_link({icon: "refresh",  popup: "Saving...",     classes: ["spinner"] }) }
                         ${ helpers.create_box_link({icon: "crop",     popup: "Crop",          classes: ["show-crop", "popup-bottom"] }) }
-                        ${ helpers.create_box_link({icon: "wallpaper",popup: "Slideshow safe zones", classes: ["show-safe-zone", "popup-bottom"] }) }
+                        ${ helpers.create_box_link({icon: "wallpaper",popup:  "Edit panning", classes: ["show-pan", "popup-bottom"] }) }
+                        ${ helpers.create_box_link({icon: "crop_original",popup: "Slideshow safe zones", classes: ["show-safe-zone", "popup-bottom"] }) }
                         ${ helpers.create_box_link({icon: "brush",    popup: "Inpainting",    classes: ["show-inpaint", "popup-bottom"] }) }
                         ${ helpers.create_box_link({icon: "close",    popup: "Stop editing",  classes: ["close-editor", "popup-bottom"] }) }
                     </div>
@@ -35,6 +36,11 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
             mode: "safe_zone",
         });
 
+        let pan_editor = new ppixiv.PanEditor({
+            container: this.container,
+            parent: this,
+        });
+
         let inpaint_editor = new ppixiv.InpaintEditor({
             container: this.container,
             parent: this,
@@ -44,6 +50,7 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
             inpaint: inpaint_editor,
             crop: crop_editor,
             safe_zone: safe_zone_editor,
+            pan: pan_editor,
         };
 
         this.onvisibilitychanged = onvisibilitychanged;
@@ -56,6 +63,11 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
         this.show_crop = this.container.querySelector(".show-crop");
         this.show_crop.addEventListener("click", (e) => {
             this.active_editor_name = this.active_editor_name == "crop"? null:"crop";
+        });
+
+        this.show_pan = this.container.querySelector(".show-pan");
+        this.show_pan.addEventListener("click", (e) => {
+            this.active_editor_name = this.active_editor_name == "pan"? null:"pan";
         });
 
         this.show_safe_zone = this.container.querySelector(".show-safe-zone");
@@ -124,9 +136,13 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
         }, { signal: this.shutdown_signal.signal });
 
         // Steal buttons from the individual editors.
-        this.inpaint_buttons = this.editors.inpaint.container.querySelector(".image-editor-button-row");
-        this.inpaint_buttons.remove();
-        this.container.querySelector(".image-editor-buttons.bottom").appendChild(this.inpaint_buttons);
+        let inpaint_buttons = this.editors.inpaint.container.querySelector(".image-editor-button-row");
+        inpaint_buttons.remove();
+        this.container.querySelector(".image-editor-buttons.bottom").appendChild(inpaint_buttons);
+
+        let pan_buttons = this.editors.pan.container.querySelector(".image-editor-button-row");
+        pan_buttons.remove();
+        this.container.querySelector(".image-editor-buttons.bottom").appendChild(pan_buttons);
     }
 
     // Return true if the crop editor is active.
@@ -229,6 +245,7 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
             this.show_inpaint.hidden = !is_local;
 
         this.show_safe_zone.hidden = !settings.get("experimental", false);
+        this.show_pan.hidden = !settings.get("experimental", false);
 
         let showing_crop = this.active_editor_name == "crop" && this.visible;
         this.editors.crop.visible = showing_crop;
@@ -238,9 +255,12 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
         this.editors.safe_zone.visible = showing_safe_zone;
         helpers.set_class(this.show_safe_zone, "selected", showing_safe_zone);
 
+        let showing_pan = this.active_editor_name == "pan" && this.visible;
+        this.editors.pan.visible = showing_pan;
+        helpers.set_class(this.show_pan, "selected", showing_pan);
+
         let showing_inpaint = is_local && this.active_editor_name == "inpaint" && this.visible;
         this.editors.inpaint.visible = showing_inpaint;
-        this.inpaint_buttons.hidden = !showing_inpaint;
         helpers.set_class(this.show_inpaint, "selected", showing_inpaint);
 
         // Disable hiding the mouse cursor when editing is enabled.  This also prevents

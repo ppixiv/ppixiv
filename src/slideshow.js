@@ -85,6 +85,57 @@ ppixiv.slideshow = class
         return this.prepare_animation(this.get_pull_in());
     }
 
+    // Load a saved animation created with PanEditor.
+    get_animation_from_pan(pan)
+    {
+        let { ease, pan_duration, max_speed } = this._get_parameters();
+        let animation;
+        if(this.slideshow_enabled)
+        {
+            animation = {
+                // XXX: short fade-in doesn't work with faster slideshows
+                fade_in: 2.5,
+                fade_out: .5,
+    
+                pan: [{
+                    x: pan.x1, y: pan.y1, zoom: pan.start_zoom ?? 1,
+                    anchor_x: pan.anchor?.left ?? 0.5,
+                    anchor_y: pan.anchor?.top ?? 0.5,
+                    max_speed: true,
+                    speed: max_speed,
+                    duration: pan_duration,
+                    ease,
+                }, {
+                    // This half-second delay partially overlaps the fade.
+                    x: pan.x2, y: pan.y2, zoom: pan.end_zoom ?? 1,
+                    anchor_x: pan.anchor?.right ?? 0.5,
+                    anchor_y: pan.anchor?.bottom ?? 0.5,
+                }],
+            };
+        }
+        else
+        {
+            animation = {
+                pan: [{
+                    x: pan.x1, y: pan.y1, zoom: pan.start_zoom ?? 1,
+                    anchor_x: pan.anchor?.left ?? 0.5,
+                    anchor_y: pan.anchor?.top ?? 0.5,
+                    max_speed: true,
+                    speed: max_speed,
+                    duration: pan_duration,
+                    ease,
+                }, {
+                    x: pan.x2, y: pan.y2, zoom: pan.end_zoom ?? 2,
+                    anchor_x: pan.anchor?.right ?? 0.5,
+                    anchor_y: pan.anchor?.bottom ?? 0.5,
+                    duration: 2,
+                }],
+            };
+        }
+        
+        return this.prepare_animation(animation);
+    }
+
     // This is like the thumbnail animation, which gives a reasonable default for both landscape
     // and portrait animations.
     get_default_pan()
@@ -307,10 +358,11 @@ ppixiv.slideshow = class
                 if(max_y < min_y) [min_y, max_y] = [max_y, min_y];
             }
 
-            // By default, the image will be aligned to the top-left of the screen.  Shift right and
-            // down to center the top-left of the image on the screen:
-            let move_x = screen_width/2;
-            let move_y = screen_height/2;
+            // Initially, the image will be aligned to the top-left of the screen.  Shift right and
+            // down to align the anchor the origin.  This is usually the center of the image.
+            let { anchor_x=0.5, anchor_y=0.5 } = point;
+            let move_x = screen_width * anchor_x;
+            let move_y = screen_height * anchor_y;
 
             // Then shift up and left to center the point:
             move_x -= point.x*zoomed_width;
