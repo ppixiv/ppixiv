@@ -62,7 +62,11 @@ ppixiv.slideshow = class
         let max_speed = helpers.scale(pan_duration, 5, 15, 0.5, 0.25);
         max_speed = helpers.clamp(max_speed, 0.25, 0.5);
 
-        return { ease, pan_duration, max_speed };
+        // Choose a fade duration.  This needs to be quicker if the slideshow is very brief.
+        let fade_in = this.slideshow_enabled? Math.min(pan_duration * 0.1, 2.5):0;
+        let fade_out = this.slideshow_enabled? Math.min(pan_duration * 0.1, 2.5):0;
+
+        return { ease, pan_duration, max_speed, fade_in, fade_out };
     }
 
     // Create the default animation.
@@ -85,50 +89,24 @@ ppixiv.slideshow = class
     // Load a saved animation created with PanEditor.
     get_animation_from_pan(pan)
     {
-        let { ease, pan_duration, max_speed } = this._get_parameters();
-        let animation;
-        if(this.slideshow_enabled)
-        {
-            animation = {
-                // XXX: short fade-in doesn't work with faster slideshows
-                fade_in: 2.5,
-                fade_out: .5,
-    
-                pan: [{
-                    x: pan.x1, y: pan.y1, zoom: pan.start_zoom ?? 1,
-                    anchor_x: pan.anchor?.left ?? 0.5,
-                    anchor_y: pan.anchor?.top ?? 0.5,
-                    max_speed: true,
-                    speed: max_speed,
-                    duration: pan_duration,
-                    ease,
-                }, {
-                    // This half-second delay partially overlaps the fade.
-                    x: pan.x2, y: pan.y2, zoom: pan.end_zoom ?? 1,
-                    anchor_x: pan.anchor?.right ?? 0.5,
-                    anchor_y: pan.anchor?.bottom ?? 0.5,
-                }],
-            };
-        }
-        else
-        {
-            animation = {
-                pan: [{
-                    x: pan.x1, y: pan.y1, zoom: pan.start_zoom ?? 1,
-                    anchor_x: pan.anchor?.left ?? 0.5,
-                    anchor_y: pan.anchor?.top ?? 0.5,
-                    max_speed: true,
-                    speed: max_speed,
-                    duration: pan_duration,
-                    ease,
-                }, {
-                    x: pan.x2, y: pan.y2, zoom: pan.end_zoom ?? 2,
-                    anchor_x: pan.anchor?.right ?? 0.5,
-                    anchor_y: pan.anchor?.bottom ?? 0.5,
-                    duration: 2,
-                }],
-            };
-        }
+        let { ease, pan_duration, max_speed, fade_in, fade_out } = this._get_parameters();
+        let animation = {
+            fade_in, fade_out,
+
+            pan: [{
+                x: pan.x1, y: pan.y1, zoom: pan.start_zoom ?? 1,
+                anchor_x: pan.anchor?.left ?? 0.5,
+                anchor_y: pan.anchor?.top ?? 0.5,
+                max_speed: true,
+                speed: max_speed,
+                duration: pan_duration,
+                ease,
+            }, {
+                x: pan.x2, y: pan.y2, zoom: pan.end_zoom ?? 1,
+                anchor_x: pan.anchor?.right ?? 0.5,
+                anchor_y: pan.anchor?.bottom ?? 0.5,
+            }],
+        };
         
         return this.prepare_animation(animation);
     }
@@ -137,63 +115,30 @@ ppixiv.slideshow = class
     // and portrait animations.
     get_default_pan()
     {
-        let { ease, pan_duration, max_speed } = this._get_parameters();
-        if(this.slideshow_enabled)
-        {
-            // In slideshow mode, both pan and fade.
-            return {
-                fade_in: 1,
-                fade_out: 1,
-    
-                pan: [{
-                    // This half-second delay partially overlaps the fade.
-                    x: 0, y: 0, zoom: 1,
-                    duration: 0.5,
-                }, {
-                    x: 0, y: 0, zoom: 1,
-                    max_speed: true,
-                    speed: max_speed,
-                    duration: pan_duration,
-                    ease,
-                }, {
-                    // This half-second delay partially overlaps the fade.
-                    x: 1, y: 1, zoom: 1,
-                    duration: 1.0,
-                }, {
-                    x: 1, y: 1, zoom: 1,
-                }],
-            };
-        }
-        else
-        {
-            // In auto-pan mode, just pan without fading the image out at the end.
-            return {
-                pan: [{
-                    x: 0, y: 0, zoom: 1,
-                    max_speed: true,
-                    speed: max_speed,
-                    duration: pan_duration,
-                    ease,
-                }, {
-                    x: 1, y: 1, zoom: 1,
-                    duration: 2,
-                }],
-            };
-        }
+        let { ease, pan_duration, max_speed, fade_in, fade_out } = this._get_parameters();
+        return {
+            fade_in, fade_out,
+
+            pan: [{
+                x: 0, y: 0, zoom: 1,
+                max_speed: true,
+                speed: max_speed,
+                duration: pan_duration,
+                ease,
+            }, {
+                x: 1, y: 1, zoom: 1,
+            }],
+        };
     }
 
     // Return a basic pull-in animation.
     get_pull_in()
     {
-        let { pan_duration, ease } = this._get_parameters();
-
-        // Only fade in slideshow, not auto-pan.
-        const fade_time = this.slideshow_enabled? 1:0;
+        let { pan_duration, ease, fade_in, fade_out } = this._get_parameters();
 
         // This zooms from "contain" to a slight zoom over "cover".
         return {
-            fade_in: fade_time,
-            fade_out: fade_time,
+            fade_in, fade_out,
 
             pan: [{
                 x: 0.5, y: 0.0, zoom: 0,
