@@ -13,6 +13,10 @@ ppixiv.slideshow = class
 
         // If true, we're being used for slideshow mode, otherwise auto-pan mode.
         slideshow_enabled,
+
+        // The slideshow is normally clamped to the window.  This can be disabled by the
+        // editor.
+        clamp_to_window=true,
     })
     {
         this.width = width;
@@ -21,6 +25,7 @@ ppixiv.slideshow = class
         this.container_height = container_height;
         this.minimum_zoom = minimum_zoom;
         this.slideshow_enabled = slideshow_enabled;
+        this.clamp_to_window = clamp_to_window;
     }
 
     // Return some parameters that are used by linear animation getters below.
@@ -178,11 +183,6 @@ ppixiv.slideshow = class
             let zoomed_width = animation.default_width * zoom;
             let zoomed_height = animation.default_height * zoom;
 
-            // The top-left and bottom-right corners we're allowed to display of the image.
-            // By default, clamp to the edge of the image.  These are in screen space coordinates.
-            let min_x = 0, min_y = 0;
-            let max_x = zoomed_width - screen_width, max_y = zoomed_height - screen_height;
-
             // Initially, the image will be aligned to the top-left of the screen.  Shift right and
             // down to align the anchor the origin.  This is usually the center of the image.
             let { anchor_x=0.5, anchor_y=0.5 } = point;
@@ -193,19 +193,21 @@ ppixiv.slideshow = class
             move_x -= point.x*zoomed_width;
             move_y -= point.y*zoomed_height;
 
-            // Clamp to the minimum and maximum translation.
-            // move_x and move_y are negative to move the image up and left.  Clamp this so it never
-            // moves right/down, and doesn't move the bottom-right corner of the image past the edge
-            // of the screen.
-            move_x = Math.max(-max_x, Math.min(move_x, -min_x));
-            move_y = Math.max(-max_y, Math.min(move_y, -min_y));
-    
-            // If the image isn't filling the screen on either axis, center it.  This only applies at
-            // keyframes (we won't always be centered while animating).
-            if(zoomed_width < screen_width)
-                move_x = (screen_width - zoomed_width) / 2;
-            if(zoomed_height < screen_height)
-                move_y = (screen_height - zoomed_height) / 2;
+            if(this.clamp_to_window)
+            {
+                // Clamp the translation to keep the image in the window.  This is inverted, since
+                // move_x and move_y are transitions and not the image position.
+                let max_x = zoomed_width - screen_width, max_y = zoomed_height - screen_height;
+                move_x = helpers.clamp(move_x, 0, -max_x);
+                move_y = helpers.clamp(move_y, 0, -max_y);
+
+                // If the image isn't filling the screen on either axis, center it.  This only applies at
+                // keyframes (we won't always be centered while animating).
+                if(zoomed_width < screen_width)
+                    move_x = (screen_width - zoomed_width) / 2;
+                if(zoomed_height < screen_height)
+                    move_y = (screen_height - zoomed_height) / 2;
+            }
 
             point.computed_zoom = zoom;
             point.computed_tx = move_x;

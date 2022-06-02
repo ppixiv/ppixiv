@@ -116,6 +116,11 @@ ppixiv.PanEditor = class extends ppixiv.widget
         return this.editing == "start"? 0:1;
     }
 
+    get actually_editing_anchor()
+    {
+        return this.editing_anchor ^ this.shift_held;
+    }
+
     // This is called when the ImageEditingOverlayContainer changes.
     set overlay_container(overlay_container)
     {
@@ -162,7 +167,7 @@ ppixiv.PanEditor = class extends ppixiv.widget
         
         helpers.set_class(this.ui.querySelector(".edit-start-button"), "selected", this.editing == "start");
         helpers.set_class(this.ui.querySelector(".edit-end-button"), "selected", this.editing == "end");
-        helpers.set_class(this.ui.querySelector(".edit-anchor"), "selected", this.editing_anchor);
+        helpers.set_class(this.ui.querySelector(".edit-anchor"), "selected", this.actually_editing_anchor);
         this.aspect_ratio_slider.value = this.displayed_aspect_ratio;
         this.ui.querySelector(".aspect-ratio-slider").dataset.popup = `Previewing ${this.preview_size[0]}x${this.preview_size[1]}`;
 
@@ -184,8 +189,21 @@ ppixiv.PanEditor = class extends ppixiv.widget
         super.visibility_changed();
         this.editor_overlay.hidden = !this.visible;
         this.ui.hidden = !this.visible;
+
         if(this.visible)
+        {
+            // Listen for shift presses while we're visible.
+            new ppixiv.key_listener("Shift", (pressed) => {
+                this.shift_held = pressed;
+                this.refresh();
+            }, { signal: this.visibility_abort.signal });
+
             this.refresh();
+        }
+        else
+        {
+            this.shift_held = false;
+        }
     }
 
     set_illust_data({replace_editor_data, extra_data, width, height})
@@ -296,7 +314,7 @@ ppixiv.PanEditor = class extends ppixiv.widget
         this.refresh();
     }
 
-    get_current_slideshow()
+    get_current_slideshow({...options}={})
     {
         // this.height/this.width is the size of the image.  Scale it to cover preview_width/preview_height,
         // as if we're on_click_viewer displaying it.  If the animation tells us to scale to 1x, it wants
@@ -319,6 +337,12 @@ ppixiv.PanEditor = class extends ppixiv.widget
     
             // If true, we're being used for slideshow mode, otherwise auto-pan mode.
             slideshow_enabled: false,
+
+            // The position is normally clamped to the screen.  If we're editing the anchor, disable this to
+            // display the position of the box before it's clamped.
+            clamp_to_window: !this.actually_editing_anchor,
+
+            ...options
         });
 
         // Get the animation that we'd currently save, and load it as a slideshow.
@@ -405,9 +429,7 @@ ppixiv.PanEditor = class extends ppixiv.widget
         delta_y /= height;
 
         // Check if we're editing the pan position or the anchor.
-        let editing_anchor = this.editing_anchor;
-        if(e.ctrlKey)
-            editing_anchor = !editing_anchor;
+        let editing_anchor = this.actually_editing_anchor;
 
         if(editing_anchor)
         {
