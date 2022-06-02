@@ -784,6 +784,71 @@ ppixiv.helpers = {
             delete dataset[name];
     },
 
+    // Input elements have no way to tell when edits begin or end.  The input event tells
+    // us when the user changes something, but it doesn't tell us when drags begin and end.
+    // This is important for things like undo: you want to save undo the first time a slider
+    // value changes during a drag, but not every time, or if the user clicks the slider but
+    // doesn't actually move it.
+    //
+    // This adds events:
+    //
+    // editbegin
+    // edit
+    // editend
+    //
+    // edit events are always surrounded by editbegin and editend.  If the user makes multiple
+    // edits in one action (eg. moving an input slider), they'll be sent in the same begin/end
+    // block.
+    //
+    // This is only currently used for sliders, and doesn't handle things like keyboard navigation
+    // since that gets overridden by other UI anyway.
+    //
+    // signal can be an AbortSignal to remove these event listeners.
+    watch_edits: function(input, { signal }={})
+    {
+        let dragging = false;
+        let inside_edit = false;
+        input.addEventListener("mousedown", (e) => {
+            if(e.button != 0 || dragging)
+                return;
+            dragging = true;
+        }, { signal });
+
+        input.addEventListener("mouseup", (e) => {
+            if(e.button != 0 || !dragging)
+                return;
+            dragging = false;
+
+            if(inside_edit)
+            {
+                inside_edit = false;
+                input.dispatchEvent(new Event("editend"));
+            }
+        }, { signal });
+
+        input.addEventListener("input", (e) => {
+            // Send an editbegin event if we haven't yet.
+            let send_editend = false;
+            if(!inside_edit)
+            {
+                inside_edit = true;
+                input.dispatchEvent(new Event("editbegin"));
+
+                // If we're not dragging, this is an isolated edit, so send editend immediately.
+                send_editend = !dragging;
+            }
+
+            // The edit event is like input, but surrounded by editbegin/editend.
+            input.dispatchEvent(new Event("edit"));
+
+            if(send_editend)
+            {
+                inside_edit = false;
+                input.dispatchEvent(new Event("editend"));
+            }
+        }, { signal });
+    },
+
     date_to_string: function(date)
     {
         var date = new Date(date);

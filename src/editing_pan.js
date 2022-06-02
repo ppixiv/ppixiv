@@ -75,8 +75,12 @@ ppixiv.PanEditor = class extends ppixiv.widget
         // 1/2 gives a zoom of 2.  This makes the zoom slider scale the size of the monitor
         // box linearly and feels more natural.
         this.zoom_slider = this.ui.querySelector(".zoom-slider");
-        this.zoom_slider.addEventListener("mousedown", (e) => { this.parent.save_undo(); this.is_set = true; });
-        this.zoom_slider.addEventListener("input", (e) => {
+
+        // Use watch_edits to save undo at the start of inputs being dragged.
+        helpers.watch_edits(this.zoom_slider, { signal: this.shutdown_signal.signal });
+        this.zoom_slider.addEventListener("editbegin", (e) => { this.parent.save_undo(); this.is_set = true; });
+        this.zoom_slider.addEventListener("edit", (e) => {
+            // console.log(e);
             let value = parseInt(this.zoom_slider.value) / 100;
             value = 1 / value;
             this.zoom_level[this.editing_index] = value;
@@ -359,10 +363,11 @@ ppixiv.PanEditor = class extends ppixiv.widget
             e.preventDefault();
             e.stopPropagation();
 
-            this.parent.save_undo();
-
-            this.start_dragging_point(e);
-
+            this.dragging = true;
+            this.drag_saved_undo = false;
+            this.drag_pos = [e.clientX, e.clientY];
+            window.addEventListener("pointermove", this.pointermove_drag_point);
+    
             return;
         }
         else if(this.dragging != -1 && !e.pressed)
@@ -371,13 +376,6 @@ ppixiv.PanEditor = class extends ppixiv.widget
             this.dragging = false;
             window.removeEventListener("pointermove", this.pointermove_drag_point);
         }
-    }
-
-    start_dragging_point(e)
-    {
-        this.dragging = true;
-        this.drag_pos = [e.clientX, e.clientY];
-        window.addEventListener("pointermove", this.pointermove_drag_point);
     }
 
     // Convert a click from client coordinates to image coordinates.
@@ -391,6 +389,13 @@ ppixiv.PanEditor = class extends ppixiv.widget
 
     pointermove_drag_point = (e) =>
     {
+        // Save undo for this drag if we haven't yet.
+        if(!this.drag_saved_undo)
+        {
+            this.parent.save_undo();
+            this.drag_saved_undo = true;
+        }
+
         // Get the delta in client coordinates.  Don't use movementX/movementY, since it's
         // in screen pixels and will be wrong if the browser is scaled.
         let delta_x = e.clientX - this.drag_pos[0];
