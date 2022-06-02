@@ -2,12 +2,7 @@
 
 ppixiv.CropEditor = class extends ppixiv.widget
 {
-    constructor({
-        // This is used for editing both cropping and safe zones, since they both just
-        // pick a rectangular region.  mode is either "crop" or "safe-zone" to tell us
-        // which one we are.
-        mode,
-        ...options})
+    constructor({...options})
     {
         super({...options, template: `
             <div>
@@ -33,7 +28,6 @@ ppixiv.CropEditor = class extends ppixiv.widget
             </div>
         `});
 
-        this.mode = mode;
         this.shutdown_signal = new AbortController();
         this.width = 1;
         this.height = 1;
@@ -52,7 +46,6 @@ ppixiv.CropEditor = class extends ppixiv.widget
         });
         
         this.box = this.editor_overlay.querySelector(".crop-box");
-        this.box.dataset.mode = this.mode;
 
         this.refresh();
     }
@@ -142,13 +135,10 @@ ppixiv.CropEditor = class extends ppixiv.widget
             this.current_crop.x += delta.x;
             this.current_crop.y += delta.y;
 
-            if(this.mode == "crop")
-            {
-                this.current_crop.x = Math.max(0, this.current_crop.x);
-                this.current_crop.y = Math.max(0, this.current_crop.y);
-                this.current_crop.x = Math.min(this.width - this.current_crop.width, this.current_crop.x);
-                this.current_crop.y = Math.min(this.height - this.current_crop.height, this.current_crop.y);
-            }
+            this.current_crop.x = Math.max(0, this.current_crop.x);
+            this.current_crop.y = Math.max(0, this.current_crop.y);
+            this.current_crop.x = Math.min(this.width - this.current_crop.width, this.current_crop.x);
+            this.current_crop.y = Math.min(this.height - this.current_crop.height, this.current_crop.y);
         }
         else
         {
@@ -211,17 +201,13 @@ ppixiv.CropEditor = class extends ppixiv.widget
         // If we've dragged across the opposite edge, flip the sides back around.
         crop = new FixedDOMRect(crop.left, crop.top, crop.right, crop.bottom);
 
-        if(this.mode == "crop")
-        {
-            // Clamp to the image bounds.  Don't do this when editing safe areas, since there
-            // are cases where it's useful.
-            crop = new FixedDOMRect(
-                Math.max(crop.left, 0),
-                Math.max(crop.top, 0),
-                Math.min(crop.right, this.width),
-                Math.min(crop.bottom, this.height),
-            );
-        }
+        // Clamp to the image bounds.
+        crop = new FixedDOMRect(
+            Math.max(crop.left, 0),
+            Math.max(crop.top, 0),
+            Math.min(crop.right, this.width),
+            Math.min(crop.bottom, this.height),
+        );
 
         return crop;
     }
@@ -258,7 +244,7 @@ ppixiv.CropEditor = class extends ppixiv.widget
         this.box.setAttribute("viewBox", `0 0 ${this.width} ${this.height}`);
     
         if(replace_editor_data)
-            this.set_state(extra_data[this.mode]);
+            this.set_state(extra_data.crop);
 
         this.refresh();
     }
@@ -276,21 +262,15 @@ ppixiv.CropEditor = class extends ppixiv.widget
     {
         // If there's no crop, save an empty array to clear it.
         let state = this.get_state();
-        if(this.mode == "crop")
-            return {
-                crop: state,
-            };
-        else
-            return {
-                safe_zone: state,
-            };
+        return {
+            crop: state,
+        };
     }
     
     async after_save(illust)
     {
         // Disable cropping after saving, so the crop is visible.
-        if(this.mode == "crop")
-            settings.set("image_editing_mode", null);
+        settings.set("image_editing_mode", null);
     }
 
     get_state()

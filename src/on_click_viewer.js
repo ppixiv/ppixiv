@@ -103,9 +103,6 @@ ppixiv.on_click_viewer = class
 
         // If set, this is a pan created by PanEditor.
         pan=null,
-
-        // If set, this is a FixedDOMRect of the safe zone for slideshow mode.
-        safe_zone=null,
     }={}) =>
     {
         // When quick view displays an image on mousedown, we want to see the mousedown too
@@ -206,15 +203,10 @@ ppixiv.on_click_viewer = class
         this.original_width = width;
         this.original_height = height;
         this._cropped_size = crop && crop.length == 4? new FixedDOMRect(crop[0], crop[1], crop[2], crop[3]):null;
-        this._safe_zone = safe_zone && safe_zone.length == 4? new FixedDOMRect(safe_zone[0], safe_zone[1], safe_zone[2], safe_zone[3]):null;        
         this.pan = pan;
         this.img = img;
         this.preview_img = preview_img;
         this.onnextimage = onnextimage;
-
-        // Make sure safe_zone fits inside the crop.
-        if(this._cropped_size && this._safe_zone)
-            this._safe_zone = this._safe_zone.cropTo(this._cropped_size);
 
         this.crop_box.appendChild(img);
         this.crop_box.appendChild(preview_img);
@@ -397,32 +389,10 @@ ppixiv.on_click_viewer = class
         this.set_initial_image_position = true;
         this.initial_image_position_aspect = aspect;
     
-        if(this._safe_zone)
-        {
-            // Use the safe zone as a default position.
-            let safe_zone = this.unit_safe_zone;
-
-            // The unit size of one screen height at the current zoom level:
-            let zoomed_screen_height = this.container_height / this.onscreen_height;
-            if(safe_zone.height <= zoomed_screen_height)
-            {
-                // The safe zone fits onscreen, so just center it.
-                this.center_pos = [safe_zone.middleHorizontal, safe_zone.middleVertical];
-            }
-            else
-            {
-                // The safe zone doesn't fit onscreen at the current zoom level.  Align the top
-                // of the screen to the top of the safe zone.
-                this.center_pos = [safe_zone.middleHorizontal, safe_zone.top + zoomed_screen_height * 0.5];
-            }
-        }
-        else
-        {
-            // Similar to how we display thumbnails for portrait images starting at the top, default to the top
-            // if we'll be panning vertically when in cover mode.
-            let zoom_center = [0.5, aspect == "portrait"? 0:0.5];
-            this.center_pos = zoom_center;
-        }
+        // Similar to how we display thumbnails for portrait images starting at the top, default to the top
+        // if we'll be panning vertically when in cover mode.
+        let zoom_center = [0.5, aspect == "portrait"? 0:0.5];
+        this.center_pos = zoom_center;
     }
 
     block_event = (e) =>
@@ -762,24 +732,6 @@ ppixiv.on_click_viewer = class
     get container_width() { return this.image_container.offsetWidth || 0; }
     get container_height() { return this.image_container.offsetHeight || 0; }
 
-    // If the image has a safe zone, return it in unit coordinates relative to the cropped image.
-    get unit_safe_zone()
-    {
-        if(this._safe_zone == null)
-            return null;
-
-        let cropped_size = this.cropped_size;
-            
-        let left = helpers.scale(this._safe_zone.left, cropped_size.left, cropped_size.right, 0, 1);
-        let right = helpers.scale(this._safe_zone.right, cropped_size.left, cropped_size.right, 0, 1);
-        let top = helpers.scale(this._safe_zone.top, cropped_size.top, cropped_size.bottom, 0, 1);
-        let bottom = helpers.scale(this._safe_zone.bottom, cropped_size.top, cropped_size.bottom, 0, 1);
-
-        return new FixedDOMRect(
-            left, top, right, bottom
-        );
-    }
-
     get current_zoom_pos()
     {
         if(this.zoom_active)
@@ -966,7 +918,6 @@ ppixiv.on_click_viewer = class
             height: this.height * this._zoom_factor_cover,
             container_width: this.container_width,
             container_height: this.container_height,
-            unit_safe_zone: this.unit_safe_zone,
             slideshow_enabled: this.slideshow_enabled,
 
             // Set the minimum zoom to 1 / cover, so the smallest zoom it allows brings the image

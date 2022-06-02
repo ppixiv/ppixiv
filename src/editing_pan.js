@@ -319,9 +319,6 @@ ppixiv.PanEditor = class extends ppixiv.widget
     
             // If true, we're being used for slideshow mode, otherwise auto-pan mode.
             slideshow_enabled: false,
-    
-            // The slideshow safe zone, if any:
-            unit_safe_zone: null,
         });
 
         // Get the animation that we'd currently save, and load it as a slideshow.
