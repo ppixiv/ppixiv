@@ -55,7 +55,6 @@ ppixiv.screen_illust = class extends ppixiv.screen
         this.manga_page_bar = new progress_bar(this.container.querySelector(".ui-box")).controller();
 
         this.set_active(false, { });
-        this.flashed_page_change = false;
     }
 
     refresh_overlay_ui_visibility()
@@ -132,8 +131,6 @@ ppixiv.screen_illust = class extends ppixiv.screen
             // Stop showing the user in the context menu, and stop showing the current page.
             main_context_menu.get.set_media_id(null);
 
-            this.flashed_page_change = false;
-
             this.stop_displaying_image();
             
             // We leave editing on when navigating between images, but turn it off when we exit to
@@ -157,9 +154,6 @@ ppixiv.screen_illust = class extends ppixiv.screen
 
         helpers.set_class(document.body,  "force-ui", unsafeWindow.debug_show_ui);
         let [illust_id, manga_page] = helpers.media_id_to_illust_id_and_page(media_id);
-
-        // Reset the manga page change indicator when we change images.
-        this.flashed_page_change = false;
 
         // If we previously set a pending navigation, this navigation overrides it.
         this.cancel_async_navigation();
@@ -610,21 +604,6 @@ ppixiv.screen_illust = class extends ppixiv.screen
         {
             console.log("Reached the end of the list");
             this.flash_end_indicator(down, "last-image");
-            return;
-        }
-
-        // If we're confirming leaving a manga post, do that now.  This is done after we load the
-        // new page of search results if needed, so we know whether we've actually reached the end
-        // and should show the end indicator above instead.
-        if(leaving_manga_post && !skip_manga_pages && !this.flashed_page_change && 0)
-        {
-            this.flashed_page_change = true;
-            this.flash_end_indicator(down, "last-page");
-
-            // Start preloading the next image, so we load faster if the user scrolls again to go
-            // to the next image.
-            if(new_media_id != null)
-                image_data.singleton().get_media_info(new_media_id);
             return;
         }
 
