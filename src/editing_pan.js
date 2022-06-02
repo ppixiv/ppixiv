@@ -11,32 +11,28 @@ ppixiv.PanEditor = class extends ppixiv.widget
                 <!-- This node is removed and placed on top of the image.-->
                 <div class=pan-editor-overlay>
                     <div class=pan-editor-crop-region>
-                        <ppixiv-inline class="pan-container" src="resources/pan-editor-marker.svg"></ppixiv-inline>
+                        <ppixiv-inline class="handle" src="resources/pan-editor-marker.svg"></ppixiv-inline>
                         <div class=monitor-preview-box><div class=box></div></div>
                     </div>
                 </div>
 
                 <div class="image-editor-button-row box-button-row">
-                    ${ helpers.create_box_link({label: "Edit start", classes: ["edit-start-button"] }) }
-                    ${ helpers.create_box_link({label: "Edit end", classes: ["edit-end-button"] }) }
-                    ${ helpers.create_box_link({label: "Edit anchor", icon: "anchor", classes: ["edit-anchor"] }) }
+                    ${ helpers.create_box_link({popup: "Edit start", icon: "first_page", classes: ["edit-start-button"] }) }
+                    ${ helpers.create_box_link({popup: "Swap start and end", icon: "swap_horiz", classes: ["swap-button"] }) }
+                    ${ helpers.create_box_link({popup: "Edit end", icon: "last_page", classes: ["edit-end-button"] }) }
+                    ${ helpers.create_box_link({popup: "Edit anchor", icon: "anchor", classes: ["edit-anchor"] }) }
 
-                    <div class=box-link>
-                        <span>Zoom</span>
+                    <div class="box-link popup" data-popup="Zoom">
+                        <span class="icon material-icons">zoom_in</span>
                         <input class=zoom-slider type=range min=5 max=200>
                     </div>
 
-                    ${ helpers.create_box_link({popup: "Reset to fullscreen", icon: "fullscreen", classes: ["zoom-to-fullscreen"] }) }
-
-                    <!-- All that matters here is the aspect ratio, so we could say 16x9.  Use real monitor
-                         resolution, since it makes reading the numbers later on easier. -->
-                    ${ helpers.create_box_link({label: "16:9", dataset: {h: 1920, v: 1080},  icon: "panorama", classes: ["preview-size-button"] }) }
-                    ${ helpers.create_box_link({label: "16:10", dataset: {h: 1920, v: 1200},  icon: "panorama", classes: ["preview-size-button"] }) }
-                    ${ helpers.create_box_link({label: "9:16", dataset: {h: 1080, v: 1920},  icon: "portrait", classes: ["preview-size-button"] }) }
-
-                    <div class="reset-button box-link">
-                        <span>Reset</span>
+                    <div class="box-link popup aspect-ratio-slider" data-popup="Aspect ratio">
+                        <span class="icon material-icons">panorama</span>
+                        <input class=zoom-slider type=range min=0 max=2 style="width: 70px;">
                     </div>
+
+                    ${ helpers.create_box_link({popup: "Clear animation", icon: "delete", classes: ["reset-button"] }) }
                 </div>
             </div>
         `});
@@ -48,11 +44,17 @@ ppixiv.PanEditor = class extends ppixiv.widget
         this.drag_start = null;
         this.anchor = new FixedDOMRect(0.5, 0.5, 0.5, 0.5);
 
+        this.aspect_ratios = [
+            [1920, 1080],
+            [1920, 1200],
+            [1080, 1920],
+        ]
+
         // is_set is false if we've had no edits and we're displaying the defaults, or true if we
         // have data that can be saved.
         this.is_set = false;
         this.zoom_level = [1,1]; // start, end
-        this.preview_size = [1920, 1080];
+        this.displayed_aspect_ratio = 0;
 
         this.editing = "start"; // "start" or "end"
         this.editing_anchor = false;
@@ -66,7 +68,7 @@ ppixiv.PanEditor = class extends ppixiv.widget
         this.editor_crop_region = this.container.querySelector(".pan-editor-crop-region");
         this.editor_overlay.remove();
         this.editor_overlay.slot = "crop-editor"; // XXX merge these
-        this.svg = this.editor_overlay.querySelector(".pan-container");
+        this.handle = this.editor_overlay.querySelector(".handle");
 
         // The real zoom value is the amount the image will be zoomed onscreen: if it's set
         // to 2, the image is twice as big.  The zoom slider is inverted: a slider value of
@@ -81,19 +83,18 @@ ppixiv.PanEditor = class extends ppixiv.widget
             this.refresh();
         });
 
+        // The preview size slider changes the monitor aspect ratio that we're previewing.
+        this.aspect_ratio_slider = this.ui.querySelector(".aspect-ratio-slider input");
+        this.aspect_ratio_slider.addEventListener("input", (e) => {
+            this.displayed_aspect_ratio = parseInt(this.aspect_ratio_slider.value);
+            this.refresh();
+        });
+
         this.ui.querySelector(".edit-start-button").addEventListener("click", (e) => { this.editing = "start"; this.refresh(); });
         this.ui.querySelector(".edit-end-button").addEventListener("click", (e) => { this.editing = "end"; this.refresh(); });
         this.ui.querySelector(".edit-anchor").addEventListener("click", (e) => { this.editing_anchor = !this.editing_anchor; this.refresh(); });
         this.ui.querySelector(".reset-button").addEventListener("click", (e) => { this.clear(); });
-
-        // The preview size buttons change the monitor aspect ratio that we're previewing.
-        for(let button of this.ui.querySelectorAll(".preview-size-button"))
-        {
-            button.addEventListener("click", (e) => {
-                this.preview_size = [button.dataset.h, button.dataset.v];
-                this.refresh();
-            });
-        }
+        this.ui.querySelector(".swap-button").addEventListener("click", (e) => { this.swap(); });
 
         this.pointer_listener = new ppixiv.pointer_listener({
             element: this.editor_overlay,
@@ -130,6 +131,22 @@ ppixiv.PanEditor = class extends ppixiv.widget
         this.set_state(null);
     }
 
+    // Swap the start and end points.
+    swap()
+    {
+        this.parent.save_undo();
+        this.is_set = true;
+        this.rect = new FixedDOMRect(this.rect.x2, this.rect.y2, this.rect.x1,this.rect.y1);
+        this.anchor = new FixedDOMRect(this.anchor.x2, this.anchor.y2, this.anchor.x1, this.anchor.y1);
+        this.zoom_level = [this.zoom_level[1], this.zoom_level[0]];
+        this.refresh();
+    }
+
+    get preview_size()
+    {
+        return this.aspect_ratios[this.displayed_aspect_ratio];
+    }
+
     refresh()
     {
         super.refresh();
@@ -142,9 +159,9 @@ ppixiv.PanEditor = class extends ppixiv.widget
         helpers.set_class(this.ui.querySelector(".edit-start-button"), "selected", this.editing == "start");
         helpers.set_class(this.ui.querySelector(".edit-end-button"), "selected", this.editing == "end");
         helpers.set_class(this.ui.querySelector(".edit-anchor"), "selected", this.editing_anchor);
+        this.aspect_ratio_slider.value = this.displayed_aspect_ratio;
+        this.ui.querySelector(".aspect-ratio-slider").dataset.popup = `Previewing ${this.preview_size[0]}x${this.preview_size[1]}`;
 
-        for(let button of this.ui.querySelectorAll(".preview-size-button"))
-            helpers.set_class(button, "selected", button.dataset.h == this.preview_size[0] && button.dataset.v == this.preview_size[1]);
         this.refresh_zoom_preview();
         this.refresh_center();
     }
@@ -155,7 +172,7 @@ ppixiv.PanEditor = class extends ppixiv.widget
         let { x, y } = this.editing == "start"? { x: this.rect.x1, y: this.rect.y1 }: { x: this.rect.x2, y: this.rect.y2 };
         x *= this.width;
         y *= this.height;
-        this.svg.querySelector(".handle").setAttribute("transform", `translate(${x} ${y})`);
+        this.handle.querySelector(".crosshair").setAttribute("transform", `translate(${x} ${y})`);
     }
 
     visibility_changed()
@@ -195,7 +212,7 @@ ppixiv.PanEditor = class extends ppixiv.widget
             this.editor_crop_region.style.top = this.editor_crop_region.style.left = ``;
         }
 
-        this.svg.setAttribute("viewBox", `0 0 ${this.width} ${this.height}`);
+        this.handle.setAttribute("viewBox", `0 0 ${this.width} ${this.height}`);
 
         if(replace_editor_data)
             this.set_state(extra_data?.pan);

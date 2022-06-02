@@ -2940,6 +2940,13 @@ svg.heart-image .delete {
     width: 100%;
     height: 100%;
 
+    // SVG is overflow: hidden by default.  Set the handle to overflow: visible, so it can
+    // be seen if it's offscreen.  It still won't be visible if cropping is active since the
+    // crop will cut it off, but that's hard to fix.
+    .handle {
+        overflow: visible;
+    }
+
     .pan-editor-crop-region {
         width: 100%;
         height: 100%;
