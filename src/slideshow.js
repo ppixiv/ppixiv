@@ -74,14 +74,15 @@ ppixiv.slideshow = class
     {
         let animation = this.get_default_pan();
         animation = this.prepare_animation(animation);
-        if(animation.max_speed >= 0.01 || !this.slideshow_enabled)
-            return animation;
 
-        // If the animation is moving very slowly, the visible area's aspect ratio very closely
+        // If the animation didn't go anywhere, the visible area's aspect ratio very closely
         // matches the screen's, so there's nowhere to pan.  Use a pull-in animation instead.
         // We don't currently use this in pan mode, because zooming the image when in pan mode
         // and controlling multiple tabs can be annoying.
-        console.log(`Slideshow: pan animation had nowhere to move, using a pull-in instead (max_speed ${animation.max_speed})`);
+        if(animation.total_travel > 0.05 || !this.slideshow_enabled)
+            return animation;
+
+        console.log(`Slideshow: pan animation had nowhere to move, using a pull-in instead (total_travel ${animation.total_travel})`);
         return this.prepare_animation(this.get_pull_in());
     }
 
@@ -442,12 +443,14 @@ ppixiv.slideshow = class
             total_time += point.duration;
         animation.total_time = Math.max(total_time, 0.01);
 
-        // For convenience, calculate the maximum speed of the animation.
-        animation.max_speed = 0;
+        // For convenience, calculate total distance the animation travelled.
+        animation.total_travel = 0;
         for(let point of animation.pan)
         {
-            if(point.actual_speed != null)
-                animation.max_speed = Math.max(animation.max_speed, point.actual_speed);
+            if(point.actual_speed == null)
+                continue;
+
+            animation.total_travel += point.actual_speed * point.duration;
         }
 
         return animation;        
