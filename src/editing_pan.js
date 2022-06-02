@@ -27,9 +27,10 @@ ppixiv.PanEditor = class extends ppixiv.widget
                         <input class=zoom-slider type=range min=5 max=200>
                     </div>
 
+                    ${ helpers.create_box_link({popup: "Portrait/landscape", icon: "panorama", classes: ["rotate-aspect-ratio"] }) }
+
                     <div class="box-link popup aspect-ratio-slider" data-popup="Aspect ratio">
-                        <span class="icon material-icons">panorama</span>
-                        <input class=zoom-slider type=range min=0 max=2 style="width: 70px;">
+                        <input class=zoom-slider type=range min=0 max=3 style="width: 70px;">
                     </div>
 
                     ${ helpers.create_box_link({popup: "Clear animation", icon: "delete", classes: ["reset-button"] }) }
@@ -45,16 +46,18 @@ ppixiv.PanEditor = class extends ppixiv.widget
         this.anchor = new FixedDOMRect(0.5, 0.5, 0.5, 0.5);
 
         this.aspect_ratios = [
-            [1920, 1080],
-            [1920, 1200],
-            [1080, 1920],
-        ]
+            [21, 9],
+            [16, 9],
+            [16, 10],
+            [4, 3],
+        ];
 
         // is_set is false if we've had no edits and we're displaying the defaults, or true if we
         // have data that can be saved.
         this.is_set = false;
         this.zoom_level = [1,1]; // start, end
-        this.displayed_aspect_ratio = 0;
+        this.displayed_aspect_ratio = 1;
+        this.displayed_aspect_ratio_portrait = false;
 
         this.editing = "start"; // "start" or "end"
         this.editing_anchor = false;
@@ -91,6 +94,12 @@ ppixiv.PanEditor = class extends ppixiv.widget
         this.aspect_ratio_slider = this.ui.querySelector(".aspect-ratio-slider input");
         this.aspect_ratio_slider.addEventListener("input", (e) => {
             this.displayed_aspect_ratio = parseInt(this.aspect_ratio_slider.value);
+            this.refresh();
+        });
+
+        this.aspect_ratio_switch_button = this.container.querySelector(".rotate-aspect-ratio");
+        this.aspect_ratio_switch_button.addEventListener("click", (e) => {
+            this.displayed_aspect_ratio_portrait = !this.displayed_aspect_ratio_portrait;
             this.refresh();
         });
 
@@ -153,7 +162,11 @@ ppixiv.PanEditor = class extends ppixiv.widget
 
     get preview_size()
     {
-        return this.aspect_ratios[this.displayed_aspect_ratio];
+        let result = this.aspect_ratios[this.displayed_aspect_ratio];
+        if(this.displayed_aspect_ratio_portrait)
+            return [result[1], result[0]];
+        else
+            return result;
     }
 
     refresh()
@@ -168,8 +181,13 @@ ppixiv.PanEditor = class extends ppixiv.widget
         helpers.set_class(this.ui.querySelector(".edit-start-button"), "selected", this.editing == "start");
         helpers.set_class(this.ui.querySelector(".edit-end-button"), "selected", this.editing == "end");
         helpers.set_class(this.ui.querySelector(".edit-anchor"), "selected", this.actually_editing_anchor);
+
+        this.aspect_ratio_switch_button.dataset.popup = 
+            this.displayed_aspect_ratio_portrait? "Previewing portrait":"Previewing landscape";
+        this.aspect_ratio_switch_button.querySelector(".material-icons").innerText =
+            this.displayed_aspect_ratio_portrait? "portrait":"panorama";
         this.aspect_ratio_slider.value = this.displayed_aspect_ratio;
-        this.ui.querySelector(".aspect-ratio-slider").dataset.popup = `Previewing ${this.preview_size[0]}x${this.preview_size[1]}`;
+        this.ui.querySelector(".aspect-ratio-slider").dataset.popup = `Previewing ${this.preview_size[0]}:${this.preview_size[1]}`;
 
         this.refresh_zoom_preview();
         this.refresh_center();
