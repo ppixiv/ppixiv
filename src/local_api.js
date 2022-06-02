@@ -42,7 +42,7 @@ ppixiv.local_api = class
     
         // If the result isn't valid JSON, we'll get a null result.
         if(result == null)
-            result = { error: true, message: "Invalid response" };
+            result = { error: true, reason: "Invalid response" };
     
         return result;
     }   

@@ -3795,7 +3795,7 @@ ppixiv.data_sources.vview = class extends data_source
             });
             if(!result_ids.success)
             {
-                message_widget.singleton.show("Error reading directory: " + result.reason);
+                message_widget.singleton.show("Error reading directory: " + result_ids.reason);
                 return result;
             }
     
