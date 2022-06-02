@@ -127,6 +127,11 @@ ppixiv.main_controller = class
 
         window.addEventListener("keydown", this.onkeydown);
 
+        let refresh_focus = () => { helpers.set_class(document.body, "focused", document.hasFocus()); };
+        window.addEventListener("focus", refresh_focus);
+        window.addEventListener("blur", refresh_focus);
+        refresh_focus();
+
         this.current_screen_name = null;
 
         // If the URL hash doesn't start with #ppixiv, the page was loaded with the base Pixiv

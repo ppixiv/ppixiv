@@ -2781,8 +2781,8 @@ svg.heart-image .delete {
         animation: spin 1000ms linear infinite forwards;
     }
     .image-editor-buttons {
-        // If no editor is actually active, hide the top buttons with the mouse cursor.
-        .mouse-hidden-box:not(.show-cursor) &.top {
+        // Hide the top buttons if the window doesn't have focus.
+        body:not(.focused) &.top {
             display: none;
         }
 
