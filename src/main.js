@@ -359,6 +359,13 @@ ppixiv.main_controller = class
         if(old_screen != null && old_screen != new_screen)
             await old_screen.set_active(false, { });
 
+        if(old_screen != new_screen)
+        {
+            let e = new Event("screenchanged");
+            e.newScreen = new_screen_name;
+            window.dispatchEvent(e);
+        }
+
         if(new_screen != null)
         {
             // Restore state from history if this is an initial load (which may be

@@ -5,7 +5,7 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
 {
     constructor({show_page="thumbnail", ...options})
     {
-        super({...options, visible: true, template: `
+        super({visible: true, ...options, template: `
             <div class="settings-dialog dialog">
                 <div class=content>
                     <div class=header>Settings</div>
@@ -40,8 +40,9 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
             this.shutdown();
         }, { signal: this.shutdown_signal.signal });
 
-        // Hide on any state change.
-        window.addEventListener("popstate", (e) => {
+        // Hide if the top-level screen changes, so we close if the user exits the screen with browser
+        // navigation but not if the viewed image is changing from something like the slideshow.
+        window.addEventListener("screenchanged", (e) => {
             this.shutdown();
         }, { signal: this.shutdown_signal.signal });
 
