@@ -152,7 +152,6 @@ def get_illust_info(info, entry, base_url):
 
     image_info['crop'] = json.loads(entry['crop']) if entry.get('crop') else None
     image_info['pan'] = json.loads(entry['pan']) if entry.get('pan') else None
-    image_info['safe_zone'] = json.loads(entry['safe_zone']) if entry.get('safe_zone') else None
 
     return image_info
 
@@ -551,7 +550,6 @@ async def api_edit_inpainting(info):
     if 'inpaint' in info.data: changes['inpaint'] = info.data['inpaint']
     if 'crop' in info.data: changes['crop'] = info.data['crop']
     if 'pan' in info.data: changes['pan'] = info.data['pan']
-    if 'safe_zone' in info.data: changes['safe_zone'] = info.data['safe_zone']
 
     # Save the new inpaint data.  This won't actually generate the inpaint image.
     entry = info.manager.library.set_image_edits(entry, **changes)

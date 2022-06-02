@@ -91,9 +91,6 @@ class FileIndex(Database):
                             -- The slideshow pan as a JSON array, if any.
                             pan,
 
-                            -- The slideshow safe zone, as a JSON array.
-                            safe_zone,
-
                             -- The current inpaint data, its filename ID and timestamp.
                             inpaint,
                             inpaint_id,

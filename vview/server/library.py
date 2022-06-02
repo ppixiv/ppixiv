@@ -437,7 +437,6 @@ class Library:
         entry['inpaint_id'] = file_metadata.get('inpaint_id')
         entry['crop'] = json.dumps(file_metadata['crop']) if 'crop' in file_metadata else None
         entry['pan'] = json.dumps(file_metadata['pan']) if 'pan' in file_metadata else None
-        entry['safe_zone'] = json.dumps(file_metadata['safe_zone']) if 'safe_zone' in file_metadata else None
 
         if 'inpaint_id' in file_metadata:
             # Only import inpaint_timestamp if we've actually created the inpaint file.
@@ -1103,7 +1102,7 @@ class Library:
 
         return updates
 
-    def set_image_edits(self, entry, *, inpaint=no_change, crop=no_change, pan=no_change, safe_zone=no_change):
+    def set_image_edits(self, entry, *, inpaint=no_change, crop=no_change, pan=no_change):
         with metadata_storage.load_and_lock_file_metadata(entry['path']) as file_metadata:
             # If crop is set, it's either a array of four integers, or empty to unset cropping.
             if crop is not no_change and file_metadata.get('crop') != crop:
@@ -1120,14 +1119,6 @@ class Library:
                 else:
                     assert isinstance(pan, dict)
                     file_metadata['pan'] = pan
-
-            if safe_zone is not no_change and file_metadata.get('safe_zone') != safe_zone:
-                assert (isinstance(safe_zone, list) and len(safe_zone) == 4) or safe_zone is None
-
-                if not safe_zone:
-                    file_metadata.pop('safe_zone', None)
-                else:
-                    file_metadata['safe_zone'] = safe_zone
 
             if inpaint is not no_change and file_metadata.get('inpaint') != inpaint:
                 assert isinstance(inpaint, list) or inpaint is None

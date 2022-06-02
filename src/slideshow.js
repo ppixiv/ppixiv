@@ -13,9 +13,6 @@ ppixiv.slideshow = class
 
         // If true, we're being used for slideshow mode, otherwise auto-pan mode.
         slideshow_enabled,
-
-        // The slideshow safe zone, if any:
-        unit_safe_zone,
     })
     {
         this.width = width;
@@ -24,7 +21,6 @@ ppixiv.slideshow = class
         this.container_height = container_height;
         this.minimum_zoom = minimum_zoom;
         this.slideshow_enabled = slideshow_enabled;
-        this.unit_safe_zone = unit_safe_zone;
     }
 
     // Return some parameters that are used by linear animation getters below.
@@ -186,14 +182,7 @@ ppixiv.slideshow = class
         }
     }
 
-    // Return an animation which zooms into the given rect.
-    //
-    // This zooms out as far as possible from rect while keeping the image covering the
-    // screen, and zooms in so rect just fits onscreen.
-    //
-    // If rect can't fit onscreen without the edge falling offscreen, return null.  This
-    // would result in zooming out rather than in, because the target zoom would be less
-    // zoomed in than the starting point.
+    // Return a basic pull-in animation.
     get_pull_in()
     {
         let { pan_duration, ease } = this._get_parameters();
@@ -201,100 +190,19 @@ ppixiv.slideshow = class
         // Only fade in slideshow, not auto-pan.
         const fade_time = this.slideshow_enabled? 1:0;
 
-        // If we don't have a safe zone, use a default pull-in instead.
-        if(this.unit_safe_zone == null)
-        {
-            // This zooms from "contain" to a slight zoom over "cover".
-            return {
-                fade_in: fade_time,
-                fade_out: fade_time,
-
-                pan: [{
-                    x: 0.5, y: 0.0, zoom: 0,
-                    duration: pan_duration,
-                    ease,
-                }, {
-                    x: 0.5, y: 0.0, zoom: 1.2,
-                }],
-            };
-        }
-
-        let rect = this.unit_safe_zone;
-
-        // First, try to create a zoom which starts zoomed out from the rect, but doesn't
-        // cause us to zoom so far out that we can't cover the screen.  Find the minimum
-        // distance from the safe zone to the edge of the image, then extend the safe zone
-        // in each direction by that amount to find the starting rect.
-        let min_distance_to_edge = Math.min(
-            rect.left,           // distance to left edge
-            1 - rect.right,      // distance to right edge
-            rect.top,            // distance to top edge
-            1 - rect.bottom,     // distance to bottom edge
-        );
-
-        let zoomed_out_region = rect.extendOutwards(min_distance_to_edge);
-        // console.log("Distance from safe zone to edge:", min_distance_to_edge);
-        // console.log("Larger rect:", zoomed_out_region);
-
-        // Start the animation zoomed out so the larger zoomed_out_region covers the
-        // screen.
-        let zoom_start = this.get_zoom_for_area(zoomed_out_region, "cover");
-
-        // End the animation zoomed in on the safe zone, so it's zoomed in as far as possible
-        // without being cropped.
-        let zoom_end = this.get_zoom_for_area(rect, "contain");
-
-        // If zoom_start > zoom_end, we ended up zooming out rather than in.  If that happens,
-        // give up on trying to prevent panning past the edge of the screen, since the aspect
-        // ratio doesn't allow it.  Instead, just extend the safe zone outwards by a fixed amount
-        // and zoom from there.
-        if(zoom_start > zoom_end)
-        {
-            // console.log("Slideshow: the start point caused us to zoom in instead of out");
-            zoomed_out_region = rect.extendOutwards(0.25);
-            zoom_start = this.get_zoom_for_area(zoomed_out_region, "contain");
-        }
-
-        console.log(`Slideshow: zoom ${zoom_start} to ${zoom_end}`);
-
+        // This zooms from "contain" to a slight zoom over "cover".
         return {
             fade_in: fade_time,
             fade_out: fade_time,
 
             pan: [{
-                x: rect.middleHorizontal,
-                y: rect.middleVertical,
-                zoom: zoom_start,
+                x: 0.5, y: 0.0, zoom: 0,
                 duration: pan_duration,
-                ease, // linear
+                ease,
             }, {
-                x: rect.middleHorizontal,
-                y: rect.middleVertical,
-                zoom: zoom_end,
+                x: 0.5, y: 0.0, zoom: 1.2,
             }],
         };
-    }
-
-    // Get the zoom level which will allow rect to fit onscreen.
-    //
-    // If mode is "contain", return the zoom which will allow rect to completely fit
-    // onscreen.  If mode is "cover", return the zoom which will fill the screen with
-    // rect.  (This is the same as object-fit: contain and cover.)
-    get_zoom_for_area(rect, mode="contain")
-    {
-        // rect is in unit coordinates.  Scale them to the size of the image.
-
-        // Clamp the maximum zoom so it's always possible to keep the safe zone onscreen.
-        // The size of the safe zone when we're at 1x zoom:
-        let safe_zone_size = [rect.width * this.width, rect.height * this.height];
-
-        // Clamp the zoom so the safe zone size fits in the container.
-        let max_zoom_x = this.container_width / safe_zone_size[0];
-        let max_zoom_y = this.container_height / safe_zone_size[1];
-        if(mode == "contain")
-            return Math.min(max_zoom_x, max_zoom_y);
-        else
-            return Math.max(max_zoom_x, max_zoom_y);
     }
 
     // Prepare an animation.  This figures out the actual translate and scale for each
@@ -312,17 +220,9 @@ ppixiv.slideshow = class
         animation.default_height = this.height;
 
         // Don't let the zoom go below the original 1:1 size.  This allows panning to 1:1
-        // by setting zoom to 0.  Unless we have a safe zone, there's no inherent max zoom.
+        // by setting zoom to 0.  There's no inherent max zoom.
         let minimum_zoom = this.minimum_zoom;
         let maximum_zoom = 999;
-
-        // Get the safe zone in unit coordinates.
-        let safe_zone = this.unit_safe_zone;
-
-        // Clamp the zoom to the safe zone, so we only use zoom levels where the entire safe zone
-        // rectangle fits onscreen.
-        if(safe_zone != null)
-            maximum_zoom = this.get_zoom_for_area(safe_zone, "contain");
 
         // Calculate the scale and translate for each point.
         for(let point of animation.pan)
@@ -337,27 +237,6 @@ ppixiv.slideshow = class
             // By default, clamp to the edge of the image.  These are in screen space coordinates.
             let min_x = 0, min_y = 0;
             let max_x = zoomed_width - screen_width, max_y = zoomed_height - screen_height;
-
-            if(safe_zone != null)
-            {
-                // Scale the safe zone coordinates to this zoom level, so they're in the same
-                // coordinate space as the screen.
-                let zoomed_safe_zone = new FixedDOMRect(
-                    safe_zone.left * zoomed_width, safe_zone.top * zoomed_height,
-                    safe_zone.right * zoomed_width, safe_zone.bottom * zoomed_height
-                );
-
-                // Clamp the max coordinates so we don't pan the safe zone offscreen.
-                max_x = Math.min(max_x, zoomed_safe_zone.left); // don't move the left edge past the left edge of the screen
-                max_y = Math.min(max_y, zoomed_safe_zone.top); // don't move the top edge past the top edge of the screen
-                min_x = Math.max(min_x, zoomed_safe_zone.right - screen_width); // don't move the right edge past the right edge of the screen
-                min_y = Math.max(min_y, zoomed_safe_zone.bottom - screen_height); // don't move the bottom edge past the bottom edge of the screen
-
-                // Make sure min < max.  This can happen if we're not clamping zoom to the safe zone
-                // and we can't actually fit it onscreen, in which case we'll pan across the safe zone.
-                if(max_x < min_x) [min_x, max_x] = [max_x, min_x];
-                if(max_y < min_y) [min_y, max_y] = [max_y, min_y];
-            }
 
             // Initially, the image will be aligned to the top-left of the screen.  Shift right and
             // down to align the anchor the origin.  This is usually the center of the image.
