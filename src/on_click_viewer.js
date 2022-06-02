@@ -936,11 +936,6 @@ ppixiv.on_click_viewer = class
         // If we're not updating an already-running animation, set up the image for animating.
         if(this.animation == null)
         {
-            // Opacity from fades is applied when the animation stops, so the image doesn't reappear
-            // while the next image is loading.  If there's an opacity left over from the previous
-            // image, remove it now.
-            this.image_box.style.opacity = "";
-
             this.image_box.style.width = Math.round(animation.default_width) + "px";
             this.image_box.style.height = Math.round(animation.default_height) + "px";
         }
@@ -1007,10 +1002,28 @@ ppixiv.on_click_viewer = class
             // we were no longer animating.  This way, viewing an image in a linked tab and then removing
             // it doesn't restart a long-finished animation.  We only pay attention to the main animation
             // for this and ignore the fade.
-            this.animations[0].onfinish = (e) => {
-                this.stop_animation();
-                if(this.slideshow_enabled && this.onnextimage)
-                    this.onnextimage();
+            this.animations[0].onfinish = async (e) => {
+                if(!this.slideshow_enabled || !this.onnextimage)
+                {
+                    // We're just panning, so clean up the animation and stop.
+                    this.stop_animation();
+                    return;
+                }
+
+                // Tell the caller that we're ready for the next image.  Don't call stop_animation yet,
+                // so we don't cancel opacity and cause the image to flash onscreen while the new one
+                // is loading.  We'll stop if when onnextimage navigates.
+                let { media_id } = await this.onnextimage();
+
+                // onnextimage is normally viewer_images.navigate_to_next().  It'll return the new
+                // media_id if it navigated to one.  If it didn't navigate, call stop_animation so
+                // we clean up the animation and make it visible again if it's faded out.  This
+                // typically only happens if we only have one image.
+                if(media_id == null)
+                {
+                    console.log("The slideshow didn't have a new image.  Resetting the slideshow animation");
+                    this.stop_animation();
+                }
             };
 
             for(let animation of this.animations)
@@ -1030,8 +1043,6 @@ ppixiv.on_click_viewer = class
             return;
 
         // Commit the current state of the main animation so we can read where the image was.
-        // This also commits the opacity, so if we're ending one image to display another the
-        // image won't flash on screen.
         let applied_animations = true;
         try {
             for(let animation of this.animations)
@@ -1044,6 +1055,10 @@ ppixiv.on_click_viewer = class
         for(let animation of this.animations)
             animation.cancel();
 
+        // Make sure we don't leave the image faded out if we stopped while in the middle
+        // of a fade.
+        this.image_box.style.opacity = "";
+
         this.animations = null;
 
         if(!applied_animations)
@@ -1052,12 +1067,6 @@ ppixiv.on_click_viewer = class
             // if we're shutting down.  In this case, just cancel the animations.
             return;
         }
-
-        // In case the animation was fading while it was cancelled, make sure opacity is reset.
-        // There's a slight transition on opacity, which both prevents it from popping in suddenly
-        // and helps prevent images from flashing onscreen if we immediately remove it to display
-        // something else.
-        this.image_box.style.opacity = "";
 
         // Figure out the zoom factor the animation left us with.  The zoom factor is 1 if
         // the image width equals this.width.

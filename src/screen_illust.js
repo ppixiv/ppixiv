@@ -298,7 +298,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
                 // Loop is true, so we loop back to the beginning of the search if we reach
                 // the end in a slideshow.
                 let skip_manga_pages = settings.get("slideshow_skips_manga");
-                this.navigate_to_next(1, { loop: true, skip_manga_pages });
+                return await this.navigate_to_next(1, { loop: true, flash_at_end: false, skip_manga_pages });
             },
         });
 
@@ -529,7 +529,18 @@ ppixiv.screen_illust = class extends ppixiv.screen
 
         // If we're at the end and we're looping, go to the first (or last) image.
         if(new_media_id == null && loop)
+        {
             new_media_id = down? this.data_source.id_list.get_first_id():this.data_source.id_list.get_last_id();
+
+            // If we only have one image, don't loop.  We won't actually navigate so things
+            // don't quite work (navigating to the same media ID won't trigger a navigation
+            // at all), and it's not very useful.
+            if(new_media_id == navigate_from_media_id)
+            {
+                console.log("Not looping since we only have one media ID");
+                return { };
+            }
+        }
     
         if(new_media_id == null)
             return { };
@@ -543,19 +554,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
             page = new_page_info.pageCount - 1;
         }
 
-        // If the media ID changed and we have more than one page, we're leaving a manga post.
-        let leaving_manga_post = false;
-        if(navigate_from_media_id != null)
-        {
-            // Using early_illust_data here means we can handle page navigation earlier, if
-            // the user navigates before we have full illust info.
-            let early_illust_data = await thumbnail_data.singleton().get_or_load_illust_data(navigate_from_media_id);
-            let num_pages = early_illust_data.pageCount;
-            if(num_pages > 1 && helpers.parse_media_id(this.wanted_media_id).id != helpers.parse_media_id(new_media_id).id)
-                leaving_manga_post = true;
-        }
-
-        return { media_id: new_media_id, leaving_manga_post: leaving_manga_post };
+        return { media_id: new_media_id };
     }
 
     // Navigate to the next or previous image.
@@ -563,7 +562,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
     // If skip_manga_pages is true, jump past any manga pages in the current illustration.  If
     // this is true and we're navigating backwards, we'll also jump to the first manga page
     // instead of the last.
-    async navigate_to_next(down, { skip_manga_pages=false, loop=false }={})
+    async navigate_to_next(down, { skip_manga_pages=false, loop=false, flash_at_end=true }={})
     {
         // Remember whether we're navigating forwards or backwards, for preloading.
         this.latest_navigation_direction_down = down;
@@ -574,7 +573,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
 
         // See if we should change the manga page.  This may block if it needs to load
         // the next page of search results.
-        let { media_id: new_media_id, end, leaving_manga_post } = await this.get_navigation(down, {
+        let { media_id: new_media_id } = await this.get_navigation(down, {
             skip_manga_pages: skip_manga_pages,
             loop: loop,
         });
@@ -584,8 +583,9 @@ ppixiv.screen_illust = class extends ppixiv.screen
         if(new_media_id == null)
         {
             console.log("Reached the end of the list");
-            this.flash_end_indicator(down, "last-image");
-            return;
+            if(flash_at_end)
+                this.flash_end_indicator(down, "last-image");
+            return { reached_end: true };
         }
 
         // If this.pending_navigation is no longer the same as pending_navigation, we navigated since
@@ -598,18 +598,9 @@ ppixiv.screen_illust = class extends ppixiv.screen
 
         this.pending_navigation = null;
 
-        // If we didn't get a page, we're at the end of the search results.  Flash the
-        // indicator to show we've reached the end and stop.
-        if(end)
-        {
-            console.log("Reached the end of the list");
-            this.flash_end_indicator(down, "last-image");
-            return;
-        }
-
-        // Go to the new illustration if we have one.
-        if(new_media_id != null)
-            main_controller.singleton.show_media(new_media_id);
+        // Go to the new illustration.
+        main_controller.singleton.show_media(new_media_id);
+        return { media_id: new_media_id };
     }
 
     flash_end_indicator(down, icon)

@@ -134,15 +134,6 @@ ul {
     width: 100%;
     height: 100%;
 
-    > .image-box
-    {
-        // Add a slight transition to opacity.  This only normally happens if we're running
-        // a pan animation which is fading, and the user clicks the image to cancel it.  If
-        // the animation was fading in or out, we'll reset opacity to 1 to fade it back in, and
-        // this prevents it from being jarring.
-        transition: opacity .25s;
-    }
-    
     // If the image is cropped, set overflow: hidden on the image box to cut it
     // off.  Don't do this if it isn't needed, since it can trigger compositing
     // glitches in Chrome.
