@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+    width="100%" height="100%"
+    viewBox="0 0 1 1"
+>
+    <g class="crosshair" style="
+        fill: #fff;
+        paint-order: stroke;
+        stroke: #000;
+        stroke-width: 5;
+    ">
+        <path d="
+            M -25 -2.5 h 50 v 5 h -50 Z
+            M -2.5 -25 v 50 h 5 v -50 Z
+        "/>
+    </g>
+</svg>
