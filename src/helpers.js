@@ -667,13 +667,18 @@ ppixiv.helpers = {
         unsafeWindow.setInterval = (f, ms) => { return -1; };
         unsafeWindow.clearTimeout = () => { };
 
-        window.addEventListener = Window.prototype.addEventListener.bind(unsafeWindow);
-        window.removeEventListener = Window.prototype.removeEventListener.bind(unsafeWindow);
+        try {
+            window.addEventListener = Window.prototype.addEventListener.bind(unsafeWindow);
+            window.removeEventListener = Window.prototype.removeEventListener.bind(unsafeWindow);
+        } catch(e) {
+            // This fails on iOS.  That's OK, since Pixiv's mobile site doesn't mess
+            // with these (and since we can't write to these, it wouldn't be able to either).
+        }
 
         // We have to use unsafeWindow.fetch in Firefox, since window.fetch is from a different
         // context and won't send requests with the site's origin, which breaks everything.  In
         // Chrome it doesn't matter.
-        helpers.fetch = unsafeWindow.fetch;
+        helpers.fetch = unsafeWindow.fetch.bind(unsafeWindow);
         unsafeWindow.Image = exportFunction(function() { }, unsafeWindow);
 
         // Replace window.fetch with a dummy to prevent some requests from happening.
@@ -970,7 +975,8 @@ ppixiv.helpers = {
         let data = { };
 
         // For Firefox, we need to clone data into the page context.  In Chrome this do nothing.
-        data = cloneInto(data, window);
+        if(window.cloneInto)
+            data = cloneInto(data, window);
 
         data.method = options.method || "GET";
         data.signal = options.signal;
@@ -1017,6 +1023,11 @@ ppixiv.helpers = {
             options.headers["x-csrf-token"] = global_data.csrf_token;
             options.headers["x-user-id"] = global_data.user_id;
         }
+
+        // Pixiv returns completely different data when it thinks you're on mobile, and uses a completely
+        // different set of APIs.  Set a fake desktop referer to prevent this from happening.
+        if(ppixiv.ios)
+            options.headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/101.0.4951.67 Safari/537.36';
 
         let result = await helpers.send_request(options);
         if(result == null)

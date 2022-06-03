@@ -762,7 +762,7 @@ ppixiv.main_controller = class
             if(!dataURL.startsWith || !dataURL.startsWith("data:"))
                 continue;
 
-            let result = await fetch(dataURL);
+            let result = await helpers.fetch(dataURL);
             let blob = await result.blob(); 
 
             let blobURL = URL.createObjectURL(blob);

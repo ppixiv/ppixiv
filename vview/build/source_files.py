@@ -1,4 +1,5 @@
 source_files = [
+    'src/polyfills.js',
     'src/actions.js',
     'src/crc32.js',
     'src/helpers.js',
@@ -20,7 +21,6 @@ source_files = [
     'src/hide_mouse_cursor_on_idle.js',
     'src/image_data.js',
     'src/on_click_viewer.js',
-    'src/polyfills.js',
     'src/progress_bar.js',
     'src/seek_bar.js',
     'src/struct.js',

@@ -240,8 +240,10 @@ class Build(object):
 // requires overly aggressively, ignoring server cache headers.  Use sync XHR so we don't allow the site
 // to continue loading while we're setting up.
 (() => {
+    window.vviewURL = "http://127.0.0.1:8235";
+
     let xhr = new XMLHttpRequest();
-    xhr.open("GET", "http://127.0.0.1:8235/client/js/bootstrap_native.js", false);
+    xhr.open("GET", `${window.vviewURL}/client/js/bootstrap_native.js`, false);
     xhr.send();
     eval(xhr.responseText);
 })();

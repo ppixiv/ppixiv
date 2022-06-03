@@ -28,12 +28,16 @@ let _load_source_file = function(__pixiv, __source) {
     // If we're not running on Pixiv, set env.native to indicate that we're in our native
     // environment.
     env.native = window.location.hostname != "pixiv.net" && window.location.hostname != "www.pixiv.net";
+    env.ios = navigator.platform.indexOf('iPhone') != -1 || navigator.platform.indexOf('iPad') != -1;
     env.version = 'native';
     env.resources = {};
 
-    // If we're running natively, set unsafeWindow like a user script would have.
-    if(env.native)
+    // If we're running in an environment that doesn't set unsafeWindow, just set it to window.
+    try {
+        unsafeWindow.x;
+    } catch(e) {
         window.unsafeWindow = window;
+    }
 
     // Make sure that we're not loaded more than once.  This can happen if we're installed in
     // multiple script managers, or if the release and debug versions are enabled simultaneously.
@@ -48,10 +52,15 @@ let _load_source_file = function(__pixiv, __source) {
     // This is just for development, so we can access ourself in the console.
     unsafeWindow.ppixiv = env;
 
-    // If we're running natively, the scripts are on the same root path we're on, and we can
-    // just resolve URLs relatively.  If we're on Pixiv then we need to load scripts from the
-    // native server instead.
-    let root_url = env.native? window.location:"http://127.0.0.1:8235";
+    // Figure out our native server URL.
+    //
+    // If window.vviewURL is set, use it.  Otherwise, if we're running natively then the
+    // server is the current URL.  Otherwise, fall back on localhost, which is used for
+    // development when running on Pixiv.
+    let root_url =
+        window.vviewURL ?? 
+        (env.native && window.location) ??
+        "http://127.0.0.1:8235";
 
     // When we load into Pixiv with the regular loader (bootstrap.js), we're always loading
     // synchronously, since everything is packaged into the user script.  Here we're loading
@@ -70,9 +79,12 @@ let _load_source_file = function(__pixiv, __source) {
     // We don't need to be sync if we're running natively, since we're not racing against a website
     // loading, so we switch back to normal async fetch if possible.  It avoids browsers screaming
     // bloody murder about sync XHR, and it loads a bit faster.
+    //
+    // We also don't do this if we're running on iOS.  It's very slow, and since the mobile site doesn't
+    // do all the weird stuff the desktop site does, it's not as important.
     async function get(url, { as_url=false }={})
     {
-        if(env.native)
+        if(env.native || env.ios)
         {
             let result = await fetch(new URL(url, root_url));
             if(as_url)

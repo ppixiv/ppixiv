@@ -39,6 +39,13 @@
             if(window.location.hostname != "www.pixiv.net")
                 return;
 
+            // Work around quoid/userscripts not defining unsafeWindow.
+            try {
+                unsafewindow.x;
+            } catch(e) {
+                window.unsafeWindow = window;
+            }
+
             // Make sure that we're not loaded more than once.  This can happen if we're installed in
             // multiple script managers, or if the release and debug versions are enabled simultaneously.
             if(unsafeWindow.loaded_ppixiv)
@@ -56,6 +63,8 @@
 
             // This is just for development, so we can access ourself in the console.
             unsafeWindow.ppixiv = env;
+            env.native = false;
+            env.ios = navigator.platform.indexOf('iPhone') != -1 || navigator.platform.indexOf('iPad') != -1;
 
             // Load each source file.
             for(let path of source_list)
