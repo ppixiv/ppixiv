@@ -240,6 +240,10 @@ class Build(object):
 // requires overly aggressively, ignoring server cache headers.  Use sync XHR so we don't allow the site
 // to continue loading while we're setting up.
 (() => {
+    // If this is an iframe, don't do anything.
+    if(window.top != window.self)
+        return;
+
     window.vviewURL = "http://127.0.0.1:8235";
 
     let xhr = new XMLHttpRequest();
