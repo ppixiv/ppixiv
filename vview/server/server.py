@@ -12,26 +12,15 @@ from . import api, thumbs, ui
 from ..util import misc
 from .manager import Manager
 
-async def check_origin(request, response):
-    """
-    Check the Origin header and add CORS headers.
-    """
+@web.middleware
+async def auth_middleware(request, handler):
+    # Allow requests from www.pixiv.net and our local client.
     origin = request.headers.get('Origin') or request.headers.get('Referer')
     if origin is not None:
-        # Allow requests from www.pixiv.net and our local client.
         origin_url = urllib.parse.urlparse(origin)
         if origin_url.hostname not in ('www.pixiv.net', '127.0.0.1'):
             raise aiohttp.web.HTTPUnauthorized()
 
-    if origin:
-        response.headers['Access-Control-Allow-Origin'] = origin
-        response.headers['Access-Control-Allow-Methods'] = 'POST, GET, OPTIONS'
-        response.headers['Access-Control-Allow-Headers'] = 'Accept, Cache-Control, If-None-Match, If-Modified-Since, Origin, Range, X-Requested-With'
-        response.headers['Access-Control-Expose-Headers'] = '*'
-        response.headers['Access-Control-Max-Age'] = '1000000'
-
-@web.middleware
-async def auth_middleware(request, handler):
     # We don't do much authentication, since we're running on localhost and can only receive
     # requests from localhost.  The origin is checked by check_origin, so random sites can't
     # make requests.  All we do here is set a flag if a request has an origin of localhost,
@@ -45,6 +34,21 @@ async def auth_middleware(request, handler):
         request['is_local'] = False
 
     return await handler(request)
+
+async def check_origin(request, response):
+    """
+    Add CORS headers.
+    
+    This is called after auth_middleware, which checks the origin.  We can't do that
+    here, since we can't raise HTTP exceptions here.
+    """
+    origin = request.headers.get('Origin') or request.headers.get('Referer')
+    if origin:
+        response.headers['Access-Control-Allow-Origin'] = origin
+        response.headers['Access-Control-Allow-Methods'] = 'POST, GET, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Accept, Cache-Control, If-None-Match, If-Modified-Since, Origin, Range, X-Requested-With'
+        response.headers['Access-Control-Expose-Headers'] = '*'
+        response.headers['Access-Control-Max-Age'] = '1000000'
 
 def create_handler_for_command(handler):
     async def handle(request):
