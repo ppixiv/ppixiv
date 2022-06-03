@@ -159,10 +159,14 @@ ppixiv.main_controller = class
         // This won't affect browser back from an image to the enclosing search.
         history.scrollRestoration = "manual";    
        
-        // Remove everything from the page and move it into a dummy document.
-        var html = document.createElement("document");
-        helpers.move_children(document.head, html);
-        helpers.move_children(document.body, html);
+        // If we're running on Pixiv, remove Pixiv's content from the page and move it into a
+        // dummy document.
+        let html = document.createElement("document");
+        if(!ppixiv.native)
+        {
+            helpers.move_children(document.head, html);
+            helpers.move_children(document.body, html);
+        }
 
         // Copy the location to the document copy, so the data source can tell where
         // it came from.
