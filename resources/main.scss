@@ -663,8 +663,14 @@ body[data-theme="light"] .whats-new-button.updates > svg {
     overflow-y: auto;
 
     .separator {
+        // For some reason flex overrides our height if the dropdown is scaled down
+        // from reaching the bottom of the screen.  This happens even if we explicitly
+        // set a height and set flex-shrink to 0.  Work around this by setting our height
+        // in a child element.
+        > div {
+            height: 2px;
+        }
         width: 100%;
-        height: 2px;
         background-color: #fff;
         margin: 2px 0;
     }
@@ -763,6 +769,7 @@ body.hide-r18g .r18g { display: none; }
 
 .popup-menu-box {
     position: absolute;
+    overflow-y: auto;
     left: 0;
     top: 100%; // bottom of the positioning menu item
     min-width: 10em;

@@ -469,6 +469,8 @@ ppixiv.dropdown_menu_opener = class
 
         this.box.style.left = `${x}px`;
         this.box.style.top = `${y}px`;
+
+        helpers.set_max_height(this.box, { bottom_padding: 10 });
     }
 
     // Return true if this popup should close when clicking inside it.  If false,
@@ -804,7 +806,7 @@ ppixiv.follow_widget = class extends widget
 
                 <!-- A separator before follow tags.  Hide this if the user doesn't have premium,
                      since he won't have access to tags and this will be empty. -->
-                <div class="separator premium-only"></div>
+                <div class="separator premium-only"><div></div></div>
 
                 ${helpers.create_box_link({
                     label: "Add new tag",
