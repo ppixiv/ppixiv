@@ -1614,6 +1614,7 @@ a.box-link, span.box-link
 .grey-icon {
     color: var(--button-color);
     cursor: pointer;
+    user-select: none;
 
     // Highlight on hover.  If .parent-highlight is set, also highlight if the parent
     // is hovered.
