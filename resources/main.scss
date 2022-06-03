@@ -1,7 +1,20 @@
 * { box-sizing: border-box; }
 html {
     overflow: hidden;
+
+    // This is a nasty one: when iOS's viewport-fit=cover is used to disable safe
+    // zones, height: 100% still uses the safe zone height, so windows are 20 pixels
+    // too short on iPads.  Only Apple would redefine the meaning of "100%".  To work
+    // around this we have to re-add the insets.  This is probably wrong on other mobile
+    // browsers, but iOS is the only one I've done any testing on so far.
+    --window-height: calc(100%);
+    --window-height: calc(100% + env(safe-area-inset-top) + env(safe-area-inset-bottom));
+    --window-width: calc(100%);
+    --window-width: calc(100% + env(safe-area-inset-left) + env(safe-area-inset-right));
+    height: var(--window-height);
+    width: var(--window-width);
 }
+
 body {
     font-family: "Helvetica Neue", arial, sans-serif;
 }
@@ -124,8 +137,8 @@ ul {
     position: absolute;
     top: 0;
     left: 0;
-    width: 100%;
-    height: 100%;
+    width: var(--window-width);
+    height: var(--window-height);
     user-select: none;
     cursor: pointer;
 }
@@ -175,8 +188,8 @@ textarea:focus, input:focus, a:focus {
     position: fixed;
     top: 0px;
     left: 0px;
-    width: 100%;
-    height: 100%;
+    width: var(--window-width);
+    height: var(--window-height);
     overflow: hidden;
     background-color: var(--main-background-color);
     background-image: var(--background-noise);
@@ -874,8 +887,8 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
 // .search-results is the main scroller.
 .search-screen {
     position: absolute;
-    width: 100%;
-    height: 100%;
+    width: var(--window-width);
+    height: var(--window-height);
     top: 0;
     left: 0;
     color: #fff;
