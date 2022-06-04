@@ -644,3 +644,40 @@ async def api_auth_login(info):
         'success': True,
         'token': token,
     }
+
+@reg('/auth/set-password')
+async def api_auth_set_password(info):
+    # When we're local we don't use authentication and the user points at a dummy.
+    # if info.request['is_local']
+    new_password = info.data.get('new_password')
+    username = info.data.get('username')
+
+    # If we're admin, see if a username was specified.
+    if info.user.is_admin and username:
+        user = info.manager.auth.get_user(username)
+        if not user:
+            raise misc.Error('not-found', f"User {username} doesn't exist")
+    else:
+        user = info.user
+    
+    if info.user.is_virtual:
+        # This is a dummy admin user for local access.  It isn't authenticated or stored
+        # to disk, so it doesn't make sense to edit its password.
+        assert info.request.get('is_localhost')
+        raise misc.Error('invalid-request', 'A username must be specified')
+
+    if not info.user.is_admin:
+        # Check old_password for non-admins.
+        old_password = info.data.get('old_password')
+        if not user.check_password(old_password):
+            raise misc.Error('access-denied', 'Incorrect password')
+
+    user.set_password(new_password)
+
+    if user.username == info.user.username:
+        # Invalidate login tokens for sessions other than this one.
+        user.clear_tokens(except_for=info.request['user_token'])
+
+    return {
+        'success': True,
+    }

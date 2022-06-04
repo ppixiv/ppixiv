@@ -36,11 +36,12 @@ def _check_auth(request):
     if from_localhost:
         if origin is None or origin.hostname in ('www.pixiv.net', '127.0.0.1'):
             log.debug('Request to localhost is admin')
-            request['user'] = auth.get_admin()
+            request['user'] = auth.get_local_user()
+            request['is_localhost'] = True
             return
 
     # Allow unauthenticated requests to the authentication interface.
-    if request.path.startswith('/api/auth/') or request.path == '/client/auth.html':
+    if request.path == '/api/auth/login' or request.path == '/client/auth.html':
         log.debug('Request to login API is guest')
         request['user'] = auth.get_guest()
         return
@@ -52,6 +53,7 @@ def _check_auth(request):
         if user is not None:
             log.debug(f'Request with token authed as {user.username}')
             request['user'] = user
+            request['user_token'] = auth_token
             return
 
     log.debug('Unauthenticated request')

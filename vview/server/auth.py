@@ -46,7 +46,7 @@ class Auth:
         """
         return self.get_user('guest')
 
-    def get_admin(self):
+    def get_local_user(self):
         """
         Return the admin user.
 
@@ -54,8 +54,9 @@ class Auth:
         user list and can't be modified.
         """
         user = {
-            'username': 'admin',
+            'username': 'local_admin',
             'admin': True,
+            'virtual': True,
         }
         return User(user, auth=self)
 
@@ -106,14 +107,16 @@ class User:
     def is_admin(self):
         return self.info.get('admin', False)
 
+    @property
+    def is_virtual(self):
+        return self.info.get('virtual', False)
+
     def set_password(self, password):
         salt = os.urandom(32).hex()
         hashed_password = hashlib.sha1((password + salt).encode('utf-8')).hexdigest()
         encoded_hashed_password = salt + '|' + hashed_password
         self.info['password'] = encoded_hashed_password
         self.auth.save()
-
-        return True
 
     def check_password(self, password):
         # If the user has no password, this is a guest account that doesn't require one.
