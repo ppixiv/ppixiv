@@ -12,14 +12,25 @@ ppixiv.recently_seen_illusts = class
 
     constructor()
     {
-        this.db = new key_storage("ppixiv-recent-illusts", { db_upgrade: this.db_upgrade });
-
         settings.register_change_callback("no_recent_history", this.update_from_settings);
         this.update_from_settings();
     }
 
+    get db()
+    {
+        // If we're not enabled, avoid creating the database in the first place if it doesn't
+        // already exist.
+        if(!this.enabled)
+            return null;
+
+        this._db = new key_storage("ppixiv-recent-illusts", { db_upgrade: this.db_upgrade });
+        return this._db;
+    }
+
     get enabled()
     {
+        // Temporarily (?) disabled due to Chrome bugs causing stuck processes
+        return false;
         return !settings.get("no_recent_history");
     }
 
@@ -42,13 +53,13 @@ ppixiv.recently_seen_illusts = class
     
     async add_illusts(media_ids)
     {
-        // Clean up old illusts.  We don't need to wait for this.
-        this.purge_old_illusts();
-
         // Stop if we're not enabled.
         if(!this.enabled)
             return;
-        
+
+        // Clean up old illusts.  We don't need to wait for this.
+        await this.purge_old_illusts();
+            
         let time = Date.now();
         let data = {};
         let idx = 0;
@@ -76,13 +87,12 @@ ppixiv.recently_seen_illusts = class
         await this.db.multi_set(data);
     }
 
-    async clear()
-    {
-    }
-
     // Return media_ids for recently viewed illusts, most recent first.
     async get_recent_media_ids()
     {
+        if(!this.enabled)
+            return [];
+
         return await this.db.db_op(async (db) => {
             let store = this.db.get_store(db);
             return await this.get_stored_illusts(store, "new");
@@ -92,6 +102,9 @@ ppixiv.recently_seen_illusts = class
     // Return thumbnail data for the given media IDs if we have it.
     async get_thumbnail_info(media_ids)
     {
+        if(!this.enabled)
+            return [];
+
         return await this.db.db_op(async (db) => {
             let store = this.db.get_store(db);
 
@@ -116,6 +129,9 @@ ppixiv.recently_seen_illusts = class
     // Clean up IDs that haven't been seen in a while.
     async purge_old_illusts()
     {
+        if(!this.enabled)
+            return;
+
         await this.db.db_op(async (db) => {
             let store = this.db.get_store(db);
 
@@ -147,6 +163,9 @@ ppixiv.recently_seen_illusts = class
     // Clear history.
     async clear()
     {
+        if(!this.enabled)
+            return [];
+
         return await this.db.clear();
     }
 }

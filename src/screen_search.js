@@ -708,7 +708,7 @@ ppixiv.screen_search = class extends ppixiv.screen
             { label: "Recommended users", url: "/discovery/users#ppixiv" },
             { label: "Completed requests", url: "/request/complete/illust#ppixiv" },
             { label: "Search users", url: "/search_user.php#ppixiv" },
-            { label: "Recent history", url: "/history.php#ppixiv", classes: ["recent-history-link"] },
+            // { label: "Recent history", url: "/history.php#ppixiv", classes: ["recent-history-link"] },
             { label: "Local search", url: `${local_api.path}#ppixiv/`, local: true, onclick: local_api.show_local_search },
         ];
 
@@ -2173,7 +2173,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         helpers.set_class(document.body, "disable-thumbnail-panning", settings.get("disable_thumbnail_panning"));
         helpers.set_class(document.body, "disable-thumbnail-zooming", settings.get("disable_thumbnail_zooming"));
         helpers.set_class(document.body, "ui-on-hover", settings.get("ui-on-hover"));
-        helpers.set_class(this.container.querySelector(".recent-history-link"), "disabled", !ppixiv.recently_seen_illusts.get().enabled);
+        // helpers.set_class(this.container.querySelector(".recent-history-link"), "disabled", !ppixiv.recently_seen_illusts.get().enabled);
         this.refresh_expand_manga_posts_button();
 
         // Flush the top UI transition, so it doesn't animate weirdly when toggling ui-on-hover.
