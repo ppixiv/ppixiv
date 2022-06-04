@@ -427,7 +427,8 @@ ppixiv.local_api = class
             else
                 title = `Untagged bookmarks`;
         }
-        else if(args.hash.has("bookmarks"))
+        // We always enable bookmark searching if that's all we're allowed to do.
+        else if(args.hash.has("bookmarks") || local_api.local_info.bookmark_tag_searches_only)
         {
             search_options.bookmarked = true;
             title = "Bookmarks";
@@ -517,5 +518,92 @@ ppixiv.local_api = class
         let args = new helpers.args("/", ppixiv.location);
         local_api.get_args_for_id(folder_id, args);
         helpers.set_page_url(args.url, true /* add to history */, "navigation");
+    }
+
+    // Load access info.  We always reload when this changes, eg. due to logging in
+    // or out, so we cache this at startup.
+    static async load_local_info()
+    {
+        if(ppixiv.local_api.local_url == null)
+            return;
+
+        this._cached_api_info = await local_api.local_post_request(`/api/info`);
+    }
+
+    static get local_info()
+    {
+        let info = this._cached_api_info;
+        if(ppixiv.local_api.local_url == null)
+            info = { success: false, code: "disabled" };
+            
+        return {
+            // True if the local API is enabled at all.
+            enabled: ppixiv.local_api.local_url != null,
+            
+            // True if we're running on localhost.  If we're local, we're always logged
+            // in and we won't show the login/logout buttons.
+            local: info.success && info.local,
+
+            // True if we're logged in as a non-guest user.
+            logged_in: info.success && info.username != "guest",
+
+            // True if we're logged out and guest access is disabled, so we need to log
+            // in to continue.
+            login_required: !info.success && info.code == 'access-denied',
+
+            // True if we can only do bookmark tag searches.
+            bookmark_tag_searches_only: info.tags != null,
+        }
+    }
+
+    // Return true if we're running on localhost.  If we're local, we're always logged
+    // in and we won't show the login/logout buttons.
+    static async is_local()
+    {
+        let info = await local_api.local_post_request(`/api/info`);
+        return info.local;
+    }
+
+    // Return true if we're logged out and guest access is disabled, so we need to log
+    // in to continue.
+    static async login_required()
+    {
+        // If we're not logged in and guest access is disabled, all API calls will
+        // fail with access-denied.  Call api/info to check this.
+        let info = await local_api.local_post_request(`/api/info`);
+        return !info.success && info.code == 'access-denied';
+    }
+
+    // Return true if we're logged in as a non-guest user.
+    static async logged_in()
+    {
+        let info = await local_api.local_post_request(`/api/info`);
+        console.log(info);
+        return info.success && info.username != "guest";
+    }
+
+    // Log out if we're logged in, and redirect to the login page.
+    static redirect_to_login()
+    {
+        //document.cookie = `auth_token=; max-age=0; path=/`;
+
+        let query = new URLSearchParams();
+        query.set("url", document.location.href);
+
+        let login_url = "/client/resources/auth.html?" + query.toString();
+        console.log(login_url);
+
+        // Replace the current history entry.  This pushes any history state to the
+        // login page.  It'll preserve it after logging in and redirecting back here,
+        // so we'll try to retain it.
+        window.history.replaceState(history.state, "", login_url.toString());
+        document.location.reload();
+    }
+
+    // Log out and reload the page.
+    static logout()
+    {
+        document.cookie = `auth_token=; max-age=0; path=/`;
+        document.location.reload();
     }
 }

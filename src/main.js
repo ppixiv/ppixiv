@@ -193,6 +193,17 @@ ppixiv.main_controller = class
             document.querySelector("head").appendChild(link);
         }
        
+        // If enabled, cache local info which tells us what we have access to.
+        await local_api.load_local_info();
+
+        // If login is required to do anything, no API calls will succeed.  Stop now and
+        // just redirect to login.  This is only for the local API.
+        if(local_api.local_info.enabled && local_api.local_info.login_required)
+        {
+            local_api.redirect_to_login();
+            return;
+        }
+
         // Create the page from our HTML resource.
         let font_link = document.createElement("link");
         font_link.href = "https://fonts.googleapis.com/icon?family=Material+Icons";

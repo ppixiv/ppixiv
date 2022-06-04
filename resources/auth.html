@@ -1,0 +1,152 @@
+<!doctype html>
+<body>
+
+<!--
+    This is just a trivial UI to handle logging in.  We don't have access to any
+    other files right now, so this is all baked into this one file.
+-->
+
+<style>
+    html {
+        height: 100%;
+        margin: 0 0;
+    }
+    body {
+        font-family: "Helvetica Neue", arial, sans-serif;
+        background-color: #222;
+        color: #fff;
+        font-size: 200%;
+        height: 100%;
+        margin: 0;
+    }
+
+    .content {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-items: center;
+    }
+    #login-form {
+        display: flex;
+        max-width: 20em;
+        flex-direction: column;
+        gap: 0.5em;
+        align-items: center;
+    }
+    input::placeholder {
+        color: #111;
+    }
+    input {
+        font-size: unset;
+        padding: 0.25em 0.5em;
+    }
+    input#submit {
+        padding: 0.25em 2em;
+        min-width: 75%;
+    }
+    #error {
+        margin: 1em 0;
+    }
+</style>
+
+<div class=content>
+    <div style="flex: 1;"></div>
+
+    <form id=login-form>
+        <input id=username type=text placeholder=Username required autofocus autocapitalize=off>
+        <input id=password type=password placeholder=Password required autocomplete=current-password>
+        <input type=submit id=submit value=Login>
+    </form>
+
+    <div style="flex: 1;"></div>
+    <div id=error hidden></div>
+</div>
+
+<script>
+async function post(path, data={})
+{
+    let response = await fetch(path, {
+        method: 'POST',
+        body: JSON.stringify(data, 4),
+    });
+    return await response.json();
+}
+
+// Check if we're already logged in (as a non-guest user).
+async function check_login()
+{
+    let result = await post("/api/info");
+    if(result.success && result.username != "guest")
+    {
+        console.log("Already logged in");
+        redirect_back();
+    }
+}
+
+function redirect_back()
+{
+    let query = new URLSearchParams(document.location.search);
+    let url = query.get('url');
+    let state = history.state;
+    if(url == null)
+    {
+        console.error("Return URL is missing");
+        url = new URL("/", document.location);
+        state = null;
+    }
+
+    // Replace this history entry to go back to the original page.  If the page
+    // had history state it preserved it when it redirected here, and we'll preserve
+    // it when going back.
+    history.replaceState(state, "", url);
+    document.location.reload();
+}
+
+// When the window gains focus, check if we were logged in in another tab.
+window.addEventListener("focus", async(e) => { await check_login(); });
+
+async function login(username, password)
+{
+    let result = await post("/api/auth/login", {
+        username, password
+    });
+
+    if(!result.success)
+    {
+        set_message(result.reason);
+        return;
+    }
+
+    // Save the token.
+    let token = result.token;
+    document.cookie = `auth_token=${token}; max-age=99999999; path=/`;
+    console.log(result.token);
+
+    // Redirect back to the original URL.
+    redirect_back();
+}
+
+function set_message(text)
+{
+    let error = document.querySelector("#error");
+    error.innerText = text;
+    error.hidden = text == null;
+}
+
+async function setup()
+{
+    let input_username = document.querySelector("#username");
+    let input_password = document.querySelector("#password");
+
+    document.querySelector("#submit").addEventListener("click", (e) => {
+        e.preventDefault();
+        login(input_username.value, input_password.value);
+    });
+
+    await check_login();
+}
+
+setup();
+
+</script>

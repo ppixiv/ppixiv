@@ -1,4 +1,4 @@
-import asyncio, aiohttp, io, os, math, hashlib, base64, urllib.parse
+import asyncio, aiohttp, io, os, math, hashlib, base64, logging, urllib.parse
 from aiohttp.web_fileresponse import FileResponse
 from datetime import datetime, timezone
 from PIL import Image
@@ -9,10 +9,31 @@ from ..util import misc, mjpeg_mkv_to_zip, gif_to_zip, inpainting, video
 from ..util.paths import open_path
 from ..util.tiff import remove_photoshop_tiff_data
 
+log = logging.getLogger(__name__)
+
 resource_path = (Path(__file__) / '../../../resources').resolve()
 blank_image = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=')
 
 max_thumbnail_pixels = 500*500
+
+def _check_access(request, absolute_path):
+    """
+    Check if the calling user has access to the given path.
+    """
+    # To check access, we need to load file info.  Doing this will cause it to be
+    # populated into the database.  As an optimization, skip this entirely if we
+    # have no tag restrictions (eg. we're admin), so we don't force every thumbnail
+    # to be populated.  If we have tag restrictions then we're normally only loading
+    # files that are already populated anyway, since we're only returning bookmarks.
+    user = request['user']
+    if user.is_admin or user.tag_list is None:
+        log.info('Skipping access check because there are no restrictions')
+        return
+
+    entry = request.app['manager'].library.get(absolute_path)
+
+    # Check that the user has access to this file.
+    user.check_image_access(entry, api=False)
 
 # Serve direct file requests.
 async def handle_file(request):
@@ -20,6 +41,8 @@ async def handle_file(request):
     convert_images = request.query.get('convert_images', '1') != '0'
 
     absolute_path = request.app['manager'].resolve_path(path)
+    _check_access(request, absolute_path)
+
     if not absolute_path.is_file():
         raise aiohttp.web.HTTPNotFound()
 
@@ -246,6 +269,7 @@ async def handle_tree_thumb(request):
 async def handle_thumb(request, mode='thumb'):
     path = request.match_info['path']
     absolute_path = request.app['manager'].resolve_path(path)
+    _check_access(request, absolute_path)
     if not request.app['manager'].check_path(absolute_path, request, throw=False):
         raise aiohttp.web.HTTPNotFound()
     

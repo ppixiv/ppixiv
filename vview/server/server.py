@@ -12,20 +12,72 @@ from . import api, thumbs, ui
 from ..util import misc
 from .manager import Manager
 
+log = logging.getLogger(__name__)
+
+def _check_auth(request):
+    auth = request.app['manager'].auth
+    request['user'] = auth.get_guest()
+
+    origin = request.headers.get('Origin') or request.headers.get('Referer')
+    if origin:
+        origin = urllib.parse.urlparse(origin)
+
+    # Check if this request is from localhost.  Don't use request.host, since that comes
+    # from the Host header.  If we were running behind a front-end server like nginx over
+    # a local forwarding port, we'd need to check request.forwarded instead, since all
+    # requests would be connections from localhost.
+    sock = request.get_extra_info('socket')
+    remote_addr = sock.getpeername()[0] if sock else None
+    from_localhost = remote_addr == '127.0.0.1'
+
+    # Allow unauthenticated requests on localhost if they come from the UI running
+    # on localhost, or if they're from the UI running on Pixiv.  These are requests
+    # on the local machine.
+    if from_localhost:
+        if origin is None or origin.hostname in ('www.pixiv.net', '127.0.0.1'):
+            log.debug('Request to localhost is admin')
+            request['user'] = auth.get_admin()
+            return
+
+    # Allow unauthenticated requests to the authentication interface.
+    if request.path.startswith('/api/auth/') or request.path == '/client/auth.html':
+        log.debug('Request to login API is guest')
+        request['user'] = auth.get_guest()
+        return
+
+    # Check if there's an authentication cookie.
+    auth_token = request.cookies.get('auth_token')
+    if auth_token is not None:
+        user = auth.check_token(auth_token)
+        if user is not None:
+            log.debug(f'Request with token authed as {user.username}')
+            request['user'] = user
+            return
+
+    log.debug('Unauthenticated request')
+    request['user'] = auth.get_guest()
+
 @web.middleware
 async def auth_middleware(request, handler):
-    # Allow requests from www.pixiv.net and our local client.
-    origin = request.headers.get('Origin') or request.headers.get('Referer')
-    if origin is not None:
-        origin_url = urllib.parse.urlparse(origin)
-        if origin_url.hostname not in ('www.pixiv.net', '127.0.0.1'):
+    # auth/login is the only API call we allow without any authentication.
+    if request.path == '/api/auth/login':
+        return await handler(request)
+
+    _check_auth(request)
+
+    # Allow the main page to load without authentication, as well as our static scripts and
+    # resources.
+    requires_auth = request.path != '/' and not request.path.startswith('/client/')
+    if requires_auth and request['user'] is None:
+        if request.path.startswith('/api/'):
+            result = { 'success': False, 'code': 'access-denied', 'reason': 'Authentication required' }
+            raise aiohttp.web.HTTPUnauthorized(body=json.dumps(result))
+        else:
             raise aiohttp.web.HTTPUnauthorized()
 
-    # We don't do much authentication, since we're running on localhost and can only receive
-    # requests from localhost.  The origin is checked by check_origin, so random sites can't
-    # make requests.  All we do here is set a flag if a request has an origin of localhost,
-    # which means it's from the local UI and not through Pixiv.  We only give access to /root
-    # to access non-mounted directories for the local UI.
+    # Set a flag if a request has an origin of localhost, which means it's from the local UI
+    # and not through Pixiv.  We only give access to /root to access non-mounted directories
+    # for the local UI.
     origin = request.headers.get('Origin') or request.headers.get('Referer')
     if origin is not None:
         origin_url = urllib.parse.urlparse(origin)
@@ -93,7 +145,7 @@ def create_handler_for_command(handler):
         message = 'OK'
         if not result.get('success'):
             status = 401
-            message = result.get('reason')
+            message = result.get('reason', 'Error message missing')
         return web.Response(body=data, status=status, reason=message, content_type='application/json')
 
     return handle
@@ -103,6 +155,7 @@ async def handle_unknown_api_call(info):
     return { 'success': False, 'code': 'invalid-request', 'reason': 'Invalid API: /api/%s' % name }
 
 logging.basicConfig(level=logging.INFO)
+logging.getLogger('vview').setLevel(logging.INFO)
 logging.captureWarnings(True)
 
 _running_requests = {}
@@ -165,16 +218,22 @@ class AccessLogger(AbstractAccessLogger):
     A more readable access log.
     """
     def __init__(self, *args):
-        self.logger = logging.getLogger('request')
+        self.logger = logging.getLogger('vview.request')
 
     def log(self, request, response, duration) -> None:
         path = urllib.parse.unquote(request.path_qs)
         start_time = time.time() - duration
-        self.logger.info('%f %i (%i): %s' % (start_time, response.status, response.body_length, path))
+        message = '%f %i (%i): %s' % (start_time, response.status, response.body_length, path)
+
+        # Log successful non-API requests at a lower level, so we don't spam for each
+        # thumbnail request.
+        if response.status == 200 and not path.startswith('/api/'):
+            self.logger.debug(message)
+        else:
+            self.logger.info(message)
 
 def run_server(*, set_main_task):
     web.run_app(setup(set_main_task=set_main_task),
-        host='localhost',
         port=8235,
         print=None,
         access_log_format='%t "%r" %s %b',

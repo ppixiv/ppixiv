@@ -27,6 +27,15 @@ let thumbnail_ui = class extends ppixiv.widget
                         <ppixiv-inline class="icon-button grey-icon" src="resources/pixiv-icon.svg"></ppixiv-inline>
                     </a>
 
+                    <!-- These login/logout buttons are only used by the local API. -->
+                    <div class="login-button popup grey-icon" data-popup="Login" style="margin-right: -2px;" hidden>
+                        <span class="material-icons" style="vertical-align: middle;">login</span>
+                    </div>
+
+                    <div class="logout-button popup grey-icon" data-popup="Logout" style="margin-right: -2px;" hidden>
+                        <span class="material-icons" style="vertical-align: middle;">logout</span>
+                    </div>
+
                     <!-- Containing block for :hover highlights on the button: -->
                     <div class=pixiv-only>
                         <div class="grey-icon icon-button popup-menu-box-button popup parent-highlight" data-popup="Search">
@@ -335,6 +344,7 @@ let thumbnail_ui = class extends ppixiv.widget
                             <span class="material-icons">content_copy</span>
                         </span>
 
+                        ${ helpers.create_box_link({popup: "Close search", icon: "exit_to_app",  classes: ["clear-local-search"] }) }
                         ${ helpers.create_box_link({label: "Bookmarks",           popup: "Show bookmarks",                       data_type: "local-bookmarks-only" }) }
 
                         <div class=local-bookmark-tags-box>
@@ -473,6 +483,16 @@ ppixiv.screen_search = class extends ppixiv.screen
             this.toggle_expanding_media_ids_by_default();
         });
 
+        // Set up login/logout buttons for native.
+        if(ppixiv.native)
+        {
+            let { logged_in, local } = local_api.local_info;
+            this.container.querySelector(".login-button").hidden = local || logged_in;
+            this.container.querySelector(".logout-button").hidden = local || !logged_in;
+            this.container.querySelector(".login-button").addEventListener("click", () => { local_api.redirect_to_login(); });
+            this.container.querySelector(".logout-button").addEventListener("click", () => { local_api.logout(); });
+        }
+
         // Handle quick view.
         new ppixiv.pointer_listener({
             element: this.container.querySelector(".thumbnails"),
@@ -561,15 +581,33 @@ ppixiv.screen_search = class extends ppixiv.screen
         // The search history dropdown for local searches.
         new local_search_box_widget({ contents: this.container.querySelector(".local-tag-search-box") });
         
-        new close_search_widget({
-            parent: this,
-            container: this.container.querySelector(".local-navigation-box"),
+        // If the local API is enabled and tags aren't restricted, set up the directory tree sidebar.
+        let local_nav_box = this.container.querySelector(".local-navigation-box");
+
+        this.clear_local_search_button = this.container.querySelector(".clear-local-search");
+        this.clear_local_search_button.addEventListener("click", (e) => {
+            // Get the URL for the current folder and set it to a new URL, so it removes search
+            // parameters.
+            let media_id = local_api.get_local_id_from_args(helpers.args.location, { get_folder: true });
+            let args = new helpers.args("/", ppixiv.location);
+            local_api.get_args_for_id(media_id, args);
+            helpers.set_page_url(args, true, "navigation");
         });
-        this.local_nav_widget = new ppixiv.local_navigation_widget({
-            parent: this,
-            container: this.container.querySelector(".local-navigation-box"),
-        });
-    
+            
+        if(!local_api.local_info.bookmark_tag_searches_only)
+        {
+            this.local_nav_widget = new ppixiv.local_navigation_widget({
+                parent: this,
+                container: local_nav_box,
+            });
+        }
+        else
+        {
+            // dataset.disabled does the same thing as setting hidden, but avoids conflicting
+            // with data-datasource.
+            local_nav_box.dataset.disabled = true;
+        }
+
         this.container.querySelector(".copy-local-path").addEventListener("click", (e) => {
             this.data_source.copy_link();
         });

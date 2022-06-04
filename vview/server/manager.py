@@ -2,12 +2,10 @@ import asyncio, os, time
 from pathlib import Path, PurePosixPath
 from collections import OrderedDict, namedtuple
 
+from .auth import Auth
 from ..util import misc
 from ..util.paths import open_path, PathBase
 from .library import Library
-
-_library_paths = {
-}
 
 class Manager:
     """
@@ -32,6 +30,7 @@ class Manager:
         self.data_dir = data_dir
         self.data_dir.mkdir()
 
+        self.auth = Auth(self.data_dir / 'settings.json')
         self.library = Library(self.data_dir)
 
         app.on_shutdown.append(self.shutdown)
@@ -43,8 +42,10 @@ class Manager:
         
     async def init(self):
         print('Initializing libraries...')
+        for folder in self.auth.data.get('folders', []):
+            name = folder.get('name')
+            path = folder.get('path')
 
-        for name, path in _library_paths.items():
             path = Path(path)
             path = path.resolve()
             if not path.exists():

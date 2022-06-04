@@ -1,10 +1,12 @@
-import os, urllib, uuid, time, asyncio, json, traceback
+import os, urllib, uuid, time, asyncio, json, logging, traceback
 from datetime import datetime, timezone
 from pprint import pprint
 from collections import defaultdict
 from pathlib import PurePosixPath
 
 from ..util import misc, inpainting
+
+log = logging.getLogger(__name__)
 
 handlers = {}
 
@@ -20,11 +22,19 @@ def set_scheme(illust_id, type):
     rest = illust_id.split(':', 1)[1]
     return '%s:%s' % (type, rest)
 
-def reg(command):
-    def wrapper(func):
-        handlers[command] = func
-        return func
-    return wrapper
+def reg(command, *, allow_guest=False):
+    def decorator(func):
+        def wrapper(info):
+            # If we have a user, check that he's allowed to run this command.  The only time
+            # info.user isn't set is if the command doesn't require authentication at all,
+            # which is only auth/login.
+            if info.user:
+                info.user.check_auth(allow_guest=allow_guest)
+            return func(info)
+
+        handlers[command] = wrapper
+        return wrapper
+    return decorator
 
 class RequestInfo:
     def __init__(self, request, data, base_url):
@@ -32,6 +42,7 @@ class RequestInfo:
         self.data = data
         self.base_url = base_url
         self.manager = request.app['manager']
+        self.user = request.get('user')
 
 def _get_id_for_entry(manager, entry):
     public_path = manager.library.get_public_path(entry['path'])
@@ -202,14 +213,18 @@ async def api_bookmark_delete(info):
 
     return { 'success': True }
 
-@reg('/bookmark/tags')
+@reg('/bookmark/tags', allow_guest=True)
 async def api_bookmark_tags(info):
     """
     Return a dictionary of the user's bookmark tags and the number of
     bookmarks for each tag.
     """
+    allowed_tags = info.user.tag_list
+
     results = defaultdict(int)
     for key, count in info.manager.library.get_all_bookmark_tags().items():
+        if allowed_tags and key not in allowed_tags:
+            continue
         results[key] += count
 
     return {
@@ -239,7 +254,7 @@ async def api_bookmark_add(info):
     return { 'success': True, 'media_ids': media_ids }
 
 # Return info about a single file.
-@reg('/illust/{type:[^:]+}:{path:.+}')
+@reg('/illust/{type:[^:]+}:{path:.+}', allow_guest=True)
 async def api_illust(info):
     path = PurePosixPath(info.request.match_info['path'])
     generate_inpaint = info.data.get('generate_inpaint', True)
@@ -278,9 +293,12 @@ async def api_illust(info):
     
 async def _get_api_illust_info(info, media_id, *, generate_inpaint=False):
     absolute_path = info.manager.resolve_path(media_id)
-    entry = info.manager.library.get(absolute_path)
+    entry = info.manager.library.get(absolute_path, force_refresh=True)
     if entry is None:
         raise misc.Error('not-found', 'File not in library')
+
+    # Check that the user has access to this file.
+    info.user.check_image_access(entry, api=True)
 
     illust_info = get_illust_info(info, entry, info.base_url)
     if illust_info is None:
@@ -339,7 +357,7 @@ def api_ids_impl(info):
 
     return illust_ids
 
-@reg('/list/{type:[^:]+}:{path:.+}')
+@reg('/list/{type:[^:]+}:{path:.+}', allow_guest=True)
 async def api_list(info):
     """
     /list returns files and folders inside a folder.
@@ -469,6 +487,25 @@ def api_list_impl(info):
         'aspect_ratio': get_range_parameter('aspect_ratio'),
     }
 
+    # If the logged in user has a restricted set of tags, apply them to bookmark_tags.
+    allowed_tags = info.user.tag_list
+    if allowed_tags is not None:
+        search_options['bookmarked'] = True
+        if search_options['bookmark_tags'] is None:
+            # Add the allowed tags.
+            tags = allowed_tags
+        else:
+            # Limit the seaerch to allowed tags.
+            tags = search_options['bookmark_tags'].split(' ')
+            tags = set(tags) & set(allowed_tags)
+
+            # If there are no tags remaining, don't leave the tag list empty, since that'll
+            # search for untagged files.
+            if not tags:
+                raise misc.Error('not-found', f'No permitted tags in: {search_options["bookmark_tags"]}')
+
+        search_options['bookmark_tags'] = ' '.join(tags)
+
     sort_order = info.data.get('order', 'normal')
     if not sort_order:
         sort_order = 'normal'
@@ -480,8 +517,13 @@ def api_list_impl(info):
             del search_options[key]
 
     # If true, this request is for the tree sidebar.  Don't include files, so we can scan
-    # more quickly, and return all results instead of paginating.
+    # more quickly, and return all results instead of paginating.  If this user's tags are
+    # restricted, don't return any data for the directory list.
     directories_only = int(info.data.get('directories_only', False))
+    if directories_only and info.user.tag_list is not None:
+        log.info('No directory info for guest')
+        yield { 'success': True, 'results': [], 'note': 'No directories returned for restricted user' }
+        return
 
     file_info = []
     def flush(*, last):
@@ -566,4 +608,39 @@ async def api_edit_inpainting(info):
     return {
         'success': True,
         'illust': illust_info,
+    }
+
+# Send basic info to the client.
+@reg('/info', allow_guest=True)
+async def api_info(info):
+    tag_list = info.user.tag_list
+    if tag_list is not None:
+        tag_list = sorted(list(tag_list))
+
+    return {
+        'success': True,
+        'username': info.user.username,
+        'tags': tag_list,
+        'admin': info.user.is_admin,
+        'local': info.request['is_local'],
+    }
+
+@reg('/auth/login', allow_guest=True)
+async def api_auth_login(info):
+    username = info.data.get('username')
+    password = info.data.get('password')
+
+    auth = info.manager.auth
+    user = auth.get_user(username)
+    if user is None:
+        raise misc.Error('access-denied', 'Incorrect username or password')
+
+    if not user.check_password(password):
+        raise misc.Error('access-denied', 'Incorrect username or password')
+    
+    token = user.create_token()
+
+    return {
+        'success': True,
+        'token': token,
     }

@@ -519,9 +519,11 @@ class FileIndex(Database):
                     ''')
 
                     # Add each tag.
+                    tag_match = []
                     for tag in bookmark_tags.split(' '):
-                        where.append(f'lower({schema}bookmark_tags.tag) = lower(?)')
+                        tag_match.append(f'lower({schema}bookmark_tags.tag) = lower(?)')
                         params.append(tag)
+                    where.append('(' + ' OR '.join(tag_match) + ')')
         
         if substr:
             for word_idx, word in enumerate(self.split_keywords(substr)):

@@ -942,6 +942,11 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
             color: #bbb;
         }
 
+        // Flip the icon to point to the left.
+        .clear-local-search .icon {
+            transform: scale(-1, 1);
+        }
+
         .user-links {
             .default-icon {
                 transform: translate(0, 2px);
@@ -2558,7 +2563,8 @@ svg.heart-image .delete {
 
     // Not sure if this is worth bothering with.  Switching to position: fixed breaks the block
     // out so it doesn't affect layout, then shift and fade.
-    &[hidden] {
+    &[hidden],
+    &[data-disabled] {
         display: block !important;
         opacity: 0;
         pointer-events: none;
@@ -2750,16 +2756,6 @@ svg.heart-image .delete {
                 color: #ffaaaa;
             }
         }
-    }
-}
-
-.close-local-search
-{
-    padding: 0.5em;
-
-    // Flip the icon to point to the left.
-    .material-icons {
-        transform: scale(-1, 1);
     }
 }
 

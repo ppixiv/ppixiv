@@ -3784,7 +3784,10 @@ ppixiv.data_sources.vview = class extends data_source
         // files better: if you load a random file in a big directory and then back out to
         // the search, we can show the file you were on instead of going back to the top.
         // screen_search will load media info as needed when they're actually displayed.
-        if(search_options == null)
+        //
+        // If we have access restrictions (eg. we're guest and can only access certain tags),
+        // this API is disabled, since all listings are bookmark searches.
+        if(search_options == null && !local_api.local_info.bookmark_tag_searches_only)
         {
             console.log("Loading folder contents:", folder_id);
             let result_ids = await local_api.local_post_request(`/api/ids/${folder_id}`, {
@@ -3796,7 +3799,7 @@ ppixiv.data_sources.vview = class extends data_source
             if(!result_ids.success)
             {
                 message_widget.singleton.show("Error reading directory: " + result_ids.reason);
-                return result;
+                return;
             }
     
             this.reached_end = true;
@@ -3933,6 +3936,13 @@ ppixiv.data_sources.vview = class extends data_source
             }
         });
 
+        let clear_local_search_button = container.querySelector(".clear-local-search");
+        let search_active = local_api.get_search_options_for_args(helpers.args.location).search_options != null;
+        helpers.set_class(clear_local_search_button, "disabled", !search_active);
+
+        // If we're only allowed to do bookmark searches, hide the bookmark search button.
+        container.querySelector('[data-type="local-bookmarks-only"]').hidden = local_api.local_info.bookmark_tag_searches_only;
+
         this.set_item2(container, { type: "local-type-all", fields: {"#type": null}, current_url: current_args.url });
         this.set_item2(container, { type: "local-type-videos", fields: {"#type": "videos"}, current_url: current_args.url });
         this.set_item2(container, { type: "local-type-images", fields: {"#type": "images"}, current_url: current_args.url });
@@ -3956,6 +3966,13 @@ ppixiv.data_sources.vview = class extends data_source
         this.set_active_popup_highlight(container);
     }
 
+    // We're doing a bookmark search if the bookmark filter is enabled, or if
+    // we're restricted to listing tagged bookmarks.
+    get bookmark_search_active()
+    {
+        return helpers.args.location.hash.has("bookmarks") || local_api.local_info.bookmark_tag_searches_only;
+    }
+
     refresh_bookmark_tag_list(container)
     {
         // Clear the tag list.
@@ -3964,7 +3981,7 @@ ppixiv.data_sources.vview = class extends data_source
             tag.remove();
 
         // Hide the bookmark box if we're not showing bookmarks.
-        container.querySelector(".local-bookmark-tags-box").hidden = !helpers.args.location.hash.has("bookmarks");
+        container.querySelector(".local-bookmark-tags-box").hidden = !this.bookmark_search_active;
 
         // Stop if we don't have the tag list yet.
         if(this.bookmark_tag_counts == null)
@@ -4034,7 +4051,7 @@ ppixiv.data_sources.vview = class extends data_source
         this.fetched_bookmark_tag_counts = true;
 
         // We don't need to do this if we're not showing bookmarks.
-        if(!helpers.args.location.hash.has("bookmarks"))
+        if(!this.bookmark_search_active)
             return;
 
         let result = await local_api.local_post_request(`/api/bookmark/tags`);
