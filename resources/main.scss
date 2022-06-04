@@ -901,9 +901,12 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
 .search-results {
     .thumbnail-ui-box-container {
         width: 50%;
-        /* Make sure this doesn't get too narrow, or it'll overlap too much of the thumbnail area. */
-        min-width: 800px;
+
+        // Make sure this doesn't get too narrow, or it'll overlap too much of the thumbnail area.
+        min-width: calc(min(800px, 100%));
+        padding: 0 15px;
     }
+
     .thumbnail-ui-box {
         width: 100%;
         background-color: var(--ui-bg-color);
@@ -2614,7 +2617,7 @@ svg.heart-image .delete {
     .content {
         width: 80%;
         min-height: 30em;
-        min-width: 800px;
+        min-width: calc(min(800px, 95%));
         padding: 1em;
 
         & .box {
