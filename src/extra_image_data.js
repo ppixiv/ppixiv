@@ -95,18 +95,34 @@ ppixiv.extra_image_data = class
         if(this.db == null)
             return {};
 
-        let promises = {};
-        for(let illust_id of illust_ids)
-            promises[illust_id] = this.load_all_pages_for_illust(illust_id);
+        return await this.db.db_op(async (db) => {
+            let store = this.db.get_store(db);
+            let index = store.index("illust_id");
 
-        return await helpers.await_map(promises);
+            let promises = {};
+            for(let illust_id of illust_ids)
+            {
+                let query = IDBKeyRange.only(illust_id);
+                let cursor = index.openCursor(query);
+                promises[illust_id] = (async() => {
+                    let results = {};
+                    for await (let entry of cursor)
+                    {
+                        let media_id = entry.primaryKey;
+                        results[media_id] = entry.value;
+                    }
+                    return results;
+                })();
+            }
+
+            return await helpers.await_map(promises);
+        });
     }
 
     // Return the media ID of all illust IDs.
     //
     // Note that we don't use an async iterator for this, since it might not be closed
     // until it's GC'd and we need to close the database consistently.
-    // for a long time 
     async get_all_edited_images({sort="time"}={})
     {
         console.assert(sort == "time" || sort == "id");
