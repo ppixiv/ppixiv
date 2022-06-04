@@ -79,9 +79,10 @@ async def auth_middleware(request, handler):
 
     # Set a flag if a request has an origin of localhost, which means it's from the local UI
     # and not through Pixiv.  We only give access to /root to access non-mounted directories
-    # for the local UI.
+    # for the local UI.  This is also limited to localhost, since any non-browser client can
+    # set an arbitrary origin.
     origin = request.headers.get('Origin') or request.headers.get('Referer')
-    if origin is not None:
+    if origin is not None and request.get('is_localhost'):
         origin_url = urllib.parse.urlparse(origin)
         request['is_local'] = origin_url.hostname == '127.0.0.1'
     else:
