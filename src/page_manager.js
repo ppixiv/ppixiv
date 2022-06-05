@@ -167,8 +167,11 @@ ppixiv.page_manager = class
             return this.data_sources_by_canonical_url[canonical_url];
         }
         
-        // console.log(`Creating new data source for ${canonical_url}`);
-        let source = new data_source_class(canonical_url);
+        // The search page isn't part of the canonical URL, but keep it in the URL we create
+        // the data source with, so it starts at the current page.
+        let base_url = data_source_class.get_canonical_url(url, { remove_search_page: false });
+        let source = new data_source_class(base_url);
+
         this.data_sources_by_canonical_url[canonical_url] = source;
         return source;
     }
@@ -289,7 +292,7 @@ ppixiv.page_manager = class
         }
         
         // Don't include things like the current page in the URL.
-        url = data_source.remove_ignored_url_parts(url);
+        url = data_source.get_canonical_url(url);
         
         return url;
     }

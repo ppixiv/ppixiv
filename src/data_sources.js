@@ -333,34 +333,25 @@ ppixiv.data_source = class
     // However, some parts of the URL don't cause a new data source to be used.  Return
     // a URL with all unrelated parts removed, and with query and hash parameters sorted
     // alphabetically.
-    static get_canonical_url(url)
+    static get_canonical_url(url, {
+        // The search page doesn't affect the data source.  Set this to false to leave it
+        // in the URL anyway.
+        remove_search_page=true
+    }={})
     {
         // Make a copy of the URL.
         var url = new URL(url);
-        url = this.remove_ignored_url_parts(url);
 
         // Remove /en from the URL if it's present.
         url = helpers.get_url_without_language(url);
 
-        // Sort query parameters.  We don't use multiple parameters with the same key.
-        url.search = helpers.sort_query_parameters(url.searchParams).toString();
-
         let args = new helpers.args(url);
 
-        // Sort hash parameters.
-        args.hash = helpers.sort_query_parameters(args.hash);
-
-        return args.url.toString();
-    }
-
-    // This is overridden by subclasses to remove parts of the URL that don't affect
-    // which data source instance is used.
-    static remove_ignored_url_parts(url)
-    {
-        let args = new helpers.args(url);
-
+        // Remove parts of the URL that don't affect which data source instance is used.
+        //
         // If p=1 is in the query, it's the page number, which doesn't affect the data source.
-        args.query.delete("p");
+        if(remove_search_page)
+            args.query.delete("p");
 
         // The manga page doesn't affect the data source.
         args.hash.delete("page");
@@ -386,7 +377,11 @@ ppixiv.data_source = class
         // slideshow is used by the viewer and doesn't affect the data source.
         args.hash.delete("slideshow");
 
-        return args.url;
+        // Sort query and hash parameters.
+        args.query = helpers.sort_query_parameters(args.query);
+        args.hash = helpers.sort_query_parameters(args.hash);
+
+        return args.url.toString();
     }
 
     // startup() is called when the data source becomes active, and shutdown is called when
