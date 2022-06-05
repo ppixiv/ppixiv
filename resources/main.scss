@@ -1,7 +1,9 @@
 * { box-sizing: border-box; }
 html {
-    overflow: hidden;
-
+    // For scrolling to work cleanly on iOS, we need the main scroller to be at the
+    // top and not inside an absolute element, or else it gets confused and scrolling
+    // randomly gets stuck.
+    //
     // This is a nasty one: when iOS's viewport-fit=cover is used to disable safe
     // zones, height: 100% still uses the safe zone height, so windows are 20 pixels
     // too short on iPads.  Only Apple would redefine the meaning of "100%".  To work
@@ -13,10 +15,15 @@ html {
     --window-width: calc(100% + env(safe-area-inset-left) + env(safe-area-inset-right));
     height: var(--window-height);
     width: var(--window-width);
+
+    background-color: var(--main-background-color);
+    background-image: var(--background-noise);
 }
 
 body {
     font-family: "Helvetica Neue", arial, sans-serif;
+    margin: 0;
+    color: #fff;
 }
 
 a {
@@ -26,7 +33,7 @@ a {
 }
 
 /* Theme colors: */
-body {
+html {
     --main-background-color: #000;
     --background-noise: var(--dark-noise);
 
@@ -74,7 +81,7 @@ body {
     --like-button-hover-color: #fff;
 }
 
-body[data-theme="dark"]
+html[data-theme="dark"]
 {
     // Disable the lighter background noise when displaying an image.
     &[data-current-view="illust"] {
@@ -83,7 +90,7 @@ body[data-theme="dark"]
 }
 
 
-body[data-theme="light"] {
+html[data-theme="light"] {
     --main-background-color: #fff;
     --background-noise: var(--light-noise);
 
@@ -129,16 +136,20 @@ ul {
     outline: none;
 }
 .screen-illust-container {
-    width: 100%;
-    height: 100%;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: var(--window-width);
+    height: var(--window-height);
+    overflow: hidden;
 }
 
 .view-container {
     position: absolute;
     top: 0;
     left: 0;
-    width: var(--window-width);
-    height: var(--window-height);
+    width: 100%;
+    height: 100%;
     user-select: none;
     cursor: pointer;
 }
@@ -185,14 +196,12 @@ textarea:focus, input:focus, a:focus {
 }
 
 .main-container {
-    position: fixed;
+    position: absolute;
     top: 0px;
     left: 0px;
     width: var(--window-width);
     height: var(--window-height);
     overflow: hidden;
-    background-color: var(--main-background-color);
-    background-image: var(--background-noise);
 }
 .progress-bar {
     position: absolute;
@@ -881,35 +890,12 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
     height: 30px;
 }
 
-// Search result views.  This is used for both the search view and the manga page list.
-// .search-results is the main scroller.
-.search-screen {
-    position: absolute;
-    width: var(--window-width);
-    height: var(--window-height);
-    top: 0;
-    left: 0;
-    color: #fff;
-    display: flex;
-    flex-direction: row;
-
+.screen-search-container {
     .search-results {
-        position: relative;
-        width: 100%;
-        height: 100%;
-
-        overflow-x: hidden;
-
-        // Always show the vertical scrollbar, so we don't relayout as images load.
-        overflow-y: scroll;
-
-        &:focus {
-            outline: none;
-        }
+        // If the nav box is open, shift the search results to make room for it.
+        margin-left: var(--navigation-box-reserved-width);
     }
-}
 
-.search-results {
     .thumbnail-ui-box-container {
         width: 50%;
 
@@ -1833,6 +1819,7 @@ a.box-link, span.box-link
 .popup-context-menu {
     color: #fff;
     position: fixed;
+    z-index: 1;
     top: 100px;
     left: 350px;
     text-align: left;
@@ -2562,10 +2549,21 @@ svg.heart-image .delete {
     }
 }
 
+.screen-search-container {
+    --navigation-box-width: 25%;
+    --navigation-box-reserved-width: var(--navigation-box-width); 
+
+    // If we're not showing navigation, don't reserve space for it.  Don't change the actual
+    // nav box's size, so we can transition it in and out cleanly.
+    &:not([data-show-navigation]) { --navigation-box-reserved-width: 0%; }
+}
+
 .local-navigation-box {
-    height: 100%;
-    width: 25%;
-    flex-shrink: 0;
+    height: 100vh;
+    width: var(--navigation-box-width);
+    position: fixed;
+    top: 0;
+    left: 0;
     background-color: #111;
     border-right: solid 1px #444;
     padding-top: 0.5em;
@@ -2575,14 +2573,9 @@ svg.heart-image .delete {
     display: flex;
     flex-direction: column;
 
-    // Not sure if this is worth bothering with.  Switching to position: fixed breaks the block
-    // out so it doesn't affect layout, then shift and fade.
-    &[hidden],
-    &[data-disabled] {
-        display: block !important;
+    .screen-search-container:not([data-show-navigation]) & {
         opacity: 0;
         pointer-events: none;
-        position: fixed;
         transform: translate(-50%, 0);
     }
 }

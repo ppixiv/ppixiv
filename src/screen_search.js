@@ -387,11 +387,12 @@ ppixiv.screen_search = class extends ppixiv.screen
     constructor(options)
     {
         super({...options, template: `
-            <div class="screen screen-search-container search-screen">
+            <div class="screen screen-search-container search-screen"  tabindex=-1>
                 <!-- The tree widget for local navigation: -->
-                <div class="local-navigation-box data-source-specific" data-datasource=vview hidden></div>
+                <div class=local-navigation-box></div>
 
-                <div class="search-results" data-context-menu-target tabindex=-1>
+                <div class="search-results">
+
                     <div class="thumbnail-ui top-ui-box">
                         <div style="flex: 1;"></div>
                         <div class=thumbnail-ui-box-container></div>
@@ -404,7 +405,7 @@ ppixiv.screen_search = class extends ppixiv.screen
                         <div class=message>No results</div>
                     </div>
 
-                    <div class=thumbnail-container-box>
+                    <div class=thumbnail-container-box data-context-menu-target>
                         <div class=thumbnails></div>
                     </div>
                 </div>
@@ -412,7 +413,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         `});
 
         
-        this.scroll_container = this.container.querySelector(".search-results");
+        this.scroll_container = this.container;
         this.expanded_media_ids = new Map();
 
         window.addEventListener("thumbnailsloaded", this.thumbs_loaded);
@@ -593,7 +594,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         new local_search_box_widget({ contents: this.container.querySelector(".local-tag-search-box") });
         
         // If the local API is enabled and tags aren't restricted, set up the directory tree sidebar.
-        let local_nav_box = this.container.querySelector(".local-navigation-box");
+        let local_navigation_box = this.container.querySelector(".local-navigation-box");
 
         this.clear_local_search_button = this.container.querySelector(".clear-local-search");
         this.clear_local_search_button.addEventListener("click", (e) => {
@@ -609,14 +610,8 @@ ppixiv.screen_search = class extends ppixiv.screen
         {
             this.local_nav_widget = new ppixiv.local_navigation_widget({
                 parent: this,
-                container: local_nav_box,
+                container: local_navigation_box,
             });
-        }
-        else
-        {
-            // dataset.disabled does the same thing as setting hidden, but avoids conflicting
-            // with data-datasource.
-            local_nav_box.dataset.disabled = true;
         }
 
         this.container.querySelector(".copy-local-path").addEventListener("click", (e) => {
@@ -637,7 +632,7 @@ ppixiv.screen_search = class extends ppixiv.screen
             this.load_data_source_page();
             this.first_visible_thumbs_changed();
         }, {
-            root: this.scroll_container,
+            root: document,
             threshold: 1,
         }));
         
@@ -663,10 +658,10 @@ ppixiv.screen_search = class extends ppixiv.screen
             this.set_visible_thumbs();
             this.load_data_source_page();
         }, {
-            root: this.scroll_container,
+            root: document,
 
             // This margin determines how far in advance we load the next page of results.
-            rootMargin: "50%",
+            rootMargin: "150%",
         }));
 
         this.intersection_observers.push(new IntersectionObserver((entries) => {
@@ -675,7 +670,7 @@ ppixiv.screen_search = class extends ppixiv.screen
             
             this.visible_thumbs_changed();
         }, {
-            root: this.scroll_container,
+            root: document,
             rootMargin: "0%",
         }));
         
@@ -907,6 +902,10 @@ ppixiv.screen_search = class extends ppixiv.screen
 
         // Cancel any async scroll restoration if the data source changes.
         this.cancel_restore_scroll_pos();
+
+        // Refresh whether we're showing the local navigation widget.
+        let local_search_active = this.data_source?.name == "vview" && !local_api?.local_info?.bookmark_tag_searches_only;
+        helpers.set_dataset(this.container.dataset, "showNavigation", local_search_active);
 
         if(this.data_source == null)
             return;
@@ -1309,7 +1308,7 @@ ppixiv.screen_search = class extends ppixiv.screen
             // and cause them to be closed.
             let focus = document.querySelector(":focus");
             if(focus == null)
-                this.container.querySelector(".search-results").focus();
+                this.scroll_container.focus();
             else
                 console.log("Already focused:", focus);
         }

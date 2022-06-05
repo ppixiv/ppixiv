@@ -180,7 +180,7 @@ ppixiv.main_controller = class
 
         // Add the blobs for binary resources as CSS variables.
         helpers.add_style("image-styles", `
-            body {
+            html {
                 --dark-noise: url("${resources['resources/noise.png']}");
             }
         `);
@@ -235,8 +235,8 @@ ppixiv.main_controller = class
         this.progress_bar = new progress_bar({ container: this.container });
         
         // Create the screens.
-        this.screen_search = new screen_search({ container: this.container.querySelector(".main-container") });
-        this.screen_illust = new screen_illust({ container: this.container.querySelector(".main-container") });
+        this.screen_search = new screen_search({ container: document.body });
+        this.screen_illust = new screen_illust({ container: document.body });
 
         this.screens = {
             search: this.screen_search,
