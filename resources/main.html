@@ -2,48 +2,4 @@
     <div class=loading-progress-bar></div>
 
     <!-- main_ui: -->
-    <div class="screen screen-illust-container">
-        <!-- Mouse movement is detected inside this box.  Anything outside of it will
-             be unaffected by mouse hiding. -->
-        <div class=mouse-hidden-box>
-            <div class=view-container data-context-menu-target></div>
-
-            <div class=page-change-indicator data-icon=last-image>
-                <ppixiv-inline src="resources/last-page.svg"></ppixiv-inline>
-            </div>
-        </div>
-
-        <!-- The top-left hover UI is inserted here. -->
-        <div class=ui>
-            <div class=hover-sphere>
-                <svg viewBox="0 0 1 1" preserveAspectRatio="none">
-                    <circle class=hover-circle cx="0.5" cy="0.5" r=".5" fill-opacity="0" />
-                </svg>
-            </div>
-        </div>
-    </div>
-
-    <!-- screen_search: -->
-    <div class="screen screen-search-container search-screen">
-        <!-- The tree widget for local navigation: -->
-        <div class="local-navigation-box data-source-specific" data-datasource=vview hidden></div>
-
-        <div class="search-results" data-context-menu-target tabindex=-1>
-            <div class="thumbnail-ui top-ui-box">
-                <div style="flex: 1;"></div>
-                <div class=thumbnail-ui-box-container></div>
-                <div style="flex: 1;"></div>
-            </div>
-
-            <div class="top-ui-box-padding"></div>
-
-            <div class=no-results hidden>
-                <div class=message>No results</div>
-            </div>
-
-            <div class=thumbnail-container-box>
-                <div class=thumbnails></div>
-            </div>
-        </div>
-    </div>
 </div>

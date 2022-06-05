@@ -5,7 +5,28 @@ ppixiv.screen_illust = class extends ppixiv.screen
 {
     constructor(options)
     {
-        super(options);
+        super({...options, template: `
+            <div class="screen screen-illust-container">
+                <!-- Mouse movement is detected inside this box.  Anything outside of it will
+                    be unaffected by mouse hiding. -->
+                <div class=mouse-hidden-box>
+                    <div class=view-container data-context-menu-target></div>
+
+                    <div class=page-change-indicator data-icon=last-image>
+                        <ppixiv-inline src="resources/last-page.svg"></ppixiv-inline>
+                    </div>
+                </div>
+
+                <!-- The top-left hover UI is inserted here. -->
+                <div class=ui>
+                    <div class=hover-sphere>
+                        <svg viewBox="0 0 1 1" preserveAspectRatio="none">
+                            <circle class=hover-circle cx="0.5" cy="0.5" r=".5" fill-opacity="0" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        `});
         
         this.current_media_id = null;
         this.latest_navigation_direction_down = true;

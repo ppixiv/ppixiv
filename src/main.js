@@ -235,8 +235,8 @@ ppixiv.main_controller = class
         this.progress_bar = new progress_bar(this.container.querySelector(".loading-progress-bar"));
         
         // Create the screens.
-        this.screen_search = new screen_search({ contents: this.container.querySelector(".screen-search-container") });
-        this.screen_illust = new screen_illust({ contents: this.container.querySelector(".screen-illust-container") });
+        this.screen_search = new screen_search({ container: this.container.querySelector(".main-container") });
+        this.screen_illust = new screen_illust({ container: this.container.querySelector(".main-container") });
 
         this.screens = {
             search: this.screen_search,

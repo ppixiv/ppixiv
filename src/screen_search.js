@@ -386,7 +386,31 @@ ppixiv.screen_search = class extends ppixiv.screen
 {
     constructor(options)
     {
-        super(options);
+        super({...options, template: `
+            <div class="screen screen-search-container search-screen">
+                <!-- The tree widget for local navigation: -->
+                <div class="local-navigation-box data-source-specific" data-datasource=vview hidden></div>
+
+                <div class="search-results" data-context-menu-target tabindex=-1>
+                    <div class="thumbnail-ui top-ui-box">
+                        <div style="flex: 1;"></div>
+                        <div class=thumbnail-ui-box-container></div>
+                        <div style="flex: 1;"></div>
+                    </div>
+
+                    <div class="top-ui-box-padding"></div>
+
+                    <div class=no-results hidden>
+                        <div class=message>No results</div>
+                    </div>
+
+                    <div class=thumbnail-container-box>
+                        <div class=thumbnails></div>
+                    </div>
+                </div>
+            </div>
+        `});
+
         
         this.scroll_container = this.container.querySelector(".search-results");
         this.expanded_media_ids = new Map();
