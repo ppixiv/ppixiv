@@ -150,7 +150,7 @@ ppixiv.page_manager = class
     //
     // If force is true, we'll always create a new data source, replacing any
     // previously created one.
-    create_data_source_for_url(url, force)
+    create_data_source_for_url(url, {force=false}={})
     {
         let data_source_class = this.get_data_source_for_url(url);
         if(data_source_class == null)

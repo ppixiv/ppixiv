@@ -262,7 +262,7 @@ ppixiv.main_controller = class
         // This returns the data source, but just call set_current_data_source so
         // we load the new one.
         console.log("Refreshing data source for", ppixiv.location.toString());
-        page_manager.singleton().create_data_source_for_url(ppixiv.location, true);
+        page_manager.singleton().create_data_source_for_url(ppixiv.location, {force: true});
 
         // Screens store their scroll position in args.state.scroll.  On refresh, clear it
         // so we scroll to the top when we refresh.
@@ -301,7 +301,7 @@ ppixiv.main_controller = class
             {
                 // This works the same as refresh_current_data_source above.
                 console.log("Resetting data source because it can't load the requested page", wanted_page);
-                data_source = page_manager.singleton().create_data_source_for_url(ppixiv.location, true);
+                data_source = page_manager.singleton().create_data_source_for_url(ppixiv.location, {force: true});
             }
         }
 
