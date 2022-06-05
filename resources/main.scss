@@ -195,14 +195,6 @@ textarea:focus, input:focus, a:focus {
     display: none !important;
 }
 
-.main-container {
-    position: absolute;
-    top: 0px;
-    left: 0px;
-    width: var(--window-width);
-    height: var(--window-height);
-    overflow: hidden;
-}
 .progress-bar {
     position: absolute;
     pointer-events: none;
