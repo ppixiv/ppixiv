@@ -613,6 +613,18 @@ ppixiv.main_controller = class
         // can't restore the page.
         console.log("Couldn't find context data.  Are we logged in?");
         this.show_logout_message(true);
+
+        // Redirect to no-ppixiv, to reload the page disabled so we don't leave the user
+        // on a blank page.  If this is a page where Pixiv itself requires a login (which
+        // is most of them), the initial page request will redirect to the login page before
+        // we launch, but we can get here for a few pages.
+        let disabled_url = new URL(document.location);
+        if(disabled_url.hash != "#no-ppixiv")
+        {
+            disabled_url.hash = "#no-ppixiv";
+            document.location = disabled_url.toString();
+        }
+
         return false;
     }
 
