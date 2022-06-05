@@ -3,18 +3,17 @@
 // A simple progress bar.
 //
 // Call bar.controller() to create a controller to update the progress bar.
-ppixiv.progress_bar = class
+ppixiv.progress_bar = class extends ppixiv.widget
 {
-    constructor(container)
+    constructor({...options})
     {
-        this.container = container;
+        super({ ...options, template: `
+            <div class=loading-progress-bar>
+                <div class=progress-bar hidden></div>
+            </div>            
+        `});
 
-        this.bar = this.container.appendChild(helpers.create_node('\
-            <div class=progress-bar> \
-            </div> \
-        '));
-
-        this.bar.hidden = true;
+        this.bar = this.container.querySelector(".progress-bar");
     };
 
     // Create a progress_bar_controller for this progress bar.

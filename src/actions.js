@@ -488,8 +488,10 @@ ppixiv.actions = class
     // Image downloading
     //
     // Download illust_data.
-    static async download_illust(media_id, progress_bar_controller, download_type)
+    static async download_illust(media_id, download_type)
     {
+        let progress_bar_controller = main_controller.singleton.progress_bar.controller();
+        
         let illust_data = await image_data.singleton().get_media_info(media_id, { load_user_info: true });
         let user_info = await image_data.singleton().get_user_info(illust_data.userId);
         console.log("Download", media_id, "with type", download_type);

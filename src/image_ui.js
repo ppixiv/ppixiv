@@ -3,7 +3,7 @@
 // This handles the overlay UI on the illustration page.
 ppixiv.image_ui = class extends ppixiv.widget
 {
-    constructor({progress_bar, ...options})
+    constructor({...options})
     {
         super({
             ...options,
@@ -136,9 +136,6 @@ ppixiv.image_ui = class extends ppixiv.widget
 </div>
             `});
 
-
-        this.progress_bar = progress_bar;
-
         this.avatar_widget = new avatar_widget({
             container: this.container.querySelector(".avatar-popup"),
             mode: "dropdown",
@@ -175,6 +172,7 @@ ppixiv.image_ui = class extends ppixiv.widget
             parent: this,
             contents: this.container.querySelector(".button-bookmark .count"),
         });
+        this.manga_page_bar = new progress_bar({container: this.container}).controller();
 
         // The bookmark buttons, and clicks in the tag dropdown:
         this.bookmark_buttons = [];
@@ -402,7 +400,7 @@ ppixiv.image_ui = class extends ppixiv.widget
         e.stopPropagation();
 
         let download_type = clicked_button.dataset.download;
-        actions.download_illust(this._media_id, this.progress_bar.controller(), download_type, this.displayed_page);
+        actions.download_illust(this._media_id, download_type, this.displayed_page);
     }
  }
 

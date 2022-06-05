@@ -1584,7 +1584,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                     requires_image: true,
                     available: () => { return this.thumbnail_data && actions.is_download_type_available("image", this.thumbnail_data); },
                     onclick: () => {
-                        actions.download_illust(this.media_id, null, "image");
+                        actions.download_illust(this.media_id, "image");
                         this.parent.hide();
                     }
                 });
@@ -1599,7 +1599,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                     requires_image: true,
                     available: () => { return this.thumbnail_data && actions.is_download_type_available("ZIP", this.thumbnail_data); },
                     onclick: () => {
-                        actions.download_illust(this.media_id, null, "ZIP");
+                        actions.download_illust(this.media_id, "ZIP");
                         this.parent.hide();
                     }
                 });
@@ -1614,7 +1614,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                     requires_image: true,
                     available: () => { return this.thumbnail_data && actions.is_download_type_available("MKV", this.thumbnail_data); },
                     onclick: () => {
-                        actions.download_illust(this.media_id, null, "MKV");
+                        actions.download_illust(this.media_id, "MKV");
                         this.parent.hide();
                     }
                 });

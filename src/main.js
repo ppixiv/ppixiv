@@ -232,7 +232,7 @@ ppixiv.main_controller = class
         this.send_image_popup = new send_image_popup({container: document.body});
 
         // Create the main progress bar.
-        this.progress_bar = new progress_bar(this.container.querySelector(".loading-progress-bar"));
+        this.progress_bar = new progress_bar({ container: this.container });
         
         // Create the screens.
         this.screen_search = new screen_search({ container: this.container.querySelector(".main-container") });

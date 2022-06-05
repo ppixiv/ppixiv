@@ -31,14 +31,11 @@ ppixiv.screen_illust = class extends ppixiv.screen
         this.current_media_id = null;
         this.latest_navigation_direction_down = true;
 
-        this.progress_bar = main_controller.singleton.progress_bar;
-
         // Create a UI box and put it in its container.
         var ui_container = this.container.querySelector(".ui");
         this.ui = new image_ui({
             container: ui_container,
             parent: this,
-            progress_bar: this.progress_bar,
         });
         
         this.ui.container.addEventListener("mouseenter", (e) => { this.hovering_over_box = true; this.refresh_overlay_ui_visibility(); });
@@ -71,9 +68,6 @@ ppixiv.screen_illust = class extends ppixiv.screen
         new hide_mouse_cursor_on_idle(this.container.querySelector(".mouse-hidden-box"));
 
         this.container.addEventListener("wheel", this.onwheel, { passive: false });
-
-        // A bar showing how far along in an image sequence we are:
-        this.manga_page_bar = new progress_bar(this.container.querySelector(".ui-box")).controller();
 
         this.set_active(false, { });
     }
@@ -294,7 +288,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
         {
             this.viewer = new viewer_class({
                 container: this.view_container,
-                manga_page_bar: this.manga_page_bar,
+                manga_page_bar: this.ui.manga_page_bar,
             });
         }
 
