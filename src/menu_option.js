@@ -655,7 +655,8 @@ ppixiv.menu_option_button = class extends ppixiv.menu_option
 
         if(this.onclick_handler)
         {
-            e.preventDefault();
+            // XXX: check callers
+            // e.preventDefault();
             this.onclick_handler(e);
         }
     }

@@ -546,6 +546,12 @@ ppixiv.data_source = class
         helpers.set_icon();
     }
 
+    // If true, "No Results" will be displayed.
+    get no_results()
+    {
+        return this.id_list.get_first_id() == null && !this.any_page_loading;
+    }
+
     // This is implemented by the subclass.
     async load_page_internal(page)
     {
@@ -2896,6 +2902,15 @@ ppixiv.data_sources.search = class extends data_source
 
     get supports_start_page() { return true; }
 
+    get no_results()
+    {
+        // Don't display "No Results" while we're still waiting for the user to enter a tag.
+        if(!this._search_tags)
+            return false;
+
+        return super.no_results;
+    }
+
     get _search_tags()
     {
         return helpers._get_search_tags_from_url(this.url);
@@ -3058,7 +3073,7 @@ ppixiv.data_sources.search = class extends data_source
 
     get_displaying_text()
     {
-        return this.displaying_tags;
+        return this.displaying_tags ?? "Search works";
     };
 
     initial_refresh_thumbnail_ui(container, view)
@@ -3124,6 +3139,9 @@ ppixiv.data_sources.search = class extends data_source
  
     refresh_thumbnail_ui(container, thumbnail_view)
     {
+        // Hide the Related Tags dropdown button until a search tag is entered.
+        container.querySelector(".search-tags-box").hidden = this._search_tags == "";
+
         if(this.related_tags)
             thumbnail_view.tag_widget.set(this.related_tags);
 
@@ -3536,15 +3554,28 @@ ppixiv.data_sources.search_users = class extends data_source_from_page
         return illust_ids;
     }
 
+    get username()
+    {
+        return this.url.searchParams.get("nick");
+    }
+
     initial_refresh_thumbnail_ui(container, view)
     {
-        let search = this.url.searchParams.get("nick");
-        container.querySelector(".search-users").value = search;
+        container.querySelector(".search-users").value = this.username;
+    }
+
+    get no_results()
+    {
+        // Don't display "No Results" while we're still waiting for the user to enter a search.
+        if(!this.username)
+            return false;
+
+        return super.no_results;
     }
 
     get page_title()
     {
-        let search = this.url.searchParams.get("nick");
+        let search = this.username;
         if(search)
             return "Search users: " + search;
         else

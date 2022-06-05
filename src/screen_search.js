@@ -42,19 +42,7 @@ let thumbnail_ui = class extends ppixiv.widget
                             <ppixiv-inline src="resources/icon-search.svg"></ppixiv-inline>
                         </div>
 
-                        <div hidden class="main-search-menu popup-menu-box vertical-list">
-                            <div class="navigation-search-box" style="padding: .25em; margin: .25em;">
-                                <div class=search-box>
-                                    <span class="input-field-container" style="width: 100%;">
-                                        <input class="keep-menu-open" placeholder=Search>
-
-                                        <span class="right-side-button search-submit-button">
-                                            <span class="material-icons">search</span>                                            
-                                        </span>
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
+                        <div hidden class="main-search-menu popup-menu-box vertical-list"></div>
                     </div>
 
                     <div class="refresh-search-button grey-icon icon-button popup" data-popup="Refresh">
@@ -575,9 +563,6 @@ ppixiv.screen_search = class extends ppixiv.screen
         // Create the tag dropdown for the search page input.
         new tag_search_box_widget({ contents: this.container.querySelector(".tag-search-box") });
             
-        // Create the tag dropdown for the search input in the menu dropdown.
-        new tag_search_box_widget({ contents: this.container.querySelector(".navigation-search-box") });
-
         // The search history dropdown for local searches.
         new local_search_box_widget({ contents: this.container.querySelector(".local-tag-search-box") });
         
@@ -689,27 +674,35 @@ ppixiv.screen_search = class extends ppixiv.screen
         let option_box = this.container.querySelector(".main-search-menu");
         this.menu_options = [];
         let options = [
-            { label: "New works", url: "/new_illust.php#ppixiv" },
-            { label: "New works by following", url: "/bookmark_new_illust.php#ppixiv" },
+            { label: "Search works",           icon: "search", url: `/tags#ppixiv`,
+                onclick: async() => {
+                    // Focus the tag search box.  We need to go async to let the navigation happen
+                    // so the search box is visible first.
+                    await helpers.sleep(0);
+                    this.container.querySelector(".tag-search-box input").focus();
+                }
+            },
+            { label: "New works by following", icon: "photo_library",          url: "/bookmark_new_illust.php#ppixiv" },
+            { label: "New works by everyone",  icon: "groups",          url: "/new_illust.php#ppixiv" },
             [
-                { label: "Bookmarks", url: `/users/${window.global_data.user_id}/bookmarks/artworks#ppixiv` },
+                { label: "Bookmarks", icon: "bookmark", url: `/users/${window.global_data.user_id}/bookmarks/artworks#ppixiv` },
                 { label: "all", url: `/users/${window.global_data.user_id}/bookmarks/artworks#ppixiv` },
                 { label: "public", url: `/users/${window.global_data.user_id}/bookmarks/artworks#ppixiv?show-all=0` },
                 { label: "private", url: `/users/${window.global_data.user_id}/bookmarks/artworks?rest=hide#ppixiv?show-all=0` },
             ],
             [
-                { label: "Followed users", url: `/users/${window.global_data.user_id}/following#ppixiv` },
+                { label: "Followed users", icon: "visibility", url: `/users/${window.global_data.user_id}/following#ppixiv` },
                 { label: "public", url: `/users/${window.global_data.user_id}/following#ppixiv` },
                 { label: "private", url: `/users/${window.global_data.user_id}/following?rest=hide#ppixiv` },
             ],
 
-            { label: "Rankings", url: "/ranking.php#ppixiv" },
-            { label: "Recommended works", url: "/discovery#ppixiv" },
-            { label: "Recommended users", url: "/discovery/users#ppixiv" },
-            { label: "Completed requests", url: "/request/complete/illust#ppixiv" },
-            { label: "Search users", url: "/search_user.php#ppixiv" },
-            // { label: "Recent history", url: "/history.php#ppixiv", classes: ["recent-history-link"] },
-            { label: "Local search", url: `${local_api.path}#ppixiv/`, local: true, onclick: local_api.show_local_search },
+            { label: "Rankings",               icon: "auto_awesome"  /* who names this stuff? */, url: "/ranking.php#ppixiv" },
+            { label: "Recommended works",      icon: "lightbulb", url: "/discovery#ppixiv" },
+            { label: "Recommended users",      icon: "lightbulb", url: "/discovery/users#ppixiv" },
+            { label: "Completed requests",     icon: "request_page", url: "/request/complete/illust#ppixiv" },
+            { label: "Users",           icon: "search", url: "/search_user.php#ppixiv" },
+            // { label: "Recent history", icon: "", url: "/history.php#ppixiv", classes: ["recent-history-link"] },
+            { label: "Local search",           icon: "", url: `${local_api.path}#ppixiv/`, local: true, onclick: local_api.show_local_search },
         ];
 
 
@@ -717,6 +710,7 @@ ppixiv.screen_search = class extends ppixiv.screen
             let button = new menu_option_button({
                 container: option_box,
                 parent: this,
+                onclick: option.onclick,
                 ...option
             })
 
@@ -743,11 +737,6 @@ ppixiv.screen_search = class extends ppixiv.screen
             else
                 this.menu_options.push(create_option(option));
         }
-
-        // Move the tag search box back to the bottom.
-        let search = option_box.querySelector(".navigation-search-box");
-        search.remove();
-        option_box.insertAdjacentElement("beforeend", search);
     }
 
     get_thumbnail_for_media_id(media_id)
@@ -1894,7 +1883,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         }
 
         // If we have no IDs and nothing is loading, the data source is empty (no results).
-        if(this.data_source && this.data_source.id_list.get_first_id() == null && !this.data_source.any_page_loading)
+        if(this.data_source?.no_results)
             this.container.querySelector(".no-results").hidden = false;
         
         this.set_visible_thumbs();
