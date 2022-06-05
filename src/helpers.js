@@ -1277,7 +1277,7 @@ ppixiv.helpers = {
     // Add tag to the recent search list, or move it to the front.
     add_recent_search_tag(tag)
     {
-        if(this._disable_adding_search_tags)
+        if(this._disable_adding_search_tags || !tag)
             return;
 
         var recent_tags = settings.get("recent-tag-searches") || [];
