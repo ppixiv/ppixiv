@@ -18,23 +18,22 @@ ppixiv.tag_search_box_widget = class extends ppixiv.widget
             input_element: this.container,
         });
 
-        this.container.addEventListener("mouseenter", this.container_onmouseenter);
-        this.container.addEventListener("mouseleave", this.container_onmouseleave);
-        this.input_element.addEventListener("focus", this.input_onfocus);
-        this.input_element.addEventListener("blur", this.input_onblur);
+        this.container.addEventListener("focus", this.focus_changed, true);
+        this.container.addEventListener("blur", this.focus_changed, true);
 
         let edit_button = this.container.querySelector(".edit-search-button");
         if(edit_button)
         {
             edit_button.addEventListener("click", (e) => {
-                // Toggle the edit widget, hiding the search history dropdown if it's shown.
-                if(this.dropdown_widget.shown)
-                    this.hide();
-
-                if(this.edit_widget.shown)
-                    this.hide();
-                else
-                    this.show_edit();
+                // Toggle the edit widget, hiding the search history dropdown if it's visible.
+                if(this.dropdown_widget.visible)
+                {
+                    this.dropdown_widget.hide();
+                    this.edit_widget.show();
+                } else {
+                    this.dropdown_widget.show();
+                    this.edit_widget.hide();
+                }
             });
         }
         
@@ -48,47 +47,10 @@ ppixiv.tag_search_box_widget = class extends ppixiv.widget
         });
     }
 
-    async show_history()
-    {
-        // Don't show history if search editing is already open.
-        if(this.edit_widget.shown)
-            return;
-
-        this.dropdown_widget.show();
-    }
-
-    show_edit()
-    {
-        // Don't show search editing if history is already open.
-        if(this.dropdown_widget.shown)
-            return;
-
-        this.edit_widget.show();
-
-        // Disable adding searches to search history while the edit dropdown is open.  Otherwise,
-        // every time a tag is toggled, that combination of tags is added to search history by
-        // data_source_search, which makes a mess.
-        helpers.disable_adding_search_tags(true);
-    }
-
     hide()
     {
-        helpers.disable_adding_search_tags(false);
-
         this.dropdown_widget.hide();
         this.edit_widget.hide();
-    }
-
-    container_onmouseenter = (e) =>
-    {
-        this.mouse_over_parent = true;
-    }
-
-    container_onmouseleave = (e) =>
-    {
-        this.mouse_over_parent = false;
-        if(this.dropdown_widget.shown && !this.input_focused && !this.mouse_over_parent)
-            this.hide();
     }
 
     // Show the dropdown when the input is focused.  Hide it when the input is both
@@ -97,15 +59,26 @@ ppixiv.tag_search_box_widget = class extends ppixiv.widget
     // but we don't rely on hovering to keep the dropdown open.
     input_onfocus = (e) =>
     {
-        this.input_focused = true;
-        if(!this.dropdown_widget.shown && !this.edit_widget.shown)
-            this.show_history();
     }
 
-    input_onblur = (e) =>
+    focus_changed = (e) =>
     {
-        this.input_focused = false;
-        if(this.dropdown_widget.shown && !this.input_focused && !this.mouse_over_parent)
+        if(e.type == "focus")
+        {
+            this.focused = true;
+        }
+        else // blur
+        {
+            // On blur, relatedTarget is the new focus.  If the focus is moving to another
+            // element inside the widget, we're still focused.
+            this.focused = helpers.is_above(this.container, e.relatedTarget);
+        }
+
+        // If we're focused and nothing was visible, show the tag dropdown.  If we're not
+        // focused, hide both.
+        if(this.focused && !this.dropdown_widget.visible && !this.edit_widget.visible)
+            this.dropdown_widget.show();
+        else if(!this.focused && (this.dropdown_widget.visible || this.edit_widget.visible))
             this.hide();
     }
 
@@ -138,7 +111,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
 {
     constructor({input_element, ...options})
     {
-        super({...options, template: `
+        super({...options, visible: false, template: `
             <div class=search-history>
                 <!-- This is to make sure there isn't a gap between the input and the dropdown,
                     so we don't consider the mouse out of the box when it moves from the input
@@ -178,7 +151,6 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         // Restore input-dropdown's width.  Force a minimum width, in case this setting is saved incorrectly.
         this.input_dropdown.style.width = settings.get("tag-dropdown-width", "400px");
 
-        this.shown = false;
         this.container.hidden = true;
 
         // Sometimes the popup closes when searches are clicked and sometimes they're not.  Make sure
@@ -205,6 +177,11 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
             e.preventDefault();
             var tag = e.target.closest(".entry").dataset.tag;
             helpers.remove_recent_search_tag(tag);
+
+            // Hack: the input focus will have been on the tag entry we just removed.  Focus
+            // the nearest focusable item (probably the tag_search_box_widget container), so
+            // the dropdown isn't closed due to losing focus.
+            this.container.closest("[tabindex]").focus();
             return;
         }
 
@@ -246,9 +223,9 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
 
     async show()
     {
-        if(this.shown)
+        if(this.visible)
             return;
-        this.shown = true;
+        this.visible = true;
 
         // Fill in the dropdown before displaying it.  If hide() is called before this
         // finishes this will return false, so stop.
@@ -262,9 +239,9 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
 
     hide()
     {
-        if(!this.shown)
+        if(!this.visible)
             return;
-        this.shown = false;
+        this.visible = false;
 
         // If populate_dropdown is still running, cancel it.
         this.cancel_populate_dropdown();
@@ -358,7 +335,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
                 </div>
                 
                 <span class=search></span>
-                <span class="remove-history-entry keep-menu-open">X</span>
+                <span class=remove-history-entry>X</span>
             </div>
         `});
         entry.dataset.tag = tag_search;
@@ -525,7 +502,7 @@ ppixiv.tag_search_edit_widget = class extends ppixiv.widget
 {
     constructor({input_element, ...options})
     {
-        super({...options, template: `
+        super({...options, visible: false, template: `
             <div class=edit-search>
                 <div class=input-dropdown>
                     <div class=input-dropdown-list>
@@ -557,7 +534,6 @@ ppixiv.tag_search_edit_widget = class extends ppixiv.widget
         // Restore input-dropdown's width.  Force a minimum width, in case this setting is saved incorrectly.
         this.input_dropdown.style.width = settings.get("search-edit-dropdown-width", "400px");
 
-        this.shown = false;
         this.container.hidden = true;
     }
 
@@ -581,9 +557,9 @@ ppixiv.tag_search_edit_widget = class extends ppixiv.widget
 
     async show()
     {
-        if(this.shown)
+        if(this.visible)
             return;
-        this.shown = true;
+            this.visible = true;
 
         // Fill in the dropdown before displaying it.  If hide() is called before this
         // finishes this will return false, so stop.
@@ -595,9 +571,9 @@ ppixiv.tag_search_edit_widget = class extends ppixiv.widget
 
     hide()
     {
-        if(!this.shown)
+        if(!this.visible)
             return;
-        this.shown = false;
+        this.visible = false;
 
         // If populate_dropdown is still running, cancel it.
         this.cancel_populate_dropdown();
@@ -606,6 +582,16 @@ ppixiv.tag_search_edit_widget = class extends ppixiv.widget
 
         // Make sure the input isn't focused.
         this.input_element.blur();
+    }
+
+    visibility_changed()
+    {
+        super.visibility_changed();
+
+        // Disable adding searches to search history while the edit dropdown is open.  Otherwise,
+        // every time a tag is toggled, that combination of tags is added to search history by
+        // data_source_search, which makes a mess.
+        helpers.disable_adding_search_tags(this.visible);
     }
 
     // tag_search is a search, like "tag -tag2".  translated_tags is a dictionary of known translations.

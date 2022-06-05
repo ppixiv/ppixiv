@@ -176,7 +176,9 @@ let thumbnail_ui = class extends ppixiv.widget
                  
                 <div class="data-source-specific" data-datasource=search>
                     <div>
-                        <div class="search-box tag-search-box">
+                        <!-- The whole input widget is marked as a tabindex, to make it easier to tell
+                                when the user clicks out of any of its widgets. -->
+                        <div class="search-box tag-search-box" tabindex=1>
                             <div class="input-field-container hover-menu-box">
                                 <input placeholder=Tags>
                                 <span class="edit-search-button right-side-button">
@@ -187,11 +189,11 @@ let thumbnail_ui = class extends ppixiv.widget
                                     <span class="material-icons">search</span>                                            
                                 </span>
                             </div>
+                        </div>
 
-                            <div class="search-tags-box box-button-row" style="display: inline-block;">
-                                ${ helpers.create_box_link({label: "Related tags",    icon: "bookmark", classes: ["popup-menu-box-button"] }) }
-                                <div class="popup-menu-box related-tag-list vertical-list"></div>
-                            </div>
+                        <div class="search-tags-box box-button-row" style="display: inline-block;">
+                            ${ helpers.create_box_link({label: "Related tags",    icon: "bookmark", classes: ["popup-menu-box-button"] }) }
+                            <div class="popup-menu-box related-tag-list vertical-list"></div>
                         </div>
                     </div>
 
@@ -1278,7 +1280,14 @@ ppixiv.screen_search = class extends ppixiv.screen
             // will force it to be included in the displayed results.
             this.finish_load_and_restore_scroll_pos(old_media_id);
 
-            this.container.querySelector(".search-results").focus();
+            // If nothing's focused, focus the search so keyboard navigation works.  Don't do this if
+            // we already have focus, so we don't steal focus from things like the tag search dropdown
+            // and cause them to be closed.
+            let focus = document.querySelector(":focus");
+            if(focus == null)
+                this.container.querySelector(".search-results").focus();
+            else
+                console.log("Already focused:", focus);
         }
         else
         {
