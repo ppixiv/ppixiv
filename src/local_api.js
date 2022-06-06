@@ -357,8 +357,8 @@ ppixiv.local_api = class
         }
        
         // When in a search, leave hash_path alone, and put the relative path to the folder
-        // in path.
-        let relative_path = helpers.path.get_relative_path(args.hash_path, path);
+        // in path.  hash_path can be empty if bookmarked was forced on by get_search_options_for_args.
+        let relative_path = helpers.path.get_relative_path(args.hash_path || "/", path);
         if(relative_path != "")
             args.hash.set("path", relative_path);
         else
