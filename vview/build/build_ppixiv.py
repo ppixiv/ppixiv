@@ -189,9 +189,10 @@ class Build(object):
                 # url = 'data:application/json;base64,%s' % encoded_source_map
                 url = self.get_source_root_url() + source_map_filename
                 data += "\n/*# sourceMappingURL=%s */" % url
-            elif ext in ('.png', ):
+            elif ext in ('.png', '.woff'):
                 mime_types = {
                     '.png': 'image/png',
+                    '.woff': 'font/woff',
                 }
 
                 data = open(fn, 'rb').read()
