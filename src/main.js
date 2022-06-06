@@ -185,6 +185,18 @@ ppixiv.main_controller = class
             }
         `);
 
+        // Load our icon font.  var() doesn't work for font-face src, so we have to do
+        // this manually.
+        document.head.appendChild(helpers.create_style(`
+            @font-face {
+                font-family: 'ppixiv';
+                src: url(${resources['resources/ppixiv.woff']}) format('woff');
+                font-weight: normal;
+                font-style: normal;
+                font-display: block;
+            }
+        `));
+
         // Add the main stylesheet.
         {
             let link = document.realCreateElement("link");

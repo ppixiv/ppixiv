@@ -22,48 +22,48 @@ let thumbnail_ui = class extends ppixiv.widget
                     </div>
                 </div>
 
-                <div class=button-row>
-                    <a class="disable-ui-button popup pixiv-only" data-popup="Return to Pixiv" href="#no-ppixiv">
-                        <ppixiv-inline class="icon-button grey-icon" src="resources/pixiv-icon.svg"></ppixiv-inline>
+                <div class=button-row style="margin-bottom: 0.5em;">
+                    <a class="grey-icon icon-button disable-ui-button popup pixiv-only" data-popup="Return to Pixiv" href="#no-ppixiv">
+                        <span class="ppixiv-icon" style="font-size: 200%;">pixiv</span>
                     </a>
 
                     <!-- These login/logout buttons are only used by the local API. -->
                     <div class="login-button popup grey-icon" data-popup="Login" style="margin-right: -2px;" hidden>
-                        <span class="material-icons" style="vertical-align: middle;">login</span>
+                        <span class="material-icons" style="vertical-align: middle; font-size: 200%;">login</span>
                     </div>
 
                     <div class="logout-button popup grey-icon" data-popup="Logout" style="margin-right: -2px;" hidden>
-                        <span class="material-icons" style="vertical-align: middle;">logout</span>
+                        <span class="material-icons" style="vertical-align: middle; font-size: 200%;">logout</span>
                     </div>
 
                     <!-- Containing block for :hover highlights on the button: -->
                     <div class=pixiv-only>
                         <div class="grey-icon icon-button popup-menu-box-button popup parent-highlight" data-popup="Search">
-                            <ppixiv-inline src="resources/icon-search.svg"></ppixiv-inline>
+                            <span class="material-icons" style="vertical-align: middle; font-size: 200%;">menu</span>
                         </div>
 
                         <div hidden class="main-search-menu popup-menu-box vertical-list"></div>
                     </div>
 
                     <div class="refresh-search-button grey-icon icon-button popup" data-popup="Refresh">
-                        <ppixiv-inline src="resources/refresh-icon.svg"></ppixiv-inline>
+                        <span class="material-icons" style="vertical-align: middle; font-size: 200%;">refresh</span>
                     </div>
 
-                    <div class="grey-icon expand-manga-posts icon-button popup" style="margin: 0 -3px">
-                        <div class="material-icons" style="display: block; text-align: center;"></div>
+                    <div class="grey-icon expand-manga-posts icon-button popup" style="margin: 0 -.15em">
+                        <div class="material-icons" style="display: block; text-align: center; font-size: 200%;"></div>
                     </div>
 
-                    <div class="whats-new-button popup" data-popup="What's New" style="margin-right: -2px;">
-                        <ppixiv-inline src="resources/whats-new.svg"></ppixiv-inline>
+                    <div class="grey-icon whats-new-button popup" data-popup="What's New">
+                        <span class="ppixiv-icon" style="font-size: 200%;">whats_new</span>
                     </div>
 
-                    <a class="slideshow popup grey-icon" data-popup="Slideshow" style="margin: 0 2px 0 4px" href="#">
-                        <span class="material-icons" style="vertical-align: middle;">wallpaper</span>
+                    <a class="slideshow popup grey-icon" data-popup="Slideshow" style="margin: 0 .1em;" href="#">
+                        <span class="material-icons" style="vertical-align: middle; font-size: 180%;">wallpaper</span>
                     </a>
 
                     <div class="settings-menu-box popup" data-popup="Preferences">
                         <div class="grey-icon parent-highlight icon-button preferences-button">
-                            <ppixiv-inline src="resources/settings-icon.svg"></ppixiv-inline>
+                            <span class="material-icons" style="vertical-align: middle; font-size: 200%;">settings</span>
                         </div>
                         <div hidden class="popup-menu-box vertical-list">
                         </div>
@@ -1149,10 +1149,19 @@ ppixiv.screen_search = class extends ppixiv.screen
             `});
 
             let image_name = link_types[type];
-            let icon = helpers.create_ppixiv_inline(image_name);
-            icon.classList.add(type);
-            entry.querySelector(".extra-link").appendChild(icon);
-
+            if(image_name.endsWith(".svg"))
+            {
+                let icon = helpers.create_ppixiv_inline(image_name);
+                icon.classList.add(type);
+                entry.querySelector(".extra-link").appendChild(icon);
+            }
+            else {
+                let span = document.createElement("span");
+                span.classList.add("ppixiv-icon");
+                span.innerText = "fanbox-icon";
+                span.style = "vertical-align: middle; font-size: 175%;";
+                entry.querySelector(".extra-link").appendChild(span);
+            }
             let a = entry.querySelector(".extra-link");
             a.href = url;
 

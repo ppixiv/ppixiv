@@ -41,13 +41,13 @@ ppixiv.image_ui = class extends ppixiv.widget
     </div>
 
     <div class=button-row>
-        <a class="disable-ui-button popup pixiv-only" data-popup="Return to Pixiv" href="#no-ppixiv" style="height: 26px;">
-            <ppixiv-inline class=grey-icon src="resources/pixiv-icon.svg" style="height: 100%; width: auto;" ></ppixiv-inline>
+        <a class="grey-icon disable-ui-button popup pixiv-only" data-popup="Return to Pixiv" href="#no-ppixiv" style="height: 26px;">
+            <span class="ppixiv-icon" style="vertical-align: middle; font-size: 175%;">pixiv</span>
         </a>
 
         <div class="view-manga-button popup" data-popup="View manga pages">
             <div class="grey-icon icon-button">
-                <ppixiv-inline src="resources/thumbnails-icon.svg"></ppixiv-inline>
+                <span class="ppixiv-icon" style="vertical-align: middle; font-size: 200%;">thumbnails</span>
             </div>
         </div>
 
@@ -101,25 +101,25 @@ ppixiv.image_ui = class extends ppixiv.widget
 
         <a class="similar-illusts-button bulb-button popup pixiv-only" data-popup="Similar illustrations" href=#>
             <div class="grey-icon icon-button">
-                <ppixiv-inline src="resources/related-illusts.svg"></ppixiv-inline>
+                <span class="material-icons" style="vertical-align: middle; font-size: 200%;">lightbulb</span>
             </div>
         </a>
 
         <a class="similar-artists-button bulb-button grey-icon popup pixiv-only" data-popup="Similar artists" href=#>
             <div class="grey-icon icon-button">
-                <ppixiv-inline src="resources/related-illusts.svg"></ppixiv-inline>
+                <span class="material-icons" style="vertical-align: middle; font-size: 200%;">lightbulb</span>
             </div>
         </a>
 
         <a class="similar-bookmarks-button bulb-button grey-icon popup pixiv-only" data-popup="Similar bookmarks" href=#>
             <div class="grey-icon icon-button">
-                <ppixiv-inline src="resources/related-illusts.svg"></ppixiv-inline>
+                <span class="material-icons" style="vertical-align: middle; font-size: 200%;">lightbulb</span>
             </div>
         </a>
 
         <div class="image-settings-menu-box popup" data-popup="Preferences">
             <div class="grey-icon icon-button preferences-button">
-                <ppixiv-inline src="resources/settings-icon.svg"></ppixiv-inline>
+                <span class="material-icons" style="vertical-align: middle; font-size: 200%;">settings</span>
             </div>
         </div>
     </div>

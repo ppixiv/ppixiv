@@ -122,7 +122,7 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
                 <div class=button-strip>
                     <div class=button-block>
                         <div class="button button-view-manga" data-level=0 data-popup="View manga pages">
-                            <ppixiv-inline src="resources/thumbnails-icon.svg"></ppixiv-inline>
+                            <span class="ppixiv-icon" style="vertical-align: middle; font-size: 200%;">thumbnails</span>
                         </div>
                     </div>
 
@@ -164,7 +164,7 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
                     <!-- position: relative positions the popup menu. -->
                     <div class=button-block style="position: relative;">
                         <div class="button button-more enabled" data-popup="More...">
-                            <ppixiv-inline src="resources/settings-icon.svg"></ppixiv-inline>
+                            <span class="material-icons" style="vertical-align: middle; font-size: 200%;">settings</span>
                         </div>
                         <div class=popup-more-options-container></div>
                     </div>

@@ -19,7 +19,22 @@ html {
     background-color: var(--main-background-color);
     background-image: var(--background-noise);
 }
-
+ 
+.ppixiv-icon {
+    font-family: 'ppixiv';
+    font-style: normal;
+    font-weight: normal;
+    font-variant: normal;
+    text-transform: none;
+    line-height: 1;
+    letter-spacing: 0;
+    font-feature-settings: "liga";
+    -webkit-font-feature-settings: 'liga';
+    font-variant-ligatures: discretionary-ligatures;
+    -webkit-font-variant-ligatures: discretionary-ligatures;
+    -webkit-font-smoothing: antialiased;
+}
+  
 body {
     font-family: "Helvetica Neue", arial, sans-serif;
     margin: 0;
@@ -519,9 +534,6 @@ textarea:focus, input:focus, a:focus {
     display: flex;
     flex-direction: row;
     align-items: center;
-    height: 32px;
-    margin-top: 5px;
-    margin-bottom: 4px;
 
     .button.enabled {
         cursor: pointer;
@@ -539,7 +551,7 @@ textarea:focus, input:focus, a:focus {
 /* An icon in a button strip. */
 .icon-button {
     display: block;
-    width: 32px;
+    width: 2em;
     height: auto;
 
     /* If this is an icon-button with an svg inside, set the svg to block. */
@@ -906,14 +918,6 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
         padding: 10px;
         pointer-events: auto;
 
-        .disable-ui-button {
-            margin-right: 2px;
-
-            > svg {
-                width: 22px;
-            }
-        }
-        
         .displaying {
             padding-bottom: 4px;
         }

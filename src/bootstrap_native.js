@@ -150,7 +150,8 @@ let _load_source_file = function(__pixiv, __source) {
         // spams the console with mixed content warnings that weren't thought out very well.
         // (Why is it warning about insecure connections to localhost?)
         let filename = (new URL(path, root_url)).pathname;
-        if((env.native && filename.endsWith(".png")) || filename.endsWith(".scss"))
+        let binary = filename.endsWith(".png") || filename.endsWith(".woff");
+        if((env.native && binary) || filename.endsWith(".scss"))
         {
             env.resources[path] = url;
             return;
@@ -159,12 +160,11 @@ let _load_source_file = function(__pixiv, __source) {
         // Other resources are loaded as text resources.  This is needed for SVG because we
         // sometimes need to preprocess them, so we can't just point at their URL.
         // let source_fetch = await fetch(url);
-        let as_url = path.endsWith(".png");
-        let data = await get(url, { as_url });
+        let data = await get(url, { as_url: binary });
         if(data == null)
             return;
 
-        if(as_url)
+        if(binary)
         {
             // Load any binary resources into object URLs.
             env.resources[path] = data;
