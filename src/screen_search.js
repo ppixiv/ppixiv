@@ -412,8 +412,8 @@ ppixiv.screen_search = class extends ppixiv.screen
             </div>
         `});
 
-        
-        this.scroll_container = this.container;
+        // The node that scrolls to show thumbs.  This is normally the document itself.
+        this.scroll_container = document.documentElement;
         this.expanded_media_ids = new Map();
 
         window.addEventListener("thumbnailsloaded", this.thumbs_loaded);
@@ -448,7 +448,9 @@ ppixiv.screen_search = class extends ppixiv.screen
             mode: "dropdown",
         });
 
-        this.scroll_container.addEventListener("scroll", (e) => {
+        // Work around a browser bug: even though it's document.documentElement.scrollTop is
+        // changing, it doesn't receive onscroll and we have to listen on window instead.
+        window.addEventListener("scroll", (e) => {
             this.schedule_store_scroll_position();
         }, {
             passive: true,
@@ -1684,7 +1686,7 @@ ppixiv.screen_search = class extends ppixiv.screen
     // Return the first and last media IDs that are nearby.
     get_nearby_media_ids()
     {
-        let nearby_thumbs = this.scroll_container.querySelectorAll(`[data-id][data-nearby]:not([data-special])`);
+        let nearby_thumbs = this.container.querySelectorAll(`[data-id][data-nearby]:not([data-special])`);
         let first_nearby_media_id = nearby_thumbs[0]?.dataset?.id;
         let last_nearby_media_id = nearby_thumbs[nearby_thumbs.length-1]?.dataset?.id;
         return [first_nearby_media_id, last_nearby_media_id];
@@ -1693,7 +1695,7 @@ ppixiv.screen_search = class extends ppixiv.screen
     // Return the first and last media IDs that's currently loaded into thumbs.
     get_loaded_media_ids()
     {
-        let loaded_thumbs = this.scroll_container.querySelectorAll(`[data-id]:not([data-special]`);
+        let loaded_thumbs = this.container.querySelectorAll(`[data-id]:not([data-special]`);
         let first_loaded_media_id = loaded_thumbs[0]?.dataset?.id;
         let last_loaded_media_id = loaded_thumbs[loaded_thumbs.length-1]?.dataset?.id;
         return [first_loaded_media_id, last_loaded_media_id];
@@ -1756,7 +1758,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         // a manga post is collapsed.
         {
             let media_id_set = new Set(all_media_ids);
-            for(let thumb of this.scroll_container.querySelectorAll(`[data-id]`))
+            for(let thumb of this.container.querySelectorAll(`[data-id]`))
             {
                 let thumb_media_id = thumb.dataset.id;
                 if(!media_id_set.has(thumb_media_id))
