@@ -49,6 +49,10 @@ a {
 
 /* Theme colors: */
 html {
+    // The default size of icons relative to the current text size.  This roughly matches
+    // the old icon size.
+    --icon-size: 1.7;
+
     --main-background-color: #000;
     --background-noise: var(--dark-noise);
 
@@ -516,16 +520,10 @@ textarea:focus, input:focus, a:focus {
         }
     }
 
-    .button > svg {
-        display: block;
-    }
-
     .button.button-bookmark .count,
     .button.button-like .count
     {
         top: calc(100% - 11px);
-        left: calc(-50px + 50%);
-        width: 100px;
         pointer-events: none;
     }
 }
@@ -548,15 +546,46 @@ textarea:focus, input:focus, a:focus {
     align-items: start;
 }
 
-/* An icon in a button strip. */
 .icon-button {
+    color: var(--button-color);
+    cursor: pointer;
+    user-select: none;
     display: block;
-    width: 2em;
-    height: auto;
 
-    /* If this is an icon-button with an svg inside, set the svg to block. */
+    // Set the size of the icon's box to the size the icon will be.  This is the same
+    // as setting this element's font-size to 100% * icon-size, but we don't want to change
+    // the font size of other things inside the box, like bookmark counts.
+    width: calc(1em * var(--icon-size));
+    height: calc(1em * var(--icon-size));
+    flex-shrink: 0;
+
+    .material-icons, .ppixiv-icon {
+        display: block;
+        font-size: calc(100% * var(--icon-size));
+    }
+
+    // If this is an icon-button with an svg inside, set the svg to block.
     svg {
         display: block;
+        width: 100%;
+        height: 100%;
+    }
+
+    // Highlight on hover.  If .parent-highlight is set, also highlight if the parent
+    // is hovered.
+    &:hover,
+    :hover > &.parent-highlight
+    {
+        color: var(--button-highlight-color);
+    }
+
+    &.highlighted {
+        color: var(--button-highlight-color);
+    }
+
+    // If a button is directly inside a visible popup menu, eg. the navigation icon:
+    .popup-visible > & {
+        color: var(--button-highlight-color);
     }
 }
 
@@ -725,7 +754,7 @@ body.dot canvas.filtering {
     image-rendering: pixelated;
 }
 .bulb-button:hover > .icon-button {
-    color: #FF0 !important; /* override grey-icon hover color */
+    color: #FF0 !important; /* override icon-button hover color */
 }
 
 body[data-theme="light"] .bulb-button:hover > .icon-button {
@@ -944,35 +973,7 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
         }
 
         .user-links {
-            .default-icon {
-                transform: translate(0, 2px);
-            }
-        
-            .twitch-icon {
-                margin: 4px 4px 0 4px;
-            }
-                
-            .bookmarks-link,
-            .following-link {
-                width: 32px;
-                height: 32px;
-            }
-
-            .contact-link {
-                width: 31px;
-                height: 31px;
-                margin: 0 3px;
-            }
-
-            .webpage-link {
-                margin: 0 2px;
-                width: 26px;
-                height: 26px;
-            }
-
-            .circlems-icon {
-                margin: 2px 0 0 0;
-            }
+            gap: 0.1em;
 
             .fanbox-icon {
                 // This is weird, since Inkscape doesn't support setting obscure attributes like "class".
@@ -1619,29 +1620,6 @@ a.box-link, span.box-link
     }
 }
 
-.grey-icon {
-    color: var(--button-color);
-    cursor: pointer;
-    user-select: none;
-
-    // Highlight on hover.  If .parent-highlight is set, also highlight if the parent
-    // is hovered.
-    &:hover,
-    :hover > &.parent-highlight
-    {
-        color: var(--button-highlight-color);
-    }
-
-    &.highlighted {
-        color: var(--button-highlight-color);
-    }
-
-    /* If a grey-icon is directly inside a visible popup menu, eg. the navigation icon: */
-    .popup-visible > & {
-        color: var(--button-highlight-color);
-    }
-}
-
 .mute-display {
     .muted-image {
         position: absolute;
@@ -2014,6 +1992,8 @@ a.box-link, span.box-link
 
     & > .tag-right-button-strip {
         position: absolute;
+        padding: 8px;
+        padding-left: 0;
         top: 0;
         left: 100%;
         background-color: var(--frame-bg-color);
@@ -2021,6 +2001,7 @@ a.box-link, span.box-link
         display: flex;
         flex-direction: column;
         align-items: stretch;
+        gap: 0.5em;
 
         .tag-button {
             cursor: pointer;

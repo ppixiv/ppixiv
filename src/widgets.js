@@ -1227,13 +1227,13 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
             <div class=popup-bookmark-tag-dropdown>
                 <div class=tag-list></div> <!-- tag list is inserted here -->
                 <div class=tag-right-button-strip>
-                    <div class="tag-button popup add-tag" data-popup="Add a different tag" style="padding: 12px 8px; text-align: center;">
-                        <div class=grey-icon>
-                            +
+                    <div class="tag-button popup add-tag" data-popup="Add a different tag">
+                        <div class=icon-button>
+                            <span class=material-icons>add</span>
                         </div>
                     </div>
-                    <div class="tag-button popup sync-tags" data-popup="Load common tags from bookmarks" style="padding: 4px 8px; ">
-                        <div class=grey-icon>
+                    <div class="tag-button popup sync-tags" data-popup="Load common tags from bookmarks">
+                        <div class=icon-button>
                             <ppixiv-inline src="resources/refresh-icon.svg"></ppixiv-inline>
                         </div>
                     </div>

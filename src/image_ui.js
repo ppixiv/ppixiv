@@ -41,30 +41,30 @@ ppixiv.image_ui = class extends ppixiv.widget
     </div>
 
     <div class=button-row>
-        <a class="grey-icon disable-ui-button popup pixiv-only" data-popup="Return to Pixiv" href="#no-ppixiv" style="height: 26px;">
-            <span class="ppixiv-icon" style="vertical-align: middle; font-size: 175%;">pixiv</span>
+        <a class="icon-button disable-ui-button popup pixiv-only" data-popup="Return to Pixiv" href="#no-ppixiv">
+            <span class=ppixiv-icon>pixiv</span>
         </a>
 
         <div class="view-manga-button popup" data-popup="View manga pages">
-            <div class="grey-icon icon-button">
-                <span class="ppixiv-icon" style="vertical-align: middle; font-size: 200%;">thumbnails</span>
+            <div class="icon-button">
+                <span class="ppixiv-icon" style="vertical-align: middle;">thumbnails</span>
             </div>
         </div>
 
         <div class="download-button download-image-button popup pixiv-only" data-download="image" data-popup="Download image">
-            <div class="grey-icon icon-button button enabled">
+            <div class="icon-button button enabled">
                 <ppixiv-inline src="resources/download-icon.svg"></ppixiv-inline>
             </div>
         </div>
 
         <div class="download-button download-manga-button popup pixiv-only" data-download="ZIP" data-popup="Download ZIP of all images">
-            <div class="grey-icon icon-button button enabled">
+            <div class="icon-button button enabled">
                 <ppixiv-inline src="resources/download-manga-icon.svg"></ppixiv-inline>
             </div>
         </div>
 
         <div class="download-button download-video-button popup pixiv-only" data-download="MKV" data-popup="Download MKV">
-            <div class="grey-icon icon-button button enabled">
+            <div class="icon-button button enabled">
                 <ppixiv-inline src="resources/download-icon.svg"></ppixiv-inline>
             </div>
         </div>
@@ -72,7 +72,7 @@ ppixiv.image_ui = class extends ppixiv.widget
         <!-- position: relative positions the tag dropdown. -->
         <div class=button-container style="position: relative;">
             <!-- position: relative positions the bookmark count. -->
-            <div class="button button-bookmark public popup" data-bookmark-type=public style="position: relative;">
+            <div class="button icon-button button-bookmark public popup" data-bookmark-type=public style="position: relative;">
                 <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
                 <div class=count></div>
             </div>
@@ -80,12 +80,12 @@ ppixiv.image_ui = class extends ppixiv.widget
             <div class=popup-bookmark-tag-dropdown-container></div>
         </div>
 
-        <div class="button button-bookmark private popup button-container" data-bookmark-type=private>
+        <div class="button icon-button button-bookmark private popup button-container" data-bookmark-type=private>
             <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
         </div>
         
         <div style="position: relative;">
-            <div class="button button-bookmark-tags grey-icon popup" data-popup="Bookmark tags">
+            <div class="button icon-button button-bookmark-tags popup" data-popup="Bookmark tags">
                 <ppixiv-inline src="resources/tag-icon.svg"></ppixiv-inline>
                 <div style="position: absolute; bottom: 2px; left: 4px;">
                     <div class=tag-dropdown-arrow hidden></div>
@@ -93,33 +93,33 @@ ppixiv.image_ui = class extends ppixiv.widget
             </div>
         </div>
 
-        <div class="button button-like enabled popup button-container" style="position: relative;">
+        <div class="button icon-button button-like enabled popup button-container" style="position: relative;">
             <ppixiv-inline src="resources/like-button.svg"></ppixiv-inline>
 
             <div class=count></div>
         </div>
 
         <a class="similar-illusts-button bulb-button popup pixiv-only" data-popup="Similar illustrations" href=#>
-            <div class="grey-icon icon-button">
-                <span class="material-icons" style="vertical-align: middle; font-size: 200%;">lightbulb</span>
+            <div class=icon-button>
+                <span class=material-icons>lightbulb</span>
             </div>
         </a>
 
-        <a class="similar-artists-button bulb-button grey-icon popup pixiv-only" data-popup="Similar artists" href=#>
-            <div class="grey-icon icon-button">
-                <span class="material-icons" style="vertical-align: middle; font-size: 200%;">lightbulb</span>
+        <a class="similar-artists-button bulb-button popup pixiv-only" data-popup="Similar artists" href=#>
+            <div class=icon-button>
+                <span class=material-icons>lightbulb</span>
             </div>
         </a>
 
-        <a class="similar-bookmarks-button bulb-button grey-icon popup pixiv-only" data-popup="Similar bookmarks" href=#>
-            <div class="grey-icon icon-button">
-                <span class="material-icons" style="vertical-align: middle; font-size: 200%;">lightbulb</span>
+        <a class="similar-bookmarks-button bulb-button popup pixiv-only" data-popup="Similar bookmarks" href=#>
+            <div class=icon-button>
+                <span class=material-icons>lightbulb</span>
             </div>
         </a>
 
         <div class="image-settings-menu-box popup" data-popup="Preferences">
-            <div class="grey-icon icon-button preferences-button">
-                <span class="material-icons" style="vertical-align: middle; font-size: 200%;">settings</span>
+            <div class="icon-button preferences-button">
+                <span class=material-icons>settings</span>
             </div>
         </div>
     </div>

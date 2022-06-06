@@ -23,47 +23,47 @@ let thumbnail_ui = class extends ppixiv.widget
                 </div>
 
                 <div class=button-row style="margin-bottom: 0.5em;">
-                    <a class="grey-icon icon-button disable-ui-button popup pixiv-only" data-popup="Return to Pixiv" href="#no-ppixiv">
-                        <span class="ppixiv-icon" style="font-size: 200%;">pixiv</span>
+                    <a class="icon-button disable-ui-button popup pixiv-only" data-popup="Return to Pixiv" href="#no-ppixiv">
+                        <span class=ppixiv-icon>pixiv</span>
                     </a>
 
                     <!-- These login/logout buttons are only used by the local API. -->
-                    <div class="login-button popup grey-icon" data-popup="Login" style="margin-right: -2px;" hidden>
-                        <span class="material-icons" style="vertical-align: middle; font-size: 200%;">login</span>
+                    <div class="login-button icon-button popup" data-popup="Login" hidden>
+                        <span class=material-icons>login</span>
                     </div>
 
-                    <div class="logout-button popup grey-icon" data-popup="Logout" style="margin-right: -2px;" hidden>
-                        <span class="material-icons" style="vertical-align: middle; font-size: 200%;">logout</span>
+                    <div class="logout-button icon-button popup" data-popup="Logout" hidden>
+                        <span class=material-icons>logout</span>
                     </div>
 
                     <!-- Containing block for :hover highlights on the button: -->
                     <div class=pixiv-only>
-                        <div class="grey-icon icon-button popup-menu-box-button popup parent-highlight" data-popup="Search">
-                            <span class="material-icons" style="vertical-align: middle; font-size: 200%;">menu</span>
+                        <div class="icon-button popup-menu-box-button popup parent-highlight" data-popup="Search">
+                            <span class=material-icons>menu</span>
                         </div>
 
                         <div hidden class="main-search-menu popup-menu-box vertical-list"></div>
                     </div>
 
-                    <div class="refresh-search-button grey-icon icon-button popup" data-popup="Refresh">
-                        <span class="material-icons" style="vertical-align: middle; font-size: 200%;">refresh</span>
+                    <div class="refresh-search-button icon-button popup" data-popup="Refresh">
+                        <div class=material-icons>refresh</div>
                     </div>
 
-                    <div class="grey-icon expand-manga-posts icon-button popup" style="margin: 0 -.15em">
-                        <div class="material-icons" style="display: block; text-align: center; font-size: 200%;"></div>
+                    <div class="expand-manga-posts icon-button popup">
+                        <div class=material-icons></div>
                     </div>
 
-                    <div class="grey-icon whats-new-button popup" data-popup="What's New">
-                        <span class="ppixiv-icon" style="font-size: 200%;">whats_new</span>
+                    <div class="icon-button whats-new-button popup" data-popup="What's New">
+                        <div class=ppixiv-icon>whats_new</div>
                     </div>
 
-                    <a class="slideshow popup grey-icon" data-popup="Slideshow" style="margin: 0 .1em;" href="#">
-                        <span class="material-icons" style="vertical-align: middle; font-size: 180%;">wallpaper</span>
+                    <a class="slideshow icon-button popup" data-popup="Slideshow" href="#">
+                        <div class=material-icons>wallpaper</div>
                     </a>
 
                     <div class="settings-menu-box popup" data-popup="Preferences">
-                        <div class="grey-icon parent-highlight icon-button preferences-button">
-                            <span class="material-icons" style="vertical-align: middle; font-size: 200%;">settings</span>
+                        <div class="parent-highlight icon-button preferences-button">
+                            <span class=material-icons>settings</span>
                         </div>
                         <div hidden class="popup-menu-box vertical-list">
                         </div>
@@ -330,7 +330,7 @@ let thumbnail_ui = class extends ppixiv.widget
                     </div>
 
                     <div class="box-button-row">
-                        <span class="popup grey-icon copy-local-path" data-popup="Copy local path to clipboard" style="cursor: pointer;">
+                        <span class="popup icon-button copy-local-path" data-popup="Copy local path to clipboard">
                             <span class="material-icons">content_copy</span>
                         </span>
 
@@ -723,7 +723,7 @@ ppixiv.screen_search = class extends ppixiv.screen
             { label: "Completed requests",     icon: "request_page", url: "/request/complete/illust#ppixiv" },
             { label: "Users",           icon: "search", url: "/search_user.php#ppixiv" },
             // { label: "Recent history", icon: "", url: "/history.php#ppixiv", classes: ["recent-history-link"] },
-            { label: "Local search",           icon: "", url: `${local_api.path}#ppixiv/`, local: true, onclick: local_api.show_local_search },
+            { label: "Local search",           icon: "folder", url: `${local_api.path}#ppixiv/`, local: true, onclick: local_api.show_local_search },
         ];
 
 
@@ -1105,19 +1105,19 @@ ppixiv.screen_search = class extends ppixiv.screen
         
         // Map from link types to icons:
         let link_types = {
-            ["default-icon"]: "resources/link-icon.svg",
-            ["shopping-cart"]: "resources/shopping-cart.svg",
-            ["twitter-icon"]: "resources/icon-twitter.svg",
+            ["default-icon"]: "ppixiv:link",
+            ["shopping-cart"]: "mat:shopping_cart",
+            ["twitter-icon"]: "ppixiv:twitter",
             ["fanbox-icon"]: "resources/icon-fanbox.svg",
-            ["booth-icon"]: "resources/icon-booth.svg",
-            ["webpage-link"]: "resources/icon-webpage.svg",
+            ["booth-icon"]: "ppixiv:booth",
+            ["webpage-link"]: "mat:home",
             ["pawoo-icon"]: "resources/icon-pawoo.svg",
             ["circlems-icon"]: "resources/icon-circlems.svg",
-            ["twitch-icon"]: "resources/logo-twitch.svg",
-            ["contact-link"]: "resources/send-message.svg",
+            ["twitch-icon"]: "ppixiv:twitch",
+            ["contact-link"]: "mat:mail",
             ["following-link"]: "resources/followed-users-eye.svg",
-            ["bookmarks-link"]: "resources/icon-bookmarks.svg",
-            ["similar-artists"]: "resources/related-illusts.svg",
+            ["bookmarks-link"]: "mat:star",
+            ["similar-artists"]: "mat:lightbulb",
         };
 
         let seen_links = {};
@@ -1144,24 +1144,20 @@ ppixiv.screen_search = class extends ppixiv.screen
 
             let entry = this.create_template({name: "extra-link", html: `
                 <div class=extra-profile-link-button>
-                    <a href=# class="extra-link grey-icon bulb-button popup popup-bottom" rel="noreferer noopener"></a>
+                    <a href=# class="extra-link icon-button bulb-button popup popup-bottom" rel="noreferer noopener"></a>
                 </div>
             `});
 
             let image_name = link_types[type];
+            let icon;
             if(image_name.endsWith(".svg"))
-            {
-                let icon = helpers.create_ppixiv_inline(image_name);
-                icon.classList.add(type);
-                entry.querySelector(".extra-link").appendChild(icon);
-            }
-            else {
-                let span = document.createElement("span");
-                span.classList.add("ppixiv-icon");
-                span.innerText = "fanbox-icon";
-                span.style = "vertical-align: middle; font-size: 175%;";
-                entry.querySelector(".extra-link").appendChild(span);
-            }
+                icon = helpers.create_ppixiv_inline(image_name);
+            else
+                icon = helpers.create_icon(image_name);
+
+            icon.classList.add(type);
+            entry.querySelector(".extra-link").appendChild(icon);
+
             let a = entry.querySelector(".extra-link");
             a.href = url;
 
@@ -1187,8 +1183,8 @@ ppixiv.screen_search = class extends ppixiv.screen
         {
             let entry = this.create_template({name: "mute-link", html: `
                 <div class=extra-profile-link-button>
-                    <span class="extra-link grey-icon bulb-button popup popup-bottom" rel="noreferer noopener">
-                        <span class="material-icons button" style="font-size: 28px;">block</span>
+                    <span class="extra-link icon-button bulb-button popup popup-bottom" rel="noreferer noopener">
+                        <span class=material-icons>block</span>
                     </span>
                 </div>
             `});

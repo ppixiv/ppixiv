@@ -73,6 +73,37 @@ ppixiv.helpers = {
         return style;
     },
 
+    get_icon_class_and_name: function(icon_name)
+    {
+        let [icon_set, name] = icon_name.split(":");
+        if(name == null)
+        {
+            name = icon_set;
+            icon_set = "mat";
+        }
+
+        let icon_class = "material-icons";
+        if(icon_set == "ppixiv")
+            icon_class = "ppixiv-icon";
+        else if(icon_set == "mat")
+            icon_class = "material-icons";
+
+        return [icon_class, name];
+    },
+
+    // Create a font icon.  icon_name is an icon set and name, eg. "mat:lightbulb"
+    // for material icons or "ppixiv:icon" for our icon set.  If no icon set is
+    // specified, material icons is used.
+    create_icon: function(icon_name)
+    {
+        let [icon_class, name] = helpers.get_icon_class_and_name(icon_name);
+
+        let icon = document.createElement("span");
+        icon.classList.add(icon_class);
+        icon.innerText = name;
+        return icon;
+    },
+
     get_template: function(type)
     {
         let template = document.body.querySelector(type);
@@ -182,11 +213,6 @@ ppixiv.helpers = {
         data_type=null,
     })
     {
-        // XXX: We prefix material icon names with "mat:", so in the future we can have a custom
-        // icon font if we want using a different prefix.
-        if(icon && icon.startsWith && icon.startsWith("mat:"))
-            icon = icon.substr(4);
-
         // We always create an anchor, even if we don't have a link.  Browsers just treat it as
         // a span when there's no href attribute.
         //
@@ -196,7 +222,7 @@ ppixiv.helpers = {
         let html = `
             <a class=box-link>
                 <div class=label-box>
-                    <span hidden class="icon material-icons"></span>
+                    <span hidden class=icon></span>
                     <span hidden class=label></span>
                     <span hidden class=explanation></span>
                 </div>
@@ -226,9 +252,11 @@ ppixiv.helpers = {
 
         if(icon != null)
         {
+            let [icon_class, icon_name] = helpers.get_icon_class_and_name(icon);
+            node.querySelector(".icon").classList.add(icon_class);
             node.querySelector(".icon").hidden = false;
-            node.querySelector(".icon").innerText = icon;
-
+            node.querySelector(".icon").innerText = icon_name;
+    
             // .with.text is set for icons that have text next to them, to enable padding
             // and spacing.
             if(label != null)
