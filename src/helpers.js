@@ -350,7 +350,7 @@ ppixiv.helpers = {
                 
                 // See if this is an ID reference.  We don't try to parse all valid URLs
                 // here.  Handle url(#abcd) inside strings, and things like xlink:xref="#abcd".
-                if(attr == "xlink:href" && value.startsWith("#"))
+                if((attr == "href" || attr == "xlink:href") && value.startsWith("#"))
                 {
                     let old_id = value.substr(1);
                     let new_id = id_map[old_id];
