@@ -354,7 +354,7 @@ textarea:focus, input:focus, a:focus {
 .hover-message,
 .search-results > .no-results {
     width: 100%;
-    position: absolute;
+    position: fixed;
     bottom: 0px;
     display: flex;
     justify-content: center;    
@@ -2165,7 +2165,7 @@ svg.heart-image .delete {
 }
 
 .dialog {
-    position: absolute;
+    position: fixed;
     z-index: 1000;
     top: 0;
     left: 0;

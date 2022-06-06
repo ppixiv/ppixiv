@@ -298,7 +298,7 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
             if(this.toggle_mode && this.visible)
                 this.hide();
             else
-                this.show(e.pageX, e.pageY, e.target);
+                this.show(e.clientX, e.clientY, e.target);
         } else {
             // Releasing the left or right mouse button hides the menu if both the left
             // and right buttons are released.  Pressing right, then left, then releasing
@@ -353,8 +353,8 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
 
         if(down)
         {
-            let x = pointer_listener.latest_mouse_position[0];
-            let y = pointer_listener.latest_mouse_position[1];
+            let x = pointer_listener.latest_mouse_screen_position[0];
+            let y = pointer_listener.latest_mouse_screen_position[1];
             let node = document.elementFromPoint(x, y);
             this.show(x, y, node);
         } else {

@@ -3224,14 +3224,16 @@ ppixiv.pointer_listener = class
     // primarily to implement pointer_listener.check().
 
     // The latest mouse position seen by install_global_handler.
-    static latest_mouse_position = [window.innerWidth/2, window.innerHeight/2];
+    static latest_mouse_page_position = [window.innerWidth/2, window.innerHeight/2];
+    static latest_mouse_screen_position = [window.innerWidth/2, window.innerHeight/2];
     static buttons = 0;
     static button_pointer_ids = new Map();
     static pointer_type = "mouse";
     static install_global_handler()
     {
         window.addEventListener("pointermove", (e) => {
-            pointer_listener.latest_mouse_position = [e.pageX, e.pageY];
+            pointer_listener.latest_mouse_page_position = [e.pageX, e.pageY];
+            pointer_listener.latest_mouse_screen_position = [e.clientX, e.clientY];
             this.pointer_type = e.pointerType;
         }, { passive: true, capture: true });
 
@@ -3428,7 +3430,7 @@ ppixiv.pointer_listener = class
             return;
 
         // See if the cursor is over our element.
-        let node_under_cursor = document.elementFromPoint(pointer_listener.latest_mouse_position[0], pointer_listener.latest_mouse_position[1]);
+        let node_under_cursor = document.elementFromPoint(pointer_listener.latest_mouse_screen_position[0], pointer_listener.latest_mouse_screen_position[1]);
         if(node_under_cursor == null || !helpers.is_above(this.element, node_under_cursor))
             return;
 
@@ -3448,8 +3450,10 @@ ppixiv.pointer_listener = class
             new_button_mask |= mask;
             let e = new MouseEvent("simulatedpointerdown", {
                 buttons: new_button_mask,
-                pageX: pointer_listener.latest_mouse_position[0],
-                pageY: pointer_listener.latest_mouse_position[1],
+                pageX: pointer_listener.latest_mouse_page_position[0],
+                pageY: pointer_listener.latest_mouse_page_position[1],
+                clientX: pointer_listener.latest_mouse_page_position[0],
+                clientY: pointer_listener.latest_mouse_page_position[1],
                 timestamp: performance.now(),
             });
             e.pointerId = pointer_listener.button_pointer_ids.get(button);
