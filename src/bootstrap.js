@@ -41,7 +41,7 @@
 
             // Work around quoid/userscripts not defining unsafeWindow.
             try {
-                unsafewindow.x;
+                unsafeWindow.x;
             } catch(e) {
                 window.unsafeWindow = window;
             }
