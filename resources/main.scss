@@ -2216,9 +2216,6 @@ svg.heart-image .delete {
     top: 5px;
     right: 5px;
     color: var(--button-color);
-    background-color: var(--ui-bg-color);
-    padding: 4px;
-    border-radius: 5px;
     cursor: pointer;
     &:hover {
         color: var(--button-highlight-color);
@@ -2606,7 +2603,6 @@ svg.heart-image .delete {
 
 .settings-dialog
 {
-
     .content {
         // Try to set a fixed minimum height, so the dialog doesn't resize when the page is
         // changed, but allow it to go lower if the screen is very small.
@@ -2615,11 +2611,8 @@ svg.heart-image .delete {
         // Try to scale to 80% of the screen width.  Clamp this, so if the screen is very
         // narrow we'll allow it to fill up to the complete screen width.
         width: calc(max(80%, 40em));
-        // min-width: calc(min(800px, 95%));
-        padding: 1em;
 
-        //height: 100%;
-        //overflow-y: auto;
+        padding: 1.5em;
 
         display: flex;
         flex-direction: row;
