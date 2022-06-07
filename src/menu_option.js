@@ -57,17 +57,6 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
         this.link_tabs.shutdown();
     }
 
-    visibility_changed()
-    {
-        super.visibility_changed();
-
-        if(!this.visible)
-        {
-            // Remove the widget when it's hidden.
-            this.container.remove();
-        }
-    }
-
     add_settings()
     {
         this.items = this.container.querySelector(".items");
