@@ -144,16 +144,21 @@ html[data-theme="light"] {
     --like-button-liked-color: #222;
     --like-button-hover-color: #000;
 }
-ul {
-    padding: 0;
-    margin: 0;
+
+[hidden] {
+    display: none !important;
 }
-.screen:focus {
-    /* Views have tabindex: -1 set.  This causes Chrome to put a blue outline around them
-     * when they're focused, which just puts a weird border around the whole window.  Remove
-     * it. */
+
+textarea:focus, input:focus, a:focus {
     outline: none;
 }
+
+/* Pixiv sometimes displays a random Recaptcha icon in the corner.  It's hard to prevent this since it
+ * sometimes loads before we have a chance to stop it.  Try to hide it. */
+.grecaptcha-badge {
+    display: none !important;
+}
+
 .screen-illust-container {
     position: absolute;
     left: 0;
@@ -161,16 +166,16 @@ ul {
     width: var(--window-width);
     height: var(--window-height);
     overflow: hidden;
-}
 
-.view-container {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    user-select: none;
-    cursor: pointer;
+    .view-container {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        user-select: none;
+        cursor: pointer;
+    }
 }
 
 .viewer-images {
@@ -198,20 +203,6 @@ ul {
         width: 100%;
         height: 100%;
     }
-}
-
-[hidden] {
-    display: none !important;
-}
-
-textarea:focus, input:focus, a:focus {
-    outline: none;
-}
-
-/* Pixiv sometimes displays a random Recaptcha icon in the corner.  It's hard to prevent this since it
- * sometimes loads before we have a chance to stop it.  Try to hide it. */
-.grecaptcha-badge {
-    display: none !important;
 }
 
 .progress-bar {
@@ -599,10 +590,6 @@ body[data-theme="light"] .whats-new-button.updates > svg {
     color: #0aa; /* yellow doesn't work in a light theme */
 }
 
-.navigate-out-button {
-    cursor: pointer;
-}
-
 .menu-slider input {
     vertical-align: middle;
     width: 100%;
@@ -792,23 +779,24 @@ body[data-theme="light"] .description {
 
 .popup {
     position: relative;
+
+    &:hover:after {
+        pointer-events: none;
+        background: #111;
+        border-radius: .5em;
+        left: 0em;
+        top: -2.0em;
+        color: #fff;
+        content: attr(data-popup);
+        display: block;
+        padding: .3em 1em;
+        position: absolute;
+        text-shadow: 0 1px 0 #000;
+        white-space: nowrap;
+        z-index: 98;
+    }
 }
 
-.popup:hover:after {
-    pointer-events: none;
-    background: #111;
-    border-radius: .5em;
-    left: 0em;
-    top: -2.0em;
-    color: #fff;
-    content: attr(data-popup);
-    display: block;
-    padding: .3em 1em;
-    position: absolute;
-    text-shadow: 0 1px 0 #000;
-    white-space: nowrap;
-    z-index: 98;
-}
 .popup-bottom:hover:after {
     top: auto;
     bottom: -2em;
