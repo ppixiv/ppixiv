@@ -106,6 +106,8 @@ ppixiv.main_controller = class
         helpers.set_class(document.body, "hide-r18", !window.global_data.include_r18);
         helpers.set_class(document.body, "hide-r18g", !window.global_data.include_r18g);
 
+        helpers.set_class(document.documentElement, "mobile", ppixiv.ios);
+
         // See if the page has preload data.  This sometimes contains illust and user info
         // that the page will display, which lets us avoid making a separate API call for it.
         let preload = document.querySelector("#meta-preload-data");

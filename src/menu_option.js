@@ -8,16 +8,14 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
         super({visible: true, ...options, template: `
             <div class="settings-dialog dialog">
                 <div class=content>
-                    <div class=header>Settings</div>
-
-                    <div class=box>
-                        <div class=sections></div>
-                        <div class=items>
-                        </div>
+                    <div class=sections>
+                        <div class=settings-header>Settings</div>
+                    </div>
+                    <div class=items>
                     </div>
 
-                    <div class=close-button>
-                        <ppixiv-inline src="resources/close-button.svg"></ppixiv-inline>
+                    <div class="close-button icon-button">
+                        <span class=material-icons>close</span>
                     </div>
                 </div>
             </div>
@@ -442,14 +440,21 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
 
         // Hidden for now (not very useful)
         // settings_widgets.no_recent_history();
+
+        // Add allow-wrap to all top-level box links that we just created, so the
+        // settings menu scales better.  Don't recurse into nested buttons.
+        for(let box_link of this.items.querySelectorAll(".settings-page > .box-link"))
+            box_link.classList.add("allow-wrap");
     }
 
     create_page(id, title, global_options, {settings_list=false}={})
     {
         let page = this.create_template({name: "settings-page", html: `
             <div class=settings-page>
+                <div class=settings-page-title></div>
             </div>
         `});
+        page.querySelector(".settings-page-title").innerText = title;
 
         // If settings_list is true, this page is a list of options, like the thumbnail options
         // page.  This class enables styling for these lists.  If it's another type of settings
@@ -594,9 +599,12 @@ ppixiv.menu_option_button = class extends ppixiv.menu_option
         `});
 
         // Add a flex block to the right of the label, to push buttons to the right:
-        let flex = document.createElement("div");
-        flex.style.flex = 1;
-        this.container.appendChild(flex);
+        //let flex = document.createElement("div");
+        //flex.style.flex = 1;
+        //this.container.appendChild(flex);
+
+        // Set the box-link label to flex, to push buttons to the right:
+        this.container.querySelector(".label-box").style.flex = "1";
 
         this.onclick_handler = onclick;
         this._enabled = true;

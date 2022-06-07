@@ -387,7 +387,7 @@ ppixiv.screen_search = class extends ppixiv.screen
     constructor(options)
     {
         super({...options, template: `
-            <div class="screen screen-search-container search-screen"  tabindex=-1>
+            <div class="screen screen-search-container search-screen">
                 <!-- The tree widget for local navigation: -->
                 <div class=local-navigation-box></div>
 
@@ -2198,9 +2198,9 @@ ppixiv.screen_search = class extends ppixiv.screen
         this.refresh_expanded_thumb_all();
 
         document.body.dataset.theme = "dark"; //settings.get("theme");
-        helpers.set_class(document.body, "disable-thumbnail-panning", settings.get("disable_thumbnail_panning"));
-        helpers.set_class(document.body, "disable-thumbnail-zooming", settings.get("disable_thumbnail_zooming"));
-        helpers.set_class(document.body, "ui-on-hover", settings.get("ui-on-hover"));
+        helpers.set_class(document.body, "disable-thumbnail-panning", settings.get("disable_thumbnail_panning") || ppixiv.ios);
+        helpers.set_class(document.body, "disable-thumbnail-zooming", settings.get("disable_thumbnail_zooming") || ppixiv.ios);
+        helpers.set_class(document.body, "ui-on-hover", settings.get("ui-on-hover") && !ppixiv.ios);
         // helpers.set_class(this.container.querySelector(".recent-history-link"), "disabled", !ppixiv.recently_seen_illusts.get().enabled);
         this.refresh_expand_manga_posts_button();
 

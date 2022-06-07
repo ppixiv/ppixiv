@@ -47,11 +47,21 @@ a {
     color: inherit;
 }
 
+html.mobile {
+    // Disable hover popups on mobile:
+    .popup:after { display: none !important; }
+}
+
 /* Theme colors: */
 html {
     // The default size of icons relative to the current text size.  This roughly matches
     // the old icon size.
     --icon-size: 1.7;
+    --icon-row-gap: 0;
+    &.mobile {
+        --icon-size: 4;
+        --icon-row-gap: 0.5em;
+    }
 
     --main-background-color: #000;
     --background-noise: var(--dark-noise);
@@ -147,6 +157,11 @@ html[data-theme="light"] {
 
 [hidden] {
     display: none !important;
+}
+
+input {
+    // Make this consistent, since user agent styles vary.
+    padding: 1px 2px;
 }
 
 textarea:focus, input:focus, a:focus {
@@ -523,6 +538,7 @@ textarea:focus, input:focus, a:focus {
     display: flex;
     flex-direction: row;
     align-items: center;
+    gap: var(--icon-row-gap);
 
     .button.enabled {
         cursor: pointer;
@@ -1449,14 +1465,21 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
 
     color: var(--box-link-fg-color);
     user-select: none;
-    white-space: nowrap;
 
     background-color: var(--box-link-bg-color);
 
     .label {
         // This is so the label text aligns correctly with .icon .material-icons.
         vertical-align: middle;
+        // white-space: nowrap;
+    }
+
+    &:not(.allow-wrap) {
         white-space: nowrap;
+    }
+
+    .explanation {
+        // white-space: normal;
     }
 
     &.selected {
@@ -1540,6 +1563,7 @@ a.box-link, span.box-link
     // and doesn't change if right-side-buttons are shown or hidden.
     display: inline-flex;
     gap: 0.25em;
+    align-items: center;
 
     // Set a default width, so input has something to stretch to and stay a consistent
     // size if buttons are hidden.
@@ -2584,21 +2608,36 @@ svg.heart-image .delete {
 {
 
     .content {
-        width: 80%;
-        min-height: 30em;
-        min-width: calc(min(800px, 95%));
+        // Try to set a fixed minimum height, so the dialog doesn't resize when the page is
+        // changed, but allow it to go lower if the screen is very small.
+        height: calc(min(30em, 100%));
+
+        // Try to scale to 80% of the screen width.  Clamp this, so if the screen is very
+        // narrow we'll allow it to fill up to the complete screen width.
+        width: calc(max(80%, 40em));
+        // min-width: calc(min(800px, 95%));
         padding: 1em;
 
-        & .box {
-            display: flex;
-            flex-direction: row;
-    
+        //height: 100%;
+        //overflow-y: auto;
+
+        display: flex;
+        flex-direction: row;
+
             // The section selector on the left side of the settings dialog:
-            .sections {
+            > .sections {
                 white-space: nowrap;
                 display: flex;
                 flex-direction: column;
+                overflow-y: auto;
 
+                > .settings-header {
+                    position: sticky;
+                    top: 0;
+                    font-size: 1.5em;
+                    background-color: #222222C0;
+
+                }
                 > .box-link {
                     padding: 0.5em;
                     cursor: pointer;
@@ -2617,8 +2656,16 @@ svg.heart-image .delete {
                 }
             }
 
-            .items {
+            > .items {
                 flex: 1;
+
+                // Scroller for the individual settings pages:
+                overflow-y: auto;
+
+                .settings-page-title {
+                    font-size: 1.5em;
+                    padding: 0 0.5em;
+                }
             }
 
             .settings-list {
@@ -2672,7 +2719,6 @@ svg.heart-image .delete {
                     }
                 }            
             }
-        }
     }
 }
 

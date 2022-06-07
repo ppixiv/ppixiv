@@ -164,14 +164,14 @@ ppixiv.muted_tags_popup = class extends ppixiv.dialog_widget
     {
         super({...options, template: `
             <div class=muted-tags-popup>
-                <div style="display: flex; align-items: center;">
-                    <span class=title style="font-size: 1.5em;"></span>
-                    <span style="flex: 1;"></span>
+                <span class=add-muted-user-box>
+                    Users can be muted from their user page, or by right-clicking an image and clicking
+                    <span class="material-icons button" style="font-size: 24px; vertical-align: middle;">settings</span>.
+                </span>
 
-                    <span class=non-premium-mute-warning>
-                        ${ helpers.create_box_link({label: "Note",      icon: "warning",  classes: ["mute-warning-button"] }) }
-                    </span>
-                </div>
+                <span class=non-premium-mute-warning>
+                    ${ helpers.create_box_link({label: "Note",      icon: "warning",  classes: ["mute-warning-button"] }) }
+                </span>
 
                 <div class=mute-warning>
                     <div>
@@ -189,18 +189,11 @@ ppixiv.muted_tags_popup = class extends ppixiv.dialog_widget
                     ${ helpers.create_box_link({label: "Add",      icon: "add",  classes: ["add-muted-tag"] }) }
                 </div>
 
-                <span class=add-muted-user-box>
-                    Users can be muted from their user page, or by right-clicking an image and clicking
-                    <span class="material-icons button" style="font-size: 24px; vertical-align: middle;">settings</span>.
-                </span>
-
                 <div class=mute-list></div>
             </div>
         `});
 
         this.mute_type = mute_type;
-
-        this.container.querySelector(".title").innerText = `Muted ${mute_type == "tag"? "tags":"users"}`;
 
         this.container.querySelector(".add-muted-tag-box").hidden = mute_type != "tag";
         this.container.querySelector(".add-muted-user-box").hidden = mute_type != "user";
