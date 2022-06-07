@@ -976,7 +976,11 @@ ppixiv.helpers = {
             let offset = restore_relative_to.offsetTop - saved_position.original_offset_top;
             scroll_top += offset;
         }
-        scroller.scrollTop = scroll_top;
+
+        // Don't write to scrollTop if it's not changing, since that breaks
+        // scrolling on iOS.
+        if(scroller.scrollTop != scroll_top)
+            scroller.scrollTop = scroll_top;
     },
     
     encode_query: function(data) {
