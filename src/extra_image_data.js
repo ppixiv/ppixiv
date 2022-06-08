@@ -38,6 +38,15 @@ ppixiv.extra_image_data = class
         if(this.db == null)
             return;
 
+        // Request permission storage the first time the user saves image edits.  Browsers
+        // seem to handle not spamming requests for this, but for safety we only do this once
+        // per session.  We don't need to wait for this.
+        if(!this.requested_persistent_storage && navigator.storage?.persist)
+        {
+            this.requested_persistent_storage = true;
+            navigator.storage.persist();
+        }
+
         await this.db.set(media_id, data);
     }
 
