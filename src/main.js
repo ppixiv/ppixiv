@@ -264,7 +264,7 @@ ppixiv.main_controller = class
         this.set_current_data_source(e.navigationCause || "history");
     }
 
-    async refresh_current_data_source()
+    async refresh_current_data_source({remove_search_page=false}={})
     {
         if(this.data_source == null)
             return;
@@ -273,7 +273,7 @@ ppixiv.main_controller = class
         // This returns the data source, but just call set_current_data_source so
         // we load the new one.
         console.log("Refreshing data source for", ppixiv.location.toString());
-        page_manager.singleton().create_data_source_for_url(ppixiv.location, {force: true});
+        page_manager.singleton().create_data_source_for_url(ppixiv.location, {force: true, remove_search_page});
 
         // Screens store their scroll position in args.state.scroll.  On refresh, clear it
         // so we scroll to the top when we refresh.

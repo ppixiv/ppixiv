@@ -49,6 +49,10 @@ let thumbnail_ui = class extends ppixiv.widget
                         <div class=material-icons>refresh</div>
                     </div>
 
+                    <div class="refresh-search-from-beginning-button icon-button popup" data-popup="Refresh from beginning">
+                        <div class=material-icons>restart_alt</div>
+                    </div>
+
                     <div class="expand-manga-posts icon-button popup">
                         <div class=material-icons></div>
                     </div>
@@ -494,6 +498,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         }, true);
  
         this.container.querySelector(".refresh-search-button").addEventListener("click", this.refresh_search);
+        this.container.querySelector(".refresh-search-from-beginning-button").addEventListener("click", this.refresh_search_from_beginning);
         this.container.querySelector(".whats-new-button").addEventListener("click", this.whats_new);
         this.container.querySelector(".thumbnails").addEventListener("click", this.thumbnail_onclick);
         this.container.querySelector(".expand-manga-posts").addEventListener("click", (e) => {
@@ -817,6 +822,11 @@ ppixiv.screen_search = class extends ppixiv.screen
     {
         main_controller.singleton.refresh_current_data_source();
     }
+
+    refresh_search_from_beginning = () =>
+    {
+        main_controller.singleton.refresh_current_data_source({remove_search_page: true});
+    }
         
     // Set or clear the updates class on the "what's new" button.
     refresh_whats_new_button()
@@ -870,6 +880,10 @@ ppixiv.screen_search = class extends ppixiv.screen
         {
             var ui_box = this.container.querySelector(".thumbnail-ui-box");
             this.data_source.initial_refresh_thumbnail_ui(ui_box, this);
+
+            // Only show the "refresh from beginning" if the data source supports start
+            // pages.  If it doesn't, the two refresh buttons are equivalent.
+            this.container.querySelector(".refresh-search-from-beginning-button").hidden = !this.data_source.supports_start_page;
         }
 
         this.load_expanded_media_ids();
@@ -1967,12 +1981,6 @@ ppixiv.screen_search = class extends ppixiv.screen
         if(a == null)
             return;
 
-        // Don't do this for the "return to start" button.  That page does link to the previous
-        // page, but that button should always refresh so we scroll to the top, and not just add
-        // the previous page above where we are like this does.
-        if(a.classList.contains("load-first-page-link"))
-            return;
-
         if(a.classList.contains("load-previous-page-link"))
         {
             let page = this.data_source.id_list.get_lowest_loaded_page() - 1;
@@ -2394,14 +2402,6 @@ ppixiv.screen_search = class extends ppixiv.screen
                 this.data_source.set_start_page(args, page-1);
                 previous_page_link.href = args.url;
             }
-
-            let first_page_link = this.container.querySelector("a.load-first-page-link");
-            if(first_page_link)
-            {
-                let args = helpers.args.location;
-                this.data_source.set_start_page(args, 1);
-                first_page_link.href = args.url;
-            }
         }
     }
 
@@ -2544,9 +2544,6 @@ ppixiv.screen_search = class extends ppixiv.screen
             entry = this.create_template({ name: "load-previous-results", html: `
                 <div class="thumbnail-load-previous">
                     <div class=load-previous-buttons>
-                        <a class="load-previous-button load-first-page-link" href=#>
-                            Return to start
-                        </a>
                         <a class="load-previous-button load-previous-page-link" href=#>
                             Load previous results
                         </a>

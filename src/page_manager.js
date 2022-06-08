@@ -150,7 +150,11 @@ ppixiv.page_manager = class
     //
     // If force is true, we'll always create a new data source, replacing any
     // previously created one.
-    create_data_source_for_url(url, {force=false}={})
+    //
+    // If remove_search_page is true, the data source page number in url will be
+    // ignored, returning to page 1.  This only matters for data sources that support
+    // a start page.
+    create_data_source_for_url(url, {force=false, remove_search_page=false}={})
     {
         let data_source_class = this.get_data_source_for_url(url);
         if(data_source_class == null)
@@ -169,7 +173,7 @@ ppixiv.page_manager = class
         
         // The search page isn't part of the canonical URL, but keep it in the URL we create
         // the data source with, so it starts at the current page.
-        let base_url = data_source_class.get_canonical_url(url, { remove_search_page: false });
+        let base_url = data_source_class.get_canonical_url(url, { remove_search_page });
         let source = new data_source_class(base_url);
 
         this.data_sources_by_canonical_url[canonical_url] = source;
