@@ -40,7 +40,7 @@ ppixiv.image_ui = class extends ppixiv.widget
         </div>
     </div>
 
-    <div class=button-row>
+    <div class=button-row style="margin: 0.5em 0">
         <a class="icon-button disable-ui-button popup pixiv-only" data-popup="Return to Pixiv" href="#no-ppixiv">
             <span class=ppixiv-icon>pixiv</span>
         </a>
