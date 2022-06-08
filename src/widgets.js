@@ -1495,7 +1495,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                 return new menu_option_button({
                     ...shared_options,
                     label: "Similar illustrations",
-                    icon: "mat:lightbulb",
+                    icon: "ppixiv:suggestions",
                     requires_image: true,
                     onclick: () => {
                         this.parent.hide();
@@ -1510,7 +1510,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                 return new menu_option_button({
                     ...shared_options,
                     label: "Similar artists",
-                    icon: "mat:lightbulb",
+                    icon: "ppixiv:suggestions",
                     requires_user: true,
                     onclick: () => {
                         this.parent.hide();
@@ -1525,7 +1525,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                 return new menu_option_button({
                     ...shared_options,
                     label: "Similar bookmarks",
-                    icon: "mat:lightbulb",
+                    icon: "ppixiv:suggestions",
                     requires_image: true,
                     onclick: () => {
                         this.parent.hide();

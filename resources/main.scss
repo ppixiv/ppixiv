@@ -760,14 +760,6 @@ body.dot canvas.filtering {
     color: #FF0 !important; /* override icon-button hover color */
 }
 
-body[data-theme="light"] .bulb-button:hover > .icon-button {
-    stroke: #000;
-}
-
-.bulb-button > .icon-button {
-    margin-top: -3px;
-}
-
 .post-info > * {
     display: inline-block;
     background-color: var(--box-link-bg-color);

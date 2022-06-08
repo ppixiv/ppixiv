@@ -101,19 +101,19 @@ ppixiv.image_ui = class extends ppixiv.widget
 
         <a class="similar-illusts-button bulb-button popup pixiv-only" data-popup="Similar illustrations" href=#>
             <div class=icon-button>
-                <span class=material-icons>lightbulb</span>
+                <span class=ppixiv-icon>suggestions</span>
             </div>
         </a>
 
         <a class="similar-artists-button bulb-button popup pixiv-only" data-popup="Similar artists" href=#>
             <div class=icon-button>
-                <span class=material-icons>lightbulb</span>
+                <span class=ppixiv-icon>suggestions</span>
             </div>
         </a>
 
         <a class="similar-bookmarks-button bulb-button popup pixiv-only" data-popup="Similar bookmarks" href=#>
             <div class=icon-button>
-                <span class=material-icons>lightbulb</span>
+                <span class=ppixiv-icon>suggestions</span>
             </div>
         </a>
 

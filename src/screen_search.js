@@ -725,8 +725,8 @@ ppixiv.screen_search = class extends ppixiv.screen
             ],
 
             { label: "Rankings",               icon: "auto_awesome"  /* who names this stuff? */, url: "/ranking.php#ppixiv" },
-            { label: "Recommended works",      icon: "lightbulb", url: "/discovery#ppixiv" },
-            { label: "Recommended users",      icon: "lightbulb", url: "/discovery/users#ppixiv" },
+            { label: "Recommended works",      icon: "ppixiv:suggestions", url: "/discovery#ppixiv" },
+            { label: "Recommended users",      icon: "ppixiv:suggestions", url: "/discovery/users#ppixiv" },
             { label: "Completed requests",     icon: "request_page", url: "/request/complete/illust#ppixiv" },
             { label: "Users",           icon: "search", url: "/search_user.php#ppixiv" },
             // { label: "Recent history", icon: "", url: "/history.php#ppixiv", classes: ["recent-history-link"] },
@@ -1137,7 +1137,7 @@ ppixiv.screen_search = class extends ppixiv.screen
             ["contact-link"]: "mat:mail",
             ["following-link"]: "resources/followed-users-eye.svg",
             ["bookmarks-link"]: "mat:star",
-            ["similar-artists"]: "mat:lightbulb",
+            ["similar-artists"]: "ppixiv:suggestions",
         };
 
         let seen_links = {};
