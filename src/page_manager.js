@@ -147,14 +147,16 @@ ppixiv.page_manager = class
     //
     // If we've already created a data source for this URL, the same one will be
     // returned.
-    //
-    // If force is true, we'll always create a new data source, replacing any
-    // previously created one.
-    //
-    // If remove_search_page is true, the data source page number in url will be
-    // ignored, returning to page 1.  This only matters for data sources that support
-    // a start page.
-    create_data_source_for_url(url, {force=false, remove_search_page=false}={})
+    create_data_source_for_url(url, {
+        // If force is true, we'll always create a new data source, replacing any
+        // previously created one.
+        force=false,
+
+        // If remove_search_page is true, the data source page number in url will be
+        // ignored, returning to page 1.  This only matters for data sources that support
+        // a start page.
+        remove_search_page=false,
+    }={})
     {
         let data_source_class = this.get_data_source_for_url(url);
         if(data_source_class == null)
