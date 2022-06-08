@@ -158,6 +158,8 @@ ppixiv.page_manager = class
         remove_search_page=false,
     }={})
     {
+        let args = new helpers.args(url);
+
         let data_source_class = this.get_data_source_for_url(url);
         if(data_source_class == null)
         {
@@ -165,12 +167,25 @@ ppixiv.page_manager = class
             return;
         }
 
-        // Canonicalize the URL to see if we already have a data source for this URL.
-        let canonical_url = data_source_class.get_canonical_url(url);
+        // Canonicalize the URL to see if we already have a data source for this URL.  We only
+        // keep one data source around for each canonical URL (eg. search filters).
+        let canonical_url = data_source_class.get_canonical_url(url, { remove_search_page: true });
         if(!force && canonical_url in this.data_sources_by_canonical_url)
         {
             // console.log("Reusing data source for", url.toString());
-            return this.data_sources_by_canonical_url[canonical_url];
+            let data_source = this.data_sources_by_canonical_url[canonical_url];
+            if(data_source)
+            {
+                // If the URL has a page number in it, only return it if this data source can load the
+                // page the caller wants.  If we have a data source that starts at page 10 and the caller
+                // wants page 1, the data source probably won't be able to load it since pages are always
+                // contiguous.
+                let page = data_source.get_start_page(args);
+                if(!data_source.can_load_page(page))
+                    console.log(`Not using cached data source because it can't load page ${page}`);
+                else
+                    return data_source;
+            }
         }
         
         // The search page isn't part of the canonical URL, but keep it in the URL we create

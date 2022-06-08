@@ -293,28 +293,8 @@ ppixiv.main_controller = class
         var old_screen = this.screens[this.current_screen_name];
         var old_media_id = old_screen? old_screen.displayed_media_id:null;
 
-        // Get the current data source.  If we've already created it, this will just return
-        // the same object and not create a new one.
+        // Get the data source for the current URL.
         let data_source = page_manager.singleton().create_data_source_for_url(ppixiv.location);
-
-        // If the data source supports_start_page, and a link was clicked on a page that isn't currently
-        // loaded, create a new data source.  If we're on page 5 of bookmarks and the user clicks a link
-        // for page 1 (the main bookmarks navigation button) or page 10, the current data source can't
-        // display that since we'd need to load every page in-between to keep pages contiguous, so we
-        // just create a new data source.
-        //
-        // This doesn't work great for jumping to arbitrary pages (we don't handle scrolling to that page
-        // very well), but it at least makes rewinding to the first page work.
-        if(data_source == this.data_source && data_source.supports_start_page)
-        {
-            let wanted_page = this.data_source.get_start_page(helpers.args.location);
-            if(!data_source.can_load_page(wanted_page))
-            {
-                // This works the same as refresh_current_data_source above.
-                console.log("Resetting data source because it can't load the requested page", wanted_page);
-                data_source = page_manager.singleton().create_data_source_for_url(ppixiv.location, {force: true});
-            }
-        }
 
         // Figure out which screen to display.
         var new_screen_name;
