@@ -533,8 +533,6 @@ ppixiv.tag_search_edit_widget = class extends ppixiv.widget
 
         // Restore input-dropdown's width.  Force a minimum width, in case this setting is saved incorrectly.
         this.input_dropdown.style.width = settings.get("search-edit-dropdown-width", "400px");
-
-        this.container.hidden = true;
     }
 
     dropdown_onclick = (e) =>
@@ -559,14 +557,15 @@ ppixiv.tag_search_edit_widget = class extends ppixiv.widget
     {
         if(this.visible)
             return;
-            this.visible = true;
 
         // Fill in the dropdown before displaying it.  If hide() is called before this
         // finishes this will return false, so stop.
         if(!await this.populate_dropdown())
             return;
 
-            this.container.hidden = false;
+        this.visible = true;
+
+        helpers.set_max_height(this.input_dropdown);
     }
 
     hide()
@@ -577,8 +576,6 @@ ppixiv.tag_search_edit_widget = class extends ppixiv.widget
 
         // If populate_dropdown is still running, cancel it.
         this.cancel_populate_dropdown();
-
-        this.container.hidden = true;
 
         // Make sure the input isn't focused.
         this.input_element.blur();
