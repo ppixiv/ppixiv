@@ -1953,7 +1953,32 @@ ppixiv.helpers = {
     {
         return helpers.clamp(helpers.scale(x, l1, h1, l2, h2), l2, h2);
     },
+
+    // Return the first value in A that exists in B.
+    find_first(A, B)
+    {
+        for(let value of A)
+        {
+            if(B.indexOf(value) != -1)
+                return value;
+        }
+        return null;
+    },
     
+    // Return the last value in A that exists in B.
+    find_last(A, B)
+    {
+        A = Array.from(A);
+        A.reverse();
+
+        for(let value of A)
+        {
+            if(B.indexOf(value) != -1)
+                return value;
+        }
+        return null;
+    },
+
     // Return a promise that waits for img to load.
     //
     // If img loads successfully, resolve with null.  If abort_signal is aborted,

@@ -1398,7 +1398,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         let args = helpers.args.location;
         args.state.scroll = {
             scroll_position: this.save_scroll_position(),
-            nearby_media_ids: this.get_nearby_media_ids(),
+            nearby_media_ids: this.get_nearby_media_ids({all: true}),
         };
         helpers.set_page_url(args, false, "viewing-page", { send_popstate: false });
     }
@@ -1519,14 +1519,22 @@ ppixiv.screen_search = class extends ppixiv.screen
         let [first_nearby_media_id, last_nearby_media_id] = this.get_nearby_media_ids();
         let [first_loaded_media_id, last_loaded_media_id] = this.get_loaded_media_ids();
 
-        // If we're restoring a scroll position, use the nearby media IDs that we
-        // saved when we left, so we load the same range.  Only do this for the initial
-        // refresh, when we don't already have thumbs nearby.
+        // If we're restoring a scroll position, state.scroll_nearby_media_ids is a list of
+        // the IDs that were nearby when it was saved.  For the initial refresh, load the same
+        // range of nearby media IDs.
         let args = helpers.args.location;
         if(first_nearby_media_id == null && args.state.scroll?.nearby_media_ids != null)
         {
-            first_nearby_media_id = args.state.scroll.nearby_media_ids[0];
-            last_nearby_media_id = args.state.scroll.nearby_media_ids[1];
+            // nearby_media_ids is all media IDs that were nearby.  Not all of them may be
+            // in the list now, eg. if we're only loading page 2 but some images from page 1
+            // were nearby before, so find the biggest matching range.
+            let first = helpers.find_first(args.state.scroll.nearby_media_ids, all_media_ids);
+            let last = helpers.find_last(args.state.scroll.nearby_media_ids, all_media_ids);
+            if(first != null && last != null)
+            {
+                first_nearby_media_id = first;
+                last_nearby_media_id = last;
+            }
         }
 
         // The indices of each related media_id.  These can all be -1.  Note that it's
@@ -1683,13 +1691,15 @@ ppixiv.screen_search = class extends ppixiv.screen
         thumbnail_data.singleton().get_thumbnail_info(media_ids_to_load);
     }
 
-    // Return the first and last media IDs that are nearby.
-    get_nearby_media_ids()
+    // Return the first and last media IDs that are nearby (or all of them if all is true).
+    get_nearby_media_ids({all=false}={})
     {
-        let nearby_thumbs = this.container.querySelectorAll(`[data-id][data-nearby]:not([data-special])`);
-        let first_nearby_media_id = nearby_thumbs[0]?.dataset?.id;
-        let last_nearby_media_id = nearby_thumbs[nearby_thumbs.length-1]?.dataset?.id;
-        return [first_nearby_media_id, last_nearby_media_id];
+        let nearby_thumbs = Array.from(this.container.querySelectorAll(`[data-id][data-nearby]:not([data-special])`));
+        nearby_thumbs = nearby_thumbs.map((thumb) => thumb.dataset.id);
+        if(all)
+            return nearby_thumbs;
+        else
+            return [nearby_thumbs[0], nearby_thumbs[nearby_thumbs.length-1]];
     }
 
     // Return the first and last media IDs that's currently loaded into thumbs.
