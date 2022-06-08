@@ -3,6 +3,21 @@
 // This should be inside whats_new, but Firefox is in the dark ages and doesn't support class fields.
 let _update_history = [
     {
+        version: 139,
+        text: `
+            Added a panning/slideshow editor, to edit how an image will pan and zoom during
+            slideshows.  Right-click and enable
+            <span class="material-icons" style="vertical-align: bottom;">settings</span>
+            <span class="material-icons" style="vertical-align: bottom;">brush</span> Image Editing, then
+            <span class="material-icons" style="vertical-align: bottom;">wallpaper</span> Edit Panning
+            while viewing an image.
+            <p>
+            Added a button to <span class="material-icons" style="vertical-align: bottom;">restart_alt</span>
+            Refresh the search from the current page.  The <span class="material-icons" style="vertical-align: bottom;">refresh</span>
+            Refresh button now always restarts from the beginning.
+        `,
+    },
+    {
         version: 133,
         text: `
             Pressing Ctrl-P now toggles image panning.
