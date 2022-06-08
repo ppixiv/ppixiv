@@ -708,7 +708,7 @@ ppixiv.screen_search = class extends ppixiv.screen
             { label: "New works by following", icon: "photo_library",          url: "/bookmark_new_illust.php#ppixiv" },
             { label: "New works by everyone",  icon: "groups",          url: "/new_illust.php#ppixiv" },
             [
-                { label: "Bookmarks", icon: "bookmark", url: `/users/${window.global_data.user_id}/bookmarks/artworks#ppixiv` },
+                { label: "Bookmarks", icon: "favorite", url: `/users/${window.global_data.user_id}/bookmarks/artworks#ppixiv` },
                 { label: "all", url: `/users/${window.global_data.user_id}/bookmarks/artworks#ppixiv` },
                 { label: "public", url: `/users/${window.global_data.user_id}/bookmarks/artworks#ppixiv?show-all=0` },
                 { label: "private", url: `/users/${window.global_data.user_id}/bookmarks/artworks?rest=hide#ppixiv?show-all=0` },
