@@ -49,7 +49,7 @@ let thumbnail_ui = class extends ppixiv.widget
                         <div class=material-icons>refresh</div>
                     </div>
 
-                    <div class="refresh-search-from-beginning-button icon-button popup" data-popup="Refresh from beginning">
+                    <div class="refresh-search-from-page-button icon-button popup" data-popup="Refresh from page">
                         <div class=material-icons>restart_alt</div>
                     </div>
 
@@ -498,7 +498,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         }, true);
  
         this.container.querySelector(".refresh-search-button").addEventListener("click", this.refresh_search);
-        this.container.querySelector(".refresh-search-from-beginning-button").addEventListener("click", this.refresh_search_from_beginning);
+        this.container.querySelector(".refresh-search-from-page-button").addEventListener("click", this.refresh_search_from_page);
         this.container.querySelector(".whats-new-button").addEventListener("click", this.whats_new);
         this.container.querySelector(".thumbnails").addEventListener("click", this.thumbnail_onclick);
         this.container.querySelector(".expand-manga-posts").addEventListener("click", (e) => {
@@ -795,6 +795,9 @@ ppixiv.screen_search = class extends ppixiv.screen
         let args = helpers.args.location;
         this.data_source.set_start_page(args, first_thumb.dataset.searchPage);
         helpers.set_page_url(args, false, "viewing-page", { send_popstate: false });
+
+        // Refresh the "refresh from page #" icon.
+        this.refresh_refresh_search_from_page();
     }
 
     // The thumbs actually visible onscreen have changed, or the window has gained focus.
@@ -820,12 +823,12 @@ ppixiv.screen_search = class extends ppixiv.screen
 
     refresh_search = () =>
     {
-        main_controller.singleton.refresh_current_data_source();
+        main_controller.singleton.refresh_current_data_source({remove_search_page: true});
     }
 
-    refresh_search_from_beginning = () =>
+    refresh_search_from_page = () =>
     {
-        main_controller.singleton.refresh_current_data_source({remove_search_page: true});
+        main_controller.singleton.refresh_current_data_source({remove_search_page: false});
     }
         
     // Set or clear the updates class on the "what's new" button.
@@ -881,9 +884,9 @@ ppixiv.screen_search = class extends ppixiv.screen
             var ui_box = this.container.querySelector(".thumbnail-ui-box");
             this.data_source.initial_refresh_thumbnail_ui(ui_box, this);
 
-            // Only show the "refresh from beginning" if the data source supports start
+            // Only show the "refresh from page" button if the data source supports start
             // pages.  If it doesn't, the two refresh buttons are equivalent.
-            this.container.querySelector(".refresh-search-from-beginning-button").hidden = !this.data_source.supports_start_page;
+            this.container.querySelector(".refresh-search-from-page-button").hidden = !this.data_source.supports_start_page;
         }
 
         this.load_expanded_media_ids();
@@ -967,6 +970,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         this.refresh_slideshow_button();
         this.refresh_ui_for_user_id();
         this.refresh_expand_manga_posts_button();
+        this.refresh_refresh_search_from_page();
     };
 
     // Return the user ID we're viewing, or null if we're not viewing anything specific to a user.
@@ -2206,7 +2210,14 @@ ppixiv.screen_search = class extends ppixiv.screen
         button.hidden =
             !this.data_source?.can_return_manga ||
             this.data_source?.includes_manga_pages;
-        }
+    }
+
+    refresh_refresh_search_from_page()
+    {
+        // Refresh the "refresh from page #" button popup.
+        let start_page = this.data_source.get_start_page(helpers.args.location);
+        this.container.querySelector(".refresh-search-from-page-button").dataset.popup = `Refresh search from page ${start_page}`;
+    }
 
     update_from_settings = () =>
     {
