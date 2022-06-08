@@ -149,17 +149,8 @@ ppixiv.main_controller = class
             history.replaceState(null, "", newURL.toString());
         }
         
-        // Don't restore the scroll position.
-        //
-        // If we browser back to a search page and we were scrolled ten pages down, scroll
-        // restoration will try to scroll down to it incrementally, causing us to load all
-        // data in the search from the top all the way down to where we were.  This can cause
-        // us to spam the server with dozens of requests.  This happens on F5 refresh, which
-        // isn't useful (if you're refreshing a search page, you want to see new results anyway),
-        // and recommendations pages are different every time anyway.
-        //
-        // This won't affect browser back from an image to the enclosing search.
-        history.scrollRestoration = "manual";    
+        // Don't restore the scroll position.  We handle this ourself.
+        window.history.scrollRestoration = "manual";  // not ppixiv.history
        
         // If we're running on Pixiv, remove Pixiv's content from the page and move it into a
         // dummy document.
