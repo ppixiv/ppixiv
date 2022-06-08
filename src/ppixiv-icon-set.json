@@ -8,12 +8,20 @@
     {
       "selection": [
         {
+          "order": 20,
+          "id": 9,
+          "name": "0",
+          "prevSize": 17,
+          "code": 48,
+          "tempChar": ""
+        },
+        {
           "order": 19,
           "id": 8,
           "name": "suggestions",
           "prevSize": 17,
           "code": 59655,
-          "tempChar": "",
+          "tempChar": "",
           "ligatures": "suggestions"
         },
         {
@@ -22,7 +30,7 @@
           "name": "tag",
           "prevSize": 17,
           "code": 59654,
-          "tempChar": "",
+          "tempChar": "",
           "ligatures": "tag"
         },
         {
@@ -31,7 +39,7 @@
           "name": "twitch",
           "prevSize": 17,
           "code": 59653,
-          "tempChar": "",
+          "tempChar": "",
           "ligatures": "twitch"
         },
         {
@@ -40,7 +48,7 @@
           "name": "booth",
           "prevSize": 17,
           "code": 59652,
-          "tempChar": "",
+          "tempChar": "",
           "ligatures": "booth"
         },
         {
@@ -49,7 +57,7 @@
           "name": "twitter",
           "prevSize": 17,
           "code": 59651,
-          "tempChar": "",
+          "tempChar": "",
           "ligatures": "twitter"
         },
         {
@@ -58,7 +66,7 @@
           "name": "link",
           "prevSize": 17,
           "code": 59650,
-          "tempChar": "",
+          "tempChar": "",
           "ligatures": "link"
         },
         {
@@ -67,7 +75,7 @@
           "name": "thumbnails",
           "prevSize": 17,
           "code": 59649,
-          "tempChar": "",
+          "tempChar": "",
           "ligatures": "thumbnails"
         },
         {
@@ -76,7 +84,7 @@
           "name": "whats_new",
           "prevSize": 17,
           "code": 59648,
-          "tempChar": "",
+          "tempChar": "",
           "ligatures": "whats_new"
         },
         {
@@ -85,7 +93,7 @@
           "name": "pixiv",
           "prevSize": 17,
           "code": 127787,
-          "tempChar": "",
+          "tempChar": "",
           "ligatures": "pixiv"
         }
       ],
@@ -100,6 +108,20 @@
       "height": 1024,
       "prevSize": 17,
       "icons": [
+        {
+          "id": 9,
+          "paths": [],
+          "attrs": [],
+          "isMulticolor": false,
+          "isMulticolor2": false,
+          "grid": 16,
+          "tags": [
+            "0"
+          ],
+          "colorPermutations": {
+            "110181255255255131": []
+          }
+        },
         {
           "id": 8,
           "paths": [
@@ -359,7 +381,7 @@
       "metrics": {
         "emSize": 1024,
         "baseline": 6.25,
-        "whitespace": 50
+        "whitespace": 100
       },
       "embed": false,
       "noie8": true,
