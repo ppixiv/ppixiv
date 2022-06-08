@@ -57,7 +57,7 @@ html {
     // The default size of icons relative to the current text size.  This roughly matches
     // the old icon size.
     --icon-size: 1.7;
-    --icon-row-gap: 0;
+    --icon-row-gap: 0.1em;
     &.mobile {
         --icon-size: 4;
         --icon-row-gap: 0.5em;
