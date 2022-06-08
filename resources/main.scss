@@ -18,6 +18,12 @@ html {
 
     background-color: var(--main-background-color);
     background-image: var(--background-noise);
+
+    // If we're on the search view, always show the scrollbar, so it doesn't disappear and
+    // reappear as we load searches, causing the UI to shift back and forth slightly.
+    &[data-current-view="search"] {
+        overflow-y: scroll;
+    }
 }
  
 .ppixiv-icon {

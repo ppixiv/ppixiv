@@ -823,7 +823,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         
     get _is_zoom_ui_enabled()
     {
-        var view = document.body.dataset.currentView;
+        var view = document.documentElement.dataset.currentView;
         return view == "illust" && this._on_click_viewer != null && !this._on_click_viewer.slideshow_enabled;
     }
 
