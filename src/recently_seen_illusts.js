@@ -39,8 +39,8 @@ ppixiv.recently_seen_illusts = class
         // If the user disables recent history, clear our storage.
         if(!this.enabled)
         {
-            console.log("Clearing history");
-            this.clear();
+            // console.log("Clearing history");
+            // this.clear();
         }
     }
 
