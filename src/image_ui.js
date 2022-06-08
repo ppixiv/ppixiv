@@ -86,7 +86,7 @@ ppixiv.image_ui = class extends ppixiv.widget
         
         <div style="position: relative;">
             <div class="button icon-button button-bookmark-tags popup" data-popup="Bookmark tags">
-                <ppixiv-inline src="resources/tag-icon.svg"></ppixiv-inline>
+                <span class=ppixiv-icon>tag</span>
                 <div style="position: absolute; bottom: 2px; left: 4px;">
                     <div class=tag-dropdown-arrow hidden></div>
                 </div>

@@ -202,7 +202,7 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
                     
                     <div class=button-block style="position: relative;">
                         <div class="button button-bookmark-tags" data-popup="Bookmark tags">
-                            <ppixiv-inline src="resources/tag-icon.svg"></ppixiv-inline>
+                            <span class="ppixiv-icon" style="vertical-align: middle; font-size: 200%;">tag</span>
                         </div>
                         <div class=popup-bookmark-tag-dropdown-container></div>
                     </div>

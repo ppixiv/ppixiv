@@ -8,12 +8,21 @@
     {
       "selection": [
         {
+          "order": 17,
+          "id": 7,
+          "name": "tag",
+          "prevSize": 17,
+          "code": 59654,
+          "tempChar": "",
+          "ligatures": "tag"
+        },
+        {
           "order": 16,
           "id": 6,
           "name": "twitch",
           "prevSize": 17,
           "code": 59653,
-          "tempChar": "",
+          "tempChar": "",
           "ligatures": "twitch"
         },
         {
@@ -22,7 +31,7 @@
           "name": "booth",
           "prevSize": 17,
           "code": 59652,
-          "tempChar": "",
+          "tempChar": "",
           "ligatures": "booth"
         },
         {
@@ -31,7 +40,7 @@
           "name": "twitter",
           "prevSize": 17,
           "code": 59651,
-          "tempChar": "",
+          "tempChar": "",
           "ligatures": "twitter"
         },
         {
@@ -40,7 +49,7 @@
           "name": "link",
           "prevSize": 17,
           "code": 59650,
-          "tempChar": "",
+          "tempChar": "",
           "ligatures": "link"
         },
         {
@@ -49,7 +58,7 @@
           "name": "thumbnails",
           "prevSize": 17,
           "code": 59649,
-          "tempChar": "",
+          "tempChar": "",
           "ligatures": "thumbnails"
         },
         {
@@ -58,7 +67,7 @@
           "name": "whats_new",
           "prevSize": 17,
           "code": 59648,
-          "tempChar": "",
+          "tempChar": "",
           "ligatures": "whats_new"
         },
         {
@@ -67,7 +76,7 @@
           "name": "pixiv",
           "prevSize": 17,
           "code": 127787,
-          "tempChar": "",
+          "tempChar": "",
           "ligatures": "pixiv"
         }
       ],
@@ -75,13 +84,33 @@
       "metadata": {
         "name": "ppixiv",
         "importSize": {
-          "width": 20,
-          "height": 21
+          "width": 128,
+          "height": 128
         }
       },
       "height": 1024,
       "prevSize": 17,
       "icons": [
+        {
+          "id": 7,
+          "paths": [
+            "M80 576l448-448h384l-128 128c-24-24-72-24-96 0s-24 72 0 96c24 24 72 24 96 0s24-72 0-96l128-128v384l-448 448-384-384z"
+          ],
+          "attrs": [
+            {}
+          ],
+          "isMulticolor": false,
+          "isMulticolor2": false,
+          "grid": 32,
+          "tags": [
+            "tag"
+          ],
+          "colorPermutations": {
+            "110181255255255131": [
+              {}
+            ]
+          }
+        },
         {
           "id": 6,
           "paths": [
