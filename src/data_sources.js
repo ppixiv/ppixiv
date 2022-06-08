@@ -2743,6 +2743,8 @@ ppixiv.data_sources.new_works_by_following = class extends data_source
         this.bookmark_tags = [];
     }
 
+    get supports_start_page() { return true; }
+
     async load_page_internal(page)
     {
         let current_tag = this.url.searchParams.get("tag") || "";
