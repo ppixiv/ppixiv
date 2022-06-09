@@ -381,7 +381,7 @@ ppixiv.data_source = class
         args.query = helpers.sort_query_parameters(args.query);
         args.hash = helpers.sort_query_parameters(args.hash);
 
-        return args.url.toString();
+        return args;
     }
 
     // startup() is called when the data source becomes active, and shutdown is called when

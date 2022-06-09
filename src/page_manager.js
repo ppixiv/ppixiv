@@ -169,7 +169,7 @@ ppixiv.page_manager = class
 
         // Canonicalize the URL to see if we already have a data source for this URL.  We only
         // keep one data source around for each canonical URL (eg. search filters).
-        let canonical_url = data_source_class.get_canonical_url(url, { remove_search_page: true });
+        let canonical_url = data_source_class.get_canonical_url(url, { remove_search_page: true }).url.toString();
         if(!force && canonical_url in this.data_sources_by_canonical_url)
         {
             // console.log("Reusing data source for", url.toString());
@@ -190,7 +190,7 @@ ppixiv.page_manager = class
         
         // The search page isn't part of the canonical URL, but keep it in the URL we create
         // the data source with, so it starts at the current page.
-        let base_url = data_source_class.get_canonical_url(url, { remove_search_page });
+        let base_url = data_source_class.get_canonical_url(url, { remove_search_page }).url.toString();
         let source = new data_source_class(base_url);
 
         this.data_sources_by_canonical_url[canonical_url] = source;
@@ -295,7 +295,7 @@ ppixiv.page_manager = class
 
     // Given a list of tags, return the URL to use to search for them.  This differs
     // depending on the current page.
-    get_url_for_tag_search(tags, url)
+    get_args_for_tag_search(tags, url)
     {
         url = helpers.get_url_without_language(url);
 
@@ -313,9 +313,8 @@ ppixiv.page_manager = class
         }
         
         // Don't include things like the current page in the URL.
-        url = data_source.get_canonical_url(url);
-        
-        return url;
+        let args = data_source.get_canonical_url(url);
+        return args;
     }
 }
 
