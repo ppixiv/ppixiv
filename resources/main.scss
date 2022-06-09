@@ -2691,24 +2691,26 @@ svg.heart-image .delete {
                         cursor: inherit;
                         background: none;
                     }
-            
-                    .label-box {
-                        margin-left: .25em;
-                        flex: 1;
-                        display: flex;
-                        flex-direction: column;
-                        gap: .25em;
-                        .label {
-                            padding-top: .25em; // adjust for descenders
-                            margin: 0; // disable regular margin
-                        }
-            
-                        .explanation {
-                            font-size: 16px;
-                            opacity: 0.75;
-                        }
-                    }
                 }            
+            
+                // Top-level box-links inside settings pages put their explanation underneath the
+                // label.
+                > .box-link > .label-box {
+                    margin-left: .25em;
+                    flex: 1;
+                    display: flex;
+                    flex-direction: column;
+                    gap: .25em;
+                    .label {
+                        padding-top: .25em; // adjust for descenders
+                        margin: 0; // disable regular margin
+                    }
+        
+                    .explanation {
+                        font-size: 16px;
+                        opacity: 0.75;
+                    }
+                }
             }
     }
 }

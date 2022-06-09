@@ -735,7 +735,7 @@ ppixiv.image_data = class extends EventTarget
 
         // Update each key, removing any keys which are null.
         for(let [key, value] of Object.entries(edits))
-                data[key] = value;
+            data[key] = value;
 
         // Delete any null keys.
         for(let [key, value] of Object.entries(data))
@@ -766,6 +766,20 @@ ppixiv.image_data = class extends EventTarget
         this.call_illust_modified_callbacks(media_id);
 
         return data;
+    }
+
+    // Refresh extra_data in a loaded image.  This does nothing if media_id isn't loaded.
+    replace_extra_data(media_id, data)
+    {
+        let illust_data = this.get_media_info_sync(media_id);
+        if(illust_data != null)
+            illust_data.extraData[media_id] = data;
+
+        let thumbnail_info = thumbnail_data.singleton().get_one_thumbnail_info(media_id);
+        if(thumbnail_info)
+            thumbnail_info.extraData[media_id] = data;
+
+        this.call_illust_modified_callbacks(media_id);
     }
 
     // Update cached illust info.

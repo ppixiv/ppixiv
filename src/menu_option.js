@@ -224,6 +224,45 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
                 });
             },
 
+            import_extra_data: () => {
+                return new menu_option_row({
+                    ...global_options,
+                    label: "Image edits",
+                    items: [
+                        new menu_option_button({
+                            icon: "file_upload",
+                            label: "Import",
+                            onclick: () => ppixiv.extra_image_data.get.import(),
+                        }),
+                        new menu_option_button({
+                            icon: "file_download",
+                            label: "Export",
+                            onclick: () => ppixiv.extra_image_data.get.export(),
+                        }),
+                    ],
+                });
+                return new menu_option_button({
+                    ...global_options,
+                    label: "Import image edits",
+                    onclick: () => ppixiv.extra_image_data.get.import(),
+                    buttons: [
+                        new menu_option_button({
+                            ...global_options,
+                            label: "Export image edits",
+                            onclick: () => ppixiv.extra_image_data.get.export(),
+                        })
+                    ]
+                });
+            },
+
+            export_extra_data: () => {
+                return new menu_option_button({
+                    ...global_options,
+                    label: "Export image edits",
+                    onclick: () => ppixiv.extra_image_data.get.export(),
+                });
+            },
+
             quick_view: () => {
                 return new menu_option_toggle_setting({
                     ...global_options,
@@ -426,6 +465,13 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
         // settings_widgets.theme();
         settings_widgets.bookmark_privately_by_default();
 
+        // Chrome supports showOpenFilePicker, but Firefox doesn't.  That API has been around in
+        // Chrome for a year and a half, so I haven't implemented an alternative for Firefox.
+        if(!ppixiv.native && unsafeWindow.showOpenFilePicker != null)
+        {
+            settings_widgets.import_extra_data();
+            //settings_widgets.export_extra_data();
+        }
 
         // Hidden for now (not very useful)
         // settings_widgets.no_recent_history();
@@ -536,16 +582,30 @@ ppixiv.menu_option = class extends widget
 // A container for multiple options on a single row.
 ppixiv.menu_option_row = class extends ppixiv.menu_option
 {
-    constructor({items, ...options})
+    constructor({
+        items,
+        label=null,
+         ...options})
     {
         super({...options, template: `
             <div class=box-link-row>
+                <span class=label-box style="flex: 1;" hidden></span>
             </div>
         `});
 
+        // If a label was given, place it to the left and flex between the label
+        // and buttons.  Otherwise, flex between the first button and the rest.
+        let first = true;
+        if(label != null)
+        {
+            let span = this.container.querySelector(".label-box");
+            span.hidden = false;
+            span.innerText = label;
+            first = false;
+        }
+
         // Add items.
         let row = this.container;
-        let first = true;
         for(let item of items)
         {
             let item_container = item.container;
@@ -573,15 +633,17 @@ ppixiv.menu_option_button = class extends ppixiv.menu_option
         onclick=null,
         explanation_enabled=null,
         explanation_disabled=null,
+        popup=null,
         buttons=[],
         ...options})
     {
         super({...options, template: `
             ${helpers.create_box_link({
-                label: label,
+                label,
                 // If a font icon was specified, use it.  Otherwise, if an image
                 icon: options.icon,
                 link: url,
+                popup,
                 classes: ["menu-toggle"],
                 explanation: "", // create the explanation field
             })}

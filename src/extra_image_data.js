@@ -70,7 +70,11 @@ ppixiv.extra_image_data = class
             // Load data in bulk.
             let promises = {};
             for(let media_id of media_ids)
-                promises[media_id] = key_storage.async_store_get(store, media_id);
+            {
+                let data = key_storage.async_store_get(store, media_id);
+                if(data)
+                    promises[media_id] = data;
+            }
             return await helpers.await_map(promises);
         });
     }
@@ -151,5 +155,94 @@ ppixiv.extra_image_data = class
     
             return results;
         });
+    }
+
+    // Export the database contents to allow the user to back it up.
+    async export()
+    {
+        if(this.db == null)
+            throw new Error("extra_image_data is disabled");
+        
+        let data = await this.db.db_op(async (db) => {
+            let store = this.db.get_store(db);
+            let cursor = store.openCursor();
+            let results = [];
+            for await (let entry of cursor)
+            {
+                // We store pages in the key as a media_id.  Add it to the exported value.
+                results.push({
+                    media_id: entry.key,
+                    ...entry.value,
+                });
+            }
+    
+            return results;
+        });
+
+        let exported_data = {
+            type: "ppixiv-image-data",
+            data,
+        };
+
+        if(exported_data.data.length == 0)
+        {
+            message_widget.singleton.show("No edited images to export.");
+            return;
+        }
+
+        let json = JSON.stringify(exported_data, null, 4);
+        let blob = new Blob([json], { type: "application/json" });
+        helpers.save_blob(blob, "ppixiv image edits.json");
+    }
+
+    // Import data exported by export().  This will overwrite any overlapping entries, but entries
+    // won't be deleted if they don't exist in the input.
+    async import()
+    {
+        if(this.db == null)
+            throw new Error("extra_image_data is disabled");
+
+        // This API is annoying: it throws an exception (rejects the promise) instead of
+        // returning null.  Exceptions should be used for unusual errors, not for things
+        // like the user cancelling a file dialog.
+        let files;
+        try {
+            files = await unsafeWindow.showOpenFilePicker({
+                multiple: false,
+                types: [{
+                    description: 'Exported image edits',
+                    accept: {
+                        'application/json': ['.json'],
+                    }
+                }],
+            });
+        } catch(e) {
+            return;
+        }
+
+        let file = await files[0].getFile();
+        let data = JSON.parse(await file.text());
+        if(data.type != "ppixiv-image-data")
+        {
+            message_widget.singleton.show(`The file "${file.name}" doesn't contain exported image edits.`);
+            return;
+        }
+
+        let data_by_media_id = {};
+        for(let entry of data.data)
+        {
+            let media_id = entry.media_id;
+            delete entry.media_id;
+            data_by_media_id[media_id] = entry;
+        }
+
+        console.log(`Importing data:`, data);
+        await this.db.multi_set(data_by_media_id);
+
+        // Tell image_data that we've replaced extra data, so any loaded images are updated.
+        for(let [media_id, data] of Object.entries(data_by_media_id))
+            image_data.singleton().replace_extra_data(media_id, data);
+
+        message_widget.singleton.show(`Imported edits for ${data.data.length} ${data.data.length == 1? "image":"images"}.`);
     }
 }
