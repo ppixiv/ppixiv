@@ -1334,8 +1334,6 @@ ppixiv.screen_search = class extends ppixiv.screen
             let focus = document.querySelector(":focus");
             if(focus == null)
                 this.scroll_container.focus();
-            else
-                console.log("Already focused:", focus);
         }
         else
         {
