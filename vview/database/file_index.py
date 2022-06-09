@@ -115,7 +115,7 @@ class FileIndex(Database):
 
                     # This should be searched with:
                     #
-                    # SELECT * from file_tags WHERE LOWER(tag) LIKE "pattern%";
+                    # SELECT * from file_tags WHERE tag LIKE "pattern%";
                     #
                     # for the best chance that the search can use the tag index.
                     conn.execute(f'''
@@ -126,11 +126,11 @@ class FileIndex(Database):
                         )
                     ''')
                     conn.execute(f'CREATE INDEX {self.schema}.file_keyords_file_id on file_keywords(file_id)')
-                    conn.execute(f'CREATE INDEX {self.schema}.file_keywords_keyword on file_keywords(lower(keyword))')
+                    conn.execute(f'CREATE INDEX {self.schema}.file_keywords_keyword on file_keywords(keyword)')
 
                     # This should be searched with:
                     #
-                    # SELECT * from bookmark_tags WHERE LOWER(tag) LIKE "pattern%";
+                    # SELECT * from bookmark_tags WHERE tag LIKE "pattern%";
                     #
                     # for the best chance that the search can use the tag index.
                     conn.execute(f'''
@@ -141,7 +141,7 @@ class FileIndex(Database):
                         )
                     ''')
                     conn.execute(f'CREATE INDEX {self.schema}.bookmark_tags_file_id on bookmark_tags(file_id)')
-                    conn.execute(f'CREATE INDEX {self.schema}.bookmark_tags_tag on bookmark_tags(lower(tag))')
+                    conn.execute(f'CREATE INDEX {self.schema}.bookmark_tags_tag on bookmark_tags(tag)')
 
         assert self.get_db_version(conn=conn) == 1
 
@@ -251,7 +251,7 @@ class FileIndex(Database):
 
                 keywords_to_add = []
                 for keyword in keywords:
-                    keywords_to_add.append((entry['id'], keyword))
+                    keywords_to_add.append((entry['id'], keyword.lower()))
 
                 cursor.executemany(f'''
                     INSERT INTO {self.schema}.file_keywords (file_id, keyword) values (?, ?)
@@ -269,7 +269,7 @@ class FileIndex(Database):
 
                 tags_to_add = []
                 for tag in tags:
-                    tags_to_add.append((entry['id'], tag))
+                    tags_to_add.append((entry['id'], tag.lower()))
 
                 cursor.executemany(f'''
                     INSERT INTO {self.schema}.bookmark_tags (file_id, tag) values (?, ?)
@@ -513,36 +513,30 @@ class FileIndex(Database):
                     where.append(f'bookmark_tags == ""')
                     where.append(f'bookmarked')
                 else:
-                    joins.append(f'''
-                        JOIN {schema}bookmark_tags
-                        ON {schema}bookmark_tags.file_id = {schema}files.id
-                    ''')
+                    joins.append(f'''JOIN {schema}bookmark_tags ON {schema}bookmark_tags.file_id = {schema}files.id''')
 
                     # Add each tag.
                     tag_match = []
                     for tag in bookmark_tags.split(' '):
-                        tag_match.append(f'lower({schema}bookmark_tags.tag) = lower(?)')
-                        params.append(tag)
+                        tag_match.append(f'{schema}bookmark_tags.tag = ?')
+                        params.append(tag.lower())
                     where.append('(' + ' OR '.join(tag_match) + ')')
         
         if substr:
             for word_idx, word in enumerate(self.split_keywords(substr)):
                 # Each keyword match requires a separate join.
                 alias = 'keyword%i' % word_idx
-                joins.append(f'JOIN {schema}file_keywords AS %s' % alias)
-                where.append('files.id = %s.file_id' % alias)
+                joins.append(f'''JOIN {schema}file_keywords AS {alias} ON files.id = {alias}.file_id''')
 
-                # We need to lowercase the string ourself and not say "GLOB lower(?)" for this
-                # to use the keyword index.  Use a prefix match, which can still use the keyword
-                # index.
-                where.append('lower(%s.keyword) GLOB ?' % alias)
+                # Use a prefix match, which can still use the keyword index.
+                where.append('%s.keyword GLOB ?' % alias)
                 params.append(word.lower() + '*')
 
         if order is None:
             order = ''
 
-        where = ('WHERE ' + ' AND '.join(where)) if where else ''
-        joins = (' '.join(joins)) if joins else ''
+        where = ('WHERE\n' + ' AND\n'.join(where)) if where else ''
+        joins = ('\n'.join(joins)) if joins else ''
 
         query = f"""
             {with_prefix}
