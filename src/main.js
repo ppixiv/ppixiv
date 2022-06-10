@@ -325,7 +325,7 @@ ppixiv.main_controller = class
             console.log("Same data source.  Screen:", new_screen_name, "Cause:", cause);
 
         // Update the media ID with the current manga page, if any.
-        let media_id = data_source.get_current_media_id();
+        let media_id = data_source.get_current_media_id(args);
         let id = helpers.parse_media_id(media_id);
         id.page = args.hash.has("page")? parseInt(args.hash.get("page"))-1:0;
         media_id = helpers.encode_media_id(id);
@@ -394,9 +394,7 @@ ppixiv.main_controller = class
         }
     }
 
-    // Show an illustration by ID.
-    //
-    // This actually just sets the history URL.  We'll do the rest of the work in popstate.
+    // Return the URL to display a media ID.
     get_media_url(media_id, {screen="illust", temp_view=false}={})
     {
         console.assert(media_id != null, "Invalid illust_id", media_id);
@@ -438,6 +436,9 @@ ppixiv.main_controller = class
         return args;
     }
     
+    // Show an illustration by ID.
+    //
+    // This actually just sets the history URL.  We'll do the rest of the work in popstate.
     show_media(media_id, {add_to_history=false, source="", ...options}={})
     {
         let args = this.get_media_url(media_id, options);
@@ -483,7 +484,7 @@ ppixiv.main_controller = class
         if(this.current_screen_name != "illust" || this.data_source == null)
             return false;
 
-        let media_id = this.data_source.get_current_media_id();
+        let media_id = this.data_source.get_current_media_id(helpers.args.location);
         if(media_id == null)
             return false;
             
@@ -499,7 +500,7 @@ ppixiv.main_controller = class
         if(!this.navigate_out_enabled)
             return;
             
-        let media_id = this.data_source.get_current_media_id();
+        let media_id = this.data_source.get_current_media_id(helpers.args.location);
         if(media_id == null)
             return;
 

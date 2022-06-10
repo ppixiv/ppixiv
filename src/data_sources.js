@@ -514,12 +514,11 @@ ppixiv.data_source = class
     // Return the illust_id to display by default.
     //
     // This should only be called after the initial data is loaded.
-    get_current_media_id()
+    get_current_media_id(args)
     {
         // If we have an explicit illust_id in the hash, use it.  Note that some pages (in
         // particular illustration pages) put this in the query, which is handled in the particular
         // data source.
-        let args = helpers.args.location;
         if(args.hash.has("illust_id"))
             return helpers.illust_id_to_media_id(args.hash.get("illust_id"));
         
@@ -1973,7 +1972,7 @@ ppixiv.data_sources.current_illust = class extends data_source
     async load_page_internal(page) { }
 
     // We're always viewing our media ID.
-    get_current_media_id() { return this.media_id; }
+    get_current_media_id(args) { return this.media_id; }
 
     // We don't return any posts to navigate to, but this can still be called by
     // quick view.
@@ -3932,10 +3931,8 @@ ppixiv.data_sources.vview = class extends data_source
         local_api.get_args_for_id(media_id, args);
     }
 
-    get_current_media_id()
+    get_current_media_id(args)
     {
-        let args = helpers.args.location;
-
         // If illust_id is in the URL, it's a regular ID.
         let illust_id = args.hash.get("illust_id");
         if(illust_id)
