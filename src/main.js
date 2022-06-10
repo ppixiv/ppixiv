@@ -409,6 +409,9 @@ ppixiv.main_controller = class
                 screen = "search";
         }
 
+        let old_media_id = this.data_source.get_current_media_id(args);
+        let [old_illust_id] = helpers.media_id_to_illust_id_and_page(old_media_id);
+
         // Update the URL to display this media_id.  This stays on the same data source,
         // so displaying an illust won't cause a search to be made in the background or
         // have other side-effects.
@@ -432,6 +435,11 @@ ppixiv.main_controller = class
             args.hash.delete("virtual");
             args.hash.delete("temp-view");
         }
+
+        // If we were viewing a muted image and we're navigating away from it, remove view-muted so
+        // we're muting images again.  Don't do this if we're navigating between pages of the same post.
+        if(illust_id != old_illust_id)
+            args.hash.delete("view-muted");
 
         return args;
     }
