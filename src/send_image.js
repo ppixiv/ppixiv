@@ -379,6 +379,9 @@ ppixiv.SendImage = class
 
     static send_mouse_movement_to_linked_tabs(x, y)
     {
+        if(!settings.get("linked_tabs_enabled"))
+            return;
+
         let tab_ids = settings.get("linked_tabs", []);
         if(tab_ids.length == 0)
             return;
