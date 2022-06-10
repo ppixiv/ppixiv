@@ -68,6 +68,24 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
             this.active_editor_name = this.active_editor_name == "inpaint"? null:"inpaint";
         });
 
+        window.addEventListener("keydown", (e) => {
+            if(!this.visible)
+                return;
+
+            if(e.code == "KeyC" && e.ctrlKey)
+            {
+                e.preventDefault();
+                e.stopPropagation();
+                this.copy();
+            }
+            else if(e.code == "KeyV" && e.ctrlKey)
+            {
+                e.preventDefault();
+                e.stopPropagation();
+                this.paste();
+            }
+        }, { signal: this.shutdown_signal.signal });
+
         // Refresh when these settings change.
         for(let setting of ["image_editing", "image_editing_mode"])
             settings.changes.addEventListener(setting, () => {
@@ -299,6 +317,20 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
             editor.set_state(state[name]);
     }
 
+    get_data_to_save({include_empty=true}={})
+    {
+        let edits = { };
+        for(let editor of Object.values(this.editors))
+        {
+            for(let [key, value] of Object.entries(editor.get_data_to_save()))
+            {
+                if(include_empty || value != null)
+                    edits[key] = value;
+            }
+        }
+        return edits;
+    }
+
     async save()
     {
         // Clear dirty before saving, so any edits made while saving will re-dirty, but set
@@ -309,13 +341,8 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
         this.save_edits.hidden = true;
         spinner.hidden = false;
         try {
-            // Get data from each editor, so we can save them together.
-            let edits = { };
-            for(let editor of Object.values(this.editors))
-            {
-                for(let [key, value] of Object.entries(editor.get_data_to_save()))
-                    edits[key] = value;
-            }
+            // Get data from each editor.
+            let edits = this.get_data_to_save();
 
             let result;
             if(helpers.is_media_id_local(this.media_id))
@@ -345,6 +372,54 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
             this.save_edits.hidden = false;
             spinner.hidden = true;
         }
+    }
+
+    async copy()
+    {
+        let data = this.get_data_to_save({include_empty: false});
+
+        if(Object.keys(data).length == 0)
+        {
+            message_widget.singleton.show("No edits to copy");
+            return;
+        }
+
+        data.type = "ppixiv-edits";
+        data = JSON.stringify(data, null, 4);
+
+        // We should be able to write to the clipboard with a custom MIME type that we can
+        // recognize, but the clipboard API is badly designed and only lets you write a tiny
+        // set of types.
+        await navigator.clipboard.write([
+            new ClipboardItem({
+                "text/plain": new Blob([data], { type: "text/plain" })
+            })
+        ]);
+
+        message_widget.singleton.show("Edits copied");
+    }
+
+    async paste()
+    {
+        let text = await navigator.clipboard.readText();
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch(e) {
+            message_widget.singleton.show("Clipboard doesn't contain edits");
+            return;
+        }
+
+        if(data.type != "ppixiv-edits")
+        {
+            message_widget.singleton.show("Clipboard doesn't contain edits");
+            return;
+        }
+
+        this.set_state(data);
+        await this.save();
+
+        message_widget.singleton.show("Edits pasted");
     }
 
     get active_editor_name()
