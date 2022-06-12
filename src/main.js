@@ -209,12 +209,6 @@ ppixiv.main_controller = class
             return;
         }
 
-        // Load material icons.
-        let font_link = document.createElement("link");
-        font_link.href = "https://fonts.googleapis.com/icon?family=Material+Icons";
-        document.head.appendChild(font_link);
-        font_link.rel = "stylesheet";
-
         // Create the shared title and page icon.
         document.head.appendChild(document.createElement("title"));
         var document_icon = document.head.appendChild(document.createElement("link"));
