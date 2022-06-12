@@ -1310,7 +1310,6 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
 
         &.horizontal-panning {
             animation-name: pan-thumbnail-horizontally;
-            object-position: left top;
 
             // The full animation is 4 seconds, and we want to start 20% in, at the halfway
             // point of the first left-right pan, where the pan is exactly in the center where
