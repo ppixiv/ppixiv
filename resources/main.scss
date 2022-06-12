@@ -1284,50 +1284,44 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
     }
 
     // Thumbnail zooming
-    .thumb {
-        transition: transform .5s;
-        transform: scale(1, 1);
-    }
-
+    //
     // If thumbnail zooming is enabled, zoom thumbs in while not hovered.
-    body:not(.disable-thumbnail-zooming) &:not(:hover)
+    --zoom-thumb: 1;
+    body:not(.disable-thumbnail-zooming) &:not(:hover) { --zoom-thumb: 1.25; }
+
+    .thumb
     {
-        .thumb {
-            transform: scale(1.25, 1.25);
-        }
+        transition: transform .5s;
+        transform: scale(var(--zoom-thumb));
     }
 
     // Thumbnail panning
-    &.vertical-panning, &.horizontal-panning
+    //
+    // Pause panning animations while the mouse isn't over them.
+    --pan-thumb: paused;
+    body:not(.disable-thumbnail-panning) &:hover { --pan-thumb: running; }
+
+    .thumb
     {
-        .thumb {
-            animation-duration: 4s;
-            animation-timing-function: ease-in-out;
-            animation-iteration-count: infinite;
+        animation-duration: 4s;
+        animation-timing-function: ease-in-out;
+        animation-iteration-count: infinite;
+        animation-play-state: var(--pan-thumb);
+
+        &.horizontal-panning {
+            animation-name: pan-thumbnail-horizontally;
+            object-position: left top;
+
+            // The full animation is 4 seconds, and we want to start 20% in, at the halfway
+            // point of the first left-right pan, where the pan is exactly in the center where
+            // we are before any animation.  This is different from vertical panning, since it
+            // pans from the top, which is already where we start (top center).
+            animation-delay: -.8s;
         }
-    }
 
-    // Pause animations while the mouse isn't over them.
-    &:not(:hover)
-    {
-        .thumb {
-            animation-play-state: paused;
+        &.vertical-panning {
+            animation-name: pan-thumbnail-vertically;
         }
-    }
-
-    body:not(.disable-thumbnail-panning) &.horizontal-panning .thumb {
-        animation-name: pan-thumbnail-horizontally;
-        object-position: left top;
-
-        /* The full animation is 4 seconds, and we want to start 20% in, at the halfway
-         * point of the first left-right pan, where the pan is exactly in the center where
-         * we are before any animation.  This is different from vertical panning, since it
-         * pans from the top, which is already where we start (top center). */
-        animation-delay: -.8s;
-    }
-
-    body:not(.disable-thumbnail-panning) &.vertical-panning .thumb {
-        animation-name: pan-thumbnail-vertically;
     }
 
     @keyframes pan-thumbnail-horizontally {

@@ -2240,7 +2240,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         }
     }
 
-    // Set the URL for all loaded thumbnails that are onscreen.
+    // Populate all visible thumbnails.
     //
     // This won't trigger loading any data (other than the thumbnails themselves).
     set_visible_thumbs({force=false}={})
@@ -2456,7 +2456,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         // but it can be different on the manga page.
         let thumb_aspect_ratio = thumb.offsetWidth / thumb.offsetHeight;
         // console.log(`Thumbnail ${media_id} loaded at ${cause}: ${width} ${height} ${thumb.src}`);
-        helpers.set_thumbnail_panning_direction(element, width, height, thumb_aspect_ratio);
+        helpers.set_thumbnail_panning_direction(thumb, width, height, thumb_aspect_ratio);
     }
 
     // Refresh the thumbnail for media_id.
