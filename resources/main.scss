@@ -1289,10 +1289,8 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
         transform: scale(1, 1);
     }
 
-    // If thumbnail zooming is enabled, zoom thumbs in while not hovered, or while
-    // .pause-thumbnail-animation is set.
-    body:not(.disable-thumbnail-zooming) &:not(:hover),
-    body:not(.disable-thumbnail-zooming).pause-thumbnail-animation &
+    // If thumbnail zooming is enabled, zoom thumbs in while not hovered.
+    body:not(.disable-thumbnail-zooming) &:not(:hover)
     {
         .thumb {
             transform: scale(1.25, 1.25);
@@ -1309,9 +1307,8 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
         }
     }
 
-    // Pause animations while the mouse isn't over them, or if pause-thumbnail-animation is set.
-    &:not(:hover),
-    body.pause-thumbnail-animation &
+    // Pause animations while the mouse isn't over them.
+    &:not(:hover)
     {
         .thumb {
             animation-play-state: paused;
