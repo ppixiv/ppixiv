@@ -2224,7 +2224,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         this.refresh_images();
         this.refresh_expanded_thumb_all();
 
-        document.body.dataset.theme = "dark"; //settings.get("theme");
+        document.documentElement.dataset.theme = "dark"; //settings.get("theme");
         helpers.set_class(document.body, "disable-thumbnail-panning", settings.get("disable_thumbnail_panning") || ppixiv.ios);
         helpers.set_class(document.body, "disable-thumbnail-zooming", settings.get("disable_thumbnail_zooming") || ppixiv.ios);
         helpers.set_class(document.body, "ui-on-hover", settings.get("ui-on-hover") && !ppixiv.ios);

@@ -643,7 +643,7 @@ textarea:focus, input:focus, a:focus {
 .whats-new-button.updates > svg {
     color: #cc0;
 }
-body[data-theme="light"] .whats-new-button.updates > svg {
+html[data-theme="light"] .whats-new-button.updates > svg {
     color: #0aa; /* yellow doesn't work in a light theme */
 }
 
@@ -818,7 +818,7 @@ body.dot canvas.filtering {
     max-height: 10em;
     overflow-y: auto;
 }
-body[data-theme="light"] .description {
+html[data-theme="light"] .description {
     border: none;
 }
 /* Override obnoxious colors in descriptions.  Why would you allow this? */
@@ -1954,7 +1954,7 @@ a.box-link, span.box-link
                 border-right: 10px solid transparent;
             }
 
-            body[data-theme="light"] & .tag-dropdown-arrow {
+            html[data-theme="light"] & .tag-dropdown-arrow {
                 border-top-color: #ccc;
             }
         }
@@ -2401,7 +2401,7 @@ svg.heart-image .delete {
             color: #eee;
             position: relative;
 
-            body[data-theme="light"] & {
+            html[data-theme="light"] & {
                 background-color: #ddd;
                 color: #222;
             }
@@ -2430,12 +2430,12 @@ svg.heart-image .delete {
             text-align: center;
             margin-left: 6px;
             border: 1px solid white;
-            body[data-theme="light"] & { border-color: #444; }
+            html[data-theme="light"] & { border-color: #444; }
         }
 
         > .submit-button:hover {
             background-color: #444;
-            body[data-theme="light"] & { background-color: #aaa; }
+            html[data-theme="light"] & { background-color: #aaa; }
         }
     }
 }
@@ -2450,7 +2450,7 @@ svg.heart-image .delete {
     > a {
         padding: 4px 10px;
         background-color: #444;
-        body[data-theme="light"] & {
+        html[data-theme="light"] & {
             background-color: #ccc;
         }
     }
