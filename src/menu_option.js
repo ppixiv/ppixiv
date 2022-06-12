@@ -15,7 +15,7 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
                     </div>
 
                     <div class="close-button icon-button">
-                        <span class=material-icons>close</span>
+                        ${ helpers.create_icon("close") }
                     </div>
                 </div>
             </div>
@@ -287,7 +287,6 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
                     ...global_options,
                     label: "Pan images",
                     setting: "auto_pan",
-                    //<span class="material-icons">animation</span>
                     explanation_enabled: "Pan images while viewing them (drag the image to stop)",
                 });
             },

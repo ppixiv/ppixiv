@@ -18,24 +18,24 @@ ppixiv.InpaintEditor = class extends ppixiv.widget
                     <div class="inpaint-line-width-box box-link">
                         <span>Thickness</span>
                         <input class=inpaint-line-width type=range min=1 max=50>
-                        <div class="save-default-thickness popup" data-popup="Set as default">
-                            <div class="material-icons" style="display: block;">push_pin</div>
+                        <div class="save-default-thickness popup block-button" data-popup="Set as default">
+                            ${ helpers.create_icon("push_pin") }
                         </div>
                     </div>
                     <div class=box-link>
                         <span>Downscale</span>
                         <input class=inpaint-downscale type=range min=1 max=20>
 
-                        <div class="save-default-downscale popup" data-popup="Set as default">
-                            <div class="material-icons" style="display: block;">push_pin</div>
+                        <div class="save-default-downscale popup block-button" data-popup="Set as default">
+                            ${ helpers.create_icon("push_pin") }
                         </div>
                     </div>
                     <div class=box-link>
                         <span>Soften edges</span>
                         <input class=inpaint-blur type=range min=0 max=5>
 
-                        <div class="save-default-soften popup" data-popup="Set as default">
-                            <div class="material-icons" style="display: block;">push_pin</div>
+                        <div class="save-default-soften popup block-button" data-popup="Set as default">
+                            ${ helpers.create_icon("push_pin") }
                         </div>
                     </div>
                 </div>

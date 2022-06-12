@@ -94,14 +94,32 @@ ppixiv.helpers = {
     // Create a font icon.  icon_name is an icon set and name, eg. "mat:lightbulb"
     // for material icons or "ppixiv:icon" for our icon set.  If no icon set is
     // specified, material icons is used.
-    create_icon: function(icon_name)
+    create_icon: function(icon_name, {
+        as_element=false,
+        classes=[],
+        align=null,
+        dataset={},
+    }={})
     {
         let [icon_class, name] = helpers.get_icon_class_and_name(icon_name);
 
         let icon = document.createElement("span");
+        icon.classList.add("font-icon");
         icon.classList.add(icon_class);
+        icon.lang = "icon";
         icon.innerText = name;
-        return icon;
+
+        for(let className of classes)
+            icon.classList.add(className);
+        if(align != null)
+            icon.style.verticalAlign = align;
+        for(let [key, value] of Object.entries(dataset))
+            icon.dataset[key] = value;
+
+        if(as_element)
+            return icon;
+        else
+            return icon.outerHTML;
     },
 
     get_template: function(type)
@@ -253,14 +271,17 @@ ppixiv.helpers = {
         if(icon != null)
         {
             let [icon_class, icon_name] = helpers.get_icon_class_and_name(icon);
-            node.querySelector(".icon").classList.add(icon_class);
-            node.querySelector(".icon").hidden = false;
-            node.querySelector(".icon").innerText = icon_name;
+            let icon_element = node.querySelector(".icon");
+            icon_element.classList.add(icon_class);
+            icon_element.classList.add("font-icon");
+            icon_element.hidden = false;
+            icon_element.innerText = icon_name;
+            icon_element.lang = "icon";
     
             // .with.text is set for icons that have text next to them, to enable padding
             // and spacing.
             if(label != null)
-                node.querySelector(".icon").classList.add("with-text");
+                icon_element.classList.add("with-text");
         }
 
         if(explanation != null)

@@ -506,7 +506,7 @@ ppixiv.checkbox_widget = class extends ppixiv.widget
         ...options})
     {
         super({...options, template: `
-            <span class="checkbox material-icons"></span>
+            ${ helpers.create_icon("", { classes: ["checkbox"] }) }
         `});
 
         this._checked = true;
@@ -1230,7 +1230,7 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
                 <div class=tag-right-button-strip>
                     <div class="tag-button popup add-tag" data-popup="Add a different tag">
                         <div class=icon-button>
-                            <span class=material-icons>add</span>
+                            ${ helpers.create_icon("add") }
                         </div>
                     </div>
                     <div class="tag-button popup sync-tags" data-popup="Load common tags from bookmarks">

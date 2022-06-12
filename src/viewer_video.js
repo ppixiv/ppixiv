@@ -321,8 +321,8 @@ ppixiv.video_ui = class extends ppixiv.widget
                 <div class=seek-bar-container-top></div>
                 <div class=video-ui-strip>
                     <div class=play-button>
-                        <span data-play=pause class="material-icons button" style="font-size: 36px;">pause</span>
-                        <span data-play=play class="material-icons button" style="font-size: 36px;">play_arrow</span>
+                        ${ helpers.create_icon("pause", { dataset: { play: "pause" }}) }
+                        ${ helpers.create_icon("play_arrow", { dataset: { play: "play" }}) }
                     </div>
 
                     <div class=time></div>
@@ -333,11 +333,11 @@ ppixiv.video_ui = class extends ppixiv.widget
                         <div class=volume-line></div>
                     </div>
 
-                    <span data-volume=high class="material-icons button" style="font-size: 36px; display: block; width: 40px;">volume_up</span>
-                    <span data-volume=mute class="material-icons button" style="font-size: 36px; display: block; width: 40px;">volume_off</span>
+                    ${ helpers.create_icon("volume_up", { dataset: { volume: "high" }}) }
+                    ${ helpers.create_icon("volume_off", { dataset: { volume: "mute" }}) }
 
                     <div class="pip-button button">
-                        <span class="material-icons" style="font-size: 36px;">picture_in_picture_alt</span>
+                        ${ helpers.create_icon("picture_in_picture_alt") }
                     </div>
                     <div class="fullscreen button">
                         <ppixiv-inline src="resources/fullscreen.svg"></ppixiv-inline>

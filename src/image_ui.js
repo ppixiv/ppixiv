@@ -42,12 +42,12 @@ ppixiv.image_ui = class extends ppixiv.widget
 
     <div class=button-row style="margin: 0.5em 0">
         <a class="icon-button disable-ui-button popup pixiv-only" data-popup="Return to Pixiv" href="#no-ppixiv">
-            <span class=ppixiv-icon>pixiv</span>
+            ${ helpers.create_icon("ppixiv:pixiv") }
         </a>
 
         <div class="view-manga-button popup" data-popup="View manga pages">
             <div class="icon-button">
-                <span class="ppixiv-icon" style="vertical-align: middle;">thumbnails</span>
+                ${ helpers.create_icon("ppixiv:thumbnails") }
             </div>
         </div>
 
@@ -86,7 +86,7 @@ ppixiv.image_ui = class extends ppixiv.widget
         
         <div style="position: relative;">
             <div class="button icon-button button-bookmark-tags popup" data-popup="Bookmark tags">
-                <span class=ppixiv-icon>tag</span>
+                ${ helpers.create_icon("ppixiv:tag") }
                 <div style="position: absolute; bottom: 2px; left: 4px;">
                     <div class=tag-dropdown-arrow hidden></div>
                 </div>
@@ -101,25 +101,25 @@ ppixiv.image_ui = class extends ppixiv.widget
 
         <a class="similar-illusts-button bulb-button popup pixiv-only" data-popup="Similar illustrations" href=#>
             <div class=icon-button>
-                <span class=ppixiv-icon>suggestions</span>
+                ${ helpers.create_icon("ppixiv:suggestions") }
             </div>
         </a>
 
         <a class="similar-artists-button bulb-button popup pixiv-only" data-popup="Similar artists" href=#>
             <div class=icon-button>
-                <span class=ppixiv-icon>suggestions</span>
+                ${ helpers.create_icon("ppixiv:suggestions") }
             </div>
         </a>
 
         <a class="similar-bookmarks-button bulb-button popup pixiv-only" data-popup="Similar bookmarks" href=#>
             <div class=icon-button>
-                <span class=ppixiv-icon>suggestions</span>
+                ${ helpers.create_icon("ppixiv:suggestions") }
             </div>
         </a>
 
         <div class="image-settings-menu-box popup" data-popup="Preferences">
             <div class="icon-button preferences-button">
-                <span class=material-icons>settings</span>
+                ${ helpers.create_icon("settings") }
             </div>
         </div>
     </div>

@@ -122,7 +122,7 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
                 <div class=button-strip>
                     <div class=button-block>
                         <div class="button button-view-manga" data-level=0 data-popup="View manga pages">
-                            <span class="ppixiv-icon" style="vertical-align: middle; font-size: 200%;">thumbnails</span>
+                            ${ helpers.create_icon("ppixiv:thumbnails") }
                         </div>
                     </div>
 
@@ -164,7 +164,7 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
                     <!-- position: relative positions the popup menu. -->
                     <div class=button-block style="position: relative;">
                         <div class="button button-more enabled" data-popup="More...">
-                            <span class="material-icons" style="vertical-align: middle; font-size: 200%;">settings</span>
+                            ${ helpers.create_icon("settings") }
                         </div>
                         <div class=popup-more-options-container></div>
                     </div>
@@ -174,7 +174,7 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
                         <div class="avatar-widget-container"></div>
 
                         <div class="button button-parent-folder enabled" data-level=0 data-popup="Parent folder" hidden>
-                            <span class="material-icons">folder</span>
+                            ${ helpers.create_icon("folder") }
                         </div>
                     </div>
 
@@ -196,13 +196,13 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
                     
                     <div class="button-block view-in-explorer button-container" hidden>
                         <a href=# class="button private popup local-link">
-                            <span class="material-icons">description</span>                        
+                            ${ helpers.create_icon("description") }
                         </a>
                     </div>
                     
                     <div class=button-block style="position: relative;">
                         <div class="button button-bookmark-tags" data-popup="Bookmark tags">
-                            <span class="ppixiv-icon" style="vertical-align: middle; font-size: 200%;">tag</span>
+                            ${ helpers.create_icon("ppixiv:tag") }
                         </div>
                         <div class=popup-bookmark-tag-dropdown-container></div>
                     </div>

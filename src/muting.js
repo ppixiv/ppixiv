@@ -166,7 +166,7 @@ ppixiv.muted_tags_popup = class extends ppixiv.dialog_widget
             <div class=muted-tags-popup>
                 <span class=add-muted-user-box>
                     Users can be muted from their user page, or by right-clicking an image and clicking
-                    <span class="material-icons button" style="font-size: 24px; vertical-align: middle;">settings</span>.
+                    ${ helpers.create_icon("settings") }.
                 </span>
 
                 <span class=non-premium-mute-warning>
@@ -245,7 +245,7 @@ ppixiv.muted_tags_popup = class extends ppixiv.dialog_widget
         return this.create_template({name: "muted-tag-entry", html: `
             <div class=muted-tag>
                 <a href=# class="remove-mute clickable">
-                    <span class="material-icons button" style="font-size: 24px; vertical-align: middle;">delete</span>
+                    ${ helpers.create_icon("delete") }
                 </a>
                 <span class=tag-name></span>
             </div>

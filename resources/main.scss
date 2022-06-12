@@ -268,6 +268,11 @@ textarea:focus, input:focus, a:focus {
     }
 }
 
+// ppixiv.checkbox_widget:
+.checkbox {
+    font-size: 150%;
+}
+
 // This holds the seek bar and video UI.
 .video-ui
 {
@@ -373,6 +378,10 @@ textarea:focus, input:focus, a:focus {
 
         .button {
             cursor: pointer;
+        }
+
+        .font-icon {
+            font-size: 36px;
         }
 
         > .time {
@@ -1115,6 +1124,10 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
         // Hide the manga page button beyond the first page when not hovering.
         &.expanded-manga-post:not(:hover):not(.first-manga-page) .manga-info-box {
             display: none;
+        }
+
+        .show-manga-pages-button {
+            font-size: 16px;            
         }
 
         // Hide the manga index button beyond the first page.
@@ -1951,6 +1964,10 @@ a.box-link, span.box-link
         & > .button-block.shift-left {
             margin-left: -56px;
         }
+
+        .button-block > .button > .font-icon {
+            font-size: 200%;
+        }
     }
 
     .context-menu-image-info {
@@ -2212,6 +2229,10 @@ svg.heart-image .delete {
 .whats-new-box .content {
     width: 80%;
     height: 80%;
+
+    .font-icon {
+        vertical-align: bottom;
+    }
 
     .rev {
         display: inline-block;
@@ -2759,6 +2780,13 @@ svg.heart-image .delete {
         padding: 1em;
     }
 
+    .add-muted-user-box {
+        .font-icon {
+            font-size: 24px;
+            vertical-align: middle;
+        }
+    }
+
     .non-premium-mute-warning {
         // For the edit tags dialog, prevent the button from overlapping the dialog
         // close button.
@@ -2783,6 +2811,11 @@ svg.heart-image .delete {
                 color: #ffaaaa;
             }
         }
+    }
+
+    .mute-list .remove-mute .font-icon {
+        font-size: 24px;
+        vertical-align: middle;
     }
 }
 
@@ -2826,6 +2859,12 @@ svg.heart-image .delete {
         .image-editor-button-row {
             pointer-events: auto;
             margin-bottom: 0.5em;
+        }
+
+        .block-button {
+            .font-icon {
+                display: block;
+            }
         }
     }
     

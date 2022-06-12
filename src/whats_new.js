@@ -7,13 +7,11 @@ let _update_history = [
         text: `
             Added a panning/slideshow editor, to edit how an image will pan and zoom during
             slideshows.  Right-click and enable
-            <span class="material-icons" style="vertical-align: bottom;">settings</span>
-            <span class="material-icons" style="vertical-align: bottom;">brush</span> Image Editing, then
-            <span class="material-icons" style="vertical-align: bottom;">wallpaper</span> Edit Panning
-            while viewing an image.
+            ${ helpers.create_icon("settings") } ${ helpers.create_icon("brush") } Image Editing, then
+            ${ helpers.create_icon("wallpaper") } Edit Panning while viewing an image.
             <p>
-            Added a button to <span class="material-icons" style="vertical-align: bottom;">restart_alt</span>
-            Refresh the search from the current page.  The <span class="material-icons" style="vertical-align: bottom;">refresh</span>
+            Added a button to ${ helpers.create_icon("restart_alt") }
+            Refresh the search from the current page.  The ${ helpers.create_icon("refresh") }
             Refresh button now always restarts from the beginning.
         `,
     },
@@ -23,8 +21,8 @@ let _update_history = [
             Pressing Ctrl-P now toggles image panning.
             <p>        
             Added image cropping for trimming borders from images.
-            Enable <span class="material-icons" style="vertical-align: bottom;">settings</span>
-            Image Editing in the context menu to display the editor.
+            Enable ${ helpers.create_icon("settings") } Image Editing in the context menu to
+            display the editor.
             <p>
             The page number is now shown over expanded manga posts while hovering over
             the image, so you can collapse long posts without having to scroll back up.
@@ -43,7 +41,7 @@ let _update_history = [
             Added a new way of viewing manga posts.
             <p>
             You can now view manga posts in search results.  Click the page count in the corner of
-            thumbnails to show all manga pages.  You can also click <span class="material-icons" style="vertical-align: middle">open_in_full</span>
+            thumbnails to show all manga pages.  You can also click ${ helpers.create_icon("open_in_full") }
             in the top menu to expand everything, or turn it on everywhere in settings.
         `,
     }, {
@@ -66,8 +64,7 @@ let _update_history = [
     {
         version: 121,
         text: `
-Added a slideshow mode.  Click
-<span class="material-icons" style="vertical-align: middle">wallpaper</span> at the top.
+Added a slideshow mode.  Click ${ helpers.create_icon("wallpaper") } at the top.
 <p>
 Added an option to pan images as they're viewed.
 <p>

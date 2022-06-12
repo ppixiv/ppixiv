@@ -23,7 +23,7 @@ ppixiv.PanEditor = class extends ppixiv.widget
                     ${ helpers.create_box_link({popup: "Edit anchor", icon: "anchor", classes: ["edit-anchor"] }) }
 
                     <div class="box-link popup" data-popup="Zoom">
-                        <span class="icon material-icons">zoom_in</span>
+                        ${ helpers.create_icon("zoom_in") }
                         <input class=zoom-slider type=range min=5 max=200>
                     </div>
 
@@ -184,7 +184,7 @@ ppixiv.PanEditor = class extends ppixiv.widget
 
         this.aspect_ratio_switch_button.dataset.popup = 
             this.displayed_aspect_ratio_portrait? "Previewing portrait":"Previewing landscape";
-        this.aspect_ratio_switch_button.querySelector(".material-icons").innerText =
+        this.aspect_ratio_switch_button.querySelector(".font-icon").innerText =
             this.displayed_aspect_ratio_portrait? "portrait":"panorama";
         this.aspect_ratio_slider.value = this.displayed_aspect_ratio;
         this.ui.querySelector(".aspect-ratio-slider").dataset.popup = `Previewing ${this.preview_size[0]}:${this.preview_size[1]}`;

@@ -24,50 +24,50 @@ let thumbnail_ui = class extends ppixiv.widget
 
                 <div class=button-row style="margin-bottom: 0.5em;">
                     <a class="icon-button disable-ui-button popup pixiv-only" data-popup="Return to Pixiv" href="#no-ppixiv">
-                        <span class=ppixiv-icon>pixiv</span>
+                        ${ helpers.create_icon("ppixiv:pixiv") }
                     </a>
 
                     <!-- These login/logout buttons are only used by the local API. -->
                     <div class="login-button icon-button popup" data-popup="Login" hidden>
-                        <span class=material-icons>login</span>
+                        ${ helpers.create_icon("login") }
                     </div>
 
                     <div class="logout-button icon-button popup" data-popup="Logout" hidden>
-                        <span class=material-icons>logout</span>
+                        ${ helpers.create_icon("logout") }
                     </div>
 
                     <!-- Containing block for :hover highlights on the button: -->
                     <div class=pixiv-only>
                         <div class="icon-button popup-menu-box-button popup parent-highlight" data-popup="Search">
-                            <span class=material-icons>menu</span>
+                            ${ helpers.create_icon("menu") }
                         </div>
 
                         <div hidden class="main-search-menu popup-menu-box vertical-list"></div>
                     </div>
 
                     <div class="refresh-search-button icon-button popup" data-popup="Refresh">
-                        <div class=material-icons>refresh</div>
+                        ${ helpers.create_icon("refresh") }
                     </div>
 
                     <div class="refresh-search-from-page-button icon-button popup" data-popup="Refresh from page">
-                        <div class=material-icons>restart_alt</div>
+                        ${ helpers.create_icon("restart_alt") }
                     </div>
 
                     <div class="expand-manga-posts icon-button popup">
-                        <div class=material-icons></div>
+                        ${ helpers.create_icon("") /* filled in by refresh_expand_manga_posts_button */ }
                     </div>
 
                     <div class="icon-button whats-new-button popup" data-popup="What's New">
-                        <div class=ppixiv-icon>whats_new</div>
+                        ${ helpers.create_icon("ppixiv:whats_new") }
                     </div>
 
                     <a class="slideshow icon-button popup" data-popup="Slideshow" href="#">
-                        <div class=material-icons>wallpaper</div>
+                        ${ helpers.create_icon("wallpaper") }
                     </a>
 
                     <div class="settings-menu-box popup" data-popup="Preferences">
                         <div class="parent-highlight icon-button preferences-button">
-                            <span class=material-icons>settings</span>
+                            ${ helpers.create_icon("settings") }
                         </div>
                         <div hidden class="popup-menu-box vertical-list">
                         </div>
@@ -190,7 +190,7 @@ let thumbnail_ui = class extends ppixiv.widget
                                 </span>
 
                                 <span class="search-submit-button right-side-button">
-                                    <span class="material-icons">search</span>                                            
+                                    ${ helpers.create_icon("search") }
                                 </span>
                             </div>
                         </div>
@@ -292,7 +292,7 @@ let thumbnail_ui = class extends ppixiv.widget
                     <div class="user-search-box input-field-container hover-menu-box">
                         <input class=search-users placeholder="Search users">
                         <span class="search-submit-button right-side-button">
-                            <span class="material-icons">search</span>                                            
+                            ${ helpers.create_icon("search") }
                         </span>
                     </div>
                 </div>
@@ -324,18 +324,18 @@ let thumbnail_ui = class extends ppixiv.widget
                             <input placeholder="Search files">
 
                             <span class="clear-local-search-button right-side-button">
-                                <span class="material-icons" style="display: block; color: black;">clear</span>                                
+                                ${ helpers.create_icon("clear") }
                             </span>
 
                             <span class="submit-local-search-button right-side-button">
-                                <span class="material-icons" style="display: block; color: black;">search</span>                                
+                                ${ helpers.create_icon("search") }
                             </span>
                         </div>
                     </div>
 
                     <div class="box-button-row">
                         <span class="popup icon-button copy-local-path" data-popup="Copy local path to clipboard">
-                            <span class="material-icons">content_copy</span>
+                            ${ helpers.create_icon("content_copy") }
                         </span>
 
                         ${ helpers.create_box_link({popup: "Close search", icon: "exit_to_app",  classes: ["clear-local-search"] }) }
@@ -1173,7 +1173,7 @@ ppixiv.screen_search = class extends ppixiv.screen
             if(image_name.endsWith(".svg"))
                 icon = helpers.create_ppixiv_inline(image_name);
             else
-                icon = helpers.create_icon(image_name);
+                icon = helpers.create_icon(image_name, { as_element: true });
 
             icon.classList.add(type);
             entry.querySelector(".extra-link").appendChild(icon);
@@ -1204,7 +1204,7 @@ ppixiv.screen_search = class extends ppixiv.screen
             let entry = this.create_template({name: "mute-link", html: `
                 <div class=extra-profile-link-button>
                     <span class="extra-link icon-button bulb-button popup popup-bottom" rel="noreferer noopener">
-                        <span class=material-icons>block</span>
+                        ${ helpers.create_icon("block") }
                     </span>
                 </div>
             `});
@@ -2201,7 +2201,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         let enabled = this.media_ids_expanded_by_default;
         let button = this.container.querySelector(".expand-manga-posts");
         button.dataset.popup = enabled? "Collapse manga posts":"Expand manga posts";
-        button.querySelector(".material-icons").innerText = enabled? "close_fullscreen":"open_in_full";
+        button.querySelector(".font-icon").innerText = enabled? "close_fullscreen":"open_in_full";
         
         // Hide the button if the data source can never return manga posts to be expanded, or
         // if it's the manga page itself which always expands.
@@ -2599,7 +2599,7 @@ ppixiv.screen_search = class extends ppixiv.screen
 
                             <div class=manga-info-box style="cursor: pointer;" hidden>
                                 <a class=show-manga-pages-button hidden>
-                                    <span style="font-size: 16px;" class="material-icons">pages</span>
+                                    ${ helpers.create_icon("pages") }
                                 </a>
 
                                 <span class=expand-button>
