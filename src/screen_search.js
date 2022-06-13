@@ -2276,6 +2276,9 @@ ppixiv.screen_search = class extends ppixiv.screen
             // delete element.dataset.pending;
             element.removeAttribute("data-pending");
 
+            // On hover, use stop_animation_after to stop the animation after a while.
+            this.add_animation_listener(element);
+
             if(thumb_type == "user" || thumb_type == "bookmarks")
             {
                 // This is a user thumbnail rather than an illustration thumbnail.  It just shows a small subset
@@ -2459,6 +2462,49 @@ ppixiv.screen_search = class extends ppixiv.screen
         helpers.set_thumbnail_panning_direction(thumb, width, height, thumb_aspect_ratio);
     }
 
+    // element is a thumbnail element.  On mouseover, create a stop_animation_after
+    // to prevent the animation from running forever.
+    add_animation_listener(element)
+    {
+        element.addEventListener("mouseover", (e) => {
+            let thumb = element.querySelector(".thumb");
+            let anim = this.find_thumbnail_animation(thumb);
+
+            // Stop if stop_animation_after is already running for this thumb.
+            if(this.stop_animation?.animation == anim)
+                return;
+            // If we were running it on another thumb and we missed the mouseout for
+            // some reason, remove it.  This only needs to run on the current hover.
+            if(this.stop_animation)
+            {
+                this.stop_animation.shutdown();
+                this.stop_animation = null;
+            }
+
+            this.stop_animation = new helpers.stop_animation_after(anim, 6, 1, anim.animationName == "pan-thumbnail-vertically");
+
+            // Remove it when the mouse leaves the thumb.  We'll actually respond to mouseover/mouseout
+            // for elements inside the thumb too, but it doesn't cause problems here.
+            element.addEventListener("mouseout", (e) => {
+                this.stop_animation.shutdown();
+                this.stop_animation = null;
+            }, { once: true, signal: this.stop_animation.abort.signal });
+        });
+    }
+
+    find_thumbnail_animation(thumb)
+    {
+        // Look for the pan animation.  There should only be one.
+        let animations = thumb.getAnimations();
+        for(let anim of animations)
+        {
+            if(anim.animationName == "pan-thumbnail-horizontally" || anim.animationName == "pan-thumbnail-vertically")
+                return anim;
+        }
+        return null;
+
+    }
+    
     // Refresh the thumbnail for media_id.
     //
     // This is used to refresh the bookmark icon when changing a bookmark.
