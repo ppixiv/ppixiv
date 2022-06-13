@@ -137,22 +137,56 @@ ppixiv.widget = class
 ppixiv.dialog_widget = class extends ppixiv.widget
 {
     constructor({
-        // Dialogs are hidden by default.
-        visible=false,
+        classes=null,
+        container=null,
+        // "normal" is used for larger dialogs, like settings.
+        // "small" is used for smaller popups like text entry.
+        dialog_type="normal",
 
-        // If true, handle closing the dialog.
-        handle_close=false,
+        // Most dialogs have a close button and allow the user to navigate away.  To
+        // disable this and control visibility directly, set this to false.
+        allow_close=true,
+
+        // Most dialogs that can be closed have a close button in the corner.  If this is
+        // false we'll hide that button, but you can still exit by clicking the background.
+        // This is used for very simple dialogs.
+        show_close_button=true,
+
+        // Most dialogs are created when they're needed, and removed and discarded when the
+        // user exits.  To disable this and allow a dialog to be reused, set this to false.
+        remove_on_exit=true,
+
+        template,
         ...options
     })
     {
+        // Most dialogs are added to the body element.
+        if(container == null)
+            container = document.body;
+        
+        console.assert(dialog_type == "normal" || dialog_type == "small");
+
         super({
-            visible: visible,
+            container,
+            template: `
+                <div class="dialog">
+                    <div class="content ${classes ?? ""}" data-dialog-type="${dialog_type}">
+                        ${ template }
+
+                        <div class="close-button icon-button">
+                            ${ helpers.create_icon("close") }
+                        </div>
+                    </div>
+                </div>
+            `,
             ...options,
         });
 
-        this.handle_close = handle_close;
+        this.allow_close = allow_close;
+        this.remove_on_exit = remove_on_exit;
+        this.container.querySelector(".close-button").hidden = !allow_close || !show_close_button;
 
-        if(this.handle_close)
+        if(this.allow_close)
         {
             // Close if the container is clicked, but not if something inside the container is clicked.
             this.container.addEventListener("click", (e) => {
@@ -178,21 +212,26 @@ ppixiv.dialog_widget = class extends ppixiv.widget
         else
             delete document.body.dataset.popupOpen;
 
-        if(this.handle_close)
+        if(this.allow_close)
         {
             if(this.visible)
             {
+                // Hide if the top-level screen changes, so we close if the user exits the screen with browser
+                // navigation but not if the viewed image is changing from something like the slideshow.
+                window.addEventListener("screenchanged", (e) => {
+                    this.visible = false;
+                }, { signal: this.visibility_abort.signal });
+
                 // Hide on any state change.
                 window.addEventListener("popstate", (e) => {
                     this.visible = false;
                 }, { signal: this.visibility_abort.signal });
             }
-            else
-            {
-                // Remove the widget when it's hidden.
-                this.container.remove();
-            }
         }
+
+        // Remove the widget when it's hidden.
+        if(!this.visible && this.remove_on_exit)
+            this.container.remove();
     }
 }
 
@@ -1162,23 +1201,11 @@ ppixiv.text_prompt = class extends ppixiv.dialog_widget
         ...options
     }={})
     {
-        super({...options,
-            container: document.body,
-            visible: true,
-            template: `
-            <div class="tag-entry-popup">
-                <div class=strip>
-                    <div class=box>
-                        <div class=close-button>
-                            <ppixiv-inline src="resources/close-button.svg"></ppixiv-inline>
-                        </div>
-                        <div class=title style="margin-bottom: 4px;"></div>
-                        <div class=input-box>
-                            <input>
-                            <span class=submit-button>+</span>
-                        </div>
-                    </div>
-                </div>
+        super({...options, classes: "text-entry-popup", dialog_type: "small", template: `
+            <div class=header></div>
+            <div class=input-box>
+                <input>
+                <span class=submit-button>+</span>
             </div>
         `});
         
@@ -1189,19 +1216,8 @@ ppixiv.text_prompt = class extends ppixiv.dialog_widget
         this.input = this.container.querySelector("input");
         this.input.value = "";
 
-        this.container.querySelector(".title").innerText = title;
-        this.container.querySelector(".close-button").addEventListener("click", (e) => { this.visible = false; });
+        this.container.querySelector(".header").innerText = title;
         this.container.querySelector(".submit-button").addEventListener("click", this.submit);
-
-        this.container.addEventListener("click", (e) => {
-            // Clicks that aren't inside the box close the dialog.
-            if(e.target.closest(".box") != null)
-                return;
-
-            e.preventDefault();
-            e.stopPropagation();
-            this.visible = false;
-        });
     }
 
     onkeydown = (e) =>
@@ -1234,9 +1250,6 @@ ppixiv.text_prompt = class extends ppixiv.dialog_widget
         }
         else
         {
-            // Remove the widget when it's hidden.
-            this.container.remove();
-
             // If we didn't complete by now, cancel.
             this._completed(null);
         }
@@ -1586,7 +1599,6 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                     onclick: async () => {
                         this.parent.hide();
                         new muted_tags_for_post_popup({
-                            container: document.body,
                             media_id: this.media_id,
                             user_id: this.user_id,
                         });
@@ -1718,11 +1730,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                             onclick: (e) => {
                                 e.stopPropagation();
 
-
-                                new ppixiv.settings_dialog({
-                                    container: document.body,
-                                    show_page: "linked_tabs",
-                                });
+                                new ppixiv.settings_dialog({ show_page: "linked_tabs" });
 
                                 this.parent.hide();
                                 return true;

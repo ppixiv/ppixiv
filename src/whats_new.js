@@ -279,38 +279,14 @@ ppixiv.whats_new = class extends ppixiv.dialog_widget
         throw Error("Couldn't find anything interesting");
     }
 
-    constructor({...options})
+    constructor({...options}={}) 
     {
-        super({...options, visible: true, template: `
-            <div class="whats-new-box dialog">
-                <div class=content>
-                    <div class=scroll>
-                        <div class=header>Updates</div>
-                        <div class=items></div>
-                    </div>
-                    <div class=close-button>
-                        <ppixiv-inline src="resources/close-button.svg"></ppixiv-inline>
-                    </div>
-                </div>
-            </div>
+        super({...options, classes: "whats-new-box", template: `
+            <div class=header>Updates</div>
+            <div class="scroll items"></div>
         `});
 
         this.refresh();
-
-        this.container.querySelector(".close-button").addEventListener("click", (e) => { this.visible = false;; });
-
-        // Close if the container is clicked, but not if something inside the container is clicked.
-        this.container.addEventListener("click", (e) => {
-            if(e.target != this.container)
-                return;
-
-            this.visible = false;
-        });
-
-        // Hide on any state change.
-        window.addEventListener("popstate", (e) => {
-            this.visible = false;
-        });
     }
 
     refresh()
@@ -331,17 +307,6 @@ ppixiv.whats_new = class extends ppixiv.dialog_widget
             entry.querySelector(".rev").innerText = "r" + update.version;
             entry.querySelector(".text").innerHTML = update.text;
             items_box.appendChild(entry);
-        }
-    }
-
-    visibility_changed()
-    {
-        super.visibility_changed();
-
-        if(!this.visible)
-        {
-            // Remove the widget when it's hidden.
-            this.container.remove();
         }
     }
 };

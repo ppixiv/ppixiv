@@ -3,46 +3,20 @@
 
 ppixiv.settings_dialog = class extends ppixiv.dialog_widget
 {
-    constructor({show_page="thumbnail", ...options})
+    constructor({show_page="thumbnail", ...options}={})
     {
-        super({visible: true, ...options, template: `
-            <div class="settings-dialog dialog">
-                <div class=content>
-                    <div class=sections>
-                        <div class=settings-header>Settings</div>
-                    </div>
-                    <div class=items>
-                    </div>
-
-                    <div class="close-button icon-button">
-                        ${ helpers.create_icon("close") }
-                    </div>
-                </div>
+        super({...options, classes: "settings-dialog", template: `
+            <div class=sections>
+                <div class=settings-header>Settings</div>
             </div>
+
+            <div class=items></div>
         `});
 
         this.pages = {};
         this.page_buttons = new Map();
 
-        this.container.querySelector(".close-button").addEventListener("click", (e) => {
-            this.shutdown();
-        }, { signal: this.shutdown_signal.signal });
-
         this.add_settings();
-
-        // Close if the container is clicked, but not if something inside the container is clicked.
-        this.container.addEventListener("click", (e) => {
-            if(e.target != this.container)
-                return;
-
-            this.shutdown();
-        }, { signal: this.shutdown_signal.signal });
-
-        // Hide if the top-level screen changes, so we close if the user exits the screen with browser
-        // navigation but not if the viewed image is changing from something like the slideshow.
-        window.addEventListener("screenchanged", (e) => {
-            this.shutdown();
-        }, { signal: this.shutdown_signal.signal });
 
         this.show_page(show_page);
     }
@@ -445,7 +419,7 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
         }
 
         this.create_page("linked_tabs", "Linked tabs", global_options, { settings_list: true });
-        this.link_tabs = settings_widgets.link_tabs();
+        this.link_tabs = settings_widgets.link_tabs({visible: false});
         settings_widgets.enable_linked_tabs();
         settings_widgets.unlink_all_tabs();
 
@@ -549,6 +523,9 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
     visibility_changed()
     {
         super.visibility_changed();
+
+        // Note that we need to refresh even if we're not visible, since we need to tell things
+        // like this.link_tabs that they're no longer visible.
         this.refresh();
     }
 };

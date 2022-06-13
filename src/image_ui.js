@@ -192,7 +192,7 @@ ppixiv.image_ui = class extends ppixiv.widget
         });
 
         this.container.querySelector(".preferences-button").addEventListener("click", (e) => {
-            new ppixiv.settings_dialog({ container: document.body });
+            new ppixiv.settings_dialog();
         });
     }
 

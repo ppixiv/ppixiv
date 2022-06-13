@@ -556,7 +556,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         });
 
         this.container.querySelector(".preferences-button").addEventListener("click", (e) => {
-            new ppixiv.settings_dialog({ container: document.body });
+            new ppixiv.settings_dialog();
         });
 
         settings.register_change_callback("thumbnail-size", () => { this.refresh_images(); });
@@ -849,7 +849,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         settings.set("whats-new-last-viewed-version", whats_new.latest_history_revision());
         this.refresh_whats_new_button();
 
-        new whats_new({ container: document.body });
+        new whats_new();
     }
 
     /* This scrolls the thumbnail when you hover over it.  It's sort of neat, but it's pretty
@@ -2757,29 +2757,17 @@ ppixiv.slideshow_staging_dialog = class extends ppixiv.dialog_widget
         // isn't what we want to bookmark.
         helpers.set_page_url(slideshow_args, true, "navigation", { send_popstate: false });
 
-        new slideshow_staging_dialog({
-            container: document.body,
-        });
+        new slideshow_staging_dialog();
     }
 
-    constructor({...options})
+    constructor({...options}={})
     {
-        super({...options, visible: true, handle_close: true, template: `
-            <div class="dialog">
-                <div class=content>
-                    <div class=scroll>
-                        <div class=header>Slideshow</div>
-                        <div class=items>
-                            This page can be bookmarked. or added to the home screen on iOS.<br>
-                            <br>
-                            The bookmark will begin a slideshow with the current search.
-                        </div>
-                    </div>
-
-                    <div class="close-button icon-button">
-                        ${ helpers.create_icon("close") }
-                    </div>
-                </div>
+        super({...options, template: `
+            <div class=header>Slideshow</div>
+            <div class=items>
+                This page can be bookmarked. or added to the home screen on iOS.<br>
+                <br>
+                The bookmark will begin a slideshow with the current search.
             </div>
         `});
 

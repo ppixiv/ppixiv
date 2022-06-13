@@ -156,7 +156,8 @@ ppixiv.muting = class extends EventTarget
     }
 }
 
-ppixiv.muted_tags_popup = class extends ppixiv.dialog_widget
+// The "Muted Users" and "Muted Tags" settings pages.
+ppixiv.muted_tags_popup = class extends ppixiv.widget
 {
     constructor({
         mute_type, // "tags" or "users"
@@ -463,37 +464,29 @@ ppixiv.muted_tags_for_post_popup = class extends ppixiv.dialog_widget
         user_id,
         ...options})
     {
-        super({...options, visible: true, template: `
-            <div class="edit-post-mute-dialog dialog">
-                <div class="muted-tags-popup content">
-                    <div style="display: flex; align-items: center;">
-                        <span class=title style="font-size: 1.5em;">Edit mutes</span>
-                        <span style="flex: 1;"></span>
+        super({...options, classes: "edit-post-mute-dialog muted-tags-popup", dialog_type: "small", template: `
+            <div style="display: flex; align-items: center;">
+                <span class=title style="font-size: 1.5em;">Edit mutes</span>
+                <span style="flex: 1;"></span>
 
-                        <span class=non-premium-mute-warning>
-                            ${ helpers.create_box_link({label: "Note",      icon: "warning",  classes: ["mute-warning-button", "clickable"] }) }
-                        </span>
-                    </div>
+                <span class=non-premium-mute-warning>
+                    ${ helpers.create_box_link({label: "Note",      icon: "warning",  classes: ["mute-warning-button", "clickable"] }) }
+                </span>
+            </div>
 
-                    <div class=mute-warning hidden>
-                        <div>
-                            You can mute any number of tags and users.
-                        </div>
-                        <p>
-                        <div>
-                            However, since you don't have Premium, mutes will only be saved in your browser
-                            and can't be saved to your Pixiv account.  They will be lost if you change
-                            browsers or clear site data.
-                        </div>
-                    </div>
-
-                    <div class=post-mute-list></div>
-
-                    <div class=close-button>
-                        <ppixiv-inline src="resources/close-button.svg"></ppixiv-inline>
-                    </div>
+            <div class=mute-warning hidden>
+                <div>
+                    You can mute any number of tags and users.
+                </div>
+                <p>
+                <div>
+                    However, since you don't have Premium, mutes will only be saved in your browser
+                    and can't be saved to your Pixiv account.  They will be lost if you change
+                    browsers or clear site data.
                 </div>
             </div>
+
+            <div class=post-mute-list></div>
         `});
 
         this.media_id = media_id;

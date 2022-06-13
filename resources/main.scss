@@ -2195,17 +2195,34 @@ svg.heart-image .delete {
 
     .content {
         font-size: 18px;
-        max-width: 800px;
+
+        &[data-dialog-type="normal"] {
+            // Normal dialogs can fill the screen, with a maximum width so they aren't too
+            // wide on wide screens and a minimum width so layout doesn't break if the window is
+            // tiny.  This allows dialogs to fill the screen on smaller windows.
+            width: 100%;
+            min-width: 20em;
+            max-width: 45em;
+        }
+
+        &[data-dialog-type="small"] {
+            // Small popups just size to fit their content.
+            max-width: 45em;
+        }
+
         background-color: var(--ui-bg-color);
         color: var(--ui-fg-color);
         border-radius: 5px;
         position: relative;
+        padding: 1em;
+        display: flex;
+        flex-direction: column;
 
-        & > .scroll {
-            width: 100%;
-            height: 100%;
+        > .scroll {
+            //width: 100%;
+            //height: 100%;
+            flex: 1;
             overflow-y: auto;
-            padding: 1em;
         }
     }
 
@@ -2215,7 +2232,7 @@ svg.heart-image .delete {
     }
 }
 
-.whats-new-box .content {
+.whats-new-box {
     width: 80%;
     height: 80%;
 
@@ -2351,13 +2368,6 @@ svg.heart-image .delete {
     }
 }
 
-.send-image-popup
-{
-    .content {
-        padding: 1em;
-    }
-}
-
 .link-this-tab-popup, .send-image-here-popup
 {
     > .box {
@@ -2368,45 +2378,16 @@ svg.heart-image .delete {
     }
 }
 
-.tag-entry-popup
+.dialog .text-entry-popup
 {
-    z-index: 1000;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0,0,0,0.5);
-
-    > .strip {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        height: 100%;
-        justify-content: center;
-        > .box {
-            background-color: #222;
-            padding: 10px;
-            color: #eee;
-            position: relative;
-
-            html[data-theme="light"] & {
-                background-color: #ddd;
-                color: #222;
-            }
-        }
-    }
-
-    .close-button {
-        top: 0px;
-        right: 0px;
+    .header {
+        font-size: 20px;
     }
 
     .input-box {
         position: relative;
         display: flex;
         align-items: center;
-        margin-top: .5em;
 
         > input {
             flex: 1;
@@ -2625,119 +2606,111 @@ svg.heart-image .delete {
     }
 }
 
-.settings-dialog
+.dialog .settings-dialog
 {
-    .content {
-        // Try to set a fixed minimum height, so the dialog doesn't resize when the page is
-        // changed, but allow it to go lower if the screen is very small.
-        height: calc(min(30em, 100%));
+    // Try to set a fixed minimum height, so the dialog doesn't resize when the page is
+    // changed, but allow it to go lower if the screen is very small.
+    height: calc(min(30em, 100%));
 
-        // Try to scale to 80% of the screen width.  Clamp this, so if the screen is very
-        // narrow we'll allow it to fill up to the complete screen width.
-        width: calc(max(80%, 40em));
+    display: flex;
+    flex-direction: row;
 
-        padding: 1.5em;
-
+    // The section selector on the left side of the settings dialog:
+    > .sections {
+        white-space: nowrap;
         display: flex;
-        flex-direction: row;
+        flex-direction: column;
+        overflow-y: auto;
 
-            // The section selector on the left side of the settings dialog:
-            > .sections {
-                white-space: nowrap;
-                display: flex;
-                flex-direction: column;
-                overflow-y: auto;
+        > .settings-header {
+            position: sticky;
+            top: 0;
+            font-size: 1.5em;
+            background-color: #222222C0;
 
-                > .settings-header {
-                    position: sticky;
-                    top: 0;
-                    font-size: 1.5em;
-                    background-color: #222222C0;
+        }
+        > .box-link {
+            padding: 0.5em;
+            cursor: pointer;
 
-                }
-                > .box-link {
-                    padding: 0.5em;
-                    cursor: pointer;
-
-                    &:not(.selected) {
-                        opacity: 0.65;
-                    }
-
-                    &:not(.active) {
-                        background: none;
-                    }
-
-                    &:hover {
-                        background-color: var(--box-link-hover-color);
-                    }
-                }
+            &:not(.selected) {
+                opacity: 0.65;
             }
 
-            > .items {
-                flex: 1;
-
-                // Scroller for the individual settings pages:
-                overflow-y: auto;
-
-                .settings-page-title {
-                    font-size: 1.5em;
-                    padding: 0 0.5em;
-                }
+            &:not(.active) {
+                background: none;
             }
 
-            .settings-list {
-                display: flex;
-                flex-direction: column;
+            &:hover {
+                background-color: var(--box-link-hover-color);
+            }
+        }
+    }
 
-                .settings-row {
-                    padding: 0.5em 1em;
-                    gap: 1em;
-                }
-            
-                .box-link {
-                    // Disable some regular box-link styles:
-                    height: auto;
-                    background-color: inherit;
-                
-                    // Extra buttons (the linked tabs "edit" button):
-                    > .buttons > .box-link {
-                        padding: 0.35em .75em;
-                    }
-            
-                    &.button {
-                        background-color: var(--box-link-bg-color);
-                    }
-            
-                    &.clickable:hover:not(.disabled) {
-                        background-color: var(--box-link-hover-color);
-                    }
-            
-                    // If this isn't a clickable row, such as a slider, disable effects on hover.
-                    &:not(.clickable):hover {
-                        cursor: inherit;
-                        background: none;
-                    }
-                }            
-            
-                // Top-level box-links inside settings pages put their explanation underneath the
-                // label.
-                > .box-link > .label-box {
-                    margin-left: .25em;
-                    flex: 1;
-                    display: flex;
-                    flex-direction: column;
-                    gap: .25em;
-                    .label {
-                        padding-top: .25em; // adjust for descenders
-                        margin: 0; // disable regular margin
-                    }
+    > .items {
+        flex: 1;
+
+        // Scroller for the individual settings pages:
+        overflow-y: auto;
+
+        .settings-page-title {
+            font-size: 1.5em;
+            padding: 0 0.5em;
+        }
+    }
+
+    .settings-list {
+        display: flex;
+        flex-direction: column;
+
+        .settings-row {
+            padding: 0.5em 1em;
+            gap: 1em;
+        }
+    
+        .box-link {
+            // Disable some regular box-link styles:
+            height: auto;
+            background-color: inherit;
         
-                    .explanation {
-                        font-size: 16px;
-                        opacity: 0.75;
-                    }
-                }
+            // Extra buttons (the linked tabs "edit" button):
+            > .buttons > .box-link {
+                padding: 0.35em .75em;
             }
+    
+            &.button {
+                background-color: var(--box-link-bg-color);
+            }
+    
+            &.clickable:hover:not(.disabled) {
+                background-color: var(--box-link-hover-color);
+            }
+    
+            // If this isn't a clickable row, such as a slider, disable effects on hover.
+            &:not(.clickable):hover {
+                cursor: inherit;
+                background: none;
+            }
+        }            
+    
+        // Top-level box-links inside settings pages put their explanation underneath the
+        // label.
+        > .box-link > .label-box {
+            margin-left: .25em;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: .25em;
+            .label {
+                padding-top: .25em; // adjust for descenders
+                margin: 0; // disable regular margin
+            }
+
+            .explanation {
+                font-size: 16px;
+                opacity: 0.75;
+            }
+        }
     }
 }
 

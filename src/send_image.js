@@ -408,11 +408,13 @@ ppixiv.SendImage = class
     }
 };
 
-ppixiv.link_tabs_popup = class extends ppixiv.dialog_widget
+ppixiv.link_tabs_popup = class extends ppixiv.widget
 {
     constructor({...options})
     {
-        super({...options, template: `
+        super({...options,
+            classes: "link-tab-popup",
+            template: `
             <div class="link-tab-popup">
                 <div class=explanation>
                     <ppixiv-inline src="resources/multi-monitor.svg" class=tutorial-monitor></ppixiv-inline>
@@ -424,45 +426,6 @@ ppixiv.link_tabs_popup = class extends ppixiv.dialog_widget
                 </div>
             </div>
         `});
-
-        // Close if the container is clicked, but not if something inside the container is clicked.
-        this.container.addEventListener("click", (e) => {
-            if(e.target != this.container)
-                return;
-
-            this.visible = false;
-        });
-
-        // Refresh the "unlink all tabs" button on other tabs when the linked tab list changes.
-        settings.changes.addEventListener("linked_tabs", this.send_link_tab_message, { signal: this.shutdown_signal.signal });
-
-        // The other tab will send these messages when the link and unlink buttons
-        // are clicked.
-        SendImage.messages.addEventListener("link-this-tab", (e) => {
-            let message = e.message;
-
-            let tab_ids = settings.get("linked_tabs", []);
-            if(tab_ids.indexOf(message.from) == -1)
-                tab_ids.push(message.from);
-
-            settings.set("linked_tabs", tab_ids);
-
-            this.send_link_tab_message();
-        }, { signal: this.shutdown_signal.signal });
-
-        SendImage.messages.addEventListener("unlink-this-tab", (e) => {
-            let message = e.message;
-            let tab_ids = settings.get("linked_tabs", []);
-            let idx = tab_ids.indexOf(message.from);
-            if(idx != -1)
-                tab_ids.splice(idx, 1);
-
-            settings.set("linked_tabs", tab_ids);
-
-            this.send_link_tab_message();
-        });
-
-        this.visible = false;
     }
 
     // Send show-link-tab to tell other tabs to display the "link this tab" popup.
@@ -489,20 +452,55 @@ ppixiv.link_tabs_popup = class extends ppixiv.dialog_widget
         }
 
         helpers.interval(this.send_link_tab_message, 1000, this.visibility_abort.signal);
+
+        // Refresh the "unlink all tabs" button on other tabs when the linked tab list changes.
+        settings.changes.addEventListener("linked_tabs", this.send_link_tab_message, { signal: this.visibility_abort.signal });
+
+        // The other tab will send these messages when the link and unlink buttons
+        // are clicked.
+        SendImage.messages.addEventListener("link-this-tab", (e) => {
+            let message = e.message;
+
+            let tab_ids = settings.get("linked_tabs", []);
+            if(tab_ids.indexOf(message.from) == -1)
+                tab_ids.push(message.from);
+
+            settings.set("linked_tabs", tab_ids);
+
+            this.send_link_tab_message();
+        }, { signal: this.visibility_abort.signal });
+
+        SendImage.messages.addEventListener("unlink-this-tab", (e) => {
+            let message = e.message;
+            let tab_ids = settings.get("linked_tabs", []);
+            let idx = tab_ids.indexOf(message.from);
+            if(idx != -1)
+                tab_ids.splice(idx, 1);
+
+            settings.set("linked_tabs", tab_ids);
+
+            this.send_link_tab_message();
+        }, { signal: this.visibility_abort.signal });
     }
 }
 
 ppixiv.link_this_tab_popup = class extends ppixiv.dialog_widget
 {
-    constructor({...options})
+    constructor({...options}={})
     {
-        super({...options, template: `
-            <div class="link-this-tab-popup dialog">
-                <div class=content>
-                    ${ helpers.create_box_link({ label: "Link this tab", classes: ["link-this-tab"]}) }
-                    ${ helpers.create_box_link({ label: "Unlink this tab", classes: ["unlink-this-tab"]}) }
-                </div>
-            </div>
+        super({...options,
+            classes: "link-this-tab-popup",
+            dialog_template: true,
+            remove_on_exit: false,
+            dialog_type: "small",
+
+            // This dialog is closed when the sending tab closes the link tab interface.
+            allow_close: false,
+
+            visible: false,
+            template: `
+                ${ helpers.create_box_link({ label: "Link this tab", classes: ["link-this-tab"]}) }
+                ${ helpers.create_box_link({ label: "Unlink this tab", classes: ["unlink-this-tab"]}) }
         `});
 
         this.hide_timer = new helpers.timer(() => { this.visible = false; });
@@ -537,8 +535,6 @@ ppixiv.link_this_tab_popup = class extends ppixiv.dialog_widget
         this.container.querySelector(".unlink-this-tab").addEventListener("click", (e) => {
             SendImage.send_message({ message: "unlink-this-tab", to: [this.other_tab_id] });
         });
-
-        this.visible = false;
     }
 
     visibility_changed()
@@ -556,18 +552,21 @@ ppixiv.link_this_tab_popup = class extends ppixiv.dialog_widget
 
 ppixiv.send_image_popup = class extends ppixiv.dialog_widget
 {
-    constructor({...options})
+    constructor({...options}={})
     {
-        super({...options, template: `
-            <div class="send-image-popup dialog">
-                <div class=content>
-                    <div>
-                        Click a
-                        <img src="ppixiv:resources/activate-icon.png" style="width: 28px; vertical-align: bottom;">
-                        tab to send the image there
-                    </div>
+        super({...options,
+            dialog_template: true,
+            classes: "send-image-popup",
+            remove_on_exit: false,
+            show_close_button: false,
+            dialog_type: "small",
+
+            template: `
+                <div>
+                    Click a
+                    <img src="ppixiv:resources/activate-icon.png" style="width: 28px; vertical-align: bottom;">
+                    tab to send the image there
                 </div>
-            </div>
         `});
 
         // Close if the container is clicked, but not if something inside the container is clicked.
@@ -615,14 +614,19 @@ ppixiv.send_image_popup = class extends ppixiv.dialog_widget
 
 ppixiv.send_here_popup = class extends ppixiv.dialog_widget
 {
-    constructor({...options})
+    constructor({...options}={})
     {
-        super({...options, template: `
-            <div class="send-image-here-popup dialog">
-                <div class=content>
-                    ${ helpers.create_box_link({ label: "Click to send image here", classes: ["link-this-tab"]}) }
-                </div>
-            </div>
+        super({...options,
+            classes: "send-image-here-popup",
+            dialog_template: true,
+            remove_on_exit: false,
+            visible: false,
+            dialog_type: "small",
+
+            // This dialog is closed when the sending tab closes the send image interface.
+            allow_close: false,
+            template: `
+                ${ helpers.create_box_link({ label: "Click to send image here", classes: ["link-this-tab"]}) }
         `});
 
         this.hide_timer = new helpers.timer(() => { this.visible = false; });
@@ -639,8 +643,6 @@ ppixiv.send_here_popup = class extends ppixiv.dialog_widget
             this.hide_timer.clear();
             this.visible = false;
         });
-
-        this.visible = false;
     }
 
     take_image = (e) =>
