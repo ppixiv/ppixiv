@@ -1281,6 +1281,7 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
     position: relative;
     width: var(--thumb-width);
     height: var(--thumb-height);
+    content-visibility: auto;
     contain-intrinsic-size: var(--thumb-width) var(--thumb-height);
 
     .thumb {
@@ -1296,18 +1297,6 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
     /* Hide pending images (they haven't been set up yet). */
     &[data-pending] {
         visibility: hidden;
-    }
-
-    /*
-     * thumbnail-box[data-nearby] is set on thumbs that are close to being onscreen.
-     * If they don't have data-nearby, tell the browser they're not visible.  This
-     * significantly improves performance when we have a lot of thumbs loaded, making
-     * offscreen thumbs essentially free.
-     *
-     * Note that content-intrinsic-size is set programmatically.
-     */
-    &:not([data-nearby]) {
-        content-visibility: hidden;
     }
 
     a.thumbnail-link {
