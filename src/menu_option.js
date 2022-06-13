@@ -241,26 +241,6 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
                         }),
                     ],
                 });
-                return new menu_option_button({
-                    ...global_options,
-                    label: "Import image edits",
-                    onclick: () => ppixiv.extra_image_data.get.import(),
-                    buttons: [
-                        new menu_option_button({
-                            ...global_options,
-                            label: "Export image edits",
-                            onclick: () => ppixiv.extra_image_data.get.export(),
-                        })
-                    ]
-                });
-            },
-
-            export_extra_data: () => {
-                return new menu_option_button({
-                    ...global_options,
-                    label: "Export image edits",
-                    onclick: () => ppixiv.extra_image_data.get.export(),
-                });
             },
 
             quick_view: () => {
@@ -467,10 +447,7 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
         // Chrome supports showOpenFilePicker, but Firefox doesn't.  That API has been around in
         // Chrome for a year and a half, so I haven't implemented an alternative for Firefox.
         if(!ppixiv.native && unsafeWindow.showOpenFilePicker != null)
-        {
             settings_widgets.import_extra_data();
-            //settings_widgets.export_extra_data();
-        }
 
         // Hidden for now (not very useful)
         // settings_widgets.no_recent_history();
