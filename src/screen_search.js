@@ -1233,19 +1233,8 @@ ppixiv.screen_search = class extends ppixiv.screen
     // Refresh the slideshow button.
     refresh_slideshow_button()
     {
-        // For local images, set file=*.  For Pixiv, set the media ID to *.  Leave it alone
-        // if we're on the manga view and just add slideshow=1.
-        let args = helpers.args.location;
-        if(this.data_source.name == "vview")
-            args.hash.set("file", "*");
-        else if(this.data_source?.name != "manga")
-            this.data_source.set_current_media_id("*", args);
-
-        args.hash.set("slideshow", "1");
-        args.hash.set("view", "illust");
-
         let node = this.container.querySelector("A.slideshow");
-        node.href = args.url;
+        node.href = page_manager.singleton().slideshow_url.url;
     }
 
     // Use different icons for sites where you can give the artist money.  This helps make
@@ -2742,6 +2731,72 @@ ppixiv.screen_search = class extends ppixiv.screen
             this.container.querySelector(".local-tag-search-box input").focus();
             e.preventDefault();
             e.stopPropagation();
+        }
+    }
+};
+
+// Set the page URL to a slideshow, but don't actually start the slideshow.  This lets the
+// user bookmark the slideshow URL before the illust ID changes from "*" to an actual ID.
+// This is mostly just a workaround for an iOS UI bug: there's no way to create a home
+// screen bookmark for a link, only for a URL that's already loaded.
+//
+// This is usually used from the search screen, but there's currently no good place to put
+// it there, so it's inside the settings menu and technically can be accessed while viewing
+// an image.
+ppixiv.slideshow_staging_dialog = class extends ppixiv.dialog_widget
+{
+    static show()
+    {
+        let slideshow_args = page_manager.singleton().slideshow_url;
+        if(slideshow_args == null)
+            return;
+
+        // Set the slideshow URL without sending popstate, so it'll be the current browser URL
+        // that can be bookmarked but we won't actually navigate to it.  We don't want to navigate
+        // to it since that'll change the placeholder "*" illust ID to a real illust ID, which
+        // isn't what we want to bookmark.
+        helpers.set_page_url(slideshow_args, true, "navigation", { send_popstate: false });
+
+        new slideshow_staging_dialog({
+            container: document.body,
+        });
+    }
+
+    constructor({...options})
+    {
+        super({...options, visible: true, handle_close: true, template: `
+            <div class="dialog">
+                <div class=content>
+                    <div class=scroll>
+                        <div class=header>Slideshow</div>
+                        <div class=items>
+                            This page can be bookmarked. or added to the home screen on iOS.<br>
+                            <br>
+                            The bookmark will begin a slideshow with the current search.
+                        </div>
+                    </div>
+
+                    <div class="close-button icon-button">
+                        ${ helpers.create_icon("close") }
+                    </div>
+                </div>
+            </div>
+        `});
+
+        this.url = helpers.args.location;
+    }
+
+    visibility_changed()
+    {
+        super.visibility_changed();
+
+        if(!this.visible)
+        {
+            // If the URL is still pointing at the slideshow, back out to restore the original
+            // URL.  This is needed if we're exiting from the user clicking out of the dialog,
+            // but don't do it if we're exiting from browser back.
+            if(helpers.args.location.toString() == this.url.toString())
+                history.back();
         }
     }
 };

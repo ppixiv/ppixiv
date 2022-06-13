@@ -243,6 +243,25 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
                 });
             },
 
+            stage_slideshow: () => {
+                return new menu_option_row({
+                    ...global_options,
+                    label: "Bookmark slideshow",
+                    items: [
+                        new menu_option_button({
+                            icon: "wallpaper",
+                            label: "Go",
+                            onclick: () => {
+                                // Close the settings dialog.
+                                this.shutdown();
+
+                                ppixiv.slideshow_staging_dialog.show();
+                            },
+                        }),
+                    ],
+                });
+            },
+
             quick_view: () => {
                 return new menu_option_toggle_setting({
                     ...global_options,
@@ -448,6 +467,8 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
         // Chrome for a year and a half, so I haven't implemented an alternative for Firefox.
         if(!ppixiv.native && unsafeWindow.showOpenFilePicker != null)
             settings_widgets.import_extra_data();
+
+        settings_widgets.stage_slideshow();
 
         // Hidden for now (not very useful)
         // settings_widgets.no_recent_history();

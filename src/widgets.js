@@ -139,6 +139,9 @@ ppixiv.dialog_widget = class extends ppixiv.widget
     constructor({
         // Dialogs are hidden by default.
         visible=false,
+
+        // If true, handle closing the dialog.
+        handle_close=false,
         ...options
     })
     {
@@ -146,8 +149,24 @@ ppixiv.dialog_widget = class extends ppixiv.widget
             visible: visible,
             ...options,
         });
-    }
 
+        this.handle_close = handle_close;
+
+        if(this.handle_close)
+        {
+            // Close if the container is clicked, but not if something inside the container is clicked.
+            this.container.addEventListener("click", (e) => {
+                if(e.target != this.container)
+                    return;
+
+                this.visible = false;
+            });
+
+            let close_button = this.container.querySelector(".close-button");
+            if(close_button)
+                close_button.addEventListener("click", (e) => { this.visible = false;; });
+        }
+    }
 
     visibility_changed()
     {
@@ -158,6 +177,22 @@ ppixiv.dialog_widget = class extends ppixiv.widget
             document.body.dataset.popupOpen = "1";
         else
             delete document.body.dataset.popupOpen;
+
+        if(this.handle_close)
+        {
+            if(this.visible)
+            {
+                // Hide on any state change.
+                window.addEventListener("popstate", (e) => {
+                    this.visible = false;
+                }, { signal: this.visibility_abort.signal });
+            }
+            else
+            {
+                // Remove the widget when it's hidden.
+                this.container.remove();
+            }
+        }
     }
 }
 
