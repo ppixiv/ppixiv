@@ -423,6 +423,8 @@ ppixiv.screen_search = class extends ppixiv.screen
         window.addEventListener("thumbnailsloaded", this.thumbs_loaded);
         window.addEventListener("focus", this.visible_thumbs_changed);
 
+        this.thumbnail_box = this.container.querySelector(".thumbnails");
+
         this.container.addEventListener("wheel", this.onwheel, { passive: false });
 //        this.container.addEventListener("mousemove", this.onmousemove);
 
@@ -478,7 +480,7 @@ ppixiv.screen_search = class extends ppixiv.screen
 
         // As an optimization, start loading image info on mousedown.  We don't navigate until click,
         // but this lets us start loading image info a bit earlier.
-        this.container.querySelector(".thumbnails").addEventListener("mousedown", async (e) => {
+        this.thumbnail_box.addEventListener("mousedown", async (e) => {
             if(e.button != 0)
                 return;
 
@@ -500,7 +502,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         this.container.querySelector(".refresh-search-button").addEventListener("click", this.refresh_search);
         this.container.querySelector(".refresh-search-from-page-button").addEventListener("click", this.refresh_search_from_page);
         this.container.querySelector(".whats-new-button").addEventListener("click", this.whats_new);
-        this.container.querySelector(".thumbnails").addEventListener("click", this.thumbnail_onclick);
+        this.thumbnail_box.addEventListener("click", this.thumbnail_onclick);
         this.container.querySelector(".expand-manga-posts").addEventListener("click", (e) => {
             this.toggle_expanding_media_ids_by_default();
         });
@@ -517,7 +519,7 @@ ppixiv.screen_search = class extends ppixiv.screen
 
         // Handle quick view.
         new ppixiv.pointer_listener({
-            element: this.container.querySelector(".thumbnails"),
+            element: this.thumbnail_box,
             button_mask: 0b1,
             callback: (e) => {
                 if(!e.pressed)
@@ -769,13 +771,13 @@ ppixiv.screen_search = class extends ppixiv.screen
 
     get_thumbnail_for_media_id(media_id)
     {
-        return this.container.querySelector(`[data-id='${helpers.escape_selector(media_id)}']`);
+        return this.thumbnail_box.querySelector(`[data-id='${helpers.escape_selector(media_id)}']`);
     }
 
     get_first_visible_thumb()
     {
         // Find the first thumb that's fully onscreen.  Ignore elements not specific to a page (load previous results).
-        return this.container.querySelector(`.thumbnails > [data-id][data-fully-on-screen][data-search-page]`);
+        return this.thumbnail_box.querySelector(`[data-id][data-fully-on-screen][data-search-page]`);
     }
 
     // This is called as the user scrolls and different thumbs are fully onscreen,
@@ -809,7 +811,7 @@ ppixiv.screen_search = class extends ppixiv.screen
             return;
 
         let visible_media_ids = [];
-        for(let element of this.container.querySelectorAll(`.thumbnails > [data-id][data-visible]:not([data-special])`))
+        for(let element of this.thumbnail_box.querySelectorAll(`[data-id][data-visible]:not([data-special])`))
         {
             let { type, id } = helpers.parse_media_id(element.dataset.id);
             if(type != "illust")
@@ -904,10 +906,9 @@ ppixiv.screen_search = class extends ppixiv.screen
         // Clear the view when the data source changes.  If we leave old thumbs in the list,
         // it confuses things if we change the sort and refresh_thumbs tries to load thumbs
         // based on what's already loaded.
-        let ul = this.container.querySelector(".thumbnails");
-        while(ul.firstElementChild != null)
+        while(this.thumbnail_box.firstElementChild != null)
         {
-            let node = ul.firstElementChild;
+            let node = this.thumbnail_box.firstElementChild;
             node.remove();
 
             // We should be able to just remove the element and get a callback that it's no longer visible.
@@ -1725,11 +1726,10 @@ ppixiv.screen_search = class extends ppixiv.screen
 
         // Update the thumbnail size style.  This also tells us the number of columns being
         // displayed.
-        let ul = this.container.querySelector(".thumbnails");
         let thumbnail_size = settings.get(manga_view? "manga-thumbnail-size":"thumbnail-size", 4);
         thumbnail_size = thumbnail_size_slider_widget.thumbnail_size_for_value(thumbnail_size);
 
-        let {columns, padding, max_width, max_height, container_width} = helpers.make_thumbnail_sizing_style(ul, {
+        let {columns, padding, max_width, max_height, container_width} = helpers.make_thumbnail_sizing_style(this.thumbnail_box, {
             wide: true,
             size: thumbnail_size,
             ratio: this.data_source.get_thumbnail_aspect_ratio(),
@@ -1755,7 +1755,7 @@ ppixiv.screen_search = class extends ppixiv.screen
 
         // Remove special:previous-page if it's in the list.  It'll confuse the insert logic.
         // We'll add it at the end if it should be there.
-        let special = this.container.querySelector(`.thumbnails > [data-special]`);
+        let special = this.thumbnail_box.querySelector(`[data-special]`);
         if(special)
             special.remove();
 
@@ -1819,7 +1819,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         }
 
         // Find the first match (4 in the above example).
-        let first_matching_node = ul.firstElementChild;
+        let first_matching_node = this.thumbnail_box.firstElementChild;
         while(first_matching_node && get_node_idx(first_matching_node) == null)
             first_matching_node = first_matching_node.nextElementSibling;
 
@@ -1856,8 +1856,8 @@ ppixiv.screen_search = class extends ppixiv.screen
 
         if(!first_matching_node && !last_matching_node)
         {
-            while(ul.firstElementChild != null)
-                remove_node(ul.firstElementChild);
+            while(this.thumbnail_box.firstElementChild != null)
+                remove_node(this.thumbnail_box.firstElementChild);
         }
 
         // If we have a matching range, add any new elements before it.
@@ -1884,7 +1884,7 @@ ppixiv.screen_search = class extends ppixiv.screen
             let media_id = media_ids[idx];
             let search_page = media_id_pages[media_id];
             let node = this.create_thumb(media_id, search_page, { cached_nodes: removed_nodes });
-            ul.appendChild(node);
+            this.thumbnail_box.appendChild(node);
         }
 
         // If this data source supports a start page and we started after page 1, add the "load more"
@@ -1894,7 +1894,7 @@ ppixiv.screen_search = class extends ppixiv.screen
             // Reuse the node if we removed it earlier.
             if(special == null)
                 special = this.create_thumb("special:previous-page", null, { cached_nodes: removed_nodes });
-            ul.insertAdjacentElement("afterbegin", special);
+            this.thumbnail_box.insertAdjacentElement("afterbegin", special);
         }
 
         this.restore_scroll_position(saved_scroll);
@@ -2558,12 +2558,12 @@ ppixiv.screen_search = class extends ppixiv.screen
             return [];
 
         // Don't include data-special, which are non-thumb entries like "load previous results".
-        return this.container.querySelectorAll(`.thumbnails > [data-id][data-nearby]:not([data-special])`);
+        return this.thumbnail_box.querySelectorAll(`[data-id][data-nearby]:not([data-special])`);
     }
 
     get_loaded_thumbs()
     {
-        return this.container.querySelectorAll(`.thumbnails > [data-id]:not([data-special])`);
+        return this.thumbnail_box.querySelectorAll(`[data-id]:not([data-special])`);
     }
 
     // Create a thumb placeholder.  This doesn't load the image yet.
