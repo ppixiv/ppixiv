@@ -34,6 +34,7 @@ source_files = [
     'src/screen.js',
     'src/screen_illust.js',
     'src/screen_search.js',
+    'src/search_view.js',
     'src/image_ui.js',
     'src/tag_search_dropdown_widget.js',
     'src/recently_seen_illusts.js',

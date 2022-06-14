@@ -418,7 +418,7 @@ textarea:focus, input:focus, a:focus {
 }
 
 .hover-message,
-.search-results > .no-results {
+.search-view > .no-results {
     width: 100%;
     position: fixed;
     bottom: 0px;
@@ -1025,6 +1025,13 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
         }
     }
 
+    .following-tag {
+        text-decoration: none;
+    }
+}
+
+.search-view
+{
     /* .thumbnails is the actual thumbnail list. */
     .thumbnails {
         user-select: none;
@@ -1032,9 +1039,7 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
         text-align: center;
         gap: var(--thumb-padding);
         max-width: var(--container-width);
-    }
 
-    .thumbnails {
         display: flex;
         flex-wrap: wrap;
 
@@ -1042,6 +1047,13 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
         // centers us within the window if our max width is smaller than the window.
         justify-content: center;
         margin: 0 auto; /* center */
+
+        /* Add a stroke around the heart on thumbnails for visibility.  Don't
+         * change the black lock. */
+        .button-bookmark svg > .heart {
+            stroke: #000;
+            stroke-width: .5px;
+        }
     }
 
     .flash a {
@@ -1075,51 +1087,49 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
     .thumbnail-box:not(.flash) .last-viewed-image-marker {
         display: none;
     }
-}
 
-.thumbnail-load-previous {
-    width: 100%;
+    .thumbnail-load-previous {
+        width: 100%;
 
-    & > .load-previous-buttons {
-        margin-left: auto;
-        margin-right: auto;
-        display: flex;
-        flex-direction: row;
-        margin-top: 10px;
-        margin-bottom: 4px;
-        justify-content: center;
-        height: 40px;
-        max-width: 400px;
-
-        & > .load-previous-button {
+        & > .load-previous-buttons {
+            margin-left: auto;
+            margin-right: auto;
             display: flex;
-            flex-direction: column;
-            align-items: center;
+            flex-direction: row;
+            margin-top: 10px;
+            margin-bottom: 4px;
             justify-content: center;
-            flex-grow: 1;
-            margin: 0 10px;
-            background-color: #880;
-            border-radius: 4px;
-            padding: 0 10px;
-            color: var(--box-link-fg-color);
-            background-color: var(--box-link-bg-color);
+            height: 40px;
+            max-width: 400px;
 
-            &:hover {
-                background-color: var(--box-link-hover-color);
+            & > .load-previous-button {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                flex-grow: 1;
+                margin: 0 10px;
+                background-color: #880;
+                border-radius: 4px;
+                padding: 0 10px;
+                color: var(--box-link-fg-color);
+                background-color: var(--box-link-bg-color);
+
+                &:hover {
+                    background-color: var(--box-link-hover-color);
+                }
             }
         }
     }
-}
 
-.thumbnail-box.expanded-thumb a.thumbnail-link {
-    border-bottom: 10px solid #a0a;
-    border-bottom-width: 10px;
-    border-bottom-style: solid;
-    &.first-page { border-bottom-left-radius: 30px; }
-    &.last-page { border-bottom-right-radius: 30px; }
-}
+    .thumbnail-box.expanded-thumb a.thumbnail-link {
+        border-bottom: 10px solid #a0a;
+        border-bottom-width: 10px;
+        border-bottom-style: solid;
+        &.first-page { border-bottom-left-radius: 30px; }
+        &.last-page { border-bottom-right-radius: 30px; }
+    }
 
-.screen-search-container {
     .thumbnail-box {
         // Hide the manga page button beyond the first page when not hovering.
         &.expanded-manga-post:not(:hover):not(.first-manga-page) .manga-info-box {
@@ -1397,12 +1407,6 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
 
     &:not(.muted) .muted-text {
         display: none;
-    }
-}
-
-.screen-search-container {
-    .following-tag {
-        text-decoration: none;
     }
 }
 
@@ -2118,13 +2122,6 @@ svg.heart-image .delete {
         color: #f00 !important;
         stroke: none;
     }
-}
-
-/* Add a stroke around the heart on thumbnails for visibility.  Don't
- * change the black lock. */
-.screen-search-container .thumbnails .button-bookmark svg > .heart {
-    stroke: #000;
-    stroke-width: .5px;
 }
 
 .button.button-like {
