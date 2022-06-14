@@ -771,13 +771,24 @@ ppixiv.screen_search = class extends ppixiv.screen
 
     get_thumbnail_for_media_id(media_id)
     {
-        return this.thumbnail_box.querySelector(`[data-id='${helpers.escape_selector(media_id)}']`);
+        for(let element of this.thumbnail_box.children)
+        {
+            if(element.dataset.id == media_id)
+                return element;
+        }
+        return null;
     }
 
     get_first_visible_thumb()
     {
         // Find the first thumb that's fully onscreen.  Ignore elements not specific to a page (load previous results).
-        return this.thumbnail_box.querySelector(`[data-id][data-fully-on-screen][data-search-page]`);
+        for(let element of this.thumbnail_box.children)
+        {
+            if(element.dataset.id && element.dataset.fullyOnScreen && element.dataset.searchPage)
+                return element;
+        }
+
+        return null;
     }
 
     // This is called as the user scrolls and different thumbs are fully onscreen,
@@ -1700,21 +1711,41 @@ ppixiv.screen_search = class extends ppixiv.screen
     // Return the first and last media IDs that are nearby (or all of them if all is true).
     get_nearby_media_ids({all=false}={})
     {
-        let nearby_thumbs = Array.from(this.container.querySelectorAll(`[data-id][data-nearby]:not([data-special])`));
-        nearby_thumbs = nearby_thumbs.map((thumb) => thumb.dataset.id);
+        let media_ids = [];
+        for(let element of this.thumbnail_box.children)
+        {
+            if(element.dataset.id && element.dataset.nearby && !element.dataset.special)
+                media_ids.push(element.dataset.id);
+        }
+
         if(all)
-            return nearby_thumbs;
+            return media_ids;
         else
-            return [nearby_thumbs[0], nearby_thumbs[nearby_thumbs.length-1]];
+            return [media_ids[0], media_ids[media_ids.length-1]];
     }
 
     // Return the first and last media IDs that's currently loaded into thumbs.
     get_loaded_media_ids()
     {
-        let loaded_thumbs = this.container.querySelectorAll(`[data-id]:not([data-special]`);
-        let first_loaded_media_id = loaded_thumbs[0]?.dataset?.id;
-        let last_loaded_media_id = loaded_thumbs[loaded_thumbs.length-1]?.dataset?.id;
+        let media_ids = [];
+        for(let element of this.thumbnail_box.children)
+        {
+            if(element.dataset.id && !element.dataset.special)
+                media_ids.push(element.dataset.id);
+        }
+
+        let first_loaded_media_id = media_ids[0];
+        let last_loaded_media_id = media_ids[media_ids.length-1];
         return [first_loaded_media_id, last_loaded_media_id];
+    }
+
+    // Return the "previous page" thumb if it's in the list.
+    get_special_thumb()
+    {
+        for(let element of this.thumbnail_box.children)
+            if(element.dataset.special)
+                return element;
+        return null;
     }
 
     refresh_images = ({forced_media_id=null}={}) =>
@@ -1755,7 +1786,7 @@ ppixiv.screen_search = class extends ppixiv.screen
 
         // Remove special:previous-page if it's in the list.  It'll confuse the insert logic.
         // We'll add it at the end if it should be there.
-        let special = this.thumbnail_box.querySelector(`[data-special]`);
+        let special = this.get_special_thumb();
         if(special)
             special.remove();
 
@@ -1773,9 +1804,11 @@ ppixiv.screen_search = class extends ppixiv.screen
         // a manga post is collapsed.
         {
             let media_id_set = new Set(all_media_ids);
-            for(let thumb of this.container.querySelectorAll(`[data-id]`))
+            for(let thumb of this.thumbnail_box.children)
             {
                 let thumb_media_id = thumb.dataset.id;
+                if(thumb_media_id == null)
+                    continue;
                 if(!media_id_set.has(thumb_media_id))
                     thumb.remove();
             }
@@ -2396,9 +2429,10 @@ ppixiv.screen_search = class extends ppixiv.screen
             // Set the link for the first page and previous page buttons.  Most of the time this is handled
             // by our in-page click handler.
             let page = this.data_source.get_start_page(helpers.args.location);
-            let previous_page_link = this.container.querySelector("a.load-previous-page-link");
-            if(previous_page_link)
+            let previous_page_button = this.get_special_thumb();
+            if(previous_page_button)
             {
+                let previous_page_link = previous_page_button.querySelector("a.load-previous-page-link");
                 let args = helpers.args.location;
                 this.data_source.set_start_page(args, page-1);
                 previous_page_link.href = args.url;
@@ -2558,7 +2592,14 @@ ppixiv.screen_search = class extends ppixiv.screen
             return [];
 
         // Don't include data-special, which are non-thumb entries like "load previous results".
-        return this.thumbnail_box.querySelectorAll(`[data-id][data-nearby]:not([data-special])`);
+        let results = [];
+        for(let element of this.thumbnail_box.children)
+        {
+            if(element.dataset.id && element.dataset.nearby && !element.dataset.special)
+                results.push(element);
+        }
+
+        return results;
     }
 
     get_loaded_thumbs()
