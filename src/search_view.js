@@ -158,8 +158,6 @@ ppixiv.search_view = class extends ppixiv.widget
         settings.register_change_callback("expand_manga_thumbnails", this.update_from_settings);
         muting.singleton.addEventListener("mutes-changed", this.refresh_after_mute_change);
 
-        this.refresh_images();
-        this.load_data_source_page();
         this.update_from_settings();
     }
 
