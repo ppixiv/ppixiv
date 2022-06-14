@@ -426,7 +426,6 @@ ppixiv.screen_search = class extends ppixiv.screen
         this.thumbnail_box = this.container.querySelector(".thumbnails");
 
         this.container.addEventListener("wheel", this.onwheel, { passive: false });
-//        this.container.addEventListener("mousemove", this.onmousemove);
 
         image_data.singleton().user_modified_callbacks.register(this.refresh_ui);
 
@@ -865,25 +864,6 @@ ppixiv.screen_search = class extends ppixiv.screen
         new whats_new();
     }
 
-    /* This scrolls the thumbnail when you hover over it.  It's sort of neat, but it's pretty
-     * choppy, and doesn't transition smoothly when the mouse first hovers over the thumbnail,
-     * causing it to pop to a new location. 
-    onmousemove = (e) =>
-    {
-        var thumb = e.target.closest(".thumbnail-box a");
-        if(thumb == null)
-            return;
-
-        var bounds = thumb.getBoundingClientRect();
-        var x = e.clientX - bounds.left;
-        var y = e.clientY - bounds.top;
-        x = 100 * x / thumb.offsetWidth;
-        y = 100 * y / thumb.offsetHeight;
-
-        var img = thumb.querySelector("img.thumb");
-        img.style.objectPosition = x + "% " + y + "%";
-    }
-*/
     onwheel = (e) =>
     {
         // Stop event propagation so we don't change images on any viewer underneath the thumbs.
