@@ -731,10 +731,7 @@ ppixiv.search_view = class extends ppixiv.widget
     // Return the "previous page" thumb if it's in the list.
     get_special_thumb()
     {
-        for(let element of Object.values(this.thumbs))
-            if(element.dataset.special)
-                return element;
-        return null;
+        return this.thumbs["special:previous-page"];
     }
 
     refresh_images = ({forced_media_id=null}={}) =>
