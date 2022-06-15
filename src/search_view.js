@@ -240,6 +240,9 @@ ppixiv.search_view = class extends ppixiv.widget
     // Store recently viewed thumbs.
     visible_thumbs_changed = () =>
     {
+        if(!recently_seen_illusts.get().enabled)
+            return;
+
         // Don't add recent illusts if we're viewing recent illusts.
         if(this.data_source && this.data_source.name == "recent")
             return;
