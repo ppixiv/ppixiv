@@ -716,13 +716,7 @@ ppixiv.search_view = class extends ppixiv.widget
     // Return the first and last media IDs that's currently loaded into thumbs.
     get_loaded_media_ids()
     {
-        let media_ids = [];
-        for(let element of Object.values(this.thumbs))
-        {
-            if(element.dataset.id && !element.dataset.special)
-                media_ids.push(element.dataset.id);
-        }
-
+        let media_ids = Object.keys(this.thumbs);
         let first_loaded_media_id = media_ids[0];
         let last_loaded_media_id = media_ids[media_ids.length-1];
         return [first_loaded_media_id, last_loaded_media_id];
