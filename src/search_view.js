@@ -249,8 +249,11 @@ ppixiv.search_view = class extends ppixiv.widget
             return;
 
         let visible_media_ids = [];
-        for(let element of this.thumbnail_box.querySelectorAll(`[data-id][data-visible]:not([data-special])`))
+        for(let [media_id, element] of Object.entries(this.thumbs))
         {
+            if(!element.dataset.visible || element.dataset.special)
+                continue;
+        
             let { type, id } = helpers.parse_media_id(element.dataset.id);
             if(type != "illust")
                 continue;
