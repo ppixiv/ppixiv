@@ -2138,16 +2138,18 @@ ppixiv.helpers = {
             // meaningless.  It should give the time in the future the current frame is
             // expected to be displayed, which is what you get from things like Android's
             // choreographer to allow precise frame timing.
-            let id = requestAnimationFrame((time) => {
-                accept(time / 1000);
-            });
+            let id;
     
             let abort = () => {
                 cancelAnimationFrame(id);
-                signal.removeEventListener("abort", abort);
                 reject("aborted");
             };
     
+            id = requestAnimationFrame((time) => {
+                signal.removeEventListener("abort", abort);
+                accept(time / 1000);
+            });
+
             if(signal)
             {
                 signal.addEventListener("abort", abort, { once: true });
