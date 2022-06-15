@@ -1438,8 +1438,10 @@ ppixiv.search_view = class extends ppixiv.widget
 
         // Set up the thumbnail panning direction, which is based on the image aspect ratio and the
         // displayed thumbnail aspect ratio.  Ths thumbnail aspect ratio is usually 1 for square thumbs,
-        // but it can be different on the manga page.
-        let thumb_aspect_ratio = thumb.offsetWidth / thumb.offsetHeight;
+        // but it can be different on the manga page.  Get this from the data source, since using offsetWidth
+        // causes a reflow.
+        let thumb_aspect_ratio = this.data_source.get_thumbnail_aspect_ratio() ?? 1;
+
         // console.log(`Thumbnail ${media_id} loaded at ${cause}: ${width} ${height} ${thumb.src}`);
         helpers.create_thumbnail_animation(thumb, width, height, thumb_aspect_ratio);
     }
