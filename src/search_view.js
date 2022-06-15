@@ -38,6 +38,14 @@ ppixiv.search_view = class extends ppixiv.widget
                     <div class=message>No results</div>
                 </div>
 
+                <div class=load-previous-page hidden>
+                    <div class=load-previous-buttons>
+                        <a class="load-previous-button load-previous-page-link" href=#>
+                            Load previous results
+                        </a>
+                    </div>
+                </div>
+
                 <div class=thumbnails data-context-menu-target></div>
             </div>
         `});
@@ -47,6 +55,7 @@ ppixiv.search_view = class extends ppixiv.widget
         // The node that scrolls to show thumbs.  This is normally the document itself.
         this.scroll_container = document.documentElement;
         this.thumbnail_box = this.container.querySelector(".thumbnails");
+        this.load_previous_page_button = this.container.querySelector(".load-previous-page");
 
         // A dictionary of thumbs in the view, in the same order.  This makes iterating
         // existing thumbs faster than iterating the nodes.
@@ -143,21 +152,8 @@ ppixiv.search_view = class extends ppixiv.widget
         }));
         
         this.intersection_observers.push(new IntersectionObserver((entries) => {
-            let any_changed = false;
             for(let entry of entries)
-            {
-                // Ignore special entries, 
-                if(entry.target.dataset.special)
-                    continue;
-
                 helpers.set_dataset(entry.target.dataset, "nearby", entry.isIntersecting);
-                any_changed = true;
-            }
-
-            // If no actual thumbnails changed, don't refresh.  We don't want to trigger a refresh
-            // from the special buttons being removed and added.
-            if(!any_changed)
-                return;
 
             // Set up any thumbs that just came nearby, and see if we need to load more search results.
             this.refresh_images();
@@ -251,7 +247,7 @@ ppixiv.search_view = class extends ppixiv.widget
         let visible_media_ids = [];
         for(let [media_id, element] of Object.entries(this.thumbs))
         {
-            if(!element.dataset.visible || element.dataset.special)
+            if(!element.dataset.visible)
                 continue;
         
             let { type, id } = helpers.parse_media_id(element.dataset.id);
@@ -705,7 +701,7 @@ ppixiv.search_view = class extends ppixiv.widget
         let media_ids = [];
         for(let element of Object.values(this.thumbs))
         {
-            if(element.dataset.id && element.dataset.nearby && !element.dataset.special)
+            if(element.dataset.nearby)
                 media_ids.push(element.dataset.id);
         }
 
@@ -722,12 +718,6 @@ ppixiv.search_view = class extends ppixiv.widget
         let first_loaded_media_id = media_ids[0];
         let last_loaded_media_id = media_ids[media_ids.length-1];
         return [first_loaded_media_id, last_loaded_media_id];
-    }
-
-    // Return the "previous page" thumb if it's in the list.
-    get_special_thumb()
-    {
-        return this.thumbs["special:previous-page"];
     }
 
     refresh_images = ({forced_media_id=null}={}) =>
@@ -765,15 +755,6 @@ ppixiv.search_view = class extends ppixiv.widget
         // Save the scroll position relative to the first thumbnail.  Do this before making
         // any changes.
         let saved_scroll = this.save_scroll_position();
-
-        // Remove special:previous-page if it's in the list.  It'll confuse the insert logic.
-        // We'll add it at the end if it should be there.
-        let special = this.get_special_thumb();
-        if(special)
-        {
-            special.remove();
-            delete this.thumbs[special.id];
-        }
 
         // Get all media IDs from the data source.
         let [all_media_ids, media_id_pages] = this.get_data_source_media_ids();
@@ -908,18 +889,9 @@ ppixiv.search_view = class extends ppixiv.widget
             add_to_end(this.thumbs, media_id, node);
         }
 
-        // If this data source supports a start page and we started after page 1, add the "load more"
-        // button at the beginning.
-        if(this.data_source && this.data_source.initial_page > 1)
-        {
-            // Reuse the node if we removed it earlier.
-            if(special == null)
-                special = this.create_thumb("special:previous-page", null, { cached_nodes: removed_nodes });
-
-            // XXX: is there a reason this is afterbegin rather than beforebegin like above?
-            this.thumbnail_box.insertAdjacentElement("afterbegin", special);
-            this.thumbs = add_to_beginning(this.thumbs, special.dataset.id, special);
-        }
+        // If this data source supports a start page and we started after page 1, show the "load more"
+        // button.
+        this.load_previous_page_button.hidden = this.data_source == null || this.data_source.initial_page == 1;
 
         this.restore_scroll_position(saved_scroll);
 
@@ -1391,14 +1363,10 @@ ppixiv.search_view = class extends ppixiv.widget
             // Set the link for the first page and previous page buttons.  Most of the time this is handled
             // by our in-page click handler.
             let page = this.data_source.get_start_page(helpers.args.location);
-            let previous_page_button = this.get_special_thumb();
-            if(previous_page_button)
-            {
-                let previous_page_link = previous_page_button.querySelector("a.load-previous-page-link");
-                let args = helpers.args.location;
-                this.data_source.set_start_page(args, page-1);
-                previous_page_link.href = args.url;
-            }
+            let previous_page_link = this.load_previous_page_button.querySelector("a.load-previous-page-link");
+            let args = helpers.args.location;
+            this.data_source.set_start_page(args, page-1);
+            previous_page_link.href = args.url;
         }
     }
 
@@ -1556,11 +1524,10 @@ ppixiv.search_view = class extends ppixiv.widget
         if(this.container.offsetHeight == 0)
             return [];
 
-        // Don't include data-special, which are non-thumb entries like "load previous results".
         let results = [];
         for(let element of Object.values(this.thumbs))
         {
-            if(element.dataset.id && element.dataset.nearby && !element.dataset.special)
+            if(element.dataset.id && element.dataset.nearby)
                 results.push(element);
         }
 
@@ -1569,7 +1536,7 @@ ppixiv.search_view = class extends ppixiv.widget
 
     get_loaded_thumbs()
     {
-        return this.thumbnail_box.querySelectorAll(`[data-id]:not([data-special])`);
+        return Object.values(this.thumbs);
     }
 
     // Create a thumb placeholder.  This doesn't load the image yet.
@@ -1588,83 +1555,63 @@ ppixiv.search_view = class extends ppixiv.widget
             return result;
         }
 
-        let entry = null;
-        if(media_id == "special:previous-page")
-        {
-            entry = this.create_template({ name: "load-previous-results", html: `
-                <div class="thumbnail-load-previous">
-                    <div class=load-previous-buttons>
-                        <a class="load-previous-button load-previous-page-link" href=#>
-                            Load previous results
-                        </a>
-                    </div>
+        // make_svg_unique is disabled here as a small optimization, since these SVGs don't need it.
+        let entry = this.create_template({ name: "template-thumbnail", make_svg_unique: false, html: `
+            <div class=thumbnail-box>
+                <a class=thumbnail-link href=#>
+                    <img class=thumb>
+                </a>
+
+                <div class=last-viewed-image-marker>
+                    <ppixiv-inline class=last-viewed-image-marker src="resources/last-viewed-image-marker.svg"></ppixiv-inline>
                 </div>
-            `});
-        }
-        else
-        {
-            // make_svg_unique is disabled here as a small optimization, since these SVGs don't need it.
-            entry = this.create_template({ name: "template-thumbnail", make_svg_unique: false, html: `
-                <div class=thumbnail-box>
-                    <a class=thumbnail-link href=#>
-                        <img class=thumb>
-                    </a>
 
-                    <div class=last-viewed-image-marker>
-                        <ppixiv-inline class=last-viewed-image-marker src="resources/last-viewed-image-marker.svg"></ppixiv-inline>
+                <div class=bottom-row>
+                    <div class=bottom-left-icon>
+                        <div class="heart button-bookmark public bookmarked" hidden>
+                            <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
+                        </div>
+                        <div class="heart button-bookmark private bookmarked" hidden>
+                            <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
+                        </div>
                     </div>
 
-                    <div class=bottom-row>
-                        <div class=bottom-left-icon>
-                            <div class="heart button-bookmark public bookmarked" hidden>
-                                <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
-                            </div>
-                            <div class="heart button-bookmark private bookmarked" hidden>
-                                <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
-                            </div>
+                    <div style="flex: 1;"></div>
+
+                    <div class=thumbnail-label hidden>
+                        <span class="thumbnail-ellipsis-box">
+                            <span class=label></span>
+                        </span>
+                    </div>
+
+                    <div style="flex: 1;"></div>
+
+                    <div class=bottom-right-icon>
+                        <div class=ugoira-icon hidden>
+                            <ppixiv-inline src="resources/play-button.svg"></ppixiv-inline>
                         </div>
 
-                        <div style="flex: 1;"></div>
+                        <div class=manga-info-box style="cursor: pointer;" hidden>
+                            <a class=show-manga-pages-button hidden>
+                                ${ helpers.create_icon("pages") }
+                            </a>
 
-                        <div class=thumbnail-label hidden>
-                            <span class="thumbnail-ellipsis-box">
-                                <span class=label></span>
+                            <span class=expand-button>
+                                <span class=page-icon>
+                                    <img class=regular src="ppixiv:resources/page-icon.png">
+                                    <img class=hover src="ppixiv:resources/page-icon-hover.png">
+                                </span>
+                                <span class=page-count hidden>1234</span>
                             </span>
                         </div>
-
-                        <div style="flex: 1;"></div>
-
-                        <div class=bottom-right-icon>
-                            <div class=ugoira-icon hidden>
-                                <ppixiv-inline src="resources/play-button.svg"></ppixiv-inline>
-                            </div>
-
-                            <div class=manga-info-box style="cursor: pointer;" hidden>
-                                <a class=show-manga-pages-button hidden>
-                                    ${ helpers.create_icon("pages") }
-                                </a>
-
-                                <span class=expand-button>
-                                    <span class=page-icon>
-                                        <img class=regular src="ppixiv:resources/page-icon.png">
-                                        <img class=hover src="ppixiv:resources/page-icon-hover.png">
-                                    </span>
-                                    <span class=page-count hidden>1234</span>
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class=muted-text>
-                        <span>Muted:</span>
-                        <span class=muted-label></span>
                     </div>
                 </div>
-            `});
-        }
-
-        // If this is a non-thumb entry, mark it so we ignore it for "nearby thumb" handling, etc.
-        if(media_id == "special:previous-page")
-            entry.dataset.special = 1;
+                <div class=muted-text>
+                    <span>Muted:</span>
+                    <span class=muted-label></span>
+                </div>
+            </div>
+        `});
 
         // Mark that this thumb hasn't been filled in yet.
         entry.dataset.pending = true;
