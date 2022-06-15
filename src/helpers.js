@@ -4242,3 +4242,40 @@ AbortSignal.prototype.wait = function()
     }
     return this._promise;
 };
+
+ppixiv.IncrementalTimer = class
+{
+    constructor()
+    {
+        this.entries = [];
+        this.previous = performance.now();
+    }
+
+    touch()
+    {
+        let time = performance.now();
+        let seconds = (time - this.previous);
+        this.previous = time;
+        this.entries.push(seconds);
+    }
+
+    get total()
+    {
+        let result = 0;
+        for(let value of this.entries)
+            result += value;
+        return result;
+    }
+
+    toString()
+    {
+        let total = this.total;
+        let seconds = [];
+        for(let value of this.entries)
+        {
+            let percent = 100 * (value / total);
+            seconds.push(Math.round(percent) + '%');
+        }
+        return `${total.toFixed(1)}ms: ${seconds.join(" ")}`;
+    }
+};
