@@ -197,7 +197,6 @@ ppixiv.search_view = class extends ppixiv.widget
         this.set_visible_thumbs();
         this.refresh_images();
 
-        helpers.set_class(document.body, "disable-thumbnail-panning", settings.get("disable_thumbnail_panning") || ppixiv.ios);
         helpers.set_class(document.body, "disable-thumbnail-zooming", settings.get("disable_thumbnail_zooming") || ppixiv.ios);
     }
 
@@ -1455,6 +1454,9 @@ ppixiv.search_view = class extends ppixiv.widget
     add_animation_listener(element)
     {
         element.addEventListener("mouseover", (e) => {
+            if(settings.get("disable_thumbnail_panning"))
+                return;
+
             let thumb = element.querySelector(".thumb");
             let anim = thumb.panAnimation;
             if(anim == null)
