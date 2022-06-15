@@ -1,3 +1,29 @@
+// JavaScript objects are ordered, but for some reason there's no way to actually manipulate
+// the order, such as adding to the beginning.  We have to make a copy of the object, add
+// our new entry, then add everything else.
+function add_to_beginning(object, key, value)
+{
+    let result = {};
+    result[key] = value;
+    for(let [old_key, old_value] of Object.entries(object))
+    {
+        if(old_key != key)
+            result[old_key] = old_value;
+    }
+    return result;
+}
+
+// Similar to add_to_beginning, this adds at the end.  Note that while add_to_beginning returns a
+// new object, this edits the object in-place.  We need to be careful with this, but it avoids making
+// a copy of the thumb dictionary every time we append to the end.  To make it clearer that this
+// differs from add_to_beginning, this doesn't return the object.
+function add_to_end(object, key, value)
+{
+    // Remove the key if it exists, so it's moved to the end.
+    delete object[key];
+    object[key] = value;
+}
+
 // The main thumbnail grid view.
 ppixiv.search_view = class extends ppixiv.widget
 {
@@ -20,13 +46,16 @@ ppixiv.search_view = class extends ppixiv.widget
 
         // The node that scrolls to show thumbs.  This is normally the document itself.
         this.scroll_container = document.documentElement;
+        this.thumbnail_box = this.container.querySelector(".thumbnails");
+
+        // A dictionary of thumbs in the view, in the same order.  This makes iterating
+        // existing thumbs faster than iterating the nodes.
+        this.thumbs = {};
 
         this.expanded_media_ids = new Map();
 
         window.addEventListener("thumbnailsloaded", this.thumbs_loaded);
         window.addEventListener("focus", this.visible_thumbs_changed);
-
-        this.thumbnail_box = this.container.querySelector(".thumbnails");
 
         // When a bookmark is modified, refresh the heart icon.
         image_data.singleton().illust_modified_callbacks.register(this.refresh_thumbnail);
@@ -174,7 +203,7 @@ ppixiv.search_view = class extends ppixiv.widget
 
     get_thumbnail_for_media_id(media_id)
     {
-        for(let element of this.thumbnail_box.children)
+        for(let element of Object.values(this.thumbs))
         {
             if(element.dataset.id == media_id)
                 return element;
@@ -185,7 +214,7 @@ ppixiv.search_view = class extends ppixiv.widget
     get_first_visible_thumb()
     {
         // Find the first thumb that's fully onscreen.  Ignore elements not specific to a page (load previous results).
-        for(let element of this.thumbnail_box.children)
+        for(let element of Object.values(this.thumbs))
         {
             if(element.dataset.id && element.dataset.fullyOnScreen && element.dataset.searchPage)
                 return element;
@@ -261,6 +290,8 @@ ppixiv.search_view = class extends ppixiv.widget
             for(let observer of this.intersection_observers)
                 observer.unobserve(node);
         }
+
+        this.thumbs = {};
 
         this.data_source = data_source;
 
@@ -675,7 +706,7 @@ ppixiv.search_view = class extends ppixiv.widget
     get_nearby_media_ids({all=false}={})
     {
         let media_ids = [];
-        for(let element of this.thumbnail_box.children)
+        for(let element of Object.values(this.thumbs))
         {
             if(element.dataset.id && element.dataset.nearby && !element.dataset.special)
                 media_ids.push(element.dataset.id);
@@ -691,7 +722,7 @@ ppixiv.search_view = class extends ppixiv.widget
     get_loaded_media_ids()
     {
         let media_ids = [];
-        for(let element of this.thumbnail_box.children)
+        for(let element of Object.values(this.thumbs))
         {
             if(element.dataset.id && !element.dataset.special)
                 media_ids.push(element.dataset.id);
@@ -705,7 +736,7 @@ ppixiv.search_view = class extends ppixiv.widget
     // Return the "previous page" thumb if it's in the list.
     get_special_thumb()
     {
-        for(let element of this.thumbnail_box.children)
+        for(let element of Object.values(this.thumbs))
             if(element.dataset.special)
                 return element;
         return null;
@@ -751,7 +782,10 @@ ppixiv.search_view = class extends ppixiv.widget
         // We'll add it at the end if it should be there.
         let special = this.get_special_thumb();
         if(special)
+        {
             special.remove();
+            delete this.thumbs[special.id];
+        }
 
         // Get all media IDs from the data source.
         let [all_media_ids, media_id_pages] = this.get_data_source_media_ids();
@@ -762,18 +796,28 @@ ppixiv.search_view = class extends ppixiv.widget
         if(all_media_ids.length != (new Set(all_media_ids)).size)
             throw Error("Duplicate media IDs");
 
+        // When we remove thumbs, we'll cache them here, so if we end up reusing it we don't have
+        // to recreate it.
+        let removed_nodes = {};
+        let remove_node = (node) =>
+        {
+            node.remove();
+            delete this.thumbs[node.dataset.id];
+            delete removed_nodes[node.dataset.id];
+        }
+
         // Remove any thumbs that aren't present in all_media_ids, so we only need to 
         // deal with adding thumbs below.  For example, this simplifies things when
         // a manga post is collapsed.
         {
             let media_id_set = new Set(all_media_ids);
-            for(let thumb of this.thumbnail_box.children)
+            for(let thumb of Object.values(this.thumbs))
             {
                 let thumb_media_id = thumb.dataset.id;
                 if(thumb_media_id == null)
                     continue;
                 if(!media_id_set.has(thumb_media_id))
-                    thumb.remove();
+                    remove_node(thumb);
             }
         }
 
@@ -834,15 +878,6 @@ ppixiv.search_view = class extends ppixiv.widget
             }
         }
 
-        // When we remove thumbs, we'll cache them here, so if we end up reusing it we don't have
-        // to recreate it.
-        let removed_nodes = {};
-        function remove_node(node)
-        {
-            node.remove();
-            removed_nodes[node.dataset.id] = node;
-        }
-
         // If we have a range, delete all items outside of it.  Otherwise, just delete everything.
         while(first_matching_node && first_matching_node.previousElementSibling)
             remove_node(first_matching_node.previousElementSibling);
@@ -867,6 +902,7 @@ ppixiv.search_view = class extends ppixiv.widget
                let node = this.create_thumb(media_id, search_page, { cached_nodes: removed_nodes });
                first_matching_node.insertAdjacentElement("beforebegin", node);
                first_matching_node = node;
+               this.thumbs = add_to_beginning(this.thumbs, media_id, node);
            }
         }
 
@@ -881,6 +917,7 @@ ppixiv.search_view = class extends ppixiv.widget
             let search_page = media_id_pages[media_id];
             let node = this.create_thumb(media_id, search_page, { cached_nodes: removed_nodes });
             this.thumbnail_box.appendChild(node);
+            add_to_end(this.thumbs, media_id, node);
         }
 
         // If this data source supports a start page and we started after page 1, add the "load more"
@@ -890,12 +927,30 @@ ppixiv.search_view = class extends ppixiv.widget
             // Reuse the node if we removed it earlier.
             if(special == null)
                 special = this.create_thumb("special:previous-page", null, { cached_nodes: removed_nodes });
+
+            // XXX: is there a reason this is afterbegin rather than beforebegin like above?
             this.thumbnail_box.insertAdjacentElement("afterbegin", special);
+            this.thumbs = add_to_beginning(this.thumbs, special.dataset.id, special);
         }
 
         this.restore_scroll_position(saved_scroll);
+
+        // this.sanity_check_thumb_list();
     }
 
+    sanity_check_thumb_list()
+    {
+        let actual = [];
+        for(let thumb of this.thumbnail_box.children)
+            actual.push(thumb.dataset.id);
+        let expected = Object.keys(this.thumbs);
+
+        if(JSON.stringify(actual) != JSON.stringify(expected))
+        {
+            console.log("actual  ", actual);
+            console.log("expected", expected);
+        }
+    }
     // Start loading data pages that we need to display visible thumbs, and start
     // loading thumbnail data for nearby thumbs.
     async load_data_source_page()
@@ -1512,7 +1567,7 @@ ppixiv.search_view = class extends ppixiv.widget
 
         // Don't include data-special, which are non-thumb entries like "load previous results".
         let results = [];
-        for(let element of this.thumbnail_box.children)
+        for(let element of Object.values(this.thumbs))
         {
             if(element.dataset.id && element.dataset.nearby && !element.dataset.special)
                 results.push(element);
