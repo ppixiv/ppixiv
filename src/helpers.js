@@ -2558,7 +2558,24 @@ ppixiv.helpers = {
         return type + ":" + id;
     },
 
+    // Media IDs are parsed by the thousands, and this can have a small performance
+    // impact.  Cache the results, so we only parse any given media ID once.
+    _media_id_cache: new Map(),
     parse_media_id(media_id)
+    {
+        let cache = helpers._media_id_cache.get(media_id);
+        if(cache == null)
+        {
+            cache = helpers._parse_media_id_inner(media_id);
+            helpers._media_id_cache.set(media_id, cache);
+        }
+
+        // Return a new object and not the cache, since the returned value might be
+        // modified.
+        return { type: cache.type, id: cache.id, page: cache.page };
+    },
+
+    _parse_media_id_inner(media_id)
     {
         // If this isn't an illust, a media ID is the same as an illust ID.
         let { type, id } = helpers._split_id(media_id);
