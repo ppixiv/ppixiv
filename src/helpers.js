@@ -139,7 +139,9 @@ ppixiv.helpers = {
         return template;
     },
 
-    create_from_template: function(type)
+    // If make_svg_unique is false, skip making SVG IDs unique.  This is a small optimization
+    // for creating thumbs, which don't need this.
+    create_from_template: function(type, {make_svg_unique=true}={})
     {
         var template;
         if(typeof(type) == "string")
@@ -149,10 +151,13 @@ ppixiv.helpers = {
 
         var node = document.importNode(template.content, true).firstElementChild;
         
-        // Make all IDs in the template we just cloned unique.
-        for(var svg of node.querySelectorAll("svg"))
-            helpers.make_svg_ids_unique(svg);
-
+        if(make_svg_unique)
+        {
+            // Make all IDs in the template we just cloned unique.
+            for(var svg of node.querySelectorAll("svg"))
+                helpers.make_svg_ids_unique(svg);
+        }
+        
         return node;
     },
 

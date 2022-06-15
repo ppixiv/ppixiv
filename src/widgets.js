@@ -60,7 +60,7 @@ ppixiv.widget = class
 
     // Create an element from template HTML.  If name isn't null, the HTML will be cached
     // using name as a key.
-    create_template({name=null, html})
+    create_template({name=null, html, make_svg_unique=true})
     {
         let template = name? this.templates[name]:null;
         if(!template)
@@ -72,7 +72,7 @@ ppixiv.widget = class
             this.templates[name] = template;
         }
 
-        return helpers.create_from_template(template);
+        return helpers.create_from_template(template, { make_svg_unique });
     }
 
     async refresh()

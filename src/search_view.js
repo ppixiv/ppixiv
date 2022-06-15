@@ -1605,7 +1605,8 @@ ppixiv.search_view = class extends ppixiv.widget
         }
         else
         {
-            entry = this.create_template({ name: "template-thumbnail", html: `
+            // make_svg_unique is disabled here as a small optimization, since these SVGs don't need it.
+            entry = this.create_template({ name: "template-thumbnail", make_svg_unique: false, html: `
                 <div class=thumbnail-box>
                     <a class=thumbnail-link href=#>
                         <img class=thumb>
