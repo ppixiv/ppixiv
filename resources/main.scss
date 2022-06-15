@@ -1183,46 +1183,6 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
         --pan-thumb: paused;
         body:not(.disable-thumbnail-panning) &:hover { --pan-thumb: running; }
 
-        .thumb
-        {
-            animation-duration: 4s;
-            animation-timing-function: ease-in-out;
-            animation-iteration-count: infinite;
-            animation-play-state: var(--pan-thumb);
-
-            &.horizontal-panning {
-                animation-name: pan-thumbnail-horizontally;
-
-                // The full animation is 4 seconds, and we want to start 20% in, at the halfway
-                // point of the first left-right pan, where the pan is exactly in the center where
-                // we are before any animation.  This is different from vertical panning, since it
-                // pans from the top, which is already where we start (top center).
-                animation-delay: -.8s;
-            }
-
-            &.vertical-panning {
-                animation-name: pan-thumbnail-vertically;
-            }
-        }
-
-        @keyframes pan-thumbnail-horizontally {
-            /* This starts in the middle, pans left, pauses, pans right, pauses, returns to the middle, then pauses again. */
-            0%   { object-position: left top; } /* left */
-            40%  { object-position: right top; } /* pan right */
-            50%  { object-position: right top; } /* pause */
-            90%  { object-position: left top; } /* pan left */
-            100%  { object-position: left top; } /* pause */
-        }
-
-        @keyframes pan-thumbnail-vertically {
-            /* This starts at the top, pans down, pauses, pans back up, then pauses again. */
-            0%   { object-position: 50% 0%; }
-            40%  { object-position: 50% 100%; }
-            50%  { object-position: 50% 100%; }
-            90%  { object-position: 50% 0%; }
-            100% { object-position: 50% 0%; }
-        }
-
         &.muted {
             .muted-text {
                 pointer-events: none;

@@ -1451,16 +1451,26 @@ ppixiv.search_view = class extends ppixiv.widget
         // but it can be different on the manga page.
         let thumb_aspect_ratio = thumb.offsetWidth / thumb.offsetHeight;
         // console.log(`Thumbnail ${media_id} loaded at ${cause}: ${width} ${height} ${thumb.src}`);
-        helpers.set_thumbnail_panning_direction(thumb, width, height, thumb_aspect_ratio);
+        helpers.create_thumbnail_animation(thumb, width, height, thumb_aspect_ratio);
     }
 
-    // element is a thumbnail element.  On mouseover, create a stop_animation_after
-    // to prevent the animation from running forever.
+    // element is a thumbnail element.  On mouseover, start the pan animation, and create
+    // a stop_animation_after to prevent the animation from running forever.
+    //
+    // We create the pan animations programmatically instead of with CSS, since for some
+    // reason element.getAnimations is extremely slow and often takes 10ms or more.  CSS
+    // can't be used to pause programmatic animations, so we have to play/pause it manually
+    // too.
     add_animation_listener(element)
     {
         element.addEventListener("mouseover", (e) => {
             let thumb = element.querySelector(".thumb");
-            let anim = this.find_thumbnail_animation(thumb);
+            let anim = thumb.panAnimation;
+            if(anim == null)
+                return;
+
+            // Start playing the animation.
+            anim.play();
 
             // Stop if stop_animation_after is already running for this thumb.
             if(this.stop_animation?.animation == anim)
@@ -1480,21 +1490,9 @@ ppixiv.search_view = class extends ppixiv.widget
             element.addEventListener("mouseout", (e) => {
                 this.stop_animation.shutdown();
                 this.stop_animation = null;
+                anim.pause();
             }, { once: true, signal: this.stop_animation.abort.signal });
         });
-    }
-
-    find_thumbnail_animation(thumb)
-    {
-        // Look for the pan animation.  There should only be one.
-        let animations = thumb.getAnimations();
-        for(let anim of animations)
-        {
-            if(anim.animationName == "pan-thumbnail-horizontally" || anim.animationName == "pan-thumbnail-vertically")
-                return anim;
-        }
-        return null;
-
     }
     
     // Refresh the thumbnail for media_id.

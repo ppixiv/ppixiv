@@ -2393,11 +2393,48 @@ ppixiv.helpers = {
             return null;
     },
 
-    set_thumbnail_panning_direction(thumb, width, height, container_aspect_ratio)
+    create_thumbnail_animation(thumb, width, height, container_aspect_ratio)
     {
+        // Create the animation, or update it in-place if it already exists, probably due to the
+        // window being resized.  total_time won't be updated when we do this.
         let direction = helpers.get_thumbnail_panning_direction(thumb, width, height, container_aspect_ratio);
-        helpers.set_class(thumb, "vertical-panning", direction == "vertical");
-        helpers.set_class(thumb, "horizontal-panning", direction == "horizontal");
+        if(thumb.panAnimation != null || direction == null)
+            return null;
+
+        let keyframes = direction == "horizontal"?
+        [
+            // This starts in the middle, pans left, pauses, pans right, pauses, returns to the
+            // middle, then pauses again.
+            { offset: 0.0, easing: "ease-in-out", objectPosition: "left top" }, // left
+            { offset: 0.4, easing: "ease-in-out", objectPosition: "right top" }, // pan right
+            { offset: 0.5, easing: "ease-in-out", objectPosition: "right top" }, // pause
+            { offset: 0.9, easing: "ease-in-out", objectPosition: "left top" }, // pan left
+            { offset: 1.0, easing: "ease-in-out", objectPosition: "left top" }, // pause
+        ]:
+        [
+            // This starts at the top, pans down, pauses, pans back up, then pauses again.
+            { offset: 0.0, easing: "ease-in-out", objectPosition: "center top" },
+            { offset: 0.4, easing: "ease-in-out", objectPosition: "center bottom" },
+            { offset: 0.5, easing: "ease-in-out", objectPosition: "center bottom" },
+            { offset: 0.9, easing: "ease-in-out", objectPosition: "center top" },
+            { offset: 1.0, easing: "ease-in-out", objectPosition: "center top" },
+        ];
+    
+        let animation = new Animation(new KeyframeEffect(thumb, keyframes, {
+            duration: 4000,
+            iterations: Infinity,
+            
+            // The full animation is 4 seconds, and we want to start 20% in, at the halfway
+            // point of the first left-right pan, where the pan is exactly in the center where
+            // we are before any animation.  This is different from vertical panning, since it
+            // pans from the top, which is already where we start (top center).
+            delay: direction == "horizontal"? -800:0,
+        }));
+
+        animation.id = "horizontal-pan";
+        thumb.panAnimation = animation;
+
+        return animation;
     },
 
     set_title(illust_data)
