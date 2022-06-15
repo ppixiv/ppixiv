@@ -203,12 +203,7 @@ ppixiv.search_view = class extends ppixiv.widget
 
     get_thumbnail_for_media_id(media_id)
     {
-        for(let element of Object.values(this.thumbs))
-        {
-            if(element.dataset.id == media_id)
-                return element;
-        }
-        return null;
+        return this.thumbs[media_id];
     }
 
     get_first_visible_thumb()
