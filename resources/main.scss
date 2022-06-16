@@ -577,6 +577,7 @@ textarea:focus, input:focus, a:focus {
 
 .button-row {
     display: flex;
+    flex-wrap: wrap;
     flex-direction: row;
     align-items: center;
     gap: var(--icon-row-gap);
