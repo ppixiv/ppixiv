@@ -96,6 +96,16 @@ ppixiv.local_api = class
         if(!ppixiv.native || document.location.hash != "")
             return;
 
+        // If we're limited to tag searches, we don't view folders.  Just set the URL
+        // to "/".
+        if(this.local_info.bookmark_tag_searches_only)
+        {
+            let args = helpers.args.location;
+            args.hash_path = "/";
+            helpers.set_page_url(args, false, "initial");
+            return;
+        }
+
         // Read the folder list.  If we have any mounts, navigate to the first one.  Otherwise,
         // show folder:/ as a fallback.
         let illust_id = "folder:/";

@@ -82,6 +82,17 @@ ppixiv.main_controller = class
         pointer_listener.install_global_handler();
         new ppixiv.global_key_listener;
 
+        // If enabled, cache local info which tells us what we have access to.
+        await local_api.load_local_info();
+
+        // If login is required to do anything, no API calls will succeed.  Stop now and
+        // just redirect to login.  This is only for the local API.
+        if(local_api.local_info.enabled && local_api.local_info.login_required)
+        {
+            local_api.redirect_to_login();
+            return;
+        }
+
         // If we're running natively, set the initial URL.
         await local_api.set_initial_url();
 
@@ -198,17 +209,6 @@ ppixiv.main_controller = class
             document.querySelector("head").appendChild(link);
         }
        
-        // If enabled, cache local info which tells us what we have access to.
-        await local_api.load_local_info();
-
-        // If login is required to do anything, no API calls will succeed.  Stop now and
-        // just redirect to login.  This is only for the local API.
-        if(local_api.local_info.enabled && local_api.local_info.login_required)
-        {
-            local_api.redirect_to_login();
-            return;
-        }
-
         // Create the shared title and page icon.
         document.head.appendChild(document.createElement("title"));
         var document_icon = document.head.appendChild(document.createElement("link"));
