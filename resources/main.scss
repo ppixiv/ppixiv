@@ -1,4 +1,10 @@
-* { box-sizing: border-box; }
+* {
+    box-sizing: border-box;
+
+    // Prevent drag-to-reload on Android.  This should be the default for home screen apps.
+    overscroll-behavior: contain;
+}
+
 html {
     // For scrolling to work cleanly on iOS, we need the main scroller to be at the
     // top and not inside an absolute element, or else it gets confused and scrolling
