@@ -617,3 +617,249 @@ ppixiv.local_api = class
         document.location.reload();
     }
 }
+
+// LocalBroadcastChannel implements the same API as BroadcastChannel, but sends messages
+// over the local WebSockets connection.  This allows sending messages across browsers and
+// machines.  If the local API isn't enabled, this is just a wrapper around BroadcastChannel.
+ppixiv.LocalBroadcastChannel = class extends EventTarget
+{
+    constructor(name)
+    {
+        super();
+
+        this.name = name;
+
+        LocalBroadcastChannelConnection.get.addEventListener(this.name, this.receivedWebSocketsMessage);
+
+        // Create a regular BroadcastChannel.  Other tabs in the same browser will receive
+        // messages through this, so they don't need to round-trip through WebSockets.
+        this.broadcast_channel = new BroadcastChannel(this.name);
+        this.broadcast_channel.addEventListener("message", this.receivedBroadcastChannelMessage);
+    }
+
+    // Handle a message received over WebSockets.
+    receivedWebSocketsMessage = (e) =>
+    {
+        let event = new MessageEvent("message", { data: e.data });
+        this.dispatchEvent(event);
+    }
+
+    // Handle a message received over BroadcastChannel.
+    receivedBroadcastChannelMessage = (e) =>
+    {
+        let event = new MessageEvent("message", { data: e.data });
+        this.dispatchEvent(event);
+    }
+
+    postMessage(data)
+    {
+        LocalBroadcastChannelConnection.get.send(this.name, data);
+        this.broadcast_channel.postMessage(data);
+    }
+
+    close()
+    {
+        LocalBroadcastChannelConnection.get.removeEventListener(this.name, this.receivedWebSocketsMessage);
+        this.broadcast_channel.removeEventListener("message", this.receivedBroadcastChannelMessage);
+    }
+};
+
+// This creates a single WebSockets connection to the local server.  An event is dispatched
+// with the name of the channel when a WebSockets message is received.
+class LocalBroadcastChannelConnection extends EventTarget
+{
+    static get get()
+    {
+        if(this.singleton == null)
+            this.singleton = new LocalBroadcastChannelConnection;
+        return this.singleton;
+    }
+
+    constructor()
+    {
+        super();
+
+        // This is only used if the local API is enabled.
+        if(!local_api.is_enabled)
+            return;
+
+        // If messages are sent while we're still connecting, or if the buffer is full,
+        // they'll be buffered until we can send it.  Buffered messages will be discarded
+        // if connecting fails.
+        this.send_buffer = [];
+        this.reconnection_attempts = 0;
+        
+        // If we're disconnected, try to reconnect immediately if the window gains focus.
+        window.addEventListener("focus", () => {
+            this.queue_reconnect({ reset: true });
+        });
+
+        // Store a random ID in localStorage to identify this browser.  This is sent to the
+        // WebSockets server, so it knows not to send broadcasts to clients running in the
+        // same browser, which will receive the messages much faster through a regular
+        // BroadcastChannel.
+        this.browser_id = settings.get("browser_id");
+        if(this.browser_id == null)
+        {
+            this.browser_id = helpers.create_uuid();
+            settings.set("browser_id", this.browser_id);
+            console.log("Assigned broadcast browser ID:", this.browser_id);
+        }
+
+        this.connect();
+    }
+
+    connect()
+    {
+        // Close the connection if it's still open.
+        this.disconnect();
+
+        let url = new URL("/ws", local_api.local_url);
+        url.protocol = "ws";
+
+        this.ws = new WebSocket(url);
+        this.ws.onopen = this.ws_opened;
+        this.ws.onclose = this.ws_closed;
+        this.ws.onerror = this.ws_error;
+        this.ws.onmessage = this.ws_message_received;
+    }
+
+    disconnect()
+    {
+        if(this.ws == null)
+            return;
+
+        this.ws.close();
+        this.ws = null;
+    }
+
+    // Queue a reconnection after a connection error.  If reset is true, reset reconnection
+    // attempts and attempt to reconnect immediately.
+    queue_reconnect({reset=false}={})
+    {
+        if(this.ws != null)
+            return;
+
+        if(!reset && this.reconnect_id != null)
+            return;
+
+        if(reset)
+        {
+            // Cancel any queued reconnection.
+            if(this.reconnect_id != null)
+            {
+                clearTimeout(this.reconnect_id);
+                this.reconnect_id = null;
+            }
+        }
+
+        if(reset)
+            this.reconnection_attempts = 0;
+        else
+            this.reconnection_attempts++;
+
+        this.reconnection_attempts = Math.min(this.reconnection_attempts, 5);
+        let reconnect_delay = Math.pow(this.reconnection_attempts, 2);
+        // console.log("Reconnecting in", reconnect_delay);
+        
+        this.reconnect_id = setTimeout(() => {
+            this.reconnect_id = null;
+            this.connect();
+        }, reconnect_delay*1000);
+    }
+
+    ws_opened = async(e) =>
+    {
+        console.log("WebSockets connection opened");
+
+        // Cancel any queued reconnection.
+        if(this.reconnect_id != null)
+        {
+            clearTimeout(this.reconnect_id);
+            this.reconnect_id = null;
+        }
+
+        this.reconnection_attempts = 0;
+
+        // Tell the server our browser ID.  This is used to prevent sending messages back
+        // to the same browser.
+        this.send_raw({
+            'command': 'init',
+            'browser_id': this.browser_id,
+        });
+
+        // Send any data that was buffered while we were still connecting.
+        this.send_buffered_data();
+    }
+
+    ws_closed = async(e) =>
+    {
+        console.log("WebSockets connection closed");
+        this.disconnect();
+        this.queue_reconnect();
+    }
+
+    // We'll also get onclose on connection error, so we don't need to queue_reconnect
+    // here.
+    ws_error = (e) =>
+    {
+        console.log("WebSockets connection error");
+    }
+
+    ws_message_received = (e) =>
+    {
+        let message = JSON.parse(e.data);
+        if(message.command != "receive-broadcast")
+        {
+            console.error(`Unknown WebSockets command: ${message.command}`);
+            return;
+        }
+
+        let event = new MessageEvent(message.message.channel, { data: message.message.data });
+        this.dispatchEvent(event);
+    };
+
+    // Send a WebSockets message on the given channel name.
+    send(channel, message)
+    {
+        let data = {
+            'command': 'send-broadcast',
+            'browser_id': this.browser_id,
+            'message': {
+                'channel': channel,
+                'data': message,
+            },
+        };
+
+        this.send_buffer.push(data);
+        this.send_buffered_data();
+    }
+
+    // Send a raw message directly, without buffering.
+    send_raw(data)
+    {
+        this.ws.send(JSON.stringify(data, null, 4));
+    }
+
+    // Send data buffered in send_buffer.
+    send_buffered_data()
+    {
+        if(this.ws == null)
+            return;
+
+        while(this.send_buffer.length > 0)
+        {
+            // This API wasn't thought through.  It tells us how much data is buffered, but not
+            // what the maximum buffer size is.  If the buffer fills, instead of returning an
+            // error, it just unceremoniously kills the connection.  There's also no event to
+            // tell us that buffered data has been sent, so you'd have to poll on a timer.  It's
+            // a mess.
+            if(this.ws.bufferedAmount > 1024*1024 || this.ws.readyState != 1)
+                break;
+
+            // Send the next buffered message.
+            let data = this.send_buffer.shift();
+            this.send_raw(data);
+        }
+    }
+}
