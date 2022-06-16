@@ -1,0 +1,12 @@
+{
+    "short_name": "vview",
+    "display": "fullscreen",
+    "scope": "/",
+    "background_color": "#202020",
+    "icons": [{
+        "type": "image/png",
+        "sizes": "192x192",
+        "src": "/client/resources/vview-icon.png"
+    }]
+
+}

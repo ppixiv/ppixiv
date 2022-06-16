@@ -5,6 +5,14 @@
 <meta name="apple-mobile-web-app-title" content="vview">
 <meta name="viewport" content="viewport-fit=cover, initial-scale=1.2, user-scalable=no">
 <link rel="apple-touch-icon" href="/client/resources/vview-icon.png">
+<link rel="manifest" href="/client/resources/manifest.json">
+
+<!-- This style is temporary and is just here to avoid a #FFFFFF flashbang from the background
+     before we load the stylesheet.  It matches the dark grey set by the manifest.  This style is
+     removed by main_controller once we have the real stylesheet. -->
+<style id="initial-style">
+    body { background-color: #222; }
+</style>
 
 <body>
 

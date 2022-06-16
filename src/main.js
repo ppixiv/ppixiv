@@ -58,7 +58,8 @@ ppixiv.main_controller = class
         // that we don't want to do before we know we're going to proceed.
         helpers.cleanup_environment();
 
-        this.temporarily_hide_document();
+        if(!ppixiv.native)
+            this.temporarily_hide_document();
 
         // Wait for DOMContentLoaded to continue.
         await helpers.wait_for_content_loaded();
@@ -208,6 +209,12 @@ ppixiv.main_controller = class
             link.rel = "stylesheet";
             document.querySelector("head").appendChild(link);
         }
+
+        // If we're running natively, index.html included an initial stylesheet to set the background
+        // color.  Remove it now that we have our real stylesheet.
+        let initial_stylesheet = document.querySelector("#initial-style");
+        if(initial_stylesheet)
+            initial_stylesheet.remove();
        
         // Create the shared title and page icon.
         document.head.appendChild(document.createElement("title"));
