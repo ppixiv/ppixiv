@@ -628,7 +628,7 @@ ppixiv.creepy_eye_widget = class
             this.eye_middle.style.transform = "";
             return;
         }
-        var mouse = [e.pageX, e.pageY];
+        var mouse = [e.clientX, e.clientY];
 
         var bounds = this.eye.getBoundingClientRect();
         var eye = [bounds.x + bounds.width/2, bounds.y + bounds.height/2];
