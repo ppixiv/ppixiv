@@ -1525,6 +1525,7 @@ a.box-link, span.box-link
     white-space: nowrap;
     margin-bottom: 4px;
     position: relative; /* to position the search dropdown */
+    max-width: 100%;
 }
 
 /* The block around the input box and submit button.  A history dropdown widget will
@@ -1545,8 +1546,8 @@ a.box-link, span.box-link
     align-items: center;
 
     // Set a default width, so input has something to stretch to and stay a consistent
-    // size if buttons are hidden.
-    width: 300px;
+    // size if buttons are hidden.  Allow this to be smaller to fit.
+    width: calc(min(300px, 100%));
 
     > input {
         background: none;
