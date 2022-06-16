@@ -4,7 +4,7 @@
 ppixiv.SendImage = class
 {
     // This is a singleton, so we never close this channel.
-    static send_image_channel = new BroadcastChannel("ppixiv:send-image");
+    static send_image_channel = new ppixiv.LocalBroadcastChannel("ppixiv:send-image");
 
     // A UUID we use to identify ourself to other tabs:
     static tab_id = this.create_tab_id();
@@ -126,6 +126,7 @@ ppixiv.SendImage = class
             thumbnail_info: thumbnail_info,
             illust_data: illust_data,
             user_info: user_info,
+            origin: window.origin,
         }, false);
     }
 
@@ -163,6 +164,7 @@ ppixiv.SendImage = class
             illust_data: illust_data ?? thumbnail_info,
             bookmark_tags: image_data.singleton().get_bookmark_details_sync(media_id),
             user_info: user_info,
+            origin: window.origin,
         }, false);
     }
 
@@ -227,19 +229,23 @@ ppixiv.SendImage = class
         }
         else if(data.message == "send-image")
         {
-            // If this message has illust info or thumbnail info, register it.
-            let thumbnail_info = data.thumbnail_info;
-            if(thumbnail_info != null)
-                await thumbnail_data.singleton().loaded_thumbnail_info([thumbnail_info], "internal");
+            // If this message has illust info or thumbnail info and it's on the same origin,
+            // register it.
+            if(data.origin == window.origin)
+            {
+                console.log("Registering cached image info");
+                let thumbnail_info = data.thumbnail_info;
+                if(thumbnail_info != null)
+                    await thumbnail_data.singleton().loaded_thumbnail_info([thumbnail_info], "internal");
 
-            let user_info = data.user_info;
-            if(user_info != null)
-                image_data.singleton().add_user_data(user_info);
+                let user_info = data.user_info;
+                if(user_info != null)
+                    image_data.singleton().add_user_data(user_info);
 
-            let illust_data = data.illust_data;
-            if(illust_data != null)
-                image_data.singleton().add_illust_data(illust_data);
-
+                let illust_data = data.illust_data;
+                if(illust_data != null)
+                    image_data.singleton().add_illust_data(illust_data);
+            }
             // To finalize, just remove preview and quick-view from the URL to turn the current
             // preview into a real navigation.  This is slightly different from sending "display"
             // with the illust ID, since it handles navigation during quick view.
@@ -275,6 +281,9 @@ ppixiv.SendImage = class
         }
         else if(data.message == "image-info")
         {
+            if(data.origin != window.origin)
+                return;
+
             // update_media_info will trigger illust_modified_callbacks below.  Make sure we don't rebroadcast
             // info that we're receiving here.  Note that add_illust_data can trigger loads, and we won't
             // send any info for changes that happen before those complete since we have to wait
@@ -305,11 +314,19 @@ ppixiv.SendImage = class
                 return;
             
             // The mouse moved in the tab that's sending quick view.  Broadcast an event
-            // like pointermove.
+            // like pointermove.  We have to work around a stupid pair of bugs: Safari
+            // doesn't handle setting movementX/movementY in the constructor, and Firefox
+            // *only* handles it that way, throwing an error if you try to set it manually.
             let event = new PointerEvent("quickviewpointermove", {
                 movementX: data.x,
                 movementY: data.y,
             });
+
+            if(event.movementX == null)
+            {
+                event.movementX = data.x;
+                event.movementY = data.y;
+            }
 
             window.dispatchEvent(event);
         }
