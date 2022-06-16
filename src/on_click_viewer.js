@@ -564,7 +564,7 @@ ppixiv.on_click_viewer = class
         if(e.mouseButton != 0 || this.slideshow_enabled)
             return;
 
-        if(e.pressed)
+        if(e.pressed && this.captured_pointer_id == null)
         {
             e.preventDefault();
 
@@ -595,6 +595,7 @@ ppixiv.on_click_viewer = class
 
             this.captured_pointer_id = e.pointerId;
             this.image_container.setPointerCapture(this.captured_pointer_id);
+            this.image_container.addEventListener("lostpointercapture", this.lost_pointer_capture);
 
             // If this is a click-zoom, align the zoom to the point on the image that
             // was clicked.
@@ -618,6 +619,12 @@ ppixiv.on_click_viewer = class
         }
     }
 
+    // If we lose pointer capture, clear the captured pointer_id.
+    lost_pointer_capture = (e) => {
+        if(e.pointerId == this.captured_pointer_id)
+            this.captured_pointer_id = null;
+    }
+
     stop_dragging()
     {
         // Save our history state on mouseup.
@@ -635,6 +642,8 @@ ppixiv.on_click_viewer = class
             this.captured_pointer_id = null;
         }
         
+        this.image_container.removeEventListener("lostpointercapture", this.lost_pointer_capture);
+
         document.body.classList.remove("hide-ui");
         
         this._mouse_pressed = false;
