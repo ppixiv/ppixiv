@@ -774,8 +774,8 @@ ppixiv.search_view = class extends ppixiv.widget
         let remove_node = (node) =>
         {
             node.remove();
+            removed_nodes[node.dataset.id] = node;
             delete this.thumbs[node.dataset.id];
-            delete removed_nodes[node.dataset.id];
         }
 
         // Remove any thumbs that aren't present in all_media_ids, so we only need to 
