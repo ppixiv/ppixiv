@@ -7,6 +7,17 @@ ppixiv.settings = class
     static session_settings = { };
     static defaults = { };
 
+    // We often read settings repeatedly in inner loops, which can become a bottleneck
+    // if we decode the JSON-encoded settings from localStorage every time.  However, we
+    // don't want to cache them aggressively, since changes to settings in one tab should
+    // take effect in others immediately.  This caches the decoded value of settings, but
+    // is cleared as soon as we return to the event loop, so we only cache settings briefly.
+    static cache = { };
+
+    // If a setting has no saved value, it'll be cached as no_value.  This is different from
+    // null, since null is a valid saved value.
+    static no_value = new Object();
+
     // When a setting changes, an event with the name of the setting is dispatched on
     // settings.changes.
     static changes = new EventTarget();
@@ -56,17 +67,53 @@ ppixiv.settings = class
             return localStorage;
     }
 
+    // Wait until we return to the event loop, then clear any cached settings.
+    static async _queue_clear_cache()
+    {
+        if(this._clear_cache_queued || Object.keys(this.cache).length == 0)
+            return;
+
+        this._clear_cache_queued = true;
+        try {
+            await helpers.sleep(0);
+            this.cache = {};
+        } finally {
+            this._clear_cache_queued = false;
+        }
+    }
+
+    static _cache_value(key, value)
+    {
+        this.cache[key] = value;
+        this._queue_clear_cache();
+    }
+
     static _get_from_storage(key, default_value)
     {
+        // See if we have a cached value.
+        if(key in this.cache)
+        {
+            let value = this.cache[key];
+            if(value === this.no_value)
+                return default_value;
+            else
+                return value;
+        }
+
         let storage = this._get_storage_for_key(key);
 
-        key = "_ppixiv_" + key;
-        if(!(key in storage))
+        let setting_key = "_ppixiv_" + key;
+        if(!(setting_key in storage))
+        {
+            this._cache_value(key, this.no_value);
             return default_value;
+        }
 
-        let result = storage[key];
+        let result = storage[setting_key];
         try {
-            return JSON.parse(result);
+            let value = JSON.parse(result);
+            this._cache_value(key, value);
+            return value;
         } catch(e) {
             // Recover from invalid values in storage.
             console.warn(e);
@@ -114,9 +161,10 @@ ppixiv.settings = class
             settings.sticky_settings[key] = value;
 
         var setting_key = "_ppixiv_" + key;
+        storage[setting_key] = JSON.stringify(value);
 
-        var value = JSON.stringify(value);
-        storage[setting_key] = value;
+        // Update the cached value.
+        this._cache_value(key, value);
 
         // Call change listeners for this key.
         settings.get_change_callback_list(key).call(key);
