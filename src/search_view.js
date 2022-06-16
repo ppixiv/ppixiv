@@ -203,10 +203,10 @@ ppixiv.search_view = class extends ppixiv.widget
 
     get_first_visible_thumb()
     {
-        // Find the first thumb that's fully onscreen.  Ignore elements not specific to a page (load previous results).
+        // Find the first thumb that's fully onscreen.
         for(let element of Object.values(this.thumbs))
         {
-            if(element.dataset.id && element.dataset.fullyOnScreen && element.dataset.searchPage)
+            if(element.dataset.fullyOnScreen)
                 return element;
         }
 
@@ -253,11 +253,11 @@ ppixiv.search_view = class extends ppixiv.widget
             if(!element.dataset.visible)
                 continue;
         
-            let { type, id } = helpers.parse_media_id(element.dataset.id);
+            let { type, id } = helpers.parse_media_id(media_id);
             if(type != "illust")
                 continue;
 
-            visible_media_ids.push(element.dataset.id);
+            visible_media_ids.push(media_id);
         }
         
         ppixiv.recently_seen_illusts.get().add_illusts(visible_media_ids);
@@ -702,10 +702,10 @@ ppixiv.search_view = class extends ppixiv.widget
     get_nearby_media_ids({all=false}={})
     {
         let media_ids = [];
-        for(let element of Object.values(this.thumbs))
+        for(let [media_id, element] of Object.entries(this.thumbs))
         {
             if(element.dataset.nearby)
-                media_ids.push(element.dataset.id);
+                media_ids.push(media_id);
         }
 
         if(all)
@@ -783,11 +783,8 @@ ppixiv.search_view = class extends ppixiv.widget
         // a manga post is collapsed.
         {
             let media_id_set = new Set(all_media_ids);
-            for(let thumb of Object.values(this.thumbs))
+            for(let [thumb_media_id, thumb] of Object.entries(this.thumbs))
             {
-                let thumb_media_id = thumb.dataset.id;
-                if(thumb_media_id == null)
-                    continue;
                 if(!media_id_set.has(thumb_media_id))
                     remove_node(thumb);
             }
