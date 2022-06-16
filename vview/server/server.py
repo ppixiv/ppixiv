@@ -8,7 +8,7 @@ from aiohttp import web
 from aiohttp.abc import AbstractAccessLogger
 from aiohttp.web_log import AccessLogger
 
-from . import api, thumbs, ui
+from . import api, thumbs, ui, websockets
 from ..util import misc
 from .manager import Manager
 
@@ -199,6 +199,9 @@ async def setup(*, set_main_task=None):
     app.router.add_get('/inpaint/{type:[^:]+}:{path:.+}', thumbs.handle_inpaint)
     app.router.add_get('/open/{path:.+}', thumbs.handle_open)
     ui.add_routes(app.router)
+
+    # Set up WebSockets.
+    websockets.setup(app)
 
     # Add a handler for each API call.
     for command, func in api.handlers.items():
