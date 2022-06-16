@@ -13,13 +13,19 @@ ppixiv.SendImage = class
     static create_tab_id(recreate=false)
     {
         // If we have a saved tab ID, use it.
-        if(!recreate && sessionStorage.ppixivTabId)
-            return sessionStorage.ppixivTabId;
+        //
+        // sessionStorage on Android Chrome is broken.  Home screen apps should retain session storage
+        // for that particular home screen item, but they don't.  (This isn't a problem on iOS.)  Use
+        // localStorage instead, which means things like linked tabs will link to the device instead of
+        // the instance.  That's usually good enough if you're linking to a phone or tablet.
+        let storage = ppixiv.android? localStorage:sessionStorage;
+        if(!recreate && storage.ppixivTabId)
+            return storage.ppixivTabId;
 
         // Make a new ID, and save it to the session.  This helps us keep the same ID
         // when we're reloaded.
-        sessionStorage.ppixivTabId = helpers.create_uuid();
-        return sessionStorage.ppixivTabId;
+        storage.ppixivTabId = helpers.create_uuid();
+        return storage.ppixivTabId;
     }
 
     static known_tabs = {};

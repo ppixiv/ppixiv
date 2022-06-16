@@ -29,6 +29,7 @@ let _load_source_file = function(__pixiv, __source) {
     // environment.
     env.native = window.location.hostname != "pixiv.net" && window.location.hostname != "www.pixiv.net";
     env.ios = navigator.platform.indexOf('iPhone') != -1 || navigator.platform.indexOf('iPad') != -1;
+    env.android = navigator.userAgent.indexOf('Android') != -1;
     env.version = 'native';
     env.resources = {};
 

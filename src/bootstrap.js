@@ -65,6 +65,7 @@
             unsafeWindow.ppixiv = env;
             env.native = false;
             env.ios = navigator.platform.indexOf('iPhone') != -1 || navigator.platform.indexOf('iPad') != -1;
+            env.android = navigator.userAgent.indexOf('Android') != -1;
 
             // Load each source file.
             for(let path of source_list)
