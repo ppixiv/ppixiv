@@ -313,6 +313,39 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
         
                 button.container.querySelector(".size-slider").style.flexGrow = .25;
             },
+            slideshow_default_animation: () => {
+                let button;
+                let slider = new menu_option_slider_setting({
+                    ...global_options,
+                    label: "Slideshow mode",
+                    setting: "slideshow_default",
+                    min: 0,
+                    max: 1,
+                    list: ["pan", "contain",],
+                    classes: ["size-slider"],
+                    
+                    // Refresh the label when the value changes.
+                    refresh: function() { button.refresh(); },
+                });
+
+                let explanation = () => {
+                    let mode = settings.get("slideshow_default", "pan");
+                    switch(mode)
+                    {
+                    case "pan": return "Pan the image left-to-right or top-to-bottom";
+                    case "contain": return "Fade in and out without panning";
+                    }
+                };
+
+                button = new menu_option_button({
+                    ...global_options,
+                    label: "Slideshow mode",
+                    explanation_enabled: explanation,
+                    buttons: [slider],
+                });
+        
+                button.container.querySelector(".size-slider").style.flexGrow = .25;
+            },
 
             slideshow_skips_manga: () => {
                 return new menu_option_toggle_setting({
@@ -402,6 +435,7 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
         settings_widgets.auto_pan();
         settings_widgets.auto_pan_speed();
         settings_widgets.slideshow_speed();
+        settings_widgets.slideshow_default_animation();
         if(!ppixiv.native) // native mode doesn't support manga pages
             settings_widgets.slideshow_skips_manga();
         
@@ -550,7 +584,27 @@ ppixiv.menu_option = class extends widget
     {
         if(this.onrefresh)
             this.onrefresh();
-    }            
+
+        this.refresh_explanation();
+    }
+
+    // The current explanation text.  The subclass can override this.
+    get explanation_text() { return null; }
+
+    // Update the explanation text, if any.
+    refresh_explanation()
+    {
+        let text = this.explanation_text;
+        if(typeof(text) == "function")
+            text = text();
+
+        let explanation = this.container.querySelector(".explanation");
+        if(explanation == null)
+            return;
+
+        explanation.hidden = text == null;
+        explanation.innerText = text;
+    }
 }
 
 // A container for multiple options on a single row.
@@ -672,6 +726,11 @@ ppixiv.menu_option_button = class extends ppixiv.menu_option
         return this._enabled;
     }
 
+    get explanation_text()
+    {
+        return this.enabled? this.explanation_enabled:this.explanation_disabled;
+    }
+
     onclick = (e) =>
     {
         // If consume_clicks is true, stopPropagation to stop the menu we're inside from
@@ -738,6 +797,15 @@ ppixiv.menu_option_toggle = class extends ppixiv.menu_option_button
         this.checkbox = checkbox;
         this.checkbox.checked = checked;
     }
+
+    // The subclass overrides this to get and store its value.
+    get value() { return false; }
+    set value(value) { }
+
+    get explanation_text()
+    {
+        return this.value? this.explanation_enabled:this.explanation_disabled;
+    }
 }
 
 ppixiv.menu_option_toggle_setting = class extends ppixiv.menu_option_toggle
@@ -782,12 +850,6 @@ ppixiv.menu_option_toggle_setting = class extends ppixiv.menu_option_toggle
             value = !value;
 
         this.checkbox.checked = value;
-
-        // Update the explanation text.
-        let text = value? this.explanation_enabled:this.explanation_disabled;
-        let explanation = this.container.querySelector(".explanation");
-        explanation.hidden = text == null;
-        explanation.innerText = text;
     }
 
     get value()
@@ -875,6 +937,11 @@ class menu_option_slider extends ppixiv.menu_option
         for(let idx = 0; idx < this.list.length; ++idx)
         {
             let v = this.list[idx];
+
+            // Check for exact matches, so the list can contain strings.
+            if(value == v)
+                return idx;
+
             let distance = Math.abs(value - v);
             if(closest_distance == null || distance < closest_distance)
             {

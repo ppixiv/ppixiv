@@ -77,6 +77,15 @@ ppixiv.slideshow = class
     // Create the default animation.
     get_default_animation()
     {
+        // If we're in slideshow mode, see if we have a different default animation.  Panning
+        // mode always pans.
+        if(this.slideshow_enabled)
+        {
+            let slideshow_default = ppixiv.settings.get("slideshow_default", "pan");
+            if(slideshow_default == "contain")
+                return this.get_default_static();
+        }
+
         let animation = this.get_default_pan();
         animation = this.prepare_animation(animation);
 
@@ -134,6 +143,23 @@ ppixiv.slideshow = class
                 x: 1, y: 1, zoom: 1,
             }],
         };
+    }
+
+    // A slideshow display that doesn't pan, and just displays the image statically.
+    get_default_static()
+    {
+        let { pan_duration, fade_in, fade_out } = this._get_parameters();
+        return this.prepare_animation({
+            fade_in, fade_out,
+
+            pan: [{
+                x: 0.5, y: 0, zoom: 0,
+                max_speed: true,
+                duration: pan_duration,
+            }, {
+                x: 0.5, y: 0, zoom: 0,
+            }],
+        });
     }
 
     // Return a basic pull-in animation.
