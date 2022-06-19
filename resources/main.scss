@@ -238,9 +238,15 @@ textarea:focus, input:focus, a:focus {
     }
 }
 
+// Note that styles on the image itself need to be duplicated here on .low-res-preview
+// and in ImageEditingOverlayContainer.  For some reason, custom elements prevent CSS
+// styles from propagating into them, which is a real hassle.
 .viewer-images {
     width: 100%;
     height: 100%;
+
+    // Disable scrolling to prevent pointer events from being cancelled on mobile.
+    touch-action: none;
 
     // If the image is cropped, set overflow: hidden on the image box to cut it
     // off.  Don't do this if it isn't needed, since it can trigger compositing
