@@ -72,12 +72,6 @@ ppixiv.on_click_viewer = class
         return url == helpers.blank_image? null:url;
     }
     
-    get displaying_preview_url()
-    {
-        let url = this.preview_img?.src;
-        return url == helpers.blank_image? null:url;
-    }
-
     // Load the given illust and page.
     set_new_image = async(signal, {
         media_id,
@@ -196,7 +190,7 @@ ppixiv.on_click_viewer = class
         signal.check();
 
         // We're ready to finalize the new URLs by removing the old images and setting the
-        // new ones.  This is where displaying_url and displaying_preview_url change.
+        // new ones.  This is where displaying_url changes to reflect the new URL.
         // If we're displaying the same image, don't remove the animation if one is running.
         this.remove_images({remove_animation: !this.animation_enabled || media_id != this.media_id});
         this.media_id = media_id;
