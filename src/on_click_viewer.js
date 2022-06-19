@@ -672,7 +672,7 @@ ppixiv.on_click_viewer = class
         let x_offset = movementX;
         let y_offset = movementY;
 
-        if(settings.get("invert-scrolling"))
+        if(ppixiv.mobile || settings.get("invert-scrolling"))
         {
             x_offset *= -1;
             y_offset *= -1;

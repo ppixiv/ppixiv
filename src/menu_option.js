@@ -444,7 +444,8 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
             settings_widgets.slideshow_skips_manga();
         
         settings_widgets.view_mode();
-        settings_widgets.invert_scrolling();
+        if(!ppixiv.mobile)
+            settings_widgets.invert_scrolling();
         settings_widgets.no_hide_cursor();
         
         if(!ppixiv.native)
