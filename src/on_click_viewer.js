@@ -207,15 +207,8 @@ ppixiv.on_click_viewer = class
 
         this.update_crop();
 
-        // Only show the preview image until we're ready to show the main image.
-        img.hidden = true;
-        preview_img.hidden = true;
-
         // If the main image is already ready, show it.  Otherwise, show the preview image.
-        if(img_ready)
-            this.img.hidden = false;
-        else
-            this.preview_img.hidden = false;
+        this.set_displayed_image(img_ready? "main":"preview");
 
         // Restore history or set the initial position, then call reposition() to apply it
         // and do any clamping.  Do this atomically with updating the images, so the caller
@@ -244,7 +237,7 @@ ppixiv.on_click_viewer = class
         if(ondisplayed)
             ondisplayed();
 
-        // If we added the main image, we're done.
+        // If the main image is already being displayed, we're done.
         if(img_ready)
         {
             this._pause_animation = false;
@@ -280,8 +273,14 @@ ppixiv.on_click_viewer = class
         // If we paused an animation, resume it.
         this._pause_animation = false;
 
-        this.img.hidden = false;
-        this.preview_img.hidden = true;
+        this.set_displayed_image("main");
+    }
+
+    // Set whether the main image or preview image are visible.
+    set_displayed_image(displayed_image)
+    {
+        this.img.hidden = displayed_image != "main";
+        this.preview_img.hidden = displayed_image != "preview";
     }
 
     async decode_img(img)
