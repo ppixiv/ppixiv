@@ -123,6 +123,13 @@ ppixiv.main_controller = class
 
         helpers.set_class(document.documentElement, "mobile", ppixiv.mobile);
 
+        // On mobile, disable long press opening the context menu and starting drags.
+        if(ppixiv.mobile)
+        {
+            window.addEventListener("contextmenu", (e) => { e.preventDefault(); });
+            window.addEventListener("dragstart", (e) => { e.preventDefault(); });
+        }
+
         // See if the page has preload data.  This sometimes contains illust and user info
         // that the page will display, which lets us avoid making a separate API call for it.
         let preload = document.querySelector("#meta-preload-data");
