@@ -225,6 +225,14 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
         this.visible = false;
         this.hide = this.hide.bind(this);
 
+        // Whether the left and right mouse buttons are pressed:
+        this.buttons_down = {};
+
+        // This UI isn't used on mobile, but we're still created so other code doesn't need
+        // to check if we exist.
+        if(ppixiv.mobile)
+            return;
+            
         this.pointer_listener = new ppixiv.pointer_listener({
             element: window,
             button_mask: 0b11,
@@ -242,9 +250,6 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
 
         this.container.addEventListener("mouseover", this.onmouseover, true);
         this.container.addEventListener("mouseout", this.onmouseout, true);
-
-        // Whether the left and right mouse buttons are pressed:
-        this.buttons_down = {};
     }
 
     context_menu_enabled_for_element(element)
