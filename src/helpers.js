@@ -3572,7 +3572,7 @@ ppixiv.pointer_listener = class
         // These need to go on window, so if a mouse button is pressed and that causes
         // the element to be hidden, we still get the pointerup.
         window.addEventListener("pointerup", this.onpointerevent, this.event_options);
-        window.addEventListener("pointercancel", this.onpointerup, this.event_options);
+        window.addEventListener("pointercancel", this.onpointerevent, this.event_options);
     }
 
     unregister_events_while_pressed(enable)
@@ -3582,7 +3582,7 @@ ppixiv.pointer_listener = class
         this.pointermove_registered = false;
         this.element.removeEventListener("pointermove", this.onpointermove, this.event_options);
         window.removeEventListener("pointerup", this.onpointerevent, this.event_options);
-        window.removeEventListener("pointercancel", this.onpointerup, this.event_options);
+        window.removeEventListener("pointercancel", this.onpointerevent, this.event_options);
     }
 
     button_changed(buttons, event)
