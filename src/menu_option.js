@@ -425,8 +425,12 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
         settings_widgets.thumbnail_size();
         if(!ppixiv.native)
             settings_widgets.manga_thumbnail_size();
-        settings_widgets.disable_thumbnail_panning();
-        settings_widgets.disable_thumbnail_zooming();
+        if(!ppixiv.mobile)
+        {
+            settings_widgets.disable_thumbnail_panning();
+            settings_widgets.disable_thumbnail_zooming();
+        }
+        
         settings_widgets.quick_view();
         settings_widgets.ui_on_hover();
         settings_widgets.expand_manga_posts();
