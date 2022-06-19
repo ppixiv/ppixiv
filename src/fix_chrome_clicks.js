@@ -18,7 +18,7 @@ ppixiv.fix_chrome_clicks = class
     constructor(container)
     {
         // Don't do anything if we're not in Chrome.
-        this.enabled = navigator.userAgent.indexOf("Chrome") != -1;
+        this.enabled = navigator.userAgent.indexOf("Chrome") != -1 && !ppixiv.mobile;
         if(!this.enabled)
             return;
 
