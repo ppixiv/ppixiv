@@ -3,6 +3,16 @@
 // This should be inside whats_new, but Firefox is in the dark ages and doesn't support class fields.
 let _update_history = [
     {
+        version: 142,
+        boring: true,
+        text: `
+            The slideshow can now be set to fade through images without panning.
+            <p>
+            Thumbnail panning now stops after a while if there's no mouse movement,
+            so it doesn't keep going forever.
+        `,
+    },
+    {
         version: 139,
         text: `
             Added a panning/slideshow editor, to edit how an image will pan and zoom during
