@@ -1943,22 +1943,21 @@ a.box-link, span.box-link
         }
     }
 
-    .context-menu-image-info {
-        /* Bottom align within the row. */
+    .context-menu-image-info-container {
+        // Bottom align within the row.
         align-self: flex-end;
+        background-color: var(--box-link-bg-color);
+        padding-right: 8px;
+    }
+
+    .context-menu-image-info {
         display: flex;
         flex-direction: column;
         align-items: center;
-        background-color: var(--box-link-bg-color);
-        padding-right: 8px;
-
-        & > * {
-            background-color: var(--box-link-bg-color);
-            color: var(--box-link-fg-color);
-            padding: 2px 0 0px 0px;
-            font-size: .8em;
-            font-weight: bold;
-        }
+        font-size: .8em;
+        font-weight: bold;
+        gap: 2px;
+        padding: 4px 0;
     }
 
     .popup-bookmark-tag-dropdown {

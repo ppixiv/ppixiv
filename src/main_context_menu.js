@@ -11,6 +11,17 @@
 // This also handles alt-mousewheel zooming.
 ppixiv.context_menu_image_info_widget = class extends ppixiv.illust_widget
 {
+    constructor({...options})
+    {
+        super({ ...options, template: `
+            <div class=context-menu-image-info>
+                <div class=page-count hidden></div>
+                <div class=image-info hidden></div>
+                <div class="post-age popup" hidden></div>
+            </div>
+        `});
+    }
+
     get needed_data()
     {
         // We need illust info if we're viewing a manga page beyond page 1, since
@@ -131,13 +142,7 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
                             <ppixiv-inline src="resources/fullscreen.svg"></ppixiv-inline>
                         </div>
                     </div>
-                    <div class=context-menu-image-info>
-                        <div style="flex: 1;"></div>
-                        <div class=page-count hidden></div>
-                        <div class=image-info hidden></div>
-                        <div class="post-age popup" hidden></div>
-                        <div style="flex: 1;"></div>
-                    </div>
+                    <div class=context-menu-image-info-container></div>
                 </div>
                 <div class=button-strip>
                     <div class="button-block shift-left">
@@ -668,7 +673,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
             }),
             new context_menu_image_info_widget({
                 parent: this,
-                contents: this.container.querySelector(".context-menu-image-info"),
+                container: this.container.querySelector(".context-menu-image-info-container"),
             }),
             new bookmark_count_widget({
                 parent: this,
