@@ -178,6 +178,12 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
                         </div>
                     </div>
 
+                    <div class="button-block view-in-explorer button-container" hidden>
+                        <a href=# class="button private popup local-link">
+                            ${ helpers.create_icon("description") }
+                        </a>
+                    </div>
+
                     <!-- position: relative positions the popup menu. -->
                     <div class="button-block button-container" style="position: relative;">
                         <!-- position: relative positions the bookmark count. -->
@@ -192,12 +198,6 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
                         <div class="button button-bookmark private" data-bookmark-type=private>
                             <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
                         </div>
-                    </div>
-                    
-                    <div class="button-block view-in-explorer button-container" hidden>
-                        <a href=# class="button private popup local-link">
-                            ${ helpers.create_icon("description") }
-                        </a>
                     </div>
                     
                     <div class=button-block style="position: relative;">
