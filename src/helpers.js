@@ -3479,6 +3479,53 @@ ppixiv.VirtualHistory = class
 };
 ppixiv.history = new VirtualHistory;
 
+ppixiv.PointerEventMovement = class
+{
+    static get get()
+    {
+        if(this.singleton == null)
+            this.singleton = new PointerEventMovement();
+        return this.singleton;
+    }
+    
+    constructor()
+    {
+        // If the browser supports movementX (everyone except for iOS Safari), this isn't
+        // needed.
+        if("movementX" in new PointerEvent("test"))
+            return;
+
+        this.last_pointer_positions = {};
+
+        window.addEventListener("pointerdown", this.pointerdown, { capture: true });
+        window.addEventListener("pointermove", this.pointerdown, { capture: true });
+        window.addEventListener("pointerup", this.pointerup, { capture: true });
+        window.addEventListener("pointercancel", this.pointerup, { capture: true });
+    }
+
+    pointerdown = (e) =>
+    {
+        // If this is the first event for this pointerId, store the current position.  Otherwise,
+        // store the previous position.
+        let previousX = e.screenX, previousY = e.screenY;
+        if(this.last_pointer_positions[e.pointerId] != null)
+        {
+            previousX = this.last_pointer_positions[e.pointerId].x;
+            previousY = this.last_pointer_positions[e.pointerId].y;
+        }
+
+        this.last_pointer_positions[e.pointerId] = { x: e.screenX, y: e.screenY };
+        e.movementX = e.screenX - previousX;
+        e.movementY = e.screenY - previousY;
+    }
+
+    pointerup = (e) =>
+    {
+        delete this.last_pointer_positions[e.pointerId];
+        e.movementX = e.movementY = 0;
+    }
+}
+
 // The pointer API is sadistically awful.  Only the first pointer press is sent by pointerdown.
 // To get others, you have to register pointermove and get spammed with all mouse movement.
 // You have to register pointermove when a button is pressed in order to see other buttons
