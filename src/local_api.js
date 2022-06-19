@@ -680,7 +680,7 @@ class LocalBroadcastChannelConnection extends EventTarget
         super();
 
         // This is only used if the local API is enabled.
-        if(!local_api.is_enabled)
+        if(!local_api.is_enabled())
             return;
 
         // If messages are sent while we're still connecting, or if the buffer is full,
@@ -822,6 +822,9 @@ class LocalBroadcastChannelConnection extends EventTarget
     // Send a WebSockets message on the given channel name.
     send(channel, message)
     {
+        if(!local_api.is_enabled())
+            return;
+        
         let data = {
             'command': 'send-broadcast',
             'browser_id': this.browser_id,
