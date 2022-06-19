@@ -1095,7 +1095,7 @@ ppixiv.helpers = {
 
         // Pixiv returns completely different data when it thinks you're on mobile, and uses a completely
         // different set of APIs.  Set a fake desktop referer to prevent this from happening.
-        if(ppixiv.ios)
+        if(ppixiv.mobile)
             options.headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/101.0.4951.67 Safari/537.36';
 
         let result = await helpers.send_request(options);

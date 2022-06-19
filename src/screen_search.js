@@ -563,7 +563,7 @@ ppixiv.screen_search = class extends ppixiv.screen
     update_from_settings = () =>
     {
         document.documentElement.dataset.theme = "dark"; //settings.get("theme");
-        helpers.set_class(document.body, "ui-on-hover", settings.get("ui-on-hover") && !ppixiv.ios);
+        helpers.set_class(document.body, "ui-on-hover", settings.get("ui-on-hover") && !ppixiv.mobile);
         // helpers.set_class(this.container.querySelector(".recent-history-link"), "disabled", !ppixiv.recently_seen_illusts.get().enabled);
         this.refresh_expand_manga_posts_button();
 

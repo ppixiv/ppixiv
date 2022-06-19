@@ -193,7 +193,7 @@ ppixiv.search_view = class extends ppixiv.widget
         this.set_visible_thumbs();
         this.refresh_images();
 
-        helpers.set_class(document.body, "disable-thumbnail-zooming", settings.get("disable_thumbnail_zooming") || ppixiv.ios);
+        helpers.set_class(document.body, "disable-thumbnail-zooming", settings.get("disable_thumbnail_zooming") || ppixiv.mobile);
     }
 
     get_thumbnail_for_media_id(media_id)
