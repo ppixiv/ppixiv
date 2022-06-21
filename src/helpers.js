@@ -1965,7 +1965,7 @@ ppixiv.helpers = {
         node.style.maxHeight = `${height}px`;
     },
     
-    distance([x1,y1], [x2,y2])
+    distance({x: x1, y: y1}, {x: x2, y: y2})
     {
         let distance = Math.pow(x1-x2, 2) + Math.pow(y1-y2, 2);
         return Math.pow(distance, 0.5);

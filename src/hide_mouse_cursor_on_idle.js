@@ -47,7 +47,7 @@ ppixiv.track_mouse_movement = class
             return;
 
         // Show the cursor if the mouse has moved far enough from the current anchor_pos.
-        let distance_moved = helpers.distance(this.anchor_pos, mouse_pos);
+        let distance_moved = helpers.distance({x: this.anchor_pos[0], y: this.anchor_pos[1]}, {x: mouse_pos[0], y: mouse_pos[1]});
         if(distance_moved > 10)
         {
             this.mark_mouse_active();

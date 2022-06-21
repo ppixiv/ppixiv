@@ -272,7 +272,7 @@ ppixiv.slideshow = class
             let screen_size = (screen_height * distance_ratio) + (screen_width * (1-distance_ratio));
 
             // The screen distance we're moving:
-            let distance_in_pixels = helpers.distance([p0.computed_tx, p0.computed_ty], [p1.computed_tx, p1.computed_ty]);
+            let distance_in_pixels = helpers.distance({x: p0.computed_tx, y: p0.computed_ty}, {x: p1.computed_tx, y: p1.computed_ty});
 
             // pixels_per_second is the speed we'll move at the given speed.  Note that this ignores
             // easing, and we'll actually move faster or slower than this during the transition.
