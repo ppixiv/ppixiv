@@ -1,11 +1,9 @@
 "use strict";
 
-// View img fullscreen.  Clicking the image will zoom it to its original size and scroll
-// it around.
-//
-// The image is always zoomed a fixed amount from its fullscreen size.  This is generally
-// more usable than doing things like zooming based on the native resolution.
-ppixiv.on_click_viewer = class
+// The base class for the main low-level image viewer.  This handles loading images,
+// and the mechanics for zoom and pan.  The actual zoom and pan UI is handled by the
+// desktop and mobile subclasses.
+class image_viewer_base
 {
     constructor({container, onviewcontainerchange})
     {
@@ -46,20 +44,12 @@ ppixiv.on_click_viewer = class
         // This is aborted when we shut down to remove listeners.
         this.event_shutdown = new AbortController();
 
-        window.addEventListener("blur", this.window_blur, { signal: this.event_shutdown.signal });
         window.addEventListener("resize", this.onresize, { signal: this.event_shutdown.signal, capture: true });
         this.image_container.addEventListener("dragstart", this.block_event, { signal: this.event_shutdown.signal });
         this.image_container.addEventListener("selectstart", this.block_event, { signal: this.event_shutdown.signal });
 
         // Start or stop panning if the user changes it while we're active, eg. by pressing ^P.
         settings.changes.addEventListener("auto_pan", this.refresh_autopan.bind(this), { signal: this.event_shutdown.signal });
-        
-        this.pointer_listener = new ppixiv.pointer_listener({
-            element: this.image_container,
-            button_mask: 1,
-            signal: this.event_shutdown.signal,
-            callback: this.pointerevent,
-        });
 
         // This is like pointermove, but received during quick view from the source tab.
         window.addEventListener("quickviewpointermove", this.quickviewpointermove, { signal: this.event_shutdown.signal });
@@ -94,7 +84,8 @@ ppixiv.on_click_viewer = class
     {
         // When quick view displays an image on mousedown, we want to see the mousedown too
         // now that we're displayed.
-        this.pointer_listener.check();
+        if(this.pointer_listener)
+            this.pointer_listener.check();
 
         // A special case is when we have no images at all.  This happens when navigating
         // to a manga page and we don't have illust info yet, so we don't know anything about
@@ -293,7 +284,6 @@ ppixiv.on_click_viewer = class
 
     shutdown()
     {
-        this.stop_dragging();
         this.remove_images();
         
         if(this.image_box)
@@ -370,11 +360,6 @@ ppixiv.on_click_viewer = class
 
         if(this.animations)
             this.refresh_autopan();
-    }
-
-    window_blur = (e) =>
-    {
-        this.stop_dragging();
     }
 
     // Enable or disable zoom lock.
@@ -500,9 +485,10 @@ ppixiv.on_click_viewer = class
     }
 
     // Return the image coordinate at a given screen coordinate.
-    get_image_position(screen_pos)
+    get_image_position(screen_pos, {pos=null}={})
     {
-        let pos = this.current_zoom_pos;
+        if(pos == null)
+            pos = this.current_zoom_pos;
 
         return [
             pos[0] + (screen_pos[0] - this.container_width/2)  / this.onscreen_width,
@@ -510,143 +496,51 @@ ppixiv.on_click_viewer = class
         ];
     }
 
-    // Given a screen position and a point on the image, align the point to the screen
-    // position.  This has no effect when we're not zoomed.
-    set_image_position(screen_pos, zoom_center, draw=true)
+    // Given a screen position and a point on the image, return the center_pos needed
+    // to align the point to that screen position.
+    get_center_for_image_position(screen_pos, zoom_center)
     {
-        this.center_pos = [
+        return [
             -((screen_pos[0] - this.container_width/2)  / this.onscreen_width - zoom_center[0]),
             -((screen_pos[1] - this.container_height/2) / this.onscreen_height - zoom_center[1]),
         ];
-
-        if(draw)
-            this.reposition();
     }
 
-    pointerevent = (e) =>
+    // Given a screen position and a point on the image, align the point to the screen
+    // position.  This has no effect when we're not zoomed.  reposition() must be called
+    // after changing this.
+    set_image_position(screen_pos, zoom_center)
     {
-        if(e.mouseButton != 0 || this.slideshow_enabled)
-            return;
-
-        if(e.pressed && this.captured_pointer_id == null)
-        {
-            e.preventDefault();
-
-            this.image_container.style.cursor = "none";
-
-            // Don't show the UI if the mouse hovers over it while dragging.
-            document.body.classList.add("hide-ui");
-
-            // Stop animating if this is a real click.  If it's a carried-over click during quick
-            // view, don't stop animating until we see a drag.
-            if(e.type != "simulatedpointerdown")
-                this.stop_animation();
-
-            if(!this._locked_zoom)
-                var zoom_center_pos = this.get_image_position([e.pageX, e.pageY]);
-
-            // If this is a simulated press event, the button was pressed on the previous page,
-            // probably due to quick view.  Don't zoom from this press, but do listen to pointermove,
-            // so send_mouse_movement_to_linked_tabs is still called.
-            let allow_zoom = true;
-            if(e.type == "simulatedpointerdown" && !this._locked_zoom)
-                allow_zoom = false;
-
-            if(allow_zoom)
-                this._mouse_pressed = true;
-
-            this.drag_movement = [0,0];
-
-            this.captured_pointer_id = e.pointerId;
-            this.image_container.setPointerCapture(this.captured_pointer_id);
-            this.image_container.addEventListener("lostpointercapture", this.lost_pointer_capture);
-
-            // If this is a click-zoom, align the zoom to the point on the image that
-            // was clicked.
-            if(!this._locked_zoom)
-                this.set_image_position([e.pageX, e.pageY], zoom_center_pos);
-
-            this.reposition();
-
-            // Only listen to pointermove while we're dragging.
-            this.image_container.addEventListener("pointermove", this.pointermove);
-        } else {
-            if(this.captured_pointer_id == null || e.pointerId != this.captured_pointer_id)
-                return;
-
-            // Tell hide_mouse_cursor_on_idle that the mouse cursor should be hidden, even though the
-            // cursor may have just been moved.  This prevents the cursor from appearing briefly and
-            // disappearing every time a zoom is released.
-            track_mouse_movement.singleton.simulate_inactivity();
-            
-            this.stop_dragging();
-        }
-    }
-
-    // If we lose pointer capture, clear the captured pointer_id.
-    lost_pointer_capture = (e) => {
-        if(e.pointerId == this.captured_pointer_id)
-            this.captured_pointer_id = null;
-    }
-
-    stop_dragging()
-    {
-        // Save our history state on mouseup.
-        this.save_to_history();
-            
-        if(this.image_container != null)
-        {
-            this.image_container.removeEventListener("pointermove", this.pointermove);
-            this.image_container.style.cursor = "";
-        }
-
-        if(this.captured_pointer_id != null)
-        {
-            this.image_container.releasePointerCapture(this.captured_pointer_id);
-            this.captured_pointer_id = null;
-        }
-        
-        this.image_container.removeEventListener("lostpointercapture", this.lost_pointer_capture);
-
-        document.body.classList.remove("hide-ui");
-        
-        this._mouse_pressed = false;
-        this.reposition();
-    }
-
-    pointermove = (e) =>
-    {
-        // If we're animating, only start dragging after we pass a drag threshold, so we
-        // don't cancel the animation in quick view.  These thresholds match Windows's
-        // default SM_CXDRAG/SM_CYDRAG behavior.
-        this.drag_movement[0] += e.movementX;
-        this.drag_movement[1] += e.movementY;
-        if(this.animations && this.drag_movement[0] < 4 && this.drag_movement[1] < 4)
-            return;
-
-        this.apply_pointer_movement({movementX: e.movementX, movementY: e.movementY});
+        this.center_pos = this.get_center_for_image_position(screen_pos, zoom_center);
     }
 
     quickviewpointermove = (e) =>
     {
-        this.apply_pointer_movement({movementX: e.movementX, movementY: e.movementY});
+        this.apply_pointer_movement({movementX: e.movementX, movementY: e.movementY, from_quick_view: true});
     }
 
-    apply_pointer_movement({movementX, movementY})
+    apply_pointer_movement({movementX, movementY, from_quick_view=false}={})
     {
         this.stop_animation();
-
-        // Send pointer movements to linked tabs.
-        SendImage.send_mouse_movement_to_linked_tabs(movementX, movementY);
 
         // Apply mouse dragging.
         let x_offset = movementX;
         let y_offset = movementY;
 
-        if(ppixiv.mobile || settings.get("invert-scrolling"))
+        if(!from_quick_view)
         {
-            x_offset *= -1;
-            y_offset *= -1;
+            // Flip movement if we're on a touchscreen, or if it's enabled by the user.  If this
+            // is from quick view, the sender already did this.
+            if(ppixiv.mobile || settings.get("invert-scrolling"))
+            {
+                x_offset *= -1;
+                y_offset *= -1;
+            }
+
+            // Send pointer movements to linked tabs.  If we're inverting scrolling, this
+            // is included here, so clients will scroll the same way regardless of their
+            // local settings.
+            SendImage.send_mouse_movement_to_linked_tabs(x_offset, y_offset);
         }
 
         // This will make mouse dragging match the image exactly:
@@ -668,7 +562,7 @@ ppixiv.on_click_viewer = class
     // Return true if zooming is active.
     get zoom_active()
     {
-        return this._mouse_pressed || this._locked_zoom;
+        return this._mouse_pressed || this.locked_zoom;
     }
 
     get _image_to_screen_ratio()
@@ -708,12 +602,12 @@ ppixiv.on_click_viewer = class
     get current_zoom_pos()
     {
         if(this.zoom_active)
-            return this.center_pos;
+            return [this.center_pos[0], this.center_pos[1]];
         else
             return [0.5, 0.5];
     }
 
-    reposition()
+    reposition({clamp_position=true}={})
     {
         if(this.editing_container == null)
             return;
@@ -728,58 +622,77 @@ ppixiv.on_click_viewer = class
 
         this.schedule_save_to_history();
 
-        let screen_width = this.container_width;
-        let screen_height = this.container_height;
-        var width = this.width;
-        var height = this.height;
+        let { zoom_pos, zoomed_width, zoomed_height, image_position } = this.get_current_actual_position({clamp_position});
 
-        // If the dimensions are empty then we aren't loaded.  Stop now, so the math
+        // Save the clamped position to center_pos, so after dragging off of the left edge,
+        // dragging to the right starts moving immediately and doesn't drag through the clamped
+        // distance.
+        this.center_pos = zoom_pos;
+        
+        this.image_box.style.width = Math.round(zoomed_width) + "px";
+        this.image_box.style.height = Math.round(zoomed_height) + "px";
+        this.image_box.style.transform = `translate(${image_position.x}px, ${image_position.y}px)`;
+    }
+
+    // Return the size and position of the image, given the current pan and zoom.
+    // The returned zoom_pos is center_pos after any clamping was applied for the current
+    // position.
+    get_current_actual_position({
+        zoom_pos=null,
+
+        // If false, edge clamping won't be applied.
+        clamp_position=true,
+    }={})
+    {
+        // If the dimensions are empty then we aren't loaded.  Clamp it to 1 so the math
         // below doesn't break.
-        if(width == 0 || height == 0 || screen_width == 0 || screen_height == 0)
-            return;
-
-        // When we're zooming to fill the screen, clamp panning to the screen, so we always fill the
-        // screen and don't pan past the edge.
-        if(this.zoom_active && !settings.get("pan-past-edge"))
-        {
-            let top_left = this.get_image_position([0,0]);
-            top_left[0] = Math.max(top_left[0], 0);
-            top_left[1] = Math.max(top_left[1], 0);
-            this.set_image_position([0,0], top_left, false);
-    
-            let bottom_right = this.get_image_position([screen_width,screen_height]);
-            bottom_right[0] = Math.min(bottom_right[0], 1);
-            bottom_right[1] = Math.min(bottom_right[1], 1);
-            this.set_image_position([screen_width,screen_height], bottom_right, false);
-        }
+        var width = Math.max(this.width, 1);
+        var height = Math.max(this.height, 1);
+        let screen_width = Math.max(this.container_width, 1);
+        let screen_height = Math.max(this.container_height, 1);
 
         let zoom_factor = this._zoom_factor_current;
         let zoomed_width = width * zoom_factor;
         let zoomed_height = height * zoom_factor;
 
-        // If we're narrower than the screen, lock to the middle.
-        if(screen_width >= zoomed_width)
-            this.center_pos[0] = 0.5; // center horizontally
-        if(screen_height >= zoomed_height)
-            this.center_pos[1] = 0.5; // center vertically
+        if(zoom_pos == null)
+            zoom_pos = this.current_zoom_pos;
 
-        let x = screen_width/2;
-        let y = screen_height/2;
-        
+        // When we're zooming to fill the screen, clamp panning to the screen, so we always fill the
+        // screen and don't pan past the edge.
+        if(clamp_position)
+        {
+            if(this.zoom_active && !settings.get("pan-past-edge"))
+            {
+                let top_left = this.get_image_position([0,0], { pos: zoom_pos }); // minimum position
+                top_left[0] = Math.max(top_left[0], 0);
+                top_left[1] = Math.max(top_left[1], 0);
+                zoom_pos = this.get_center_for_image_position([0,0], top_left);
+
+                let bottom_right = this.get_image_position([screen_width,screen_height], { pos: zoom_pos }); // maximum position
+                bottom_right[0] = Math.min(bottom_right[0], 1);
+                bottom_right[1] = Math.min(bottom_right[1], 1);
+                zoom_pos = this.get_center_for_image_position([screen_width,screen_height], bottom_right);
+            }
+
+            // If we're narrower than the screen, lock to the middle.
+            if(screen_width >= zoomed_width)
+                zoom_pos[0] = 0.5; // center horizontally
+            if(screen_height >= zoomed_height)
+                zoom_pos[1] = 0.5; // center vertically
+        }
+
         // current_zoom_pos is the position that should be centered on screen.  At
         // [0.5,0.5], the image is centered.
-        let [pos_x, pos_y] = this.current_zoom_pos;
-        x -= pos_x * zoomed_width;
-        y -= pos_y * zoomed_height;
+        let x = screen_width/2 - zoom_pos[0]*zoomed_width;
+        let y = screen_height/2 - zoom_pos[1]*zoomed_height;
 
         // Only shift by integer amounts.  This only matters when at 1:1, so there's
         // no subpixel offset.
         x = Math.round(x);
         y = Math.round(y);
-        
-        this.image_box.style.width = Math.round(zoomed_width) + "px";
-        this.image_box.style.height = Math.round(zoomed_height) + "px";
-        this.image_box.style.transform = `translate(${x}px, ${y}px)`;
+
+        return { zoom_pos, zoomed_width, zoomed_height, image_position: {x,y} };
     }
 
     update_crop()
@@ -852,7 +765,12 @@ ppixiv.on_click_viewer = class
     // too quickly.
     schedule_save_to_history()
     {
-        this.cancel_save_to_history();
+        // If we're called repeatedly, allow the first timer to complete, so we save
+        // periodically during drags or flings that are taking a long time to finish
+        // rather than not saving at all.
+        if(this.save_to_history_id)
+            return;
+
         this.save_to_history_id = setTimeout(() => {
             this.save_to_history_id = null;
             this.save_to_history();
@@ -1059,7 +977,7 @@ ppixiv.on_click_viewer = class
             this.zoom_level = zoom_level;
 
         // Set the image position to match where the animation left it.
-        this.set_image_position([left, top], [0,0], false);
+        this.set_image_position([left, top], [0,0]);
     
         this.reposition();
     }
@@ -1087,3 +1005,219 @@ ppixiv.on_click_viewer = class
     }
 }
 
+// This subclass implements our desktop pan/zoom UI.
+ppixiv.image_viewer_desktop = class extends image_viewer_base
+{
+    constructor({container, onviewcontainerchange})
+    {
+        super({container, onviewcontainerchange});
+ 
+        window.addEventListener("blur", this.window_blur, { signal: this.event_shutdown.signal });
+
+        this.pointer_listener = new ppixiv.pointer_listener({
+            element: this.image_container,
+            button_mask: 1,
+            signal: this.event_shutdown.signal,
+            callback: this.pointerevent,
+        });
+   }
+
+   pointerevent = (e) =>
+   {
+       if(e.mouseButton != 0 || this.slideshow_enabled)
+           return;
+
+       if(e.pressed && this.captured_pointer_id == null)
+       {
+           e.preventDefault();
+
+           this.image_container.style.cursor = "none";
+
+           // Don't show the UI if the mouse hovers over it while dragging.
+           document.body.classList.add("hide-ui");
+
+           // Stop animating if this is a real click.  If it's a carried-over click during quick
+           // view, don't stop animating until we see a drag.
+           if(e.type != "simulatedpointerdown")
+               this.stop_animation();
+
+           if(!this.locked_zoom)
+               var zoom_center_pos = this.get_image_position([e.pageX, e.pageY]);
+
+           // If this is a simulated press event, the button was pressed on the previous page,
+           // probably due to quick view.  Don't zoom from this press, but do listen to pointermove,
+           // so send_mouse_movement_to_linked_tabs is still called.
+           let allow_zoom = true;
+           if(e.type == "simulatedpointerdown" && !this.locked_zoom)
+               allow_zoom = false;
+
+           if(allow_zoom)
+               this._mouse_pressed = true;
+
+           this.drag_movement = [0,0];
+
+           this.captured_pointer_id = e.pointerId;
+           this.image_container.setPointerCapture(this.captured_pointer_id);
+           this.image_container.addEventListener("lostpointercapture", this.lost_pointer_capture);
+
+           // If this is a click-zoom, align the zoom to the point on the image that
+           // was clicked.
+           if(!this.locked_zoom)
+               this.set_image_position([e.pageX, e.pageY], zoom_center_pos);
+
+           this.reposition();
+
+           // Only listen to pointermove while we're dragging.
+           this.image_container.addEventListener("pointermove", this.pointermove);
+       } else {
+           if(this.captured_pointer_id == null || e.pointerId != this.captured_pointer_id)
+               return;
+
+           // Tell hide_mouse_cursor_on_idle that the mouse cursor should be hidden, even though the
+           // cursor may have just been moved.  This prevents the cursor from appearing briefly and
+           // disappearing every time a zoom is released.
+           track_mouse_movement.singleton.simulate_inactivity();
+           
+           this.stop_dragging();
+       }
+   }
+
+   shutdown()
+   {
+       this.stop_dragging();
+       super.shutdown();
+   }
+
+   window_blur = (e) =>
+   {
+       this.stop_dragging();
+   }
+
+   stop_dragging()
+   {
+       // Save our history state on mouseup.
+       this.save_to_history();
+           
+       if(this.image_container != null)
+       {
+           this.image_container.removeEventListener("pointermove", this.pointermove);
+           this.image_container.style.cursor = "";
+       }
+
+       if(this.captured_pointer_id != null)
+       {
+           this.image_container.releasePointerCapture(this.captured_pointer_id);
+           this.captured_pointer_id = null;
+       }
+       
+       this.image_container.removeEventListener("lostpointercapture", this.lost_pointer_capture);
+
+       document.body.classList.remove("hide-ui");
+       
+       this._mouse_pressed = false;
+       this.reposition();
+   }
+
+    // If we lose pointer capture, clear the captured pointer_id.
+    lost_pointer_capture = (e) =>
+    {
+        if(e.pointerId == this.captured_pointer_id)
+            this.captured_pointer_id = null;
+    }
+
+    pointermove = (e) =>
+    {
+        // If we're animating, only start dragging after we pass a drag threshold, so we
+        // don't cancel the animation in quick view.  These thresholds match Windows's
+        // default SM_CXDRAG/SM_CYDRAG behavior.
+        this.drag_movement[0] += e.movementX;
+        this.drag_movement[1] += e.movementY;
+        if(this.animations && this.drag_movement[0] < 4 && this.drag_movement[1] < 4)
+            return;
+
+        this.apply_pointer_movement({movementX: e.movementX, movementY: e.movementY});
+    }
+}
+
+// This subclass implements our touchscreen pan/zoom UI.
+ppixiv.image_viewer_mobile = class extends image_viewer_base
+{
+    constructor({container, onviewcontainerchange})
+    {
+        super({container, onviewcontainerchange});
+ 
+        this.touch_scroller = new ppixiv.TouchScroller({
+            container: this.image_container,
+            signal: this.event_shutdown.signal,
+
+            // Return the current position in screen coordinates.
+            get_position: () => {
+                return {
+                    x: this.center_pos[0] * this.onscreen_width,
+                    y: this.center_pos[1] * this.onscreen_height,
+                };
+            },
+
+            // Set the current position in screen coordinates.
+            set_position: ({x, y}) =>
+            {
+                if(this.slideshow_enabled)
+                    return;
+
+                this.stop_animation();
+
+                x /= this.onscreen_width;
+                y /= this.onscreen_height;
+
+                this.center_pos[0] = x;
+                this.center_pos[1] = y;
+        
+                // TouchScroller handles pushing us back in bounds, so we don't clamp the
+                // position here.
+                this.reposition({clamp_position: false});
+            },
+
+            // Zoom by the given factor, centered around the given point.
+            adjust_zoom: ({ratio, centerX, centerY}) =>
+            {
+                if(this.slideshow_enabled)
+                    return;
+
+                this.stop_animation();
+
+                // Store the position of the anchor before zooming, so we can restore it below.
+                let center = this.get_image_position([centerX, centerY]);
+
+                // Apply the new zoom.
+                let new_factor = this._zoom_factor_current * ratio;
+                this._zoom_level = this.zoom_factor_to_zoom_level(new_factor);
+
+                // Restore the center position.
+                this.set_image_position([centerX, centerY], center);
+
+                this.reposition({clamp_position: false});
+            },
+
+            // Return the bounding box of where we want the position to stay.
+            get_bounds: () =>
+            {
+                // Get the position that the image would normally be snapped to if it was in the
+                // far top-left or bottom-right.
+                let top_left = this.get_current_actual_position({zoom_pos: [0,0]}).zoom_pos;
+                let bottom_right = this.get_current_actual_position({zoom_pos: [1,1]}).zoom_pos;
+
+                // Scale to screen coordinates.
+                top_left[0] *= this.onscreen_width;
+                top_left[1] *= this.onscreen_height;
+                bottom_right[0] *= this.onscreen_width;
+                bottom_right[1] *= this.onscreen_height;
+
+                return new ppixiv.FixedDOMRect(top_left[0], top_left[1], bottom_right[0], bottom_right[1]);
+            },
+        });
+    }
+
+    // The mobile UI is always in locked zoom mode.
+    get locked_zoom() { return true; }
+    set locked_zoom(enable) { }
+}

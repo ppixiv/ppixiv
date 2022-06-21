@@ -61,17 +61,10 @@ ppixiv.SendImage = class
 
         // If we gain focus while quick view is active, finalize the image.  Virtual
         // history isn't meant to be left enabled, since it doesn't interact with browser
-        // history.
-        window.addEventListener("focus", (e) => {
-            let args = ppixiv.helpers.args.location;
-            if(args.hash.has("temp-view"))
-            {
-                console.log("Finalizing quick view image because we gained focus");
-                args.hash.delete("virtual");
-                args.hash.delete("temp-view");
-                ppixiv.helpers.set_page_url(args, false, "navigation");
-            }
-        });
+        // history.  On mobile, do this on any touch.
+        window.addEventListener(mobile? "pointerdown":"focus", (e) => {
+            this.finalize_quick_view_image();
+        }, { capture: true });
 
         image_data.singleton().illust_modified_callbacks.register((media_id) => { this.broadcast_illust_changes(media_id); });
 
@@ -79,6 +72,18 @@ ppixiv.SendImage = class
         this.broadcast_tab_info();
 
         this.query_tabs();
+    }
+
+    static finalize_quick_view_image = () =>
+    {
+        let args = ppixiv.helpers.args.location;
+        if(args.hash.has("temp-view"))
+        {
+            console.log("Finalizing quick view image because we gained focus");
+            args.hash.delete("virtual");
+            args.hash.delete("temp-view");
+            ppixiv.helpers.set_page_url(args, false, "navigation");
+        }
     }
 
     static messages = new EventTarget();

@@ -2129,7 +2129,8 @@ ppixiv.helpers = {
         return await Promise.any([promise, sleep]);
     },
 
-    // Asynchronously wait for an animation frame.
+    // Asynchronously wait for an animation frame.  Return true on success, or false if
+    // aborted by signal.
     async vsync({signal=null}={})
     {
         return new Promise((accept, reject) => {
@@ -2142,12 +2143,12 @@ ppixiv.helpers = {
     
             let abort = () => {
                 cancelAnimationFrame(id);
-                reject("aborted");
+                accept(false);
             };
     
             id = requestAnimationFrame((time) => {
                 signal.removeEventListener("abort", abort);
-                accept(time / 1000);
+                accept(true);
             });
 
             if(signal)
@@ -2209,7 +2210,9 @@ ppixiv.helpers = {
                 let stop_at_animation_time = null;
                 while(1)
                 {
-                    await helpers.vsync({signal: this.abort.signal});
+                    let success = await helpers.vsync({signal: this.abort.signal});
+                    if(!success)
+                        break;
 
                     let now = Date.now() / 1000;
                     let stopping = now >= last_activity_at + this.delay;
@@ -2250,10 +2253,6 @@ ppixiv.helpers = {
                     // reaches 0.  Just estimate it by decreasing the time left linearly.
                     this.animation.playbackRate = animation_time_left / duration;
                 }
-            } catch(e) {
-                // Swallow exceptions if shutdown() aborts us while we're waiting.
-                if(e != "aborted")
-                    throw e;
             } finally {
                 window.removeEventListener("mousemove", onmove);
             }
@@ -4326,3 +4325,467 @@ ppixiv.IncrementalTimer = class
         return `${total.toFixed(1)}ms: ${seconds.join(" ")}`;
     }
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// This calculates the current velocity from recent motion.
+class FlingVelocity
+{
+    constructor( sample_period=0.1 )
+    {
+        this.sample_period = sample_period;
+        this.samples = [];
+    }
+
+    AddSample( {x,y} )
+    {
+        this.samples.push({
+            delta: { x, y },
+            time: Date.now()/1000,
+        });
+
+        this.purge();
+    }
+
+    // Delete samples older than sample_period.
+    purge()
+    {
+        let delete_before = Date.now()/1000 - this.sample_period;
+        while(this.samples.length && this.samples[0].time < delete_before)
+            this.samples.shift();
+    }
+
+    // Delete all samples.
+    reset()
+    {
+        this.samples = [];
+    }
+
+    // Get the average velocity.
+    get current_velocity()
+    {
+        this.purge();
+
+        if(this.samples.length == 0)
+            return { x: 0, y: 0 };
+
+        let total = [0,0];
+        for(let sample of this.samples)
+        {
+            total[0] += sample.delta.x;
+            total[1] += sample.delta.y;
+        }
+
+        let duration = Date.now()/1000 - this.samples[0].time;
+        if( duration < 0.001 )
+        {
+            console.log("no sample duration");
+            return { x: 0, y: 0 };
+        }
+        return { x: total[0] / duration, y: total[1] / duration };
+    }
+}
+
+
+
+
+
+
+
+
+const FlingFriction = 10;
+const FlingMinimumVelocity = 10;
+
+// Mobile panning, fling and pinch zooming.
+ppixiv.TouchScroller = class
+{
+    constructor({
+        // The container to watch for pointer events on:
+        container,
+
+        // set_position({x, y})
+        set_position,
+
+        // { x, y } = get_position()
+        get_position,
+
+        // Zoom in or out by ratio, centered around the given position.
+        adjust_zoom,
+
+        // Return a FixedDOMRect for the bounds of the image.  The position we set can overscroll
+        // out of this rect, but we'll bounce back in.  This can change over time, such as due to
+        // the zoom level changing.
+        get_bounds,
+
+        // An AbortSignal to shut down.
+        signal,
+    })
+    {
+        this.container = container;
+        this.options = {
+            get_position,
+            set_position,
+            get_bounds,
+            adjust_zoom,
+        };
+
+        this.velocity = {x: 0, y: 0};
+        this.fling_velocity = new FlingVelocity();
+        this.pointers = new Map();
+
+        // This is null if we're inactive, "drag" if the user is dragging, or "fling" if we're
+        // flinging and rebounding.
+        this.mode = null;
+
+        // Note that we don't use pointer_listener for this.  It's meant for mouse events
+        // and isn't optimized for touch.
+        this.container.addEventListener("pointerdown", this.pointerevent, { signal });
+        this.container.addEventListener("pointermove", this.pointermove, { signal });        
+        window.addEventListener("pointerup", this.pointerevent, { signal });
+        window.addEventListener("pointercancel", this.pointerevent, { signal });
+        this.container.addEventListener("lostpointercapture", this.lost_pointer_capture, { signal });
+    }
+
+    pointerevent = (e) =>
+    {
+        if(e.type == "pointerdown" || e.type == "pointermove")
+            this.start_drag(e);
+        else
+            this.end_drag(e);
+    }
+
+    lost_pointer_capture = (e) =>
+    {
+        this.pointers.delete(e.pointerId);
+    }
+
+    start_drag = (e) =>
+    {
+        // If we were flinging, the user grabbed the fling and interrupted it.
+        if(this.mode == "fling")
+            this.cancel_fling();
+
+        // We're always dragging when a new touch is pressed, replacing any fling.
+        this.mode = "dragging";
+
+        // Capture the pointer.
+        this.container.setPointerCapture(e.pointerId);
+        this.pointers.set(e.pointerId, {
+            x: e.pageX,
+            y: e.pageY,
+        });
+        
+        // Kill any velocity when a new touch happens.
+        this.fling_velocity.reset();
+
+        // If the image fits onscreen on one or the other axis, don't allow panning on
+        // that axis.  This is the same as how our mouse panning works.  However, only
+        // enable this at the start of a drag: if axes are unlocked at the start, don't
+        // lock them as a result of pinch zooming.  Otherwise we'll start locking axes
+        // in the middle of dragging due to zooms.
+        let bounds = this.options.get_bounds();
+        this.drag_axes_locked = [bounds.width < 0.001, bounds.height < 0.001];
+    }
+
+    end_drag = (e) =>
+    {
+        // Ignore touches we don't know about.
+        if(!this.pointers.has(e.pointerId))
+            return;
+
+        this.container.releasePointerCapture(e.pointerId);
+        this.pointers.delete(e.pointerId);
+
+        if(this.pending_vsync != null)
+        {
+            cancelAnimationFrame(this.pending_vsync);
+            this.pending_vsync = null;
+        }
+
+        // If there are more touches active, keep dragging.  If this is the last pointer released, apply
+        // velocity to fling.
+        if(this.pointers.size > 0)
+            return;
+
+        // The last touch was released.  Start flinging or rubber banding.
+        this.start_fling();
+    }
+
+    // Handle pointer movement.  All we do here is record the movement and queue
+    // the update to happen on vsync.  This lets us coalesce multiple simultaneous
+    // touches into a single update.
+    pointermove = (e) =>
+    {
+        if(this.mode != "dragging" || !this.pointers.has(e.pointerId))
+            return;
+
+        // If we haven't yet scheduled the update, do it now and make sure the drag list is empty.
+        if(this.pending_vsync == null)
+        {
+            this.pending_vsync = requestAnimationFrame(this.complete_drag_frame);
+            this.frame_drags = [];
+        }
+
+        this.frame_drags.push({
+            pointerId: e.pointerId,
+            pageX: e.pageX,
+            pageY: e.pageY,
+            movementX: e.movementX,
+            movementY: e.movementY,
+        });
+    }
+
+    // Get the average position of all current touches.
+    get pointer_center_pos()
+    {
+        let center_pos = {x: 0, y: 0};
+        for(let {x, y} of this.pointers.values())
+        {
+            center_pos.x += x;
+            center_pos.y += y;
+        }
+        center_pos.x /= this.pointers.size;
+        center_pos.y /= this.pointers.size;
+        return center_pos;
+    }
+
+    // Return the average distance of all current touches to the given position.
+    pointer_distance_from(pos)
+    {
+        let result = 0;
+        for(let {x, y} of this.pointers.values())
+            result += helpers.distance(pos, {x,y});
+        result /= this.pointers.size;
+        return result;
+    }
+
+    complete_drag_frame = () =>
+    {
+        this.pending_vsync = null;
+
+        // If all pointers were released, stop to make sure we don't divide by zero.
+        if(this.pointers.size == 0)
+            return;
+
+        // The center position and average distance at the start of the frame:
+        let old_center_pos = this.pointer_center_pos;
+        let old_average_distance_from_anchor = this.pointer_distance_from(old_center_pos);
+
+        // Update the saved pointer positions at the end of the frame.
+        for(let {pointerId, pageX, pageY} of this.frame_drags)
+        {
+            let pointer_info = this.pointers.get(pointerId);
+            if(pointer_info == null)
+                continue;
+
+            pointer_info.x = pageX;
+            pointer_info.y = pageY;
+        }
+
+        // The center position and average distance at the end of the frame:
+        let new_center_pos = this.pointer_center_pos;
+        let new_average_distance_from_anchor = this.pointer_distance_from(new_center_pos);
+
+        // The average pointer movement across the frame:
+        let movementX = new_center_pos.x - old_center_pos.x;
+        let movementY = new_center_pos.y - old_center_pos.y;
+
+        // We're overscrolling if we're out of bounds on either axis, so apply drag to
+        // the pan.
+        let position = this.options.get_position();
+
+        let bounds = this.options.get_bounds();
+        let overscrollX = Math.max(bounds.left - position.x, position.x - bounds.right);
+        let overscrollY = Math.max(bounds.top - position.y, position.y - bounds.bottom);
+        if(overscrollX > 0) movementX *= Math.pow(this.overscroll_strength, overscrollX);
+        if(overscrollY > 0) movementY *= Math.pow(this.overscroll_strength, overscrollY);
+
+        // If movement is locked on either axis, zero it.
+        if(this.drag_axes_locked[0])
+            movementX = 0;
+        if(this.drag_axes_locked[1])
+            movementY = 0;
+
+        // Apply the pan.
+        this.options.set_position({ x: position.x - movementX, y: position.y - movementY});
+
+        // Store this motion sample, so we can estimate fling velocity later.  This should be
+        // affected by axis locking above.
+        this.fling_velocity.AddSample({ x: -movementX, y: -movementY });
+
+        // If we zoomed in and now have room to move on an axis that was locked before,
+        // unlock it.  We won't lock it again until a new drag is started.
+        if(bounds.width >= 0.001)
+            this.drag_axes_locked[0] = false;
+        if(bounds.height >= 0.001)
+            this.drag_axes_locked[1] = false;
+
+        // The zoom for this frame is the ratio of the change of the average distance from the
+        // anchor, centered around the average touch position.
+        if(this.pointers.size > 1 && old_average_distance_from_anchor > 0)
+        {
+            let ratio = new_average_distance_from_anchor / old_average_distance_from_anchor;
+            this.options.adjust_zoom({ratio, centerX: new_center_pos.x, centerY: new_center_pos.y});
+        }
+    }
+
+    get overscroll_strength() { return 0.994; }
+
+    // Switch from dragging to flinging.
+    start_fling()
+    {
+        // We shouldn't already be flinging when this is called.
+        if(this.mode == "fling")
+        {
+            console.warn("Already flinging");
+            return;
+        }
+
+        this.mode = "fling";
+
+        // Set the initial velocity to the average recent speed of all touches.
+        this.velocity = this.fling_velocity.current_velocity;
+
+        console.assert(this.abort_fling == null);
+        this.abort_fling = new AbortController();
+        this.run_fling(this.abort_fling.signal);
+    }
+
+    cancel_fling()
+    {
+        if(this.abort_fling)
+        {
+            this.abort_fling.abort();
+            this.abort_fling = null;
+        }
+
+        this.mode = null;
+    }
+
+    // Handle a fling asynchronously.  Stop when the fling ends or signal is aborted.
+    async run_fling(signal)
+    {
+        let current_position = this.options.get_position();
+
+        let previous_time = Date.now() / 1000;
+        while(this.mode == "fling")
+        {
+            let success = await helpers.vsync({ signal });
+            if(!success)
+                return;
+
+            let new_time = Date.now() / 1000;
+            let duration = new_time - previous_time;
+            previous_time = new_time;
+
+            let movementX = this.velocity.x * duration;
+            let movementY = this.velocity.y * duration;
+
+            // Apply the velocity to the current position.
+            current_position.x += movementX;
+            current_position.y += movementY;
+
+            // Decay our velocity.
+            let decay = Math.exp(-FlingFriction * duration);
+            this.velocity.x *= decay;
+            this.velocity.y *= decay;
+
+            // If we're out of bounds, accelerate towards being in-bounds.  This simply moves us
+            // towards being in-bounds based on how far we are from it, which gives the effect
+            // of acceleration.
+            let bounced = this.apply_bounce(duration, current_position);
+
+            // Stop if our velocity has decayed and we're not rebounding.
+            let total_velocity = Math.pow(Math.pow(this.velocity.x, 2) + Math.pow(this.velocity.y, 2), 0.5);
+            if(!bounced && total_velocity < FlingMinimumVelocity)
+                break;
+    
+            this.options.set_position(current_position);
+        }
+
+        if(this.abort_fling.signal !== signal)
+            return;
+
+        // We've reached (near) zero velocity.  Clamp the velocity to 0.
+        this.velocity = { x: 0, y: 0 };
+
+        this.abort_fling = null;
+        this.mode = null;
+    }
+
+    // If we're out of bounds, push the position towards being in bounds.  Return true if
+    // we were out of bounds.
+    apply_bounce(duration, position)
+    {
+        let bounds = this.options.get_bounds();
+
+        // Bounce right:
+        if(position.x < bounds.left)
+        {
+            var bounce_velocity = bounds.left - position.x;
+            bounce_velocity *= 0.011;
+            position.x += bounce_velocity * duration * 300;
+
+            if(position.x >= bounds.left - 1)
+            position.x = bounds.left;
+        }
+
+        // Bounce left:
+        if(position.x > bounds.right)
+        {
+            var bounce_velocity = bounds.right - position.x;
+            bounce_velocity *= 0.011;
+            position.x += bounce_velocity * duration * 300;
+
+            if(position.x <= bounds.right + 1)
+            position.x = bounds.right;
+        }
+
+        // Bounce down:
+        if(position.y < bounds.top)
+        {
+            var bounce_velocity = bounds.top - position.y;
+            bounce_velocity *= 0.011;
+            position.y += bounce_velocity * duration * 300;
+
+            if(position.y >= bounds.top - 1)
+            position.y = bounds.top;
+        }
+
+        // Bounce up:
+        if(position.y > bounds.bottom)
+        {
+            var bounce_velocity = bounds.bottom - position.y;
+            bounce_velocity *= 0.011;
+            position.y += bounce_velocity * duration * 300;
+
+            if(position.y <= bounds.bottom + 1)
+            position.y = bounds.bottom;
+        }
+
+        // Return true if we're still out of bounds.
+        return position.x < bounds.left ||
+               position.y < bounds.top ||
+               position.x > bounds.right ||
+               position.y > bounds.bottom;
+    }
+}

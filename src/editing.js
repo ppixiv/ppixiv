@@ -511,7 +511,6 @@ ppixiv.ImageEditingOverlayContainer = class extends ppixiv.widget
 
     set_image_urls(image_url, inpaint_url)
     {
-        console.log(image_url, inpaint_url);
         this.image_src = image_url || "";
         this.inpaint_src = inpaint_url || "";
     }
@@ -539,7 +538,7 @@ ppixiv.ImageEditingOverlayContainer = class extends ppixiv.widget
     get image_src() { return this.main_img.src; }
     set image_src(value) { this.main_img.src = value || helpers.blank_image; }
     get inpaint_src() { return this.inpaint_img.src; }
-    set inpaint_src(value) { console.log("set", value == ""); this.inpaint_img.src = value || helpers.blank_image; }
+    set inpaint_src(value) { this.inpaint_img.src = value || helpers.blank_image; }
 
     get complete()
     {

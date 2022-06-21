@@ -17,8 +17,10 @@ ppixiv.viewer_images = class extends ppixiv.viewer
 
         this.load = new SentinelGuard(this.load, this);
 
+        let image_viewer_class = ppixiv.mobile? image_viewer_mobile:image_viewer_desktop;
+
         // Create a click and drag viewer for the image.
-        this.on_click_viewer = new on_click_viewer({
+        this.on_click_viewer = new image_viewer_class({
             container: this.container,
             onviewcontainerchange: (viewcontainer) => {
                 // Let image_editor know when the overlay container changes.
