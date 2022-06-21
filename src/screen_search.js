@@ -448,7 +448,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         this.container.querySelector(".refresh-search-from-page-button").addEventListener("click", this.refresh_search_from_page);
         this.container.querySelector(".whats-new-button").addEventListener("click", this.whats_new);
         this.container.querySelector(".expand-manga-posts").addEventListener("click", (e) => {
-            this.toggle_expanding_media_ids_by_default();
+            this.search_view.toggle_expanding_media_ids_by_default();
         });
 
         // Set up login/logout buttons for native.
@@ -547,9 +547,6 @@ ppixiv.screen_search = class extends ppixiv.screen
          */
         for(let box of document.querySelectorAll(".top-ui-box"))
             new hover_with_delay(box, 0, 0.25);
-        
-        this.update_from_settings();
-        this.refresh_whats_new_button();
 
         this.search_view = new search_view({
             parent: this,
@@ -558,6 +555,9 @@ ppixiv.screen_search = class extends ppixiv.screen
                 this.refresh_refresh_search_from_page();
             },
         });
+        
+        this.update_from_settings();
+        this.refresh_whats_new_button();
     }
 
     update_from_settings = () =>
@@ -1119,7 +1119,7 @@ ppixiv.screen_search = class extends ppixiv.screen
     // Refresh the highlight for the "expand all posts" button.
     refresh_expand_manga_posts_button()
     {
-        let enabled = this.media_ids_expanded_by_default;
+        let enabled = this.search_view.media_ids_expanded_by_default;
         let button = this.container.querySelector(".expand-manga-posts");
         button.dataset.popup = enabled? "Collapse manga posts":"Expand manga posts";
         button.querySelector(".font-icon").innerText = enabled? "close_fullscreen":"open_in_full";
