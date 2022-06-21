@@ -287,6 +287,10 @@ ppixiv.search_view = class extends ppixiv.widget
                 observer.unobserve(node);
         }
 
+        // Don't leave the "load previous page" button displayed while we wait for the
+        // data source to load.
+        this.load_previous_page_button.hidden = true;
+
         this.thumbs = {};
 
         this.data_source = data_source;
