@@ -522,13 +522,20 @@ ppixiv.screen_search = class extends ppixiv.screen
             helpers.set_page_url(args, true, "navigation");
         });
             
-        if(!local_api.local_info.bookmark_tag_searches_only)
+        if(ppixiv.local_api.is_enabled() && !local_api.local_info.bookmark_tag_searches_only)
         {
             this.local_nav_widget = new ppixiv.local_navigation_widget({
                 parent: this,
                 container: local_navigation_box,
             });
         }
+
+        // Hack: if the local API isn't enabled, hide the local navigation box completely.  This shouldn't
+        // be needed since it'll hide itself, but this prevents it from flashing onscreen and animating
+        // away when the page loads.  That'll still happen if you have the local API enabled and you're on
+        // a Pixiv page, but this avoids the visual glitch for most users.  I'm not sure how to fix this
+        // cleanly.
+        local_navigation_box.hidden = !ppixiv.local_api.is_enabled();
 
         this.container.querySelector(".copy-local-path").addEventListener("click", (e) => {
             this.data_source.copy_link();
