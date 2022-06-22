@@ -4831,3 +4831,63 @@ ppixiv.TouchScroller = class
                position.y > bounds.bottom;
     }
 }
+
+// Double-tap handling for screen_illust on mobile.
+//
+// This needs to get along gracefully with the image viewer's TouchScroller.  A touch and
+// drag prevents a click event, but we do want to allow a single click to both drag and
+// count towards a double-tap.  If your finger moves slightly while double-tapping it
+// can start a drag, which we do want to happen, and that shouldn't prevent it from
+// being part of a double-tap.
+ppixiv.MobileDoubleTapHandler = class
+{
+    constructor({
+        container,
+        ondbltap,
+        signal=null,
+    })
+    {
+        this.container = container;
+        this.ondbltap = ondbltap;
+
+        this.pointerdown_timestamp = -9999;
+        this.pointerdown_position = { x: 0, y: 0 };
+        this.watching_pointer_id = null;
+
+        this.container.addEventListener("pointerdown", this.pointerevent, { signal });
+        window.addEventListener("pointerup", this.pointerevent, { signal });
+        window.addEventListener("pointercancel", this.pointerevent, { signal });
+    }
+
+    pointerevent = (e) =>
+    {
+        // Ignore other presses while we're already watching one.
+        if(this.watching_pointer_id != null && e.pointerId != this.watching_pointer_id)
+            return;
+
+        if(e.type == "pointerup" || e.type == "pointercancel")
+        {
+            this.watching_pointer_id = null;
+            return;
+        }
+
+        this.watching_pointer_id = e.pointerId;
+
+        let time_since_click = e.timeStamp - this.pointerdown_timestamp;
+        let position = { x: e.screenX, y: e.screenY };
+        let distance = helpers.distance(position, this.pointerdown_position);
+        this.pointerdown_timestamp = e.timeStamp;
+        this.pointerdown_position = position;
+
+        // Check the double-click time and distance thresholds.
+        if(time_since_click > 250)
+            return;
+
+        if(distance > 25*window.devicePixelRatio)
+            return;
+
+        this.pointerdown_timestamp = -9999;
+
+        this.ondbltap(e);
+    }
+};

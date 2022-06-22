@@ -72,6 +72,20 @@ ppixiv.screen_illust = class extends ppixiv.screen
             this.container.addEventListener("wheel", this.onwheel, { passive: false });
         }
 
+        // Mobile UI:
+        if(ppixiv.mobile)
+        {
+            // Navigate to the next or previous image on double-tap.
+            new ppixiv.MobileDoubleTapHandler({
+                container: this.view_container,
+                signal: this.shutdown_signal.signal,
+                ondbltap: (e) => {
+                    let right = e.clientX > window.innerWidth/2;
+                    this.navigate_to_next(right);
+                },
+            });
+        }
+
         this.set_active(false, { });
     }
 
