@@ -1210,4 +1210,14 @@ ppixiv.image_viewer_mobile = class extends image_viewer_base
     // The mobile UI is always in locked zoom mode.
     get locked_zoom() { return true; }
     set locked_zoom(enable) { }
+
+    // Cancel any running fling when we remove the image.  This uses the same logic as cancelling
+    // animations, so we cancel the fling if the media ID changes.
+    remove_images({ remove_animation, ...options}={})
+    {
+        if(remove_animation)
+            this.touch_scroller.cancel_fling();
+
+        super.remove_images({remove_animation, ...options});
+    }
 }
