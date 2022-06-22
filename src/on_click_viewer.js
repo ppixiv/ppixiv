@@ -124,7 +124,6 @@ ppixiv.on_click_viewer = class
         // is null, just use a blank image.
         let preview_img = editing_container.preview_img;
         preview_img.src = preview_url? preview_url:helpers.blank_image;
-        preview_img.style.pointerEvents = "none"; // XXX check this
 
         // Get the new image ready before removing the old one, to avoid flashing a black
         // screen while the new image decodes.  This will finish quickly if the preview image
