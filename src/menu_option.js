@@ -429,10 +429,10 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
         {
             settings_widgets.disable_thumbnail_panning();
             settings_widgets.disable_thumbnail_zooming();
+            settings_widgets.quick_view();
+            settings_widgets.ui_on_hover();
         }
         
-        settings_widgets.quick_view();
-        settings_widgets.ui_on_hover();
         settings_widgets.expand_manga_posts();
 
         this.create_page("image", "Image viewing", global_options, { settings_list: true });
@@ -445,8 +445,10 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
         
         settings_widgets.view_mode();
         if(!ppixiv.mobile)
+        {
             settings_widgets.invert_scrolling();
-        settings_widgets.no_hide_cursor();
+            settings_widgets.no_hide_cursor();
+        }
         
         if(!ppixiv.native)
         {
@@ -468,11 +470,15 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
         if(!ppixiv.native)
             settings_widgets.disabled_by_default();
             
-        // Firefox's contextmenu behavior is broken, so hide this option.
-        if(navigator.userAgent.indexOf("Firefox/") == -1)
-            settings_widgets.invert_popup_hotkey();
+        if(!ppixiv.mobile)
+        {
+            // Firefox's contextmenu behavior is broken, so hide this option.
+            if(navigator.userAgent.indexOf("Firefox/") == -1)
+                settings_widgets.invert_popup_hotkey();
 
-        settings_widgets.ctrl_opens_popup();
+            settings_widgets.ctrl_opens_popup();
+        }
+
         // settings_widgets.theme();
         settings_widgets.bookmark_privately_by_default();
 
