@@ -1093,11 +1093,6 @@ ppixiv.helpers = {
             options.headers["x-user-id"] = global_data.user_id;
         }
 
-        // Pixiv returns completely different data when it thinks you're on mobile, and uses a completely
-        // different set of APIs.  Set a fake desktop referer to prevent this from happening.
-        if(ppixiv.mobile)
-            options.headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/101.0.4951.67 Safari/537.36';
-
         let result = await helpers.send_request(options);
         if(result == null)
             return null;
@@ -1295,18 +1290,55 @@ ppixiv.helpers = {
         return results;
     },
 
-    // Load a page in an iframe, and call callback on the resulting document.
-    // Remove the iframe when the callback returns.
-    async load_data_in_iframe(url, options={})
+    // Load a URL as a document.
+    async load_data_in_iframe(url, headers={}, options={})
     {
-        // If we're in Tampermonkey, we don't need any of the iframe hijinks and we can
-        // simply make a request with responseType: document.  This is much cleaner than
-        // the Greasemonkey workaround below.
+        // Pixiv returns completely different data when it thinks you're on mobile, and uses a completely
+        // different set of APIs.  To prevent this, we need to set a desktop User-Agent when on mobile.
+        let mobile_user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/101.0.4951.67 Safari/537.36";
+        if(ppixiv.android)
+        {
+            // Chrome makes this more difficult due to a dumb old bug: it blocks User-Agent from being overridden
+            // by fetch, even though it's supposed to be allowed.  There's no reason for this (other browsers allow
+            // it, including iOS Safari).  We have to use GM_xmlHttpRequest to work around that.  This is only needed
+            // for testing mobile mode on desktop, since there doesn't seem to be any way to use userscripts on
+            // Android Chrome.
+            let responseType = options.responseType;
+            if(responseType == "document")
+                responseType = "text";
+
+            let result = await helpers.async_gm_xhr({
+                url: url,
+                method: "GET",
+                responseType: "text",
+
+                "headers": {
+                    "Referer": "https://www.pixiv.net/",
+                    "Origin": "https://www.pixiv.net/",
+                    "User-Agent": mobile_user_agent,
+                },
+            });
+            
+            let text = result.responseText;
+            return new DOMParser().parseFromString(text, 'text/html');
+        }
+
+        if(ppixiv.mobile)
+        {
+            // If we're on other mobile platforms (eg. iOS), we can just set the UA normally.
+            headers = {
+                "User-Agent": mobile_user_agent,
+                ...headers,
+            }
+        }
+
         return await helpers.send_pixiv_request({
             method: "GET",
             url: url,
             responseType: "document",
             cache: options.cache,
+            headers,
+            ...options,
         });
     },
 
