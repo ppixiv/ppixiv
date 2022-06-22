@@ -122,6 +122,8 @@ ppixiv.main_controller = class
         helpers.set_class(document.body, "hide-r18g", !window.global_data.include_r18g);
 
         helpers.set_class(document.documentElement, "mobile", ppixiv.mobile);
+        helpers.set_class(document.documentElement, "ios", ppixiv.ios);
+        helpers.set_class(document.documentElement, "android", ppixiv.android);
 
         // On mobile, disable long press opening the context menu and starting drags.
         if(ppixiv.mobile)

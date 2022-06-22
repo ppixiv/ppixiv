@@ -257,7 +257,9 @@ textarea:focus, input:focus, a:focus {
 
     // Let the browser know about our dynamic zooming and panning.  This prevents Chrome from baking the
     // resize when it doesn't change for a while, which causes a big hitch the next time we zoom.
-    > .image-box img {
+    //
+    // Don't do this on iOS, since it has some nasty compositing bugs when this is enabled.
+    html:not(.ios) & > .image-box img {
         will-change: transform;
     }
 
