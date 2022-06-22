@@ -4463,6 +4463,11 @@ ppixiv.TouchScroller = class
         window.addEventListener("pointerup", this.pointerevent, { signal });
         window.addEventListener("pointercancel", this.pointerevent, { signal });
         this.container.addEventListener("lostpointercapture", this.lost_pointer_capture, { signal });
+
+        // Cancel any running fling if we're shut down while a fling is active.
+        signal.addEventListener("abort", (e) => {
+            this.cancel_fling();
+        }, { once: true });
     }
 
     pointerevent = (e) =>
@@ -4721,9 +4726,6 @@ ppixiv.TouchScroller = class
     
             this.options.set_position(current_position);
         }
-
-        if(this.abort_fling.signal !== signal)
-            return;
 
         // We've reached (near) zero velocity.  Clamp the velocity to 0.
         this.velocity = { x: 0, y: 0 };
