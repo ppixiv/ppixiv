@@ -36,26 +36,11 @@ ppixiv.screen_illust = class extends ppixiv.screen
             parent: this,
         });
         
-        this.ui.container.addEventListener("mouseenter", (e) => { this.hovering_over_box = true; this.refresh_overlay_ui_visibility(); });
-        this.ui.container.addEventListener("mouseleave", (e) => { this.hovering_over_box = false; this.refresh_overlay_ui_visibility(); });
-
-        var hover_circle = this.container.querySelector(".ui .hover-circle");
-        hover_circle.addEventListener("mouseenter", (e) => { this.hovering_over_sphere = true; this.refresh_overlay_ui_visibility(); });
-        hover_circle.addEventListener("mouseleave", (e) => { this.hovering_over_sphere = false; this.refresh_overlay_ui_visibility(); });
-        settings.changes.addEventListener("image_editing", () => { this.refresh_overlay_ui_visibility(); });
-        settings.changes.addEventListener("image_editing_mode", () => { this.refresh_overlay_ui_visibility(); });
-        this.refresh_overlay_ui_visibility();
-
         image_data.singleton().user_modified_callbacks.register(this.refresh_ui);
         image_data.singleton().illust_modified_callbacks.register(this.refresh_ui);
         settings.register_change_callback("recent-bookmark-tags", this.refresh_ui);
 
         this.view_container = this.container.querySelector(".view-container");
-
-        // Fullscreen on double-click.
-        this.view_container.addEventListener("dblclick", () => {
-            helpers.toggle_fullscreen();
-        });
 
         // Remove the "flash" class when the page change indicator's animation finishes.
         let page_change_indicator = this.container.querySelector(".page-change-indicator");
@@ -63,9 +48,29 @@ ppixiv.screen_illust = class extends ppixiv.screen
             page_change_indicator.classList.remove("flash");
         });
 
-        new hide_mouse_cursor_on_idle(this.container.querySelector(".mouse-hidden-box"));
+        // Desktop UI:
+        if(!ppixiv.mobile)
+        {
+            // Show the corner UI on hover.
+            this.ui.container.addEventListener("mouseenter", (e) => { this.hovering_over_box = true; this.refresh_overlay_ui_visibility(); });
+            this.ui.container.addEventListener("mouseleave", (e) => { this.hovering_over_box = false; this.refresh_overlay_ui_visibility(); });
+   
+            let hover_circle = this.container.querySelector(".ui .hover-circle");
+            hover_circle.addEventListener("mouseenter", (e) => { this.hovering_over_sphere = true; this.refresh_overlay_ui_visibility(); });
+            hover_circle.addEventListener("mouseleave", (e) => { this.hovering_over_sphere = false; this.refresh_overlay_ui_visibility(); });
+            settings.changes.addEventListener("image_editing", () => { this.refresh_overlay_ui_visibility(); });
+            settings.changes.addEventListener("image_editing_mode", () => { this.refresh_overlay_ui_visibility(); });
+            this.refresh_overlay_ui_visibility();
+        
+            // Fullscreen on double-click.
+            this.view_container.addEventListener("dblclick", () => {
+                helpers.toggle_fullscreen();
+            });
 
-        this.container.addEventListener("wheel", this.onwheel, { passive: false });
+            new hide_mouse_cursor_on_idle(this.container.querySelector(".mouse-hidden-box"));
+
+            this.container.addEventListener("wheel", this.onwheel, { passive: false });
+        }
 
         this.set_active(false, { });
     }
@@ -355,6 +360,8 @@ ppixiv.screen_illust = class extends ppixiv.screen
         return true;
     }
 
+    // Reeturn true if we're allowing a muted image to be displayed, because the user
+    // clicked to override it in the mute view.
     get view_muted()
     {
         return helpers.args.location.hash.get("view-muted") == "1";

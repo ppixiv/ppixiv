@@ -121,6 +121,9 @@ ppixiv.hide_mouse_cursor_on_idle = class
     static instances = new Set();
     constructor(element)
     {
+        if(ppixiv.mobile)
+            return;
+
         hide_mouse_cursor_on_idle.add_style();
         hide_mouse_cursor_on_idle.instances.add(this);
 
@@ -178,6 +181,9 @@ ppixiv.hide_mouse_cursor_on_idle = class
     // this, so different UI can disable cursor hiding without conflicting.
     static enable_all(source)
     {
+        if(ppixiv.mobile)
+            return;
+
         this.disabled_by.delete(source);
         this.update_from_settings();
         for(let instance of hide_mouse_cursor_on_idle.instances)
@@ -186,6 +192,9 @@ ppixiv.hide_mouse_cursor_on_idle = class
 
     static disable_all(source)
     {
+        if(ppixiv.mobile)
+            return;
+
         this.disabled_by.add(source);
         this.update_from_settings();
         for(let instance of hide_mouse_cursor_on_idle.instances)
