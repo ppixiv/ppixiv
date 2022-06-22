@@ -272,7 +272,7 @@ textarea:focus, input:focus, a:focus {
         height: 100%;
     }
 
-    .low-res-preview
+    .inpaint-image, .low-res-preview
     {
         pointer-events: none;
     }
@@ -2866,11 +2866,6 @@ svg.heart-image .delete {
 
             // When editing the safe zone, dragging the middle moves the image instead of the rect, so
             // it's easier to move the view around.  
-            pointer-events: none;
-        }
-
-        .inpaint-image
-        {
             pointer-events: none;
         }
 
