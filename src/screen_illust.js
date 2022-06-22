@@ -11,10 +11,10 @@ ppixiv.screen_illust = class extends ppixiv.screen
                     be unaffected by mouse hiding. -->
                 <div class=mouse-hidden-box>
                     <div class=view-container data-context-menu-target></div>
+                </div>
 
-                    <div class=page-change-indicator data-icon=last-image>
-                        <ppixiv-inline src="resources/last-page.svg"></ppixiv-inline>
-                    </div>
+                <div class=page-change-indicator data-icon=last-image>
+                    <ppixiv-inline src="resources/last-page.svg"></ppixiv-inline>
                 </div>
 
                 <!-- The top-left hover UI is inserted here. -->
