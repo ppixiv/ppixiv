@@ -171,7 +171,8 @@ ppixiv.InpaintEditor = class extends ppixiv.widget
         console.assert(overlay_container instanceof ImageEditingOverlayContainer)
         if(this.editor_overlay.parentNode)
             this.editor_overlay.remove();
-        overlay_container.appendChild(this.editor_overlay);
+        
+        overlay_container.inpaint_editor_overlay = this.editor_overlay;
         this._overlay_container = overlay_container;
     }
 

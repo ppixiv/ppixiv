@@ -65,13 +65,6 @@ ppixiv.on_click_viewer = class
         window.addEventListener("quickviewpointermove", this.quickviewpointermove, { signal: this.event_shutdown.signal });
     }
 
-    // Return the URL or preview URL being displayed.
-    get displaying_url()
-    {
-        let url = this.img?.src;
-        return url == helpers.blank_image? null:url;
-    }
-    
     // Load the given illust and page.
     set_new_image = async(signal, {
         media_id,
@@ -121,29 +114,17 @@ ppixiv.on_click_viewer = class
         if(media_id == this.media_id)
             restore_position = null;
 
-        let img = document.createElement("img");
-        img.src = url? url:helpers.blank_image;
-        img.className = "filtering";
-        img.style.width = "100%";
-        img.style.height = "100%";
-        img.style.position = "absolute";
-
-        // Wrap the image in an ImageEditingOverlayContainer.  This acts like an image as far
-        // as we're concerned.
-        let inpaint_container = new ImageEditingOverlayContainer();
-        inpaint_container.set_image_urls(url, inpaint_url);
-        img = inpaint_container;
+        // Wrap the image in an ImageEditingOverlayContainer.
+        let editing_container = new ImageEditingOverlayContainer({});
+        editing_container.set_image_urls(url, inpaint_url);
+        let img = editing_container;
 
         // Create the low-res preview.  This loads the thumbnail underneath the main image.  Don't set the
         // "filtering" class, since using point sampling for the thumbnail doesn't make sense.  If preview_url
         // is null, just use a blank image.
-        let preview_img = document.createElement("img");
+        let preview_img = editing_container.preview_img;
         preview_img.src = preview_url? preview_url:helpers.blank_image;
-        preview_img.classList.add("low-res-preview");
-        preview_img.style.pointerEvents = "none";
-        preview_img.style.width = "100%";
-        preview_img.style.height = "100%";
-        preview_img.style.position = "absolute";
+        preview_img.style.pointerEvents = "none"; // XXX check this
 
         // Get the new image ready before removing the old one, to avoid flashing a black
         // screen while the new image decodes.  This will finish quickly if the preview image
@@ -190,7 +171,8 @@ ppixiv.on_click_viewer = class
         signal.check();
 
         // We're ready to finalize the new URLs by removing the old images and setting the
-        // new ones.  This is where displaying_url changes to reflect the new URL.
+        // new ones.
+        //
         // If we're displaying the same image, don't remove the animation if one is running.
         this.remove_images({remove_animation: !this.animation_enabled || media_id != this.media_id});
         this.media_id = media_id;
@@ -198,12 +180,10 @@ ppixiv.on_click_viewer = class
         this.original_height = height;
         this._cropped_size = crop && crop.length == 4? new FixedDOMRect(crop[0], crop[1], crop[2], crop[3]):null;
         this.pan = pan;
-        this.img = img;
-        this.preview_img = preview_img;
+        this.editing_container = editing_container;
         this.onnextimage = onnextimage;
 
-        this.crop_box.appendChild(img);
-        this.crop_box.appendChild(preview_img);
+        this.crop_box.appendChild(this.editing_container.container);
 
         this.update_crop();
 
@@ -211,10 +191,10 @@ ppixiv.on_click_viewer = class
         this.set_displayed_image(img_ready? "main":"preview");
 
         // Restore history or set the initial position, then call reposition() to apply it
-        // and do any clamping.  Do this atomically with updating the images, so the caller
-        // knows that restore_position happens when displaying_url changes.  Also do this if
-        // we already have animations running, so we update the slideshow/panning if the mode
-        // changes.
+        // and do any clamping.  Do this atomically with updating the images.
+        //
+        // Also do this if we already have animations running, so we update the slideshow/panning
+        // if the mode changes.
         if(restore_position == "auto" || this.slideshow_enabled || this.animations != null)
             this.reset_position();
         else if(restore_position == "history")
@@ -252,7 +232,7 @@ ppixiv.on_click_viewer = class
         // doesn't support AbortSignal.
         if(!img.complete)
         {
-            let result = await helpers.wait_for_image_load(img, signal);
+            let result = await helpers.wait_for_image_load(img.main_img, signal);
             if(result != null)
                 return;
 
@@ -279,8 +259,8 @@ ppixiv.on_click_viewer = class
     // Set whether the main image or preview image are visible.
     set_displayed_image(displayed_image)
     {
-        this.img.hidden = displayed_image != "main";
-        this.preview_img.hidden = displayed_image != "preview";
+        this.editing_container.main_img.hidden = displayed_image != "main";
+        this.editing_container.preview_img.hidden = displayed_image != "preview";
     }
 
     async decode_img(img)
@@ -302,18 +282,10 @@ ppixiv.on_click_viewer = class
 
         // Clear the image URLs when we remove them, so any loads are cancelled.  This seems to
         // help Chrome with GC delays.
-        if(this.img)
+        if(this.editing_container)
         {
-            this.img.src = helpers.blank_image;
-            this.img.remove();
-            this.img = null;
-        }
-
-        if(this.preview_img)
-        {
-            this.preview_img.src = helpers.blank_image;
-            this.preview_img.remove();
-            this.preview_img = null;
+            this.editing_container.shutdown();
+            this.editing_container = null;
         }
 
         if(remove_animation)
@@ -744,7 +716,7 @@ ppixiv.on_click_viewer = class
 
     reposition()
     {
-        if(this.img == null)
+        if(this.editing_container == null)
             return;
 
         // Stop if we're being called after being disabled.

@@ -461,116 +461,105 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
 // both of its images are loaded or complete.  This allows on_click_viewer to display inpainting
 // and the inpaint editor without needing to know much about it, so we can avoid complicating
 // the viewer.
-ppixiv.ImageEditingOverlayContainer = class extends HTMLElement
+ppixiv.ImageEditingOverlayContainer = class extends ppixiv.widget
 {
-    static get observedAttributes() { return ["image_src", "inpaint_src"]; }
-
-    constructor()
+    constructor({
+        ...options
+    })
     {
-        super();
+        super({...options, template: `
+            <div class=editing-container>
+                <img class="filtering displayed-image main-image">
+                <img class="filtering displayed-image inpaint-image">
+                <img class="filtering displayed-image low-res-preview">
 
-        this.attachShadow({mode: "open"});
+                <div class=inpaint-editor-overlay-container></div>
+                <div class=crop-editor-overlay-container></div>
+                <div class=pan-editor-overlay-container></div>
+            </div>
+        `});
 
-        let container = document.createElement("div");
-        container.setAttribute("class", "container");
-        this.shadowRoot.append(container);
+        this.inpaint_editor_overlay_container = this.container.querySelector(".inpaint-editor-overlay-container");
+        this.crop_editor_overlay_container = this.container.querySelector(".crop-editor-overlay-container");
+        this.pan_editor_overlay_container = this.container.querySelector(".pan-editor-overlay-container");
 
-        this._main_img = document.createElement("img");
-        this._main_img.dataset.img = "main-image";
-        this._inpaint_img = document.createElement("img");
-        this._inpaint_img.dataset.img = "inpaint-image";
+        this.main_img = this.container.querySelector(".main-image");
+        this.inpaint_img = this.container.querySelector(".inpaint-image");
+        this.preview_img = this.container.querySelector(".low-res-preview");
+    }
 
-        // Let pointer events through to the underlying image.
-        this._inpaint_img.style.pointerEvents = "none";
-
-        for(let img of [this._main_img, this._inpaint_img])
+    shutdown()
+    {
+        // Clear the image URLs when we remove them, so any loads are cancelled.  This seems to
+        // help Chrome with GC delays.
+        if(this.main_img)
         {
-            img.classList.add("filtering");
-            img.addEventListener("load", this._onload);
-            img.addEventListener("error", this._onerror);
-            container.appendChild(img);
+            this.main_img.src = helpers.blank_image;
+            this.main_img.remove();
+            this.main_img = null;
         }
 
-        // Create slots to hold the editors.
-        let inpaint_slot = document.createElement("slot");
-        inpaint_slot.name = "inpaint-editor";
-        container.append(inpaint_slot);
+        if(this.preview_img)
+        {
+            this.preview_img.src = helpers.blank_image;
+            this.preview_img.remove();
+            this.preview_img = null;
+        }
 
-        let crop_slot = document.createElement("slot");
-        crop_slot.name = "crop-editor";
-        container.append(crop_slot);        
-
-        let style = helpers.create_style(`
-            .container, .container > * {
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-            }
-            img { will-change: transform; }
-        `);
-        this.shadowRoot.append(style);
-
-        this.setAttribute("image_src", "");
-        this.setAttribute("inpaint_src", "");
+        this.container.remove();
     }
 
     set_image_urls(image_url, inpaint_url)
     {
+        console.log(image_url, inpaint_url);
         this.image_src = image_url || "";
         this.inpaint_src = inpaint_url || "";
     }
 
-    // Note that load will currently be fired twice, once for each image.
-    _onload = (e) =>
+    set inpaint_editor_overlay(node)
     {
-        // Dispatch loaded on ourself if both images are loaded.
-        if(this.complete)
-            this.dispatchEvent(new Event("load"));
+        helpers.remove_elements(this.inpaint_editor_overlay_container);
+        this.inpaint_editor_overlay_container.appendChild(node);
     }
 
-    _onerror = (e) =>
+    set crop_editor_overlay(node)
     {
-        this.dispatchEvent(new Event("error"));
+        helpers.remove_elements(this.crop_editor_overlay_container);
+        this.crop_editor_overlay_container.appendChild(node);
+    }
+
+    set pan_editor_overlay(node)
+    {
+        helpers.remove_elements(this.pan_editor_overlay_container);
+        this.pan_editor_overlay_container.appendChild(node);
     }
 
     // Set the image URLs.  If set to null, use a blank image instead so we don't trigger
     // load errors.
-    get image_src() { return this.getAttribute("image_src"); }
-    set image_src(value) { this.setAttribute("image_src", value); }
-    get inpaint_src() { return this.getAttribute("inpaint_src"); }
-    set inpaint_src(value) { this.setAttribute("inpaint_src", value); }
+    get image_src() { return this.main_img.src; }
+    set image_src(value) { this.main_img.src = value || helpers.blank_image; }
+    get inpaint_src() { return this.inpaint_img.src; }
+    set inpaint_src(value) { console.log("set", value == ""); this.inpaint_img.src = value || helpers.blank_image; }
 
     get complete()
     {
-        return this._main_img.complete && this._inpaint_img.complete;
+        return this.main_img.complete && this.inpaint_img.complete;
     }
 
     decode()
     {
-        return Promise.all([this._main_img.decode(), this._inpaint_img.decode()]);
+        return Promise.all([this.main_img.decode(), this.inpaint_img.decode()]);
     }
 
-    attributeChangedCallback(name, oldValue, newValue)
-    {
-        if(newValue == "")
-            newValue = helpers.blank_image;
-        if(name == "image_src")
-            this._main_img.src = newValue;
-        if(name == "inpaint_src")
-            this._inpaint_img.src = newValue;
-    }
+    get width() { return this.main_img.width; }
+    get height() { return this.main_img.height; }
+    get naturalWidth() { return this.main_img.naturalWidth; }
+    get naturalHeight() { return this.main_img.naturalHeight; }
 
-    get width() { return this._main_img.width; }
-    get height() { return this._main_img.height; }
-    get naturalWidth() { return this._main_img.naturalWidth; }
-    get naturalHeight() { return this._main_img.naturalHeight; }
-
-    get hide_inpaint() { return this._inpaint_img.style.opacity == 0; }
+    get hide_inpaint() { return this.inpaint_img.style.opacity == 0; }
     set hide_inpaint(value)
     {
-        this._inpaint_img.style.opacity = value? 0:1;
+        this.inpaint_img.style.opacity = value? 0:1;
     }
 }
 
