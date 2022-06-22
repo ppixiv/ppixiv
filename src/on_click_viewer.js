@@ -209,7 +209,7 @@ ppixiv.on_click_viewer = class
 
         // We've changed the view container, so call onviewcontainerchange.
         if(this.onviewcontainerchange)
-            this.onviewcontainerchange(img);
+            this.onviewcontainerchange(this.editing_container);
 
         // Let the caller know that we've displayed an image.  (We actually haven't since that
         // happens just below, but this is only used to let viewer_images know that history
