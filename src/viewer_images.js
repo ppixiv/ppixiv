@@ -9,8 +9,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         super({...options, template: `
             <div class=viewer-images>
             </div>
-        `
-        });
+        `});
 
         this.manga_page_bar = options.manga_page_bar;
         this.restore_history = false;

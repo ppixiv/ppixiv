@@ -3,30 +3,26 @@
 // The base class for the main low-level image viewer.  This handles loading images,
 // and the mechanics for zoom and pan.  The actual zoom and pan UI is handled by the
 // desktop and mobile subclasses.
-class image_viewer_base
+class image_viewer_base extends ppixiv.widget
 {
-    constructor({container, onviewcontainerchange})
+    constructor({onviewcontainerchange, ...options})
     {
+        super({
+            ...options,
+            template: `
+                <div class=image-viewer>
+                    <div class=image-box>
+                        <div class=crop-box>
+                        </div>
+                    </div>
+                </div>
+            `,
+        });
+
+        this.image_box = this.container.querySelector(".image-box");
+        this.crop_box = this.container.querySelector(".crop-box");
+
         this.set_new_image = new SentinelGuard(this.set_new_image, this);
-        this.image_container = container;
-
-        // The image box is the container that we translate and scale.
-        this.image_box = document.createElement("div");
-        this.image_box.classList.add("image-box");
-        this.image_box.style.position = "relative";
-        this.image_box.style.transformOrigin = "0 0";
-        this.image_box.style.right = "auto";
-        this.image_box.style.bottom = "auto";
-        this.image_container.appendChild(this.image_box);
-
-        // The crop box is only used when cropping an image, and otherwise just holds
-        // the image.
-        this.crop_box = document.createElement("div");
-        this.crop_box.classList.add("crop-box");
-        this.crop_box.style.position = "relative";
-        this.crop_box.style.width = "100%";
-        this.crop_box.style.height = "100%";
-        this.image_box.appendChild(this.crop_box);
 
         this.onviewcontainerchange = onviewcontainerchange;
         this.media_id = null;
@@ -45,8 +41,8 @@ class image_viewer_base
         this.event_shutdown = new AbortController();
 
         window.addEventListener("resize", this.onresize, { signal: this.event_shutdown.signal, capture: true });
-        this.image_container.addEventListener("dragstart", this.block_event, { signal: this.event_shutdown.signal });
-        this.image_container.addEventListener("selectstart", this.block_event, { signal: this.event_shutdown.signal });
+        this.container.addEventListener("dragstart", this.block_event, { signal: this.event_shutdown.signal });
+        this.container.addEventListener("selectstart", this.block_event, { signal: this.event_shutdown.signal });
 
         // Start or stop panning if the user changes it while we're active, eg. by pressing ^P.
         settings.changes.addEventListener("auto_pan", this.refresh_autopan.bind(this), { signal: this.event_shutdown.signal });
@@ -286,15 +282,9 @@ class image_viewer_base
     {
         this.remove_images();
         
-        if(this.image_box)
-        {
-            this.image_box.remove();
-            this.image_box = null;
-        }
-
+        this.container.remove();
         this.event_shutdown.abort();
         this.set_new_image.abort();
-        this.image_container = null;
     }
 
     // Return "portrait" if the image is taller than the screen, otherwise "landscape".
@@ -596,8 +586,8 @@ class image_viewer_base
     get onscreen_height() { return this.height * this._zoom_factor_current; }
 
     // The dimensions of the image viewport.  This can be 0 if the view is hidden.
-    get container_width() { return this.image_container.offsetWidth || 0; }
-    get container_height() { return this.image_container.offsetHeight || 0; }
+    get container_width() { return this.container.offsetWidth || 0; }
+    get container_height() { return this.container.offsetHeight || 0; }
 
     get current_zoom_pos()
     {
@@ -613,7 +603,7 @@ class image_viewer_base
             return;
 
         // Stop if we're being called after being disabled.
-        if(this.image_container == null)
+        if(this.container == null)
             return;
 
         // Stop if there's an animation active.
@@ -1008,14 +998,14 @@ class image_viewer_base
 // This subclass implements our desktop pan/zoom UI.
 ppixiv.image_viewer_desktop = class extends image_viewer_base
 {
-    constructor({container, onviewcontainerchange})
+    constructor({...options})
     {
-        super({container, onviewcontainerchange});
+        super(options);
  
         window.addEventListener("blur", this.window_blur, { signal: this.event_shutdown.signal });
 
         this.pointer_listener = new ppixiv.pointer_listener({
-            element: this.image_container,
+            element: this.container,
             button_mask: 1,
             signal: this.event_shutdown.signal,
             callback: this.pointerevent,
@@ -1031,7 +1021,7 @@ ppixiv.image_viewer_desktop = class extends image_viewer_base
        {
            e.preventDefault();
 
-           this.image_container.style.cursor = "none";
+           this.container.style.cursor = "none";
 
            // Don't show the UI if the mouse hovers over it while dragging.
            document.body.classList.add("hide-ui");
@@ -1057,8 +1047,8 @@ ppixiv.image_viewer_desktop = class extends image_viewer_base
            this.drag_movement = [0,0];
 
            this.captured_pointer_id = e.pointerId;
-           this.image_container.setPointerCapture(this.captured_pointer_id);
-           this.image_container.addEventListener("lostpointercapture", this.lost_pointer_capture);
+           this.container.setPointerCapture(this.captured_pointer_id);
+           this.container.addEventListener("lostpointercapture", this.lost_pointer_capture);
 
            // If this is a click-zoom, align the zoom to the point on the image that
            // was clicked.
@@ -1068,7 +1058,7 @@ ppixiv.image_viewer_desktop = class extends image_viewer_base
            this.reposition();
 
            // Only listen to pointermove while we're dragging.
-           this.image_container.addEventListener("pointermove", this.pointermove);
+           this.container.addEventListener("pointermove", this.pointermove);
        } else {
            if(this.captured_pointer_id == null || e.pointerId != this.captured_pointer_id)
                return;
@@ -1098,19 +1088,19 @@ ppixiv.image_viewer_desktop = class extends image_viewer_base
        // Save our history state on mouseup.
        this.save_to_history();
            
-       if(this.image_container != null)
+       if(this.container != null)
        {
-           this.image_container.removeEventListener("pointermove", this.pointermove);
-           this.image_container.style.cursor = "";
+           this.container.removeEventListener("pointermove", this.pointermove);
+           this.container.style.cursor = "";
        }
 
        if(this.captured_pointer_id != null)
        {
-           this.image_container.releasePointerCapture(this.captured_pointer_id);
+           this.container.releasePointerCapture(this.captured_pointer_id);
            this.captured_pointer_id = null;
        }
        
-       this.image_container.removeEventListener("lostpointercapture", this.lost_pointer_capture);
+       this.container.removeEventListener("lostpointercapture", this.lost_pointer_capture);
 
        document.body.classList.remove("hide-ui");
        
@@ -1142,12 +1132,12 @@ ppixiv.image_viewer_desktop = class extends image_viewer_base
 // This subclass implements our touchscreen pan/zoom UI.
 ppixiv.image_viewer_mobile = class extends image_viewer_base
 {
-    constructor({container, onviewcontainerchange})
+    constructor({...options})
     {
-        super({container, onviewcontainerchange});
+        super(options);
  
         this.touch_scroller = new ppixiv.TouchScroller({
-            container: this.image_container,
+            container: this.container,
             signal: this.event_shutdown.signal,
 
             // Return the current position in screen coordinates.

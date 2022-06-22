@@ -246,9 +246,27 @@ textarea:focus, input:focus, a:focus {
 .viewer-images {
     width: 100%;
     height: 100%;
+}
+
+.image-viewer {
+    width: 100%;
+    height: 100%;
 
     // Disable scrolling to prevent pointer events from being cancelled on mobile.
     touch-action: none;
+
+    > .image-box {
+        position: relative;
+        transform-origin: 0 0;
+        right: auto;
+        bottom: auto;
+
+        > .crop-box {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+    }
 
     // If the image is cropped, set overflow: hidden on the image box to cut it
     // off.  Don't do this if it isn't needed, since it can trigger compositing
