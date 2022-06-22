@@ -10,6 +10,7 @@
     // Disable images getting highlighted in blue on tap on mobile Chrome.   It would be
     // nicer to use something like a border...
     -webkit-tap-highlight-color:  rgba(255, 255, 255, 0);
+    -webkit-touch-callout: none;
 }
 
 html {
@@ -234,6 +235,7 @@ textarea:focus, input:focus, a:focus {
         width: 100%;
         height: 100%;
         user-select: none;
+        -webkit-user-select: none;
         cursor: pointer;
     }
 }
@@ -314,6 +316,7 @@ textarea:focus, input:focus, a:focus {
     left: 0px;
     width: 100%;
     user-select: none;
+    -webkit-user-select: none;
 
     transition: transform .25s, opacity .25s;
     opacity: 0;
@@ -632,6 +635,7 @@ textarea:focus, input:focus, a:focus {
     color: var(--button-color);
     cursor: pointer;
     user-select: none;
+    -webkit-user-select: none;
     display: block;
 
     // Set the size of the icon's box to the size the icon will be.  This is the same
@@ -1069,6 +1073,7 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
     /* .thumbnails is the actual thumbnail list. */
     .thumbnails {
         user-select: none;
+        -webkit-user-select: none;
         padding: 0;
         text-align: center;
         gap: var(--thumb-padding);
@@ -1478,6 +1483,7 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
 
     color: var(--box-link-fg-color);
     user-select: none;
+    -webkit-user-select: none;
 
     background-color: var(--box-link-bg-color);
 
@@ -1600,6 +1606,7 @@ a.box-link, span.box-link
         vertical-align: middle;
         cursor: pointer;
         user-select: none;
+        -webkit-user-select: none;
         color: black;
 
         & > svg
@@ -1698,6 +1705,7 @@ a.box-link, span.box-link
     margin: 1px;
     z-index: 1;
     user-select: none;
+    -webkit-user-select: none;
 
     /* Always show the vertical scrollbar.  Otherwise, the resize handle falls under the buttons
      * when it's not shown. */
@@ -1828,6 +1836,7 @@ a.box-link, span.box-link
     display: flex;
     flex-direction: column;
     user-select: none;
+    -webkit-user-select: none;
     will-change: opacity, transform;
     transition:
         opacity ease 0.15s,
@@ -2419,6 +2428,7 @@ svg.heart-image .delete {
 .tree 
 {
     user-select: none;
+    -webkit-user-select: none;
     overflow-x: hidden;
     overflow-y: auto;
     flex: 1;
