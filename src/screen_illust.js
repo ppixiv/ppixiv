@@ -7,11 +7,9 @@ ppixiv.screen_illust = class extends ppixiv.screen
     {
         super({...options, template: `
             <div class="screen screen-illust-container">
-                <!-- Mouse movement is detected inside this box.  Anything outside of it will
-                    be unaffected by mouse hiding. -->
-                <div class=mouse-hidden-box>
-                    <div class=view-container data-context-menu-target></div>
-                </div>
+                <!-- Mouse movement is detected inside mouse-hidden-box.  Anything outside of it will
+                     be unaffected by mouse hiding. -->
+                <div class="view-container mouse-hidden-box" data-context-menu-target></div>
 
                 <div class=page-change-indicator data-icon=last-image>
                     <ppixiv-inline src="resources/last-page.svg"></ppixiv-inline>
