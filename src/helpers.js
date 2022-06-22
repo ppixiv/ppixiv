@@ -1241,32 +1241,40 @@ ppixiv.helpers = {
 
     download_url: async function(url)
     {
+        if(url == null)
+        {
+            accept(null);
+            return;
+        }
+
+        // We use i-cf for image URLs, but we don't currently have this in @connect,
+        // so we can't use that here.  Switch from i-cf back to the original URLs.
+        url = new URL(url);
+        if(url.hostname == "i-cf.pximg.net")
+            url.hostname = "i.pximg.net";
+
+        let result = await helpers.async_gm_xhr({
+            url,
+            "method": "GET",
+            "url": url,
+            "responseType": "arraybuffer",
+
+            "headers": {
+                "Cache-Control": "max-age=360000",
+                "Referer": "https://www.pixiv.net/",
+                "Origin": "https://www.pixiv.net/",
+            },
+        });
+        return result.response;
+    },
+
+    async_gm_xhr(options)
+    {
         return new Promise((accept, reject) => {
-            if(url == null)
-            {
-                accept(null);
-                return;
-            }
-
-            // We use i-cf for image URLs, but we don't currently have this in @connect,
-            // so we can't use that here.  Switch from i-cf back to the original URLs.
-            url = new URL(url);
-            if(url.hostname == "i-cf.pximg.net")
-                url.hostname = "i.pximg.net";
-
             GM_xmlhttpRequest({
-                "method": "GET",
-                "url": url,
-                "responseType": "arraybuffer",
-
-                "headers": {
-                    "Cache-Control": "max-age=360000",
-                    "Referer": "https://www.pixiv.net/",
-                    "Origin": "https://www.pixiv.net/",
-                },
-
+                ...options,
                 onload: (result) => {
-                    accept(result.response);
+                    accept(result);
                 },
                 onerror: (e) => {
                     reject(e);
