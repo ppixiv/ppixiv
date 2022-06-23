@@ -52,7 +52,8 @@ ppixiv.viewer_video = class extends ppixiv.viewer
 
         this.video.addEventListener("timeupdate", this.update_seek_bar);
         this.video.addEventListener("progress", this.update_seek_bar);
-        this.video_container.addEventListener("click", this.clicked_video);
+        if(!ppixiv.mobile)
+            this.video_container.addEventListener("click", this.clicked_video);
 
         // In case we start PIP without playing first, switch the poster when PIP starts.
         this.video.addEventListener("enterpictureinpicture", (e) => { this.switch_poster_to_thumb(); });
@@ -425,7 +426,10 @@ ppixiv.video_ui = class extends ppixiv.widget
             this.set_seek_bar_pos();
         });
 
-        this.container.querySelector(".fullscreen").addEventListener("click", () => {
+        // Set up the fullscreen button.  Disable this on mobile, since it doesn't make sense there.
+        let fullscreen_button = this.container.querySelector(".fullscreen");
+        fullscreen_button.hidden = ppixiv.mobile;
+        fullscreen_button.addEventListener("click", () => {
             helpers.toggle_fullscreen();
         });
 

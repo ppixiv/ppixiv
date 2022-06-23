@@ -36,7 +36,9 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
         this.canvas.style.objectFit = "contain";
         this.video_container.appendChild(this.canvas);
 
-        this.canvas.addEventListener("click", this.clicked_canvas, false);
+        // Disable pause on click on mobile, since it conflicts with other UI.
+        if(!ppixiv.mobile)
+            this.canvas.addEventListener("click", this.clicked_canvas, false);
 
         // True if we want to play if the window has focus.  We always pause when backgrounded.
         let args = helpers.args.location;
