@@ -909,5 +909,28 @@ ppixiv.main_controller = class
         else
             disabled_ui.querySelector("a").href = "/ranking.php?mode=daily#ppixiv";
     }
+
+    // When viewing an image, toggle the slideshow on or off.
+    toggle_slideshow()
+    {
+        // Add or remove slideshow=1 from the hash.  If we're not on the illust view, use
+        // the URL of the image the user clicked, otherwise modify the current URL.
+        let args = helpers.args.location;
+        let viewing_illust = this.current_screen_name == "illust";
+        if(viewing_illust)
+            args = helpers.args.location;
+        else
+            args = this.get_media_url(this.media_id);
+
+        let enabled = args.hash.get("slideshow") == "1";
+        if(enabled)
+            args.hash.delete("slideshow");
+        else
+            args.hash.set("slideshow", "1");
+
+        // If we're on the illust view this replaces the current URL since it's just a
+        // settings change, otherwise this is a navigation.
+        helpers.set_page_url(args, !viewing_illust, "toggle slideshow");
+    }
 };
 
