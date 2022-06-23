@@ -4980,7 +4980,7 @@ ppixiv.MobileIsolatedTapHandler = class
         // before a tap is treated as isolated.  This should be high enough so we don't
         // interfere with things like double-taps, but not too high since it delays the
         // input.
-        cooldown_timer_after=300,
+        cooldown_timer_after=200,
         signal=null,
     })
     {
