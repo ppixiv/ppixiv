@@ -527,6 +527,9 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
             this.click_outside_listener = null;
         }
 
+        // Set data-mobile-ui-visible so other UIs can tell if this UI is open.
+        ClassFlags.get.set("mobile-ui-visible", new_page != null);
+
         // Tell the caller that we're closing.
         if(new_page == null && this.onclose)
             this.onclose();

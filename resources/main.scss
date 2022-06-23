@@ -340,6 +340,22 @@ textarea:focus, input:focus, a:focus {
     transition: transform .25s, opacity .25s;
     opacity: 0;
 
+    // Visibility:
+    // Stay visible if the mouse has moved recently, we're dragging, and while hovering
+    // over the UI.
+    .mouse-hidden-box.cursor-active &,      // Visible if the mouse has moved recently
+    &.dragging,                             // Visible if we're dragging something in the UI
+    &:hover,                                // Visible if we're hovering over the UI (XXX: not on mobile)
+    &.show-ui                                // Visible if ppixiv.video_ui says so
+    {
+        opacity: 1;
+
+        .seek-bar[data-position="top"] > .seek-parts
+        {
+            transform: scale(100%, 50%);
+        }
+    }
+
     .seek-bar {
         width: 100%;
         box-sizing: content-box;
@@ -398,20 +414,6 @@ textarea:focus, input:focus, a:focus {
                 background-color: rgba(0,0,0,0.25);
                 width: 100%;
             }
-        }
-    }
-
-    // Stay visible if the mouse has moved recently, we're dragging, and while hovering
-    // over the UI.
-    .mouse-hidden-box.cursor-active &,
-    &.dragging,
-    &:hover
-    {
-        opacity: 1;
-
-        .seek-bar[data-position="top"] > .seek-parts
-        {
-            transform: scale(100%, 50%);
         }
     }
 

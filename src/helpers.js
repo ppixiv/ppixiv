@@ -4454,7 +4454,70 @@ class FlingVelocity
     }
 }
 
+// This is a wrapper to treat a classList as a set of flags that can be monitored.
+//
+// let flags = ClassFlags(element);
+// flags.set("enabled", true);        // class="enabled"
+// flags.set("selected", true);       // class="enabled selected"
+// flags.set("enabled", false);       // class="selected"
+//
+// 
+ppixiv.ClassFlags = class extends EventTarget
+{
+    // This class can be used on anything, but it's normally used on <html> for document-wide
+    // flags.
+    static get get()
+    {
+        if(this.singleton == null)
+            this.singleton = new ppixiv.ClassFlags(document.documentElement);
+        return this.singleton;
+    }
 
+    constructor(element)
+    {
+        super();
+        
+        this.element = element;
+
+        // Use a MutationObserver, so we'll see changes whether they're made by us or something
+        // else.
+        let observer = new MutationObserver((mutations) => {
+            // If we have multiple mutation records, we only need to process the first one, comparing
+            // the first oldValue to the current value.
+            let mutation = mutations[0];
+
+            let old_set = new Set(mutation.oldValue.split(" "));
+            let new_set = this.element.classList;
+            for(let name of new_set)
+                if(!old_set.has(name))
+                    this.broadcast(name, true);
+
+            for(let name of old_set)
+                if(!new_set.contains(name))
+                    this.broadcast(name, false);
+        });
+
+        observer.observe(element, { attributeFilter: ["class"], attributeOldValue: true });
+    }
+
+    get(name) { return this.element.classList.contains(name); }
+    
+    set(name, value)
+    {
+        // Update the class.  The mutation observer will handle broadcasting the change.
+        helpers.set_class(this.element, name, value);
+
+        return true;
+    }
+
+    // Dispatch an event for a change to the given key.
+    broadcast(name, value)
+    {
+        let e = new Event(name);
+        e.value = value;
+        this.dispatchEvent(e);
+    }
+};
 
 
 

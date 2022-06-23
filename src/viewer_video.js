@@ -350,6 +350,15 @@ ppixiv.video_ui = class extends ppixiv.widget
             </div>
         `});
 
+        // We set .show-ui to force the video control bar to be displayed when the mobile UI
+        // is visible.
+        this.refresh_show_ui();
+
+        // listen for data-mobile-ui-visible and show our UI
+        ClassFlags.get.addEventListener("mobile-ui-visible", (e) => {
+            this.refresh_show_ui();
+        });
+
         // Set .dragging to stay visible during drags.
         this.pointer_listener = new ppixiv.pointer_listener({
             element: this.container,
@@ -439,6 +448,12 @@ ppixiv.video_ui = class extends ppixiv.widget
     }
 
     get bottom_reservation() { return "100px"; }
+
+    refresh_show_ui()
+    {
+        let show_ui = ClassFlags.get.get("mobile-ui-visible");
+        helpers.set_class(this.container, "show-ui", show_ui);
+    }
 
     // Set whether the seek bar is above or below the video UI.
     set_seek_bar_pos()
