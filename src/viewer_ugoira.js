@@ -51,6 +51,8 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
         window.addEventListener("visibilitychange", this.refresh_focus);
     }
 
+    get bottom_reservation() { return "100px"; }
+
     load = async(signal, media_id, {
         slideshow=false,
         onnextimage=null,

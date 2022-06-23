@@ -436,6 +436,8 @@ ppixiv.video_ui = class extends ppixiv.widget
         this.video_changed();
     }
 
+    get bottom_reservation() { return "100px"; }
+
     // Set whether the seek bar is above or below the video UI.
     set_seek_bar_pos()
     {

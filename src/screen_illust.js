@@ -498,6 +498,8 @@ ppixiv.screen_illust = class extends ppixiv.screen
             this.mobile_illust_ui.user_id = this.current_user_id;
             this.mobile_illust_ui.media_id = this.current_media_id;
             this.mobile_illust_ui.set_data_source(this.data_source);
+            if(this.viewer)
+                this.mobile_illust_ui.set_bottom_reservation(this.viewer.bottom_reservation);
         }
 
         // Update the disable UI button to point at the current image's illustration page.

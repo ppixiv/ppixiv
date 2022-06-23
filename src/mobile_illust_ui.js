@@ -436,6 +436,7 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
         this._media_id = null;
         this.displayed_page = null;
 
+        this.set_bottom_reservation("0px");
         this.show_page(null);
 
         this.refresh();
@@ -522,6 +523,13 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
         // Tell the caller that we're closing.
         if(new_page == null && this.onclose)
             this.onclose();
+    }
+
+    // Set the amount of space reserved at the bottom for other UI.  This is used to prevent
+    // overlapping the video UI.
+    set_bottom_reservation(value)
+    {
+        this.container.style.setProperty("--video-ui-height", value);
     }
     
     refresh()

@@ -30,5 +30,8 @@ ppixiv.viewer = class extends widget
     // where we don't want the old image to be displayed while the new one loads.
     set hide_image(value) { }
     get hide_image() { return false; }
+
+    // Return the amount of space that should be reserved by the mobile UI for this view.
+    get bottom_reservation() { return "0px"; }
 }
 
