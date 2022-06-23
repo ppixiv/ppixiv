@@ -2135,14 +2135,17 @@ svg.heart-image .delete {
 /* These are !important to override the default white coloring in the context
  * menu. */
 .button-bookmark {
-    color: #400 !important;
-    &.enabled {
+    svg {
+        color: #400 !important;
+    }
+
+    &.enabled svg {
         color: #800 !important;
         stroke: none;
     }
 
-    &.bookmarked,
-    &.enabled:hover {
+    &.bookmarked svg,
+    &.enabled:hover svg {
         color: #f00 !important;
         stroke: none;
     }
