@@ -380,6 +380,8 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
     // Select between click-pan zooming and sticky, filled-screen zooming.
     set locked_zoom(enable)
     {
+        this.stop_animation();
+
         this._locked_zoom = enable;
         settings.set("zoom-mode", enable? "locked":"normal");
         this.reposition();
@@ -394,6 +396,9 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
 
     set zoom_level(value)
     {
+        // If the zoom level is changing, stop any running animation.
+        this.stop_animation();
+
         this._zoom_level = value;
         settings.set("zoom-level", this._zoom_level);
         this.reposition();
