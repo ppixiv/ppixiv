@@ -2111,6 +2111,37 @@ a.box-link, span.box-link
     --frame-bg-color: rgba(0,0,0,.85);
     --box-link-bg-color: none;
 
+    // The image info in the top-right is a separate element from the UI pages.
+    .context-menu-image-info-container {
+        position: fixed;
+        right: 10px;
+        top: 10px;
+        background-color: var(--frame-bg-color);
+        padding: 5px 8px;
+
+        transition:
+            opacity ease 0.3s,
+            transform ease 0.3s;
+        transform-origin: 0% 50%;
+        opacity: 1;
+
+        .context-menu-image-info {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: .8em;
+            font-weight: bold;
+            gap: 2px;
+            padding: 4px 0;
+        }
+    }
+
+    &:not([data-displayed-page]) .context-menu-image-info-container {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+
+
     // One UI page is shown at a time.
     .mobile-illust-ui-page
     {
@@ -2224,24 +2255,6 @@ a.box-link, span.box-link
                         font-size: 200%;
                     }
                 }
-            }
-        }
-
-        .context-menu-image-info-container {
-            position: fixed;
-            right: 10px;
-            top: 10px;
-            background-color: var(--frame-bg-color);
-            padding: 5px 8px;
-
-            .context-menu-image-info {
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                font-size: .8em;
-                font-weight: bold;
-                gap: 2px;
-                padding: 4px 0;
             }
         }
     }

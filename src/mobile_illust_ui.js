@@ -176,7 +176,6 @@ let mobile_illust_ui_top_page = class extends mobile_illust_ui_page
                         <span class=label>More...</span>
                     </div>
                 </div>
-                <div class=context-menu-image-info-container></div>
             </div>
         `});
 
@@ -226,10 +225,6 @@ let mobile_illust_ui_top_page = class extends mobile_illust_ui_page
             new like_button_widget({
                 parent: this,
                 contents: this.container.querySelector(".button-like"),
-            }),
-            new context_menu_image_info_widget({
-                parent: this,
-                container: this.container.querySelector(".context-menu-image-info-container"),
             }),
         ];
 
@@ -409,11 +404,17 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
     {
         super({...options, template: `
             <div class=mobile-illust-ui-container>
+                <div class=context-menu-image-info-container></div>
             </div>
         `});
 
         this.onclose = onclose;
         this.pages = {};
+
+        this.info_widget = new context_menu_image_info_widget({
+            parent: this,
+            container: this.container.querySelector(".context-menu-image-info-container"),
+        }),
 
         this.pages.top = new mobile_illust_ui_top_page({
             container: this.container,
@@ -454,6 +455,7 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
             return;
 
         this._media_id = media_id;
+        this.info_widget.set_media_id(media_id);
         for(let page of Object.values(this.pages))
             page.media_id = media_id;
 
@@ -500,6 +502,7 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
         let new_page = this.pages[new_page_name];
         let old_page = this.pages[old_page_name];
         this.displayed_page = new_page_name;
+        helpers.set_dataset(this.container.dataset, "displayedPage", this.displayed_page);
         if(old_page)
             old_page.hide_tab();
         if(new_page)
