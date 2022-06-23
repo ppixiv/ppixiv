@@ -396,7 +396,7 @@ ppixiv.click_outside_listener = class
         this.node_list = node_list;
         this.callback = callback;
 
-        window.addEventListener("mousedown", this.window_onmousedown, true);
+        window.addEventListener("pointerdown", this.window_onpointerdown, { capture: true });
     }
 
     // Return true if node is below any node in node_list.
@@ -410,7 +410,7 @@ ppixiv.click_outside_listener = class
         return false;
     }
 
-    window_onmousedown = (e) =>
+    window_onpointerdown = (e) =>
     {
         // Close the popup if anything outside the dropdown is clicked.  Don't
         // prevent the click event, so the click still happens.
@@ -424,7 +424,7 @@ ppixiv.click_outside_listener = class
 
     shutdown()
     {
-        window.removeEventListener("mousedown", this.window_onmousedown, true);
+        window.removeEventListener("pointerdown", this.window_onpointerdown, { capture: true });
     }
 }
 
