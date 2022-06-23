@@ -54,17 +54,23 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
 
         this.show_crop = this.container.querySelector(".show-crop");
         this.show_crop.addEventListener("click", (e) => {
+            e.stopPropagation();
+
             this.active_editor_name = this.active_editor_name == "crop"? null:"crop";
         });
 
         this.show_pan = this.container.querySelector(".show-pan");
         this.show_pan.addEventListener("click", (e) => {
+            e.stopPropagation();
+
             this.active_editor_name = this.active_editor_name == "pan"? null:"pan";
         });
 
         this.show_inpaint = this.container.querySelector(".show-inpaint");
         this.show_inpaint.hidden = true;
         this.show_inpaint.addEventListener("click", (e) => {
+            e.stopPropagation();
+
             this.active_editor_name = this.active_editor_name == "inpaint"? null:"inpaint";
         });
 
@@ -107,11 +113,13 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
 
         this.save_edits = this.container.querySelector(".save-edits");
         this.save_edits.addEventListener("click", async (e) => {
+            e.stopPropagation();
             this.save();
         }, { signal: this.shutdown_signal.signal });
 
         this.close_editor = this.container.querySelector(".close-editor");
         this.close_editor.addEventListener("click", async (e) => {
+            e.stopPropagation();
             settings.set("image_editing", null);
             settings.set("image_editing_mode", null);
         }, { signal: this.shutdown_signal.signal });

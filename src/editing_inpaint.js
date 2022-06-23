@@ -65,6 +65,7 @@ ppixiv.InpaintEditor = class extends ppixiv.widget
 
         this.create_lines_button = this.container.querySelector(".create-lines");
         this.create_lines_button.addEventListener("click", (e) => {
+            e.stopPropagation();
             this.create_lines = !this.create_lines;
         });
 
@@ -109,18 +110,24 @@ ppixiv.InpaintEditor = class extends ppixiv.widget
 
         // "Save default" buttons:
         this.container.querySelector(".save-default-thickness").addEventListener("click", (e) => {
+            e.stopPropagation();
+
             let value = parseInt(this.line_width_slider.value);
             settings.set("inpaint_default_thickness", value);
             console.log("Saved default line thickness:", value);
         }, { signal: this.shutdown_signal.signal });
 
         this.container.querySelector(".save-default-downscale").addEventListener("click", (e) => {
+            e.stopPropagation();
+
             let value = parseFloat(this.downscale_slider.value);
             settings.set("inpaint_default_downscale", value);
             console.log("Saved default downscale:", value);
         }, { signal: this.shutdown_signal.signal });
 
         this.container.querySelector(".save-default-soften").addEventListener("click", (e) => {
+            e.stopPropagation();
+
             let value = parseFloat(this.blur_slider.value);
             settings.set("inpaint_default_blur", value);
             console.log("Saved default blur:", value);

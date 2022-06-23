@@ -99,15 +99,17 @@ ppixiv.PanEditor = class extends ppixiv.widget
 
         this.aspect_ratio_switch_button = this.container.querySelector(".rotate-aspect-ratio");
         this.aspect_ratio_switch_button.addEventListener("click", (e) => {
+            e.stopPropagation();
+
             this.displayed_aspect_ratio_portrait = !this.displayed_aspect_ratio_portrait;
             this.refresh();
         });
 
-        this.ui.querySelector(".edit-start-button").addEventListener("click", (e) => { this.editing = "start"; this.refresh(); });
-        this.ui.querySelector(".edit-end-button").addEventListener("click", (e) => { this.editing = "end"; this.refresh(); });
-        this.ui.querySelector(".edit-anchor").addEventListener("click", (e) => { this.editing_anchor = !this.editing_anchor; this.refresh(); });
-        this.ui.querySelector(".reset-button").addEventListener("click", (e) => { this.clear(); });
-        this.ui.querySelector(".swap-button").addEventListener("click", (e) => { this.swap(); });
+        this.ui.querySelector(".edit-start-button").addEventListener("click", (e) => { e.stopPropagation(); this.editing = "start"; this.refresh(); });
+        this.ui.querySelector(".edit-end-button").addEventListener("click", (e) => { e.stopPropagation(); this.editing = "end"; this.refresh(); });
+        this.ui.querySelector(".edit-anchor").addEventListener("click", (e) => { e.stopPropagation(); this.editing_anchor = !this.editing_anchor; this.refresh(); });
+        this.ui.querySelector(".reset-button").addEventListener("click", (e) => { e.stopPropagation(); this.clear(); });
+        this.ui.querySelector(".swap-button").addEventListener("click", (e) => { e.stopPropagation(); this.swap(); });
 
         this.pointer_listener = new ppixiv.pointer_listener({
             element: this.editor_overlay,
