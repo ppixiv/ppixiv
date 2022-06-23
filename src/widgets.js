@@ -1273,7 +1273,7 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
     constructor({...options})
     {
         super({...options, template: `
-            <div class=popup-bookmark-tag-dropdown>
+            <div class="bookmark-tag-list">
                 <div class=tag-list></div> <!-- tag list is inserted here -->
                 <div class=tag-right-button-strip>
                     <div class="tag-button popup add-tag" data-popup="Add a different tag">
@@ -1301,11 +1301,6 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
         this.container.querySelector(".sync-tags").addEventListener("click", async (e) => {
             var bookmark_tags = await actions.load_recent_bookmark_tags();
             helpers.set_recent_bookmark_tags(bookmark_tags);
-        });
-
-        // Close if our containing widget is closed.
-        new view_hidden_listener(this.container, (e) => {
-            this.visible = false;
         });
 
         image_data.singleton().illust_modified_callbacks.register(this.refresh.bind(this));
@@ -1337,19 +1332,6 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
         super.set_media_id(media_id);
     }
     
-    // Hide the dropdown without committing anything.  This happens if a bookmark
-    // button is pressed to remove a bookmark: if we just close the dropdown normally,
-    // we'd readd the bookmark.
-    async hide_without_sync()
-    {
-        this.skip_save = true;
-        try {
-            this.visible = false;
-        } finally {
-            this.skip_save = false;
-        }
-    }
-
     async visibility_changed()
     {
         super.visibility_changed();
@@ -1387,15 +1369,8 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
         let bookmark_tags = this.container.querySelector(".tag-list");
         helpers.remove_elements(bookmark_tags);
 
-        // Make sure the dropdown is hidden if we have no image.
-        if(media_id == null)
-            this.visible = false;
-
         if(media_id == null || !this.visible)
             return;
-
-        // Fit the tag scroll box within however much space we have available.
-        helpers.set_max_height(this.container.querySelector(".tag-list"), { max_height: 400, bottom_padding: 10 });
 
         // Create a temporary entry to show loading while we load bookmark details.
         let entry = document.createElement("span");
@@ -1511,6 +1486,53 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
     }
 }
 
+// A bookmark tag list in a dropdown.
+//
+// The base class is a simple widget.  This subclass handles some of the trickier
+// bits around closing the dropdown correctly.
+ppixiv.bookmark_tag_list_dropdown_widget = class extends ppixiv.bookmark_tag_list_widget
+{
+    constructor({...options})
+    {
+        super({...options});
+
+        this.container.classList.add("popup-bookmark-tag-dropdown");
+
+        // Close if our containing widget is closed.
+        // XXX not if we're in the mobile menu
+        new view_hidden_listener(this.container, (e) => {
+            this.visible = false;
+        });
+    }
+
+    async refresh_internal({ media_id })
+    {
+        // Make sure the dropdown is hidden if we have no image.
+        if(media_id == null)
+            this.visible = false;
+
+        await super.refresh_internal({ media_id });
+
+        // Fit the tag scroll box within however much space we have available.
+        if(this.visible)
+            helpers.set_max_height(this.container.querySelector(".tag-list"), { max_height: 400, bottom_padding: 10 });
+    }
+
+    // Hide the dropdown without committing anything.  This happens if a bookmark
+    // button is pressed to remove a bookmark: if we just close the dropdown normally,
+    // we'd readd the bookmark.
+    async hide_without_sync()
+    {
+        this.skip_save = true;
+        try {
+            this.visible = false;
+        } finally {
+            this.skip_save = false;
+        }
+    }
+
+}
+
 ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
 {
     get needed_data() { return "thumbnail"; }
@@ -1523,10 +1545,10 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
         super({...options,
             visible,
             template: `
-<div class=popup-more-options-dropdown>
-    <div class="options vertical-list" style="min-width: 13em;"></div>
-</div>
-`});
+                <div class="more-options-dropdown">
+                    <div class="options vertical-list" style="min-width: 13em;"></div>
+                </div>
+        `});
 
         this.menu_options = [];
     }

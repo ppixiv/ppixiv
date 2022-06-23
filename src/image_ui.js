@@ -150,7 +150,7 @@ ppixiv.image_ui = class extends ppixiv.widget
         
         image_data.singleton().illust_modified_callbacks.register(this.refresh);
         
-        this.bookmark_tag_widget = new bookmark_tag_list_widget({
+        this.bookmark_tag_widget = new bookmark_tag_list_dropdown_widget({
             parent: this,
             container: this.container.querySelector(".popup-bookmark-tag-dropdown-container"),
         });

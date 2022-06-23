@@ -2031,7 +2031,11 @@ a.box-link, span.box-link
 
     /* Put this on top of other elements, like the image-ui tag list. */
     z-index: 1;
+}
 
+.bookmark-tag-list,
+.more-options-dropdown
+{
     /* In the context menu version, nudge the tag dropdown up slightly to cover
      * the rounded corners. */
     .popup-context-menu & {
