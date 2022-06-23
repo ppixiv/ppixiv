@@ -335,6 +335,7 @@ textarea:focus, input:focus, a:focus {
     width: 100%;
     user-select: none;
     -webkit-user-select: none;
+    touch-action: none;
 
     transition: transform .25s, opacity .25s;
     opacity: 0;

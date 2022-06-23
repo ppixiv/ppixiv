@@ -16,7 +16,7 @@ ppixiv.seek_bar = class extends widget
             `
         });
 
-        this.container.addEventListener("mousedown", this.mousedown);
+        this.container.addEventListener("pointerdown", this.mousedown);
 
         this.current_time = 0;
         this.duration = 1;
@@ -41,8 +41,9 @@ ppixiv.seek_bar = class extends widget
 
         // Only listen to mousemove while we're dragging.  Put this on window, so we get drags outside
         // the window.
-        window.addEventListener("mousemove", this.mousemove);
-        window.addEventListener("mouseup", this.mouseup);
+        window.addEventListener("pointermove", this.mousemove);
+        window.addEventListener("pointerup", this.mouseup);
+        window.addEventListener("pointercancel", this.mouseup);
 
         this.set_drag_pos(e);
     }
@@ -55,8 +56,8 @@ ppixiv.seek_bar = class extends widget
         this.dragging = false;
         helpers.set_class(this.container, "dragging", this.dragging);
 
-        window.removeEventListener("mousemove", this.mousemove);
-        window.removeEventListener("mouseup", this.mouseup);
+        window.removeEventListener("pointermove", this.mousemove);
+        window.removeEventListener("pointerup", this.mouseup);
 
         if(this.callback)
             this.callback(false, null);
