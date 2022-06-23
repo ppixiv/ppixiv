@@ -1515,10 +1515,13 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
 {
     get needed_data() { return "thumbnail"; }
 
-    constructor(options)
+    constructor({
+        visible=false,
+        ...options
+    })
     {
         super({...options,
-            visible: false,
+            visible,
             template: `
 <div class=popup-more-options-dropdown>
     <div class="options vertical-list" style="min-width: 13em;"></div>
