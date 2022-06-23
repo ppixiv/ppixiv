@@ -108,7 +108,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
 
         // Hide the UI's container too when we're editing, so the hover boxes don't get in
         // the way.
-        this.container.querySelector(".ui").hidden = editing;
+        this.container.querySelector(".ui").hidden = editing || ppixiv.mobile;
     }
 
     set_data_source(data_source)
