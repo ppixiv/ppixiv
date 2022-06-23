@@ -607,6 +607,11 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
             }
         });
 
+        // Listen for the image viewer changing.  This is used for zooming.
+        ppixiv.image_viewer_base.primary_changed.addEventListener("changed", (e) => {
+            this.on_click_viewer = e.viewer;
+        }, { signal: this.shutdown_signal.signal });
+
         this.mode_observer.observe(document.body, {
             attributes: true, childList: false, subtree: false
         });

@@ -28,14 +28,15 @@ ppixiv.viewer_images = class extends ppixiv.viewer
             },
         });
 
+        // Make this the primary image viewer.
+        image_viewer_base.set_primary(this.on_click_viewer);
+
         // Create the inpaint editor.  This is passed down to on_click_viewer to group
         // it with the image, but we create it here and reuse it.
         this.image_editor = new ppixiv.ImageEditor({
             container: this.container,
             onvisibilitychanged: () => { this.refresh(); }, // refresh when crop editing is changed
         });
-
-        main_context_menu.get.on_click_viewer = this.on_click_viewer;
     }
 
     async load(signal,
@@ -161,8 +162,6 @@ ppixiv.viewer_images = class extends ppixiv.viewer
             this.image_editor.shutdown();
             this.image_editor = null;
         }
-
-        main_context_menu.get.on_click_viewer = null;
     }
 
     refresh()

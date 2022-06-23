@@ -3,8 +3,23 @@
 // The base class for the main low-level image viewer.  This handles loading images,
 // and the mechanics for zoom and pan.  The actual zoom and pan UI is handled by the
 // desktop and mobile subclasses.
-class image_viewer_base extends ppixiv.widget
+ppixiv.image_viewer_base = class extends ppixiv.widget
 {
+    // Our primary image viewer, if any.
+    static primary;
+
+    // "changed" is fired on this when primary_image_viewer changes.
+    static primary_changed = new EventTarget();
+
+    static set_primary(viewer)
+    {
+        this.primary = viewer;
+
+        let e = new Event("changed");
+        e.viewer = viewer;
+        this.primary_changed.dispatchEvent(e);
+    }
+
     constructor({onviewcontainerchange, ...options})
     {
         super({
@@ -280,6 +295,10 @@ class image_viewer_base extends ppixiv.widget
 
     shutdown()
     {
+        // Clear the primary viewer if it was us.
+        if(image_viewer_base.primary === this)
+            image_viewer_base.set_primary(null);
+
         this.remove_images();
         
         this.container.remove();
@@ -996,7 +1015,7 @@ class image_viewer_base extends ppixiv.widget
 }
 
 // This subclass implements our desktop pan/zoom UI.
-ppixiv.image_viewer_desktop = class extends image_viewer_base
+ppixiv.image_viewer_desktop = class extends ppixiv.image_viewer_base
 {
     constructor({...options})
     {
@@ -1130,7 +1149,7 @@ ppixiv.image_viewer_desktop = class extends image_viewer_base
 }
 
 // This subclass implements our touchscreen pan/zoom UI.
-ppixiv.image_viewer_mobile = class extends image_viewer_base
+ppixiv.image_viewer_mobile = class extends ppixiv.image_viewer_base
 {
     constructor({...options})
     {
