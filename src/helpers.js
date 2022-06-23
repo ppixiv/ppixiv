@@ -591,6 +591,15 @@ ppixiv.helpers = {
         });
     },
 
+    wait_for_load(element)
+    {
+        return new Promise((accept, reject) => {
+            element.addEventListener("load", () => {
+                accept();
+            }, { once: true });
+        });
+    },
+
     // Try to stop the underlying page from doing things (it just creates unnecessary network
     // requests and spams errors to the console), and undo damage to the environment that it
     // might have done before we were able to start.

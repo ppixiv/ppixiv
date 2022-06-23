@@ -220,6 +220,11 @@ ppixiv.main_controller = class
             link.href = resources['resources/main.scss'];
             link.rel = "stylesheet";
             document.querySelector("head").appendChild(link);
+
+            // Wait for the stylesheet to actually load before continuing.  This is quick, but if we
+            // continue before it's ready, we can flash unstyled content or have other weird nondeterministic
+            // problems.
+            await helpers.wait_for_load(link);
         }
 
         // If we're running natively, index.html included an initial stylesheet to set the background
