@@ -132,13 +132,13 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
             <div class=popup-context-menu>
                 <div class=button-strip>
                     <div class=button-block>
-                        <div class="button button-view-manga" data-level=0 data-popup="View manga pages">
+                        <div class="button button-view-manga" data-popup="View manga pages">
                             ${ helpers.create_icon("ppixiv:thumbnails") }
                         </div>
                     </div>
 
                     <div class=button-block>
-                        <div class="button button-fullscreen enabled" data-level=0 data-popup="Fullscreen">
+                        <div class="button button-fullscreen enabled" data-popup="Fullscreen">
                             <ppixiv-inline src="resources/fullscreen.svg"></ppixiv-inline>
                         </div>
                     </div>
@@ -146,7 +146,7 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
                 </div>
                 <div class=button-strip>
                     <div class="button-block shift-left">
-                        <div class="button button-browser-back enabled" data-level=0 data-popup="Back" style="transform: scaleX(-1);">
+                        <div class="button button-browser-back enabled" data-popup="Back" style="transform: scaleX(-1);">
                             <ppixiv-inline src="resources/exit-icon.svg"></ppixiv-inline>
                         </div>
                     </div>
@@ -178,7 +178,7 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
                     <div class="button-block shift-left">
                         <div class="avatar-widget-container"></div>
 
-                        <div class="button button-parent-folder enabled" data-level=0 data-popup="Parent folder" hidden>
+                        <div class="button button-parent-folder enabled" data-popup="Parent folder" hidden>
                             ${ helpers.create_icon("folder") }
                         </div>
                     </div>
