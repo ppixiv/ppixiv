@@ -15,6 +15,7 @@ source_files = [
     'src/editing_pan.js',
     'src/menu_option.js',
     'src/main_context_menu.js',
+    'src/mobile_illust_ui.js',
     'src/create_zip.js',
     'src/data_sources.js',
     'src/encode_mkv.js',

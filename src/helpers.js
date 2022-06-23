@@ -4900,3 +4900,83 @@ ppixiv.MobileDoubleTapHandler = class
         this.ondbltap(e);
     }
 };
+
+// A listener for isolated taps: a single tap on its own, which doesn't drag, double-tap,
+// etc.  This is used to display the mobile viewer UI in screen_illust.
+ppixiv.MobileIsolatedTapHandler = class
+{
+    constructor({
+        container,
+        ontap,
+
+        // The amount of time that needs to elapse without any other inputs before a
+        // tap can be treated as isolated.
+        cooldown_timer_before=500,
+
+        // The amount of time that needs to elapse after a tap with no other inputs
+        // before a tap is treated as isolated.  This should be high enough so we don't
+        // interfere with things like double-taps, but not too high since it delays the
+        // input.
+        cooldown_timer_after=300,
+        signal=null,
+    })
+    {
+        this.container = container;
+        this.ontap = ontap;
+        this.cooldown_timer_before = cooldown_timer_before;
+        this.cooldown_timer_after = cooldown_timer_after;
+
+        this.last_pointerup_timestamp = -9999;
+
+        // We rely on click events never happening during multitouch.
+        this.container.addEventListener("click", this.onclick, { signal });
+        this.container.addEventListener("pointerdown", this.onpointerevent, { signal });
+        
+        signal.addEventListener("abort", (e) => {
+            this.cancel_pending_tap();
+        }, { once: true });
+    }
+
+    // Force a delay before a tap can be registered, as if a click was just registered.
+    delay()
+    {
+        this.last_pointerup_timestamp = performance.now();
+    }
+
+    onpointerevent = (e) =>
+    {
+        // Cancel the running tap timer on any other pointerdown.
+        this.cancel_pending_tap();
+    }
+
+    onclick = (e) =>
+    {
+        // If we see another click, cancel any running tap timer.
+        this.cancel_pending_tap();
+
+        // If it hasn't been long enough since the last click, ignore this one.
+        let time_since_pointerup = e.timeStamp - this.last_pointerup_timestamp;
+        this.last_pointerup_timestamp = e.timeStamp;
+
+        if(time_since_pointerup < this.cooldown_timer_before)
+            return;
+
+        // Wait a while to see if any other pointer event happens.
+        let id = this.waiting_for_other_events = setTimeout(() => {
+            if(id != this.waiting_for_other_events)
+                return;
+
+            this.waiting_for_other_events = null;
+            this.ontap(e);
+        }, this.cooldown_timer_after);
+    }
+
+    cancel_pending_tap()
+    {
+        if(this.waiting_for_other_events == null)
+            return;
+
+        clearTimeout(this.waiting_for_other_events);
+        this.waiting_for_other_events = null
+    }
+};

@@ -75,14 +75,32 @@ ppixiv.screen_illust = class extends ppixiv.screen
         // Mobile UI:
         if(ppixiv.mobile)
         {
+            this.mobile_illust_ui = new mobile_illust_ui({
+                container: this.container,
+                onclose: () => {
+                    // The UI can be closed by tapping outside it.  Tell isolated_tap_handler to
+                    // wait briefly before activating again, so the click that closed it doesn't
+                    // reopen it.
+                    this.isolated_tap_handler.delay();
+                }
+            });
+
             // Navigate to the next or previous image on double-tap.
-            new ppixiv.MobileDoubleTapHandler({
+            this.double_tap_handler = new ppixiv.MobileDoubleTapHandler({
                 container: this.view_container,
                 signal: this.shutdown_signal.signal,
                 ondbltap: (e) => {
                     let right = e.clientX > window.innerWidth/2;
                     this.navigate_to_next(right);
                 },
+            });
+
+            this.isolated_tap_handler = new ppixiv.MobileIsolatedTapHandler({
+                container: this.view_container,
+                signal: this.shutdown_signal.signal,
+                ontap: (e) => {
+                    this.mobile_illust_ui.show();
+                }
             });
         }
 
@@ -162,6 +180,12 @@ ppixiv.screen_illust = class extends ppixiv.screen
 
             // Stop showing the user in the context menu, and stop showing the current page.
             main_context_menu.get.set_media_id(null);
+
+            if(this.mobile_illust_ui)
+            {
+                this.mobile_illust_ui.media_id = null;
+                this.mobile_illust_ui.set_data_source(null);
+            }
 
             this.stop_displaying_image();
             
@@ -468,6 +492,13 @@ ppixiv.screen_illust = class extends ppixiv.screen
         // Tell the context menu which user is being viewed.
         main_context_menu.get.user_id = this.current_user_id;
         main_context_menu.get.set_media_id(this.current_media_id);
+
+        if(this.mobile_illust_ui)
+        {
+            this.mobile_illust_ui.user_id = this.current_user_id;
+            this.mobile_illust_ui.media_id = this.current_media_id;
+            this.mobile_illust_ui.set_data_source(this.data_source);
+        }
 
         // Update the disable UI button to point at the current image's illustration page.
         var disable_button = this.container.querySelector(".disable-ui-button");

@@ -2091,6 +2091,159 @@ a.box-link, span.box-link
     }
 }
 
+.mobile-illust-ui-container
+{
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+
+    // This node is for positioning and covers the whole screen, so don't eat pointer events.
+    pointer-events: none;
+
+    // Use a very slightly transparent black for the frame, and disable the box link background so it
+    // just uses the frame background.
+    // --frame-bg-color: #111;
+    --frame-bg-color: rgba(0,0,0,.85);
+    --box-link-bg-color: none;
+
+    // One UI page is shown at a time.
+    .mobile-illust-ui-page
+    {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        padding: 10px;
+
+        user-select: none;
+        -webkit-user-select: none;
+
+        transition:
+            opacity ease 0.3s,
+            transform ease 0.3s;
+        transform-origin: 0% 50%;
+        opacity: 1;
+
+        // Revert the pointer-events that we set on the parent.
+        pointer-events: auto;
+
+        &:not(.active-tab) {
+            opacity: 0;
+            pointer-events: none;
+            transform: translateX(-20px);
+        }
+
+        // Adjust these widgets so they look better in this view.
+        .bookmark-tag-list {
+            max-height: 100%;
+            overflow-y: scroll;
+            background-color: var(--frame-bg-color);
+            padding: 10px;
+            border-radius: 8px;
+
+            .popup-bookmark-tag-entry {
+                font-size: 200%;
+            }
+
+            .tag-right-button-strip {
+                top: 10px;
+            }
+        }
+
+        .more-options-dropdown {
+            font-size: 150%;
+            border-radius: 8px;
+            background-color: var(--frame-bg-color);
+            overflow-x: hidden;
+            overflow-y: auto;
+        }
+
+        // The top menu:
+        .top-page-button-row {
+            background-color: var(--frame-bg-color);
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            border-radius: 8px;
+
+            &:not(.display-labels) .item > .label {
+                display: none;
+            }
+
+            .item {
+                display: flex;
+                flex-direction: row;
+                align-items: center;
+                gap: 10px;
+
+                // Grey out the button and label if this item isn't enabled.
+                &:not(.enabled)
+                {
+                    cursor: inherit;
+                    color: var(--toggle-button-fg-disabled-color);
+                    > .button {
+                        color: var(--toggle-button-fg-disabled-color);
+                    }
+                }
+
+                > .button {
+                    border-radius: 4px;
+                    padding: 6px;
+                    display: flex;
+                    flex-direction: row;
+                    justify-content: center;
+                    background-color: var(--toggle-button-bg-dim-color);
+                    color: var(--toggle-button-fg-dim-color);
+
+                    & > svg {
+                        width: 32px;
+                        height: 32px;
+                    }
+
+                    /* We don't have a way to add classes to inlined SVGs yet, so for now just use nth-child.
+                    The first child is the + icon and the second child is -. */
+                    &.button-zoom:not(.selected) > :nth-child(1) { display: none; }
+                    &.button-zoom.selected > :nth-child(2) { display: none; }
+
+                    /* Popup menu bookmarking */
+                    .tag-dropdown-arrow {
+                        width: 0; 
+                        height: 0; 
+                        border-top: 10px solid #222;
+                        border-left: 10px solid transparent;
+                        border-right: 10px solid transparent;
+                    }
+                    .font-icon {
+                        font-size: 200%;
+                    }
+                }
+            }
+        }
+
+        .context-menu-image-info-container {
+            position: fixed;
+            right: 10px;
+            top: 10px;
+            background-color: var(--frame-bg-color);
+            padding: 5px 8px;
+
+            .context-menu-image-info {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                font-size: .8em;
+                font-weight: bold;
+                gap: 2px;
+                padding: 4px 0;
+            }
+        }
+    }
+}
+
 .button.button-bookmark .count,
 .button.button-like .count
 {
