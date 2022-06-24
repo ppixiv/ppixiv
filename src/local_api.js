@@ -201,7 +201,10 @@ ppixiv.local_api = class
             ...bookmark_options,
         });
         if(!result.success)
+        {
+            message_widget.singleton.show(`Couldn't edit bookmark: ${result.reason}`);
             return;
+        }
 
         // Update bookmark tags and thumbnail data.
         image_data.singleton().update_cached_bookmark_image_tags(media_id, result.bookmark.tags);
@@ -229,7 +232,10 @@ ppixiv.local_api = class
 
         let result = await local_api.local_post_request(`/api/bookmark/delete/${media_id}`);
         if(!result.success)
+        {
+            message_widget.singleton.show(`Couldn't remove bookmark: ${result.reason}`);
             return;
+        }
 
         image_data.singleton().update_media_info(media_id, {
             bookmarkData: null
