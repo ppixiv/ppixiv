@@ -1780,6 +1780,18 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                 });
             },
 
+            open_settings: () => {
+                return new menu_option_button({
+                    ...shared_options,
+                    label: "Settings",
+                    icon: "mat:settings",
+                    onclick: () => {
+                        new ppixiv.settings_dialog();
+                        this.parent.hide();
+                    }
+                });
+            },
+
             exit: () => {
                 return new menu_option_button({
                     ...shared_options,
@@ -1811,6 +1823,11 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
             this.menu_options.push(menu_options.toggle_slideshow());
         this.menu_options.push(menu_options.image_editing());
         this.menu_options.push(menu_options.refresh_image());
+
+        // Add settings for mobile.  On desktop, this is available in a bunch of other
+        // higher-profile places.
+        if(ppixiv.mobile)
+            this.menu_options.push(menu_options.open_settings());
 
         if(!ppixiv.native)
             this.menu_options.push(menu_options.exit());
