@@ -1831,11 +1831,6 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
 
         if(!ppixiv.native)
             this.menu_options.push(menu_options.exit());
-
-        // Close if our containing widget is closed.
-        new view_hidden_listener(this.container, (e) => {
-            this.visible = false;
-        });
     }
 
     set_user_id(user_id)

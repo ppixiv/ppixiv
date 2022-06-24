@@ -654,6 +654,11 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         });
         more_options_widget.container.classList.add("popup-more-options-dropdown");
 
+        new view_hidden_listener(more_options_widget.container, (e) => {
+            // Close if our containing widget is closed.
+            more_options_widget.visible = false;
+        });
+
         this.illust_widgets = [
             this.avatar_widget,
             bookmark_tag_widget,
