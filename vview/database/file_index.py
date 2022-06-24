@@ -269,7 +269,7 @@ class FileIndex(Database):
 
                 tags_to_add = []
                 for tag in tags:
-                    tags_to_add.append((entry['id'], tag.lower()))
+                    tags_to_add.append((entry['id'], tag))
 
                 cursor.executemany(f'''
                     INSERT INTO {self.schema}.bookmark_tags (file_id, tag) values (?, ?)
@@ -519,7 +519,7 @@ class FileIndex(Database):
                     tag_match = []
                     for tag in bookmark_tags.split(' '):
                         tag_match.append(f'{schema}bookmark_tags.tag = ?')
-                        params.append(tag.lower())
+                        params.append(tag)
                     where.append('(' + ' OR '.join(tag_match) + ')')
         
         if substr:
