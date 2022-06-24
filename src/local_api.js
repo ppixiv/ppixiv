@@ -601,17 +601,13 @@ ppixiv.local_api = class
     // Log out if we're logged in, and redirect to the login page.
     static redirect_to_login()
     {
-        //document.cookie = `auth_token=; max-age=0; path=/`;
-
         let query = new URLSearchParams();
         query.set("url", document.location.href);
-
-        let login_url = "/client/resources/auth.html?" + query.toString();
-        console.log(login_url);
 
         // Replace the current history entry.  This pushes any history state to the
         // login page.  It'll preserve it after logging in and redirecting back here,
         // so we'll try to retain it.
+        let login_url = "/client/resources/auth.html?" + query.toString();
         window.history.replaceState(history.state, "", login_url.toString());
         document.location.reload();
     }
