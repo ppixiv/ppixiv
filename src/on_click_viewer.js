@@ -1017,6 +1017,74 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         for(let animation of this.animations)
             animation.updatePlaybackRate(pause? 0:1);
     }
+
+    // These zoom helpers are mostly for the popup menu.
+    //
+    // Toggle zooming, centering around the given view position.
+    zoom_toggle({x, y})
+    {
+        let center = this.get_image_position([x, y]);
+        this.locked_zoom = !this.locked_zoom;
+        this.set_image_position([x, y], center);
+        this.reposition();
+    }
+
+    // Set the zoom level, keeping the given view position stationary if possible.
+    zoom_set_level(level, {x, y})
+    {
+        // If the zoom level that's already selected is clicked and we're already zoomed,
+        // just toggle zoom as if the toggle zoom button was pressed.
+        if(this.zoom_level == level && this.locked_zoom)
+        {
+            this.locked_zoom = false;
+            this.reposition();
+            return;
+        }
+
+        let center = this.get_image_position([x, y]);
+        
+        // Each zoom button enables zoom lock, since otherwise changing the zoom level would
+        // only have an effect when click-dragging, so it looks like the buttons don't do anything.
+        this.zoom_level = level;
+        this.locked_zoom = true;
+        this.set_image_position([x, y], center);
+
+        this.reposition();
+    }
+
+    // Zoom in or out, keeping x,y centered if possible.
+    zoom_adjust(down, {x, y})
+    {
+        let center = this.get_image_position([x, y]);
+
+        // If mousewheel zooming is used while not zoomed, turn on zooming and set
+        // a 1x zoom factor, so we zoom relative to the previously unzoomed image.
+        if(!this.zoom_active)
+        {
+            this.zoom_level = 0;
+            this.locked_zoom = true;
+        }
+
+        this.change_zoom(down);
+
+        // As a special case, 
+        // If that put us in 0x zoom, we're now showing the image identically to not being zoomed
+        // at all.  That's confusing, since toggling zoom does nothing since it toggles between
+        // unzoomed and an identical zoom.  When this happens, switch zoom off and change the zoom
+        // level to "cover".  The display will be identical, but clicking will zoom.
+        //
+        // This works with the test above: if you zoom again after this happens, we'll turn locked_zoom
+        // back on.
+        if(this.zoom_level == 0)
+        {
+            // but this should leave locked_zoom false, which we don't want
+            this.zoom_level = "cover";
+            this.locked_zoom = false;
+        }
+
+        this.set_image_position([x, y], center);
+        this.reposition();        
+    }
 }
 
 // This subclass implements our desktop pan/zoom UI.

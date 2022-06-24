@@ -1080,35 +1080,9 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         var keyboard = e instanceof KeyboardEvent;
         var pageX = keyboard? null:e.pageX;
         var pageY = keyboard? null:e.pageY;
-        let center = this._on_click_viewer.get_image_position([pageX, pageY]);
+
+        this._on_click_viewer.zoom_adjust(down, {x: pageX, y: pageY});
         
-        // If mousewheel zooming is used while not zoomed, turn on zooming and set
-        // a 1x zoom factor, so we zoom relative to the previously unzoomed image.
-        if(!this._on_click_viewer.zoom_active)
-        {
-            this._on_click_viewer.zoom_level = 0;
-            this._on_click_viewer.locked_zoom = true;
-            this.refresh();
-        }
-
-        this._on_click_viewer.change_zoom(down);
-
-        // As a special case, 
-        // If that put us in 0x zoom, we're now showing the image identically to not being zoomed
-        // at all.  That's confusing, since toggling zoom does nothing since it toggles between
-        // unzoomed and an identical zoom.  When this happens, switch zoom off and change the zoom
-        // level to "cover".  The display will be identical, but clicking will zoom.
-        //
-        // This works with the test above: if you zoom again after this happens, we'll turn locked_zoom
-        // back on.
-        if(this._on_click_viewer.zoom_level == 0)
-        {
-            // but this should leave locked_zoom false, which we don't want
-            this._on_click_viewer.zoom_level = "cover";
-            this._on_click_viewer.locked_zoom = false;
-        }
-
-        this._on_click_viewer.set_image_position([pageX, pageY], center);
         this.refresh();
     }
 
@@ -1256,10 +1230,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         if(!this._is_zoom_ui_enabled)
             return;
         
-        let center = this._on_click_viewer.get_image_position([e.pageX, e.pageY]);
-        this._on_click_viewer.locked_zoom = !this._on_click_viewer.locked_zoom;
-        this._on_click_viewer.set_image_position([e.pageX, e.pageY], center);
-
+        this._on_click_viewer.zoom_toggle({x: e.pageX, y: e.pageY})
         this.refresh();
     }
 
@@ -1271,26 +1242,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         if(!this._is_zoom_ui_enabled)
             return;
 
-        let level = e.currentTarget.dataset.level;
-
-        // If the zoom level that's already selected is clicked and we're already zoomed,
-        // just toggle zoom as if the toggle zoom button was pressed.
-        if(this._on_click_viewer.zoom_level == level && this._on_click_viewer.locked_zoom)
-        {
-            this.on_click_viewer.locked_zoom = false;
-            this.refresh();
-            return;
-        }
-
-        let center = this._on_click_viewer.get_image_position([e.pageX, e.pageY]);
-        
-        // Each zoom button enables zoom lock, since otherwise changing the zoom level would
-        // only have an effect when click-dragging, so it looks like the buttons don't do anything.
-        this._on_click_viewer.zoom_level = level;
-        this._on_click_viewer.locked_zoom = true;
-
-        this._on_click_viewer.set_image_position([e.pageX, e.pageY], center);
-        
+        this._on_click_viewer.zoom_set_level(e.currentTarget.dataset.level, {x: e.pageX, y: e.pageY});
         this.refresh();
     }
 
