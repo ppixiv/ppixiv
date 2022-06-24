@@ -2090,6 +2090,7 @@ a.box-link, span.box-link
     left: 0px;
     width: 100%;
     height: calc(100% - var(--video-ui-height));
+    display: flex;
 
     // This node is for positioning and covers the whole screen, so don't eat pointer events.
     pointer-events: none;
@@ -2125,19 +2126,23 @@ a.box-link, span.box-link
         }
     }
 
-    &:not([data-displayed-page]) .context-menu-image-info-container {
+    &:not(.shown) .context-menu-image-info-container {
         opacity: 0;
         transform: translateX(20px);
     }
 
+    // Subpages are absolutely positioned to the right of the top menu.
+    .mobile-illust-ui-page:not(.top-page)
+    {
+        position: absolute;
+        top: 0;
+        left: 70px;
+        max-height: 100%;
+    }
 
     // One UI page is shown at a time.
     .mobile-illust-ui-page
     {
-        position: absolute;
-        top: 0;
-        left: 0;
-        height: 100%;
         padding: 10px;
         overflow-y: auto;
 

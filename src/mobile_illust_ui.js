@@ -100,7 +100,7 @@ let mobile_illust_ui_top_page = class extends mobile_illust_ui_page
     constructor({template, ...options})
     {
         super({...options, visible: true, template: `
-            <div class=mobile-illust-ui-page>
+            <div class="mobile-illust-ui-page top-page">
                 <div class=top-page-button-row>
                     <div class="item button-browser-back">
                         <div class=button>
@@ -188,6 +188,7 @@ let mobile_illust_ui_top_page = class extends mobile_illust_ui_page
 
         this._media_id = null;
         this._on_click_viewer = null;
+        this.submenu_open = false;
 
         this.container.querySelector(".button-view-manga").addEventListener("click", this.clicked_view_manga);
 
@@ -227,11 +228,11 @@ let mobile_illust_ui_top_page = class extends mobile_illust_ui_page
         });
 
         this.container.querySelector(".button-more").addEventListener("click", (e) => {
-            this.parent.show_page("more");
+            this.parent.toggle_page("more");
         });
 
         this.container.querySelector(".button-bookmark-tags").addEventListener("click", (e) => {
-            this.parent.show_page("bookmark_tags");
+            this.parent.toggle_page("bookmark_tags");
         });
 
         this.illust_widgets = [
@@ -281,6 +282,13 @@ let mobile_illust_ui_top_page = class extends mobile_illust_ui_page
         this.refresh();
     }
 
+    // If a submenu is open, we'll hide our button labels.
+    set_submenu_open(value)
+    {
+        this.submenu_open = value;
+        this.refresh();
+    }
+
     refresh()
     {
         super.refresh();
@@ -292,7 +300,7 @@ let mobile_illust_ui_top_page = class extends mobile_illust_ui_page
         if(!this.visible && this._media_id != null)
             return
 
-        helpers.set_class(this.container.querySelector(".top-page-button-row"), "display-labels", this.display_labels);
+        helpers.set_class(this.container.querySelector(".top-page-button-row"), "display-labels", this.display_labels && !this.submenu_open);
 
         let button_view_manga = this.container.querySelector(".button-view-manga");
         button_view_manga.dataset.popup = "View manga pages";
@@ -421,14 +429,14 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
                 <div class=context-menu-image-info-container></div>
             </div>
         `});
-
-        this.onclose = onclose;
-        this.pages = {};
-
+        
         this.info_widget = new context_menu_image_info_widget({
             parent: this,
             container: this.container.querySelector(".context-menu-image-info-container"),
-        }),
+        });
+
+        this.onclose = onclose;
+        this.pages = {};
 
         this.pages.top = new mobile_illust_ui_top_page({
             container: this.container,
@@ -453,7 +461,7 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
 
         this.set_bottom_reservation("0px");
         this.show_page(null);
-
+        
         this.refresh();
     }
 
@@ -492,10 +500,26 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
 
     show()
     {
-        if(this.displayed_page != null)
+        if(this.shown)
             return;
+        this.shown = true;
 
-        this.show_page("top");
+        // If we're becoming visible, create our click_outside_listener.
+        if(this.click_outside_listener == null)
+        {
+            if(this.click_outside_listener == null)
+            {
+                this.click_outside_listener = new click_outside_listener([this.container], (element) => {
+                    // Don't close the UI if the click is inside an element with the no-close-ui
+                    // class.
+                    if(element.closest(".no-close-ui"))
+                        return;
+                    this.hide();
+                });
+            }
+        }            
+
+        this.pages.top.show_tab();
 
         // Make sure we're up to date if we deferred an update while hidden.
         this.refresh();
@@ -503,8 +527,25 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
 
     hide()
     {
-        // To hide, hide the active page.
+        if(!this.shown)
+            return;
+        this.shown = false;
+
+        // If we're becoming hidden, remove our click_outside_listener.
+        if(this.click_outside_listener != null)
+        {
+            this.click_outside_listener.shutdown();
+            this.click_outside_listener = null;
+        }
+
+        this.pages.top.hide_tab();
         this.show_page(null);
+
+        this.refresh();
+
+        // Tell the caller that we're closing.
+        if(this.onclose)
+            this.onclose();
     }
 
     show_page(new_page_name)
@@ -522,34 +563,15 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
         if(new_page)
             new_page.show_tab();
 
-        // If we're becoming visible, create our click_outside_listener.
-        if(old_page == null && this.click_outside_listener == null)
-        {
-            if(this.click_outside_listener == null)
-            {
-                this.click_outside_listener = new click_outside_listener([this.container], (element) => {
-                    // Don't close the UI if the click is inside an element with the no-close-ui
-                    // class.
-                    if(element.closest(".no-close-ui"))
-                        return;
-                    this.hide();
-                });
-            }
-        }
+        this.pages.top.set_submenu_open(new_page_name != null);
+    }
 
-        // If we're becoming hidden, remove our click_outside_listener.
-        if(new_page == null && this.click_outside_listener != null)
-        {
-            this.click_outside_listener.shutdown();
-            this.click_outside_listener = null;
-        }
-
-        // Set data-mobile-ui-visible so other UIs can tell if this UI is open.
-        ClassFlags.get.set("mobile-ui-visible", new_page != null);
-
-        // Tell the caller that we're closing.
-        if(new_page == null && this.onclose)
-            this.onclose();
+    toggle_page(page)
+    {
+        if(this.displayed_page == page)
+            this.show_page(null);
+        else
+            this.show_page(page);
     }
 
     // Set the amount of space reserved at the bottom for other UI.  This is used to prevent
@@ -561,6 +583,10 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
     
     refresh()
     {
+        // Set data-mobile-ui-visible so other UIs can tell if this UI is open.
+        ClassFlags.get.set("mobile-ui-visible", this.shown);
+        helpers.set_class(this.container, "shown", this.shown);
+
         for(let page of Object.values(this.pages))
             page.refresh();
     }
