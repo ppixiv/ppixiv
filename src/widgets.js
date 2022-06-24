@@ -1790,7 +1790,10 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
 
         this.menu_options.push(menu_options.send_to_tab());
         this.menu_options.push(menu_options.linked_tabs());
-        this.menu_options.push(menu_options.toggle_slideshow());
+
+        // This is in the top-level menu on mobile.
+        if(!ppixiv.mobile)
+            this.menu_options.push(menu_options.toggle_slideshow());
         this.menu_options.push(menu_options.image_editing());
         this.menu_options.push(menu_options.refresh_image());
 

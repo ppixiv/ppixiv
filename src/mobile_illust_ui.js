@@ -109,6 +109,13 @@ let mobile_illust_ui_top_page = class extends mobile_illust_ui_page
                         <span class=label>Back</span>
                     </div>
 
+                    <div class="item button-toggle-slideshow enabled">
+                        <div class=button>
+                            ${ helpers.create_icon("mat:wallpaper") }
+                        </div>
+                        <span class=label>Slideshow</span>
+                    </div>
+
                     <div class="item button-toggle-zoom">
                         <div class=button>
                             <ppixiv-inline src="resources/zoom-full.svg"></ppixiv-inline>
@@ -206,6 +213,13 @@ let mobile_illust_ui_top_page = class extends mobile_illust_ui_page
         this.container.querySelector(".button-parent-folder").addEventListener("click", this.clicked_go_to_parent);
         this.toggle_zoom_button = this.container.querySelector(".button-toggle-zoom");
         this.toggle_zoom_button.addEventListener("click", this.clicked_toggle_zoom);
+
+        this.toggle_slideshow_bottom = this.container.querySelector(".button-toggle-slideshow");
+        this.toggle_slideshow_bottom.addEventListener("click", (e) => {
+            main_controller.singleton.toggle_slideshow();
+            this.parent.hide();
+            this.refresh();
+        });
 
         this.avatar_widget = new avatar_widget({
             container: this.container.querySelector(".avatar-widget-container"),
