@@ -2091,6 +2091,7 @@ a.box-link, span.box-link
     width: 100%;
     height: calc(100% - var(--video-ui-height));
     display: flex;
+    align-items: flex-start;
 
     // This node is for positioning and covers the whole screen, so don't eat pointer events.
     pointer-events: none;
