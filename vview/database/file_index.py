@@ -147,7 +147,9 @@ class FileIndex(Database):
 
     @classmethod
     def split_keywords(self, filename):
-        return set(misc.split_keywords(filename))
+        keywords = misc.split_keywords(filename)
+        keywords = [keyword.lower() for keyword in keywords]
+        return set(keywords)        
 
     @property
     def keyword_fields(self):
