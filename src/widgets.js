@@ -1274,16 +1274,18 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
     {
         super({...options, template: `
             <div class="bookmark-tag-list">
-                <div class=tag-list></div> <!-- tag list is inserted here -->
-                <div class=tag-right-button-strip>
-                    <div class="tag-button popup add-tag" data-popup="Add a different tag">
-                        <div class=icon-button>
-                            ${ helpers.create_icon("add") }
+                <div class=tag-list>
+                    <div class=tag-list-buttons>
+                        <div class=add-tag>
+                            <div class=icon-button>
+                                ${ helpers.create_icon("add") }
+                            </div>
                         </div>
-                    </div>
-                    <div class="tag-button popup sync-tags" data-popup="Load common tags from bookmarks">
-                        <div class=icon-button>
-                            <ppixiv-inline src="resources/refresh-icon.svg"></ppixiv-inline>
+
+                        <div class=sync-tags>
+                            <div class=icon-button>
+                                ${ helpers.create_icon("refresh") }
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1352,9 +1354,21 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
             }
 
             // Clear the tag list when the menu closes, so it's clean on the next refresh.
-            var bookmark_tags = this.container.querySelector(".tag-list");
-            helpers.remove_elements(bookmark_tags);
+            this.clear_tag_list();
+
             this.displaying_media_id = null;
+        }
+    }
+
+    clear_tag_list()
+    {
+        // Make a copy of children when iterating, since it doesn't handle items being deleted
+        // while iterating cleanly.
+        let bookmark_tags = this.container.querySelector(".tag-list");
+        for(let element of [...bookmark_tags.children])
+        {
+            if(element.classList.contains("tag-toggle") || element.classList.contains("loading"))
+                element.remove();
         }
     }
 
@@ -1367,13 +1381,14 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
         this.displaying_media_id = null;
 
         let bookmark_tags = this.container.querySelector(".tag-list");
-        helpers.remove_elements(bookmark_tags);
+        this.clear_tag_list();
 
         if(media_id == null || !this.visible)
             return;
 
         // Create a temporary entry to show loading while we load bookmark details.
         let entry = document.createElement("span");
+        entry.classList.add("loading");
         bookmark_tags.appendChild(entry);
         entry.innerText = "Loading...";
 
@@ -1386,7 +1401,7 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
 
         // Remove elements again, in case another refresh happened while we were async
         // and to remove the loading entry.
-        helpers.remove_elements(bookmark_tags);
+        this.clear_tag_list();
         
         // If we're refreshing the list while it's open, make sure that any tags the user
         // selected are still in the list, even if they were removed by the refresh.  Put
@@ -1418,7 +1433,7 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
         for(let tag of shown_tags)
         {
             let entry = this.create_template({name: "tag-entry", html: `
-                <div class=popup-bookmark-tag-entry>
+                <div class="popup-bookmark-tag-entry tag-toggle">
                     <span class=tag-name></span>
                 </div>
             `});
