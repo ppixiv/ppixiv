@@ -52,8 +52,7 @@ ppixiv.viewer_video = class extends ppixiv.viewer
 
         this.video.addEventListener("timeupdate", this.update_seek_bar);
         this.video.addEventListener("progress", this.update_seek_bar);
-        if(!ppixiv.mobile)
-            this.video_container.addEventListener("click", this.clicked_video);
+        this.video_container.addEventListener("click", this.clicked_video);
 
         // In case we start PIP without playing first, switch the poster when PIP starts.
         this.video.addEventListener("enterpictureinpicture", (e) => { this.switch_poster_to_thumb(); });
@@ -291,6 +290,9 @@ ppixiv.viewer_video = class extends ppixiv.viewer
 
     clicked_video = async(e) =>
     {
+        if(ppixiv.mobile)
+            return;
+
         this.set_want_playing(!this.want_playing);
         this.refresh_focus();
     }
