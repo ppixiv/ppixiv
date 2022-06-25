@@ -313,38 +313,21 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
         
                 button.container.querySelector(".size-slider").style.flexGrow = .25;
             },
+
             slideshow_default_animation: () => {
-                let button;
-                let slider = new menu_option_slider_setting({
+                return new ppixiv.menu_option_options_setting({
                     ...global_options,
-                    label: "Slideshow mode",
                     setting: "slideshow_default",
-                    min: 0,
-                    max: 1,
-                    list: ["pan", "contain",],
-                    classes: ["size-slider"],
-                    
-                    // Refresh the label when the value changes.
-                    refresh: function() { button.refresh(); },
-                });
-
-                let explanation = () => {
-                    let mode = settings.get("slideshow_default", "pan");
-                    switch(mode)
-                    {
-                    case "pan": return "Pan the image left-to-right or top-to-bottom";
-                    case "contain": return "Fade in and out without panning";
-                    }
-                };
-
-                button = new menu_option_button({
-                    ...global_options,
                     label: "Slideshow mode",
-                    explanation_enabled: explanation,
-                    buttons: [slider],
+                    values: ["pan", "contain"],
+                    explanation: (value) => {
+                        switch(value)
+                        {
+                        case "pan": return "Pan the image left-to-right or top-to-bottom";
+                        case "contain": return "Fade in and out without panning";
+                        }
+                    },
                 });
-        
-                button.container.querySelector(".size-slider").style.flexGrow = .25;
             },
 
             slideshow_skips_manga: () => {
@@ -1003,6 +986,49 @@ ppixiv.menu_option_slider_setting = class extends menu_option_slider
     {
         settings.set(this.setting, value);
         this.refresh();
+    }
+};
+
+// A menu option widget for settings that come from a list of options.  This would
+// make more sense as a dropdown, but for now it uses a slider.
+ppixiv.menu_option_options_setting = class extends menu_option_button
+{
+    constructor({setting,
+        label,
+        values,
+        explanation,
+        ...options})
+    {
+        let slider = new menu_option_slider_setting({
+            label: "xxx",
+            setting: setting,
+            min: 0,
+            max: values.length,
+            list: values,
+            classes: ["slider"],
+            
+            // Refresh the label when the value changes.
+            refresh: () => { this.refresh(); },
+        });
+    
+        super({
+            ...options,
+            label: label,
+            buttons: [slider],
+        });
+
+        this.get_explanation = explanation;
+
+        this.setting = setting;
+        this.values = values;
+        this.slider = slider;
+    
+        this.container.querySelector(".slider").style.flexGrow = .25;        
+    }
+
+    get explanation_text()
+    {
+        return this.get_explanation(this.slider.value);
     }
 };
 
