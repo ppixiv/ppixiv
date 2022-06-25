@@ -433,6 +433,7 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
         this.info_widget = new context_menu_image_info_widget({
             parent: this,
             container: this.container.querySelector(".context-menu-image-info-container"),
+            show_title: true,
         });
 
         this.onclose = onclose;

@@ -2107,6 +2107,7 @@ a.box-link, span.box-link
         position: fixed;
         right: 10px;
         top: 10px;
+        max-width: calc(100vw - 100px);
         background-color: var(--frame-bg-color);
         padding: 5px 8px;
 
@@ -2122,8 +2123,22 @@ a.box-link, span.box-link
             align-items: center;
             font-size: .8em;
             font-weight: bold;
+            overflow: hidden;
             gap: 2px;
             padding: 4px 0;
+
+            .title-text-block {
+                overflow: hidden;
+                white-space: nowrap;
+                text-overflow: ellipsis;
+                max-width: 100%;
+                > .folder-block {
+                    color: #aaa;
+                    .slash {
+                        font-size: 12px;
+                    }
+                }
+            }
         }
     }
 

@@ -11,15 +11,26 @@
 // This also handles alt-mousewheel zooming.
 ppixiv.context_menu_image_info_widget = class extends ppixiv.illust_widget
 {
-    constructor({...options})
+    constructor({
+        show_title=false,
+        ...options})
     {
         super({ ...options, template: `
             <div class=context-menu-image-info>
+                <div class=title-text-block>
+                    <span style="display: inline-block;" class=folder-block hidden>
+                        <span class=folder-text></span>
+                        <span class=slash">/</span>
+                    </span>
+                    <span class=title hidden></span>
+                </div>
                 <div class=page-count hidden></div>
                 <div class=image-info hidden></div>
                 <div class="post-age popup" hidden></div>
             </div>
         `});
+
+        this.show_title = show_title;
     }
 
     get needed_data()
@@ -80,6 +91,19 @@ ppixiv.context_menu_image_info_widget = class extends ppixiv.illust_widget
                 page_text = `${page_count} pages`;
         }
         set_info(".page-count", page_text);
+
+        if(this.show_title)
+        {
+            set_info(".title", illust_data.illustTitle);
+        
+            let show_folder = helpers.is_media_id_local(this._media_id);
+            this.container.querySelector(".folder-block").hidden = !show_folder;
+            if(show_folder)
+            {
+                let {id} = helpers.parse_media_id(this._media_id);
+                this.container.querySelector(".folder-text").innerText = helpers.get_path_suffix(id, 1, 1); // parent directory
+            }
+        }
 
         // If we're on the first page then we only requested early info, and we can use the dimensions
         // on it.  Otherwise, get dimensions from mangaPages from illust data.  If we're displaying a
