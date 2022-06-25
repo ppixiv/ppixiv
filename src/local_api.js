@@ -6,13 +6,10 @@ ppixiv.local_api = class
     static get local_url()
     {
         // If we're running natively, the API is on the same URL as we are.
-        if(ppixiv.native)
-            return new URL("/", document.location);
-
-        let url = settings.get("local_api_url");
-        if(url == null)
+        if(!ppixiv.native)
             return null;
-        return new URL(url);
+
+        return new URL("/", document.location);
     }
 
     // Return the URL path used by the UI.

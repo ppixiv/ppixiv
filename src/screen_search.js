@@ -616,7 +616,6 @@ ppixiv.screen_search = class extends ppixiv.screen
             { label: "Completed requests",     icon: "request_page", url: "/request/complete/illust#ppixiv" },
             { label: "Users",           icon: "search", url: "/search_user.php#ppixiv" },
             // { label: "Recent history", icon: "", url: "/history.php#ppixiv", classes: ["recent-history-link"] },
-            { label: "Local search",           icon: "folder", url: `${local_api.path}#ppixiv/`, local: true, onclick: local_api.show_local_search },
         ];
 
 
@@ -628,9 +627,6 @@ ppixiv.screen_search = class extends ppixiv.screen
                 ...option
             })
 
-            // Hide the local search menu option if it's not enabled.
-            if(option.local && !local_api.is_enabled())
-                button.container.hidden = true;
             return button;
         };
 

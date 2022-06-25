@@ -30,11 +30,10 @@ def _check_auth(request):
     remote_addr = sock.getpeername()[0] if sock else None
     from_localhost = remote_addr == '127.0.0.1'
 
-    # Allow unauthenticated requests on localhost if they come from the UI running
-    # on localhost, or if they're from the UI running on Pixiv.  These are requests
-    # on the local machine.
+    # Allow unauthenticated requests on localhost if the origin is localhost, so we
+    # always give access to the local UI.
     if from_localhost:
-        if origin is None or origin.hostname in ('www.pixiv.net', '127.0.0.1'):
+        if origin is None or origin.hostname == '127.0.0.1':
             log.debug('Request to localhost is admin')
             request['user'] = auth.get_local_user()
             request['is_localhost'] = True
