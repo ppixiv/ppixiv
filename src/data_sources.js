@@ -492,10 +492,7 @@ ppixiv.data_source = class
         // Run the actual load.
         await this.load_page_internal(page);
 
-        // Reduce the start page, which will update the "load more results" button if any.  It's important
-        // to do this after the await above.  If we do it before, it'll update the button before we load
-        // and cause the button to update before the thumbs.  screen_search.refresh_images won't be able
-        // to optimize that and it'll cause uglier refreshes.
+        // Reduce the start page, which will update the "load more results" button if any.
         if(this.supports_start_page && page < this.initial_page)
             this.initial_page = page;
 
