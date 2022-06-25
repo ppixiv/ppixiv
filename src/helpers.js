@@ -520,6 +520,66 @@ ppixiv.helpers = {
         return results;
     },
 
+    // A simple wakeup event.
+    WakeupEvent: class
+    {
+        constructor()
+        {
+            this._signal = new AbortController();
+        }
+
+        // Wait until a call to wake().
+        async wait()
+        {
+            await this._signal.signal.wait();
+        }
+
+        // Wake all current waiters.
+        wake()
+        {
+            this._signal.abort();
+            this._signal = new AbortController();
+        }
+    },
+
+    // Hold a value, and allow waiting for a specific value.
+    //
+    // For example:
+    // this.visibility_state = new State(false); // not visible
+    // this.visibility_state.value = true; // visible
+    // await this.visibility_state.wait(false); // wait until not visible
+    State: class
+    {
+        constructor({value=false}={})
+        {
+            this._value = value;
+            this._event = new helpers.WakeupEvent();
+        }
+
+        set value(value)
+        {
+            if(this._value == value)
+                return;
+
+            this._value = value;
+            this._event.wake();
+        }
+        
+        get value()
+        {
+            return this.value;
+        }
+
+        async wait(value=true)
+        {
+            if(this._value == value)
+                return;
+
+            while(this._value != value)
+                await this._event.wait();
+        }
+    },
+
     // setInterval using an AbortSignal to remove the interval.
     //
     // If call_immediately is true, call callback() now, rather than waiting
@@ -4324,6 +4384,9 @@ ppixiv.FixedDOMRect = class extends DOMRect
 // to wait for an AbortSignal to be aborted.
 AbortSignal.prototype.wait = function()
 {
+    if(this.aborted)
+        return;
+
     if(this._promise == null)
     {
         this._promise = new Promise((accept) => {
@@ -4331,7 +4394,6 @@ AbortSignal.prototype.wait = function()
         });
 
         this.addEventListener("abort", (e) => {
-            console.log("done");
             this._promise_accept();
         }, { once: true });
     }

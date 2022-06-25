@@ -339,13 +339,10 @@ ppixiv.screen_illust = class extends ppixiv.screen
             restore_history: restore_history,
             slideshow: slideshow,
             onnextimage: async () => {
-                if(main_context_menu.get.visible)
-                {
-                    // If the context menu is open, wait until it's closed before going
-                    // to the next image, so we don't change images while the user is
-                    // editing a bookmark.
-                    await main_context_menu.get.wait_until_closed();
-                }
+                // If the context menu is open, wait until it's closed before going
+                // to the next image, so we don't change images while the user is
+                // editing a bookmark.
+                await main_context_menu.get.wait_until_hidden();
 
                 if(!this._active)
                     return;

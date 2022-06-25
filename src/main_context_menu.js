@@ -227,6 +227,7 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
             </div>
         `});
 
+        this._visibility_state = new helpers.State(this.visible);
         this.visible = false;
         this.hide = this.hide.bind(this);
 
@@ -399,10 +400,6 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
         if(this.visible)
             return;
 
-        // This is signalled when the context menu is closed, and can be awaited
-        // with wait_until_closed.
-        this._closed_signal = new AbortController;
-
         this.pointer_listener.check();
 
         this.displayed_menu = this.container;
@@ -447,12 +444,9 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
         hide_mouse_cursor_on_idle.disable_all("context-menu");
     }
 
-    wait_until_closed()
+    wait_until_hidden()
     {
-        if(this._closed_signal == null)
-            return null;
-
-        return this._closed_signal.signal.wait();
+        return this._visibility_state.wait(false);
     }
 
     // If element is within a button that has a tooltip set, show it.
@@ -532,6 +526,7 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
     {
         super.visibility_changed();
         this.refresh_visibility();
+        this._visibility_state.value = this.visible;
     }
 
     refresh_visibility()
@@ -565,9 +560,6 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
             this.click_outside_listener.shutdown();
             this.click_outside_listener = null;
         }
-
-        this._closed_signal.abort();
-        this._closed_signal = null;
     }
 
     cancel_event = (e) =>
