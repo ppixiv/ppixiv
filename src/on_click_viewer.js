@@ -1234,6 +1234,10 @@ ppixiv.image_viewer_mobile = class extends ppixiv.image_viewer_base
 
             // Return the current position in screen coordinates.
             get_position: () => {
+                // We're about to start touch dragging, so stop any running pan.
+                if(!this.slideshow_enabled)
+                    this.stop_animation();
+
                 return {
                     x: this.center_pos[0] * this.onscreen_width,
                     y: this.center_pos[1] * this.onscreen_height,
