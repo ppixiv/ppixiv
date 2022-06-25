@@ -86,15 +86,10 @@ def get_illust_info(info, entry, base_url):
         ctime = entry['ctime']
         timestamp = datetime.fromtimestamp(ctime, tz=timezone.utc).isoformat()
 
-        # If this is a ZIP, remove the extension from the title.
-        title = os.path.basename(illust_id)
-        if title.lower().endswith('.zip'):
-            title = title[:-4]
-
         image_info = {
             'id': illust_id,
             'localPath': str(entry['path']),
-            'illustTitle': title,
+            'illustTitle': entry['title'],
             'createDate': timestamp,
             'bookmarkData': _bookmark_data(entry),
             'previewUrls': [remote_thumb_path],

@@ -485,7 +485,8 @@ class Library:
         duration = media_metadata.get('duration')
 
         if not title:
-            title = path.name
+            # Use the path without extension as the title.
+            title = misc.remove_file_extension(path.name)
 
         data = {
             'populated': True,
@@ -527,7 +528,9 @@ class Library:
             'ctime': stat.st_ctime,
             'mtime': stat.st_mtime,
             'filesystem_mtime': path.filesystem_file.stat().st_mtime,
-            'title': path.name,
+            
+            # Use the path without extension as the title.
+            'title': misc.remove_file_extension(path.name),
             'mime_type': 'application/folder',
 
             # We currently don't support these for directories:

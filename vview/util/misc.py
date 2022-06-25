@@ -1,5 +1,5 @@
 # Helpers that don't have dependancies on our other modules.
-import asyncio, concurrent, os, io, struct, os, threading, time, traceback, sys, queue
+import asyncio, concurrent, os, io, struct, os, re, threading, time, traceback, sys, queue
 from contextlib import contextmanager
 from PIL import Image, ExifTags
 from pprint import pprint
@@ -607,3 +607,16 @@ def split_keywords(s):
     if current_word:
         result.append(current_word)
     return result
+
+def remove_file_extension(fn):
+    """
+    Remove the extension from fn for display.
+
+    >>> remove_file_extension('file.jpg')
+    'file'
+    >>> remove_file_extension('file.r00')
+    'file'
+    >>> remove_file_extension('file no. 1.txt')
+    'file no. 1'
+    """
+    return re.sub(r'\.[a-z0-9]+$', '', fn, flags=re.IGNORECASE)
