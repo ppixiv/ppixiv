@@ -437,6 +437,7 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
 
         this.onclose = onclose;
         this.pages = {};
+        this._visibility_state = new helpers.State(this.visible);
 
         this.pages.top = new mobile_illust_ui_top_page({
             container: this.container,
@@ -544,6 +545,11 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
             this.onclose();
     }
 
+    wait_until_hidden()
+    {
+        return this._visibility_state.wait(false);
+    }
+
     show_page(new_page_name)
     {
         let old_page_name = this.displayed_page;
@@ -585,6 +591,8 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
 
         for(let page of Object.values(this.pages))
             page.refresh();
+
+        this._visibility_state.value = this.shown;
     }
 }
 

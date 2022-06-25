@@ -343,6 +343,8 @@ ppixiv.screen_illust = class extends ppixiv.screen
                 // to the next image, so we don't change images while the user is
                 // editing a bookmark.
                 await main_context_menu.get.wait_until_hidden();
+                if(this.mobile_illust_ui)
+                    await this.mobile_illust_ui.wait_until_hidden();
 
                 if(!this._active)
                     return;
