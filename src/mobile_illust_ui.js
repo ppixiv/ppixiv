@@ -468,7 +468,6 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
     visibility_changed()
     {
         super.visibility_changed();
-        this.refresh_visibility();
     }
 
     set media_id(media_id)
@@ -507,16 +506,13 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
         // If we're becoming visible, create our click_outside_listener.
         if(this.click_outside_listener == null)
         {
-            if(this.click_outside_listener == null)
-            {
-                this.click_outside_listener = new click_outside_listener([this.container], (element) => {
-                    // Don't close the UI if the click is inside an element with the no-close-ui
-                    // class.
-                    if(element.closest(".no-close-ui"))
-                        return;
-                    this.hide();
-                });
-            }
+            this.click_outside_listener = new click_outside_listener([this.container], (element) => {
+                // Don't close the UI if the click is inside an element with the no-close-ui
+                // class.
+                if(element.closest(".no-close-ui"))
+                    return;
+                this.hide();
+            });
         }            
 
         this.pages.top.show_tab();
