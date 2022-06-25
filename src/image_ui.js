@@ -130,7 +130,7 @@ ppixiv.image_ui = class extends ppixiv.widget
     <div class="tag-list box-button-row"></div>
     <div class=description></div>
 </div>
-            `});
+        `});
 
         this.avatar_widget = new avatar_widget({
             container: this.container.querySelector(".avatar-popup"),
