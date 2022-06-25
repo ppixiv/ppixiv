@@ -10,13 +10,9 @@ ppixiv.image_ui = class extends ppixiv.widget
             visible: false,
             template: `
 <div class=ui-box>
-    <!-- The avatar icon in the top-right.  This is absolutely positioned, since we don't
-            want this to push the rest of the UI down. -->
-    <div class="avatar-popup" style="position: absolute; top: 1em; right: 1em;"></div>
+    <div class=avatar-popup></div>
 
-    <!-- The title and author.  The margin-right here is to prevent this from
-            overlapping the absolutely-positioned avatar icon above. -->
-    <div style="display: flex; flex-direction: row; margin-right: 4em;">
+    <div class=ui-title-box>
         <div>
             <span class="title-block">
                 <!-- Put the title and author in separate inline-blocks, to encourage

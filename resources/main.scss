@@ -589,6 +589,24 @@ textarea:focus, input:focus, a:focus {
     border-radius: 8px;
     position: relative;
 
+    // The avatar icon in the top-right.  This is absolutely positioned, since we don't
+    // want this to push the rest of the UI down.
+    .avatar-popup
+    {
+        position: absolute;
+        top: 1em;
+        right: 1em;
+    }
+
+    .ui-title-box
+    {
+        display: flex;
+        flex-direction: row;
+
+        // Prevent this from overlapping the absolutely-positioned avatar icon above it.
+        margin-right: 4em;
+    }
+
     .author {
         vertical-align: top;
     }
