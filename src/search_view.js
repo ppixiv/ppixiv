@@ -105,6 +105,16 @@ ppixiv.search_view = class extends ppixiv.widget
 
         this.thumbnail_box.addEventListener("click", this.thumbnail_onclick);
 
+        this.container.querySelector(".load-previous-page-link").addEventListener("click", (e) =>
+        {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+
+            let page = this.data_source.id_list.get_lowest_loaded_page() - 1;
+            console.debug(`Load previous page button pressed, loading page ${page}`);
+            this.load_page(page);
+        });
+
         // Handle quick view.
         new ppixiv.pointer_listener({
             element: this.thumbnail_box,
@@ -271,6 +281,8 @@ ppixiv.search_view = class extends ppixiv.widget
         // Remove listeners from the old data source.
         if(this.data_source != null)
             this.data_source.remove_update_listener(this.data_source_updated);
+
+        console.debug("Clearing thumbnails for new data source");
 
         // Clear the view when the data source changes.  If we leave old thumbs in the list,
         // it confuses things if we change the sort and refresh_thumbs tries to load thumbs
@@ -987,15 +999,6 @@ ppixiv.search_view = class extends ppixiv.widget
         let a = e.target.closest("A");
         if(a == null)
             return;
-
-        if(a.classList.contains("load-previous-page-link"))
-        {
-            let page = this.data_source.id_list.get_lowest_loaded_page() - 1;
-            this.load_page(page);
-
-            e.preventDefault();
-            e.stopImmediatePropagation();
-        }
     }
 
     // See if we can load page in-place.  Return true if we were able to, and the click that
