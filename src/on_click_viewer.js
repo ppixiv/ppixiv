@@ -1020,9 +1020,16 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
 
     // These zoom helpers are mostly for the popup menu.
     //
-    // Toggle zooming, centering around the given view position.
+    // Toggle zooming, centering around the given view position, or the center of the
+    // screen if x and y are null    
     zoom_toggle({x, y})
     {
+        if(x == null || y == null)
+        {
+            x = this.container_width / 2;
+            y = this.container_height / 2;
+        }
+
         let center = this.get_image_position([x, y]);
         this.locked_zoom = !this.locked_zoom;
         this.set_image_position([x, y], center);
@@ -1052,9 +1059,16 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         this.reposition();
     }
 
-    // Zoom in or out, keeping x,y centered if possible.
+    // Zoom in or out, keeping x,y centered if possible.  If x and y are null, center around
+    // the center of the screen.
     zoom_adjust(down, {x, y})
     {
+        if(x == null || y == null)
+        {
+            x = this.container_width / 2;
+            y = this.container_height / 2;
+        }
+        
         let center = this.get_image_position([x, y]);
 
         // If mousewheel zooming is used while not zoomed, turn on zooming and set

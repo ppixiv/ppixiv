@@ -1037,6 +1037,15 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
 
         if(this._is_zoom_ui_enabled)
         {
+            // Ctrl-0 toggles zoom, similar to the browser Ctrl-0 reset zoom hotkey.
+            if(e.code == "Digit0" && e.ctrlKey)
+            {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                this._on_click_viewer.zoom_toggle({reset_position: true});
+                return;
+            }
+
             var zoom = helpers.is_zoom_hotkey(e);
             if(zoom != null)
             {
