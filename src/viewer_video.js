@@ -242,7 +242,14 @@ ppixiv.viewer_video = class extends ppixiv.viewer
                 return;
 
             this.pause();
-            this.video.currentTime = this.video.duration;
+
+            // This isn't completely reliable.  If we set the time to the very end, the video loops
+            // immediately and we go to the beginning.  If we set it to duration - 0.000001, it gets
+            // rounded and loops anyway, and if we set it to duration - 1 we end up too far.  It might
+            // depend on the video framerate and need to be set to duration - 1 frame, but the HTML video
+            // API is painfully incomplete and doesn't include any sort of frame info or frame stepping.
+            // Try using a small-but-not-too-small value.
+            this.video.currentTime = this.video.duration - 0.001;
             return;
         }
     }
