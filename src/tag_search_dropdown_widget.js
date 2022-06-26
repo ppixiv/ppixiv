@@ -401,6 +401,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
             {
                 var new_entry = all_entries[this.selected_idx];
                 new_entry.classList.add("selected");
+                new_entry.scrollIntoViewIfNeeded();
                 this.input_element.value = new_entry.dataset.tag;
             }
         } finally {
@@ -423,7 +424,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
             idx = down? 0:(total_entries-1);
         else
             idx += down? +1:-1;
-        idx %= total_entries;
+        idx = (idx + total_entries) % total_entries;
 
         this.set_selection(idx);
     }
