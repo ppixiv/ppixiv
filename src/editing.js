@@ -80,6 +80,11 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
 
             if(e.code == "KeyC" && e.ctrlKey)
             {
+                // Only copy if the mouse is somewhere over the editor, so we don't prevent
+                // copying text out of the corner hover UI.
+                if(!this.hovering)
+                    return;
+
                 e.preventDefault();
                 e.stopPropagation();
                 this.copy();
@@ -184,6 +189,17 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
         super.visibility_changed();
     }
 
+    // Return true if the mouse is hovering over the editor.  This includes hovering over the image,
+    // but not over the corner UI.
+    get hovering()
+    {
+        if(this.container.matches(":hover"))
+            return true;
+        if(this.current_overlay_container && this.current_overlay_container.container.matches(":hover"))
+            return true;
+        return false;
+    }
+
     // In principle we could refresh from thumbnail data if this is the first manga page, since
     // all we need is the image dimensions.  However, the editing container is only displayed
     // by on_click_viewer after we have full image data anyway since it's treated as part of the
@@ -242,6 +258,7 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
     // This is called when the ImageEditingOverlayContainer changes.
     set overlay_container(overlay_container)
     {
+        this.current_overlay_container = overlay_container;
         for(let editor of Object.values(this.editors))
             editor.overlay_container = overlay_container;
     }
@@ -569,5 +586,3 @@ ppixiv.ImageEditingOverlayContainer = class extends ppixiv.widget
         this.inpaint_img.style.opacity = value? 0:1;
     }
 }
-
-customElements.define("image-editing-overlay-container", ppixiv.ImageEditingOverlayContainer);
