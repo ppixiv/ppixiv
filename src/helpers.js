@@ -4986,11 +4986,13 @@ ppixiv.MobileDoubleTapHandler = class
     constructor({
         container,
         ondbltap,
+        threshold_ms=250,
         signal=null,
     })
     {
         this.container = container;
         this.ondbltap = ondbltap;
+        this.threshold_ms = threshold_ms;
 
         this.pointerdown_timestamp = -9999;
         this.pointerdown_position = { x: 0, y: 0 };
@@ -5022,7 +5024,7 @@ ppixiv.MobileDoubleTapHandler = class
         this.pointerdown_position = position;
 
         // Check the double-click time and distance thresholds.
-        if(time_since_click > 250)
+        if(time_since_click > this.threshold_ms)
             return;
 
         if(distance > 25*window.devicePixelRatio)
@@ -5050,7 +5052,7 @@ ppixiv.MobileIsolatedTapHandler = class
         // before a tap is treated as isolated.  This should be high enough so we don't
         // interfere with things like double-taps, but not too high since it delays the
         // input.
-        cooldown_timer_after=200,
+        cooldown_timer_after=250,
         signal=null,
     })
     {
