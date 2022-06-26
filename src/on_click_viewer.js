@@ -1024,6 +1024,8 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
     // screen if x and y are null    
     zoom_toggle({x, y})
     {
+        this.stop_animation();
+
         if(x == null || y == null)
         {
             x = this.container_width / 2;
@@ -1039,6 +1041,8 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
     // Set the zoom level, keeping the given view position stationary if possible.
     zoom_set_level(level, {x, y})
     {
+        this.stop_animation();
+
         // If the zoom level that's already selected is clicked and we're already zoomed,
         // just toggle zoom as if the toggle zoom button was pressed.
         if(this.zoom_level == level && this.locked_zoom)
@@ -1063,6 +1067,8 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
     // the center of the screen.
     zoom_adjust(down, {x, y})
     {
+        this.stop_animation();
+
         if(x == null || y == null)
         {
             x = this.container_width / 2;
