@@ -1699,7 +1699,10 @@ ppixiv.helpers = {
             // Always stopPropagation, so inputs aren't handled by main input handling.
             e.stopPropagation();
 
-            if(e.keyCode == 13) // enter
+            // Note that we need to use e.key here and not e.code.  For enter presses
+            // that are IME confirmations, e.code is still "Enter", but e.key is "Process",
+            // which prevents it triggering this.
+            if(e.key == "Enter")
                 submit(e);
         });
     },

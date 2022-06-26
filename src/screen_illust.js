@@ -553,21 +553,20 @@ ppixiv.screen_illust = class extends ppixiv.screen
         
         if(e.ctrlKey || e.altKey || e.metaKey)
             return;
-
-        switch(e.keyCode)
+        switch(e.code)
         {
-        case 37: // left
-        case 38: // up
-        case 33: // pgup
+        case "ArrowLeft":
+        case "ArrowUp":
+        case "PageUp":
             e.preventDefault();
             e.stopPropagation();
 
             this.navigate_to_next(false, { skip_manga_pages: e.shiftKey });
             break;
 
-        case 39: // right
-        case 40: // down
-        case 34: // pgdn
+        case "ArrowRight":
+        case "ArrowDown":
+        case "PageDown":
             e.preventDefault();
             e.stopPropagation();
 

@@ -197,13 +197,13 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         if(this.container.hidden)
             return;
 
-        switch(e.keyCode)
+        switch(e.code)
         {
-        case 38: // up arrow
-        case 40: // down arrow
+        case "ArrowUp":
+        case "ArrowDown":
             e.preventDefault();
             e.stopImmediatePropagation();
-            this.move(e.keyCode == 40);
+            this.move(e.code == "ArrowDown");
             break;
         }
         

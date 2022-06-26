@@ -270,7 +270,7 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
     // This is sent manually by the UI handler so we can control focus better.
     onkeydown = (e) =>
     {
-        if(e.keyCode >= 49 && e.keyCode <= 57)
+        if(e.code >= "Digit1" && e.code <= "Digit9")
         {
             // 5 sets the speed to default, 1234 slow the video down, and 6789 speed it up.
             e.stopPropagation();
@@ -279,33 +279,33 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
                 return;
 
             var speed;
-            switch(e.keyCode)
+            switch(e.code)
             {
-            case 49: speed = 0.10; break; // 1
-            case 50: speed = 0.25; break; // 2
-            case 51: speed = 0.50; break; // 3
-            case 52: speed = 0.75; break; // 4
-            case 53: speed = 1.00; break; // 5
-            case 54: speed = 1.25; break; // 6
-            case 55: speed = 1.50; break; // 7
-            case 56: speed = 1.75; break; // 8
-            case 57: speed = 2.00; break; // 9
+            case "Digit1": speed = 0.10; break;
+            case "Digit2": speed = 0.25; break;
+            case "Digit3": speed = 0.50; break;
+            case "Digit4": speed = 0.75; break;
+            case "Digit5": speed = 1.00; break;
+            case "Digit6": speed = 1.25; break;
+            case "Digit7": speed = 1.50; break;
+            case "Digit8": speed = 1.75; break;
+            case "Digit9": speed = 2.00; break;
             }
 
             this.player.set_speed(speed);
             return;
         }
 
-        switch(e.keyCode)
+        switch(e.code)
         {
-        case 32: // space
+        case "Space":
             e.stopPropagation();
             e.preventDefault();
 
             this.set_want_playing(!this.want_playing);
 
             return;
-        case 36: // home
+        case "Home":
             e.stopPropagation();
             e.preventDefault();
             if(!this.player)
@@ -314,7 +314,7 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
             this.player.rewind();
             return;
 
-        case 35: // end
+        case "End":
             e.stopPropagation();
             e.preventDefault();
             if(!this.player)
@@ -324,8 +324,8 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
             this.player.set_current_frame(this.player.get_frame_count() - 1);
             return;
 
-        case 81: // q
-        case 87: // w
+        case "KeyQ":
+        case "KeyW":
             e.stopPropagation();
             e.preventDefault();
             if(!this.player)
@@ -333,7 +333,7 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
 
             this.pause();
             var current_frame = this.player.get_current_frame();
-            var next = e.keyCode == 87;
+            var next = e.code == "KeyW";
             var new_frame = current_frame + (next?+1:-1);
             this.player.set_current_frame(new_frame);
             return;

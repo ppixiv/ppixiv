@@ -220,16 +220,16 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         if(e.ctrlKey || e.altKey || e.metaKey)
             return;
         
-        switch(e.keyCode)
+        switch(e.code)
         {
-        case 36: // home
-        case 35: // end
+        case "Home":
+        case "End":
             e.stopPropagation();
             e.preventDefault();
 
             let id = helpers.parse_media_id(this.media_id);
         
-            if(e.keyCode == 35)
+            if(e.code == "End")
                 id.page = this.illust_data.pageCount - 1;
             else
                 id.page = 0;
