@@ -2196,7 +2196,7 @@ a.box-link, span.box-link
         &:not(.active-tab) {
             opacity: 0;
             pointer-events: none;
-            transform: translateX(-20px);
+            transform: translateX(-20px) scale(0.75);
         }
 
         // Adjust these widgets so they look better in this view.
