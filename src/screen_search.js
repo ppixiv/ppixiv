@@ -458,7 +458,10 @@ ppixiv.screen_search = class extends ppixiv.screen
             this.container.querySelector(".login-button").hidden = local || logged_in;
             this.container.querySelector(".logout-button").hidden = local || !logged_in;
             this.container.querySelector(".login-button").addEventListener("click", () => { local_api.redirect_to_login(); });
-            this.container.querySelector(".logout-button").addEventListener("click", () => { local_api.logout(); });
+            this.container.querySelector(".logout-button").addEventListener("click", () => {
+                if(confirm("Log out?"))
+                    local_api.logout();
+            });
         }
 
         // Clear recent illusts:
