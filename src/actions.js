@@ -441,7 +441,7 @@ ppixiv.actions = class
         }
 
         let user_info = await image_data.singleton().get_user_info(user_id);
-        let message = `${add? "Added":"Removed"} the tag "${tag}" from ${user_info.name}`;
+        let message = add? `Added the tag "${tag}" to ${user_info.name}`:`Removed the tag "${tag}" from ${user_info.name}`;
         message_widget.singleton.show(message);
 
         // Get follow info so we can update the tag list.  This will usually already be loaded,
