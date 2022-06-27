@@ -609,7 +609,7 @@ ppixiv.main_controller = class
         // Some Pixiv pages try to force cache expiry.  We really don't want that to happen
         // here, since we just want to grab the page we're on quickly.  Setting cache: force_cache
         // tells Chrome to give us the cached page even if it's expired.
-        let result = await helpers.load_data_in_iframe(url.toString(), {
+        let result = await helpers.fetch_document(url.toString(), {
             cache: "force-cache",
         });
 

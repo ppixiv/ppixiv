@@ -1360,7 +1360,7 @@ ppixiv.helpers = {
     },
 
     // Load a URL as a document.
-    async load_data_in_iframe(url, headers={}, options={})
+    async fetch_document(url, headers={}, options={})
     {
         // Pixiv returns completely different data when it thinks you're on mobile, and uses a completely
         // different set of APIs.  To prevent this, we need to set a desktop User-Agent when on mobile.

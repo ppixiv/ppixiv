@@ -502,7 +502,7 @@ ppixiv.image_data = class extends EventTarget
         }
 
         let [illust_id] = helpers.media_id_to_illust_id_and_page(media_id);
-        let bookmark_page = await helpers.load_data_in_iframe("/bookmark_add.php?type=illust&illust_id=" + illust_id);
+        let bookmark_page = await helpers.fetch_document("/bookmark_add.php?type=illust&illust_id=" + illust_id);
         
         let tags = bookmark_page.querySelector(".bookmark-detail-unit form input[name='tag']").value;
         tags = tags.split(" ");

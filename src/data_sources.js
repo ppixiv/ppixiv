@@ -1492,7 +1492,7 @@ class data_source_from_page extends data_source
 
         console.log("Loading:", url.toString());
 
-        let doc = await helpers.load_data_in_iframe(url);
+        let doc = await helpers.fetch_document(url);
 
         let media_ids = this.parse_document(doc);
         if(media_ids == null)
