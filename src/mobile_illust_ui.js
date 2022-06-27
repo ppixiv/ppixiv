@@ -475,6 +475,10 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
             parent: this,
         });
         
+        new view_hidden_listener(this.container, () => {
+            this.hide();
+        }, { signal: this.shutdown_signal.signal });
+
         // Listen for the image viewer changing.  This is used for zooming.
         ppixiv.image_viewer_base.primary_changed.addEventListener("changed", (e) => {
             this.on_click_viewer = e.viewer;

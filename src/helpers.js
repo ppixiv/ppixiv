@@ -3113,33 +3113,20 @@ ppixiv.view_hidden_listener = class
         element.dispatchEvent(event);
     }
 
-    constructor(element, callback)
+    constructor(element, callback, {signal}={})
     {
-        this.callback = callback;
+        // If no AbortSignal was given, create one.  It won't be used, but for some reason
+        // addEventListener throws an error if signal is null (it should just ignore it).
+        if(signal == null)
+            signal = new AbortController().signal;
 
         // There's no way to listen on events on any parent, so we have to add listeners
         // to each parent in the tree.
-        this.listening_on_elements = [];
         while(element != null)
         {
-            this.listening_on_elements.push(element);
-            element.addEventListener("viewhidden", this.onviewhidden);
-
+            element.addEventListener("viewhidden", callback, { signal });
             element = element.parentNode;
         }
-    }
-
-    // Remove listeners.
-    shutdown()
-    {
-        for(var element of this.listening_on_elements)
-            element.removeEventListener("viewhidden", this.onviewhidden);
-        this.listening_on_elements = [];
-    }
-
-    onviewhidden = (e) =>
-    {
-        this.callback(e);
     }
 };
 
