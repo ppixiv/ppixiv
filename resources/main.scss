@@ -273,6 +273,13 @@ textarea:focus, input:focus, a:focus {
     // glitches in Chrome.
     > .image-box.cropping {
         overflow: hidden;
+
+        // Work around an iOS Safari compositing bug.  If an image is cropped via .crop-box's
+        // overflow: hidden, zooming the image leaves cruft from the edge row of the image behind.
+        // Setting the image-box to will-change: transform seems to prevent this from happening.
+        html.ios & {
+            will-change: transform;
+        }
     }
 
     // Let the browser know about our dynamic zooming and panning.  This prevents Chrome from baking the
