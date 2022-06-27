@@ -347,7 +347,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
                     await this.mobile_illust_ui.wait_until_hidden();
 
                 if(!this._active)
-                    return;
+                    return { };
 
                 // The viewer wants to go to the next image, normally during slideshows.
                 // Loop is true, so we loop back to the beginning of the search if we reach
