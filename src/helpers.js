@@ -1147,10 +1147,43 @@ ppixiv.helpers = {
     },
 
     // Send a request with the referer, cookie and CSRF token filled in.
-    async send_pixiv_request(options)
+    async send_pixiv_request({...options})
     {
-        if(options.headers == null)
-            options.headers = {};
+        options.headers ??= {};
+
+        // Pixiv returns completely different data when it thinks you're on mobile, and uses a completely
+        // different set of APIs.  To prevent this, we need to set a desktop User-Agent when on mobile.
+        if(!ppixiv.native && ppixiv.mobile)
+            options.headers["User-Agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/101.0.4951.67 Safari/537.36";
+
+        if(!ppixiv.native && ppixiv.android)
+        {
+            // Chrome makes this more difficult due to a dumb old bug: it blocks User-Agent from being overridden
+            // by fetch, even though it's supposed to be allowed.  There's no reason for this (other browsers allow
+            // it, including iOS Safari).  We have to use GM_xmlHttpRequest to work around that.  This is only needed
+            // for testing mobile mode on desktop, since there doesn't seem to be any way to use userscripts on
+            // Android Chrome.
+            //
+            // Explicitly set the referer and origin when using GM_xmlhttpRequest.
+            options.headers["referer"] = "https://www.pixiv.net/";
+            options.headers["origin"] = "https://www.pixiv.net/";
+
+            let result = await helpers.async_gm_xhr({
+                url: options.url,
+                data: options.data,
+                method: options.method,
+                headers: options.headers,
+                responseType: options.responseType,
+            });
+
+            // This seems like a TamperMonkey bug: on error, we sometimes get a null response instead of
+            // an error or the empty string.  For example, if we don't send a referer to some API requests,
+            // it'll send a 200 and then close the connection, and we'll get null instead of an error.
+            if(result.response == null)
+                throw new Error(`No response from emulated desktop request to: ${options.url}`);
+
+            return result.response;
+        }
 
         // Only set x-csrf-token for requests to www.pixiv.net.  It's only needed for API
         // calls (not things like ugoira ZIPs), and the request will fail if we're in XHR
@@ -1362,45 +1395,6 @@ ppixiv.helpers = {
     // Load a URL as a document.
     async fetch_document(url, headers={}, options={})
     {
-        // Pixiv returns completely different data when it thinks you're on mobile, and uses a completely
-        // different set of APIs.  To prevent this, we need to set a desktop User-Agent when on mobile.
-        let mobile_user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/101.0.4951.67 Safari/537.36";
-        if(ppixiv.android)
-        {
-            // Chrome makes this more difficult due to a dumb old bug: it blocks User-Agent from being overridden
-            // by fetch, even though it's supposed to be allowed.  There's no reason for this (other browsers allow
-            // it, including iOS Safari).  We have to use GM_xmlHttpRequest to work around that.  This is only needed
-            // for testing mobile mode on desktop, since there doesn't seem to be any way to use userscripts on
-            // Android Chrome.
-            let responseType = options.responseType;
-            if(responseType == "document")
-                responseType = "text";
-
-            let result = await helpers.async_gm_xhr({
-                url: url,
-                method: "GET",
-                responseType: "text",
-
-                "headers": {
-                    "Referer": "https://www.pixiv.net/",
-                    "Origin": "https://www.pixiv.net/",
-                    "User-Agent": mobile_user_agent,
-                },
-            });
-            
-            let text = result.responseText;
-            return new DOMParser().parseFromString(text, 'text/html');
-        }
-
-        if(ppixiv.mobile)
-        {
-            // If we're on other mobile platforms (eg. iOS), we can just set the UA normally.
-            headers = {
-                "User-Agent": mobile_user_agent,
-                ...headers,
-            }
-        }
-
         return await helpers.send_pixiv_request({
             method: "GET",
             url: url,
