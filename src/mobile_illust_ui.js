@@ -24,14 +24,42 @@ let mobile_illust_ui_page = class extends ppixiv.widget
 
     refresh() { }
     
-    show_tab()
+    show_tab({pos}={})
     {
         helpers.set_class(this.container, "active-tab", true);
+
+        if(pos)
+            this.align_to(pos);
     }
 
     hide_tab()
     {
         helpers.set_class(this.container, "active-tab", false);
+    }
+
+    // Try to center content around the given viewport Y position.
+    align_to(pos)
+    {
+        let content_node = this.content_node;
+        if(content_node == null)
+            return;
+        
+        content_node.marginTop = ``;
+
+        let content_height = content_node.offsetHeight;
+
+        // If the content is larger than the available space, remove the top padding entirely.
+        let available_height = this.container.offsetParent.offsetHeight;
+        if(available_height < content_height)
+            return;
+
+        // console.log(`height ${this.container.offsetHeight} parent ${available_height} content ${content_height}`);
+
+        let offset_to_center = pos - content_height/2;
+        if(offset_to_center < 0)
+            return;
+
+        content_node.style.marginTop = `${offset_to_center}px`;
     }
 }
 
@@ -49,8 +77,9 @@ let mobile_illust_ui_page_more  = class extends mobile_illust_ui_page
             container: this.container,
             visible: true,
         });
-
     }
+
+    get content_node() { return this.more_options_widget.container; }
 
     // more_options_widget items can call hide() on us when it's clicked.  Hide the top-level menu.
     hide()
@@ -80,6 +109,7 @@ let mobile_illust_ui_page_bookmark_tags  = class extends mobile_illust_ui_page
             visible: true,
         });
     }
+    get content_node() { return this.bookmark_tag_widget.container; }
 
     hide_tab()
     {
@@ -101,86 +131,90 @@ let mobile_illust_ui_top_page = class extends mobile_illust_ui_page
     {
         super({...options, visible: true, template: `
             <div class="mobile-illust-ui-page top-page">
-                <div class=top-page-button-row>
-                    <div class="item button-browser-back">
-                        <div class=button>
-                            <ppixiv-inline src="resources/exit-icon.svg" style="transform: scaleX(-1);"></ppixiv-inline>
+                <div class=top-page-buttons>
+                    <div class=top-page-button-row>
+                        <div class="item button-toggle-slideshow enabled">
+                            <div class=button>
+                                ${ helpers.create_icon("mat:wallpaper") }
+                            </div>
+                            <span class=label>Slideshow</span>
                         </div>
-                        <span class=label>Back</span>
+
+                        <div class="item button-toggle-zoom">
+                            <div class=button>
+                                <ppixiv-inline src="resources/zoom-full.svg"></ppixiv-inline>
+                            </div>
+                            <span class=label>Toggle zoom</span>
+                        </div>
+
+                        <div class="item button-bookmark public" data-bookmark-type=public>
+                            <div class=button>
+                                <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
+                            </div>
+
+                            <span class=label>Bookmark</span>
+                        </div>
+
+                        <div class="item button-bookmark private button-container" data-bookmark-type=private>
+                            <div class=button>
+                                <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
+                            </div>
+
+                            <span class=label>Bookmark privately</span>
+                        </div>
+                        
+                        <div class="item button-bookmark-tags">
+                            <div class=button>
+                                ${ helpers.create_icon("ppixiv:tag") }
+                            </div>
+                            <span class=label>Bookmark tags</span>
+                        </div>
                     </div>
 
-                    <div class="item button-toggle-slideshow enabled">
-                        <div class=button>
-                            ${ helpers.create_icon("mat:wallpaper") }
-                        </div>
-                        <span class=label>Slideshow</span>
-                    </div>
-
-                    <div class="item button-toggle-zoom">
-                        <div class=button>
-                            <ppixiv-inline src="resources/zoom-full.svg"></ppixiv-inline>
-                        </div>
-                        <span class=label>Toggle zoom</span>
-                    </div>
-
-                    <div class="item button-bookmark public" data-bookmark-type=public>
-                        <div class=button>
-                            <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
+                    <div class=top-page-button-row>
+                        <div class="item button-browser-back">
+                            <div class=button>
+                                <ppixiv-inline src="resources/exit-icon.svg" style="transform: scaleX(-1);"></ppixiv-inline>
+                            </div>
+                            <span class=label>Back</span>
                         </div>
 
-                        <span class=label>Bookmark</span>
-                    </div>
-
-                    <div class="item button-bookmark private button-container" data-bookmark-type=private>
-                        <div class=button>
-                            <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
+                        <div class="item button-more enabled">
+                            <div class="button">
+                                ${ helpers.create_icon("settings") }
+                            </div>
+                            <span class=label>More...</span>
                         </div>
 
-                        <span class=label>Bookmark privately</span>
-                    </div>
-                    
-                    <div class="item button-bookmark-tags">
-                        <div class=button>
-                            ${ helpers.create_icon("ppixiv:tag") }
-                        </div>
-                        <span class=label>Bookmark tags</span>
-                    </div>
-
-                    <div class="item button-like enabled button-container">
-                        <div class=button>
-                            <ppixiv-inline src="resources/like-button.svg"></ppixiv-inline>
-                        </div>
-                        <span class=label>Like</span>
-                    </div>
-
-                    <div class="item button-view-manga">
-                        <div class=button>
-                            ${ helpers.create_icon("ppixiv:thumbnails") }
-                        </div>
-                        <span class=label>View manga pages</span>
-                    </div>
-
-                    <div class="item button-parent-folder" hidden>
-                        <div class="button enabled">
-                            ${ helpers.create_icon("folder") }
+                        <div class="item button-like enabled button-container">
+                            <div class=button>
+                                <ppixiv-inline src="resources/like-button.svg"></ppixiv-inline>
+                            </div>
+                            <span class=label>Like</span>
                         </div>
 
-                        <span class=label>View folder</span>
-                    </div>
-
-                    <div class="item help enabled">
-                        <div class=button>
-                            ${ helpers.create_icon("help_outline") }
+                        <div class="item button-view-manga">
+                            <div class=button>
+                                ${ helpers.create_icon("ppixiv:thumbnails") }
+                            </div>
+                            <span class=label>View manga pages</span>
                         </div>
 
-                        <span class=label>Help</span>
-                    </div>
+                        <div class="item button-parent-folder" hidden>
+                            <div class="button enabled">
+                                ${ helpers.create_icon("folder") }
+                            </div>
 
-                    <div class="item button-more enabled">
-                        <div class="button">
-                            ${ helpers.create_icon("settings") }
+                            <span class=label>View folder</span>
                         </div>
-                        <span class=label>More...</span>
+
+                        <div class="item help enabled">
+                            <div class=button>
+                                ${ helpers.create_icon("help_outline") }
+                            </div>
+
+                            <span class=label>Help</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -228,11 +262,11 @@ let mobile_illust_ui_top_page = class extends mobile_illust_ui_page
         });
 
         this.container.querySelector(".button-more").addEventListener("click", (e) => {
-            this.parent.toggle_page("more");
+            this.parent.toggle_page("more", e.target);
         });
 
         this.container.querySelector(".button-bookmark-tags").addEventListener("click", (e) => {
-            this.parent.toggle_page("bookmark_tags");
+            this.parent.toggle_page("bookmark_tags", e.target);
         });
 
         this.illust_widgets = [
@@ -300,7 +334,7 @@ let mobile_illust_ui_top_page = class extends mobile_illust_ui_page
         if(!this.visible && this._media_id != null)
             return
 
-        helpers.set_class(this.container.querySelector(".top-page-button-row"), "display-labels", this.display_labels && !this.submenu_open);
+        helpers.set_class(this.container.querySelector(".top-page-buttons"), "display-labels", this.display_labels && !this.submenu_open);
 
         let button_view_manga = this.container.querySelector(".button-view-manga");
         button_view_manga.dataset.popup = "View manga pages";
@@ -322,21 +356,12 @@ let mobile_illust_ui_top_page = class extends mobile_illust_ui_page
         if(this.visible)
         {
             let media_id = this._media_id;
-            // XXX: from illust
-            let user_id = null; //this.effective_user_id;
             for(let widget of this.illust_widgets)
             {
                 if(widget.set_media_id)
                     widget.set_media_id(media_id);
-                if(widget.set_user_id)
-                    widget.set_user_id(user_id);
 
-                // If _clicked_media_id is set, we're open for a search result image the user right-clicked
-                // on.  Otherwise, we're open for the image actually being viewed.  Tell context_menu_image_info_widget
-                // to show the current manga page if we're on a viewed image, but not if we're on a search
-                // result.
-                let showing_viewed_image = true; // XXX remove
-                widget.show_page_number = showing_viewed_image;
+                widget.show_page_number = true;
             }
 
             // If we're on a local ID, show the parent folder button.
@@ -396,7 +421,6 @@ let mobile_illust_ui_top_page = class extends mobile_illust_ui_page
         helpers.set_page_url(args.url, true, "navigation");
     }
 
-
     clicked_toggle_zoom = (e) =>
     {
         e.preventDefault();
@@ -404,8 +428,6 @@ let mobile_illust_ui_top_page = class extends mobile_illust_ui_page
 
         if(!this._is_zoom_ui_enabled)
             return;
-
-        // XXX remove this._on_click_viewer.stop_animation();
 
         // Toggle between covering the screen and fitting the image onscreen.
         let old_level = this._on_click_viewer.zoom_level;
@@ -499,7 +521,8 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
             page.set_data_source(data_source);
     }
 
-    show()
+    // side is "left" or "right".
+    show({side})
     {
         if(this.shown)
             return;
@@ -516,6 +539,21 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
                 this.hide();
             });
         }            
+
+        let old_side = this.container.dataset.side;
+        this.container.dataset.side = side;
+
+        // Changing the side while we're not shown will trigger animations, as the invisible
+        // elements shift from one side to the other.  These become visible when we actually
+        // show the elements, so cancel them.
+        if(side != old_side)
+        {
+            for(let element of this.container.querySelectorAll("*"))
+            {
+                for(let animation of element.getAnimations())
+                    animation.cancel();
+            }
+        }
 
         this.pages.top.show_tab();
 
@@ -536,6 +574,12 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
             this.click_outside_listener = null;
         }
 
+        if(this.swipe_out_handler != null)
+        {
+            this.swipe_out_handler.shutdown();
+            this.swipe_out_handler = null;
+        }
+
         this.pages.top.hide_tab();
         this.show_page(null);
 
@@ -551,7 +595,9 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
         return this._visibility_state.wait(false);
     }
 
-    show_page(new_page_name)
+    // If not null, button is the button that was used to show the page, to align the
+    // submenu near.
+    show_page(new_page_name, button)
     {
         let old_page_name = this.displayed_page;
         if(new_page_name == old_page_name)
@@ -564,17 +610,27 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
         if(old_page)
             old_page.hide_tab();
         if(new_page)
-            new_page.show_tab();
+        {
+            // If we were given a button, try to position the tab to its center.
+            let pos = null;
+            if(button)
+            {
+                let {top, height} = button.getBoundingClientRect();
+                pos = top + height/2;
+            }
+
+            new_page.show_tab({pos});
+        }
 
         this.pages.top.set_submenu_open(new_page_name != null);
     }
 
-    toggle_page(page)
+    toggle_page(page, button)
     {
         if(this.displayed_page == page)
             this.show_page(null);
         else
-            this.show_page(page);
+            this.show_page(page, button);
     }
 
     // Set the amount of space reserved at the bottom for other UI.  This is used to prevent

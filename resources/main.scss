@@ -2117,7 +2117,9 @@ a.box-link, span.box-link
     width: 100%;
     height: calc(100% - var(--video-ui-height));
     display: flex;
-    align-items: flex-start;
+
+    &[data-side="left"] { justify-content: flex-start; }
+    &[data-side="right"] { justify-content: flex-end; }
 
     // This node is for positioning and covers the whole screen, so don't eat pointer events.
     pointer-events: none;
@@ -2128,10 +2130,26 @@ a.box-link, span.box-link
     --frame-bg-color: rgba(0,0,0,.85);
     --box-link-bg-color: none;
 
+    // Handle opening from the left or right side.  --page-left and --page-right position
+    // the top-level menu.  --transform-direction allows flipping transitions horizontally
+    // for the right side, and --transform-side allows changing the transform-origin if needed.
+    &[data-side="left"] { --page-left: 80px; }
+    &[data-side="right"] { --page-right: 80px; }
+    --transform-direction: 1;
+    --transform-side: 0%;
+    &[data-side="right"] { --transform-direction: -1; --transform-side: 100%; }
+
+    &[data-side="left"] .context-menu-image-info-container {
+        right: 10px;
+    }
+
+    &[data-side="right"] .context-menu-image-info-container {
+        left: 10px;
+    }
+
     // The image info in the top-right is a separate element from the UI pages.
     .context-menu-image-info-container {
         position: fixed;
-        right: 10px;
         top: 10px;
         max-width: calc(100vw - 100px);
         background-color: var(--frame-bg-color);
@@ -2140,7 +2158,6 @@ a.box-link, span.box-link
         transition:
             opacity ease 0.2s,
             transform ease 0.2s;
-        transform-origin: 0% 50%;
         opacity: 1;
 
         .context-menu-image-info {
@@ -2168,9 +2185,13 @@ a.box-link, span.box-link
         }
     }
 
-    &:not(.shown) .context-menu-image-info-container {
-        opacity: 0;
-        transform: translateX(20px);
+    // Hide the image info box if the UI is hidden or if we're showing a submenu.
+    &:not(.shown),
+    &[data-displayed-page] {
+        .context-menu-image-info-container {
+            opacity: 0;
+            transform: translateX(calc(20px*var(--transform-direction)));
+        }
     }
 
     // Subpages are absolutely positioned to the right of the top menu.
@@ -2178,8 +2199,11 @@ a.box-link, span.box-link
     {
         position: absolute;
         top: 0;
-        left: 70px;
-        max-height: 100%;
+        left: var(--page-left);
+        right: var(--page-right);
+        height: 100%;
+        display: flex;
+        flex-direction: column;
     }
 
     // One UI page is shown at a time.
@@ -2194,16 +2218,27 @@ a.box-link, span.box-link
         transition:
             opacity ease 0.2s,
             transform ease 0.2s;
-        transform-origin: 0% 50%;
+        transform-origin: calc(var(--transform-side)) 50%;
         opacity: 1;
 
-        // Revert the pointer-events that we set on the parent.
-        pointer-events: auto;
+        pointer-events: none;
+        
+        // --pointer-events is "auto" if elements should receive pointer events, or "none" if
+        // we're hidden.  This is applied with pointer-events: var(--pointer-events) to the correct
+        // element.  We don't just do it here since we don't want the gap between the top menu to
+        // block pointer events.
+        --pointer-events: auto;
+        &:not(.active-tab) { --pointer-events: none; }
+
+        // By default, apply pointer-events on immediate children of the page.
+        > * { pointer-events: var(--pointer-events); }
 
         &:not(.active-tab) {
             opacity: 0;
-            pointer-events: none;
-            transform: translateX(-20px) scale(0.75);
+            transform: translateX(calc(-20px*var(--transform-direction))) scale(0.75);
+
+            // Disable pointer events while we're not visible.
+            --pointer-events: none;
         }
 
         // Adjust these widgets so they look better in this view.
@@ -2239,10 +2274,6 @@ a.box-link, span.box-link
             flex-direction: column;
             gap: 10px;
             border-radius: 8px;
-
-            &:not(.display-labels) .item > .label {
-                display: none;
-            }
 
             .item {
                 display: flex;
@@ -2290,6 +2321,37 @@ a.box-link, span.box-link
                     .font-icon {
                         font-size: 200%;
                     }
+                }
+            }
+        }
+
+        &.top-page
+        {
+            height: 100%;
+
+            // The top-page-buttons container holds the button blocks.  We have two of these,
+            // which are intended to separate in the middle to give a place where the user can
+            // tap the image to hide the menu.
+            .top-page-buttons {
+                height: 100%;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-around;
+
+                // Ignore pointer events in this container, so the space between the items can be
+                // used to close the menu.
+                pointer-events: none;
+
+                > .top-page-button-row
+                {
+                    border: 1px solid #fff;
+
+                    // Since we overrode pointer-events above, it won't reenable pointer events
+                    // while we're visible.  Do that on the individual button rows instead.
+                    pointer-events: var(--pointer-events);
+                }
+                &:not(.display-labels) .item > .label {
+                    display: none;
                 }
             }
         }

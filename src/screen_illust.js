@@ -77,12 +77,6 @@ ppixiv.screen_illust = class extends ppixiv.screen
         {
             this.mobile_illust_ui = new mobile_illust_ui({
                 container: this.container,
-                onclose: () => {
-                    // The UI can be closed by tapping outside it.  Tell isolated_tap_handler to
-                    // wait briefly before activating again, so the click that closed it doesn't
-                    // reopen it.
-                    this.isolated_tap_handler.delay();
-                }
             });
 
             // Navigate to the next or previous image on double-tap.
@@ -90,17 +84,27 @@ ppixiv.screen_illust = class extends ppixiv.screen
                 container: this.view_container,
                 signal: this.shutdown_signal.signal,
                 ondbltap: (e) => {
-                    let right = e.clientX > window.innerWidth/2;
-                    this.navigate_to_next(right);
-                },
-            });
+                    let left = e.clientX < 100;
+                    let right = e.clientX > this.container.offsetWidth - 100;
+                    if(left || right)
+                    {
+                        if(this.mobile_illust_ui.shown)
+                            this.mobile_illust_ui.hide();
+                        else
+                        {
+                            this.mobile_illust_ui.show({side: left? "left":"right"});
 
-            this.isolated_tap_handler = new ppixiv.MobileIsolatedTapHandler({
-                container: this.view_container,
-                signal: this.shutdown_signal.signal,
-                ontap: (e) => {
-                    this.mobile_illust_ui.show();
-                }
+                            // See the comments on this function for an explanation of this.  This is necessary
+                            // so the tap that displays the menu doesn't also activate whatever becomes visible.
+                            helpers.prevent_clicks_until_pointer_released(this.mobile_illust_ui.container, e.pointerId);
+                        }
+                    } else {
+                        this.mobile_illust_ui.hide();
+
+                        let right = e.clientX > window.innerWidth/2;
+                        this.navigate_to_next(right);
+                    }
+                },
             });
         }
 
