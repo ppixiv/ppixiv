@@ -4128,12 +4128,21 @@ ppixiv.guess_image_url = class
     // Store info about an image that we've loaded data for.
     add_info(image_info)
     {
+        // Everyone else now uses image_info.illustId and image_info.media_id.  We
+        // still just use .id  here, since this is only used for Pixiv images and it's
+        // not worth a migration to change the primary key.
+        /* image_info = {
+            id: image_info.illustId,
+            ...image_info,
+        }
+        */
+
         // Store one record per page.
         let pages = [];
         for(let page = 0; page < image_info.pageCount; ++page)
         {
-            let illust_id = image_info.id;
-            let media_id = helpers.illust_id_to_media_id(image_info.id, page);
+            let illust_id = image_info.illustId;
+            let media_id = helpers.illust_id_to_media_id(image_info.illustId, page);
             let url = image_info.mangaPages[page].urls.original;
             let parts = url.split(".");
             let ext = parts[parts.length-1];

@@ -262,14 +262,14 @@ ppixiv.InpaintEditor = class extends ppixiv.widget
         // as updated image URLs that include the new inpaint.
         //
         // This updates image_data directly, since we don't currently have a path for
-        // updating illust data after it's already loaded..
+        // updating illust data after it's already loaded.
         local_api.adjust_illust_info(illust);
-        image_data.singleton().image_data[illust.id] = illust;
-        image_data.singleton().call_illust_modified_callbacks(illust.id);
+        image_data.singleton().image_data[illust.mediaId] = illust;
+        image_data.singleton().call_illust_modified_callbacks(illust.mediaId);
 
         // Update the thumbnail URL, so the new image shows up in search results and the
         // load preview.
-        image_data.singleton().update_media_info(illust.id, {
+        image_data.singleton().update_media_info(illust.mediaId, {
             previewUrls: [illust.urls.small],
         });
 

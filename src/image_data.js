@@ -258,6 +258,12 @@ ppixiv.image_data = class extends EventTarget
             }];
         }
 
+        // The image data has both "id" and "illustId" containing the image ID.  Remove id to
+        // make sure we only use illustId, and set mediaId.  This makes it clear what type of
+        // ID you're getting.
+        illust_data.mediaId = media_id;
+        delete illust_data.id;
+
         guess_image_url.get.add_info(illust_data);
 
         // Store the image data.
@@ -463,6 +469,8 @@ ppixiv.image_data = class extends EventTarget
     // illust_data.
     add_illust_data(illust_data)
     {
+        // This illust_data is from the API and hasn't been adjusted yet, so illust_data.illustId
+        // doesn't exist yet.
         let media_id = helpers.illust_id_to_media_id(illust_data.id);
         var load_promise = this.load_media_info(media_id, { illust_data: illust_data, force: true });
         this._started_loading_image_info(media_id, load_promise);

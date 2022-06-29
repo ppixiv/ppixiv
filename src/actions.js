@@ -535,7 +535,7 @@ ppixiv.actions = class
             var buf = results[0];
             var blob = new Blob([results[0]]);
             var ext = helpers.get_extension(url);
-            let filename = user_info.name + " - " + illust_data.id;
+            let filename = user_info.name + " - " + illust_data.illustId;
 
             // If this is a single page of a manga post, include the page number.
             if(download_type == "image" && illust_data.mangaPages.length > 1)
@@ -561,7 +561,7 @@ ppixiv.actions = class
 
         // Create the ZIP.
         var zip = new create_zip(filenames, results);
-        var filename = user_info.name + " - " + illust_data.id + " - " + illust_data.illustTitle + ".zip";
+        var filename = user_info.name + " - " + illust_data.illustId + " - " + illust_data.illustTitle + ".zip";
         helpers.save_blob(zip, filename);
     }
 

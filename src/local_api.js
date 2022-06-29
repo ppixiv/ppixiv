@@ -64,7 +64,7 @@ ppixiv.local_api = class
     // but we fill it in from urls so we can treat it the same way.
     static adjust_illust_info(illust)
     {
-        let { type } = helpers.parse_media_id(illust.id);
+        let { type } = helpers.parse_media_id(illust.mediaId);
         if(type == "folder")
         {
             illust.mangaPages = [];
@@ -83,6 +83,9 @@ ppixiv.local_api = class
             }];
             illust.pageCount = 1;
         }
+
+        // illustId is only for Pixiv images.  Set it so thumbnail_data doesn't complain.
+        illust.illustId = null;
     }
 
     // This is called early in initialization.  If we're running natively and
@@ -105,13 +108,13 @@ ppixiv.local_api = class
 
         // Read the folder list.  If we have any mounts, navigate to the first one.  Otherwise,
         // show folder:/ as a fallback.
-        let illust_id = "folder:/";
-        let result = await local_api.list(illust_id);
+        let media_id = "folder:/";
+        let result = await local_api.list(media_id);
         if(result.results.length)
-            illust_id = result.results[0].id;
+            media_id = result.results[0].mediaId;
 
         let args = helpers.args.location;
-        local_api.get_args_for_id(illust_id, args);
+        local_api.get_args_for_id(media_id, args);
         helpers.set_page_url(args, false, "initial");
     }
 
@@ -527,7 +530,7 @@ ppixiv.local_api = class
             return;
         }
 
-        let folder_id = libraries[0].id;
+        let folder_id = libraries[0].mediaId;
         let args = new helpers.args("/", ppixiv.location);
         local_api.get_args_for_id(folder_id, args);
         helpers.set_page_url(args.url, true /* add to history */, "navigation");

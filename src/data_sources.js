@@ -3891,7 +3891,7 @@ ppixiv.data_sources.vview = class extends data_source
 
         let found_media_ids = [];
         for(let thumb of result.results)
-            found_media_ids.push(thumb.id);
+            found_media_ids.push(thumb.mediaId);
 
         this.add_page(page, found_media_ids);
     };

@@ -645,8 +645,8 @@ class local_navigation_widget_item extends ppixiv.tree_widget_item
         if(this.path == "folder:/" && result.results.length == 1)
         {
             // Top-level items are always folders.
-            console.assert(result.results[0].id.startsWith("folder:/"));
-            this.path = result.results[0].id;
+            console.assert(result.results[0].mediaId.startsWith("folder:/"));
+            this.path = result.results[0].mediaID;
             return await this.load_inner();
         }
         */
@@ -654,7 +654,7 @@ class local_navigation_widget_item extends ppixiv.tree_widget_item
         for(let dir of result.results)
         {
             // Strip "folder:" off of the name, and use the basename of that as the label.
-            let {type } = helpers.parse_media_id(dir.id);
+            let {type } = helpers.parse_media_id(dir.mediaId);
             if(type != "folder")
                 continue;
     
@@ -662,7 +662,7 @@ class local_navigation_widget_item extends ppixiv.tree_widget_item
             let child = new local_navigation_widget_item({
                 parent: this,
                 label: dir.illustTitle,
-                path: dir.id,
+                path: dir.mediaId,
             });
 
             // Store ourself on the root node's node list.

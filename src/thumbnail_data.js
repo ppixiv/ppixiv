@@ -388,6 +388,11 @@ ppixiv.thumbnail_data = class
                 // Rename .tags to .tagList, for consistency with the flat tag list in illust info.
                 remapped_thumb_info.tagList = remapped_thumb_info.tags;
                 delete remapped_thumb_info.tags;
+
+                // Put id in illustId and set mediaId.  This matches what we do in illust_data.
+                remapped_thumb_info.illustId = remapped_thumb_info.id;
+                remapped_thumb_info.mediaId = helpers.illust_id_to_media_id(remapped_thumb_info.illustId);
+                delete remapped_thumb_info.id;
             }
 
             // This is really annoying: the profile picture is the only field that's present in thumbnail
@@ -402,35 +407,27 @@ ppixiv.thumbnail_data = class
                 delete remapped_thumb_info.profileImageUrl;
             }
 
-            all_thumb_info[remapped_thumb_info.id] = remapped_thumb_info;
+            all_thumb_info.push(remapped_thumb_info);
         }
 
-        // Load any extra image data stored for these media IDs.
-        let illust_ids = Object.keys(all_thumb_info);
+        // Load any extra image data stored for these media IDs.  These are stored per page, but
+        // batch loaded per image.
+        let illust_ids = all_thumb_info.map((info) => info.illustId);
         let extra_data = await extra_image_data.get.batch_load_all_pages_for_illust(illust_ids);
 
-        for(let [illust_id, info] of Object.entries(all_thumb_info))
+        for(let info of all_thumb_info)
         {
             // Store extra data for each page.
-            info.extraData = extra_data[illust_id] || {};
+            info.extraData = extra_data[info.illustId] || {};
 
             // Store the data.
-            this.add_thumbnail_info(info);
-
-            let media_id = helpers.illust_id_to_media_id(illust_id);
-            delete this.loading_ids[media_id];
+            this.thumbnail_data[info.mediaId] = info;
+            delete this.loading_ids[info.mediaId];
         }
 
         // Broadcast that we have new thumbnail data available.
         window.dispatchEvent(new Event("thumbnailsloaded"));
     };
-
-    // Store thumbnail info.
-    add_thumbnail_info(thumb_info)
-    {
-        let media_id = helpers.illust_id_to_media_id(thumb_info.id);
-        this.thumbnail_data[media_id] = thumb_info;
-    }
 
     is_muted(thumb_info)
     {
@@ -493,7 +490,8 @@ ppixiv.thumbnail_data = class
     }
 
     thumbnail_info_keys = [
-        "id",
+        "mediaId",
+        "illustId",
         "illustType",
         "illustTitle",
         "pageCount",

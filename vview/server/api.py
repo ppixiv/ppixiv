@@ -87,7 +87,7 @@ def get_illust_info(info, entry, base_url):
         timestamp = datetime.fromtimestamp(ctime, tz=timezone.utc).isoformat()
 
         image_info = {
-            'id': illust_id,
+            'mediaId': illust_id,
             'localPath': str(entry['path']),
             'illustTitle': entry['title'],
             'createDate': timestamp,
@@ -125,7 +125,7 @@ def get_illust_info(info, entry, base_url):
     tags = entry['tags'].split()
 
     image_info = {
-        'id': illust_id,
+        'mediaId': illust_id,
         'localPath': str(entry['path']),
         'previewUrls': preview_urls,
 
