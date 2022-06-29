@@ -64,6 +64,9 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
 
         // This is like pointermove, but received during quick view from the source tab.
         window.addEventListener("quickviewpointermove", this.quickviewpointermove, { signal: this.event_shutdown.signal });
+
+        // Listen for open widgets changing.  We'll pause the slideshow while UI is open.
+        OpenWidgets.singleton.addEventListener("changed", this.open_widgets_changed, { signal: this.event_shutdown.signal });
     }
 
     // Load the given illust and page.
@@ -204,7 +207,7 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         // If we're in slideshow mode, we aren't using the preview image.  Pause the animation
         // until we actually display it so it doesn't run while there's nothing visible.
         if(this.slideshow_enabled)
-            this._pause_animation = true;
+            this.pause_animation = true;
 
         this.reposition();
 
@@ -221,7 +224,7 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         // If the main image is already being displayed, we're done.
         if(img_ready)
         {
-            this._pause_animation = false;
+            this.pause_animation = false;
             return;
         }
 
@@ -252,7 +255,7 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         signal.check();
 
         // If we paused an animation, resume it.
-        this._pause_animation = false;
+        this.pause_animation = false;
 
         this.set_displayed_image("main");
     }
@@ -1009,13 +1012,29 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         return helpers.args.location.hash.get("slideshow") == "1";
     }
 
-    set _pause_animation(pause)
+    set pause_animation(pause)
     {
+        this._pause_animation = pause;
+        this.refresh_animation_paused();
+    }
+
+    // OpenWidgets.singleton.empty has changed, which means that a widget over the image has
+    // opened or closed.
+    open_widgets_changed = () =>
+    {
+        this.refresh_animation_paused();
+    }
+
+    // The animation is paused if we're explicitly paused while loading, or if something is
+    // open over the image and registered with OpenWidgets, like the context menu.
+    refresh_animation_paused()
+    {
+        let should_be_paused = this._pause_animation || !OpenWidgets.singleton.empty;
         if(this.animations == null)
             return;
 
         for(let animation of this.animations)
-            animation.updatePlaybackRate(pause? 0:1);
+            animation.updatePlaybackRate(should_be_paused? 0:1);
     }
 
     // These zoom helpers are mostly for the popup menu.

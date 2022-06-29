@@ -251,7 +251,6 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
             </div>
         `});
 
-        this._visibility_state = new helpers.State(this.visible);
         this.visible = false;
         this.hide = this.hide.bind(this);
 
@@ -468,11 +467,6 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
         hide_mouse_cursor_on_idle.disable_all("context-menu");
     }
 
-    wait_until_hidden()
-    {
-        return this._visibility_state.wait(false);
-    }
-
     // If element is within a button that has a tooltip set, show it.
     show_tooltip_for_element(element)
     {
@@ -550,7 +544,7 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
     {
         super.visibility_changed();
         this.refresh_visibility();
-        this._visibility_state.value = this.visible;
+        ppixiv.OpenWidgets.singleton.set(this, this.visible);
     }
 
     refresh_visibility()

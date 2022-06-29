@@ -542,44 +542,6 @@ ppixiv.helpers = {
         }
     },
 
-    // Hold a value, and allow waiting for a specific value.
-    //
-    // For example:
-    // this.visibility_state = new State(false); // not visible
-    // this.visibility_state.value = true; // visible
-    // await this.visibility_state.wait(false); // wait until not visible
-    State: class
-    {
-        constructor({value=false}={})
-        {
-            this._value = value;
-            this._event = new helpers.WakeupEvent();
-        }
-
-        set value(value)
-        {
-            if(this._value == value)
-                return;
-
-            this._value = value;
-            this._event.wake();
-        }
-        
-        get value()
-        {
-            return this.value;
-        }
-
-        async wait(value=true)
-        {
-            if(this._value == value)
-                return;
-
-            while(this._value != value)
-                await this._event.wait();
-        }
-    },
-
     // setInterval using an AbortSignal to remove the interval.
     //
     // If call_immediately is true, call callback() now, rather than waiting
@@ -4657,9 +4619,92 @@ ppixiv.ClassFlags = class extends EventTarget
 };
 
 
+// This keeps track of open UI that the user is interacting with which should
+// prevent us from auto-advancing images in the slideshow.  This allows us to
+// pause the slideshow or prevent it from advancing while the context menu or
+// settings are open.
+ppixiv.OpenWidgets = class extends EventTarget
+{
+    static get singleton()
+    {
+        if(this._singleton == null)
+            this._singleton = new this;
+        return this._singleton;
+    }
 
+    constructor()
+    {
+        super();
 
+        this.open_widgets = new Set();
 
+        this.event = new ppixiv.helpers.WakeupEvent();
+    }
+
+    // If true, there are no open widgets or dialogs that should prevent the image from
+    // changing automatically.
+    get empty()
+    {
+        return this.open_widgets.size == 0;
+    }
+
+    // A shortcut to add or remove a widget.
+    set(widget, value)
+    {
+        if(value)
+            this.add(widget);
+        else
+            this.remove(widget);
+    }
+
+    // We're also an event target, so you can register to find out when dialogs are opened
+    // and closed.
+    _broadcast_changed()
+    {
+        this.dispatchEvent(new Event("changed"));
+    }
+
+    // Add an open widget to the list.
+    add(widget)
+    {
+        let was_empty = this.empty;
+        this.open_widgets.add(widget);
+        if(was_empty)
+            this._broadcast_changed();
+    }
+
+    // Remove an open UI from the list, possibly waking up callers to wait_until_empty.
+    async remove(widget)
+    {
+        if(!this.open_widgets.has(widget))
+            return;
+
+        this.open_widgets.delete(widget);
+
+        if(this.event.size > 0)
+            return;
+
+        // Another widget might be added immediately after this one is removed, so don't wake
+        // listeners immediately.  Yield to the event loop, and check after anything else on
+        // the stack has finished.
+        await helpers.sleep(0);
+
+        // Let any listeners know that our empty status has changed.  Do this before checking
+        // if we're empty, in case this causes somebody to open another dialog.
+        this._broadcast_changed();
+
+        if(this.event.size > 0)
+            return;
+
+        this.event.wake();
+    }
+
+    async wait_until_empty()
+    {
+        while(!this.empty)
+            await this.event.wait();
+    }
+}
 
 const FlingFriction = 10;
 const FlingMinimumVelocity = 10;

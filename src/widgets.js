@@ -212,6 +212,10 @@ ppixiv.dialog_widget = class extends ppixiv.widget
         else
             delete document.body.dataset.popupOpen;
 
+        // Register ourself as an important visible widget, so the slideshow won't move on
+        // while we're open.
+        ppixiv.OpenWidgets.singleton.set(this, this.visible);
+
         if(this.allow_close)
         {
             if(this.visible)

@@ -460,7 +460,6 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
 
         this.onclose = onclose;
         this.pages = {};
-        this._visibility_state = new helpers.State(this.visible);
 
         this.pages.top = new mobile_illust_ui_top_page({
             container: this.container,
@@ -594,11 +593,6 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
             this.onclose();
     }
 
-    wait_until_hidden()
-    {
-        return this._visibility_state.wait(false);
-    }
-
     // If not null, button is the button that was used to show the page, to align the
     // submenu near.
     show_page(new_page_name, button)
@@ -653,7 +647,7 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
         for(let page of Object.values(this.pages))
             page.refresh();
 
-        this._visibility_state.value = this.shown;
+        ppixiv.OpenWidgets.singleton.set(this, this.shown);
     }
 }
 
