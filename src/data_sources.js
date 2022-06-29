@@ -1138,6 +1138,11 @@ ppixiv.data_sources.discovery_users = class extends data_source
     
     async load_page_internal(page)
     {
+        // If we're showing similar users, only show one page, since the API returns the
+        // same thing every time.
+        if(this.showing_user_id && page > 1)
+            return;
+
         if(this.showing_user_id != null)
         {
             // Make sure the user info is loaded.
@@ -1207,16 +1212,6 @@ ppixiv.data_sources.discovery_users = class extends data_source
         this.add_page(page, media_ids);
     }
 
-    load_page_available(page)
-    {
-        // If we're showing similar users, only show one page, since the API returns the
-        // same thing every time.
-        if(this.showing_user_id)
-            return page == 1;
-
-        return true;
-    }
-
     get estimated_items_per_page() { return 30; }
     get page_title()
     {
@@ -1265,13 +1260,11 @@ ppixiv.data_sources.rankings = class extends data_source
     
     get name() { return "rankings"; }
 
-    load_page_available(page)
-    {
-        return page <= this.max_page;
-    }
-
     async load_page_internal(page)
     {
+        // Stop if we already know this is past the end.
+        if(page > this.max_page)
+            return;
 
         /*
         "mode": "daily",
