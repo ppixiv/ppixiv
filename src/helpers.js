@@ -4814,12 +4814,6 @@ ppixiv.TouchScroller = class
         this.container.releasePointerCapture(e.pointerId);
         this.pointers.delete(e.pointerId);
 
-        if(this.pending_vsync != null)
-        {
-            cancelAnimationFrame(this.pending_vsync);
-            this.pending_vsync = null;
-        }
-
         // If there are more touches active, keep dragging.  If this is the last pointer released, apply
         // velocity to fling.
         if(this.pointers.size > 0)
@@ -4827,30 +4821,6 @@ ppixiv.TouchScroller = class
 
         // The last touch was released.  Start flinging or rubber banding.
         this.start_fling();
-    }
-
-    // Handle pointer movement.  All we do here is record the movement and queue
-    // the update to happen on vsync.  This lets us coalesce multiple simultaneous
-    // touches into a single update.
-    pointermove = (e) =>
-    {
-        if(this.mode != "dragging" || !this.pointers.has(e.pointerId))
-            return;
-
-        // If we haven't yet scheduled the update, do it now and make sure the drag list is empty.
-        if(this.pending_vsync == null)
-        {
-            this.pending_vsync = requestAnimationFrame(this.complete_drag_frame);
-            this.frame_drags = [];
-        }
-
-        this.frame_drags.push({
-            pointerId: e.pointerId,
-            pageX: e.pageX,
-            pageY: e.pageY,
-            movementX: e.movementX,
-            movementY: e.movementY,
-        });
     }
 
     // Get the average position of all current touches.
@@ -4877,28 +4847,19 @@ ppixiv.TouchScroller = class
         return result;
     }
 
-    complete_drag_frame = () =>
+    pointermove = (e) =>
     {
-        this.pending_vsync = null;
-
-        // If all pointers were released, stop to make sure we don't divide by zero.
-        if(this.pointers.size == 0)
+        let pointer_info = this.pointers.get(e.pointerId);
+        if(this.mode != "dragging" || pointer_info == null)
             return;
 
         // The center position and average distance at the start of the frame:
         let old_center_pos = this.pointer_center_pos;
         let old_average_distance_from_anchor = this.pointer_distance_from(old_center_pos);
 
-        // Update the saved pointer positions at the end of the frame.
-        for(let {pointerId, pageX, pageY} of this.frame_drags)
-        {
-            let pointer_info = this.pointers.get(pointerId);
-            if(pointer_info == null)
-                continue;
-
-            pointer_info.x = pageX;
-            pointer_info.y = pageY;
-        }
+        // Update this pointer.  This will update pointer_center_pos.
+        pointer_info.x = e.pageX;
+        pointer_info.y = e.pageY;
 
         // The center position and average distance at the end of the frame:
         let new_center_pos = this.pointer_center_pos;
