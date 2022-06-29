@@ -18,7 +18,7 @@ ppixiv.context_menu_image_info_widget = class extends ppixiv.illust_widget
         super({ ...options, template: `
             <div class=context-menu-image-info>
                 <div class=title-text-block>
-                    <span style="display: inline-block;" class=folder-block hidden>
+                    <span class=folder-block hidden>
                         <span class=folder-text></span>
                         <span class=slash">/</span>
                     </span>

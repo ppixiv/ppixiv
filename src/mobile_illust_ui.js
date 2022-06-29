@@ -437,6 +437,55 @@ let mobile_illust_ui_top_page = class extends mobile_illust_ui_page
     }
 }
 
+
+// We can only show tags when running natively, since bookmark tags aren't always loaded
+// on Pixiv.  This is only used for the mobile UI.
+class mobile_overlay_bookmark_tag_widget extends ppixiv.illust_widget
+{
+    constructor({...options})
+    {
+        super({ ...options, template: `
+            <div class=mobile-bookmark-tag-overlay>
+                <div class=bookmark-tags></div>
+            </div>
+        `});
+    }
+
+    refresh_internal({ illust_data })
+    {
+        this.container.hidden = illust_data == null;
+        if(this.container.hidden)
+            return;
+
+        let tag_widget = this.container.querySelector(".bookmark-tags");
+        helpers.remove_elements(tag_widget);
+        if(!illust_data.bookmarkData?.tags)
+            return;
+
+        for(let tag of illust_data.bookmarkData.tags)
+        {
+            let entry = this.create_template({name: "tag-entry", html: `
+                <div class="mobile-ui-tag-entry">
+                    ${ helpers.create_icon("ppixiv:tag") }                    
+                    <span class=tag-name></span>
+                </div>
+            `});
+
+            entry.querySelector(".tag-name").innerText = tag;
+            tag_widget.appendChild(entry);
+        }
+    }
+
+    set_data_source(data_source)
+    {
+        if(this.data_source == data_source)
+            return;
+
+        this.data_source = data_source;
+        this.refresh();
+    }
+}
+
 // The container for the mobile image UI.  This just creates and handles displaying
 // the tabs.
 ppixiv.mobile_illust_ui = class extends ppixiv.widget
@@ -456,6 +505,11 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
             parent: this,
             container: this.container.querySelector(".context-menu-image-info-container"),
             show_title: true,
+        });
+
+        this.bookmark_tag_list_widget = new mobile_overlay_bookmark_tag_widget({
+            parent: this,
+            container: this.container.querySelector(".context-menu-image-info-container"),
         });
 
         this.onclose = onclose;
@@ -504,6 +558,7 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
 
         this._media_id = media_id;
         this.info_widget.set_media_id(media_id);
+        this.bookmark_tag_list_widget.set_media_id(media_id);
         for(let page of Object.values(this.pages))
             page.media_id = media_id;
 
