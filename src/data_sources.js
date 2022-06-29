@@ -453,7 +453,7 @@ ppixiv.data_source = class
         if(!this.id_list.any_pages_loaded)
             return true;
 
-        // If we've loaded pages 5-6, we can load anything between pages 4 and 7.
+        // If we've loaded pages 5-6, we can load anything between pages 5 and 7.
         let lowest_page = this.id_list.get_lowest_loaded_page();
         let highest_page = this.id_list.get_highest_loaded_page();
         return page >= lowest_page && page <= highest_page+1;
