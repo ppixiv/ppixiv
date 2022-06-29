@@ -3313,6 +3313,9 @@ ppixiv.data_sources.follows = class extends data_source
             offset: this.estimated_items_per_page*(page-1),
             limit: this.estimated_items_per_page,
             rest: rest,
+            
+            // TODO: this isn't available yet
+            acceptingRequests: 0,
         };
         if(query_args.get("tag"))
             args.tag = query_args.get("tag");
