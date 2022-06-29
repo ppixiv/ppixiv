@@ -1033,8 +1033,14 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         if(this.animations == null)
             return;
 
+        // Note that playbackRate is broken on iOS.
         for(let animation of this.animations)
-            animation.updatePlaybackRate(should_be_paused? 0:1);
+        {
+            if(should_be_paused)
+                animation.pause();
+            else
+                animation.play();
+        }
     }
 
     // These zoom helpers are mostly for the popup menu.
