@@ -478,10 +478,6 @@ ppixiv.data_source = class
         if(this.id_list.is_page_loaded(page))
             return true;
         
-        // Check if this is past the end.
-        if(!this.load_page_available(page))
-            return false;
-        
         console.log("Load page", page, "for:", cause);
 
         // Before starting, await at least once so we get pushed to the event loop.  This
@@ -547,15 +543,6 @@ ppixiv.data_source = class
     async load_page_internal(page)
     {
         throw "Not implemented";
-    }
-
-    // Return true if page is an available page (not past the end).
-    //
-    // We'll always stop if we read a page and it's empty.  This allows the extra
-    // last request to be avoided if we know the last page earlier.
-    load_page_available(page)
-    {
-        return true;
     }
 
     // This is called when the currently displayed illust_id changes.  The illust_id should
