@@ -110,18 +110,7 @@ ppixiv.context_menu_image_info_widget = class extends ppixiv.illust_widget
         // manga post and we don't have illust data yet, we don't have dimensions, so hide it until
         // it's loaded.
         var info = "";
-        let width = null, height = null;
-        if(this._page == 0)
-        {
-            width = illust_data.width;
-            height = illust_data.height;
-        }
-        else if(illust_data.mangaPages)
-        {
-            width = illust_data.mangaPages[this._page].width;
-            height = illust_data.mangaPages[this._page].height;
-        }
-
+        let { width, height } = image_data.get_dimensions(illust_data, this._media_id);
         if(width != null && height != null)
             info += width + "x" + height;
         set_info(".image-info", info);

@@ -858,16 +858,22 @@ ppixiv.image_data = class extends EventTarget
     // image_info.  If this isn't the first page of a manga post, get the dimensions from
     // mangaPages.  If this is the first page, get it directly from image_info, so this
     // can accept thumbnail data too.
-    static get_dimensions(image_info, media_id, page=null)
+    static get_dimensions(image_info, media_id=null, page=null)
     {
         if(image_info == null)
             return { width: 1, height: 1 };
 
         let page_info = image_info;
-        if(!helpers.is_media_id_local(media_id))
+        if(!helpers.is_media_id_local(image_info.mediaId))
         {
             if(page == null)
+            {
+                // For Pixiv images, at least one of media_id or page must be specified so we
+                // know what page we want.
+                if(media_id == null)
+                    throw new Error("At least one of media_id or page must be specified");
                 page = helpers.media_id_to_illust_id_and_page(media_id)[1];
+            }
 
             if(page > 0)
                 page_info = image_info.mangaPages[page];
