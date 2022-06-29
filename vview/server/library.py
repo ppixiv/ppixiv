@@ -711,8 +711,8 @@ class Library:
                 continue
 
             relative_path = root_path / path.name
-            illust_id = '%s:%s' % ('folder' if is_dir else 'file', relative_path)
-            results.append(illust_id)
+            media_id = '%s:%s' % ('folder' if is_dir else 'file', relative_path)
+            results.append(media_id)
             
         return results
 

@@ -10,16 +10,16 @@ log = logging.getLogger(__name__)
 
 handlers = {}
 
-def set_scheme(illust_id, type):
+def set_scheme(media_id, type):
     """
-    Set the type of illust_id.
+    Set the type of media_id.
 
     file: points to an image, and folder: points to a directory.
     """
     assert type in ('folder', 'file')
-    assert ':' in illust_id
+    assert ':' in media_id
 
-    rest = illust_id.split(':', 1)[1]
+    rest = media_id.split(':', 1)[1]
     return '%s:%s' % (type, rest)
 
 def reg(command, *, allow_guest=False):
@@ -48,7 +48,7 @@ def _get_id_for_entry(manager, entry):
     public_path = manager.library.get_public_path(entry['path'])
     return '%s:%s' % ('folder' if entry['is_directory'] else 'file', public_path)
 
-# Get info for illust_id.
+# Get info for media_id.
 def get_illust_info(info, entry, base_url):
     """
     Return illust info.
@@ -57,7 +57,7 @@ def get_illust_info(info, entry, base_url):
     if not info.manager.check_path(entry['path'], info.request):
         return None
     
-    illust_id = _get_id_for_entry(info.manager, entry)
+    media_id = _get_id_for_entry(info.manager, entry)
     is_animation = entry.get('animation')
 
     # The timestamp to use for URLs affected only by the image time:
@@ -69,10 +69,10 @@ def get_illust_info(info, entry, base_url):
     image_timestamp_with_inpaint += entry.get('inpaint_timestamp', 0)
 
     # The URLs that this file might have:
-    remote_image_path = f'{base_url}/file/{urllib.parse.quote(illust_id, safe="/:")}?{image_timestamp}'
-    remote_thumb_path = f'{base_url}/thumb/{urllib.parse.quote(illust_id, safe="/:")}?{image_timestamp_with_inpaint}'
-    remote_poster_path = f'{base_url}/poster/{urllib.parse.quote(illust_id, safe="/:")}?{image_timestamp}'
-    remote_mjpeg_path = f'{base_url}/mjpeg-zip/{urllib.parse.quote(illust_id, safe="/:")}?{image_timestamp}'
+    remote_image_path = f'{base_url}/file/{urllib.parse.quote(media_id, safe="/:")}?{image_timestamp}'
+    remote_thumb_path = f'{base_url}/thumb/{urllib.parse.quote(media_id, safe="/:")}?{image_timestamp_with_inpaint}'
+    remote_poster_path = f'{base_url}/poster/{urllib.parse.quote(media_id, safe="/:")}?{image_timestamp}'
+    remote_mjpeg_path = f'{base_url}/mjpeg-zip/{urllib.parse.quote(media_id, safe="/:")}?{image_timestamp}'
 
     if is_animation:
         # For MJPEGs, use the poster as the "original" image.  The video is retrieved
@@ -87,7 +87,7 @@ def get_illust_info(info, entry, base_url):
         timestamp = datetime.fromtimestamp(ctime, tz=timezone.utc).isoformat()
 
         image_info = {
-            'mediaId': illust_id,
+            'mediaId': media_id,
             'localPath': str(entry['path']),
             'illustTitle': entry['title'],
             'createDate': timestamp,
@@ -125,7 +125,7 @@ def get_illust_info(info, entry, base_url):
     tags = entry['tags'].split()
 
     image_info = {
-        'mediaId': illust_id,
+        'mediaId': media_id,
         'localPath': str(entry['path']),
         'previewUrls': preview_urls,
 
@@ -153,7 +153,7 @@ def get_illust_info(info, entry, base_url):
     # Add the inpaint info if this image has one.
     if entry.get('inpaint'):
         image_info['inpaint'] = json.loads(entry['inpaint'])
-        urls['inpaint'] = f'{base_url}/inpaint/{urllib.parse.quote(illust_id, safe="/:")}?{image_timestamp_with_inpaint}'
+        urls['inpaint'] = f'{base_url}/inpaint/{urllib.parse.quote(media_id, safe="/:")}?{image_timestamp_with_inpaint}'
         image_info['inpaint_generated'] = entry.get('inpaint_timestamp') != 0
 
     image_info['crop'] = json.loads(entry['crop']) if entry.get('crop') else None
@@ -336,21 +336,21 @@ def api_ids_impl(info):
     if not sort_order:
         sort_order = 'normal'
 
-    illust_ids = []
+    media_ids = []
 
     # If we're not searching and listing the root, just list the libraries.
     if str(path) == '/':
         for entry in info.manager.library.get_mountpoint_entries():
-            illust_id = _get_id_for_entry(info.manager, entry)
-            illust_ids.append(illust_id)
+            media_id = _get_id_for_entry(info.manager, entry)
+            media_ids.append(media_id)
 
-        return illust_ids
+        return media_ids
 
     absolute_path = info.manager.resolve_path(path)
-    for illust_id in info.manager.library.list_ids(path=absolute_path, sort_order=sort_order):
-        illust_ids.append(illust_id)
+    for media_id in info.manager.library.list_ids(path=absolute_path, sort_order=sort_order):
+        media_ids.append(media_id)
 
-    return illust_ids
+    return media_ids
 
 @reg('/list/{type:[^:]+}:{path:.+}', allow_guest=True)
 async def api_list(info):

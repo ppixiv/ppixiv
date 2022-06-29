@@ -188,7 +188,7 @@ def _get_thumbnail_path(path, data_dir):
 # The first frame is often blank due to fade-ins and doesn't make a good thumbnail,
 # so extract a frame a few seconds in to use as the thumb.  If that fails, it may be
 # a very short video, so use the poster image instead.
-async def _create_video_poster(illust_id, path, data_dir):
+async def _create_video_poster(media_id, path, data_dir):
     """
     Extract a poster from a video file and return the path to the poster.
     """
@@ -196,13 +196,13 @@ async def _create_video_poster(illust_id, path, data_dir):
     if poster_path.exists():
         return poster_path, 'image/jpeg'
 
-    if not await video.extract_frame(path, poster_path, seek_seconds=0, exif_description=illust_id):
+    if not await video.extract_frame(path, poster_path, seek_seconds=0, exif_description=media_id):
         # If the first frame fails, we can't get anything from this video.
         raise aiohttp.web.HTTPUnsupportedMediaType()
 
     return poster_path, 'image/jpeg'
 
-async def _extract_video_thumbnail_frame(illust_id, path, data_dir):
+async def _extract_video_thumbnail_frame(media_id, path, data_dir):
     """
     Extract the frame to be used for the thumbnail from a video file and return its path.
 
@@ -212,28 +212,28 @@ async def _extract_video_thumbnail_frame(illust_id, path, data_dir):
     if thumb_path.exists():
         return thumb_path
 
-    if await video.extract_frame(path, thumb_path, seek_seconds=10, exif_description=illust_id):
+    if await video.extract_frame(path, thumb_path, seek_seconds=10, exif_description=media_id):
         return thumb_path
 
     # If we couldn't extract a frame later on, the video may not be that long.
     # Extract the thumbnail if we haven't already, and just use that.
-    await _create_video_poster(illust_id, path, data_dir)
+    await _create_video_poster(media_id, path, data_dir)
 
     poster_path = _get_poster_path(path, data_dir)
     copyfile(poster_path, thumb_path)
     return thumb_path
 
-async def create_video_thumb(illust_id, absolute_path, mode, *, data_dir):
+async def create_video_thumb(media_id, absolute_path, mode, *, data_dir):
     if mode =='poster':
-        file, mime_type = await _create_video_poster(illust_id, absolute_path, data_dir)
+        file, mime_type = await _create_video_poster(media_id, absolute_path, data_dir)
         return file.read_bytes(), mime_type
     else:
-        thumb_path = await _extract_video_thumbnail_frame(illust_id, absolute_path, data_dir)
+        thumb_path = await _extract_video_thumbnail_frame(media_id, absolute_path, data_dir)
 
         # Create the thumbnail in the same way we create image thumbs.
         return await asyncio.to_thread(threaded_create_thumb, thumb_path)
 
-async def create_thumb(illust_id, absolute_path, *, inpaint_path=None):
+async def create_thumb(media_id, absolute_path, *, inpaint_path=None):
     return await asyncio.to_thread(threaded_create_thumb, absolute_path, inpaint_path=inpaint_path)
 
 def _find_directory_thumbnail(path):
