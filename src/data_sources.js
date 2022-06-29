@@ -59,7 +59,13 @@ class illust_id_list
     //
     // If the page cache has been invalidated, return false.  This happens if we think the
     // results have changed too much for us to reconcile it.
-    add_page(page, media_ids)
+    add_page(page, media_ids, {
+        // If media_ids is empty, that normally means we're past the end of the results, so we
+        // don't add the page.  That way, can_load_page() will return false for future pages.
+        // If allow_empty is true, allow adding empty pages.  This is used when we have an empty
+        // page but we know we're not actually at the end.
+        allow_empty=false,
+    }={})
     {
         // Sanity check:
         for(let media_id of media_ids)
@@ -96,10 +102,7 @@ class illust_id_list
 
         // If there's nothing on this page, don't add it, so this doesn't increase
         // get_highest_loaded_page().
-        // FIXME: If we removed everything, the data source will appear to have reached the last
-        // page and we won't load any more pages, since thumbnail_view assumes that a page not
-        // returning any data means we're at the end.
-        if(media_ids.length == 0)
+        if(!allow_empty && media_ids.length == 0)
             return;
 
         this.media_ids_by_page.set(page, media_ids);
@@ -412,6 +415,7 @@ ppixiv.data_source = class
             result = this._load_page_async(page, cause);
             this.loading_pages[page] = result;
             result.finally(() => {
+                // Move the load from loading_pages to loaded_pages.
                 delete this.loading_pages[page];
                 this.loaded_pages[page] = result;
             });
@@ -499,7 +503,27 @@ ppixiv.data_source = class
             console.log("No data on page", page);
             if(this.first_empty_page == -1 || page < this.first_empty_page)
                 this.first_empty_page = page;
-        };
+        }
+        else if(this.id_list.media_ids_by_page.get(page).length == 0)
+        {
+            // A page was added, but it was empty.  This is rare and can only happen if the
+            // data source explicitly adds an empty page, and means there was an empty search
+            // page that wasn't at the end.  This breaks the search view's logic (it expects
+            // to get something back to trigger another load).  Work around this by starting
+            // the next page.
+            //
+            // This is very rare.  Use a strong backoff, so if this happens repeatedly for some
+            // reason, we don't hammer the API loading pages infinitely and get users API blocked.
+
+
+            this.empty_page_load_backoff ??= new ppixiv.SafetyBackoffTimer();
+
+            console.log(`Load was empty, but not at the end.  Delaying before loading the next page...`);
+            await this.empty_page_load_backoff.wait();
+
+            console.log(`Continuing load from ${page+1}`);
+            return await this.load_page(page+1);
+        }
 
         return true;
     }
@@ -639,9 +663,9 @@ ppixiv.data_source = class
     }
 
     // Register a page of data.
-    add_page(page, media_ids)
+    add_page(page, media_ids, {...options}={})
     {
-        this.id_list.add_page(page, media_ids);
+        this.id_list.add_page(page, media_ids, {...options});
 
         // Call update listeners asynchronously to let them know we have more data.
         helpers.yield(() => {
@@ -2246,7 +2270,11 @@ class data_source_bookmarks_base extends data_source
             }
         }
 
+        // Store whether there are any results.  Do this before filtering deleted images,
+        // so we know the results weren't empty even if all results on this page are deleted.
+        result.body.empty = result.body.works.length == 0;
         result.body.works = data_source_bookmarks_base.filter_deleted_images(result.body.works);
+
         return result.body;
     }
 
@@ -2516,7 +2544,13 @@ ppixiv.data_sources.bookmarks = class extends data_source_bookmarks_base
 
         // Register the new page of data.  If we're shuffling, use the original page number, not the
         // shuffled page.
-        this.add_page(page, media_ids);
+        //
+        // If media_ids is empty but result.empty is false, we had results in the list but we
+        // filtered them all out.  Set allow_empty to true in this case so we add the empty page,
+        // or else it'll look like we're at the end of the results when we know we aren't.
+        this.add_page(page, media_ids, {
+            allow_empty: !result.empty,
+        });
 
         // Remember the total count, for display.
         this.total_bookmarks = result.total;
@@ -2590,8 +2624,10 @@ ppixiv.data_sources.bookmarks_merged = class extends data_source_bookmarks_base
         await thumbnail_data.singleton().loaded_thumbnail_info(result.works, "normal");
 
         // If there are no results, remember that this is the last page, so we don't
-        // make more requests for this type.
-        if(media_ids.length == 0)
+        // make more requests for this type.  Use the "empty" flag for this and not
+        // whether there are any media IDs, in case there were IDs but they're all
+        // deleted.
+        if(result.body.empty)
         {
             if(this.max_page_per_type[is_private] == -1)
                 this.max_page_per_type[is_private] = page;

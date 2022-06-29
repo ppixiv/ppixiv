@@ -4549,6 +4549,48 @@ class FlingVelocity
     }
 }
 
+// A helper for exponential backoff delays.
+ppixiv.SafetyBackoffTimer = class
+{
+    constructor({
+        // Reset the backoff after this much time elapses without requiring a backoff.
+        reset_after=60,
+
+        // The maximum backoff delay time, in seconds.
+        max_backoff=30,
+
+        // The exponent for backoff.  Each successive backup waits for exponent^error count.
+        exponent=1.5,
+    }={})
+    {
+        this.reset_after_ms = reset_after*1000;
+        this.max_backoff_ms = max_backoff*1000;
+        this.exponent = exponent;
+        this.reset();
+    }
+
+    reset()
+    {
+        this.reset_at = Date.now() + this.reset_after_ms;
+        this.backoff_count = 0;
+    }
+
+    async wait()
+    {
+        // If enough time has passed without a backoff, reset.
+        if(Date.now() >= this.reset_at)
+            this.reset();
+
+        this.reset_at = Date.now() + this.reset_after_ms;
+        this.backoff_count++;
+
+        let delay_ms = Math.pow(this.exponent, this.backoff_count) * 1000;
+        delay_ms = Math.min(delay_ms, this.max_backoff_ms);
+        console.log("wait for", delay_ms);
+        await helpers.sleep(delay_ms);
+    }
+};
+
 // This is a wrapper to treat a classList as a set of flags that can be monitored.
 //
 // let flags = ClassFlags(element);
