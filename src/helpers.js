@@ -2965,8 +2965,8 @@ ppixiv.helpers = {
             args.path  = `/artworks/${illust_id}`;
         }
 
-        if(page != null && page > 1)
-            args.query.set("page", page);
+        if(page != null && page > 0)
+            args.hash.set("page", page+1);
 
         return args;
     },
