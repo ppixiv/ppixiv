@@ -148,6 +148,8 @@ let thumbnail_ui = class extends ppixiv.widget
                             ${ helpers.create_box_link({label: "All tags",    popup: "Follow tags", icon: "bookmark", classes: ["popup-menu-box-button"] }) }
                             <div class="popup-menu-box follow-tag-list vertical-list"></div>
                         </span>
+
+                        ${ helpers.create_box_link({ popup: "Accepting requests", icon: "paid",   data_type: "accepting-requests" }) }
                     </div>
                 </div>                
 
@@ -955,6 +957,7 @@ ppixiv.screen_search = class extends ppixiv.screen
             ["following-link"]: "resources/followed-users-eye.svg",
             ["bookmarks-link"]: "mat:star",
             ["similar-artists"]: "ppixiv:suggestions",
+            ["request"]: "mat:paid",
         };
 
         let seen_links = {};

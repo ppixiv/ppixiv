@@ -1709,6 +1709,15 @@ ppixiv.data_sources.artist = class extends data_source
             links.push({url: this.fanbox_url, label: "Fanbox"});
         if(this.booth_url)
             links.push({url: this.booth_url, label: "Booth"});
+
+        if(this.accepting_requests)
+        {
+            links.push({
+                url: new URL(`/users/${this.viewing_user_id}/request#no-ppixiv`, ppixiv.location),
+                type: "request",
+                label: "Accepting requests",
+            });
+        }
     }
 
     async load_all_results()
@@ -1718,6 +1727,9 @@ ppixiv.data_sources.artist = class extends data_source
         let type = this.viewing_type;
 
         var result = await helpers.get_request("/ajax/user/" + this.viewing_user_id + "/profile/all", {});
+
+        // Remember if this user is accepting requests, so we can add a link.
+        this.accepting_requests = result.body.request.showRequestTab;
 
         // See if there's a Fanbox link.
         //
@@ -3307,15 +3319,14 @@ ppixiv.data_sources.follows = class extends data_source
 
         var query_args = this.url.searchParams;
         var rest = query_args.get("rest") || "show";
+        let acceptingRequests = query_args.get("acceptingRequests") || "0";
 
         var url = "/ajax/user/" + this.viewing_user_id + "/following";
         let args = {
             offset: this.estimated_items_per_page*(page-1),
             limit: this.estimated_items_per_page,
             rest: rest,
-            
-            // TODO: this isn't available yet
-            acceptingRequests: 0,
+            acceptingRequests,
         };
         if(query_args.get("tag"))
             args.tag = query_args.get("tag");
@@ -3375,6 +3386,7 @@ ppixiv.data_sources.follows = class extends data_source
 
         this.set_item(container, "public-follows", {rest: "show"}, {rest: "show"});
         this.set_item(container, "private-follows", {rest: "hide"}, {rest: "show"});
+        this.set_item2(container, { type: "accepting-requests", toggle: true, fields: {acceptingRequests: "1"}, default_values: {acceptingRequests: "0"}});
 
         let tag_list = container.querySelector(".followed-users-follow-tags .vertical-list");
         for(let tag of tag_list.querySelectorAll(".tag-entry"))
