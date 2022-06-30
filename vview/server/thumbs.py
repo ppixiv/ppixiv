@@ -27,7 +27,7 @@ def _check_access(request, absolute_path):
     # files that are already populated anyway, since we're only returning bookmarks.
     user = request['user']
     if user.is_admin or user.tag_list is None:
-        log.info('Skipping access check because there are no restrictions')
+        # log.info('Skipping access check because there are no restrictions')
         return
 
     entry = request.app['manager'].library.get(absolute_path)
