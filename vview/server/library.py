@@ -61,22 +61,22 @@ def _create_natsort():
 # Filesystem ("fs") sorts are used by Library.list, and sort BasePaths.  This lets us sort items
 # before retrieving their entries.
 sort_orders = {
-    # Normal sorting puts directories first, then sorts by path.
+    # Normal sorting puts directories first, then sorts by pathname.
     #
-    # This is constrained by Windows search, which isn't very robust.  We want to sort directories
-    # first, then use the path as a secondary search.
+    # Windows search does this with System.FolderNameDisplay, which is the basename of the path
+    # for directories and null otherwise.  Sorting by this will put directories first or last.
+    # It's a terrible design: it means that any time you're sorting directories first, you're also
+    # sorting directories by their basename, whether you want to or not.  Sort by this first, then
+    # sort by the full pathname to define the rest of the sort.
     #
-    # Windows search won't do that.  It has System.FolderNameDisplay which is intended for
-    # sorting directories first, but it's not implemented well.  It's the basename of the path
-    # for directories, which makes it impossible to have secondary sorts.  It should be a boolean,
-    # so it can be used as a partial sort.
-    #
-    # It does treat ZIPs as directories.  That's unexpected, but it's what we want, so we'll take
-    # it.
+    # System.FolderNameDisplay does treat ZIPs as directories.  That's unexpected, but it's what we
+    # want, so we'll take it.
     'normal': {
         'windows': [('System.FolderNameDisplay', 'DESC'), ('System.ItemPathDisplay', 'ASC')],
-        'entry': lambda entry: (not entry['is_directory'], entry['filesystem_name'].lower()),
-        'index': [('is_directory', 'DESC'), ('filesystem_name', 'ASC')],
+
+        # Use reverse_order_str to sort descending, since Python doesn't do this directly.        
+        'entry': lambda entry: (misc.reverse_order_str(entry['basename_if_directory_lowercase']), entry['path_lowercase'].lower()),
+        'index': [('basename_if_directory_lowercase', 'DESC'), ('path_lowercase', 'ASC')],
         'fs': lambda entry: (not entry.is_dir(), entry.name),
     },
 
@@ -89,10 +89,10 @@ sort_orders = {
         # Using the path as a secondary sort to break ties to make sure the order is consistent
         # is also needed for the merge to work.
         'windows': [('System.DateCreated', 'ASC'), ('System.ItemPathDisplay', 'ASC')],
-        'entry': lambda entry: (math.floor(entry['ctime']), entry['filesystem_name'].lower()),
+        'entry': lambda entry: (math.floor(entry['ctime']), entry['path_lowercase'].lower()),
 
         # SQLite doesn't have floor(), so do it with round() instead.
-        'index': [('round(ctime - 0.5)', 'ASC'), ('filesystem_name', 'ASC')],
+        'index': [('round(ctime - 0.5)', 'ASC'), ('path_lowercase', 'ASC')],
         'fs': lambda entry: (math.floor(entry.stat().st_ctime), entry.name),
     },
 
@@ -495,7 +495,8 @@ class Library:
             'parent': str(Path(path).parent),
             'ctime': stat.st_ctime,
             'mtime': stat.st_mtime,
-            'filesystem_name': path.name.lower(),
+            'path_lowercase': str(path).lower(),
+            'basename_if_directory_lowercase': None, # only set for directories
             'filesystem_mtime': path.filesystem_file.stat().st_mtime,
             'title': title,
             'mime_type': mime_type,
@@ -522,7 +523,8 @@ class Library:
         data = {
             'populated': True,
             'path': os.fspath(path),
-            'filesystem_name': path.filesystem_file.name.lower(),
+            'path_lowercase': str(path.filesystem_file).lower(),
+            'basename_if_directory_lowercase': path.filesystem_file.name.lower(),
             'is_directory': True,
             'parent': str(Path(path).parent),
             'ctime': stat.st_ctime,
@@ -565,7 +567,8 @@ class Library:
         return {
             'populated': False,
             'path': os.fspath(path),
-            'filesystem_name': path.filesystem_file.name.lower(),
+            'path_lowercase': str(path.filesystem_file).lower(),
+            'basename_if_directory_lowercase': path.filesystem_file.name.lower() if path.is_dir() else None,
             'filesystem_mtime': path.filesystem_file.stat().st_mtime,
             'is_directory': path.is_dir(),
             'parent': str(Path(path).parent),
@@ -897,7 +900,7 @@ class Library:
                 path = open_path(result.path)
                 return self._get_entry_from_path(path, populate=False, extra_metadata=result.metadata)
             else:
-                # print('Search result from database:', entry['id'], entry['filesystem_name'])
+                # print('Search result from database:', entry['id'], entry['path_lowercase'])
                 if str(result['path']) in seen_paths:
                     return
                 seen_paths.add(str(result['path']))

@@ -620,3 +620,10 @@ def remove_file_extension(fn):
     'file no. 1'
     """
     return re.sub(r'\.[a-z0-9]+$', '', fn, flags=re.IGNORECASE)
+
+class reverse_order_str(str):
+    """
+    A string that sorts in inverse order.
+    """
+    def __lt__(self, rhs):
+        return not super().__lt__(rhs)

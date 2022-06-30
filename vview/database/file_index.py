@@ -65,8 +65,15 @@ class FileIndex(Database):
                             path UNIQUE NOT NULL,
                             parent NOT NULL,
 
-                            -- The basename of the path, in lowercase.  This is for the 'normal' sort order. 
-                            filesystem_name NOT NULL,
+                            -- path in lowercase.  This corresponds to the System.ItemPathDisplay sort order.
+                            path_lowercase NOT NULL,
+
+                            -- If this is a directory, this is the basename of path in lowercase.  Otherwise, this is
+                            -- null.
+                            --
+                            -- This is equivalent to Windows indexing's System.FolderNameDisplay.  It's only here to make
+                            -- it easier to match sorts with Windows indexing.  
+                            basename_if_directory_lowercase,
 
                             -- This is true for ZIPs, which we treat like directories.
                             is_directory NOT NULL DEFAULT false,
@@ -108,7 +115,7 @@ class FileIndex(Database):
                     conn.execute(f'CREATE INDEX {self.schema}.files_bookmarked on files(bookmarked) WHERE bookmarked')
 
                     # This index is for the "normal" sort order.  See library.sort_orders.
-                    conn.execute(f'CREATE INDEX {self.schema}.files_sort_normal on files(is_directory DESC, filesystem_name ASC)')
+                    conn.execute(f'CREATE INDEX {self.schema}.files_sort_normal on files(basename_if_directory_lowercase DESC, path_lowercase ASC)')
 
                     # This is used to find untagged bookmarks.  Tag searches use the bookmark_tag table below.
                     conn.execute(f'CREATE INDEX {self.schema}.files_untagged_bookmarks on files(bookmark_tags) WHERE bookmark_tags == "" AND bookmarked')
@@ -195,11 +202,12 @@ class FileIndex(Database):
 
             if existing_record:
                 # The record already exists.  Update all fields except for path, parent, and
-                # filesystem_name name, which are invariant (except for renames which we don't
+                # path_lowercase name, which are invariant (except for renames which we don't
                 # do here)  This is much faster than letting INSERT OR REPLACE replace the record.
                 fields.remove('path')
                 fields.remove('parent')
-                fields.remove('filesystem_name')
+                fields.remove('path_lowercase')
+                fields.remove('basename_if_directory_lowercase')
                 row = [entry[key] for key in fields]
                 row.append(entry['path'])
                 sets = ['%s = ?' % field for field in fields]
@@ -336,11 +344,12 @@ class FileIndex(Database):
                 else:
                     entry_new_parent = entry['parent']
 
-                entry_new_filesystem_name = new_path.name.lower()
+                entry_new_path_lowercase = str(new_path).lower()
+                basename_if_directory_lowercase = new_path.basename.lower() if new_path.is_dir() else None
 
                 query = f'''
                     UPDATE OR REPLACE {self.schema}.files
-                        SET path = ?, parent = ?, filesystem_name = ?
+                        SET path = ?, parent = ?, path_lowercase = ?, basename_if_directory_lowercase = ?
                         WHERE id = ?
                 ''' % {
                     'path': '',
@@ -349,7 +358,8 @@ class FileIndex(Database):
                 cursor.execute(query, [
                     str(entry_new_path),              # path
                     str(entry_new_parent),            # parent
-                    str(entry_new_filesystem_name),   # filesystem_name
+                    str(entry_new_path_lowercase),    # path_lowercase
+                    str(basename_if_directory_lowercase), # basename_if_directory_lowercase
                     entry['id'],                      # WHERE id
                 ])
 
@@ -666,7 +676,8 @@ async def test():
         # 'parent': 'a',
 
         'populated': True,
-        'filesystem_name': 'name',
+        'path_lowercase': 'name',
+        'basename_if_directory_lowercase': 'name',
         'mtime': 10,
         'ctime': 10,
         'filesystem_mtime': 10,
