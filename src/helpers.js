@@ -1943,11 +1943,6 @@ ppixiv.helpers = {
         if(args.url.toString() == old_url && JSON.stringify(history_data) == JSON.stringify(history.state))
             return;
 
-        // history.state.index is incremented whenever we navigate forwards, so we can
-        // tell in onpopstate whether we're navigating forwards or backwards.
-        if(add_to_history)
-            history_data.index++;
-
         // console.log("Changing state to", args.url.toString());
         if(add_to_history)
             ppixiv.history.pushState(history_data, "", args.url.toString());
