@@ -3,6 +3,14 @@
 // This should be inside whats_new, but Firefox is in the dark ages and doesn't support class fields.
 let _update_history = [
     {
+        version: 145,
+        text: `
+            Added support for viewing followed users who are accepting requests, and a link from
+            the user to the request page.  This feature is still being rolled out by Pixiv and may
+            not be available for all users immediately.
+        `,
+    },
+    {
         version: 142,
         boring: true,
         text: `
