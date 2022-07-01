@@ -4795,6 +4795,17 @@ ppixiv.TouchScroller = class
         // We're always dragging when a new touch is pressed, replacing any fling.
         this.mode = "dragging";
 
+        // Work around iOS Safari weirdness.  If you drag from the left or right edge
+        // and a back or forward navigation gesture starts, the underlying window position
+        // snaps and broken pointer positions are sent to the window.  If we're on iOS, this
+        // is the first touch, and the touch is at the edge of the screen, ignore it.
+        if(ppixiv.ios && this.pointers.size == 0)
+        {
+            let width = 10;
+            if(e.pageX < width || e.pageX > window.innerWidth - width)
+                return;
+        }
+
         // Capture the pointer.
         this.container.setPointerCapture(e.pointerId);
         this.pointers.set(e.pointerId, {
