@@ -200,34 +200,41 @@ class illust_id_list
         if(page == null)
             return null;
 
-        let ids = this.media_ids_by_page.get(page);
-        let new_idx = idx + (next? +1:-1);
+        // Find the next or previous page that isn't empty, skipping over empty pages.
         let new_media_id = null;
-        if(new_idx < 0)
+        while(new_media_id == null)
         {
-            // Get the last illustration on the previous page, or null if that page isn't loaded.
-            let prev_page_no = page - 1;
-            let prev_page_media_ids = this.media_ids_by_page.get(prev_page_no);
-            if(prev_page_media_ids == null)
-                return null;
-            new_media_id = prev_page_media_ids[prev_page_media_ids.length-1];
-        }
-        else if(new_idx >= ids.length)
-        {
-            // Get the first illustration on the next page, or null if that page isn't loaded.
-            let next_page_no = page + 1;
-            let next_page_media_ids = this.media_ids_by_page.get(next_page_no);
-            if(next_page_media_ids == null)
-                return null;
-            new_media_id = next_page_media_ids[0];
-        }
-        else
-        {
-            new_media_id = ids[new_idx];
+            let ids = this.media_ids_by_page.get(page);
+            let new_idx = idx + (next? +1:-1);
+            if(new_idx >= 0 && new_idx < ids.length)
+            {
+                // Navigate to the next or previous image on the same page.
+                new_media_id = ids[new_idx];
+                break;
+            }
+            
+            if(next)
+            {
+                // Get the first illustration on the next page, or null if that page isn't loaded.
+                page++;
+                ids = this.media_ids_by_page.get(page);
+                if(ids == null)
+                    return null;
+                new_media_id = ids[0];
+            }
+            else
+            {
+                // Get the last illustration on the previous page, or null if that page isn't loaded.
+                page--;
+                ids = this.media_ids_by_page.get(page);
+                if(ids == null)
+                    return null;
+                new_media_id = ids[ids.length-1];
+            }
         }
 
         // If we're navigating backwards, get the last page on new_media_id.
-        if(helpers.parse_media_id(new_media_id).type == "illust" && !next && !skip_manga_pages)
+        if(!next && !skip_manga_pages && helpers.parse_media_id(new_media_id).type == "illust")
         {
             let info = thumbnail_data.singleton().get_illust_data_sync(new_media_id);
             if(info == null)
