@@ -85,7 +85,7 @@ ppixiv.image_data = class extends EventTarget
         if(this.illust_loads[media_id] != null)
             return this.illust_loads[media_id];
         
-        var load_promise = this.load_media_info(media_id);
+        let load_promise = this._load_media_info(media_id);
         this._started_loading_image_info(media_id, load_promise);
         return load_promise;
     }
@@ -111,7 +111,7 @@ ppixiv.image_data = class extends EventTarget
     //
     // If we already have the image data (not necessarily the rest, like ugoira_metadata),
     // it can be supplied with illust_data.
-    async load_media_info(media_id, { illust_data=null, force=false }={})
+    async _load_media_info(media_id, { illust_data=null, force=false }={})
     {
         media_id = helpers.get_media_id_first_page(media_id);
         let [illust_id] = helpers.media_id_to_illust_id_and_page(media_id);
@@ -133,31 +133,31 @@ ppixiv.image_data = class extends EventTarget
         if(helpers.is_media_id_local(media_id))
             return await this._load_local_image_info(media_id);
 
-        var manga_promise = null;
-        var ugoira_promise = null;
+        let manga_promise = null;
+        let ugoira_promise = null;
 
         // Given a user ID and/or an illust_type (or null if either isn't known yet), start any
         // fetches we can.
-        var start_loading = (illust_type, page_count) => {
+        let start_loading = (illust_type, page_count) => {
             // If we know the illust type and haven't started loading other data yet, start them.
             if(page_count != null && page_count > 1 && manga_promise == null && illust_data?.mangaPages == null)
-                manga_promise = helpers.get_request("/ajax/illust/" + illust_id + "/pages", {});
+                manga_promise = helpers.get_request(`/ajax/illust/${illust_id}/pages`, {});
             if(illust_type == 2 && ugoira_promise == null && (illust_data == null || illust_data.ugoiraMetadata == null))
-                ugoira_promise = helpers.get_request("/ajax/illust/" + illust_id + "/ugoira_meta");
+                ugoira_promise = helpers.get_request(`/ajax/illust/${illust_id}/ugoira_meta`);
         };
 
         // If we have thumbnail info, it tells us the user ID.  This lets us start loading
         // user info without waiting for the illustration data to finish loading first.
         // Don't fetch thumbnail info if it's not already loaded.
-        var thumbnail_info = thumbnail_data.singleton().get_one_thumbnail_info(media_id);
+        let thumbnail_info = thumbnail_data.singleton().get_one_thumbnail_info(media_id);
         if(thumbnail_info != null)
             start_loading(thumbnail_info.illustType, thumbnail_info.pageCount);
     
         // If we don't have illust data, block while it loads.
         if(illust_data == null)
         {
-            var illust_result_promise = helpers.get_request("/ajax/illust/" + illust_id, {});
-            var illust_result = await illust_result_promise;
+            let illust_result_promise = helpers.get_request("/ajax/illust/" + illust_id, {});
+            let illust_result = await illust_result_promise;
             if(illust_result == null || illust_result.error)
             {
                 let message = illust_result?.message || "Error loading illustration";
@@ -200,7 +200,7 @@ ppixiv.image_data = class extends EventTarget
 
         if(manga_promise != null)
         {
-            var manga_info = await manga_promise;
+            let manga_info = await manga_promise;
             illust_data.mangaPages = manga_info.body;
 
             for(let page of illust_data.mangaPages)
@@ -216,7 +216,7 @@ ppixiv.image_data = class extends EventTarget
 
         if(ugoira_promise != null)
         {
-            var ugoira_result = await ugoira_promise;
+            let ugoira_result = await ugoira_promise;
             illust_data.ugoiraMetadata = ugoira_result.body;
 
             // Switch the data URL to i-cf..pximg.net.
@@ -341,7 +341,7 @@ ppixiv.image_data = class extends EventTarget
         if(this.user_info_loads[user_id] != null)
             return this.user_info_loads[user_id];
        
-        this.user_info_loads[user_id] = this.load_user_info(user_id);
+        this.user_info_loads[user_id] = this._load_user_info(user_id);
         this.user_info_loads[user_id].then(() => {
             delete this.user_info_loads[user_id];
         });
@@ -349,7 +349,7 @@ ppixiv.image_data = class extends EventTarget
         return this.user_info_loads[user_id];
     };
     
-    async load_user_info(user_id)
+    async _load_user_info(user_id)
     {
         let base_media_id = "user:" + user_id;
 
@@ -367,7 +367,7 @@ ppixiv.image_data = class extends EventTarget
             return null;
         }
 
-        return this.loaded_user_info(result);
+        return this._loaded_user_info(result);
     }
 
     _check_user_data(user_data)
@@ -403,8 +403,7 @@ ppixiv.image_data = class extends EventTarget
         // partial is 0 if this is partial user data and 1 if it's full data (this is backwards).
         let expected_keys = user_data.partial? full_keys:partial_keys;
 
-        var thumbnail_info_map = this.thumbnail_info_map_illust_list;
-        var remapped_user_data = { };
+        let remapped_user_data = { };
         for(let key of expected_keys)
         {
             if(!(key in user_data))
@@ -417,15 +416,15 @@ ppixiv.image_data = class extends EventTarget
         return remapped_user_data;
     }
 
-    loaded_user_info = (user_result) =>
+    _loaded_user_info = (user_result) =>
     {
         if(user_result.error)
             return;
 
-        var user_data = user_result.body;
+        let user_data = user_result.body;
         user_data = this._check_user_data(user_data);
 
-        var user_id = user_data.userId;
+        let user_id = user_data.userId;
         // console.log("Got user", user_id);
 
         // Store the user data.
@@ -437,10 +436,10 @@ ppixiv.image_data = class extends EventTarget
             // with full user data.  Don't replace the user_data object itself, since widgets will have
             // a reference to the old one which will become stale.  Just replace the data inside the
             // object.
-            var old_user_data = this.user_data[user_id];
-            for(var key of Object.keys(old_user_data))
+            let old_user_data = this.user_data[user_id];
+            for(let key of Object.keys(old_user_data))
                 delete old_user_data[key];
-            for(var key of Object.keys(user_data))
+            for(let key of Object.keys(user_data))
                 old_user_data[key] = user_data[key];
         }
 
@@ -457,14 +456,14 @@ ppixiv.image_data = class extends EventTarget
         // This illust_data is from the API and hasn't been adjusted yet, so illust_data.illustId
         // doesn't exist yet.
         let media_id = helpers.illust_id_to_media_id(illust_data.id);
-        var load_promise = this.load_media_info(media_id, { illust_data, force: true });
+        let load_promise = this._load_media_info(media_id, { illust_data, force: true });
         this._started_loading_image_info(media_id, load_promise);
         return load_promise;
     }
 
     add_user_data(user_data)
     {
-        this.loaded_user_info({
+        this._loaded_user_info({
             body: user_data,
         });
     }
@@ -640,6 +639,7 @@ ppixiv.image_data = class extends EventTarget
         return this.all_user_follow_tags;
     }
 
+    // Update the list of tags we've followed a user with.
     set_cached_all_user_follow_tags(tags)
     {
         tags.sort();
@@ -709,7 +709,7 @@ ppixiv.image_data = class extends EventTarget
     {
         let promises = [];
         if(this.image_data[media_id] != null)
-            promises.push(this.load_media_info(media_id, { force: true }));
+            promises.push(this._load_media_info(media_id, { force: true }));
 
         if(!helpers.is_media_id_local(media_id) && thumbnail_data.singleton().get_one_thumbnail_info(media_id) != null)
             promises.push(thumbnail_data.singleton().load_thumbnail_info([media_id], { force: true }));
