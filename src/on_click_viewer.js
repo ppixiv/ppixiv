@@ -1064,7 +1064,7 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         // zoom, and use "cover" if the zoom level matches it.  The zoom we set here doesn't
         // have to be one that's selectable in the UI.
         this.locked_zoom = true;
-        if(Math.abs(zoom_factor - 1) < 0.01)
+        if(Math.abs(zoom_factor - 1) < 0.001)
             this.locked_zoom = false;
         else if(Math.abs(zoom_level - this._zoom_level_cover) < 0.01)
             this.zoom_level = "cover";
