@@ -94,7 +94,8 @@ ppixiv.image_data = class extends EventTarget
     {
         this.illust_loads[media_id] = load_promise;
         this.illust_loads[media_id].then(() => {
-            delete this.illust_loads[media_id];
+            if(this.illust_loads[media_id] === load_promise)
+                delete this.illust_loads[media_id];
         });
     }
     
