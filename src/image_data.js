@@ -90,6 +90,21 @@ ppixiv.image_data = class extends EventTarget
         return load_promise;
     }
 
+    // Add image and user data to the cache that we received from other sources.  Note that if
+    // we have any fetches in the air already, we'll leave them running.
+    //
+    // This will trigger loads for secondary data like manga pages if it's not included in
+    // illust_data.
+    add_illust_data(illust_data)
+    {
+        // This illust_data is from the API and hasn't been adjusted yet, so illust_data.illustId
+        // doesn't exist yet.
+        let media_id = helpers.illust_id_to_media_id(illust_data.id);
+        let load_promise = this._load_media_info(media_id, { illust_data, force: true });
+        this._started_loading_image_info(media_id, load_promise);
+        return load_promise;
+    }
+
     _started_loading_image_info(media_id, load_promise)
     {
         this.illust_loads[media_id] = load_promise;
@@ -125,14 +140,11 @@ ppixiv.image_data = class extends EventTarget
         media_id = helpers.get_media_id_first_page(media_id);
         delete this.nonexistant_media_ids[media_id];
 
-        // We need the illust data, user data, and ugoira metadata (for illustType 2).  (We could
-        // load manga data too, but we currently let the manga view do that.)  We need to know the
-        // user ID and illust type to start those loads.
-        console.log("Fetching", media_id);
-
         // If this is a local image, use our API to retrieve it.
         if(helpers.is_media_id_local(media_id))
             return await this._load_local_image_info(media_id);
+
+        console.log("Fetching", media_id);
 
         let manga_promise = null;
         let ugoira_promise = null;
@@ -157,7 +169,7 @@ ppixiv.image_data = class extends EventTarget
         // If we don't have illust data, block while it loads.
         if(illust_data == null)
         {
-            let illust_result_promise = helpers.get_request("/ajax/illust/" + illust_id, {});
+            let illust_result_promise = helpers.get_request(`/ajax/illust/${illust_id}`, {});
             let illust_result = await illust_result_promise;
             if(illust_result == null || illust_result.error)
             {
@@ -371,6 +383,44 @@ ppixiv.image_data = class extends EventTarget
         return this._loaded_user_info(result);
     }
 
+    // Add user data that we received from other sources.
+    add_user_data(user_data)
+    {
+        this._loaded_user_info({
+            body: user_data,
+        });
+    }
+
+    _loaded_user_info = (user_result) =>
+    {
+        if(user_result.error)
+            return;
+
+        let user_data = user_result.body;
+        user_data = this._check_user_data(user_data);
+
+        let user_id = user_data.userId;
+        // console.log("Got user", user_id);
+
+        // Store the user data.
+        if(this.user_data[user_id] == null)
+            this.user_data[user_id] = user_data;
+        else
+        {
+            // If we already have an object for this user, we're probably replacing partial user data
+            // with full user data.  Don't replace the user_data object itself, since widgets will have
+            // a reference to the old one which will become stale.  Just replace the data inside the
+            // object.
+            let old_user_data = this.user_data[user_id];
+            for(let key of Object.keys(old_user_data))
+                delete old_user_data[key];
+            for(let key of Object.keys(user_data))
+                old_user_data[key] = user_data[key];
+        }
+
+        return user_data;
+    }
+
     _check_user_data(user_data)
     {
         // Make sure that the data contains all of the keys we expect, so we catch any unexpected
@@ -415,58 +465,6 @@ ppixiv.image_data = class extends EventTarget
             remapped_user_data[key] = user_data[key];
         }
         return remapped_user_data;
-    }
-
-    _loaded_user_info = (user_result) =>
-    {
-        if(user_result.error)
-            return;
-
-        let user_data = user_result.body;
-        user_data = this._check_user_data(user_data);
-
-        let user_id = user_data.userId;
-        // console.log("Got user", user_id);
-
-        // Store the user data.
-        if(this.user_data[user_id] == null)
-            this.user_data[user_id] = user_data;
-        else
-        {
-            // If we already have an object for this user, we're probably replacing partial user data
-            // with full user data.  Don't replace the user_data object itself, since widgets will have
-            // a reference to the old one which will become stale.  Just replace the data inside the
-            // object.
-            let old_user_data = this.user_data[user_id];
-            for(let key of Object.keys(old_user_data))
-                delete old_user_data[key];
-            for(let key of Object.keys(user_data))
-                old_user_data[key] = user_data[key];
-        }
-
-        return user_data;
-    }
-
-    // Add image and user data to the cache that we received from other sources.  Note that if
-    // we have any fetches in the air already, we'll leave them running.
-    //
-    // This will trigger loads for secondary data like manga pages if it's not included in
-    // illust_data.
-    add_illust_data(illust_data)
-    {
-        // This illust_data is from the API and hasn't been adjusted yet, so illust_data.illustId
-        // doesn't exist yet.
-        let media_id = helpers.illust_id_to_media_id(illust_data.id);
-        let load_promise = this._load_media_info(media_id, { illust_data, force: true });
-        this._started_loading_image_info(media_id, load_promise);
-        return load_promise;
-    }
-
-    add_user_data(user_data)
-    {
-        this._loaded_user_info({
-            body: user_data,
-        });
     }
 
     // Load bookmark tags.
