@@ -2,7 +2,13 @@
 
 ppixiv.ImageEditor = class extends ppixiv.illust_widget
 {
-    constructor({onvisibilitychanged, ...options})
+    constructor({
+        // The ImageEditingOverlayContainer, which holds editor UI that goes inside the
+        // image box.
+        overlay_container,
+        onvisibilitychanged,
+        ...options
+    })
     {
         super({...options,
             template: `
@@ -73,6 +79,8 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
 
             this.active_editor_name = this.active_editor_name == "inpaint"? null:"inpaint";
         });
+
+        this.overlay_container = overlay_container;
 
         window.addEventListener("keydown", (e) => {
             if(!this.visible)
@@ -494,10 +502,6 @@ ppixiv.ImageEditingOverlayContainer = class extends ppixiv.widget
     {
         super({...options, template: `
             <div class=editing-container>
-                <img class="filtering displayed-image main-image">
-                <img class="filtering displayed-image inpaint-image">
-                <img class="filtering displayed-image low-res-preview">
-
                 <div class=inpaint-editor-overlay-container></div>
                 <div class=crop-editor-overlay-container></div>
                 <div class=pan-editor-overlay-container></div>
@@ -507,37 +511,6 @@ ppixiv.ImageEditingOverlayContainer = class extends ppixiv.widget
         this.inpaint_editor_overlay_container = this.container.querySelector(".inpaint-editor-overlay-container");
         this.crop_editor_overlay_container = this.container.querySelector(".crop-editor-overlay-container");
         this.pan_editor_overlay_container = this.container.querySelector(".pan-editor-overlay-container");
-
-        this.main_img = this.container.querySelector(".main-image");
-        this.inpaint_img = this.container.querySelector(".inpaint-image");
-        this.preview_img = this.container.querySelector(".low-res-preview");
-    }
-
-    shutdown()
-    {
-        // Clear the image URLs when we remove them, so any loads are cancelled.  This seems to
-        // help Chrome with GC delays.
-        if(this.main_img)
-        {
-            this.main_img.src = helpers.blank_image;
-            this.main_img.remove();
-            this.main_img = null;
-        }
-
-        if(this.preview_img)
-        {
-            this.preview_img.src = helpers.blank_image;
-            this.preview_img.remove();
-            this.preview_img = null;
-        }
-
-        this.container.remove();
-    }
-
-    set_image_urls(image_url, inpaint_url)
-    {
-        this.image_src = image_url || "";
-        this.inpaint_src = inpaint_url || "";
     }
 
     set inpaint_editor_overlay(node)
@@ -556,33 +529,5 @@ ppixiv.ImageEditingOverlayContainer = class extends ppixiv.widget
     {
         helpers.remove_elements(this.pan_editor_overlay_container);
         this.pan_editor_overlay_container.appendChild(node);
-    }
-
-    // Set the image URLs.  If set to null, use a blank image instead so we don't trigger
-    // load errors.
-    get image_src() { return this.main_img.src; }
-    set image_src(value) { this.main_img.src = value || helpers.blank_image; }
-    get inpaint_src() { return this.inpaint_img.src; }
-    set inpaint_src(value) { this.inpaint_img.src = value || helpers.blank_image; }
-
-    get complete()
-    {
-        return this.main_img.complete && this.inpaint_img.complete;
-    }
-
-    decode()
-    {
-        return Promise.all([this.main_img.decode(), this.inpaint_img.decode()]);
-    }
-
-    get width() { return this.main_img.width; }
-    get height() { return this.main_img.height; }
-    get naturalWidth() { return this.main_img.naturalWidth; }
-    get naturalHeight() { return this.main_img.naturalHeight; }
-
-    get hide_inpaint() { return this.inpaint_img.style.opacity == 0; }
-    set hide_inpaint(value)
-    {
-        this.inpaint_img.style.opacity = value? 0:1;
     }
 }

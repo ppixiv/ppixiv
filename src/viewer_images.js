@@ -21,11 +21,6 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         // Create a click and drag viewer for the image.
         this.on_click_viewer = new image_viewer_class({
             container: this.container,
-            onviewcontainerchange: (viewcontainer) => {
-                // Let image_editor know when the overlay container changes.
-                if(viewcontainer instanceof ImageEditingOverlayContainer)
-                    this.image_editor.overlay_container = viewcontainer;
-            },
         });
 
         // Make this the primary image viewer.
@@ -35,6 +30,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         // it with the image, but we create it here and reuse it.
         this.image_editor = new ppixiv.ImageEditor({
             container: this.container,
+            overlay_container: this.on_click_viewer.editing_container,
             onvisibilitychanged: () => { this.refresh(); }, // refresh when crop editing is changed
         });
     }

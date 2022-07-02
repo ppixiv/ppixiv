@@ -1,5 +1,82 @@
 "use strict";
 
+
+// A helper that holds all of the images that we display together.
+class ViewerImages extends ppixiv.widget
+{
+    constructor({
+        ...options
+    })
+    {
+        super({...options, template: `
+            <div class=inner-image-container>
+                <img class="filtering displayed-image main-image">
+                <img class="filtering displayed-image inpaint-image">
+                <img class="filtering displayed-image low-res-preview">
+            </div>
+        `});
+
+        this.main_img = this.container.querySelector(".main-image");
+        this.inpaint_img = this.container.querySelector(".inpaint-image");
+        this.preview_img = this.container.querySelector(".low-res-preview");
+    }
+
+    shutdown()
+    {
+        // Clear the image URLs when we remove them, so any loads are cancelled.  This seems to
+        // help Chrome with GC delays.
+        if(this.main_img)
+        {
+            this.main_img.src = helpers.blank_image;
+            this.main_img.remove();
+            this.main_img = null;
+        }
+
+        if(this.preview_img)
+        {
+            this.preview_img.src = helpers.blank_image;
+            this.preview_img.remove();
+            this.preview_img = null;
+        }
+
+        this.container.remove();
+    }
+
+    set_image_urls(image_url, inpaint_url)
+    {
+        this.image_src = image_url || "";
+        this.inpaint_src = inpaint_url || "";
+    }
+
+    // Set the image URLs.  If set to null, use a blank image instead so we don't trigger
+    // load errors.
+    get image_src() { return this.main_img.src; }
+    set image_src(value) { this.main_img.src = value || helpers.blank_image; }
+    get inpaint_src() { return this.inpaint_img.src; }
+    set inpaint_src(value) { this.inpaint_img.src = value || helpers.blank_image; }
+
+    get complete()
+    {
+        return this.main_img.complete && this.inpaint_img.complete;
+    }
+
+    decode()
+    {
+        return Promise.all([this.main_img.decode(), this.inpaint_img.decode()]);
+    }
+
+    get width() { return this.main_img.width; }
+    get height() { return this.main_img.height; }
+    get naturalWidth() { return this.main_img.naturalWidth; }
+    get naturalHeight() { return this.main_img.naturalHeight; }
+
+    get hide_inpaint() { return this.inpaint_img.style.opacity == 0; }
+    set hide_inpaint(value)
+    {
+        this.inpaint_img.style.opacity = value? 0:1;
+    }
+}
+
 // The base class for the main low-level image viewer.  This handles loading images,
 // and the mechanics for zoom and pan.  The actual zoom and pan UI is handled by the
 // desktop and mobile subclasses.
@@ -20,7 +97,7 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         this.primary_changed.dispatchEvent(e);
     }
 
-    constructor({onviewcontainerchange, ...options})
+    constructor({...options})
     {
         super({
             ...options,
@@ -39,7 +116,6 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
 
         this.set_new_image = new SentinelGuard(this.set_new_image, this);
 
-        this.onviewcontainerchange = onviewcontainerchange;
         this.media_id = null;
         this.original_width = 1;
         this.original_height = 1;
@@ -54,6 +130,10 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
 
         // This is aborted when we shut down to remove listeners.
         this.event_shutdown = new AbortController();
+
+        this.editing_container = new ImageEditingOverlayContainer({
+            container: this.crop_box,
+        });
 
         window.addEventListener("resize", this.onresize, { signal: this.event_shutdown.signal, capture: true });
         this.container.addEventListener("dragstart", this.block_event, { signal: this.event_shutdown.signal });
@@ -119,16 +199,17 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         if(media_id == this.media_id)
             restore_position = null;
 
-        // Wrap the image in an ImageEditingOverlayContainer.
-        let editing_container = new ImageEditingOverlayContainer({});
-        editing_container.set_image_urls(url, inpaint_url);
-        let img = editing_container;
+        // Create a ViewerImages, which holds the actual images.  Don't give this a container,
+        // since we don't want to add it to the tree just yet.
+        let viewer_images = new ViewerImages({});
+        viewer_images.set_image_urls(url, inpaint_url);
+
+        let img = viewer_images;
 
         // Create the low-res preview.  This loads the thumbnail underneath the main image.  Don't set the
         // "filtering" class, since using point sampling for the thumbnail doesn't make sense.  If preview_url
         // is null, just use a blank image.
-        let preview_img = editing_container.preview_img;
-        preview_img.src = preview_url? preview_url:helpers.blank_image;
+        viewer_images.preview_img.src = preview_url? preview_url:helpers.blank_image;
 
         // Get the new image ready before removing the old one, to avoid flashing a black
         // screen while the new image decodes.  This will finish quickly if the preview image
@@ -144,12 +225,12 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         if(!this.decoding)
         {
             try {
-                await preview_img.decode();
+                await viewer_images.preview_img.decode();
 
                 if(width == null)
                 {
-                    width = preview_img.naturalWidth;
-                    height = preview_img.naturalHeight;
+                    width = viewer_images.preview_img.naturalWidth;
+                    height = viewer_images.preview_img.naturalHeight;
                 }
             } catch(e) {
                 // Ignore exceptions from aborts.
@@ -174,7 +255,7 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         }
         signal.check();
 
-        // We're ready to finalize the new URLs by removing the old images and setting the
+        // We're ready to finalize the new URLs by removing the old images and adding the
         // new ones.
         //
         // If we're displaying the same image, don't remove the animation if one is running.
@@ -184,10 +265,12 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         this.original_height = height;
         this._cropped_size = crop && crop.length == 4? new FixedDOMRect(crop[0], crop[1], crop[2], crop[3]):null;
         this.pan = pan;
-        this.editing_container = editing_container;
+        this.viewer_images = viewer_images;
         this.onnextimage = onnextimage;
 
-        this.crop_box.appendChild(this.editing_container.container);
+        // Add the image box.  Make sure this is added at the beginning, so it's underneath
+        // the editor.
+        this.crop_box.insertAdjacentElement("afterbegin", this.viewer_images.container);
 
         this.update_crop();
 
@@ -210,10 +293,6 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
             this.pause_animation = true;
 
         this.reposition();
-
-        // We've changed the view container, so call onviewcontainerchange.
-        if(this.onviewcontainerchange)
-            this.onviewcontainerchange(this.editing_container);
 
         // Let the caller know that we've displayed an image.  (We actually haven't since that
         // happens just below, but this is only used to let viewer_images know that history
@@ -263,8 +342,8 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
     // Set whether the main image or preview image are visible.
     set_displayed_image(displayed_image)
     {
-        this.editing_container.main_img.hidden = displayed_image != "main";
-        this.editing_container.preview_img.hidden = displayed_image != "preview";
+        this.viewer_images.main_img.hidden = displayed_image != "main";
+        this.viewer_images.preview_img.hidden = displayed_image != "preview";
     }
 
     async decode_img(img)
@@ -284,12 +363,11 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         this.cancel_save_to_history();
         this.media_id = null;
 
-        // Clear the image URLs when we remove them, so any loads are cancelled.  This seems to
-        // help Chrome with GC delays.
-        if(this.editing_container)
+        // Remove the image container.
+        if(this.viewer_images)
         {
-            this.editing_container.shutdown();
-            this.editing_container = null;
+            this.viewer_images.shutdown();
+            this.viewer_images = null;
         }
 
         if(remove_animation)
@@ -626,7 +704,7 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
 
     reposition({clamp_position=true}={})
     {
-        if(this.editing_container == null)
+        if(this.viewer_images == null)
             return;
 
         // Stop if we're being called after being disabled.
