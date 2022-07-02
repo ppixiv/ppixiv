@@ -111,11 +111,7 @@ ppixiv.image_data = class extends EventTarget
     //
     // If we already have the image data (not necessarily the rest, like ugoira_metadata),
     // it can be supplied with illust_data.
-    //
-    // If load_user_info is true, we'll attempt to load user info in parallel.  It still
-    // needs to be requested with get_user_info(), but loading it here can allow requesting
-    // it sooner.
-    async load_media_info(media_id, { illust_data=null, load_user_info=false, force=false }={})
+    async load_media_info(media_id, { illust_data=null, force=false }={})
     {
         media_id = helpers.get_media_id_first_page(media_id);
         let [illust_id] = helpers.media_id_to_illust_id_and_page(media_id);
@@ -137,17 +133,12 @@ ppixiv.image_data = class extends EventTarget
         if(helpers.is_media_id_local(media_id))
             return await this._load_local_image_info(media_id);
 
-        var user_info_promise = null;
         var manga_promise = null;
         var ugoira_promise = null;
 
         // Given a user ID and/or an illust_type (or null if either isn't known yet), start any
         // fetches we can.
-        var start_loading = (user_id, illust_type, page_count) => {
-            // If we know the user ID and haven't started loading user info yet, start it.
-            if(load_user_info && user_info_promise == null && user_id != null)
-                user_info_promise = this.get_user_info(user_id);
-            
+        var start_loading = (illust_type, page_count) => {
             // If we know the illust type and haven't started loading other data yet, start them.
             if(page_count != null && page_count > 1 && manga_promise == null && illust_data?.mangaPages == null)
                 manga_promise = helpers.get_request("/ajax/illust/" + illust_id + "/pages", {});
@@ -160,7 +151,7 @@ ppixiv.image_data = class extends EventTarget
         // Don't fetch thumbnail info if it's not already loaded.
         var thumbnail_info = thumbnail_data.singleton().get_one_thumbnail_info(media_id);
         if(thumbnail_info != null)
-            start_loading(thumbnail_info.userId, thumbnail_info.illustType, thumbnail_info.pageCount);
+            start_loading(thumbnail_info.illustType, thumbnail_info.pageCount);
     
         // If we don't have illust data, block while it loads.
         if(illust_data == null)
@@ -184,7 +175,7 @@ ppixiv.image_data = class extends EventTarget
         illust_data.extraData = extra_data;
 
         // Now that we have illust data, load anything we weren't able to load before.
-        start_loading(illust_data.userId, illust_data.illustType, illust_data.pageCount);
+        start_loading(illust_data.illustType, illust_data.pageCount);
 
         // Switch from i.pximg.net to i-cf.pximg.net, which is much faster outside of Japan.
         for(let [key, url] of Object.entries(illust_data.urls))
@@ -207,12 +198,6 @@ ppixiv.image_data = class extends EventTarget
         for(let tag of illust_data.tags.tags)
             illust_data.tagList.push(tag.tag);
 
-        // If we're loading image info, we're almost definitely going to load the avatar, so
-        // start preloading it now.
-        let user_info = await user_info_promise;
-        if(user_info)
-            helpers.preload_images([user_info.imageBig]);
-        
         if(manga_promise != null)
         {
             var manga_info = await manga_promise;
@@ -472,7 +457,7 @@ ppixiv.image_data = class extends EventTarget
         // This illust_data is from the API and hasn't been adjusted yet, so illust_data.illustId
         // doesn't exist yet.
         let media_id = helpers.illust_id_to_media_id(illust_data.id);
-        var load_promise = this.load_media_info(media_id, { illust_data: illust_data, force: true });
+        var load_promise = this.load_media_info(media_id, { illust_data, force: true });
         this._started_loading_image_info(media_id, load_promise);
         return load_promise;
     }
