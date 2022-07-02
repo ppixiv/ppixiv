@@ -630,22 +630,18 @@ textarea:focus, input:focus, a:focus {
         transform: translate(-50px, 0);
         pointer-events: none;
         margin: .5em;
-        
-        /* Show the UI on hover when hide-ui isn't set. */
-        body:not(.hide-ui) & {
-            &.visible-widget
-            {
-                opacity: 1;
-                transform: translate(0, 0);
-                pointer-events: auto;
-            }
-        }
 
-        /* Debugging: */
-        body.force-ui & {
+        // Make sure text doesn't stay selected while we're hidden.
+        user-select: none;
+        
+        // Show the UI on hover when hide-ui isn't set.  force-ui is used for debugging.
+        body:not(.hide-ui) &.visible-widget,
+        body.force-ui &
+        {
             opacity: 1;
             transform: translate(0, 0);
-            pointer-events: inherit;
+            pointer-events: auto;
+            user-select: auto;
         }
     }
 

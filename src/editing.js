@@ -88,10 +88,16 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
 
             if(e.code == "KeyC" && e.ctrlKey)
             {
-                // Only copy if the mouse is somewhere over the editor, so we don't prevent
-                // copying text out of the corner hover UI.
-                if(!this.hovering)
+                // It's tricky to figure out if there's something the user might be trying to copy.
+                // See if there's a text selection.  This requires that anything that might have
+                // a selection disable selection with user-select: none while it's hidden, so the
+                // selection doesn't stick around while it's not visible, but that's generally
+                // a good idea anyway.
+                if(getSelection().toString() != "")
+                {
+                    console.log("Not copying editor because text is selected");
                     return;
+                }
 
                 e.preventDefault();
                 e.stopPropagation();
@@ -195,17 +201,6 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
         this.onvisibilitychanged();
 
         super.visibility_changed();
-    }
-
-    // Return true if the mouse is hovering over the editor.  This includes hovering over the image,
-    // but not over the corner UI.
-    get hovering()
-    {
-        if(this.container.matches(":hover"))
-            return true;
-        if(this.current_overlay_container && this.current_overlay_container.container.matches(":hover"))
-            return true;
-        return false;
     }
 
     // In principle we could refresh from thumbnail data if this is the first manga page, since
