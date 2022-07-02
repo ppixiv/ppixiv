@@ -1479,10 +1479,7 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
             return;
         
         // Save the tags.  If the image wasn't bookmarked, this will create a public bookmark.
-        console.log("Tag list closing and tags have changed");
-        console.log("Old tags:", old_tags);
-        console.log("New tags:", new_tags);
-
+        console.log("Tag list closing and tags have changed:", old_tags, "->", new_tags);
         await actions.bookmark_add(this._media_id, {
             tags: new_tags,
         });
