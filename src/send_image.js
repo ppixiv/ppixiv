@@ -255,7 +255,7 @@ ppixiv.SendImage = class
 
                 let illust_data = data.illust_data;
                 if(illust_data != null)
-                    image_data.singleton().add_illust_data(illust_data);
+                    image_data.singleton().add_illust_data(illust_data, { preprocessed: true });
             }
             // To finalize, just remove preview and quick-view from the URL to turn the current
             // preview into a real navigation.  This is slightly different from sending "display"

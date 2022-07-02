@@ -1659,12 +1659,6 @@ ppixiv.data_sources.artist = class extends data_source
                 await thumbnail_data.singleton().loaded_thumbnail_info(illusts, "normal");
             }
 
-            // Don't do this.  image_data assumes that if we have illust data, we want all data,
-            // like manga pages, and it'll make a request for each one to add the missing info.
-            // Just register it as thumbnail info.
-            // for(let illust_data in illusts)
-            //     await image_data.singleton().add_illust_data(illust_data);
-
             // Register this page.
             this.add_page(page, media_ids);
         }

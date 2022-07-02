@@ -90,19 +90,33 @@ ppixiv.image_data = class extends EventTarget
         return load_promise;
     }
 
-    // Add image and user data to the cache that we received from other sources.  Note that if
-    // we have any fetches in the air already, we'll leave them running.
+    // Add image data to the cache that we received from other sources.  Note that if
+    // we have any fetches in the air already, we'll leave them running.  This will
+    // trigger loads for secondary data like manga pages if it's not included in illust_data.
     //
-    // This will trigger loads for secondary data like manga pages if it's not included in
-    // illust_data.
-    add_illust_data(illust_data)
+    // If preprocessed is true, this data is coming from something like another ppixiv tab,
+    // and we can just store the data.  It already has any required data and adjustments that
+    // happen when we load data normally.  If preprocessed is false, illust_data is from
+    // something like the HTML preload field and is treated the same as an API response.
+    add_illust_data(illust_data, { preprocessed=false }={})
     {
-        // This illust_data is from the API and hasn't been adjusted yet, so illust_data.illustId
-        // doesn't exist yet.
-        let media_id = helpers.illust_id_to_media_id(illust_data.id);
-        let load_promise = this._load_media_info(media_id, { illust_data, force: true });
-        this._started_loading_image_info(media_id, load_promise);
-        return load_promise;
+        if(preprocessed)
+        {
+            // Just store the data directly.
+            let media_id = illust_data.mediaId;
+            this.image_data[media_id] = illust_data;
+            this.call_illust_modified_callbacks(media_id);
+            return Promise.resolve(illust_data);
+        }
+        else
+        {
+            // This illust_data is from the API and hasn't been adjusted yet, so illust_data.illustId
+            // and illust_data.mediaId don't exist yet.
+            let media_id = helpers.illust_id_to_media_id(illust_data.id);
+            let load_promise = this._load_media_info(media_id, { illust_data, force: true });
+            this._started_loading_image_info(media_id, load_promise);
+            return load_promise;
+        }
     }
 
     _started_loading_image_info(media_id, load_promise)
