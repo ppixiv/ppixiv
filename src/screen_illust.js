@@ -550,7 +550,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
         
         if(e.ctrlKey || e.altKey || e.metaKey)
             return;
-        switch(e.code)
+        switch(e.key)
         {
         case "ArrowLeft":
         case "ArrowUp":
