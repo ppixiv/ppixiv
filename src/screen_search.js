@@ -1114,14 +1114,31 @@ ppixiv.screen_search = class extends ppixiv.screen
         helpers.set_page_url(url, true);
     }
     
-    handle_onkeydown(e)
+    async handle_onkeydown(e)
     {
-        // Pressing ^F while on the local search focuses the search box.
-        if(this.data_source.name == "vview" && e.key.toUpperCase() == "F" && e.ctrlKey)
+        if(e.repeat)
+            return;
+
+        if(this.data_source.name == "vview")
         {
-            this.container.querySelector(".local-tag-search-box input").focus();
-            e.preventDefault();
-            e.stopPropagation();
+            // Pressing ^F while on the local search focuses the search box.
+            if(e.code == "KeyF" && e.ctrlKey)
+            {
+                this.container.querySelector(".local-tag-search-box input").focus();
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            // Pressing ^V while on the local search pastes into the search box.  We don't do
+            // this for other searches since this is the only one I find myself wanting to do
+            // often.
+            if(e.code == "KeyV" && e.ctrlKey)
+            {
+                let text = await navigator.clipboard.readText();
+                let input = this.container.querySelector(".local-tag-search-box input");
+                input.value = text;
+                local_api.navigate_to_tag_search(text, {add_to_history: false});
+            }
         }
     }
 

@@ -618,6 +618,43 @@ ppixiv.local_api = class
         document.cookie = `auth_token=; max-age=0; path=/`;
         document.location.reload();
     }
+
+    // This stores searches like helpers.add_recent_search_tag.  It's simpler, since this
+    // is the only place these searches are added.
+    static add_recent_local_search(tag)
+    {
+        var recent_tags = settings.get("local_searches") || [];
+        var idx = recent_tags.indexOf(tag);
+        if(idx != -1)
+            recent_tags.splice(idx, 1);
+        recent_tags.unshift(tag);
+
+        settings.set("local_searches", recent_tags);
+        window.dispatchEvent(new Event("recent-local-searches-changed"));
+    }
+
+    // Navigate to a search, usually entered into the tag search box.
+    static navigate_to_tag_search(tags, { add_to_history=true}={})
+    {
+        tags = tags.trim();
+
+        if(tags.length == 0)
+            tags = null;
+
+        // Add this tag to the recent search list.
+        if(add_to_history && tags)
+            local_api.add_recent_local_search(tags);
+
+        // Run the search.  We expect to be on the local data source when this is called.
+        let args = new helpers.args(ppixiv.location);
+        console.assert(args.path == local_api.path);
+        if(tags)
+            args.hash.set("search", tags);
+        else
+            args.hash.delete("search");
+        args.set("p", null);
+        helpers.set_page_url(args, true /* add_to_history */, "navigation");
+    }
 }
 
 // LocalBroadcastChannel implements the same API as BroadcastChannel, but sends messages

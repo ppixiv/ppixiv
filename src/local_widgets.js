@@ -860,20 +860,6 @@ ppixiv.local_navigation_widget = class extends ppixiv.tree_widget
     }
 };
 
-// This stores searches like helpers.add_recent_search_tag.  It's simpler, since this
-// is the only place these searches are added.
-function add_recent_local_search(tag)
-{
-    var recent_tags = settings.get("local_searches") || [];
-    var idx = recent_tags.indexOf(tag);
-    if(idx != -1)
-        recent_tags.splice(idx, 1);
-    recent_tags.unshift(tag);
-
-    settings.set("local_searches", recent_tags);
-    window.dispatchEvent(new Event("recent-local-searches-changed"));
-}
-
 function remove_recent_local_search(search)
 {
     // Remove tag from the list.  There should normally only be one.
@@ -969,13 +955,8 @@ ppixiv.local_search_box_widget = class extends ppixiv.widget
 
     submit_search = (e) =>
     {
-        let tags = this.input_element.value.trim();
-        if(tags.length == 0)
-            tags = null;
-
-        // Add this tag to the recent search list.
-        if(tags)
-            add_recent_local_search(tags);
+        let tags = this.input_element.value;
+        local_api.navigate_to_tag_search(tags);
 
         // If we're submitting by pressing enter on an input element, unfocus it and
         // close any widgets inside it (tag dropdowns).
@@ -984,16 +965,6 @@ ppixiv.local_search_box_widget = class extends ppixiv.widget
             e.target.blur();
             view_hidden_listener.send_viewhidden(e.target);
         }
-        
-        // Run the search.  We expect to be on the local data source when this is called.
-        let args = new helpers.args(ppixiv.location);
-        console.assert(args.path == local_api.path);
-        if(tags)
-            args.hash.set("search", tags);
-        else
-            args.hash.delete("search");
-        args.set("p", null);
-        helpers.set_page_url(args, true /* add_to_history */, "navigation");
     }
 }
 
