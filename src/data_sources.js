@@ -182,16 +182,18 @@ class illust_id_list
                 let info = thumbnail_data.singleton().get_illust_data_sync(media_id);
                 if(info == null)
                 {
+                    // This can happen if we're viewing a deleted image, which has no illust info.
                     console.log("Thumbnail info missing for", media_id);
-                    return null;
                 }
-
-                let [old_illust_id, old_page] = helpers.media_id_to_illust_id_and_page(media_id);
-                if(old_page < info.pageCount - 1)
+                else
                 {
-                    // There are more pages, so just navigate to the next page.
-                    id.page++;
-                    return helpers.encode_media_id(id);
+                    let [old_illust_id, old_page] = helpers.media_id_to_illust_id_and_page(media_id);
+                    if(old_page < info.pageCount - 1)
+                    {
+                        // There are more pages, so just navigate to the next page.
+                        id.page++;
+                        return helpers.encode_media_id(id);
+                    }
                 }
             }
         }
