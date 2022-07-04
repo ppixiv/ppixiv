@@ -87,7 +87,6 @@ ppixiv.slideshow = class
         }
 
         let animation = this.get_default_pan();
-        animation = this.prepare_animation(animation);
 
         // If the animation didn't go anywhere, the visible area's aspect ratio very closely
         // matches the screen's, so there's nowhere to pan.  Use a pull-in animation instead.
@@ -97,7 +96,7 @@ ppixiv.slideshow = class
             return animation;
 
         console.log(`Slideshow: pan animation had nowhere to move, using a pull-in instead (total_travel ${animation.total_travel})`);
-        return this.prepare_animation(this.get_pull_in());
+        return this.get_pull_in();
     }
 
     // Load a saved animation created with PanEditor.
@@ -129,56 +128,35 @@ ppixiv.slideshow = class
     // and portrait animations.
     get_default_pan()
     {
-        let { ease, pan_duration, max_speed, fade_in, fade_out } = this._get_parameters();
-        return {
-            fade_in, fade_out,
-
-            pan: [{
-                x: 0, y: 0, zoom: 1,
-                max_speed: true,
-                speed: max_speed,
-                duration: pan_duration,
-                ease,
-            }, {
-                x: 1, y: 1, zoom: 1,
-            }],
-        };
+        return this.get_animation_from_pan({
+            start_zoom: 1,
+            end_zoom: 1,
+            x1: 0, y1: 0,
+            x2: 1, y2: 1,
+        });
     }
 
     // A slideshow display that doesn't pan, and just displays the image statically.
     get_default_static()
     {
-        let { pan_duration, fade_in, fade_out } = this._get_parameters();
-        return this.prepare_animation({
-            fade_in, fade_out,
-
-            pan: [{
-                x: 0.5, y: 0, zoom: 0,
-                max_speed: true,
-                duration: pan_duration,
-            }, {
-                x: 0.5, y: 0, zoom: 0,
-            }],
+        return this.get_animation_from_pan({
+            start_zoom: 0,
+            end_zoom: 0,
+            x1: 0.5, y1: 0,
+            x2: 0.5, y2: 0,
         });
     }
 
     // Return a basic pull-in animation.
     get_pull_in()
     {
-        let { pan_duration, ease, fade_in, fade_out } = this._get_parameters();
-
         // This zooms from "contain" to a slight zoom over "cover".
-        return {
-            fade_in, fade_out,
-
-            pan: [{
-                x: 0.5, y: 0.0, zoom: 0,
-                duration: pan_duration,
-                ease,
-            }, {
-                x: 0.5, y: 0.0, zoom: 1.2,
-            }],
-        };
+        return this.get_animation_from_pan({
+            start_zoom: 0,
+            end_zoom: 1.2,
+            x1: 0.5, y1: 0,
+            x2: 0.5, y2: 0,
+        });
     }
 
     // Prepare an animation.  This figures out the actual translate and scale for each
