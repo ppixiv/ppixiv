@@ -318,19 +318,15 @@ ppixiv.PanEditor = class extends ppixiv.widget
     set_state(data)
     {
         this.is_set = data != null;
-        this.anchor = new FixedDOMRect(0.5, 0.5, 0.5, 0.5);
         if(data == null)
-        {
-            this.rect = new FixedDOMRect(0, 0, 1, 1);
-            this.zoom_level = [1,1];
-        }
-        else
-        {
-            this.rect = new FixedDOMRect(data.x1, data.y1, data.x2, data.y2);
-            if(data.anchor)
-                this.anchor = new FixedDOMRect(data.anchor.left, data.anchor.top, data.anchor.right, data.anchor.bottom);
-            this.zoom_level = [data.start_zoom, data.end_zoom];
-        }
+            data = slideshow.get_default_pan();
+
+        this.rect = new FixedDOMRect(data.x1, data.y1, data.x2, data.y2);
+
+        this.anchor = new FixedDOMRect(0.5, 0.5, 0.5, 0.5);
+        if(data.anchor)
+            this.anchor = new FixedDOMRect(data.anchor.left, data.anchor.top, data.anchor.right, data.anchor.bottom);
+        this.zoom_level = [data.start_zoom, data.end_zoom];
 
         this.refresh();
     }
