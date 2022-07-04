@@ -28,6 +28,91 @@ ppixiv.slideshow = class
         this.clamp_to_window = clamp_to_window;
     }
 
+    // Create the default animation.
+    get_default_animation()
+    {
+        // If we're in slideshow mode, see if we have a different default animation.  Panning
+        // mode always pans.
+        if(this.slideshow_enabled)
+        {
+            let slideshow_default = ppixiv.settings.get("slideshow_default", "pan");
+            if(slideshow_default == "contain")
+                return this.get_default_static();
+        }
+
+        let animation = this.get_default_pan();
+
+        // If the animation didn't go anywhere, the visible area's aspect ratio very closely
+        // matches the screen's, so there's nowhere to pan.  Use a pull-in animation instead.
+        // We don't currently use this in pan mode, because zooming the image when in pan mode
+        // and controlling multiple tabs can be annoying.
+        if(animation.total_travel > 0.05 || !this.slideshow_enabled)
+            return animation;
+
+        console.log(`Slideshow: pan animation had nowhere to move, using a pull-in instead (total_travel ${animation.total_travel})`);
+        return this.get_pull_in();
+    }
+
+    // This is like the thumbnail animation, which gives a reasonable default for both landscape
+    // and portrait animations.
+    get_default_pan()
+    {
+        return this.get_animation_from_pan({
+            start_zoom: 1,
+            end_zoom: 1,
+            x1: 0, y1: 0,
+            x2: 1, y2: 1,
+        });
+    }
+
+    // A slideshow display that doesn't pan, and just displays the image statically.
+    get_default_static()
+    {
+        return this.get_animation_from_pan({
+            start_zoom: 0,
+            end_zoom: 0,
+            x1: 0.5, y1: 0,
+            x2: 0.5, y2: 0,
+        });
+    }
+
+    // Return a basic pull-in animation.
+    get_pull_in()
+    {
+        // This zooms from "contain" to a slight zoom over "cover".
+        return this.get_animation_from_pan({
+            start_zoom: 0,
+            end_zoom: 1.2,
+            x1: 0.5, y1: 0,
+            x2: 0.5, y2: 0,
+        });
+    }
+
+    // Load a saved animation created with PanEditor.
+    get_animation_from_pan(pan)
+    {
+        let { ease, pan_duration, max_speed, fade_in, fade_out } = this._get_parameters();
+        let animation = {
+            fade_in, fade_out,
+
+            pan: [{
+                x: pan.x1, y: pan.y1, zoom: pan.start_zoom ?? 1,
+                anchor_x: pan.anchor?.left ?? 0.5,
+                anchor_y: pan.anchor?.top ?? 0.5,
+                max_speed: true,
+                speed: max_speed,
+                duration: pan_duration,
+                ease,
+            }, {
+                x: pan.x2, y: pan.y2, zoom: pan.end_zoom ?? 1,
+                anchor_x: pan.anchor?.right ?? 0.5,
+                anchor_y: pan.anchor?.bottom ?? 0.5,
+            }],
+        };
+        
+        return this.prepare_animation(animation);
+    }
+    
     // Return some parameters that are used by linear animation getters below.
     _get_parameters()
     {
@@ -72,91 +157,6 @@ ppixiv.slideshow = class
         let fade_out = this.slideshow_enabled? Math.min(pan_duration * 0.1, 2.5):0;
 
         return { ease, pan_duration, max_speed, fade_in, fade_out };
-    }
-
-    // Create the default animation.
-    get_default_animation()
-    {
-        // If we're in slideshow mode, see if we have a different default animation.  Panning
-        // mode always pans.
-        if(this.slideshow_enabled)
-        {
-            let slideshow_default = ppixiv.settings.get("slideshow_default", "pan");
-            if(slideshow_default == "contain")
-                return this.get_default_static();
-        }
-
-        let animation = this.get_default_pan();
-
-        // If the animation didn't go anywhere, the visible area's aspect ratio very closely
-        // matches the screen's, so there's nowhere to pan.  Use a pull-in animation instead.
-        // We don't currently use this in pan mode, because zooming the image when in pan mode
-        // and controlling multiple tabs can be annoying.
-        if(animation.total_travel > 0.05 || !this.slideshow_enabled)
-            return animation;
-
-        console.log(`Slideshow: pan animation had nowhere to move, using a pull-in instead (total_travel ${animation.total_travel})`);
-        return this.get_pull_in();
-    }
-
-    // Load a saved animation created with PanEditor.
-    get_animation_from_pan(pan)
-    {
-        let { ease, pan_duration, max_speed, fade_in, fade_out } = this._get_parameters();
-        let animation = {
-            fade_in, fade_out,
-
-            pan: [{
-                x: pan.x1, y: pan.y1, zoom: pan.start_zoom ?? 1,
-                anchor_x: pan.anchor?.left ?? 0.5,
-                anchor_y: pan.anchor?.top ?? 0.5,
-                max_speed: true,
-                speed: max_speed,
-                duration: pan_duration,
-                ease,
-            }, {
-                x: pan.x2, y: pan.y2, zoom: pan.end_zoom ?? 1,
-                anchor_x: pan.anchor?.right ?? 0.5,
-                anchor_y: pan.anchor?.bottom ?? 0.5,
-            }],
-        };
-        
-        return this.prepare_animation(animation);
-    }
-
-    // This is like the thumbnail animation, which gives a reasonable default for both landscape
-    // and portrait animations.
-    get_default_pan()
-    {
-        return this.get_animation_from_pan({
-            start_zoom: 1,
-            end_zoom: 1,
-            x1: 0, y1: 0,
-            x2: 1, y2: 1,
-        });
-    }
-
-    // A slideshow display that doesn't pan, and just displays the image statically.
-    get_default_static()
-    {
-        return this.get_animation_from_pan({
-            start_zoom: 0,
-            end_zoom: 0,
-            x1: 0.5, y1: 0,
-            x2: 0.5, y2: 0,
-        });
-    }
-
-    // Return a basic pull-in animation.
-    get_pull_in()
-    {
-        // This zooms from "contain" to a slight zoom over "cover".
-        return this.get_animation_from_pan({
-            start_zoom: 0,
-            end_zoom: 1.2,
-            x1: 0.5, y1: 0,
-            x2: 0.5, y2: 0,
-        });
     }
 
     // Prepare an animation.  This figures out the actual translate and scale for each
