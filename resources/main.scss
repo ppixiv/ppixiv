@@ -913,7 +913,6 @@ html[data-theme="light"] .description {
         pointer-events: none;
         background: #111;
         border-radius: .5em;
-        left: 0em;
         top: -2.0em;
         color: #fff;
         content: attr(data-popup);
@@ -923,7 +922,11 @@ html[data-theme="light"] .description {
         text-shadow: 0 1px 0 #000;
         white-space: nowrap;
         z-index: 98;
+
     }
+    &[data-popup-side="left"]:hover:after   { right: 0em; }
+    &[data-popup-side="right"]:hover:after,
+    &:not([data-popup-side]):hover:after    { left: 0em; }
 }
 
 .popup-bottom:hover:after {
@@ -3133,12 +3136,20 @@ svg.heart-image .delete {
         }
         position: absolute;
         display: flex;
-        flex-direction: column;
+        flex-direction: row;
         font-size: 150%;
         width: 100%;
         justify-content: center;
         align-items: center;
         padding-top: 0.5em;
+
+        > .left, > .center, > .right {
+            display: flex;
+            flex: 1;
+        }
+        > .left { justify-content: flex-start; }
+        > .center { justify-content: center; }
+        > .right { justify-content: flex-end; }
 
         .image-editor-button-row {
             pointer-events: auto;

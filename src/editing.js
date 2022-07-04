@@ -14,13 +14,19 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
             template: `
             <div class=image-editor>
                 <div class="image-editor-buttons top">
-                    <div class="image-editor-button-row box-button-row">
+                    <div class="image-editor-button-row box-button-row left">
+                        ${ helpers.create_box_link({icon: "undo",     popup: "Undo",          classes: ["undo", "popup-bottom"] }) }
+                        ${ helpers.create_box_link({icon: "redo",     popup: "Redo",          classes: ["redo", "popup-bottom"] }) }
+                    </div>
+                    <div class="image-editor-button-row box-button-row center ">
                         ${ helpers.create_box_link({icon: "save",     popup: "Save",          classes: ["save-edits", "popup-bottom"] }) }
                         ${ helpers.create_box_link({icon: "refresh",  popup: "Saving...",     classes: ["spinner"] }) }
                         ${ helpers.create_box_link({icon: "crop",     popup: "Crop",          classes: ["show-crop", "popup-bottom"] }) }
                         ${ helpers.create_box_link({icon: "wallpaper",popup:  "Edit panning", classes: ["show-pan", "popup-bottom"] }) }
-                        ${ helpers.create_box_link({icon: "brush",    popup: "Inpainting",    classes: ["show-inpaint", "popup-bottom"] }) }
-                        ${ helpers.create_box_link({icon: "close",    popup: "Stop editing",  classes: ["close-editor", "popup-bottom"] }) }
+                        ${ helpers.create_box_link({icon: "brush",    popup: "Inpainting",    classes: ["show-inpaint", "popup-bottom"], dataset: { popupSide: "center" } }) }
+                    </div>
+                    <div class="image-editor-button-row box-button-row right">
+                        ${ helpers.create_box_link({icon: "close",    popup: "Stop editing",  classes: ["close-editor", "popup-bottom"], dataset: { popupSide: "left" } }) }
                     </div>
                 </div>
                 <div class="image-editor-buttons bottom"></div>
@@ -55,6 +61,7 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
         this._dirty = false;
         this.editing_media_id = null;
         this.undo_stack = [];
+        this.redo_stack = [];
 
         this.top_button_row = this.container.querySelector(".image-editor-buttons.top");
 
@@ -141,6 +148,17 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
             e.stopPropagation();
             settings.set("image_editing", null);
             settings.set("image_editing_mode", null);
+        }, { signal: this.shutdown_signal.signal });
+
+        this.undo_button = this.container.querySelector(".undo");
+        this.redo_button = this.container.querySelector(".redo");
+        this.undo_button.addEventListener("click", async (e) => {
+            e.stopPropagation();
+            this.undo();            
+        }, { signal: this.shutdown_signal.signal });
+        this.redo_button.addEventListener("click", async (e) => {
+            e.stopPropagation();
+            this.redo();            
         }, { signal: this.shutdown_signal.signal });
 
         // Hotkeys:
@@ -289,6 +307,9 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
         this.editors.inpaint.visible = showing_inpaint;
         helpers.set_class(this.show_inpaint, "selected", showing_inpaint);
 
+        helpers.set_class(this.undo_button, "disabled", this.undo_stack.length == 0);
+        helpers.set_class(this.redo_button, "disabled", this.redo_stack.length == 0);
+
         // Disable hiding the mouse cursor when editing is enabled.  This also prevents
         // the top button row from being hidden.
         if(showing_crop || showing_inpaint)
@@ -318,6 +339,7 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
 
         // If InpaintEditor was adding a line, we just undid the first point, so end it.
         this.editors.inpaint.adding_line = null;
+        this.refresh();
     }
 
     // Redo the last undo.
@@ -328,6 +350,7 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
 
         this.undo_stack.push(this.get_state());
         this.set_state(this.redo_stack.pop());
+        this.refresh();
     }
 
     // Load and save state, for undo.
