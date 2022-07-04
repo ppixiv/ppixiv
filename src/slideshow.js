@@ -33,25 +33,20 @@ ppixiv.slideshow = class
     {
         // If we're in slideshow mode, see if we have a different default animation.  Panning
         // mode always pans.
-        if(this.slideshow_enabled)
-        {
-            let slideshow_default = ppixiv.settings.get("slideshow_default", "pan");
-            if(slideshow_default == "contain")
-                return this.get_animation_from_pan(ppixiv.slideshow.get_default_static());
-        }
+        let slideshow_default = ppixiv.settings.get("slideshow_default", "pan");
+        if(this.slideshow_enabled && slideshow_default == "contain")
+            return this.get_animation(ppixiv.slideshow.get_default_static());
 
-        let animation = this.get_animation_from_pan(ppixiv.slideshow.get_default_pan());
-
-        // If the animation didn't go anywhere, the visible area's aspect ratio very closely
-        // matches the screen's, so there's nowhere to pan.  Use a pull-in animation instead.
-        // We don't currently use this in pan mode, because zooming the image when in pan mode
-        // and controlling multiple tabs can be annoying.
-        // ... but need to prepare to do this
+        // If the default animation doesn't go anywhere, the visible area's aspect ratio very
+        // closely matches the screen's, so there's nowhere to pan.  Use a pull-in animation
+        // instead.  We don't currently use this in pan mode, because zooming the image when
+        // in pan mode and controlling multiple tabs can be annoying.
+        let animation = this.get_animation(ppixiv.slideshow.get_default_pan());
         if(animation.total_travel > 0.05 || !this.slideshow_enabled)
             return animation;
 
         console.log(`Slideshow: pan animation had nowhere to move, using a pull-in instead (total_travel ${animation.total_travel})`);
-        return this.get_animation_from_pan(ppixiv.slideshow.get_pull_in());
+        return this.get_animation(ppixiv.slideshow.get_pull_in());
     }
 
     // This is like the thumbnail animation, which gives a reasonable default for both landscape
@@ -90,7 +85,7 @@ ppixiv.slideshow = class
     }
 
     // Load a saved animation created with PanEditor.
-    get_animation_from_pan(pan)
+    get_animation(pan)
     {
         let { ease, pan_duration, max_speed, fade_in, fade_out } = this._get_parameters();
         let animation = {
@@ -111,7 +106,7 @@ ppixiv.slideshow = class
             }],
         };
         
-        return this.prepare_animation(animation);
+        return this._prepare_animation(animation);
     }
 
     // Return some parameters that are used by linear animation getters below.
@@ -163,7 +158,7 @@ ppixiv.slideshow = class
     // Prepare an animation.  This figures out the actual translate and scale for each
     // keyframe, and the total duration.  The results depend on the image and window
     // size.
-    prepare_animation(animation)
+    _prepare_animation(animation)
     {
         // Make a deep copy before modifying it.
         animation = JSON.parse(JSON.stringify(animation));

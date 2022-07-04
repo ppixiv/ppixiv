@@ -364,7 +364,7 @@ ppixiv.PanEditor = class extends ppixiv.widget
 
         // Get the animation that we'd currently save, and load it as a slideshow.
         let pan_animation = this.get_state({force: true});
-        let animation = slideshow.get_animation_from_pan(pan_animation);
+        let animation = slideshow.get_animation(pan_animation);
         return { animation, scaled_width, scaled_height, preview_width, preview_height };
     }
 
