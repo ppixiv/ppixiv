@@ -378,8 +378,10 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
                 result = await local_api.local_post_request(`/api/set-image-edits/${this.media_id}`, edits);
                 if(!result.success)
                 {
+                    message_widget.singleton.show(`Error saving image edits: ${result.reason}`);
                     console.error("Error saving image edits:", result);
                     this.dirty = true;
+
                     return;
                 }
 

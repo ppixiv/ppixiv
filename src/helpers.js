@@ -1074,7 +1074,7 @@ ppixiv.helpers = {
 
         let data = { };
 
-        // For Firefox, we need to clone data into the page context.  In Chrome this do nothing.
+        // For Firefox, we need to clone data into the page context.  In Chrome this does nothing.
         if(window.cloneInto)
             data = cloneInto(data, window);
 
