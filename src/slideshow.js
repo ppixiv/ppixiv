@@ -45,11 +45,14 @@ ppixiv.slideshow = class
         if(this.slideshow_enabled && slideshow_default == "contain")
             return this.get_animation(ppixiv.slideshow.pan.stationary);
 
+        // Choose which default to use.
+        let animation = this.slideshow_enabled? ppixiv.slideshow.pans.default_slideshow:ppixiv.slideshow.pans.default_pan;
+
         // If the default animation doesn't go anywhere, the visible area's aspect ratio very
         // closely matches the screen's, so there's nowhere to pan.  Use a pull-in animation
         // instead.  We don't currently use this in pan mode, because zooming the image when
         // in pan mode and controlling multiple tabs can be annoying.
-        let animation = this.get_animation(ppixiv.slideshow.pans.default_pan);
+        animation = this.get_animation(animation);
         if(animation.total_travel > 0.05 || !this.slideshow_enabled)
             return animation;
 
@@ -65,6 +68,23 @@ ppixiv.slideshow = class
             end_zoom: 1,
             x1: 0, y1: 0,
             x2: 1, y2: 1,
+        }),
+
+        // Zoom from the bottom-left to the top-right, with a slight zoom-in at the beginning.
+        // For most images, either the horizontal or vertical part of the pan is usually dominant
+        // and the other goes away, depending on the aspect ratio.  The zoom keeps the animation
+        // from being completely linear.  We don't move all the way to the top, since for many
+        // portrait images that's too far and causes us to pan past the face, fading away while
+        // looking at the background.
+        //
+        // This gives a visually interesting slideshow that works well for most images, and isn't
+        // very sensitive to aspect ratio and usually does something reasonable whether the image
+        // or monitor are in landscape or portrait.
+        default_slideshow: Object.freeze({
+            start_zoom: 1.25,
+            end_zoom: 1,
+            x1: 0,    y1: 1,
+            x2: 1,    y2: 0.1,
         }),
 
         // Display the image statically without panning.
