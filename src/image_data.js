@@ -874,7 +874,14 @@ ppixiv.image_data = class extends EventTarget
             }
 
             if(page > 0)
+            {
+                // If mangaPages isn't present then this is thumbnail data, and we don't know
+                // the dimensions of images past the first page.
+                if(image_info.mangaPages == null)
+                    return { };
+
                 page_info = image_info.mangaPages[page];
+            }
         }
 
         return { width: page_info.width, height: page_info.height };
