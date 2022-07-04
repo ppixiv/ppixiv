@@ -912,7 +912,7 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         });
 
         // Try to create a vertical or horizontal pan, or load the user's transition if there is one.
-        let animation = this.pan? slideshow.get_animation_from_pan(this.pan): slideshow.get_default_animation();
+        let animation = this.pan ?? slideshow.get_default_animation();
         this.run_animation(animation);
     }
 

@@ -37,55 +37,56 @@ ppixiv.slideshow = class
         {
             let slideshow_default = ppixiv.settings.get("slideshow_default", "pan");
             if(slideshow_default == "contain")
-                return this.get_default_static();
+                return this.get_animation_from_pan(ppixiv.slideshow.get_default_static());
         }
 
-        let animation = this.get_default_pan();
+        let animation = this.get_animation_from_pan(ppixiv.slideshow.get_default_pan());
 
         // If the animation didn't go anywhere, the visible area's aspect ratio very closely
         // matches the screen's, so there's nowhere to pan.  Use a pull-in animation instead.
         // We don't currently use this in pan mode, because zooming the image when in pan mode
         // and controlling multiple tabs can be annoying.
+        // ... but need to prepare to do this
         if(animation.total_travel > 0.05 || !this.slideshow_enabled)
             return animation;
 
         console.log(`Slideshow: pan animation had nowhere to move, using a pull-in instead (total_travel ${animation.total_travel})`);
-        return this.get_pull_in();
+        return this.get_animation_from_pan(ppixiv.slideshow.get_pull_in());
     }
 
     // This is like the thumbnail animation, which gives a reasonable default for both landscape
     // and portrait animations.
-    get_default_pan()
+    static get_default_pan()
     {
-        return this.get_animation_from_pan({
+        return {
             start_zoom: 1,
             end_zoom: 1,
             x1: 0, y1: 0,
             x2: 1, y2: 1,
-        });
+        };
     }
 
     // A slideshow display that doesn't pan, and just displays the image statically.
-    get_default_static()
+    static get_default_static()
     {
-        return this.get_animation_from_pan({
+        return {
             start_zoom: 0,
             end_zoom: 0,
             x1: 0.5, y1: 0,
             x2: 0.5, y2: 0,
-        });
+        };
     }
 
     // Return a basic pull-in animation.
-    get_pull_in()
+    static get_pull_in()
     {
         // This zooms from "contain" to a slight zoom over "cover".
-        return this.get_animation_from_pan({
+        return {
             start_zoom: 0,
             end_zoom: 1.2,
             x1: 0.5, y1: 0,
             x2: 0.5, y2: 0,
-        });
+        };
     }
 
     // Load a saved animation created with PanEditor.
@@ -112,7 +113,7 @@ ppixiv.slideshow = class
         
         return this.prepare_animation(animation);
     }
-    
+
     // Return some parameters that are used by linear animation getters below.
     _get_parameters()
     {
