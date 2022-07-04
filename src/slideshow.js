@@ -1,4 +1,12 @@
 // This handles the nitty slideshow logic for on_click_viewer.
+//
+// Slideshows can be represented as pans, which is the data editing_pan edits
+// and that we save to images.  This data is resolution and aspect-ratio independant,
+// so it can be applied to different images and used generically.
+//
+// Slideshows are built into animations using get_animation, which converts it
+// to an animation based on the image's aspect ratio, the screen's aspect ratio,
+// the desired speed, etc.
 ppixiv.slideshow = class
 {
     constructor({
@@ -35,53 +43,45 @@ ppixiv.slideshow = class
         // mode always pans.
         let slideshow_default = ppixiv.settings.get("slideshow_default", "pan");
         if(this.slideshow_enabled && slideshow_default == "contain")
-            return this.get_animation(ppixiv.slideshow.get_default_static());
+            return this.get_animation(ppixiv.slideshow.pan.stationary);
 
         // If the default animation doesn't go anywhere, the visible area's aspect ratio very
         // closely matches the screen's, so there's nowhere to pan.  Use a pull-in animation
         // instead.  We don't currently use this in pan mode, because zooming the image when
         // in pan mode and controlling multiple tabs can be annoying.
-        let animation = this.get_animation(ppixiv.slideshow.get_default_pan());
+        let animation = this.get_animation(ppixiv.slideshow.pans.default_pan);
         if(animation.total_travel > 0.05 || !this.slideshow_enabled)
             return animation;
 
         console.log(`Slideshow: pan animation had nowhere to move, using a pull-in instead (total_travel ${animation.total_travel})`);
-        return this.get_animation(ppixiv.slideshow.get_pull_in());
+        return this.get_animation(ppixiv.slideshow.pan.pull_in);
     }
 
-    // This is like the thumbnail animation, which gives a reasonable default for both landscape
-    // and portrait animations.
-    static get_default_pan()
+    static pans =
     {
-        return {
+        // This is like the thumbnail animation.
+        default_pan: Object.freeze({
             start_zoom: 1,
             end_zoom: 1,
             x1: 0, y1: 0,
             x2: 1, y2: 1,
-        };
-    }
+        }),
 
-    // A slideshow display that doesn't pan, and just displays the image statically.
-    static get_default_static()
-    {
-        return {
+        // Display the image statically without panning.
+        stationary: Object.freeze({
             start_zoom: 0,
             end_zoom: 0,
             x1: 0.5, y1: 0,
             x2: 0.5, y2: 0,
-        };
-    }
+        }),
 
-    // Return a basic pull-in animation.
-    static get_pull_in()
-    {
         // This zooms from "contain" to a slight zoom over "cover".
-        return {
+        pull_in: Object.freeze({
             start_zoom: 0,
             end_zoom: 1.2,
             x1: 0.5, y1: 0,
             x2: 0.5, y2: 0,
-        };
+        }),
     }
 
     // Load a saved animation created with PanEditor.

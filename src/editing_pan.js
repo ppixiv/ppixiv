@@ -319,7 +319,7 @@ ppixiv.PanEditor = class extends ppixiv.widget
     {
         this.is_set = data != null;
         if(data == null)
-            data = slideshow.get_default_pan();
+            data = slideshow.pans.top_to_bottom;
 
         this.rect = new FixedDOMRect(data.x1, data.y1, data.x2, data.y2);
 
