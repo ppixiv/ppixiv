@@ -11,7 +11,7 @@ ppixiv.InpaintEditor = class extends ppixiv.widget
                     <svg class=inpaint-container width=100% height=100% viewBox="0 0 1 1"></svg>
                 </div>
 
-                <div class="image-editor-button-row box-button-row">
+                <div class="editor-buttons box-button-row">
                     ${ helpers.create_box_link({label: "View",       classes: ["view-inpaint"] }) }
                     ${ helpers.create_box_link({label: "Create lines",       classes: ["create-lines"] }) }
 
@@ -54,7 +54,7 @@ ppixiv.InpaintEditor = class extends ppixiv.widget
         this.drag_start = null;
         this.selected_line_idx = -1;
 
-        this.ui = this.container.querySelector(".image-editor-button-row");
+        this.ui = this.container.querySelector(".editor-buttons");
 
         // Remove .inpaint-editor-overlay.  It's inserted into the image overlay when we
         // have one, so it pans and zooms with the image.

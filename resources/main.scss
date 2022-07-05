@@ -3139,21 +3139,16 @@ svg.heart-image .delete {
             bottom: 0;
         }
         position: absolute;
-        display: flex;
-        flex-direction: row;
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
         font-size: 150%;
         width: 100%;
-        justify-content: center;
-        align-items: center;
         padding-top: 0.5em;
+        align-items: flex-start;
 
-        > .left, > .center, > .right {
-            display: flex;
-            flex: 1;
-        }
-        > .left { justify-content: flex-start; }
-        > .center { justify-content: center; }
-        > .right { justify-content: flex-end; }
+        > .left { margin-right: auto; }
+        > .center { grid-column-start: 2 }
+        > .right { margin-left: auto; }
 
         .image-editor-button-row {
             pointer-events: auto;

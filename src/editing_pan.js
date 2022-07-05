@@ -16,7 +16,7 @@ ppixiv.PanEditor = class extends ppixiv.widget
                     </div>
                 </div>
 
-                <div class="image-editor-button-row box-button-row">
+                <div class="editor-buttons box-button-row">
                     ${ helpers.create_box_link({popup: "Edit start", icon: "first_page", classes: ["edit-start-button"] }) }
                     ${ helpers.create_box_link({popup: "Swap start and end", icon: "swap_horiz", classes: ["swap-button"] }) }
                     ${ helpers.create_box_link({popup: "Edit end", icon: "last_page", classes: ["edit-end-button"] }) }
@@ -62,7 +62,7 @@ ppixiv.PanEditor = class extends ppixiv.widget
         this.editing = "start"; // "start" or "end"
         this.editing_anchor = false;
 
-        this.ui = this.container.querySelector(".image-editor-button-row");
+        this.ui = this.container.querySelector(".editor-buttons");
         this.monitor_preview_box = this.container.querySelector(".monitor-preview-box");
 
         // Remove .pan-editor-overlay.  It's inserted into the image overlay when we

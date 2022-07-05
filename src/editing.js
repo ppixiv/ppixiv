@@ -29,7 +29,12 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
                         ${ helpers.create_box_link({icon: "close",    popup: "Stop editing",  classes: ["close-editor", "popup-bottom"], dataset: { popupSide: "left" } }) }
                     </div>
                 </div>
-                <div class="image-editor-buttons bottom"></div>
+
+                <div class="image-editor-buttons bottom">
+                    <div class="image-editor-button-row box-button-row left"></div>
+                    <div class="editor-ui-buttons"></div>
+                    <div class="image-editor-button-row box-button-row right"></div>
+                </div>
             </div>
         `});
 
@@ -186,13 +191,13 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
         }, { signal: this.shutdown_signal.signal });
 
         // Steal buttons from the individual editors.
-        let inpaint_buttons = this.editors.inpaint.container.querySelector(".image-editor-button-row");
+        let inpaint_buttons = this.editors.inpaint.container.querySelector(".editor-buttons");
         inpaint_buttons.remove();
-        this.container.querySelector(".image-editor-buttons.bottom").appendChild(inpaint_buttons);
+        this.container.querySelector(".editor-ui-buttons").appendChild(inpaint_buttons);
 
-        let pan_buttons = this.editors.pan.container.querySelector(".image-editor-button-row");
+        let pan_buttons = this.editors.pan.container.querySelector(".editor-buttons");
         pan_buttons.remove();
-        this.container.querySelector(".image-editor-buttons.bottom").appendChild(pan_buttons);
+        this.container.querySelector(".editor-ui-buttons").appendChild(pan_buttons);
     }
 
     // Return true if the crop editor is active.
@@ -309,6 +314,10 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
 
         helpers.set_class(this.undo_button, "disabled", this.undo_stack.length == 0);
         helpers.set_class(this.redo_button, "disabled", this.redo_stack.length == 0);
+
+        // Hide the undo buttons in the top-left when no editor is active, since it overlaps the hover
+        // UI.  Undo doesn't handle changes across editors well currently anyway.
+        this.top_button_row.querySelector(".left").hidden = this.active_editor_name == null;
 
         // Disable hiding the mouse cursor when editing is enabled.  This also prevents
         // the top button row from being hidden.
