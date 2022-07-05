@@ -1064,6 +1064,7 @@ ppixiv.follow_widget = class extends widget
             this.container.querySelector(".add-follow-tag").hidden = false;
             this.container.querySelector(".separator").hidden = false;
 
+            all_tags.sort((lhs, rhs) => lhs.toLowerCase().localeCompare(rhs.toLowerCase()));
             for(let tag of all_tags)
             {
                 let button = helpers.create_box_link({
@@ -1428,11 +1429,7 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
             if(shown_tags.indexOf(tag) == -1)
                 shown_tags.push(tag);
 
-        shown_tags.sort((lhs, rhs) => {
-            lhs = lhs.toLowerCase();
-            rhs = rhs.toLowerCase();
-            return lhs.localeCompare(rhs);
-        });
+        shown_tags.sort((lhs, rhs) => lhs.toLowerCase().localeCompare(rhs.toLowerCase()));
 
         for(let tag of shown_tags)
         {

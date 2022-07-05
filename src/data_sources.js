@@ -2227,7 +2227,7 @@ class data_source_bookmarks_base extends data_source
             all_tags.splice(20);
         }
 
-        all_tags.sort();
+        all_tags.sort((lhs, rhs) => lhs.toLowerCase().localeCompare(rhs.toLowerCase()));
         this.bookmark_tag_counts = {};
         for(let tag of all_tags)
             this.bookmark_tag_counts[tag] = tags[tag];
@@ -2442,7 +2442,10 @@ class data_source_bookmarks_base extends data_source
 
         add_tag_link(null); // All
         add_tag_link(""); // Uncategorized
-        for(var tag of Object.keys(this.bookmark_tag_counts))
+
+        let all_tags = Object.keys(this.bookmark_tag_counts);
+        all_tags.sort((lhs, rhs) => lhs.toLowerCase().localeCompare(rhs.toLowerCase()));
+        for(let tag of all_tags)
         {
             // Skip uncategorized, which is always placed at the beginning.
             if(tag == "")
@@ -2789,6 +2792,7 @@ ppixiv.data_sources.new_works_by_following = class extends data_source
 
         // Store bookmark tags.
         this.bookmark_tags = data.page.tags;
+        this.bookmark_tags.sort((lhs, rhs) => lhs.toLowerCase().localeCompare(rhs.toLowerCase()));
 
         // Populate thumbnail data with this data.
         await thumbnail_data.singleton().loaded_thumbnail_info(data.thumbnails.illust, "normal");
@@ -3337,6 +3341,7 @@ ppixiv.data_sources.follows = class extends data_source
 
         // Store following tags.
         this.follow_tags = result.body.followUserTags;
+        this.follow_tags.sort((lhs, rhs) => lhs.toLowerCase().localeCompare(rhs.toLowerCase()));
 
         // Make a list of the first illustration for each user.
         var illusts = [];
@@ -4086,7 +4091,10 @@ ppixiv.data_sources.vview = class extends data_source
 
         add_tag_link(null); // All
         add_tag_link(""); // Uncategorized
-        for(var tag of Object.keys(this.bookmark_tag_counts))
+
+        let all_tags = Object.keys(this.bookmark_tag_counts);
+        all_tags.sort((lhs, rhs) => lhs.toLowerCase().localeCompare(rhs.toLowerCase()));
+        for(let tag of all_tags)
         {
             // Skip uncategorized, which is always placed at the beginning.
             if(tag == "")
