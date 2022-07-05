@@ -1332,6 +1332,12 @@ ppixiv.image_viewer_desktop = class extends ppixiv.image_viewer_base
 
     pointermove = (e) =>
     {
+        // Ignore pointermove events where the pointer didn't move, so we don't cancel
+        // panning prematurely.  Who designed an API where an event named "pointermove"
+        // is used for button presses?
+        if(e.movementX == 0 && e.movementY == 0)
+            return;
+
         // If we're animating, only start dragging after we pass a drag threshold, so we
         // don't cancel the animation in quick view.  These thresholds match Windows's
         // default SM_CXDRAG/SM_CYDRAG behavior.
