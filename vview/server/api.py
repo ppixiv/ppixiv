@@ -170,7 +170,7 @@ def _bookmark_data(entry):
         return None
 
     return {
-        'tags': entry['bookmark_tags'].split(),
+        'tags': sorted(entry['bookmark_tags'].split()),
         'private': False,
     }
 
