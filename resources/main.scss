@@ -2371,6 +2371,10 @@ a.box-link, span.box-link
                 flex-direction: column;
                 justify-content: space-around;
 
+                // This sets the minimum space between the UI sections, so there's always some
+                // empty space to close the menu.
+                gap: 50px;
+
                 // Ignore pointer events in this container, so the space between the items can be
                 // used to close the menu.
                 pointer-events: none;
