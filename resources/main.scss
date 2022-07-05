@@ -3119,6 +3119,11 @@ svg.heart-image .delete {
     z-index: 1; // above the image
     pointer-events: none;
 
+    &.temporarily-hidden {
+        display: none;
+        pointer-events: none;
+    }
+
     .save-edits.dirty {
         color: #0f0;
     }

@@ -94,6 +94,8 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
 
         this.overlay_container = overlay_container;
 
+        OpenWidgets.singleton.addEventListener("changed", this.refresh_temporarily_hidden, { signal: this.shutdown_signal.signal });
+
         window.addEventListener("keydown", (e) => {
             if(!this.visible)
                 return;
@@ -214,6 +216,14 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
         super.shutdown();
     }
 
+    refresh_temporarily_hidden = () =>
+    {
+        // Hide while the UI is open.  This is only needed on mobile, where our buttons
+        // overlap the hover UI.
+        let hidden = ppixiv.mobile && !OpenWidgets.singleton.empty;
+        helpers.set_class(this.container, "temporarily-hidden", hidden);
+    }
+
     visibility_changed()
     {
         settings.set("image_editing", this.visible);
@@ -268,6 +278,8 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
             this.redo_stack = [];
             this.dirty = false;
         }
+
+        this.refresh_temporarily_hidden();
     }
 
     get open_editor()
