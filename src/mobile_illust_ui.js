@@ -24,6 +24,11 @@ let mobile_illust_ui_page = class extends ppixiv.widget
 
     refresh() { }
     
+    get tab_shown()
+    {
+        return this.container.classList.contains("active-tab");
+    }
+
     show_tab({pos}={})
     {
         helpers.set_class(this.container, "active-tab", true);
@@ -106,15 +111,29 @@ let mobile_illust_ui_page_bookmark_tags  = class extends mobile_illust_ui_page
         this.bookmark_tag_widget = new bookmark_tag_list_widget({
             parent: this,
             container: this.container,
-            visible: true,
+            visible: false,
         });
     }
     get content_node() { return this.bookmark_tag_widget.container; }
+
+    show_tab()
+    {
+        super.show_tab();
+        this.shown_changed();
+    }
 
     hide_tab()
     {
         this.bookmark_tag_widget.save_current_tags();
         super.hide_tab();
+        this.shown_changed();
+    }
+
+    shown_changed()
+    {
+        // Tell bookmark_tag_widget when it's actually visible, so it only loads tags from Pixiv
+        // when it's actually used.
+        this.bookmark_tag_widget.visible = this.tab_shown;
     }
 
     set media_id(media_id)
