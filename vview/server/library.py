@@ -1071,17 +1071,19 @@ class Library:
                 # Our search is from the database, but the file metadata is authoritative.  Make sure
                 # the image is actually bookmarked and has the tag we're looking for.
                 if not file_metadata.get('bookmarked'):
-                    print(f"Path is bookmarked in the database, but not on disk: ${entry['path']}")
+                    print(f"Path is bookmarked in the database, but not on disk: {entry['path']}")
                     continue
 
                 entry_bookmark_tags = file_metadata.get('bookmark_tags', '').split(' ')
                 if from_tag not in entry_bookmark_tags:
-                    print(f"Path has tag ${from_tag} in the database, but not on disk: ${entry['path']}")
+                    print(f"Path has tag {from_tag} in the database, but not on disk: {entry['path']}")
                     continue
 
-                # Remove from_tag and add to_tag.
+                # Remove from_tag and add to_tag.  In case we're merging a tag with another tag that
+                # already exists, make sure we don't add the new tag if it's already there.
                 entry_bookmark_tags.remove(from_tag)
-                entry_bookmark_tags.append(to_tag)
+                if to_tag not in entry_bookmark_tags:
+                    entry_bookmark_tags.append(to_tag)
                 entry_bookmark_tags = ' '.join(entry_bookmark_tags)
                 file_metadata['bookmark_tags'] = entry_bookmark_tags
 
