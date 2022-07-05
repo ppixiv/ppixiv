@@ -359,6 +359,18 @@ class Library:
         path = open_path(path)
         await self.handle_update(path=path, old_path=old_path, action=action)
 
+    @staticmethod
+    def normalize_bookmark_tags(bookmark_tags):
+        """
+        Normalize a list of bookmark tags, sorting alphabetically and removing duplicates.
+        """
+        tags = bookmark_tags.split(' ')
+        tags = list(set(tags))
+        if '' in tags:
+            tags.remove('')
+        tags.sort(key=lambda tag: tag.lower())
+        return ' '.join(tags)
+
     async def handle_update(self, path, action, *, old_path=None, db_conn=None):
         """
         This is called to update a changed path.  This can be called during an explicit
@@ -426,7 +438,7 @@ class Library:
         #
         # Don't overwrite data that we got from the file directly.
         entry['bookmarked'] = file_metadata.get('bookmarked', False)
-        entry['bookmark_tags'] = file_metadata.get('bookmark_tags', '')
+        entry['bookmark_tags'] = self.normalize_bookmark_tags(file_metadata.get('bookmark_tags', ''))
         if 'width' not in entry:
             entry['width'] = file_metadata.get('width')
         if 'height' not in entry:
@@ -1024,6 +1036,7 @@ class Library:
             if set_bookmark:
                 file_metadata['bookmarked'] = True
                 if tags is not None:
+                    tags = self.normalize_bookmark_tags(tags)
                     file_metadata['bookmark_tags'] = tags
 
                 # Cache some basic metadata too, so we have access to it in placeholder
