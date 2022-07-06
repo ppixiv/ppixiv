@@ -29,12 +29,6 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
                         ${ helpers.create_box_link({icon: "close",    popup: "Stop editing",  classes: ["close-editor", "popup-bottom"], dataset: { popupSide: "left" } }) }
                     </div>
                 </div>
-
-                <div class="image-editor-buttons bottom">
-                    <div class="image-editor-button-row box-button-row left"></div>
-                    <div class="editor-ui-buttons"></div>
-                    <div class="image-editor-button-row box-button-row right"></div>
-                </div>
             </div>
         `});
 
@@ -191,15 +185,6 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
                 this.redo();
             }
         }, { signal: this.shutdown_signal.signal });
-
-        // Steal buttons from the individual editors.
-        let inpaint_buttons = this.editors.inpaint.container.querySelector(".editor-buttons");
-        inpaint_buttons.remove();
-        this.container.querySelector(".editor-ui-buttons").appendChild(inpaint_buttons);
-
-        let pan_buttons = this.editors.pan.container.querySelector(".editor-buttons");
-        pan_buttons.remove();
-        this.container.querySelector(".editor-ui-buttons").appendChild(pan_buttons);
     }
 
     // Return true if the crop editor is active.

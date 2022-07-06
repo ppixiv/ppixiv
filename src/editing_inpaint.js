@@ -11,33 +11,38 @@ ppixiv.InpaintEditor = class extends ppixiv.widget
                     <svg class=inpaint-container width=100% height=100% viewBox="0 0 1 1"></svg>
                 </div>
 
-                <div class="editor-buttons box-button-row">
-                    ${ helpers.create_box_link({label: "View",       classes: ["view-inpaint"] }) }
-                    ${ helpers.create_box_link({label: "Create lines",       classes: ["create-lines"] }) }
+                <div class="image-editor-buttons bottom">
+                    <div class="image-editor-button-row box-button-row left"></div>
 
-                    <div class="inpaint-line-width-box box-link">
-                        <span>Thickness</span>
-                        <input class=inpaint-line-width type=range min=1 max=50>
-                        <div class="save-default-thickness popup block-button" data-popup="Set as default">
-                            ${ helpers.create_icon("push_pin") }
+                    <div class="image-editor-button-row editor-buttons box-button-row">
+                        ${ helpers.create_box_link({label: "View",       classes: ["view-inpaint"] }) }
+                        ${ helpers.create_box_link({label: "Create lines",       classes: ["create-lines"] }) }
+
+                        <div class="inpaint-line-width-box box-link">
+                            <span>Thickness</span>
+                            <input class=inpaint-line-width type=range min=1 max=50>
+                            <div class="save-default-thickness popup block-button" data-popup="Set as default">
+                                ${ helpers.create_icon("push_pin") }
+                            </div>
+                        </div>
+                        <div class=box-link>
+                            <span>Downscale</span>
+                            <input class=inpaint-downscale type=range min=1 max=20>
+
+                            <div class="save-default-downscale popup block-button" data-popup="Set as default">
+                                ${ helpers.create_icon("push_pin") }
+                            </div>
+                        </div>
+                        <div class=box-link>
+                            <span>Soften edges</span>
+                            <input class=inpaint-blur type=range min=0 max=5>
+
+                            <div class="save-default-soften popup block-button" data-popup="Set as default">
+                                ${ helpers.create_icon("push_pin") }
+                            </div>
                         </div>
                     </div>
-                    <div class=box-link>
-                        <span>Downscale</span>
-                        <input class=inpaint-downscale type=range min=1 max=20>
-
-                        <div class="save-default-downscale popup block-button" data-popup="Set as default">
-                            ${ helpers.create_icon("push_pin") }
-                        </div>
-                    </div>
-                    <div class=box-link>
-                        <span>Soften edges</span>
-                        <input class=inpaint-blur type=range min=0 max=5>
-
-                        <div class="save-default-soften popup block-button" data-popup="Set as default">
-                            ${ helpers.create_icon("push_pin") }
-                        </div>
-                    </div>
+                    <div class="image-editor-button-row box-button-row right"></div>
                 </div>
             </div>
         `});

@@ -16,24 +16,29 @@ ppixiv.PanEditor = class extends ppixiv.widget
                     </div>
                 </div>
 
-                <div class="editor-buttons box-button-row">
-                    ${ helpers.create_box_link({popup: "Edit start", icon: "first_page", classes: ["edit-start-button"] }) }
-                    ${ helpers.create_box_link({popup: "Swap start and end", icon: "swap_horiz", classes: ["swap-button"] }) }
-                    ${ helpers.create_box_link({popup: "Edit end", icon: "last_page", classes: ["edit-end-button"] }) }
-                    ${ helpers.create_box_link({popup: "Edit anchor", icon: "anchor", classes: ["edit-anchor"] }) }
+                <div class="image-editor-buttons bottom">
+                    <div class="image-editor-button-row box-button-row left"></div>
 
-                    <div class="box-link popup" data-popup="Zoom">
-                        ${ helpers.create_icon("zoom_in") }
-                        <input class=zoom-slider type=range min=5 max=200>
+                    <div class="image-editor-button-row editor-buttons box-button-row">
+                        ${ helpers.create_box_link({popup: "Edit start", icon: "first_page", classes: ["edit-start-button"] }) }
+                        ${ helpers.create_box_link({popup: "Swap start and end", icon: "swap_horiz", classes: ["swap-button"] }) }
+                        ${ helpers.create_box_link({popup: "Edit end", icon: "last_page", classes: ["edit-end-button"] }) }
+                        ${ helpers.create_box_link({popup: "Edit anchor", icon: "anchor", classes: ["edit-anchor"] }) }
+
+                        <div class="box-link popup" data-popup="Zoom">
+                            ${ helpers.create_icon("zoom_in") }
+                            <input class=zoom-slider type=range min=5 max=200>
+                        </div>
+
+                        ${ helpers.create_box_link({popup: "Portrait/landscape", icon: "panorama", classes: ["rotate-aspect-ratio"] }) }
+
+                        <div class="box-link popup aspect-ratio-slider" data-popup="Aspect ratio">
+                            <input class=zoom-slider type=range min=0 max=3 style="width: 70px;">
+                        </div>
+
+                        ${ helpers.create_box_link({popup: "Clear animation", icon: "delete", classes: ["reset-button"] }) }
                     </div>
-
-                    ${ helpers.create_box_link({popup: "Portrait/landscape", icon: "panorama", classes: ["rotate-aspect-ratio"] }) }
-
-                    <div class="box-link popup aspect-ratio-slider" data-popup="Aspect ratio">
-                        <input class=zoom-slider type=range min=0 max=3 style="width: 70px;">
-                    </div>
-
-                    ${ helpers.create_box_link({popup: "Clear animation", icon: "delete", classes: ["reset-button"] }) }
+                    <div class="image-editor-button-row box-button-row right"></div>
                 </div>
             </div>
         `});
