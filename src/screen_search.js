@@ -23,6 +23,10 @@ let thumbnail_ui = class extends ppixiv.widget
                 </div>
 
                 <div class=button-row style="margin-bottom: 0.5em;">
+                    <div class="icon-button toggle-local-navigation-button popup" data-popup="Show navigation" hidden>
+                        ${ helpers.create_icon("mat:keyboard_double_arrow_left") }
+                    </div>
+
                     <a class="icon-button disable-ui-button popup pixiv-only" data-popup="Return to Pixiv" href="#no-ppixiv">
                         ${ helpers.create_icon("ppixiv:pixiv") }
                     </a>
@@ -529,10 +533,22 @@ ppixiv.screen_search = class extends ppixiv.screen
             
         if(ppixiv.local_api.is_enabled() && !local_api.local_info.bookmark_tag_searches_only)
         {
+            // False if the user has hidden the navigation tree.  Default to false on mobile, since
+            // it takes up a lot of screen space.
+            this.local_navigation_visible = !ppixiv.mobile;
+
             this.local_nav_widget = new ppixiv.local_navigation_widget({
                 parent: this,
                 container: local_navigation_box,
             });
+
+            this.toggle_local_navigation_button = this.container.querySelector(".toggle-local-navigation-button");
+            this.toggle_local_navigation_button.addEventListener("click", (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.local_navigation_visible = !this.local_navigation_visible;
+                this.refresh_ui();
+            });        
         }
 
         // Hack: if the local API isn't enabled, hide the local navigation box completely.  This shouldn't
@@ -692,19 +708,19 @@ ppixiv.screen_search = class extends ppixiv.screen
 
         this.data_source = data_source;
 
-        // Refresh whether we're showing the local navigation widget.
-        let local_search_active = this.data_source?.name == "vview" && !local_api?.local_info?.bookmark_tag_searches_only;
-        helpers.set_dataset(this.container.dataset, "showNavigation", local_search_active);
-
         if(this.data_source == null)
+        {
+            this.refresh_ui();
             return;
-        
+        }
+
         // Disable the avatar widget unless the data source enables it.
         this.avatar_container.hidden = true;
         this.avatar_widget.set_user_id(null);
 
         // Listen to the data source loading new pages, so we can refresh the list.
         this.data_source.add_update_listener(this.data_source_updated);
+        this.refresh_ui();
     };
 
     data_source_updated = () =>
@@ -782,6 +798,16 @@ ppixiv.screen_search = class extends ppixiv.screen
         
         var ui_box = this.container.querySelector(".thumbnail-ui-box");
         this.data_source.refresh_thumbnail_ui(ui_box, this);
+
+        // Refresh whether we're showing the local navigation widget and toggle button.
+        let local_search_active = this.data_source?.name == "vview" && !local_api?.local_info?.bookmark_tag_searches_only;
+        helpers.set_dataset(this.container.dataset, "showNavigation", local_search_active && this.local_navigation_visible);
+        if(this.toggle_local_navigation_button)
+        {
+            this.toggle_local_navigation_button.hidden = this.local_nav_widget == null || !local_search_active;
+            this.toggle_local_navigation_button.querySelector(".font-icon").innerText = this.local_navigation_visible?
+                "keyboard_double_arrow_left":"keyboard_double_arrow_right";
+        }
 
         this.refresh_slideshow_button();
         this.refresh_ui_for_user_id();
