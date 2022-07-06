@@ -554,11 +554,8 @@ ppixiv.screen_search = class extends ppixiv.screen
          * Add a slight delay before hiding the UI.  This allows opening the UI by swiping past the top
          * of the window, without it disappearing as soon as the mouse leaves the window.  This doesn't
          * affect opening the UI.
-         *
-         * We're actually handling the manga UI's top-ui-box here too.
          */
-        for(let box of document.querySelectorAll(".top-ui-box"))
-            new hover_with_delay(box, 0, 0.25);
+        new hover_with_delay(this.container.querySelector(".top-ui-box"), 0, 0.25);
 
         this.search_view = new search_view({
             parent: this,
