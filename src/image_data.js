@@ -721,6 +721,7 @@ ppixiv.image_data = class extends EventTarget
     async refresh_media_info(media_id)
     {
         let promises = [];
+        media_id = helpers.get_media_id_first_page(media_id);
         if(this.image_data[media_id] != null)
             promises.push(this._load_media_info(media_id, { force: true }));
 
