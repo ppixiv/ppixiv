@@ -336,7 +336,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
                 
                 <span class=search></span>
                 <span class=remove-history-entry>X</span>
-            </div>
+            </a>
         `});
         entry.dataset.tag = tag_search;
 
