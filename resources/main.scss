@@ -986,7 +986,7 @@ body.hide-r18g .r18g { display: none; }
      * scrolled all the way up, and scroll underneath it. */
     position: sticky;
     top: 0;
-    width: 100%;
+    width: calc(100% - var(--navigation-box-reserved-width));
     display: flex;
     flex-direction: row;
     align-items: center;
