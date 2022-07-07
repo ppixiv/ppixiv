@@ -699,12 +699,15 @@ textarea:focus, input:focus, a:focus {
         height: 100%;
     }
 
-    // Highlight on hover.  If .parent-highlight is set, also highlight if the parent
-    // is hovered.
-    &:hover,
-    :hover > &.parent-highlight
-    {
-        color: var(--button-highlight-color);
+    @media(hover: hover) {
+        // Highlight on hover.  If .parent-highlight is set, also highlight if the parent
+        // is hovered.
+        
+        &:hover,
+        :hover > &.parent-highlight
+        {
+            color: var(--button-highlight-color);
+        }
     }
 
     &.highlighted {
@@ -717,9 +720,12 @@ textarea:focus, input:focus, a:focus {
     }
 }
 
-.disable-ui-button:hover > .icon-button {
-    color: #0096FA;
+@media(hover: hover) {
+    .disable-ui-button:hover {
+        color: #0096FA;
+    }
 }
+
 .whats-new-button.updates > svg {
     color: #cc0;
 }
@@ -733,13 +739,6 @@ html[data-theme="light"] .whats-new-button.updates > svg {
     padding: 0;
     margin: 0;
     cursor: pointer;
-}
-
-.popup.avatar-popup:hover:after {
-    left: auto;
-    bottom: auto;
-    top: 60px;
-    right: -10px;
 }
 
 .avatar-widget-follow-container {
@@ -759,8 +758,10 @@ html[data-theme="light"] .whats-new-button.updates > svg {
             box-shadow: 0 0 10px 4px #000;
         }
 
-        &:hover {
-            filter: contrast(1.3);
+        @media(hover: hover) {
+            &:hover {
+                filter: contrast(1.3);
+            }
         }
     }
 
@@ -865,9 +866,11 @@ html[data-theme="light"] .whats-new-button.updates > svg {
     margin-right: 1em;
     border-radius: 8px 0;
 
-    &.popup:hover:after {
-        top: 40px;
-        bottom: auto;
+    @media(hover: hover) {
+        &.popup:hover:after {
+            top: 40px;
+            bottom: auto;
+        }
     }
 }
 
@@ -877,8 +880,11 @@ body.dot canvas.filtering {
     image-rendering: crisp-edges;
     image-rendering: pixelated;
 }
-.bulb-button:hover > .icon-button {
-    color: #FF0 !important; /* override icon-button hover color */
+
+@media(hover: hover) {
+    .bulb-button:hover {
+        color: #FF0 !important; // override icon-button hover color
+    }
 }
 
 .post-info > * {
@@ -909,29 +915,31 @@ html[data-theme="light"] .description {
 .popup {
     position: relative;
 
-    &:hover:after {
-        pointer-events: none;
-        background: #111;
-        border-radius: .5em;
-        top: -2.0em;
-        color: #fff;
-        content: attr(data-popup);
-        display: block;
-        padding: .3em 1em;
-        position: absolute;
-        text-shadow: 0 1px 0 #000;
-        white-space: nowrap;
-        z-index: 98;
+    @media(hover: hover) {
+        &:hover:after {
+            pointer-events: none;
+            background: #111;
+            border-radius: .5em;
+            top: -2.0em;
+            color: #fff;
+            content: attr(data-popup);
+            display: block;
+            padding: .3em 1em;
+            position: absolute;
+            text-shadow: 0 1px 0 #000;
+            white-space: nowrap;
+            z-index: 98;
 
+        }
+        &[data-popup-side="left"]:hover:after   { right: 0em; }
+        &[data-popup-side="right"]:hover:after,
+        &:not([data-popup-side]):hover:after    { left: 0em; }
+
+        &.popup-bottom:hover:after {
+            top: auto;
+            bottom: -2em;
+        }
     }
-    &[data-popup-side="left"]:hover:after   { right: 0em; }
-    &[data-popup-side="right"]:hover:after,
-    &:not([data-popup-side]):hover:after    { left: 0em; }
-}
-
-.popup-bottom:hover:after {
-    top: auto;
-    bottom: -2em;
 }
 
 body:not(.premium) .premium-only { display: none; }
@@ -967,17 +975,6 @@ body.hide-r18g .r18g { display: none; }
     width: 150%;
     height: 200%;
     z-index: -1;
-}
-
-.popup-menu-box .button
-{
-    padding: .25em;
-    cursor: pointer;
-    width: 100%;
-}
-
-.popup-menu-box .button:hover {
-    background-color: var(--dropdown-menu-hover-color);
 }
 
 .top-ui-box
@@ -1199,8 +1196,10 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
                 color: var(--box-link-fg-color);
                 background-color: var(--box-link-bg-color);
 
-                &:hover {
-                    background-color: var(--box-link-hover-color);
+                @media(hover: hover) {
+                    &:hover {
+                        background-color: var(--box-link-hover-color);
+                    }
                 }
             }
         }
@@ -1297,9 +1296,11 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
             display: none;
         }
 
-        // Hide the manga page button beyond the first page when not hovering.
-        &.expanded-manga-post:not(:hover):not(.first-manga-page) .manga-info-box {
-            display: none;
+        @media(hover: hover) {
+            // Hide the manga page button beyond the first page when not hovering.
+            &.expanded-manga-post:not(:hover):not(.first-manga-page) .manga-info-box {
+                display: none;
+            }
         }
 
         .show-manga-pages-button {
@@ -1402,8 +1403,10 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
                     display: inline-flex;
                     padding: 4px 0px;
 
-                    &:hover {
-                        background-color: rgba(0,20,120,.8);
+                    @media(hover: hover) {
+                        &:hover {
+                            background-color: rgba(0,20,120,.8);
+                        }
                     }
                 }
 
@@ -1441,11 +1444,13 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
         }
     }
 
-    .thumbnail-box:hover .heart > svg {
-        opacity: 0.5;
-    }
-    .thumbnail-box:hover .ugoira-icon {
-        opacity: 0.5;
+    @media(hover: hover) {
+        .thumbnail-box:hover .heart > svg {
+            opacity: 0.5;
+        }
+        .thumbnail-box:hover .ugoira-icon {
+            opacity: 0.5;
+        }
     }
 
     [data-type="order-shuffle"] .icon {
@@ -1550,9 +1555,11 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
         background-color: var(--box-link-selected-color);
     }
 
-    &:hover:not(.disabled) {
-        background-color: var(--box-link-hover-color);
-        &.selected { background-color: var(--box-link-selected-hover-color); }    
+    @media(hover: hover) {
+        &:hover:not(.disabled) {
+            background-color: var(--box-link-hover-color);
+            &.selected { background-color: var(--box-link-selected-hover-color); }    
+        }
     }
 
     &.disabled {
@@ -1809,8 +1816,10 @@ a.box-link, span.box-link
             background-color: #ffa;
         }
 
-        & > .entry:hover {
-            background-color: #ddd;
+        @media(hover: hover) {
+            & > .entry:hover {
+                background-color: #ddd;
+            }
         }
 
         .remove-history-entry {
@@ -1825,7 +1834,9 @@ a.box-link, span.box-link
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            visibility: hidden;
+            @media(hover: hover) {
+                visibility: hidden;
+            }
         }
 
         /* Hide the button to remove history entries from non-history entries. */
@@ -1833,12 +1844,14 @@ a.box-link, span.box-link
             display: none;
         }
 
-        & > .entry:hover .remove-history-entry {
-            visibility: visible;
-        }
-        .remove-history-entry:hover {
-            color: #000;
-            background-color: #c0c0c0;
+        @media(hover: hover) {
+            & > .entry:hover .remove-history-entry {
+                visibility: visible;
+            }
+            .remove-history-entry:hover {
+                color: #000;
+                background-color: #c0c0c0;
+            }
         }
     }
 
@@ -1855,8 +1868,10 @@ a.box-link, span.box-link
                 display: inline-flex;
                 & > A.search {
                     .tag.highlight { background-color: #eeee00; }
-                    .tag:hover { background-color: #0099FF; }
-                    .tag.highlight:hover { background-color: #00CCFF; }
+                    @media(hover: hover) {
+                        .tag:hover { background-color: #0099FF; }
+                        .tag.highlight:hover { background-color: #00CCFF; }
+                    }
                 }
             }
         }
@@ -1973,10 +1988,12 @@ a.box-link, span.box-link
                 height: 32px;
             }
 
-            &.enabled:hover {
-                color: var(--toggle-button-fg-color);
+            @media(hover: hover) {
+                &.enabled:hover {
+                    color: var(--toggle-button-fg-color);
+                }
             }
-
+            
             &.enabled.selected {
                 background-color: var(--toggle-button-bg-color);
                 color: var(--toggle-button-fg-color);
@@ -2425,20 +2442,22 @@ a.box-link, span.box-link
     margin-top: -2px;
 }
 
-/* Bookmark buttons.  These appear in image_ui and the popup menu. */
-.button.button-bookmark.will-delete.enabled:hover svg.heart-image .delete {
-    display: inline;
-}
-
 /* Hide the "delete" stroke over the heart icon unless clicking the button will
  * remove the bookmark. */
 svg.heart-image .delete {
     display: none;
 }
 
-/* These are !important to override the default white coloring in the context
- * menu. */
 .button-bookmark {
+    // Bookmark buttons.  These appear in image_ui and the popup menu.
+    @media(hover: hover) {
+        &.button.will-delete.enabled:hover svg.heart-image .delete {
+            display: inline;
+        }
+    }
+
+    // These are !important to override the default white coloring in the context
+    // menu.
     svg {
         color: #400 !important;
     }
@@ -2447,7 +2466,6 @@ svg.heart-image .delete {
         color: #800 !important;
         stroke: none;
     }
-
     &.bookmarked svg,
     &.enabled:hover svg {
         color: #f00 !important;
@@ -2467,8 +2485,10 @@ svg.heart-image .delete {
     &.liked > svg {
         color: var(--like-button-liked-color);
     }
-    &.enabled:hover > svg {
-        color: var(--like-button-hover-color);
+    @media(hover: hover) {
+        &.enabled:hover > svg {
+            color: var(--like-button-hover-color);
+        }
     }
 }
 
@@ -2477,30 +2497,50 @@ svg.heart-image .delete {
         transition: transform ease-in-out .15s;
         transform: translate(-2px, 0px);
     }
-    &:hover .arrow {
-        transform: translate(1px, 0px);
+    @media(hover: hover) {
+        &:hover .arrow {
+            transform: translate(1px, 0px);
+        }
     }
 }
 
-.button.button-like               > svg > * {
-    transition: transform ease-in-out .15s;
-    transform: translate(0, 0px);
-}
-.button.button-like               > svg > .mouth {
-    transform: scale(1, .75);
-}
+.button.button-like {
+    --overall-translate-x: 0;
+    --overall-translate-y: 0;
+    --mouth-scale-x: 1;
+    --mouth-scale-y: 0.75;
+    --mouth-translate-x: 0;
+    --mouth-translate-y: 0;
 
-.button.button-like.liked         > svg > * {
-    transform: translate(0, -3px);
-}
-.button.button-like.liked         > svg > .mouth {
-    transform: scale(1, 1.1) translate(0, -3px);
-}
-.button.button-like.enabled:hover > svg > * {
-    transform: translate(0, -2px);
-}
-.button.button-like.enabled:hover > svg > .mouth {
-    transform: scale(1, .9) translate(0, -3px);
+    &.liked {
+        --mouth-scale-x: 1;
+        --mouth-scale-y: 1.1;
+        --mouth-translate-x: 0;
+        --mouth-translate-y: -3px;
+        --overall-translate-x: 0;
+        --overall-translate-y: -3px;
+    }
+
+    @media(hover: hover) {
+        &.enabled:hover {
+            --overall-translate-x: 0;
+            --overall-translate-y: -2px;
+            --mouth-scale-x: 1;
+            --mouth-scale-y: 0.9;
+            --mouth-translate-x: 0;
+            --mouth-translate-y: -3px;
+        }
+    }
+    
+    > svg {
+        > * {
+            transition: transform ease-in-out .15s;
+            transform: translate(var(--overall-translate-x), var(--overall-translate-y));
+        }
+        > .mouth {
+            transform: scale(var(--mouth-scale-x), var(--mouth-scale-y)) translate(var(--mouth-translate-x), var(--mouth-translate-y));
+        }
+    }
 }
 .button-bookmark.public svg.heart-image .lock {
     display: none;
@@ -2586,8 +2626,10 @@ svg.heart-image .delete {
     right: 5px;
     color: var(--button-color);
     cursor: pointer;
-    &:hover {
-        color: var(--button-highlight-color);
+    @media(hover: hover) {
+        &:hover {
+            color: var(--button-highlight-color);
+        }
     }
     & > svg {
         display: block;
@@ -2731,9 +2773,11 @@ svg.heart-image .delete {
             html[data-theme="light"] & { border-color: #444; }
         }
 
-        > .submit-button:hover {
-            background-color: #444;
-            html[data-theme="light"] & { background-color: #aaa; }
+        @media(hover: hover) {
+            > .submit-button:hover {
+                background-color: #444;
+                html[data-theme="light"] & { background-color: #aaa; }
+            }
         }
     }
 }
@@ -2970,8 +3014,10 @@ svg.heart-image .delete {
                 background: none;
             }
 
-            &:hover {
-                background-color: var(--box-link-hover-color);
+            @media(hover: hover) {
+                &:hover {
+                    background-color: var(--box-link-hover-color);
+                }
             }
         }
     }
@@ -3011,10 +3057,12 @@ svg.heart-image .delete {
                 background-color: var(--box-link-bg-color);
             }
     
-            &.clickable:hover:not(.disabled) {
-                background-color: var(--box-link-hover-color);
+            @media(hover: hover) {
+                &.clickable:hover:not(.disabled) {
+                    background-color: var(--box-link-hover-color);
+                }
             }
-    
+                
             // If this isn't a clickable row, such as a slider, disable effects on hover.
             &:not(.clickable):hover {
                 cursor: inherit;
