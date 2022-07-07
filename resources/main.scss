@@ -881,12 +881,6 @@ body.dot canvas.filtering {
     image-rendering: pixelated;
 }
 
-@media(hover: hover) {
-    .bulb-button:hover {
-        color: #FF0 !important; // override icon-button hover color
-    }
-}
-
 .post-info > * {
     display: inline-block;
     background-color: var(--box-link-bg-color);

@@ -1007,7 +1007,7 @@ ppixiv.screen_search = class extends ppixiv.screen
 
             let entry = this.create_template({name: "extra-link", html: `
                 <div class=extra-profile-link-button>
-                    <a href=# class="extra-link icon-button bulb-button popup popup-bottom" rel="noreferer noopener"></a>
+                    <a href=# class="extra-link icon-button popup popup-bottom" rel="noreferer noopener"></a>
                 </div>
             `});
 
@@ -1046,7 +1046,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         {
             let entry = this.create_template({name: "mute-link", html: `
                 <div class=extra-profile-link-button>
-                    <span class="extra-link icon-button bulb-button popup popup-bottom" rel="noreferer noopener">
+                    <span class="extra-link icon-button popup popup-bottom" rel="noreferer noopener">
                         ${ helpers.create_icon("block") }
                     </span>
                 </div>

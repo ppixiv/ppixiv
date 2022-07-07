@@ -95,19 +95,19 @@ ppixiv.image_ui = class extends ppixiv.widget
             <div class=count></div>
         </div>
 
-        <a class="similar-illusts-button bulb-button popup pixiv-only" data-popup="Similar illustrations" href=#>
+        <a class="similar-illusts-button popup pixiv-only" data-popup="Similar illustrations" href=#>
             <div class=icon-button>
                 ${ helpers.create_icon("ppixiv:suggestions") }
             </div>
         </a>
 
-        <a class="similar-artists-button bulb-button popup pixiv-only" data-popup="Similar artists" href=#>
+        <a class="similar-artists-button popup pixiv-only" data-popup="Similar artists" href=#>
             <div class=icon-button>
                 ${ helpers.create_icon("ppixiv:suggestions") }
             </div>
         </a>
 
-        <a class="similar-bookmarks-button bulb-button popup pixiv-only" data-popup="Similar bookmarks" href=#>
+        <a class="similar-bookmarks-button popup pixiv-only" data-popup="Similar bookmarks" href=#>
             <div class=icon-button>
                 ${ helpers.create_icon("ppixiv:suggestions") }
             </div>
