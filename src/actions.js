@@ -348,7 +348,7 @@ ppixiv.actions = class
             return;
 
         // We need to do this differently depending on whether we were already following the user.
-        let user_info = await image_data.singleton().get_user_info_full(user_id);
+        let user_info = await user_cache.singleton().get_user_info_full(user_id);
         if(user_info.isFollowed)
         {
             // If we were already following, we're just updating privacy.  We don't update follow
@@ -380,14 +380,14 @@ ppixiv.actions = class
         if(tag != null)
         {
             tag_set.add(tag);
-            image_data.singleton().add_to_cached_all_user_follow_tags(tag);
+            user_cache.singleton().add_to_cached_all_user_follow_tags(tag);
         }
         let info = {
             tags: tag_set,
             following_privately: follow_privately,
         };
 
-        image_data.singleton().update_cached_follow_info(user_id, true, info);
+        user_cache.singleton().update_cached_follow_info(user_id, true, info);
 
         var message = "Followed " + user_info.name;
         if(follow_privately)
@@ -411,15 +411,15 @@ ppixiv.actions = class
         }
 
         // If we had cached follow info, update it with the new privacy.
-        let info = image_data.singleton().get_user_follow_info_sync(user_id);
+        let info = user_cache.singleton().get_user_follow_info_sync(user_id);
         if(info  != null)
         {
             console.log("Updating cached follow privacy");
             info.following_privately = follow_privately;
-            image_data.singleton().update_cached_follow_info(user_id, true, info);
+            user_cache.singleton().update_cached_follow_info(user_id, true, info);
         }
 
-        let user_info = await image_data.singleton().get_user_info(user_id);
+        let user_info = await user_cache.singleton().get_user_info(user_id);
         let message = `Now following ${user_info.name} ${follow_privately? "privately":"publically"}`;
         message_widget.singleton.show(message);
     }
@@ -440,13 +440,13 @@ ppixiv.actions = class
             return;
         }
 
-        let user_info = await image_data.singleton().get_user_info(user_id);
+        let user_info = await user_cache.singleton().get_user_info(user_id);
         let message = add? `Added the tag "${tag}" to ${user_info.name}`:`Removed the tag "${tag}" from ${user_info.name}`;
         message_widget.singleton.show(message);
 
         // Get follow info so we can update the tag list.  This will usually already be loaded,
         // since the caller will have had to load it to show the UI in the first place.
-        let follow_info = await image_data.singleton().get_user_follow_info(user_id);
+        let follow_info = await user_cache.singleton().get_user_follow_info(user_id);
         if(follow_info == null)
         {
             console.log("Error retrieving follow info to update tags");
@@ -458,12 +458,12 @@ ppixiv.actions = class
             follow_info.tags.add(tag);
 
             // Make sure the tag is in the full tag list too.
-            image_data.singleton().add_to_cached_all_user_follow_tags(tag);
+            user_cache.singleton().add_to_cached_all_user_follow_tags(tag);
         }
         else
             follow_info.tags.delete(tag);
 
-        image_data.singleton().update_cached_follow_info(user_id, true, follow_info);
+        user_cache.singleton().update_cached_follow_info(user_id, true, follow_info);
     }
 
     static async unfollow(user_id)
@@ -477,10 +477,10 @@ ppixiv.actions = class
             id: user_id,
         });
 
-        let user_data = await image_data.singleton().get_user_info(user_id);
+        let user_data = await user_cache.singleton().get_user_info(user_id);
 
         // Record that we're no longer following and refresh the UI.
-        image_data.singleton().update_cached_follow_info(user_id, false);
+        user_cache.singleton().update_cached_follow_info(user_id, false);
 
         message_widget.singleton.show("Unfollowed " + user_data.name);
     }
@@ -493,7 +493,7 @@ ppixiv.actions = class
         let progress_bar_controller = main_controller.singleton.progress_bar.controller();
         
         let illust_data = await image_data.singleton().get_media_info(media_id);
-        let user_info = await image_data.singleton().get_user_info(illust_data.userId);
+        let user_info = await user_cache.singleton().get_user_info(illust_data.userId);
         console.log("Download", media_id, "with type", download_type);
 
         if(download_type == "MKV")
@@ -640,7 +640,7 @@ ppixiv.actions = class
         // end.
         let label = value;
         if(type == "user")
-            label = (await image_data.singleton().get_user_info(value)).name;
+            label = (await user_cache.singleton().get_user_info(value)).name;
 
         // Note that this doesn't return an error if the mute list is full.  It returns success
         // and silently does nothing.
@@ -678,7 +678,7 @@ ppixiv.actions = class
         // end.
         let label = value;
         if(type == "user")
-            label = (await image_data.singleton().get_user_info(value)).name;
+            label = (await user_cache.singleton().get_user_info(value)).name;
 
         let result = await helpers.rpc_post_request("/ajax/mute/items/delete", {
             context: "illust",
@@ -759,7 +759,7 @@ ppixiv.actions = class
             if(type == "user" && label == null)
             {
                 // We need to know the user's username to add to our local mute list.
-                let user_data = await image_data.singleton().get_user_info(value);
+                let user_data = await user_cache.singleton().get_user_info(value);
                 label = user_data.name;
             }
             

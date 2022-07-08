@@ -36,7 +36,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
             parent: this,
         });
         
-        image_data.singleton().user_modified_callbacks.register(this.refresh_ui);
+        user_cache.singleton().user_modified_callbacks.register(this.refresh_ui);
         image_data.singleton().illust_modified_callbacks.register(this.refresh_ui);
         settings.register_change_callback("recent-bookmark-tags", this.refresh_ui);
 

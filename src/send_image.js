@@ -126,7 +126,7 @@ ppixiv.SendImage = class
         let illust_data = image_data.singleton().get_media_info_sync(media_id);
 
         let user_id = illust_data?.userId;
-        let user_info = user_id? image_data.singleton().get_user_info_sync(user_id):null;
+        let user_info = user_id? user_cache.singleton().get_user_info_sync(user_id):null;
 
         this.send_message({
             message: "send-image",
@@ -166,7 +166,7 @@ ppixiv.SendImage = class
         let illust_data = image_data.singleton().get_media_info_sync(media_id);
 
         let user_id = illust_data?.userId;
-        let user_info = user_id? image_data.singleton().get_user_info_sync(user_id):null;
+        let user_info = user_id? user_cache.singleton().get_user_info_sync(user_id):null;
 
         this.send_message({
             message: "image-info",
@@ -251,7 +251,7 @@ ppixiv.SendImage = class
 
                 let user_info = data.user_info;
                 if(user_info != null)
-                    image_data.singleton().add_user_data(user_info);
+                    user_cache.singleton().add_user_data(user_info);
 
                 let illust_data = data.illust_data;
                 if(illust_data != null)
@@ -313,7 +313,7 @@ ppixiv.SendImage = class
 
                 let user_info = data.user_info;
                 if(user_info != null)
-                    image_data.singleton().add_user_data(user_info);
+                    user_cache.singleton().add_user_data(user_info);
             } finally {
                 this.handling_broadcasted_image_info = false;
             }
@@ -351,7 +351,7 @@ ppixiv.SendImage = class
         let illust_data = media_id? image_data.singleton().get_media_info_sync(media_id):null;
 
         let user_id = illust_data?.userId;
-        let user_info = user_id? image_data.singleton().get_user_info_sync(user_id):null;
+        let user_info = user_id? user_cache.singleton().get_user_info_sync(user_id):null;
 
         let our_tab_info = {
             message: "tab-info",

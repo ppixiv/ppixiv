@@ -536,7 +536,7 @@ ppixiv.muted_tags_for_post_popup = class extends ppixiv.dialog_widget
         {
             // We only have a user ID, so look up the user to get the username.  Don't display
             // any tags.
-            let user_info = await image_data.singleton().get_user_info(this.user_id);
+            let user_info = await user_cache.singleton().get_user_info(this.user_id);
             await this.refresh_for_data([], this.user_id, user_info.name);
         }       
     }

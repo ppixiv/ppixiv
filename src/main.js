@@ -139,7 +139,7 @@ ppixiv.main_controller = class
         {
             preload = JSON.parse(preload.getAttribute("content"));
             for(var preload_user_id in preload.user)
-                image_data.singleton().add_user_data(preload.user[preload_user_id]);
+                user_cache.singleton().add_user_data(preload.user[preload_user_id]);
             for(var preload_illust_id in preload.illust)
                 image_data.singleton().add_illust_data(preload.illust[preload_illust_id]);
         }

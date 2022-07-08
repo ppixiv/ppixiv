@@ -52,7 +52,7 @@ ppixiv.viewer_muted = class extends ppixiv.viewer
             return;
         
         // Show the user's avatar instead of the muted image.
-        let user_info = await image_data.singleton().get_user_info(this.illust_data.userId);
+        let user_info = await user_cache.singleton().get_user_info(this.illust_data.userId);
         var img = this.container.querySelector(".muted-image");
         img.src = user_info.imageBig;
 

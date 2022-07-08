@@ -416,7 +416,7 @@ ppixiv.screen_search = class extends ppixiv.screen
             </div>
         `});
 
-        image_data.singleton().user_modified_callbacks.register(this.refresh_ui);
+        user_cache.singleton().user_modified_callbacks.register(this.refresh_ui);
 
         new thumbnail_ui({
             parent: this,
@@ -850,7 +850,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         var initial_user_id = this.viewing_user_id;
         var user_id = initial_user_id == window.global_data.user_id? null:initial_user_id;
 
-        var user_info = await image_data.singleton().get_user_info_full(user_id);
+        var user_info = await user_cache.singleton().get_user_info_full(user_id);
 
         // Stop if the user ID changed since we started this request, or if we're no longer active.
         if(this.viewing_user_id != initial_user_id || !this.active)

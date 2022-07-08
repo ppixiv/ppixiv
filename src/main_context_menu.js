@@ -972,7 +972,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
                 if(user_id == null)
                     return;
 
-                var user_info = await image_data.singleton().get_user_info_full(user_id);
+                var user_info = await user_cache.singleton().get_user_info_full(user_id);
                 if(user_info == null)
                     return;
 
