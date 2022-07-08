@@ -86,7 +86,7 @@ ppixiv.image_data = class extends EventTarget
             return this.illust_loads[media_id];
         
         let load_promise = this._load_media_info(media_id);
-        this._started_loading_image_info(media_id, load_promise);
+        this._started_loading_image_data(media_id, load_promise);
         return load_promise;
     }
 
@@ -114,12 +114,12 @@ ppixiv.image_data = class extends EventTarget
             // and illust_data.mediaId don't exist yet.
             let media_id = helpers.illust_id_to_media_id(illust_data.id);
             let load_promise = this._load_media_info(media_id, { illust_data, force: true });
-            this._started_loading_image_info(media_id, load_promise);
+            this._started_loading_image_data(media_id, load_promise);
             return load_promise;
         }
     }
 
-    _started_loading_image_info(media_id, load_promise)
+    _started_loading_image_data(media_id, load_promise)
     {
         this.illust_loads[media_id] = load_promise;
         this.illust_loads[media_id].then(() => {
@@ -156,7 +156,7 @@ ppixiv.image_data = class extends EventTarget
 
         // If this is a local image, use our API to retrieve it.
         if(helpers.is_media_id_local(media_id))
-            return await this._load_local_image_info(media_id);
+            return await this._load_local_image_data(media_id);
 
         console.log("Fetching", media_id);
 
@@ -293,7 +293,7 @@ ppixiv.image_data = class extends EventTarget
     get_user_load_error(user_id) { return "user:" + this.nonexistant_media_ids[user_id]; }
 
     // Load image info from the local API.
-    async _load_local_image_info(media_id)
+    async _load_local_image_data(media_id)
     {
         let illust_data = await local_api.load_media_info(media_id);
         if(!illust_data.success)
@@ -831,39 +831,39 @@ ppixiv.image_data = class extends EventTarget
 
     // Return the extra info for an image, given its image info.
     //
-    // For local images, the extra info is simply stored on image_info.  This doesn't need
+    // For local images, the extra info is simply stored on image_data.  This doesn't need
     // to be used if you know you're working with a local image.
     //
-    // For Pixiv images, extra info is stored in image_info.extraData, with page media IDs
+    // For Pixiv images, extra info is stored in image_data.extraData, with page media IDs
     // as keys.
-    static get_extra_data(image_info, media_id, page=null)
+    static get_extra_data(image_data, media_id, page=null)
     {
-        if(image_info == null)
+        if(image_data == null)
             return { };
 
         if(helpers.is_media_id_local(media_id))
-            return image_info;
+            return image_data;
 
         // If page is null, media_id is already this page's ID.
         if(page != null)
             media_id = helpers.get_media_id_for_page(media_id, page);
         
-        return image_info.extraData[media_id] ?? {};
+        return image_data.extraData[media_id] ?? {};
     }
 
-    // Get the width and height of media_id from image_info.
+    // Get the width and height of media_id from image_data.
     //
     // If this is a local image, or this is the first page, the width and height are on
-    // image_info.  If this isn't the first page of a manga post, get the dimensions from
-    // mangaPages.  If this is the first page, get it directly from image_info, so this
+    // image_data.  If this isn't the first page of a manga post, get the dimensions from
+    // mangaPages.  If this is the first page, get it directly from image_data, so this
     // can accept thumbnail data too.
-    static get_dimensions(image_info, media_id=null, page=null)
+    static get_dimensions(image_data, media_id=null, page=null)
     {
-        if(image_info == null)
+        if(image_data == null)
             return { width: 1, height: 1 };
 
-        let page_info = image_info;
-        if(!helpers.is_media_id_local(image_info.mediaId))
+        let page_info = image_data;
+        if(!helpers.is_media_id_local(image_data.mediaId))
         {
             if(page == null)
             {
@@ -878,10 +878,10 @@ ppixiv.image_data = class extends EventTarget
             {
                 // If mangaPages isn't present then this is thumbnail data, and we don't know
                 // the dimensions of images past the first page.
-                if(image_info.mangaPages == null)
+                if(image_data.mangaPages == null)
                     return { };
 
-                page_info = image_info.mangaPages[page];
+                page_info = image_data.mangaPages[page];
             }
         }
 
