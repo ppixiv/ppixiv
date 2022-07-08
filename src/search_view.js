@@ -1256,7 +1256,7 @@ ppixiv.search_view = class extends ppixiv.widget
 
                 link.dataset.userId = user_id;
 
-                let quick_user_data = thumbnail_data.singleton().get_quick_user_data(user_id);
+                let quick_user_data = extra_cache.singleton().get_quick_user_data(user_id);
                 if(quick_user_data == null)
                 {
                     // We should always have this data for users if the data source asked us to display this user.

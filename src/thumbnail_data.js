@@ -11,7 +11,6 @@ ppixiv.thumbnail_data = class
     {
         // Cached data:
         this.thumbnail_data = { };
-        this.quick_user_data = { };
         this.user_profile_urls = {};
 
         // IDs that we're currently requesting:
@@ -436,57 +435,6 @@ ppixiv.thumbnail_data = class
         if(muting.singleton.any_tag_muted(thumb_info.tags))
             return true;
         return false;
-    }
-
-    // This is a simpler form of thumbnail data for user info.  This is just the bare minimum
-    // info we need to be able to show a user thumbnail on the search page.  This is used when
-    // we're displaying lots of users in search results.
-    //
-    // We can get this info from two places, the following page (data_source_follows) and the
-    // user recommendations page (data_source_discovery_users).  Of course, since Pixiv never
-    // does anything the same way twice, they have different formats.
-    //
-    // The only info we need is:
-    // userId
-    // userName
-    // profileImageUrl
-    add_quick_user_data(source_data, source)
-    {
-        let data = null;
-        let id = source_data.userId;
-        if(source == "following")
-        {
-            data = {
-                userId: source_data.userId,
-                userName: source_data.userName,
-                profileImageUrl: source_data.profileImageUrl,
-            };
-        }
-        else if(source == "recommendations")
-        {
-            data = {
-                userId: source_data.userId,
-                userName: source_data.name,
-                profileImageUrl: source_data.imageBig,
-            };
-        }
-        else if(source == "users_bookmarking_illust" || source == "user_search")
-        {
-            data = {
-                userId: source_data.user_id,
-                userName: source_data.user_name,
-                profileImageUrl: source_data.profile_img,
-            };
-        }
-        else
-            throw "Unknown source: " + source;
-
-        this.quick_user_data[data.userId] = data;        
-    }
-
-    get_quick_user_data(user_id)
-    {
-        return this.quick_user_data[user_id];
     }
 
     thumbnail_info_keys = [

@@ -1203,7 +1203,7 @@ ppixiv.data_sources.discovery_users = class extends data_source
             user_cache.singleton().add_user_data(user);
 
             // Register this as quick user data, for use in thumbnails.
-            thumbnail_data.singleton().add_quick_user_data(user, "recommendations");
+            extra_cache.singleton().add_quick_user_data(user, "recommendations");
         }
 
         // Pixiv's motto: "never do the same thing the same way twice"
@@ -3351,7 +3351,7 @@ ppixiv.data_sources.follows = class extends data_source
                 continue;
 
             // Register this as quick user data, for use in thumbnails.
-            thumbnail_data.singleton().add_quick_user_data(followed_user, "following");
+            extra_cache.singleton().add_quick_user_data(followed_user, "following");
 
             // XXX: user:user_id
             if(!followed_user.illusts.length)
@@ -3515,7 +3515,7 @@ ppixiv.data_sources.related_favorites = class extends data_source_from_page
         for(var element of doc.querySelectorAll("li.bookmark-item a[data-user_id]"))
         {
             // Register this as quick user data, for use in thumbnails.
-            thumbnail_data.singleton().add_quick_user_data({
+            extra_cache.singleton().add_quick_user_data({
                 user_id: element.dataset.user_id,
                 user_name: element.dataset.user_name,
 
@@ -3575,7 +3575,7 @@ ppixiv.data_sources.search_users = class extends data_source_from_page
             let user_id = item.querySelector(".follow").dataset.id;
             let profile_image = item.querySelector("._user-icon").dataset.src;
 
-            thumbnail_data.singleton().add_quick_user_data({
+            extra_cache.singleton().add_quick_user_data({
                 user_id: user_id,
                 user_name: username,
                 profile_img: profile_image,
