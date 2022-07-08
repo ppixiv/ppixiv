@@ -21,6 +21,7 @@ source_files = [
     'src/encode_mkv.js',
     'src/hide_mouse_cursor_on_idle.js',
     'src/image_data.js',
+    'src/media_cache_mappings.js',
     'src/extra_cache.js',
     'src/user_cache.js',
     'src/on_click_viewer.js',

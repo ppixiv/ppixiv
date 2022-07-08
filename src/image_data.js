@@ -385,7 +385,7 @@ ppixiv.image_data = class extends EventTarget
             for(let [key, value] of Object.entries(keys))
             {
                 // Ignore data that isn't included in thumbnail info.
-                if(thumbnail_data.singleton().thumbnail_info_keys.indexOf(key) == -1)
+                if(thumbnail_data.singleton().partial_media_info_keys.indexOf(key) == -1)
                     continue;
 
                 thumbnail_info[key] = value;
