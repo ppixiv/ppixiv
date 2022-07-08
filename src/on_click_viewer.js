@@ -942,81 +942,82 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
 
         // Create the animation, or update it in-place if it already exists, probably due to the
         // window being resized.  total_time won't be updated when we do this.
-        if(this.animations == null)
+        if(this.animations != null)
         {
-            let main_animation = new Animation(new KeyframeEffect(
-                this.image_box,
-                keyframes,
-                {
-                    duration: animation.total_time * 1000,
-                    fill: 'forwards',
-                }
-            ));
+            this.animations[0].effect.setKeyframes(keyframes);
+            return;
+        }
 
-            // Create a separate animation for fade-in and fade-out.
-            let fade_keyframes = [{
-            }];
-
-            let fade_duration = animation.fade_in + animation.fade_out;
-            if(fade_duration > 0 && fade_duration <= animation.total_time)
+        let main_animation = new Animation(new KeyframeEffect(
+            this.image_box,
+            keyframes,
             {
-                fade_keyframes = [{
-                    opacity: 0,
-                }, {
-                    opacity: 1,
-                    easing: "linear",
-                    offset: animation.fade_in / animation.total_time,
-                }, {
-                    opacity: 1,
-                    offset: 1 - (animation.fade_out / animation.total_time),
-                }, {
-                    opacity: 0,
-                    offset: 1,
-                }];
+                duration: animation.total_time * 1000,
+                fill: 'forwards',
+            }
+        ));
+
+        // Create a separate animation for fade-in and fade-out.
+        let fade_keyframes = [{
+        }];
+
+        let fade_duration = animation.fade_in + animation.fade_out;
+        if(fade_duration > 0 && fade_duration <= animation.total_time)
+        {
+            fade_keyframes = [{
+                opacity: 0,
+            }, {
+                opacity: 1,
+                easing: "linear",
+                offset: animation.fade_in / animation.total_time,
+            }, {
+                opacity: 1,
+                offset: 1 - (animation.fade_out / animation.total_time),
+            }, {
+                opacity: 0,
+                offset: 1,
+            }];
+        }
+
+        let fade_animation = new Animation(new KeyframeEffect(
+            this.image_box, fade_keyframes, {
+                duration: animation.total_time * 1000,
+                fill: 'forwards',
+            }
+        ));
+        
+        this.animations = [main_animation, fade_animation];
+
+        // Commit and remove the animation when it finishes, so the history state remembers that
+        // we were no longer animating.  This way, viewing an image in a linked tab and then removing
+        // it doesn't restart a long-finished animation.  We only pay attention to the main animation
+        // for this and ignore the fade.
+        this.animations[0].onfinish = async (e) => {
+            if(!this.slideshow_enabled || !this.onnextimage)
+            {
+                // We're just panning, so clean up the animation and stop.
+                this.stop_animation();
+                return;
             }
 
-            let fade_animation = new Animation(new KeyframeEffect(
-                this.image_box, fade_keyframes, {
-                    duration: animation.total_time * 1000,
-                    fill: 'forwards',
-                }
-            ));
-            
-            this.animations = [main_animation, fade_animation];
+            // Tell the caller that we're ready for the next image.  Don't call stop_animation yet,
+            // so we don't cancel opacity and cause the image to flash onscreen while the new one
+            // is loading.  We'll stop if when onnextimage navigates.
+            let { media_id } = await this.onnextimage();
 
-            // Commit and remove the animation when it finishes, so the history state remembers that
-            // we were no longer animating.  This way, viewing an image in a linked tab and then removing
-            // it doesn't restart a long-finished animation.  We only pay attention to the main animation
-            // for this and ignore the fade.
-            this.animations[0].onfinish = async (e) => {
-                if(!this.slideshow_enabled || !this.onnextimage)
-                {
-                    // We're just panning, so clean up the animation and stop.
-                    this.stop_animation();
-                    return;
-                }
+            // onnextimage is normally viewer_images.navigate_to_next().  It'll return the new
+            // media_id if it navigated to one.  If it didn't navigate, call stop_animation so
+            // we clean up the animation and make it visible again if it's faded out.  This
+            // typically only happens if we only have one image.
+            if(media_id == null)
+            {
+                console.log("The slideshow didn't have a new image.  Resetting the slideshow animation");
+                this.stop_animation();
+            }
+        };
 
-                // Tell the caller that we're ready for the next image.  Don't call stop_animation yet,
-                // so we don't cancel opacity and cause the image to flash onscreen while the new one
-                // is loading.  We'll stop if when onnextimage navigates.
-                let { media_id } = await this.onnextimage();
-
-                // onnextimage is normally viewer_images.navigate_to_next().  It'll return the new
-                // media_id if it navigated to one.  If it didn't navigate, call stop_animation so
-                // we clean up the animation and make it visible again if it's faded out.  This
-                // typically only happens if we only have one image.
-                if(media_id == null)
-                {
-                    console.log("The slideshow didn't have a new image.  Resetting the slideshow animation");
-                    this.stop_animation();
-                }
-            };
-
-            for(let animation of this.animations)
-                animation.play();
-        } else {
-            this.animations[0].effect.setKeyframes(keyframes);
-        }
+        for(let animation of this.animations)
+            animation.play();
     }
 
     // If a pan animation is running, cancel it.
