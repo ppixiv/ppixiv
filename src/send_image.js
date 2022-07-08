@@ -173,7 +173,7 @@ ppixiv.SendImage = class
             from: SendImage.tab_id,
             media_id: media_id,
             illust_data: illust_data ?? thumbnail_info,
-            bookmark_tags: image_data.singleton().get_bookmark_details_sync(media_id),
+            bookmark_tags: extra_cache.singleton().get_bookmark_details_sync(media_id),
             user_info: user_info,
             origin: window.origin,
         }, false);
@@ -309,7 +309,7 @@ ppixiv.SendImage = class
 
                 let bookmark_tags = data.bookmark_tags;
                 if(bookmark_tags != null)
-                    image_data.singleton().update_cached_bookmark_image_tags(data.media_id, bookmark_tags);
+                    extra_cache.singleton().update_cached_bookmark_image_tags(data.media_id, bookmark_tags);
 
                 let user_info = data.user_info;
                 if(user_info != null)

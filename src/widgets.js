@@ -1399,7 +1399,7 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
 
         // If the tag list is open, populate bookmark details to get bookmark tags.
         // If the image isn't bookmarked this won't do anything.
-        let active_tags = await image_data.singleton().load_bookmark_details(media_id);
+        let active_tags = await extra_cache.singleton().load_bookmark_details(media_id);
 
         // Remember which illustration's bookmark tags are actually loaded.
         this.displaying_media_id = media_id;
@@ -1463,7 +1463,7 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
             return;
 
         // Get the tags currently on the bookmark to compare.
-        let old_tags = await image_data.singleton().load_bookmark_details(media_id);
+        let old_tags = await extra_cache.singleton().load_bookmark_details(media_id);
 
         var equal = new_tags.length == old_tags.length;
         for(let tag of new_tags)
@@ -2047,7 +2047,7 @@ ppixiv.like_button_widget = class extends ppixiv.illust_widget
         // Hide the like button for local IDs.
         this.container.closest(".button-container").hidden = helpers.is_media_id_local(media_id);
 
-        let liked_recently = media_id != null? image_data.singleton().get_liked_recently(media_id):false;
+        let liked_recently = media_id != null? extra_cache.singleton().get_liked_recently(media_id):false;
         helpers.set_class(this.container, "liked", liked_recently);
         helpers.set_class(this.container, "enabled", !liked_recently);
 

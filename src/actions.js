@@ -56,7 +56,7 @@ ppixiv.actions = class
 
         // Even if we weren't given tags, we still know that they're unset, so set tags so
         // we won't need to request bookmark details later.
-        image_data.singleton().update_cached_bookmark_image_tags(media_id, request.tags);
+        extra_cache.singleton().update_cached_bookmark_image_tags(media_id, request.tags);
         console.log("Updated bookmark data:", media_id, new_bookmark_id, request.restrict, request.tags);
 
         if(!was_bookmarked)
@@ -132,7 +132,7 @@ ppixiv.actions = class
 
         // If we're modifying tags, we need bookmark details loaded, so we can preserve
         // the current privacy status.  This will insert the info into illust_info.bookmarkData.
-        let bookmark_tags = await image_data.singleton().load_bookmark_details(media_id);
+        let bookmark_tags = await extra_cache.singleton().load_bookmark_details(media_id);
 
         var bookmark_params = {
             // Don't auto-like if we're editing an existing bookmark.
@@ -200,7 +200,7 @@ ppixiv.actions = class
             image_data.singleton().call_illust_modified_callbacks(media_id);
         }
         
-        image_data.singleton().update_cached_bookmark_image_tags(media_id, null);
+        extra_cache.singleton().update_cached_bookmark_image_tags(media_id, null);
 
         message_widget.singleton.show("Bookmark removed");
 
@@ -260,7 +260,7 @@ ppixiv.actions = class
 
         // This should already be loaded, since the only way to open this prompt is
         // in the tag dropdown.
-        let bookmark_tags = await image_data.singleton().load_bookmark_details(media_id);
+        let bookmark_tags = await extra_cache.singleton().load_bookmark_details(media_id);
 
         // Add each tag the user entered to the tag list to update it.
         let active_tags = [...bookmark_tags];
@@ -295,7 +295,7 @@ ppixiv.actions = class
 
         console.log("Clicked like on", media_id);
         
-        if(image_data.singleton().get_liked_recently(media_id))
+        if(extra_cache.singleton().get_liked_recently(media_id))
         {
             if(!quiet)
                 message_widget.singleton.show("Already liked this image");
@@ -310,7 +310,7 @@ ppixiv.actions = class
         let was_already_liked = result.body.is_liked;
 
         // Remember that we liked this image recently.
-        image_data.singleton().add_liked_recently(media_id);
+        extra_cache.singleton().add_liked_recently(media_id);
 
         // If we have illust data, increase the like count locally.  Don't load it
         // if it's not loaded already.

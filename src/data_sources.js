@@ -2281,7 +2281,7 @@ class data_source_bookmarks_base extends data_source
                 // illust.id is an int if this image is deleted.  Convert it to a string so it's
                 // like other images.
                 let media_id = helpers.illust_id_to_media_id(illust.id.toString());
-                image_data.singleton().update_cached_bookmark_image_tags(media_id, tags);
+                extra_cache.singleton().update_cached_bookmark_image_tags(media_id, tags);
             }
         }
 
