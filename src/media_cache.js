@@ -462,6 +462,11 @@ ppixiv.MediaCache = class extends EventTarget
             if(profile_image_url)
                 this.user_profile_urls[remapped_thumb_info.userId] = profile_image_url;
 
+            // If we already have full media info, don't replace it with partial info.  This can happen
+            // when a data source is refreshed.
+            if(this.get_media_info_sync(remapped_thumb_info.mediaId, { full: true }) != null)
+                continue;
+
             all_thumb_info.push(remapped_thumb_info);
         }
 
