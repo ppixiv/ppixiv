@@ -144,7 +144,7 @@ ppixiv.image_ui = class extends ppixiv.widget
         // Set up hover popups.
         dropdown_menu_opener.create_handlers(this.container);
         
-        image_data.singleton().illust_modified_callbacks.register(this.refresh);
+        media_cache.illust_modified_callbacks.register(this.refresh);
         
         this.bookmark_tag_widget = new bookmark_tag_list_dropdown_widget({
             parent: this,
@@ -212,7 +212,7 @@ ppixiv.image_ui = class extends ppixiv.widget
     
     shutdown()
     {
-        image_data.singleton().illust_modified_callbacks.unregister(this.refresh);
+        media_cache.illust_modified_callbacks.unregister(this.refresh);
         this.avatar_widget.shutdown();
     }
 
@@ -261,7 +261,7 @@ ppixiv.image_ui = class extends ppixiv.widget
 
         // We need image info to update.
         let media_id = this._media_id;
-        let illust_info = await image_data.singleton().get_media_info(this._media_id);
+        let illust_info = await media_cache.get_media_info(this._media_id);
 
         // Check if anything changed while we were loading.
         if(illust_info == null || media_id != this._media_id || !this.visible)

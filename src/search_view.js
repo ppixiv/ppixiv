@@ -63,11 +63,11 @@ ppixiv.search_view = class extends ppixiv.widget
 
         this.expanded_media_ids = new Map();
 
-        window.addEventListener("thumbnailsloaded", this.thumbs_loaded);
+        media_cache.addEventListener("infoloaded", this.thumbs_loaded);
         window.addEventListener("focus", this.visible_thumbs_changed);
 
         // When a bookmark is modified, refresh the heart icon.
-        image_data.singleton().illust_modified_callbacks.register(this.refresh_thumbnail);
+        ppixiv.media_cache.illust_modified_callbacks.register(this.refresh_thumbnail);
 
         this.container.addEventListener("load", (e) => {
             if(e.target.classList.contains("thumb"))
@@ -100,7 +100,7 @@ ppixiv.search_view = class extends ppixiv.widget
             if(type != "illust")
                 return;
 
-            await image_data.singleton().get_media_info(a.dataset.mediaId);
+            await ppixiv.media_cache.get_media_info(a.dataset.mediaId);
         }, { capture: true });
 
         this.thumbnail_box.addEventListener("click", this.thumbnail_onclick);
@@ -498,7 +498,7 @@ ppixiv.search_view = class extends ppixiv.widget
         if(!this.is_media_id_expanded(media_id))
             return null;
 
-        let info = thumbnail_data.singleton().get_illust_data_sync(media_id);
+        let info = media_cache.get_media_info_sync(media_id, { full: false });
         if(info == null || info.pageCount <= 1)
             return null;
 
@@ -670,7 +670,7 @@ ppixiv.search_view = class extends ppixiv.widget
     {
         // Stop if the range is already loaded.
         let media_ids = all_media_ids.slice(start_idx, end_idx+1);
-        if(thumbnail_data.singleton().are_all_media_ids_loaded_or_loading(media_ids))
+        if(ppixiv.media_cache.are_all_media_ids_loaded_or_loading(media_ids))
             return;
 
         // Make a list of IDs that need to be loaded, removing ones that are already
@@ -678,7 +678,7 @@ ppixiv.search_view = class extends ppixiv.widget
         let media_ids_to_load = [];
         for(let media_id of media_ids)
         {
-            if(!thumbnail_data.singleton().is_media_id_loaded_or_loading(media_id))
+            if(!ppixiv.media_cache.is_media_id_loaded_or_loading(media_id))
                 media_ids_to_load.push(media_id);
         }
 
@@ -700,18 +700,18 @@ ppixiv.search_view = class extends ppixiv.widget
         while(media_ids_to_load.length < min_to_load && (load_start_idx >= 0 || load_end_idx < all_media_ids.length))
         {
             let media_id = all_media_ids[load_start_idx];
-            if(media_id != null && !thumbnail_data.singleton().is_media_id_loaded_or_loading(media_id))
+            if(media_id != null && !ppixiv.media_cache.is_media_id_loaded_or_loading(media_id))
                 media_ids_to_load.push(media_id);
 
             media_id = all_media_ids[load_end_idx];
-            if(media_id != null && !thumbnail_data.singleton().is_media_id_loaded_or_loading(media_id))
+            if(media_id != null && !ppixiv.media_cache.is_media_id_loaded_or_loading(media_id))
                 media_ids_to_load.push(media_id);
 
             load_start_idx--;
             load_end_idx++;
         }
 
-        thumbnail_data.singleton().get_thumbnail_info(media_ids_to_load);
+        ppixiv.media_cache.batch_get_media_info_partial(media_ids_to_load);
     }
 
     // Return the first and last media IDs that are nearby (or all of them if all is true).
@@ -1146,7 +1146,7 @@ ppixiv.search_view = class extends ppixiv.widget
 
         // If the image is muted, never expand it by default, even if we're set to expand by default.
         // We'll just show a wall of muted thumbs.
-        let info = thumbnail_data.singleton().get_one_thumbnail_info(media_id);
+        let info = media_cache.get_media_info_sync(media_id, { full: false });
         if(info != null)
         {
             let muted_tag = muting.singleton.any_tag_muted(info.tagList);
@@ -1173,7 +1173,7 @@ ppixiv.search_view = class extends ppixiv.widget
         let show_expanded = !this.data_source?.includes_manga_pages && this.is_media_id_expanded(media_id);
         helpers.set_class(thumb, "expanded-thumb", show_expanded);
 
-        let info = thumbnail_data.singleton().get_one_thumbnail_info(media_id);        
+        let info = media_cache.get_media_info_sync(media_id, { full: false });
         let [illust_id, illust_page] = helpers.media_id_to_illust_id_and_page(media_id);
         
         helpers.set_class(thumb, "expanded-manga-post", show_expanded);
@@ -1225,7 +1225,7 @@ ppixiv.search_view = class extends ppixiv.widget
             if(thumb_type == "illust" || thumb_type == "file" || thumb_type == "folder")
             {
                 // Get thumbnail info.
-                var info = thumbnail_data.singleton().get_one_thumbnail_info(media_id);
+                var info = media_cache.get_media_info_sync(media_id, { full: false });
                 if(info == null)
                     continue;
             }
@@ -1288,7 +1288,7 @@ ppixiv.search_view = class extends ppixiv.widget
             {
                 // The image will be obscured, but we still shouldn't load the image the user blocked (which
                 // is something Pixiv does wrong).  Load the user profile image instead.
-                thumb.src = thumbnail_data.singleton().get_profile_picture_url(info.userId);
+                thumb.src = ppixiv.media_cache.get_profile_picture_url(info.userId);
                 element.classList.add("muted");
 
                 let muted_label = element.querySelector(".muted-label");
@@ -1393,7 +1393,7 @@ ppixiv.search_view = class extends ppixiv.widget
         let width, height;
         if(illust_page == 0)
         {
-            let info = thumbnail_data.singleton().get_one_thumbnail_info(media_id);
+            let info = media_cache.get_media_info_sync(media_id, { full: false });
             if(info != null)
             {
                 width = info.width;
@@ -1475,7 +1475,7 @@ ppixiv.search_view = class extends ppixiv.widget
     {
         // If this is a manga post, refresh all thumbs for this media ID, since bookmarking
         // a manga post is shown on all pages if it's expanded.
-        let thumbnail_info = thumbnail_data.singleton().get_one_thumbnail_info(media_id);
+        let thumbnail_info = media_cache.get_media_info_sync(media_id, { full: false });
         if(thumbnail_info == null)
             return;
 
@@ -1500,7 +1500,7 @@ ppixiv.search_view = class extends ppixiv.widget
             return;
 
         // Get thumbnail info.
-        var thumbnail_info = thumbnail_data.singleton().get_one_thumbnail_info(media_id);
+        var thumbnail_info = media_cache.get_media_info_sync(media_id, { full: false });
         if(thumbnail_info == null)
             return;
 

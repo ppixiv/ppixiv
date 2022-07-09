@@ -7,7 +7,7 @@ ppixiv.actions = class
     static async _bookmark_add_internal(media_id, options)
     {
         let illust_id = helpers.media_id_to_illust_id_and_page(media_id)[0];
-        let illust_info = await thumbnail_data.singleton().get_or_load_illust_data(media_id);
+        let illust_info = await media_cache.get_media_info(media_id, { full: false });
         
         if(options == null)
             options = {};
@@ -41,7 +41,7 @@ ppixiv.actions = class
             throw "Didn't get a bookmark ID";
 
         // Store the ID of the new bookmark, so the unbookmark button works.
-        image_data.singleton().update_media_info(media_id, {
+        media_cache.update_media_info(media_id, {
             bookmarkData: {
                 id: new_bookmark_id,
                 private: !!request.restrict,
@@ -62,7 +62,7 @@ ppixiv.actions = class
         if(!was_bookmarked)
         {
             // If we have full illust data loaded, increase its bookmark count locally.
-            let full_illust_info = image_data.singleton().get_media_info_sync(media_id);
+            let full_illust_info = media_cache.get_media_info_sync(media_id);
             if(full_illust_info)
                 full_illust_info.bookmarkCount++;
         }
@@ -71,7 +71,7 @@ ppixiv.actions = class
                 was_bookmarked? "Bookmark edited":
                 options.private? "Bookmarked privately":"Bookmarked");
 
-        image_data.singleton().call_illust_modified_callbacks(media_id);
+        media_cache.call_illust_modified_callbacks(media_id);
     }
 
     // Create or edit a bookmark.
@@ -96,7 +96,7 @@ ppixiv.actions = class
         if(options.private == null && settings.get("bookmark_privately_by_default"))
             options.private = true;
 
-        let illust_info = await thumbnail_data.singleton().get_or_load_illust_data(media_id);
+        let illust_info = await media_cache.get_media_info(media_id, { full: false });
 
         console.log("Add bookmark for", media_id, "options:", options);
 
@@ -171,7 +171,7 @@ ppixiv.actions = class
         if(helpers.is_media_id_local(media_id))
             return await local_api.bookmark_remove(media_id);
 
-        let illust_info = await thumbnail_data.singleton().get_or_load_illust_data(media_id);
+        let illust_info = await media_cache.get_media_info(media_id, { full: false });
         if(illust_info.bookmarkData == null)
         {
             console.log("Not bookmarked");
@@ -188,23 +188,23 @@ ppixiv.actions = class
 
         console.log("Removing bookmark finished");
 
-        image_data.singleton().update_media_info(media_id, {
+        media_cache.update_media_info(media_id, {
             bookmarkData: null
         });
 
         // If we have full image data loaded, update the like count locally.
-        let illust_data = image_data.singleton().get_media_info_sync(media_id);
+        let illust_data = media_cache.get_media_info_sync(media_id);
         if(illust_data)
         {
             illust_data.bookmarkCount--;
-            image_data.singleton().call_illust_modified_callbacks(media_id);
+            media_cache.call_illust_modified_callbacks(media_id);
         }
         
         extra_cache.singleton().update_cached_bookmark_image_tags(media_id, null);
 
         message_widget.singleton.show("Bookmark removed");
 
-        image_data.singleton().call_illust_modified_callbacks(media_id);
+        media_cache.call_illust_modified_callbacks(media_id);
     }
 
     // Change an existing bookmark to public or private.
@@ -213,7 +213,7 @@ ppixiv.actions = class
         if(helpers.is_media_id_local(media_id))
             return;
 
-        let illust_info = await thumbnail_data.singleton().get_or_load_illust_data(media_id);
+        let illust_info = await media_cache.get_media_info(media_id, { full: false });
         if(!illust_info.bookmarkData)
         {
             console.log(`Illust ${media_id} wasn't bookmarked`);
@@ -228,7 +228,7 @@ ppixiv.actions = class
         });
 
         // Update bookmark info.
-        image_data.singleton().update_media_info(media_id, {
+        media_cache.update_media_info(media_id, {
             bookmarkData: {
                 id: bookmark_id,
                 private: private_bookmark,
@@ -237,7 +237,7 @@ ppixiv.actions = class
         
         message_widget.singleton.show(private_bookmark? "Bookmarked privately":"Bookmarked");
 
-        image_data.singleton().call_illust_modified_callbacks(media_id);
+        media_cache.call_illust_modified_callbacks(media_id);
     }
 
     // Show a prompt to enter tags, so the user can add tags that aren't already in the
@@ -314,13 +314,13 @@ ppixiv.actions = class
 
         // If we have illust data, increase the like count locally.  Don't load it
         // if it's not loaded already.
-        let illust_data = image_data.singleton().get_media_info_sync(media_id);
+        let illust_data = media_cache.get_media_info_sync(media_id);
         if(!was_already_liked && illust_data)
             illust_data.likeCount++;
 
         // Let widgets know that the image was liked recently, and that the like count
         // may have changed.
-        image_data.singleton().call_illust_modified_callbacks(media_id);
+        media_cache.call_illust_modified_callbacks(media_id);
 
         if(!quiet)
         {
@@ -492,7 +492,7 @@ ppixiv.actions = class
     {
         let progress_bar_controller = main_controller.singleton.progress_bar.controller();
         
-        let illust_data = await image_data.singleton().get_media_info(media_id);
+        let illust_data = await media_cache.get_media_info(media_id);
         let user_info = await user_cache.singleton().get_user_info(illust_data.userId);
         console.log("Download", media_id, "with type", download_type);
 

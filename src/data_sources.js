@@ -179,7 +179,7 @@ class illust_id_list
             // next page.
             if(next)
             {
-                let info = thumbnail_data.singleton().get_illust_data_sync(media_id);
+                let info = media_cache.get_media_info_sync(media_id, { full: false });
                 if(info == null)
                 {
                     // This can happen if we're viewing a deleted image, which has no illust info.
@@ -238,7 +238,7 @@ class illust_id_list
         // If we're navigating backwards, get the last page on new_media_id.
         if(!next && !skip_manga_pages && helpers.parse_media_id(new_media_id).type == "illust")
         {
-            let info = thumbnail_data.singleton().get_illust_data_sync(new_media_id);
+            let info = media_cache.get_media_info_sync(new_media_id, { full: false });
             if(info == null)
             {
                 console.log("Thumbnail info missing for", media_id);
@@ -1029,7 +1029,7 @@ ppixiv.data_sources.discovery = class extends data_source
         // result.body.recommendedIllusts[].recommendMethods, recommendSeedIllustIds
         // has info about why it recommended it.
         let thumbs = result.body.thumbnails.illust;
-        await thumbnail_data.singleton().loaded_thumbnail_info(thumbs, "normal");
+        await media_cache.add_media_infos_partial(thumbs, "normal");
 
         let media_ids = [];
         for(let thumb of thumbs)
@@ -1073,7 +1073,7 @@ ppixiv.data_sources.related_illusts = class extends data_source
             // Don't wait for this to finish before continuing.
             let illust_id = this.url.searchParams.get("illust_id");
             let media_id = helpers.illust_id_to_media_id(illust_id)
-            image_data.singleton().get_media_info(media_id).then((illust_info) => {
+            media_cache.get_media_info(media_id).then((illust_info) => {
                 this.illust_info = illust_info;
                 this.call_update_listeners();
             }).catch((e) => {
@@ -1098,7 +1098,7 @@ ppixiv.data_sources.related_illusts = class extends data_source
         // result.body.recommendedIllusts[].recommendMethods, recommendSeedIllustIds
         // has info about why it recommended it.
         let thumbs = result.body.thumbnails.illust;
-        await thumbnail_data.singleton().loaded_thumbnail_info(thumbs, "normal");
+        await media_cache.add_media_infos_partial(thumbs, "normal");
 
         let media_ids = [];
         for(let thumb of thumbs)
@@ -1196,7 +1196,7 @@ ppixiv.data_sources.discovery_users = class extends data_source
         if(result.error)
             throw "Error reading suggestions: " + result.message;
 
-        await thumbnail_data.singleton().loaded_thumbnail_info(result.body.thumbnails.illust, "normal");
+        await media_cache.add_media_infos_partial(result.body.thumbnails.illust, "normal");
 
         for(let user of result.body.users)
         {
@@ -1352,7 +1352,7 @@ ppixiv.data_sources.rankings = class extends data_source
             media_ids.push(helpers.illust_id_to_media_id("" + item.illust_id));
 
         // Register this as thumbnail data.
-        await thumbnail_data.singleton().loaded_thumbnail_info(result.contents, "rankings");
+        await media_cache.add_media_infos_partial(result.contents, "rankings");
         
         // Register the new page of data.
         this.add_page(page, media_ids);
@@ -1658,7 +1658,7 @@ ppixiv.data_sources.artist = class extends data_source
                 });
                 
                 let illusts = Object.values(result.body.works);
-                await thumbnail_data.singleton().loaded_thumbnail_info(illusts, "normal");
+                await media_cache.add_media_infos_partial(illusts, "normal");
             }
 
             // Register this page.
@@ -1698,7 +1698,7 @@ ppixiv.data_sources.artist = class extends data_source
 
             // This request returns all of the thumbnail data we need.  Forward it to
             // thumbnail_data so we don't need to look it up.
-            await thumbnail_data.singleton().loaded_thumbnail_info(result.body.works, "normal");
+            await media_cache.add_media_infos_partial(result.body.works, "normal");
 
             // Register the new page of data.
             this.add_page(page, media_ids);
@@ -2032,11 +2032,11 @@ ppixiv.data_sources.manga = class extends data_source
         // We need full illust info for get_manga_aspect_ratio, but we can fill out most of the
         // UI with thumbnail or illust info.  Load whichever one we have first and update, so we
         // display initial info quickly.
-        this.thumbnail_data = await thumbnail_data.singleton().get_or_load_illust_data(this.media_id);
+        this.thumbnail_data = await media_cache.get_media_info(this.media_id, { full: false });
         this.call_update_listeners();
 
         // Load media info before continuing.
-        this.illust_info = await image_data.singleton().get_media_info(this.media_id);
+        this.illust_info = await media_cache.get_media_info(this.media_id);
 
         let data = helpers.parse_media_id(this.media_id);
         let page_media_ids = [];
@@ -2558,7 +2558,7 @@ ppixiv.data_sources.bookmarks = class extends data_source_bookmarks_base
         
         // This request returns all of the thumbnail data we need.  Forward it to
         // thumbnail_data so we don't need to look it up.
-        await thumbnail_data.singleton().loaded_thumbnail_info(result.works, "normal");
+        await media_cache.add_media_infos_partial(result.works, "normal");
 
         // Register the new page of data.  If we're shuffling, use the original page number, not the
         // shuffled page.
@@ -2639,7 +2639,7 @@ ppixiv.data_sources.bookmarks_merged = class extends data_source_bookmarks_base
 
         // This request returns all of the thumbnail data we need.  Forward it to
         // thumbnail_data so we don't need to look it up.
-        await thumbnail_data.singleton().loaded_thumbnail_info(result.works, "normal");
+        await media_cache.add_media_infos_partial(result.works, "normal");
 
         // If there are no results, remember that this is the last page, so we don't
         // make more requests for this type.  Use the "empty" flag for this and not
@@ -2728,7 +2728,7 @@ ppixiv.data_sources.new_illust = class extends data_source
 
         // This request returns all of the thumbnail data we need.  Forward it to
         // thumbnail_data so we don't need to look it up.
-        await thumbnail_data.singleton().loaded_thumbnail_info(result.body.illusts, "normal");
+        await media_cache.add_media_infos_partial(result.body.illusts, "normal");
 
         // Register the new page of data.
         this.add_page(page, media_ids);
@@ -2795,7 +2795,7 @@ ppixiv.data_sources.new_works_by_following = class extends data_source
         this.bookmark_tags.sort((lhs, rhs) => lhs.toLowerCase().localeCompare(rhs.toLowerCase()));
 
         // Populate thumbnail data with this data.
-        await thumbnail_data.singleton().loaded_thumbnail_info(data.thumbnails.illust, "normal");
+        await media_cache.add_media_infos_partial(data.thumbnails.illust, "normal");
 
         let media_ids = [];
         for(let illust of data.thumbnails.illust)
@@ -3084,7 +3084,7 @@ ppixiv.data_sources.search = class extends data_source
         illusts = illusts.data;
 
         // Populate thumbnail data with this data.
-        await thumbnail_data.singleton().loaded_thumbnail_info(illusts, "normal");
+        await media_cache.add_media_infos_partial(illusts, "normal");
 
         let media_ids = [];
         for(let illust of illusts)
@@ -3374,7 +3374,7 @@ ppixiv.data_sources.follows = class extends data_source
 
         // This request returns all of the thumbnail data we need.  Forward it to
         // thumbnail_data so we don't need to look it up.
-        await thumbnail_data.singleton().loaded_thumbnail_info(illusts, "normal");
+        await media_cache.add_media_infos_partial(illusts, "normal");
 
         // Register the new page of data.
         this.add_page(page, media_ids);
@@ -3503,7 +3503,7 @@ ppixiv.data_sources.related_favorites = class extends data_source_from_page
         var query_args = this.url.searchParams;
         var illust_id = query_args.get("illust_id");
         let media_id = helpers.illust_id_to_media_id(illust_id)
-        this.illust_info = await image_data.singleton().get_media_info(media_id);
+        this.illust_info = await media_cache.get_media_info(media_id);
         
         return super.load_page_internal(page);
     }
@@ -3652,7 +3652,7 @@ ppixiv.data_sources.completed_requests = class extends data_source
         for(let user of result.body.users)
             user_cache.singleton().add_user_data(user);
 
-        await thumbnail_data.singleton().loaded_thumbnail_info(result.body.thumbnails.illust, "normal");
+        await media_cache.add_media_infos_partial(result.body.thumbnails.illust, "normal");
         tag_translations.get().add_translations_dict(result.body.tagTranslation);
 
         let media_ids = [];
@@ -3667,7 +3667,7 @@ ppixiv.data_sources.completed_requests = class extends data_source
 
             // This returns a lot of post IDs that don't exist.  Why are people deleting so many of these?
             // Check whether the post was in result.body.thumbnails.illust.
-            if(thumbnail_data.singleton().get_illust_data_sync(media_id) == null)
+            if(media_cache.get_media_info_sync(media_id, { full: false }) == null)
                 continue;
 
             media_ids.push(media_id);
@@ -3720,7 +3720,7 @@ ppixiv.data_sources.recent = class extends data_source
         // expired before this page was viewed.  Don't add illust IDs that we don't have
         // thumbnail data for.
         let thumbs = await ppixiv.recently_seen_illusts.get().get_thumbnail_info(media_ids);
-        await thumbnail_data.singleton().loaded_thumbnail_info(thumbs, "internal");
+        await media_cache.add_media_infos_partial(thumbs, "internal");
 
         let known_illust_ids = new Set();
         for(let thumb of thumbs)

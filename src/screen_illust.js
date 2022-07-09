@@ -37,7 +37,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
         });
         
         user_cache.singleton().user_modified_callbacks.register(this.refresh_ui);
-        image_data.singleton().illust_modified_callbacks.register(this.refresh_ui);
+        ppixiv.media_cache.illust_modified_callbacks.register(this.refresh_ui);
         settings.register_change_callback("recent-bookmark-tags", this.refresh_ui);
 
         this.view_container = this.container.querySelector(".view-container");
@@ -232,7 +232,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
         // many pages it has, and whether it's muted.  This will always complete immediately
         // if we're coming from a search or anywhere else that will already have this info,
         // but it can block if we're loading from scratch.
-        let early_illust_data = await thumbnail_data.singleton().get_or_load_illust_data(media_id);
+        let early_illust_data = await media_cache.get_media_info(media_id, { full: false });
 
         // If we were deactivated while waiting for image info or the image we want to show has changed, stop.
         if(!this.active || this.wanted_media_id != media_id)
@@ -244,7 +244,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
         // If we didn't get illust info, the image has probably been deleted.
         if(early_illust_data == null)
         {
-            let message = image_data.singleton().get_illust_load_error(illust_id);
+            let message = media_cache.get_illust_load_error(illust_id);
             message_widget.singleton.show(message);
             message_widget.singleton.clear_timer();
             return;
@@ -314,7 +314,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
 
         this.viewing_muted_image = this.view_muted;
 
-        let is_muted = this.should_hide_muted_image(early_illust_data).is_muted;
+        let { is_muted } = this.should_hide_muted_image(early_illust_data);
         if(is_muted)
             viewer_class = viewer_muted;
         else if(early_illust_data.illustType == 2)
@@ -612,7 +612,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
         let page = 0;
         if(!down && !skip_manga_pages)
         {
-            let new_page_info = await thumbnail_data.singleton().get_or_load_illust_data(new_media_id);
+            let new_page_info = await media_cache.get_media_info(new_media_id, { full: false });
             page = new_page_info.pageCount - 1;
         }
 

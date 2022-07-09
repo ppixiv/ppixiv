@@ -58,7 +58,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         //
         // If this blocks to load, the full illust data will be loaded, so we'll never
         // run two separate requests here.
-        let early_illust_data = await thumbnail_data.singleton().get_or_load_illust_data(this.media_id);
+        let early_illust_data = await media_cache.get_media_info(this.media_id, { full: false });
 
         // Stop if we were removed before the request finished.
         signal.check();
@@ -71,7 +71,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         } else {
             // We got thumbnail data, which only gives us the image dimensions for page 1.  We'll still
             // have any extra_data.
-            let extra_data = image_data.get_extra_data(early_illust_data, this.media_id);
+            let extra_data = ppixiv.media_cache.get_extra_data(early_illust_data, this.media_id);
             this.images = [{
                 preview_url: early_illust_data.previewUrls[0],
                 width: early_illust_data.width,
@@ -83,7 +83,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
             this.refresh();
             
             // Now wait for full illust info to load.
-            this.illust_data = await image_data.singleton().get_media_info(this.media_id);
+            this.illust_data = await ppixiv.media_cache.get_media_info(this.media_id);
 
             // Stop if we were removed before the request finished.
             signal.check();
@@ -101,7 +101,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         this.images = [];
         for(let [page, manga_page] of Object.entries(this.illust_data.mangaPages))
         {
-            let extra_data = image_data.get_extra_data(this.illust_data, this.media_id, page);
+            let extra_data = ppixiv.media_cache.get_extra_data(this.illust_data, this.media_id, page);
             this.images.push({
                 url: manga_page.urls.original,
                 preview_url: manga_page.urls.small,
@@ -125,7 +125,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
             return;
 
         // Get the updated illust data.
-        let illust_data = image_data.singleton().get_media_info_sync(this.media_id);
+        let illust_data = ppixiv.media_cache.get_media_info_sync(this.media_id);
         if(illust_data == null)
             return;
 

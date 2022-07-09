@@ -60,7 +60,7 @@ ppixiv.local_api = class
         return illust_data;
     }
 
-    // Fill in some redundant fields in.  The local API doesn't use mangaPages,
+    // Fill in some redundant fields.  The local API doesn't use mangaPages,
     // but we fill it in from urls so we can treat it the same way.
     static adjust_illust_info(illust)
     {
@@ -86,6 +86,9 @@ ppixiv.local_api = class
 
         // illustId is only for Pixiv images.  Set it so thumbnail_data doesn't complain.
         illust.illustId = null;
+
+        // Local media info is always full.
+        illust.full = true;
     }
 
     // This is called early in initialization.  If we're running natively and
@@ -134,43 +137,22 @@ ppixiv.local_api = class
         }
 
         for(let illust of result.results)
+        {
             ppixiv.local_api.adjust_illust_info(illust);
+            await media_cache.add_media_info_full(illust, { preprocessed: true });
+        }
 
-        await thumbnail_data.singleton().loaded_thumbnail_info(result.results, "internal");
         return result;
     }
 
-    static loading_media_ids = {};
-    static is_media_id_loading(media_id)
-    {
-        return this.loading_media_ids[media_id];
-    }
-
-    // This is like thumbnail_data.loaded_thumbnail_info().
     static async load_media_ids(media_ids)
     {
-        // Filter out IDs that are already loading or loaded.
-        let media_ids_to_load = [];
-        for(let media_id of media_ids)
-        {
-            if(thumbnail_data.singleton().is_media_id_loaded_or_loading(media_id))
-                continue;
-
-            media_ids_to_load.push(media_id);
-            this.loading_media_ids[media_id] = true;
-        }
-
-        if(media_ids_to_load.length == 0)
+        if(media_ids.length == 0)
             return;
 
         let result = await local_api.local_post_request(`/api/illusts`, {
-            ids: media_ids_to_load,
+            ids: media_ids,
         });
-
-        for(let media_id of media_ids)
-        {
-            delete this.loading_media_ids[media_id];
-        }
 
         if(!result.success)
         {
@@ -179,17 +161,15 @@ ppixiv.local_api = class
         }
 
         for(let illust of result.results)
+        {
             ppixiv.local_api.adjust_illust_info(illust);
-
-        await thumbnail_data.singleton().loaded_thumbnail_info(result.results, "internal");
-
-        // Broadcast that we have new thumbnail data available.
-        window.dispatchEvent(new Event("thumbnailsloaded"));
+            await media_cache.add_media_info_full(illust, { preprocessed: true });
+        }
     }
 
     static async bookmark_add(media_id, options)
     {
-        let illust_info = await thumbnail_data.singleton().get_or_load_illust_data(media_id);
+        let illust_info = await media_cache.get_media_info(media_id, { full: false });
         let bookmark_options = { };
         if(options.tags != null)
             bookmark_options.tags = options.tags;
@@ -208,7 +188,7 @@ ppixiv.local_api = class
 
         // Update bookmark tags and thumbnail data.
         extra_cache.singleton().update_cached_bookmark_image_tags(media_id, result.bookmark.tags);
-        image_data.singleton().update_media_info(media_id, {
+        media_cache.update_media_info(media_id, {
             bookmarkData: result.bookmark
         });
 
@@ -218,12 +198,12 @@ ppixiv.local_api = class
             was_bookmarked? "Bookmark edited":
             type == "folder"? "Bookmarked folder":"Bookmarked",
         );
-        image_data.singleton().call_illust_modified_callbacks(media_id);
+        media_cache.call_illust_modified_callbacks(media_id);
     }
 
     static async bookmark_remove(media_id)
     {
-        let illust_info = await thumbnail_data.singleton().get_or_load_illust_data(media_id);
+        let illust_info = await media_cache.get_media_info(media_id, { full: false });
         if(illust_info.bookmarkData == null)
         {
             console.log("Not bookmarked");
@@ -237,13 +217,13 @@ ppixiv.local_api = class
             return;
         }
 
-        image_data.singleton().update_media_info(media_id, {
+        media_cache.update_media_info(media_id, {
             bookmarkData: null
         });
 
         message_widget.singleton.show("Bookmark removed");
 
-        image_data.singleton().call_illust_modified_callbacks(media_id);
+        media_cache.call_illust_modified_callbacks(media_id);
     }
     
     static async load_recent_bookmark_tags()

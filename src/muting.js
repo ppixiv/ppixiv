@@ -525,12 +525,8 @@ ppixiv.muted_tags_for_post_popup = class extends ppixiv.dialog_widget
         {
             // We have a media ID.  Load its info to get the tag list, and use the user ID and
             // username from it.
-            let illust_data = await thumbnail_data.singleton().get_or_load_illust_data(this.media_id);
-            let tags = [];
-            for(let tag of illust_data.tags.tags)
-                tags.push(tag.tag);
-    
-            await this.refresh_for_data(tags, illust_data.userId, illust_data.userName);
+            let illust_data = await media_cache.get_media_info(this.media_id, { full: false });
+            await this.refresh_for_data(illust_data.tagList, illust_data.userId, illust_data.userName);
         }
         else
         {

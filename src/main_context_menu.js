@@ -110,7 +110,7 @@ ppixiv.context_menu_image_info_widget = class extends ppixiv.illust_widget
         // manga post and we don't have illust data yet, we don't have dimensions, so hide it until
         // it's loaded.
         var info = "";
-        let { width, height } = image_data.get_dimensions(illust_data, this._media_id);
+        let { width, height } = ppixiv.media_cache.get_dimensions(illust_data, this._media_id);
         if(width != null && height != null)
             info += width + "x" + height;
         set_info(".image-info", info);
@@ -901,7 +901,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
                 if(media_id == null)
                     return;
 
-                let illust_data = await thumbnail_data.singleton().get_or_load_illust_data(media_id);
+                let illust_data = media_cache.get_media_info(media_id, { full: false });
 
                 // Ctrl-Shift-Alt-B: add a bookmark tag
                 if(e.altKey && e.shiftKey)

@@ -66,7 +66,7 @@ ppixiv.SendImage = class
             this.finalize_quick_view_image();
         }, { capture: true });
 
-        image_data.singleton().illust_modified_callbacks.register((media_id) => { this.broadcast_illust_changes(media_id); });
+        ppixiv.media_cache.illust_modified_callbacks.register((media_id) => { this.broadcast_illust_changes(media_id); });
 
         SendImage.send_image_channel.addEventListener("message", this.received_message);
         this.broadcast_tab_info();
@@ -122,10 +122,9 @@ ppixiv.SendImage = class
     {
         // Send everything we know about the image, so the receiver doesn't have to
         // do a lookup.
-        let thumbnail_info = thumbnail_data.singleton().get_one_thumbnail_info(media_id);
-        let illust_data = image_data.singleton().get_media_info_sync(media_id);
+        let media_info = ppixiv.media_cache.get_media_info_sync(media_id);
 
-        let user_id = illust_data?.userId;
+        let user_id = media_info?.userId;
         let user_info = user_id? user_cache.singleton().get_user_info_sync(user_id):null;
 
         this.send_message({
@@ -134,8 +133,7 @@ ppixiv.SendImage = class
             to: tab_ids,
             media_id: media_id,
             action: action, // "temp-view" or "display"
-            thumbnail_info: thumbnail_info,
-            illust_data: illust_data,
+            media_info,
             user_info: user_info,
             origin: window.origin,
         }, false);
@@ -162,17 +160,16 @@ ppixiv.SendImage = class
     {
         // Send everything we know about the image, so the receiver doesn't have to
         // do a lookup.
-        let thumbnail_info = thumbnail_data.singleton().get_one_thumbnail_info(media_id);
-        let illust_data = image_data.singleton().get_media_info_sync(media_id);
+        let media_info = ppixiv.media_cache.get_media_info_sync(media_id);
 
-        let user_id = illust_data?.userId;
+        let user_id = media_info?.userId;
         let user_info = user_id? user_cache.singleton().get_user_info_sync(user_id):null;
 
         this.send_message({
             message: "image-info",
             from: SendImage.tab_id,
             media_id: media_id,
-            illust_data: illust_data ?? thumbnail_info,
+            media_info,
             bookmark_tags: extra_cache.singleton().get_bookmark_details_sync(media_id),
             user_info: user_info,
             origin: window.origin,
@@ -245,17 +242,13 @@ ppixiv.SendImage = class
             if(data.origin == window.origin)
             {
                 console.log("Registering cached image info");
-                let thumbnail_info = data.thumbnail_info;
-                if(thumbnail_info != null)
-                    await thumbnail_data.singleton().loaded_thumbnail_info([thumbnail_info], "internal");
-
                 let user_info = data.user_info;
                 if(user_info != null)
                     user_cache.singleton().add_user_data(user_info);
 
-                let illust_data = data.illust_data;
-                if(illust_data != null)
-                    image_data.singleton().add_illust_data(illust_data, { preprocessed: true });
+                let media_info = data.media_info;
+                if(media_info != null)
+                    ppixiv.media_cache.add_media_info_full(media_info, { preprocessed: true });
             }
             // To finalize, just remove preview and quick-view from the URL to turn the current
             // preview into a real navigation.  This is slightly different from sending "display"
@@ -296,16 +289,16 @@ ppixiv.SendImage = class
                 return;
 
             // update_media_info will trigger illust_modified_callbacks below.  Make sure we don't rebroadcast
-            // info that we're receiving here.  Note that add_illust_data can trigger loads, and we won't
+            // info that we're receiving here.  Note that add_media_info_full can trigger loads, and we won't
             // send any info for changes that happen before those complete since we have to wait
             // for it to finish, but normally this receives all info for an illust anyway.
             this.handling_broadcasted_image_info = true;
             try {
                 // Another tab is broadcasting updated image info.  If we have this image loaded,
                 // update it.
-                let illust_data = data.illust_data;
-                if(illust_data != null)
-                    image_data.singleton().update_media_info(data.media_id, illust_data);
+                let media_info = data.media_info;
+                if(media_info != null)
+                    ppixiv.media_cache.update_media_info(data.media_id, media_info);
 
                 let bookmark_tags = data.bookmark_tags;
                 if(bookmark_tags != null)
@@ -347,10 +340,9 @@ ppixiv.SendImage = class
     {
         let screen = main_controller.singleton.displayed_screen;
         let media_id = screen? screen.displayed_media_id:null;
-        let thumbnail_info = media_id? thumbnail_data.singleton().get_one_thumbnail_info(media_id):null;
-        let illust_data = media_id? image_data.singleton().get_media_info_sync(media_id):null;
+        let media_info = media_id? ppixiv.media_cache.get_media_info_sync(media_id):null;
 
-        let user_id = illust_data?.userId;
+        let user_id = media_info?.userId;
         let user_info = user_id? user_cache.singleton().get_user_info_sync(user_id):null;
 
         let our_tab_info = {
@@ -366,8 +358,7 @@ ppixiv.SendImage = class
 
             // Include whatever we know about this image, so if we want to display this in
             // another tab, we don't have to look it up again.
-            thumbnail_info: thumbnail_info,
-            illust_data: illust_data,
+            media_info,
             user_info: user_info,
         };
 

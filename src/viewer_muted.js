@@ -45,7 +45,7 @@ ppixiv.viewer_muted = class extends ppixiv.viewer
             })();
         }
 
-        this.illust_data = await image_data.singleton().get_media_info(media_id);
+        this.illust_data = await ppixiv.media_cache.get_media_info(media_id);
 
         // Stop if we were removed before the request finished.
         if(this.was_shutdown)

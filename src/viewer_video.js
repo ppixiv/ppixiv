@@ -73,7 +73,7 @@ ppixiv.viewer_video = class extends ppixiv.viewer
     {
         this.unload();
 
-        this.illust_data = await image_data.singleton().get_media_info(media_id);
+        this.illust_data = await ppixiv.media_cache.get_media_info(media_id);
 
         // Remove the old source, if any, and create a new one.
         if(this.source)

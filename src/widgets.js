@@ -249,7 +249,7 @@ ppixiv.illust_widget = class extends ppixiv.widget
         super(options);
 
         // Refresh when the image data changes.
-        image_data.singleton().addEventListener("mediamodified", this.refresh.bind(this), { signal: this.shutdown_signal.signal });
+        ppixiv.media_cache.addEventListener("mediamodified", this.refresh.bind(this), { signal: this.shutdown_signal.signal });
     }
 
     // The data this widget needs.  This can be illust_id (nothing but the ID), illust_info,
@@ -274,7 +274,6 @@ ppixiv.illust_widget = class extends ppixiv.widget
         this.refresh();
     }
     
-    get illust_id() { throw "FIXME"; } // making sure all uses of this are removed
     get media_id() { return this._media_id; }
 
     async refresh()
@@ -286,18 +285,18 @@ ppixiv.illust_widget = class extends ppixiv.widget
         if(this._media_id != null)
         {
             // See if we have the data the widget wants already.
-            info.thumbnail_data = thumbnail_data.singleton().get_illust_data_sync(this._media_id);
-            info.illust_data = image_data.singleton().get_media_info_sync(this._media_id);
+            info.thumbnail_data = media_cache.get_media_info_sync(this._media_id, { full: false });
+            info.illust_data = ppixiv.media_cache.get_media_info_sync(this._media_id);
             let load_needed = false;
             switch(this.needed_data)
             {
             case "thumbnail":
-                info.thumbnail_data = thumbnail_data.singleton().get_illust_data_sync(this._media_id);
+                info.thumbnail_data = media_cache.get_media_info_sync(this._media_id, { full: false });
                 if(info.thumbnail_data == null)
                     load_needed = true;
                 break;
             case "illust_info":
-                info.illust_data = image_data.singleton().get_media_info_sync(this._media_id);
+                info.illust_data = ppixiv.media_cache.get_media_info_sync(this._media_id);
                 if(info.illust_data == null)
                     load_needed = true;
                 break;
@@ -315,10 +314,10 @@ ppixiv.illust_widget = class extends ppixiv.widget
             case "media_id":
                 break; // nothing
             case "thumbnail":
-                info.thumbnail_data = await thumbnail_data.singleton().get_or_load_illust_data(this._media_id);
+                info.thumbnail_data = await media_cache.get_media_info(this._media_id, { full: false });
                 break;
             case "illust_info":
-                info.illust_data = await image_data.singleton().get_media_info(this._media_id);
+                info.illust_data = await ppixiv.media_cache.get_media_info(this._media_id);
                 break;
             default:
                 throw new Error("Unknown: " + this.needed_data);
@@ -789,7 +788,7 @@ ppixiv.avatar_widget = class extends widget
 
         // If we've seen this user's profile image URL from thumbnail data, start loading it
         // now.  Otherwise, we'll have to wait until user info finishes loading.
-        let cached_profile_url = thumbnail_data.singleton().user_profile_urls[this.user_id];
+        let cached_profile_url = ppixiv.media_cache.user_profile_urls[this.user_id];
         if(cached_profile_url)
             this.img.src = cached_profile_url;
 
@@ -1310,7 +1309,7 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
             helpers.set_recent_bookmark_tags(bookmark_tags);
         });
 
-        image_data.singleton().illust_modified_callbacks.register(this.refresh.bind(this));
+        ppixiv.media_cache.illust_modified_callbacks.register(this.refresh.bind(this));
         settings.register_change_callback("recent-bookmark-tags", this.refresh.bind(this));
     }
 
@@ -1655,7 +1654,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
 
                     onclick: async () => {
                         this.parent.hide();
-                        image_data.singleton().refresh_media_info(this.media_id);
+                        ppixiv.media_cache.refresh_media_info(this.media_id);
                     }
                 });
             },
@@ -1920,7 +1919,7 @@ ppixiv.bookmark_button_widget = class extends ppixiv.illust_widget
 
         this.container.addEventListener("click", this.clicked_bookmark);
 
-        image_data.singleton().illust_modified_callbacks.register(this.refresh.bind(this));
+        ppixiv.media_cache.illust_modified_callbacks.register(this.refresh.bind(this));
     }
 
     refresh_internal({ media_id, thumbnail_data })
@@ -1986,7 +1985,7 @@ ppixiv.bookmark_button_widget = class extends ppixiv.illust_widget
             this.bookmark_tag_widget.hide_without_sync();
 
         // If the image is bookmarked and the same privacy button was clicked, remove the bookmark.
-        let illust_data = await thumbnail_data.singleton().get_or_load_illust_data(this._media_id);
+        let illust_data = await media_cache.get_media_info(this._media_id, { full: false });
         
         let private_bookmark = this.bookmark_type == "private";
         if(illust_data.bookmarkData && illust_data.bookmarkData.private == private_bookmark)
@@ -2020,7 +2019,7 @@ ppixiv.bookmark_count_widget = class extends ppixiv.illust_widget
     {
         super(options);
 
-        image_data.singleton().illust_modified_callbacks.register(this.refresh.bind(this));
+        ppixiv.media_cache.illust_modified_callbacks.register(this.refresh.bind(this));
     }
 
     refresh_internal({ illust_data })
@@ -2039,7 +2038,7 @@ ppixiv.like_button_widget = class extends ppixiv.illust_widget
 
         this.container.addEventListener("click", this.clicked_like);
 
-        image_data.singleton().illust_modified_callbacks.register(this.refresh.bind(this));
+        ppixiv.media_cache.illust_modified_callbacks.register(this.refresh.bind(this));
     }
 
     async refresh_internal({ media_id })
@@ -2070,7 +2069,7 @@ ppixiv.like_count_widget = class extends ppixiv.illust_widget
     constructor(options)
     {
         super(options);
-        image_data.singleton().illust_modified_callbacks.register(this.refresh.bind(this));
+        ppixiv.media_cache.illust_modified_callbacks.register(this.refresh.bind(this));
     }
 
     async refresh_internal({ illust_data })

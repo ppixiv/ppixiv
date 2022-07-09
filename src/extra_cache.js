@@ -39,7 +39,7 @@ ppixiv.extra_cache = class
         // If we know the image isn't bookmarked, we know there are no bookmark tags, so
         // we can skip this.
         media_id = helpers.get_media_id_first_page(media_id);
-        let thumb = thumbnail_data.singleton().get_illust_data_sync(media_id);
+        let thumb = media_cache.get_media_info_sync(media_id, { full: false });
         if(thumb && thumb.bookmarkData == null)
             return [];
 
@@ -70,7 +70,7 @@ ppixiv.extra_cache = class
     {
         if(helpers.is_media_id_local(media_id))
         {
-            let thumb = thumbnail_data.singleton().get_illust_data_sync(media_id);
+            let thumb = media_cache.get_media_info_sync(media_id, { full: false });
             if(thumb && thumb.bookmarkData == null)
                 return [];
    
@@ -92,7 +92,7 @@ ppixiv.extra_cache = class
         else
             this.bookmarked_image_tags[media_id] = tags;
 
-        image_data.singleton().call_illust_modified_callbacks(media_id);
+        media_cache.call_illust_modified_callbacks(media_id);
     }
 
 

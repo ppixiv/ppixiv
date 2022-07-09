@@ -69,7 +69,7 @@ ppixiv.recently_seen_illusts = class
             // to fill in thumbnail data as part of the request, so we store the thumbnail
             // info to be able to do the same in data_source.recent.  We're called when
             // a thumbnail is being displayed, so 
-            let thumb_info = thumbnail_data.singleton().get_one_thumbnail_info(media_id);
+            let thumb_info = media_cache.get_media_info_sync(media_id, { full: false });
             if(thumb_info == null)
                 continue;
 

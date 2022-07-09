@@ -73,6 +73,9 @@ ppixiv.main_controller = class
     {
         console.log("ppixiv controller setup");
 
+        // Create singletons.
+        ppixiv.media_cache = new ppixiv.MediaCache();
+        
         // Create the page manager.
         page_manager.singleton();
 
@@ -141,7 +144,7 @@ ppixiv.main_controller = class
             for(var preload_user_id in preload.user)
                 user_cache.singleton().add_user_data(preload.user[preload_user_id]);
             for(var preload_illust_id in preload.illust)
-                image_data.singleton().add_illust_data(preload.illust[preload_illust_id]);
+                media_cache.add_media_info_full(preload.illust[preload_illust_id]);
         }
 
         window.addEventListener("click", this.window_onclick_capture);
@@ -513,7 +516,7 @@ ppixiv.main_controller = class
         if(media_id == null)
             return false;
             
-        let info = thumbnail_data.singleton().get_illust_data_sync(media_id);
+        let info = media_cache.get_media_info_sync(media_id, { full: false });
         if(info == null)
             return false;
 

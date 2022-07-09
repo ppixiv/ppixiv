@@ -4221,7 +4221,7 @@ ppixiv.guess_image_url = class
         console.assert(type != "folder");
         if(type == "file")
         {
-            let thumb = thumbnail_data.singleton().get_one_thumbnail_info(media_id);
+            let thumb = media_cache.get_media_info_sync(media_id, { full: false });
             if(thumb?.illustType == "video")
                 return null;
             else
@@ -4229,7 +4229,7 @@ ppixiv.guess_image_url = class
         }
     
         // If we already have illust info, use it.
-        let illust_info = image_data.singleton().get_media_info_sync(media_id);
+        let illust_info = media_cache.get_media_info_sync(media_id);
         if(illust_info != null)
             return illust_info.mangaPages[page].urls.original;
 
@@ -4239,7 +4239,7 @@ ppixiv.guess_image_url = class
             return stored_url;
         
         // Get thumbnail data.  We need the thumbnail URL to figure out the image URL.
-        let thumb = thumbnail_data.singleton().get_one_thumbnail_info(media_id);
+        let thumb = media_cache.get_media_info_sync(media_id, { full: false });
         if(thumb == null)
             return null;
 

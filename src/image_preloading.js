@@ -125,7 +125,7 @@ ppixiv.image_preloader = class
             return;
 
         // Get the image data.  This will often already be available.
-        let illust_info = await image_data.singleton().get_media_info(this.current_media_id);
+        let illust_info = await media_cache.get_media_info(this.current_media_id);
 
         // Stop if the illust was changed while we were loading.
         if(this.current_media_id != media_id)
@@ -150,7 +150,7 @@ ppixiv.image_preloader = class
             return;
 
         // Get the image data.  This will often already be available.
-        let illust_info = await image_data.singleton().get_media_info(this.speculative_media_id);
+        let illust_info = await media_cache.get_media_info(this.speculative_media_id);
         if(this.speculative_media_id != media_id)
             return;
 

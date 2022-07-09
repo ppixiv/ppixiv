@@ -241,7 +241,7 @@ ppixiv.extra_image_data = class
 
         // Tell image_data that we've replaced extra data, so any loaded images are updated.
         for(let [media_id, data] of Object.entries(data_by_media_id))
-            image_data.singleton().replace_extra_data(media_id, data);
+            media_cache.replace_extra_data(media_id, data);
 
         message_widget.singleton.show(`Imported edits for ${data.data.length} ${data.data.length == 1? "image":"images"}.`);
     }

@@ -30,7 +30,7 @@ ppixiv.tree_widget = class extends ppixiv.widget
         this.items = this.container.querySelector(".items");
 
         // Listen to illust changes so we can refresh nodes.
-        image_data.singleton().illust_modified_callbacks.register(this.illust_modified);
+        media_cache.illust_modified_callbacks.register(this.illust_modified);
 
         // Create the root item.  This is tree_widget_item or a subclass.
         if(add_root)
@@ -550,7 +550,7 @@ class local_navigation_widget_item extends ppixiv.tree_widget_item
     // to register an illust change callback for every node.
     // XXX: need a way to refresh these
     // do this once at the tree level:
-    // image_data.singleton().illust_modified_callbacks.register(this.refresh);
+    // media_cache.illust_modified_callbacks.register(this.refresh);
     illust_changed(media_id)
     {
         // Refresh if we're displaying the illust that changed.
@@ -564,7 +564,7 @@ class local_navigation_widget_item extends ppixiv.tree_widget_item
         super.refresh();
 
         // Show or hide the bookmark icon.
-        let info = thumbnail_data.singleton().get_one_thumbnail_info(this.path);
+        let info = media_cache.get_media_info_sync(this.path, { full: false });
         let bookmarked = info?.bookmarkData != null;
         this.container.querySelector(".button-bookmark").hidden = !bookmarked;
 
