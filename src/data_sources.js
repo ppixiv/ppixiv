@@ -1685,7 +1685,7 @@ ppixiv.data_sources.artist = class extends data_source
 
             // This data doesn't have profileImageUrl or userName.  That's presumably because it's
             // used on user pages which get that from user data, but this seems like more of an
-            // inconsistency than an optimization.  Fill it in for thumbnail_data.
+            // inconsistency than an optimization.  Fill it in for media_info.
             for(var item of result.body.works)
             {
                 item.userName = this.user_info.name;
@@ -1696,8 +1696,6 @@ ppixiv.data_sources.artist = class extends data_source
             for(var illust_data of result.body.works)
                 media_ids.push(helpers.illust_id_to_media_id(illust_data.id)); 
 
-            // This request returns all of the thumbnail data we need.  Forward it to
-            // thumbnail_data so we don't need to look it up.
             await media_cache.add_media_infos_partial(result.body.works, "normal");
 
             // Register the new page of data.
@@ -2032,7 +2030,7 @@ ppixiv.data_sources.manga = class extends data_source
         // We need full illust info for get_manga_aspect_ratio, but we can fill out most of the
         // UI with thumbnail or illust info.  Load whichever one we have first and update, so we
         // display initial info quickly.
-        this.thumbnail_data = await media_cache.get_media_info(this.media_id, { full: false });
+        this.media_info = await media_cache.get_media_info(this.media_id, { full: false });
         this.call_update_listeners();
 
         // Load media info before continuing.
@@ -2051,16 +2049,16 @@ ppixiv.data_sources.manga = class extends data_source
 
     get page_title()
     {
-        if(this.thumbnail_data)
-            return this.thumbnail_data.userName + " - " + this.thumbnail_data.illustTitle;
+        if(this.media_info)
+            return this.media_info.userName + " - " + this.media_info.illustTitle;
         else
             return "Illustrations";
     }
 
     get_displaying_text()
     {
-        if(this.thumbnail_data)
-            return this.thumbnail_data.illustTitle + " by " + this.thumbnail_data.userName;
+        if(this.media_info)
+            return this.media_info.illustTitle + " by " + this.media_info.userName;
         else
             return "Illustrations";
     };
@@ -2078,7 +2076,7 @@ ppixiv.data_sources.manga = class extends data_source
     refresh_thumbnail_ui(container, thumbnail_view)
     {
         thumbnail_view.avatar_container.hidden = false;
-        thumbnail_view.avatar_widget.set_user_id(this.thumbnail_data?.userId);
+        thumbnail_view.avatar_widget.set_user_id(this.media_info?.userId);
     }
 };
 
@@ -2556,8 +2554,6 @@ ppixiv.data_sources.bookmarks = class extends data_source_bookmarks_base
         if(this.shuffle)
             helpers.shuffle_array(media_ids);
         
-        // This request returns all of the thumbnail data we need.  Forward it to
-        // thumbnail_data so we don't need to look it up.
         await media_cache.add_media_infos_partial(result.works, "normal");
 
         // Register the new page of data.  If we're shuffling, use the original page number, not the
@@ -2637,8 +2633,6 @@ ppixiv.data_sources.bookmarks_merged = class extends data_source_bookmarks_base
         for(let illust_data of result.works)
             media_ids.push(helpers.illust_id_to_media_id(illust_data.id));
 
-        // This request returns all of the thumbnail data we need.  Forward it to
-        // thumbnail_data so we don't need to look it up.
         await media_cache.add_media_infos_partial(result.works, "normal");
 
         // If there are no results, remember that this is the last page, so we don't
@@ -2726,8 +2720,6 @@ ppixiv.data_sources.new_illust = class extends data_source
         for(var illust_data of result.body.illusts)
             media_ids.push(helpers.illust_id_to_media_id(illust_data.id));
 
-        // This request returns all of the thumbnail data we need.  Forward it to
-        // thumbnail_data so we don't need to look it up.
         await media_cache.add_media_infos_partial(result.body.illusts, "normal");
 
         // Register the new page of data.
@@ -3363,7 +3355,7 @@ ppixiv.data_sources.follows = class extends data_source
             let illust = followed_user.illusts[0];
             illusts.push(illust);
 
-            // We'll register this with thumbnail_data below.  These results don't have profileImageUrl
+            // We'll register this with media_info below.  These results don't have profileImageUrl
             // and only put it in the enclosing user, so copy it over.
             illust.profileImageUrl = followed_user.profileImageUrl;
         }
@@ -3372,8 +3364,6 @@ ppixiv.data_sources.follows = class extends data_source
         for(let illust of illusts)
             media_ids.push("user:" + illust.userId);
 
-        // This request returns all of the thumbnail data we need.  Forward it to
-        // thumbnail_data so we don't need to look it up.
         await media_cache.add_media_infos_partial(illusts, "normal");
 
         // Register the new page of data.
@@ -3871,7 +3861,7 @@ ppixiv.data_sources.vview = class extends data_source
             return;
         }
 
-        // Note that this registers the results with thumbnail_data automatically.
+        // Note that this registers the results with media_info automatically.
         let result = await local_api.list(folder_id, {
             ...search_options,
 

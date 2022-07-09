@@ -1640,7 +1640,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                     icon: "mat:download",
                     hide_if_unavailable: true,
                     requires_image: true,
-                    available: () => { return this.thumbnail_data && actions.is_download_type_available("image", this.thumbnail_data); },
+                    available: () => { return this.media_info && actions.is_download_type_available("image", this.media_info); },
                     onclick: () => {
                         actions.download_illust(this.media_id, "image");
                         this.parent.hide();
@@ -1655,7 +1655,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                     icon: "mat:download",
                     hide_if_unavailable: true,
                     requires_image: true,
-                    available: () => { return this.thumbnail_data && actions.is_download_type_available("ZIP", this.thumbnail_data); },
+                    available: () => { return this.media_info && actions.is_download_type_available("ZIP", this.media_info); },
                     onclick: () => {
                         actions.download_illust(this.media_id, "ZIP");
                         this.parent.hide();
@@ -1670,7 +1670,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                     icon: "mat:download",
                     hide_if_unavailable: true,
                     requires_image: true,
-                    available: () => { return this.thumbnail_data && actions.is_download_type_available("MKV", this.thumbnail_data); },
+                    available: () => { return this.media_info && actions.is_download_type_available("MKV", this.media_info); },
                     onclick: () => {
                         actions.download_illust(this.media_id, "MKV");
                         this.parent.hide();
@@ -1822,7 +1822,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
 
         this.create_menu_options();
 
-        this.thumbnail_data = media_info;
+        this.media_info = media_info;
 
         for(let option of this.menu_options)
         {

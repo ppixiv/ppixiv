@@ -63,7 +63,7 @@ ppixiv.search_view = class extends ppixiv.widget
 
         this.expanded_media_ids = new Map();
 
-        media_cache.addEventListener("infoloaded", this.thumbs_loaded);
+        media_cache.addEventListener("infoloaded", this.media_info_loaded);
         window.addEventListener("focus", this.visible_thumbs_changed);
 
         // When a bookmark is modified, refresh the heart icon.
@@ -661,12 +661,12 @@ ppixiv.search_view = class extends ppixiv.widget
             "Returning:", start_idx, "to", end_idx);
 */
         // Load thumbnail info for the results.  We don't wait for this to finish.
-        this.load_thumbnail_data_for_media_ids(all_media_ids, start_idx, end_idx);
+        this.load_media_info_for_media_ids(all_media_ids, start_idx, end_idx);
 
         return media_ids;
     }
 
-    load_thumbnail_data_for_media_ids(all_media_ids, start_idx, end_idx)
+    load_media_info_for_media_ids(all_media_ids, start_idx, end_idx)
     {
         // Stop if the range is already loaded.
         let media_ids = all_media_ids.slice(start_idx, end_idx+1);
@@ -1475,11 +1475,11 @@ ppixiv.search_view = class extends ppixiv.widget
     {
         // If this is a manga post, refresh all thumbs for this media ID, since bookmarking
         // a manga post is shown on all pages if it's expanded.
-        let thumbnail_info = media_cache.get_media_info_sync(media_id, { full: false });
-        if(thumbnail_info == null)
+        let media_info = media_cache.get_media_info_sync(media_id, { full: false });
+        if(media_info == null)
             return;
 
-        for(let page = 0; page < thumbnail_info.pageCount; ++page)
+        for(let page = 0; page < media_info.pageCount; ++page)
         {
             media_id = helpers.get_media_id_for_page(media_id, page);
             let thumbnail_element = this.get_thumbnail_for_media_id(media_id);
@@ -1500,16 +1500,16 @@ ppixiv.search_view = class extends ppixiv.widget
             return;
 
         // Get thumbnail info.
-        var thumbnail_info = media_cache.get_media_info_sync(media_id, { full: false });
-        if(thumbnail_info == null)
+        let media_info = media_cache.get_media_info_sync(media_id, { full: false });
+        if(media_info == null)
             return;
 
-        var show_bookmark_heart = thumbnail_info.bookmarkData != null;
+        var show_bookmark_heart = media_info.bookmarkData != null;
         if(this.data_source != null && !this.data_source.show_bookmark_icons)
             show_bookmark_heart = false;
         
-        thumbnail_element.querySelector(".heart.public").hidden = !show_bookmark_heart || thumbnail_info.bookmarkData.private;
-        thumbnail_element.querySelector(".heart.private").hidden = !show_bookmark_heart || !thumbnail_info.bookmarkData.private;
+        thumbnail_element.querySelector(".heart.public").hidden = !show_bookmark_heart || media_info.bookmarkData.private;
+        thumbnail_element.querySelector(".heart.private").hidden = !show_bookmark_heart || !media_info.bookmarkData.private;
     }
 
     // Force all thumbnails to refresh after the mute list changes, to refresh mutes.
@@ -1628,8 +1628,8 @@ ppixiv.search_view = class extends ppixiv.widget
         return entry;
     }
 
-    // This is called when thumbnail_data has loaded more thumbnail info.
-    thumbs_loaded = (e) =>
+    // This is called when media_cache has loaded more image info.
+    media_info_loaded = (e) =>
     {
         this.set_visible_thumbs();
     }

@@ -247,36 +247,21 @@ ppixiv.InpaintEditor = class extends ppixiv.widget
         }
     }
 
-    async after_save(illust)
+    async after_save(media_info)
     {
-        if(illust.urls == null)
+        if(media_info.urls == null)
             return;
 
-        if(illust.urls.inpaint)
+        if(media_info.urls.inpaint)
         {
             // Saving the new inpaint data will change the inpaint URL.  It'll be generated the first
             // time it's fetched, which can take a little while.  Fetch it before updating image
             // data, so it's already generated when viewer_images updates with the new URL.
             // Otherwise, we'll be stuck looking at the low-res preview while it generates.
             let img = new Image();
-            img.src = illust.urls.inpaint;
+            img.src = media_info.urls.inpaint;
             await helpers.wait_for_image_load(img);
         }
-
-        // Update the illust info.  The new info has the data we just saved, as well
-        // as updated image URLs that include the new inpaint.
-        //
-        // This updates image_data directly, since we don't currently have a path for
-        // updating illust data after it's already loaded.
-        local_api.adjust_illust_info(illust);
-        media_cache.image_data[illust.mediaId] = illust;
-        media_cache.call_illust_modified_callbacks(illust.mediaId);
-
-        // Update the thumbnail URL, so the new image shows up in search results and the
-        // load preview.
-        media_cache.update_media_info(illust.mediaId, {
-            previewUrls: [illust.urls.small],
-        });
 
         return true;
     }

@@ -268,7 +268,7 @@ ppixiv.CropEditor = class extends ppixiv.widget
         };
     }
     
-    async after_save(illust)
+    async after_save(media_info)
     {
         // Disable cropping after saving, so the crop is visible.
         settings.set("image_editing_mode", null);

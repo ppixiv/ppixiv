@@ -21,6 +21,9 @@
 // full data instead if we already have it, since it's a superset.  If we have to load info
 // for a single image, we'll always load full info.  We can only batch load partial info,
 // since Pixiv doesn't have any API to allow batch loading full info.
+//
+// Our media IDs encode Pixiv manga pages, but this only deals with top-level illustrations, and
+// the page number in illust media IDs is always 1 here.
 
 // Partial media info always contains these keys.  This is checked by _check_illust_data,
 // to make sure we don't accidentally start storing keys that might not always be there.
@@ -82,9 +85,6 @@ ppixiv.MediaCache = class extends EventTarget
     // info has been loaded.
     queue_info_loaded_event(media_id)
     {
-        if(this._info_loaded_event_pending)
-            return;
-
         if(this._media_ids_loaded == null)
         {
             this._media_ids_loaded = new Set();
@@ -165,11 +165,11 @@ ppixiv.MediaCache = class extends EventTarget
 
     // Add media info to the cache that we received from other sources.  Note that if
     // we have any fetches in the air already, we'll leave them running.  This will
-    // trigger loads for secondary data like manga pages if it's not included in illust_data.
+    // trigger loads for secondary data like manga pages if it's not included in media_info.
     //
     // If preprocessed is true, this data is coming from something like another ppixiv tab,
     // and we can just store the data.  It already has any required data and adjustments that
-    // happen when we load data normally.  If preprocessed is false, illust_data is from
+    // happen when we load data normally.  If preprocessed is false, media_info is from
     // something like the HTML preload field and is treated the same as an API response.
     add_media_info_full(media_info, { preprocessed=false }={})
     {
@@ -595,7 +595,10 @@ ppixiv.MediaCache = class extends EventTarget
             // If we only have partial info, ignore data that shouldn't be included in
             // partial info.
             if(!image_data.full && partial_media_info_keys.indexOf(key) == -1)
+            {
+                console.log("Not updating key for partial media info:", key);
                 continue;
+            }
 
             image_data[key] = value;
         }

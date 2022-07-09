@@ -401,10 +401,10 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
             // Get data from each editor.
             let edits = this.get_data_to_save();
 
-            let result;
+            let media_info;
             if(helpers.is_media_id_local(this.media_id))
             {
-                result = await local_api.local_post_request(`/api/set-image-edits/${this.media_id}`, edits);
+                let result = await local_api.local_post_request(`/api/set-image-edits/${this.media_id}`, edits);
                 if(!result.success)
                 {
                     message_widget.singleton.show(`Error saving image edits: ${result.reason}`);
@@ -414,19 +414,21 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
                     return;
                 }
 
-                result = result.illust;
-                media_cache.update_media_info(this.media_id, result);
+                // Update cached media info to include the change.
+                media_info = result.illust;
+                local_api.adjust_illust_info(media_info);
+                media_cache.update_media_info(this.media_id, media_info);
             }
             else
             {
                 // Save data for Pixiv images to image_data.
-                result = await media_cache.save_extra_image_data(this.media_id, edits);                
+                media_info = await media_cache.save_extra_image_data(this.media_id, edits);                
             }
 
             // Let the widgets know that we saved.
             let current_editor = this.active_editor;
             if(current_editor?.after_save)
-                current_editor.after_save(result);
+                current_editor.after_save(media_info);
         } finally {
             this.save_edits.hidden = false;
             spinner.hidden = true;

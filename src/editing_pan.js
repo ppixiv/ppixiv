@@ -273,19 +273,6 @@ ppixiv.PanEditor = class extends ppixiv.widget
         return { pan: this.get_state() };
     }
 
-    async after_save(illust)
-    {
-        // Update the illust info.
-        //
-        // This updates image_data directly, since we don't currently have a path for
-        // updating illust data after it's already loaded.
-        local_api.adjust_illust_info(illust);
-        media_cache.image_data[illust.mediaId] = illust;
-        media_cache.call_illust_modified_callbacks(illust.mediaId);
-
-        return true;
-    }
-
     // Return data for saving.
     get_state({force=false}={})
     {

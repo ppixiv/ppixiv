@@ -70,7 +70,7 @@ ppixiv.local_api = class
             illust.mangaPages = [];
             illust.pageCount = 0;
 
-            // These metadata fields don't exist for folders.  Set them to null so thumbnail_data._check_illust_data doesn't complain.
+            // These metadata fields don't exist for folders.  Set them to null so media_info._check_illust_data doesn't complain.
             illust.width = illust.height = illust.userName = null;
             illust.illustType = 1;
         }
@@ -84,7 +84,7 @@ ppixiv.local_api = class
             illust.pageCount = 1;
         }
 
-        // illustId is only for Pixiv images.  Set it so thumbnail_data doesn't complain.
+        // illustId is only for Pixiv images.  Set it so media_info._check_illust_data doesn't complain.
         illust.illustId = null;
 
         // Local media info is always full.
