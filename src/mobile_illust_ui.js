@@ -470,18 +470,18 @@ class mobile_overlay_bookmark_tag_widget extends ppixiv.illust_widget
         `});
     }
 
-    refresh_internal({ illust_data })
+    refresh_internal({ media_info })
     {
-        this.container.hidden = illust_data == null;
+        this.container.hidden = media_info == null;
         if(this.container.hidden)
             return;
 
         let tag_widget = this.container.querySelector(".bookmark-tags");
         helpers.remove_elements(tag_widget);
-        if(!illust_data.bookmarkData?.tags)
+        if(!media_info.bookmarkData?.tags)
             return;
 
-        for(let tag of illust_data.bookmarkData.tags)
+        for(let tag of media_info.bookmarkData.tags)
         {
             let entry = this.create_template({name: "tag-entry", html: `
                 <div class="mobile-ui-tag-entry">

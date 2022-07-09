@@ -38,9 +38,9 @@ ppixiv.context_menu_image_info_widget = class extends ppixiv.illust_widget
         // We need illust info if we're viewing a manga page beyond page 1, since
         // early info doesn't have that.  Most of the time, we only need early info.
         if(this._page == null || this._page == 0)
-            return "thumbnail";
+            return "partial";
         else
-            return "illust_info";
+            return "full";
     }
 
     set show_page_number(value)
@@ -49,12 +49,9 @@ ppixiv.context_menu_image_info_widget = class extends ppixiv.illust_widget
         this.refresh();
     }
 
-    refresh_internal({ media_id, thumbnail_data, illust_data })
+    refresh_internal({ media_id, media_info })
     {
-        if(!illust_data)
-            illust_data = thumbnail_data;
-
-        this.container.hidden = illust_data == null;
+        this.container.hidden = media_info == null;
         if(this.container.hidden)
             return;
 
@@ -68,7 +65,7 @@ ppixiv.context_menu_image_info_widget = class extends ppixiv.illust_widget
         // Add the page count for manga.  If the data source is data_source.vview, show
         // the index of the current file if it's loaded all results.
         let current_page = this._page;
-        let page_count = illust_data.pageCount;
+        let page_count = media_info.pageCount;
         let show_page_number = this._show_page_number;
         if(this.data_source?.name == "vview" && this.data_source.all_pages_loaded)
         {
@@ -94,7 +91,7 @@ ppixiv.context_menu_image_info_widget = class extends ppixiv.illust_widget
 
         if(this.show_title)
         {
-            set_info(".title", illust_data.illustTitle);
+            set_info(".title", media_info.illustTitle);
         
             let show_folder = helpers.is_media_id_local(this._media_id);
             this.container.querySelector(".folder-block").hidden = !show_folder;
@@ -110,14 +107,14 @@ ppixiv.context_menu_image_info_widget = class extends ppixiv.illust_widget
         // manga post and we don't have illust data yet, we don't have dimensions, so hide it until
         // it's loaded.
         var info = "";
-        let { width, height } = ppixiv.media_cache.get_dimensions(illust_data, this._media_id);
+        let { width, height } = ppixiv.media_cache.get_dimensions(media_info, this._media_id);
         if(width != null && height != null)
             info += width + "x" + height;
         set_info(".image-info", info);
 
-        let seconds_old = (new Date() - new Date(illust_data.createDate)) / 1000;
+        let seconds_old = (new Date() - new Date(media_info.createDate)) / 1000;
         let age = helpers.age_to_string(seconds_old);
-        this.container.querySelector(".post-age").dataset.popup = helpers.date_to_string(illust_data.createDate);
+        this.container.querySelector(".post-age").dataset.popup = helpers.date_to_string(media_info.createDate);
         set_info(".post-age", age);
     }
 

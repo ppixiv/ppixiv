@@ -239,9 +239,9 @@ ppixiv.dialog_widget = class extends ppixiv.widget
     }
 }
 
-// A widget that shows info for a particular illust_id.
+// A widget that shows info for a particular media_id.
 //
-// An illust_id can be set, and we'll refresh when it changes.
+// A media_id can be set, and we'll refresh when it changes.
 ppixiv.illust_widget = class extends ppixiv.widget
 {
     constructor(options)
@@ -252,15 +252,11 @@ ppixiv.illust_widget = class extends ppixiv.widget
         ppixiv.media_cache.addEventListener("mediamodified", this.refresh.bind(this), { signal: this.shutdown_signal.signal });
     }
 
-    // The data this widget needs.  This can be illust_id (nothing but the ID), illust_info,
-    // or thumbnail info.
+    // The data this widget needs.  This can be media_id (nothing but the ID), full or partial.
     //
     // This can change dynamically.  Some widgets need illust_info only when viewing a manga
     // page.
-    get needed_data()
-    {
-        return "illust_info";
-    }
+    get needed_data() { return "full"; }
 
     set_media_id(media_id)
     {
@@ -282,46 +278,23 @@ ppixiv.illust_widget = class extends ppixiv.widget
         let media_id = this._media_id;
         let info = { media_id: this._media_id };
         
-        if(this._media_id != null)
+        // If we have a media ID and we want media info (not just the media ID itself), load
+        // the info.
+        if(this._media_id != null && this.needed_data != "media_id")
         {
+            let full = this.needed_data == "full";
+
             // See if we have the data the widget wants already.
-            info.thumbnail_data = media_cache.get_media_info_sync(this._media_id, { full: false });
-            info.illust_data = ppixiv.media_cache.get_media_info_sync(this._media_id);
-            let load_needed = false;
-            switch(this.needed_data)
-            {
-            case "thumbnail":
-                info.thumbnail_data = media_cache.get_media_info_sync(this._media_id, { full: false });
-                if(info.thumbnail_data == null)
-                    load_needed = true;
-                break;
-            case "illust_info":
-                info.illust_data = ppixiv.media_cache.get_media_info_sync(this._media_id);
-                if(info.illust_data == null)
-                    load_needed = true;
-                break;
-            }
+            info.media_info = ppixiv.media_cache.get_media_info_sync(this._media_id, { full });
 
             // If we need to load data, clear the widget while we load, so we don't show the old
             // data while we wait for data.  Skip this if we don't need to load, so we don't clear
             // and reset the widget.  This can give the widget an illust ID without data, which is
             // OK.
-            if(load_needed)
+            if(info.media_info == null)
                 await this.refresh_internal(info);
 
-            switch(this.needed_data)
-            {
-            case "media_id":
-                break; // nothing
-            case "thumbnail":
-                info.thumbnail_data = await media_cache.get_media_info(this._media_id, { full: false });
-                break;
-            case "illust_info":
-                info.illust_data = await ppixiv.media_cache.get_media_info(this._media_id);
-                break;
-            default:
-                throw new Error("Unknown: " + this.needed_data);
-            }
+            info.media_info = await ppixiv.media_cache.get_media_info(this._media_id, { full });
         }
 
         // Stop if the media ID changed while we were async.
@@ -331,7 +304,7 @@ ppixiv.illust_widget = class extends ppixiv.widget
         await this.refresh_internal(info);
     }
 
-    async refresh_internal({ media_id, illust_id, illust_data, thumbnail_data })
+    async refresh_internal({ media_id, media_info })
     {
         throw "Not implemented";
     }
@@ -1547,7 +1520,7 @@ ppixiv.bookmark_tag_list_dropdown_widget = class extends ppixiv.bookmark_tag_lis
 
 ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
 {
-    get needed_data() { return "thumbnail"; }
+    get needed_data() { return "partial"; }
 
     constructor({
         visible=false,
@@ -1842,14 +1815,14 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
             this.refresh();
     }
 
-    async refresh_internal({ media_id, thumbnail_data })
+    async refresh_internal({ media_id, media_info })
     {
         if(!this.visible)
             return;
 
         this.create_menu_options();
 
-        this.thumbnail_data = thumbnail_data;
+        this.thumbnail_data = media_info;
 
         for(let option of this.menu_options)
         {
@@ -1908,7 +1881,7 @@ ppixiv.toggle_dropdown_menu_widget = class extends ppixiv.illust_widget
 
 ppixiv.bookmark_button_widget = class extends ppixiv.illust_widget
 {
-    get needed_data() { return "thumbnail"; }
+    get needed_data() { return "partial"; }
 
     constructor({bookmark_type, bookmark_tag_widget, ...options})
     {
@@ -1922,10 +1895,10 @@ ppixiv.bookmark_button_widget = class extends ppixiv.illust_widget
         ppixiv.media_cache.illust_modified_callbacks.register(this.refresh.bind(this));
     }
 
-    refresh_internal({ media_id, thumbnail_data })
+    refresh_internal({ media_id, media_info })
     {
         // If this is a local image, we won't have a bookmark count, so set local-image
-        // to remove our padding for it.  We can get media_id before thumbnail_data.
+        // to remove our padding for it.  We can get media_id before media_info.
         let is_local =  helpers.is_media_id_local(media_id);
         helpers.set_class(this.container,  "has-like-count", !is_local);
 
@@ -1935,18 +1908,18 @@ ppixiv.bookmark_button_widget = class extends ppixiv.illust_widget
         if(this.bookmark_type == "private")
             this.container.closest(".button-container").hidden = is_local;
 
-        let bookmarked = thumbnail_data?.bookmarkData != null;
+        let bookmarked = media_info?.bookmarkData != null;
         let private_bookmark = this.bookmark_type == "private";
-        let our_bookmark_type = thumbnail_data?.bookmarkData?.private == private_bookmark;
+        let our_bookmark_type = media_info?.bookmarkData?.private == private_bookmark;
 
         // Set up the bookmark buttons.
-        helpers.set_class(this.container,  "enabled",     thumbnail_data != null);
+        helpers.set_class(this.container,  "enabled",     media_info != null);
         helpers.set_class(this.container,  "bookmarked",  our_bookmark_type);
         helpers.set_class(this.container,  "will-delete", our_bookmark_type);
         
         // Set the tooltip.
         this.container.dataset.popup =
-            thumbnail_data == null? "":
+            media_info == null? "":
             !bookmarked && this.bookmark_type == "folder"? "Bookmark folder":
             !bookmarked && this.bookmark_type == "private"? "Bookmark privately":
             !bookmarked && this.bookmark_type == "public" && type == "folder"? "Bookmark folder":
@@ -2022,9 +1995,9 @@ ppixiv.bookmark_count_widget = class extends ppixiv.illust_widget
         ppixiv.media_cache.illust_modified_callbacks.register(this.refresh.bind(this));
     }
 
-    refresh_internal({ illust_data })
+    refresh_internal({ media_info })
     {
-        this.container.textContent = illust_data? illust_data.bookmarkCount:"---";
+        this.container.textContent = media_info? media_info.bookmarkCount:"---";
     }
 }
 
@@ -2072,8 +2045,8 @@ ppixiv.like_count_widget = class extends ppixiv.illust_widget
         ppixiv.media_cache.illust_modified_callbacks.register(this.refresh.bind(this));
     }
 
-    async refresh_internal({ illust_data })
+    async refresh_internal({ media_info })
     {
-        this.container.textContent = illust_data? illust_data.likeCount:"---";
+        this.container.textContent = media_info? media_info.likeCount:"---";
     }
 }

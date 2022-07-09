@@ -225,10 +225,10 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
     // all we need is the image dimensions.  However, the editing container is only displayed
     // by on_click_viewer after we have full image data anyway since it's treated as part of the
     // main image, so we won't be displayed until then anyway.
-    async refresh_internal({ media_id, illust_data })
+    async refresh_internal({ media_id, media_info })
     {
-        // We can get the media ID before we have illust_data.  Ignore it until we have both.
-        if(illust_data == null)
+        // We can get the media ID before we have media_info.  Ignore it until we have both.
+        if(media_info == null)
             media_id = null;
 
         let editor_is_open = this.open_editor != null;
@@ -248,8 +248,8 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
         // the data for the first page, as an extraData dictionary with page media IDs as keys.
         //
         // Pull out the dictionary containing editing data for this image to give to the editor.
-        let { width, height } = ppixiv.media_cache.get_dimensions(illust_data, media_id);
-        let extra_data = ppixiv.media_cache.get_extra_data(illust_data, media_id);
+        let { width, height } = ppixiv.media_cache.get_dimensions(media_info, media_id);
+        let extra_data = ppixiv.media_cache.get_extra_data(media_info, media_id);
 
         // Give the editors the new illust data.
         for(let editor of Object.values(this.editors))

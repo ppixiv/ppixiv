@@ -1129,8 +1129,6 @@ ppixiv.local_search_dropdown_widget = class extends ppixiv.widget
 // This requires view_in_explorer.pyw be set up.
 ppixiv.view_in_explorer_widget = class extends ppixiv.illust_widget
 {
-    get needed_data() { return "thumbnail"; }
-
     constructor({...options})
     {
         super({...options});
@@ -1147,13 +1145,13 @@ ppixiv.view_in_explorer_widget = class extends ppixiv.illust_widget
         });
     }
 
-    refresh_internal({ media_id, thumbnail_data })
+    refresh_internal({ media_id, media_info })
     {
         // Hide the button if we're not on a local image.
         this.container.closest(".button-container").hidden = !helpers.is_media_id_local(media_id);
         
-        let path = thumbnail_data?.localPath;
-        this.enabled = thumbnail_data?.localPath != null;
+        let path = media_info?.localPath;
+        this.enabled = media_info?.localPath != null;
         helpers.set_class(this.container.querySelector("A.button"), "enabled", this.enabled);
         if(path == null)
             return;
