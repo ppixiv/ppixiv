@@ -100,9 +100,22 @@ ppixiv.MediaCache = class extends EventTarget
         this._media_ids_loaded.add(media_id);
     }
 
-    // Load media data asynchronously.  If full is true, return full info, otherwise full or
-    // partial info can be returned.
-    get_media_info(media_id, { full=true }={})
+    // Load media data asynchronously.  If full is true, return full info, otherwise return
+    // partial info.
+    //
+    // If partial info is requested and we have full info, we'll reduce it to partial info if
+    // safe is true, otherwise we'll just return full info.  This helps avoid requesting
+    // partial info and then accidentally using fields from full info.
+    async get_media_info(media_id, { full=true, safe=true }={})
+    {
+        let media_info = await this._get_media_info_inner(media_id, { full });
+        if(!full && safe && media_info != null && media_info.full)
+            media_info = this._full_to_partial_info(media_info);
+
+        return media_info;
+    }
+
+    _get_media_info_inner(media_id, { full=true }={})
     {
         media_id = helpers.get_media_id_first_page(media_id);
         if(media_id == null)
@@ -117,7 +130,7 @@ ppixiv.MediaCache = class extends EventTarget
             return Promise.resolve(this.media_info[media_id]);
 
         // If there's already a load in progress, return the running promise.
-        if(full && this.media_info_loads_full[media_id] != null)
+        if(this.media_info_loads_full[media_id] != null)
             return this.media_info_loads_full[media_id];
         if(!full && this.media_info_loads_partial[media_id] != null)
             return this.media_info_loads_partial[media_id];
@@ -132,7 +145,7 @@ ppixiv.MediaCache = class extends EventTarget
 
     // Like get_media_info, but return the result immediately, or null if it's not
     // already loaded.
-    get_media_info_sync(media_id, { full=true }={})
+    get_media_info_sync(media_id, { full=true, safe=true }={})
     {
         media_id = helpers.get_media_id_first_page(media_id);
         let media_info = this.media_info[media_id];
@@ -140,6 +153,9 @@ ppixiv.MediaCache = class extends EventTarget
         // If full info was requested and we only have partial info, don't return it.
         if(full && !media_info?.full)
             return null;
+
+        if(!full && safe)
+            media_info = this._full_to_partial_info(media_info);
 
         return media_info;
     }
@@ -618,6 +634,24 @@ ppixiv.MediaCache = class extends EventTarget
     }
 
     // Helpers
+
+    // Return partial data for a full media info.
+    _full_to_partial_info(media_info)
+    {
+        if(media_info == null)
+            return null;
+
+        // If this is already partial data, just return it as is.  Don't do this for
+        // local info either, since that's always full.
+        if(!media_info.full || helpers.is_media_id_local(media_info.mediaId))
+            return media_info;
+
+        let result = {};        
+        for(let key of partial_media_info_keys)
+            result[key] = media_info[key];
+
+        return result;
+    }
 
     // Check keys for partial media info.  We always expect all keys in partial_media_info_keys
     // to be included, regardless of where the data came from.
