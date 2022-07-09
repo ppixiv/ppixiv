@@ -1517,9 +1517,6 @@ ppixiv.search_view = class extends ppixiv.widget
     {
         // Force the update to refresh thumbs that have already been created.
         this.set_visible_thumbs({force: true});
-
-        // Refresh the user ID-dependant UI so we refresh the mute/unmute button.
-        this.refresh_ui_for_user_id();
     }
 
     // Return a list of thumbnails that are either visible, or close to being visible

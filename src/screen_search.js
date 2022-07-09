@@ -487,7 +487,8 @@ ppixiv.screen_search = class extends ppixiv.screen
         settings.register_change_callback("ui-on-hover", this.update_from_settings);
         settings.register_change_callback("no-hide-cursor", this.update_from_settings);
         settings.register_change_callback("no_recent_history", this.update_from_settings);
-        
+        muting.singleton.addEventListener("mutes-changed", this.refresh_ui_for_user_id);
+
         // Zoom the thumbnails on ctrl-mousewheel:
         this.container.addEventListener("wheel", (e) => {
             if(!e.ctrlKey)
@@ -844,7 +845,7 @@ ppixiv.screen_search = class extends ppixiv.screen
 
     // Call refresh_ui_for_user_info with the user_info for the user we're viewing,
     // if the user ID has changed.
-    async refresh_ui_for_user_id()
+    refresh_ui_for_user_id = async() =>
     {
         // If we're viewing ourself (our own bookmarks page), hide the user-related UI.
         var initial_user_id = this.viewing_user_id;
