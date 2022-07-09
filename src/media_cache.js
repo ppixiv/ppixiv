@@ -157,9 +157,6 @@ ppixiv.MediaCache = class extends EventTarget
     async refresh_media_info(media_id)
     {
         media_id = helpers.get_media_id_first_page(media_id);
-        if(this.media_info[media_id] == null)
-            return;
-
         await this._load_media_info(media_id, { force: true });
     }
 
