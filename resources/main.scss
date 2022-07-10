@@ -2028,6 +2028,11 @@ a.box-link, span.box-link
         align-self: flex-end;
         background-color: var(--box-link-bg-color);
         padding-right: 8px;
+
+        // Mobile Chrome sometimes randomly selects this text while it's hidden, causing
+        // the translation popup to appear.
+        user-select: none;
+        -webkit-user-select: none;
     }
 
     .context-menu-image-info {
