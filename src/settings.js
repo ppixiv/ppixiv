@@ -1,28 +1,48 @@
 "use strict";
 
 // Get and set values in localStorage.
-ppixiv.settings = class
+ppixiv.Settings = class
 {
-    static sticky_settings = { };
-    static session_settings = { };
-    static defaults = { };
+    constructor()
+    {
+        this.sticky_settings = { };
+        this.session_settings = { };
+        this.defaults = { };
 
-    // We often read settings repeatedly in inner loops, which can become a bottleneck
-    // if we decode the JSON-encoded settings from localStorage every time.  However, we
-    // don't want to cache them aggressively, since changes to settings in one tab should
-    // take effect in others immediately.  This caches the decoded value of settings, but
-    // is cleared as soon as we return to the event loop, so we only cache settings briefly.
-    static cache = { };
+        // We often read settings repeatedly in inner loops, which can become a bottleneck
+        // if we decode the JSON-encoded settings from localStorage every time.  However, we
+        // don't want to cache them aggressively, since changes to settings in one tab should
+        // take effect in others immediately.  This caches the decoded value of settings, but
+        // is cleared as soon as we return to the event loop, so we only cache settings briefly.
+        this.cache = { };
 
-    // If a setting has no saved value, it'll be cached as no_value.  This is different from
-    // null, since null is a valid saved value.
-    static no_value = new Object();
+        // If a setting has no saved value, it'll be cached as no_value.  This is different from
+        // null, since null is a valid saved value.
+        this.no_value = new Object();
 
-    // When a setting changes, an event with the name of the setting is dispatched on
-    // settings.changes.
-    static changes = new EventTarget();
-    
-    static get_change_callback_list(key)
+        // When a setting changes, an event with the name of the setting is dispatched on
+        // settings.changes.
+        this.changes = new EventTarget();
+
+        // Register settings.
+        this.configure("zoom-mode", { sticky: true });
+        this.configure("theme", { default: "dark" });
+        this.configure("zoom-level", { sticky: true });
+        this.configure("linked_tabs", { session: true });
+        this.configure("linked_tabs_enabled", { session: true, default_value: true });
+        this.configure("volume", { default_value: 1 });
+        this.configure("view_mode", { default_value: "illust" });
+        this.configure("image_editing", { session: true });
+        this.configure("image_editing_mode", { session: true });
+        this.configure("inpaint_create_lines", { session: true });
+        this.configure("slideshow_duration", { default_value: 15 });
+        this.configure("auto_pan_duration", { default_value: 3 });
+        this.configure("extra_mutes", { default_value: [] });
+        this.configure("slideshow_skips_manga", { default_value: false });
+        this.configure("expand_manga_thumbnails", { default_value: false });
+    }
+
+    get_change_callback_list(key)
     {
         if(settings._callbacks == null)
             settings._callbacks = {};
@@ -43,13 +63,13 @@ ppixiv.settings = class
     // Session settings are stored in sessionStorage instead of localStorage.  These are
     // local to the tab.  They'll be copied into new tabs if a tab is duplicated, but they're
     // otherwise isolated, and lost when the tab is closed.
-    static configure(key, {sticky=false, session=false, default_value=null})
+    configure(key, {sticky=false, session=false, default_value=null})
     {
         if(sticky)
         {
             // Create the key if it doesn't exist.
-            if(settings.sticky_settings[key] === undefined)
-                settings.sticky_settings[key] = null;
+            if(this.sticky_settings[key] === undefined)
+                this.sticky_settings[key] = null;
         }
 
         if(session)
@@ -59,7 +79,7 @@ ppixiv.settings = class
             this.defaults[key] = default_value;
     }
 
-    static _get_storage_for_key(key)
+    _get_storage_for_key(key)
     {
         if(this.session_settings[key])
             return sessionStorage;
@@ -68,7 +88,7 @@ ppixiv.settings = class
     }
 
     // Wait until we return to the event loop, then clear any cached settings.
-    static async _queue_clear_cache()
+    async _queue_clear_cache()
     {
         if(this._clear_cache_queued || Object.keys(this.cache).length == 0)
             return;
@@ -82,13 +102,13 @@ ppixiv.settings = class
         }
     }
 
-    static _cache_value(key, value)
+    _cache_value(key, value)
     {
         this.cache[key] = value;
         this._queue_clear_cache();
     }
 
-    static _get_from_storage(key, default_value)
+    _get_from_storage(key, default_value)
     {
         // See if we have a cached value.
         if(key in this.cache)
@@ -123,31 +143,31 @@ ppixiv.settings = class
         }
     }
 
-    static get(key, default_value)
+    get(key, default_value)
     {
         if(key in this.defaults)
             default_value = this.defaults[key];
 
         // If this is a sticky setting and we've already read it, use our loaded value.
-        if(settings.sticky_settings[key])
-            return settings.sticky_settings[key];
+        if(this.sticky_settings[key])
+            return this.sticky_settings[key];
 
-        let result = settings._get_from_storage(key, default_value);
+        let result = this._get_from_storage(key, default_value);
 
         // If this is a sticky setting, remember it for reuse.  This will store the default value
         // if there's no stored setting.
-        if(settings.sticky_settings[key] !== undefined)
-            settings.sticky_settings[key] = result;
+        if(this.sticky_settings[key] !== undefined)
+            this.sticky_settings[key] = result;
 
         return result;
     }
 
     // Handle migrating settings that have changed.
-    static migrate()
+    migrate()
     {
     }
 
-    static set(key, value)
+    set(key, value)
     {
         let storage = this._get_storage_for_key(key);
 
@@ -157,8 +177,8 @@ ppixiv.settings = class
             throw "Key can't be set to undefined: " + key;
 
         // If this is a sticky setting, replace its value.
-        if(settings.sticky_settings[key] !== undefined)
-            settings.sticky_settings[key] = value;
+        if(this.sticky_settings[key] !== undefined)
+            this.sticky_settings[key] = value;
 
         var setting_key = "_ppixiv_" + key;
         storage[setting_key] = JSON.stringify(value);
@@ -167,26 +187,26 @@ ppixiv.settings = class
         this._cache_value(key, value);
 
         // Call change listeners for this key.
-        settings.get_change_callback_list(key).call(key);
+        this.get_change_callback_list(key).call(key);
 
         let event = new Event(key);
-        settings.changes.dispatchEvent(event);
+        this.changes.dispatchEvent(event);
     }
 
-    static register_change_callback(key, callback, { signal=null }={})
+    register_change_callback(key, callback, { signal=null }={})
     {
-        settings.get_change_callback_list(key).register(callback, signal);
+        this.get_change_callback_list(key).register(callback, signal);
     }
 
-    static unregister_change_callback(key, callback)
+    unregister_change_callback(key, callback)
     {
-        settings.get_change_callback_list(key).unregister(callback);
+        this.get_change_callback_list(key).unregister(callback);
     }
 
     // Adjust a zoom setting up or down.
-    static adjust_zoom(setting, down)
+    adjust_zoom(setting, down)
     {
-        let value = settings.get(setting);
+        let value = this.get(setting);
         if(typeof(value) != "number" || isNaN(value))
             value = 4;
 
@@ -195,23 +215,6 @@ ppixiv.settings = class
         this._slider_value = value;
         this.value = this._slider_value;
 
-        settings.set(setting, value);
+        this.set(setting, value);
     }
 }
-
-// Register settings.
-ppixiv.settings.configure("zoom-mode", { sticky: true });
-ppixiv.settings.configure("theme", { default: "dark" });
-ppixiv.settings.configure("zoom-level", { sticky: true });
-ppixiv.settings.configure("linked_tabs", { session: true });
-ppixiv.settings.configure("linked_tabs_enabled", { session: true, default_value: true });
-ppixiv.settings.configure("volume", { default_value: 1 });
-ppixiv.settings.configure("view_mode", { default_value: "illust" });
-ppixiv.settings.configure("image_editing", { session: true });
-ppixiv.settings.configure("image_editing_mode", { session: true });
-ppixiv.settings.configure("inpaint_create_lines", { session: true });
-ppixiv.settings.configure("slideshow_duration", { default_value: 15 });
-ppixiv.settings.configure("auto_pan_duration", { default_value: 3 });
-ppixiv.settings.configure("extra_mutes", { default_value: [] });
-ppixiv.settings.configure("slideshow_skips_manga", { default_value: false });
-ppixiv.settings.configure("expand_manga_thumbnails", { default_value: false });

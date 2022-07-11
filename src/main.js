@@ -74,6 +74,7 @@ ppixiv.main_controller = class
         console.log("ppixiv controller setup");
 
         // Create singletons.
+        ppixiv.settings = new ppixiv.Settings();
         ppixiv.media_cache = new ppixiv.MediaCache();
         ppixiv.user_cache = new ppixiv.UserCache();
 
