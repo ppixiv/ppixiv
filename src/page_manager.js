@@ -263,7 +263,9 @@ ppixiv.page_manager = class
             return true;
 
         // If the disabled-by-default setting is enabled, disable by default until manually
-        // turned on.
+        // turned on.  The global settings singleton isn't created yet, so just create a
+        // temporary one.
+        let settings = new ppixiv.Settings();
         if(settings.get("disabled-by-default"))
             return false;
 
