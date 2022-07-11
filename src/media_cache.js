@@ -54,8 +54,6 @@ ppixiv.MediaCache = class extends EventTarget
     {
         super();
         
-        this.illust_modified_callbacks = new callback_list();
-
         // Cached data:
         this.media_info = { };
 
@@ -72,8 +70,6 @@ ppixiv.MediaCache = class extends EventTarget
 
     call_illust_modified_callbacks(media_id)
     {
-        this.illust_modified_callbacks.call(media_id);
-
         let event = new Event("mediamodified");
         event.media_id = media_id;
         this.dispatchEvent(event);

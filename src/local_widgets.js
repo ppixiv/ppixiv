@@ -30,7 +30,7 @@ ppixiv.tree_widget = class extends ppixiv.widget
         this.items = this.container.querySelector(".items");
 
         // Listen to illust changes so we can refresh nodes.
-        media_cache.illust_modified_callbacks.register(this.illust_modified);
+        media_cache.addEventListener("mediamodified", this.illust_modified, { signal: this.shutdown_signal.signal });
 
         // Create the root item.  This is tree_widget_item or a subclass.
         if(add_root)
@@ -45,7 +45,7 @@ ppixiv.tree_widget = class extends ppixiv.widget
         }
     }
 
-    illust_modified = (media_id) =>
+    illust_modified = (e) =>
     {
         if(this.root == null)
             return;
@@ -53,7 +53,7 @@ ppixiv.tree_widget = class extends ppixiv.widget
         for(let node of Object.values(this.root.nodes))
         {
             if(node.illust_changed)
-                node.illust_changed(media_id);
+                node.illust_changed(e.media_id);
         }
     }
     
@@ -548,9 +548,6 @@ class local_navigation_widget_item extends ppixiv.tree_widget_item
 
     // This is called by the tree when an illust changes to let us refresh, so we don't need
     // to register an illust change callback for every node.
-    // XXX: need a way to refresh these
-    // do this once at the tree level:
-    // media_cache.illust_modified_callbacks.register(this.refresh);
     illust_changed(media_id)
     {
         // Refresh if we're displaying the illust that changed.

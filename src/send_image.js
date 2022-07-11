@@ -66,7 +66,7 @@ ppixiv.SendImage = class
             this.finalize_quick_view_image();
         }, { capture: true });
 
-        ppixiv.media_cache.illust_modified_callbacks.register((media_id) => { this.broadcast_illust_changes(media_id); });
+        media_cache.addEventListener("mediamodified", ({media_id}) => { this.broadcast_illust_changes(media_id); });
 
         SendImage.send_image_channel.addEventListener("message", this.received_message);
         this.broadcast_tab_info();
@@ -288,7 +288,7 @@ ppixiv.SendImage = class
             if(data.origin != window.origin)
                 return;
 
-            // update_media_info will trigger illust_modified_callbacks below.  Make sure we don't rebroadcast
+            // update_media_info will trigger mediamodified below.  Make sure we don't rebroadcast
             // info that we're receiving here.  Note that add_media_info_full can trigger loads, and we won't
             // send any info for changes that happen before those complete since we have to wait
             // for it to finish, but normally this receives all info for an illust anyway.

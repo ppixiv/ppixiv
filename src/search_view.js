@@ -67,7 +67,7 @@ ppixiv.search_view = class extends ppixiv.widget
         window.addEventListener("focus", this.visible_thumbs_changed);
 
         // When a bookmark is modified, refresh the heart icon.
-        ppixiv.media_cache.illust_modified_callbacks.register(this.refresh_thumbnail);
+        media_cache.addEventListener("mediamodified", this.refresh_thumbnail, { signal: this.shutdown_signal.signal });
 
         this.container.addEventListener("load", (e) => {
             if(e.target.classList.contains("thumb"))
@@ -1471,8 +1471,10 @@ ppixiv.search_view = class extends ppixiv.widget
     // Refresh the thumbnail for media_id.
     //
     // This is used to refresh the bookmark icon when changing a bookmark.
-    refresh_thumbnail = (media_id) =>
+    refresh_thumbnail = (e) =>
     {
+        let media_id = e.media_id;
+        
         // If this is a manga post, refresh all thumbs for this media ID, since bookmarking
         // a manga post is shown on all pages if it's expanded.
         let media_info = media_cache.get_media_info_sync(media_id, { full: false });

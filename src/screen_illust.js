@@ -37,7 +37,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
         });
         
         user_cache.user_modified_callbacks.register(this.refresh_ui);
-        ppixiv.media_cache.illust_modified_callbacks.register(this.refresh_ui);
+        media_cache.addEventListener("mediamodified", this.refresh_ui, { signal: this.shutdown_signal.signal });
         settings.register_change_callback("recent-bookmark-tags", this.refresh_ui);
 
         this.view_container = this.container.querySelector(".view-container");
