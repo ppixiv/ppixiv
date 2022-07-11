@@ -1278,7 +1278,7 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
         });
 
         media_cache.addEventListener("mediamodified", this.refresh.bind(this), { signal: this.shutdown_signal.signal });
-        settings.register_change_callback("recent-bookmark-tags", this.refresh.bind(this));
+        settings.addEventListener("recent-bookmark-tags", this.refresh.bind(this));
     }
 
     // Return an array of tags selected in the tag dropdown.

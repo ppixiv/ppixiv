@@ -140,7 +140,7 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         this.container.addEventListener("selectstart", this.block_event, { signal: this.event_shutdown.signal });
 
         // Start or stop panning if the user changes it while we're active, eg. by pressing ^P.
-        settings.changes.addEventListener("auto_pan", this.refresh_autopan.bind(this), { signal: this.event_shutdown.signal });
+        settings.addEventListener("auto_pan", this.refresh_autopan.bind(this), { signal: this.event_shutdown.signal });
 
         // This is like pointermove, but received during quick view from the source tab.
         window.addEventListener("quickviewpointermove", this.quickviewpointermove, { signal: this.event_shutdown.signal });

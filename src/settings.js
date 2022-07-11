@@ -1,10 +1,14 @@
 "use strict";
 
 // Get and set values in localStorage.
-ppixiv.Settings = class
+//
+// When a setting changes, an event with the name of the setting is dispatched.
+ppixiv.Settings = class extends EventTarget
 {
     constructor()
     {
+        super();
+
         this.sticky_settings = { };
         this.session_settings = { };
         this.defaults = { };
@@ -19,10 +23,6 @@ ppixiv.Settings = class
         // If a setting has no saved value, it'll be cached as no_value.  This is different from
         // null, since null is a valid saved value.
         this.no_value = new Object();
-
-        // When a setting changes, an event with the name of the setting is dispatched on
-        // settings.changes.
-        this.changes = new EventTarget();
 
         // Register settings.
         this.configure("zoom-mode", { sticky: true });
@@ -40,16 +40,6 @@ ppixiv.Settings = class
         this.configure("extra_mutes", { default_value: [] });
         this.configure("slideshow_skips_manga", { default_value: false });
         this.configure("expand_manga_thumbnails", { default_value: false });
-    }
-
-    get_change_callback_list(key)
-    {
-        if(settings._callbacks == null)
-            settings._callbacks = {};
-        var callbacks = settings._callbacks[key];
-        if(callbacks == null)
-            callbacks = settings._callbacks[key] = new callback_list();
-        return callbacks;
     }
 
     // Configure settings.  This is used for properties of settings that we need to
@@ -186,21 +176,8 @@ ppixiv.Settings = class
         // Update the cached value.
         this._cache_value(key, value);
 
-        // Call change listeners for this key.
-        this.get_change_callback_list(key).call(key);
-
         let event = new Event(key);
-        this.changes.dispatchEvent(event);
-    }
-
-    register_change_callback(key, callback, { signal=null }={})
-    {
-        this.get_change_callback_list(key).register(callback, signal);
-    }
-
-    unregister_change_callback(key, callback)
-    {
-        this.get_change_callback_list(key).unregister(callback);
+        this.dispatchEvent(event);
     }
 
     // Adjust a zoom setting up or down.

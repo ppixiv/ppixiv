@@ -483,10 +483,10 @@ ppixiv.screen_search = class extends ppixiv.screen
             new ppixiv.settings_dialog();
         });
 
-        settings.register_change_callback("theme", this.update_from_settings);
-        settings.register_change_callback("ui-on-hover", this.update_from_settings);
-        settings.register_change_callback("no-hide-cursor", this.update_from_settings);
-        settings.register_change_callback("no_recent_history", this.update_from_settings);
+        settings.addEventListener("theme", this.update_from_settings, { signal: this.shutdown_signal.signal });
+        settings.addEventListener("ui-on-hover", this.update_from_settings, { signal: this.shutdown_signal.signal });
+        settings.addEventListener("no-hide-cursor", this.update_from_settings, { signal: this.shutdown_signal.signal });
+        settings.addEventListener("no_recent_history", this.update_from_settings, { signal: this.shutdown_signal.signal });
         muting.singleton.addEventListener("mutes-changed", this.refresh_ui_for_user_id);
 
         // Zoom the thumbnails on ctrl-mousewheel:

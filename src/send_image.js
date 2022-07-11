@@ -473,7 +473,7 @@ ppixiv.link_tabs_popup = class extends ppixiv.widget
         helpers.interval(this.send_link_tab_message, 1000, this.visibility_abort.signal);
 
         // Refresh the "unlink all tabs" button on other tabs when the linked tab list changes.
-        settings.changes.addEventListener("linked_tabs", this.send_link_tab_message, { signal: this.visibility_abort.signal });
+        settings.addEventListener("linked_tabs", this.send_link_tab_message, { signal: this.visibility_abort.signal });
 
         // The other tab will send these messages when the link and unlink buttons
         // are clicked.

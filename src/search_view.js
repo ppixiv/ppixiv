@@ -185,12 +185,12 @@ ppixiv.search_view = class extends ppixiv.widget
             root: document,
             rootMargin: "0%",
         }));
-            
-        settings.register_change_callback("thumbnail-size", this.update_from_settings);
-        settings.register_change_callback("manga-thumbnail-size", this.update_from_settings);
-        settings.register_change_callback("disable_thumbnail_zooming", this.update_from_settings);
-        settings.register_change_callback("disable_thumbnail_panning", this.update_from_settings);
-        settings.register_change_callback("expand_manga_thumbnails", this.update_from_settings);
+
+        settings.addEventListener("thumbnail-size", this.update_from_settings, { signal: this.shutdown_signal.signal });
+        settings.addEventListener("manga-thumbnail-size", this.update_from_settings, { signal: this.shutdown_signal.signal });
+        settings.addEventListener("disable_thumbnail_zooming", this.update_from_settings, { signal: this.shutdown_signal.signal });
+        settings.addEventListener("disable_thumbnail_panning", this.update_from_settings, { signal: this.shutdown_signal.signal });
+        settings.addEventListener("expand_manga_thumbnails", this.update_from_settings, { signal: this.shutdown_signal.signal });
         muting.singleton.addEventListener("mutes-changed", this.refresh_after_mute_change);
 
         this.update_from_settings();
@@ -1474,7 +1474,7 @@ ppixiv.search_view = class extends ppixiv.widget
     refresh_thumbnail = (e) =>
     {
         let media_id = e.media_id;
-        
+
         // If this is a manga post, refresh all thumbs for this media ID, since bookmarking
         // a manga post is shown on all pages if it's expanded.
         let media_info = media_cache.get_media_info_sync(media_id, { full: false });

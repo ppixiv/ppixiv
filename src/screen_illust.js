@@ -38,7 +38,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
         
         user_cache.addEventListener("usermodified", this.refresh_ui, { signal: this.shutdown_signal.signal });        
         media_cache.addEventListener("mediamodified", this.refresh_ui, { signal: this.shutdown_signal.signal });
-        settings.register_change_callback("recent-bookmark-tags", this.refresh_ui);
+        settings.addEventListener("recent-bookmark-tags", this.refresh_ui, { signal: this.shutdown_signal.signal });
 
         this.view_container = this.container.querySelector(".view-container");
 
@@ -58,8 +58,8 @@ ppixiv.screen_illust = class extends ppixiv.screen
             let hover_circle = this.container.querySelector(".ui .hover-circle");
             hover_circle.addEventListener("mouseenter", (e) => { this.hovering_over_sphere = true; this.refresh_overlay_ui_visibility(); });
             hover_circle.addEventListener("mouseleave", (e) => { this.hovering_over_sphere = false; this.refresh_overlay_ui_visibility(); });
-            settings.changes.addEventListener("image_editing", () => { this.refresh_overlay_ui_visibility(); });
-            settings.changes.addEventListener("image_editing_mode", () => { this.refresh_overlay_ui_visibility(); });
+            settings.addEventListener("image_editing", () => { this.refresh_overlay_ui_visibility(); });
+            settings.addEventListener("image_editing_mode", () => { this.refresh_overlay_ui_visibility(); });
             this.refresh_overlay_ui_visibility();
         
             // Fullscreen on double-click.
@@ -475,7 +475,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
     }
 
     // Refresh the UI for the current image.
-    refresh_ui = () =>
+    refresh_ui = (e) =>
     {
         // Don't refresh if the thumbnail view is active.  We're not visible, and we'll just
         // step over its page title, etc.

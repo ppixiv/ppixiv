@@ -2956,13 +2956,13 @@ ppixiv.data_sources.search = class extends data_source
         super.startup();
 
         // Refresh our title when translations are toggled.
-        settings.register_change_callback("disable-translations", this.cache_search_title);
+        settings.addEventListener("disable-translations", this.cache_search_title);
     }
 
     shutdown()
     {
         super.shutdown();
-        settings.unregister_change_callback("disable-translations", this.cache_search_title);
+        settings.removeEventListener("disable-translations", this.cache_search_title);
     }
 
     cache_search_title = async() =>

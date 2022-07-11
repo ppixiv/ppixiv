@@ -134,7 +134,7 @@ ppixiv.hide_mouse_cursor_on_idle = class
         window.addEventListener("mouseactive", this.refresh_cursor_stationary);
         window.addEventListener("mouseinactive", this.refresh_cursor_stationary);
 
-        settings.register_change_callback("no-hide-cursor", hide_mouse_cursor_on_idle.update_from_settings);
+        settings.addEventListener("no-hide-cursor", hide_mouse_cursor_on_idle.update_from_settings);
         hide_mouse_cursor_on_idle.update_from_settings();
     }
 

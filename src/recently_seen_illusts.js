@@ -12,7 +12,7 @@ ppixiv.recently_seen_illusts = class
 
     constructor()
     {
-        settings.register_change_callback("no_recent_history", this.update_from_settings);
+        settings.addEventListener("no_recent_history", this.update_from_settings);
         this.update_from_settings();
     }
 

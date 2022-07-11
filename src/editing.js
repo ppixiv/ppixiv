@@ -121,7 +121,7 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
 
         // Refresh when these settings change.
         for(let setting of ["image_editing", "image_editing_mode"])
-            settings.changes.addEventListener(setting, () => {
+            settings.addEventListener(setting, () => {
                 this.refresh();
 
                 // Let our parent know that we may have changed editor visibility, since this
