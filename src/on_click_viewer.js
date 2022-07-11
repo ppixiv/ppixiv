@@ -635,7 +635,7 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
             // Send pointer movements to linked tabs.  If we're inverting scrolling, this
             // is included here, so clients will scroll the same way regardless of their
             // local settings.
-            SendImage.send_mouse_movement_to_linked_tabs(x_offset, y_offset);
+            ppixiv.send_image.send_mouse_movement_to_linked_tabs(x_offset, y_offset);
         }
 
         // This will make mouse dragging match the image exactly:

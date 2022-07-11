@@ -226,7 +226,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
 
         // If linked tabs are active, send this image.
         if(settings.get("linked_tabs_enabled"))
-            SendImage.send_image(media_id, settings.get("linked_tabs", []), "temp-view");
+            ppixiv.send_image.send_image(media_id, settings.get("linked_tabs", []), "temp-view");
 
         // Get very basic illust info.  This is enough to tell which viewer to use, how
         // many pages it has, and whether it's muted.  This will always complete immediately
@@ -456,7 +456,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
         // If remote quick view is active, cancel it if we leave the image.
         if(settings.get("linked_tabs_enabled"))
         {
-            SendImage.send_message({
+            ppixiv.send_image.send_message({
                 message: "send-image",
                 action: "cancel",
                 to: settings.get("linked_tabs", []),

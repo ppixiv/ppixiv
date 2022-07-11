@@ -77,7 +77,8 @@ ppixiv.main_controller = class
         ppixiv.settings = new ppixiv.Settings();
         ppixiv.media_cache = new ppixiv.MediaCache();
         ppixiv.user_cache = new ppixiv.UserCache();
-
+        ppixiv.send_image = new ppixiv.SendImage();
+        
         // Create the page manager.
         page_manager.singleton();
 
@@ -246,8 +247,6 @@ ppixiv.main_controller = class
         helpers.add_clicks_to_search_history(document.body);
          
         this.container = document.body;
-
-        SendImage.init();
 
         // Create the popup menu handler.
         this.context_menu = new main_context_menu({container: document.body});

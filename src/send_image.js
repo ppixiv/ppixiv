@@ -3,42 +3,17 @@
 // This handles sending images from one tab to another.
 ppixiv.SendImage = class
 {
-    // This is a singleton, so we never close this channel.
-    static send_image_channel = new ppixiv.LocalBroadcastChannel("ppixiv:send-image");
-
-    // A UUID we use to identify ourself to other tabs:
-    static tab_id = this.create_tab_id();
-    static tab_id_tiebreaker = Date.now()
-    
-    static create_tab_id(recreate=false)
+    constructor()
     {
-        // If we have a saved tab ID, use it.
-        //
-        // sessionStorage on Android Chrome is broken.  Home screen apps should retain session storage
-        // for that particular home screen item, but they don't.  (This isn't a problem on iOS.)  Use
-        // localStorage instead, which means things like linked tabs will link to the device instead of
-        // the instance.  That's usually good enough if you're linking to a phone or tablet.
-        let storage = ppixiv.android? localStorage:sessionStorage;
-        if(!recreate && storage.ppixivTabId)
-            return storage.ppixivTabId;
+        // This is a singleton, so we never close this channel.
+        this.send_image_channel = new ppixiv.LocalBroadcastChannel("ppixiv:send-image");
 
-        // Make a new ID, and save it to the session.  This helps us keep the same ID
-        // when we're reloaded.
-        storage.ppixivTabId = helpers.create_uuid();
-        return storage.ppixivTabId;
-    }
+        // A UUID we use to identify ourself to other tabs:
+        this.tab_id = this.create_tab_id();
+        this.tab_id_tiebreaker = Date.now()
 
-    static known_tabs = {};
-    
-    static initialized = false;
-    static init()
-    {
-        if(this.initialized)
-            return;
-        this.initialized = true;
-
+        this.known_tabs = {};
         this.pending_movement = [0, 0];
-
         this.listeners = {};
 
         window.addEventListener("unload", this.window_onunload);
@@ -68,13 +43,31 @@ ppixiv.SendImage = class
 
         media_cache.addEventListener("mediamodified", ({media_id}) => { this.broadcast_illust_changes(media_id); });
 
-        SendImage.send_image_channel.addEventListener("message", this.received_message);
+        this.send_image_channel.addEventListener("message", this.received_message);
         this.broadcast_tab_info();
 
         this.query_tabs();
     }
 
-    static finalize_quick_view_image = () =>
+    create_tab_id(recreate=false)
+    {
+        // If we have a saved tab ID, use it.
+        //
+        // sessionStorage on Android Chrome is broken.  Home screen apps should retain session storage
+        // for that particular home screen item, but they don't.  (This isn't a problem on iOS.)  Use
+        // localStorage instead, which means things like linked tabs will link to the device instead of
+        // the instance.  That's usually good enough if you're linking to a phone or tablet.
+        let storage = ppixiv.android? localStorage:sessionStorage;
+        if(!recreate && storage.ppixivTabId)
+            return storage.ppixivTabId;
+
+        // Make a new ID, and save it to the session.  This helps us keep the same ID
+        // when we're reloaded.
+        storage.ppixivTabId = helpers.create_uuid();
+        return storage.ppixivTabId;
+    }
+
+    finalize_quick_view_image = () =>
     {
         let args = ppixiv.helpers.args.location;
         if(args.hash.has("temp-view"))
@@ -86,9 +79,9 @@ ppixiv.SendImage = class
         }
     }
 
-    static messages = new EventTarget();
+    messages = new EventTarget();
 
-    static add_message_listener(message, func)
+    add_message_listener(message, func)
     {
         if(!this.listeners[message])
             this.listeners[message] = [];
@@ -98,27 +91,27 @@ ppixiv.SendImage = class
 
     // If we're sending an image and the page is unloaded, try to cancel it.  This is
     // only registered when we're sending an image.
-    static window_onunload = (e) =>
+    window_onunload = (e) =>
     {
         // If we were sending an image to another tab, cancel it if this tab is closed.
-        SendImage.send_message({
+        this.send_message({
             message: "send-image",
             action: "cancel",
             to: settings.get("linked_tabs", []),
         });
 
         // Tell other tabs that this tab has closed.
-        SendImage.send_message({ message: "tab-closed" });
+        this.send_message({ message: "tab-closed" });
     }
 
-    static query_tabs()
+    query_tabs()
     {
-        SendImage.send_message({ message: "list-tabs" });
+        this.send_message({ message: "list-tabs" });
     }
 
     // Send an image to another tab.  action is either "temp-view", to show the image temporarily,
     // or "display", to navigate to it.
-    static async send_image(media_id, tab_ids, action)
+    async send_image(media_id, tab_ids, action)
     {
         // Send everything we know about the image, so the receiver doesn't have to
         // do a lookup.
@@ -129,7 +122,7 @@ ppixiv.SendImage = class
 
         this.send_message({
             message: "send-image",
-            from: SendImage.tab_id,
+            from: this.tab_id,
             to: tab_ids,
             media_id: media_id,
             action: action, // "temp-view" or "display"
@@ -139,7 +132,7 @@ ppixiv.SendImage = class
         }, false);
     }
 
-    static broadcast_illust_changes(media_id)
+    broadcast_illust_changes(media_id)
     {
         // Don't do this if this is coming from another tab, so we don't re-broadcast data
         // we just received.
@@ -156,7 +149,7 @@ ppixiv.SendImage = class
     // not constantly sending all search results to all tabs.  We don't currently update
     // thumbnail data from image data, so if a tab edits image data while it doesn't have
     // thumbnail data loaded, other tabs with only thumbnail data loaded won't see it.
-    static broadcast_image_info(media_id)
+    broadcast_image_info(media_id)
     {
         // Send everything we know about the image, so the receiver doesn't have to
         // do a lookup.
@@ -167,7 +160,7 @@ ppixiv.SendImage = class
 
         this.send_message({
             message: "image-info",
-            from: SendImage.tab_id,
+            from: this.tab_id,
             media_id: media_id,
             media_info,
             bookmark_tags: extra_cache.singleton().get_bookmark_details_sync(media_id),
@@ -176,12 +169,12 @@ ppixiv.SendImage = class
         }, false);
     }
 
-    static received_message = async(e) =>
+    received_message = async(e) =>
     {
         let data = e.data;
 
         // If this message has a target and it's not us, ignore it.
-        if(data.to && data.to.indexOf(SendImage.tab_id) == -1)
+        if(data.to && data.to.indexOf(this.tab_id) == -1)
             return;
 
         let event = new Event(data.message);
@@ -203,7 +196,7 @@ ppixiv.SendImage = class
             // can be used explicitly when we're displaying a tab thumbnail, but each tab
             // might have newer or older image info, and propagating them back and forth
             // could be confusing.
-            if(data.from == SendImage.tab_id)
+            if(data.from == this.tab_id)
             {
                 // The other tab has the same ID we do.  The only way this normally happens
                 // is if a tab is duplicated, which will duplicate its sessionStorage with it.
@@ -211,10 +204,10 @@ ppixiv.SendImage = class
                 // the higher value will recreate its tab ID.  This is set to the time when
                 // we're loaded, so this will usually cause new tabs to be the one to create
                 // a new ID.
-                if(SendImage.tab_id_tiebreaker >= data.tab_id_tiebreaker)
+                if(this.tab_id_tiebreaker >= data.tab_id_tiebreaker)
                 {
                     console.log("Creating a new tab ID due to ID conflict");
-                    SendImage.tab_id = SendImage.create_tab_id(true /* recreate */ );
+                    this.tab_id = this.create_tab_id(true /* recreate */ );
                 }
                 else
                     console.log("Tab ID conflict (other tab will create a new ID)");
@@ -336,7 +329,7 @@ ppixiv.SendImage = class
         }
     }
 
-    static broadcast_tab_info = () =>
+    broadcast_tab_info = () =>
     {
         let screen = main_controller.singleton.displayed_screen;
         let media_id = screen? screen.displayed_media_id:null;
@@ -347,7 +340,7 @@ ppixiv.SendImage = class
 
         let our_tab_info = {
             message: "tab-info",
-            tab_id_tiebreaker: SendImage.tab_id_tiebreaker,
+            tab_id_tiebreaker: this.tab_id_tiebreaker,
             visible: !document.hidden,
             title: document.title,
             window_width: window.innerWidth,
@@ -365,10 +358,10 @@ ppixiv.SendImage = class
         this.send_message(our_tab_info);
 
         // Add us to our own known_tabs.
-        this.known_tabs[SendImage.tab_id] = our_tab_info;
+        this.known_tabs[this.tab_id] = our_tab_info;
     }
 
-    static send_message(data, send_to_self)
+    send_message(data, send_to_self)
     {
         // Include the tab ID in all messages.
         data.from = this.tab_id;
@@ -387,7 +380,7 @@ ppixiv.SendImage = class
 
     // If we're currently showing a preview image sent from another tab, back out to
     // where we were before.
-    static hide_preview_image()
+    hide_preview_image()
     {
         let was_in_preview = ppixiv.history.virtual;
         if(!was_in_preview)
@@ -396,7 +389,7 @@ ppixiv.SendImage = class
         ppixiv.history.back();        
     }
 
-    static send_mouse_movement_to_linked_tabs(x, y)
+    send_mouse_movement_to_linked_tabs(x, y)
     {
         if(!settings.get("linked_tabs_enabled"))
             return;
@@ -416,7 +409,7 @@ ppixiv.SendImage = class
 
         this.last_movement_message_time = Date.now();
 
-        SendImage.send_message({
+        this.send_message({
             message: "preview-mouse-movement",
             x: this.pending_movement[0],
             y: this.pending_movement[1],
@@ -454,7 +447,7 @@ ppixiv.link_tabs_popup = class extends ppixiv.widget
         if(!this.visible)
             return;
 
-        SendImage.send_message({
+        ppixiv.send_image.send_message({
             message: "show-link-tab",
             linked_tabs: settings.get("linked_tabs", []),
         });
@@ -466,7 +459,7 @@ ppixiv.link_tabs_popup = class extends ppixiv.widget
 
         if(!this.visible)
         {
-            SendImage.send_message({ message: "hide-link-tab" });
+            ppixiv.send_image.send_message({ message: "hide-link-tab" });
             return;
         }
 
@@ -477,7 +470,7 @@ ppixiv.link_tabs_popup = class extends ppixiv.widget
 
         // The other tab will send these messages when the link and unlink buttons
         // are clicked.
-        SendImage.messages.addEventListener("link-this-tab", (e) => {
+        ppixiv.send_image.messages.addEventListener("link-this-tab", (e) => {
             let message = e.message;
 
             let tab_ids = settings.get("linked_tabs", []);
@@ -489,7 +482,7 @@ ppixiv.link_tabs_popup = class extends ppixiv.widget
             this.send_link_tab_message();
         }, { signal: this.visibility_abort.signal });
 
-        SendImage.messages.addEventListener("unlink-this-tab", (e) => {
+        ppixiv.send_image.messages.addEventListener("unlink-this-tab", (e) => {
             let message = e.message;
             let tab_ids = settings.get("linked_tabs", []);
             let idx = tab_ids.indexOf(message.from);
@@ -526,25 +519,25 @@ ppixiv.link_this_tab_popup = class extends ppixiv.dialog_widget
 
         // Show ourself when we see a show-link-tab message and hide if we see a
         // hide-link-tab-message.
-        SendImage.add_message_listener("show-link-tab", (message) => {
+        ppixiv.send_image.add_message_listener("show-link-tab", (message) => {
             this.other_tab_id = message.from;
             this.hide_timer.set(2000);
 
-            let linked = message.linked_tabs.indexOf(SendImage.tab_id) != -1;
+            let linked = message.linked_tabs.indexOf(ppixiv.send_image.tab_id) != -1;
             this.container.querySelector(".link-this-tab").hidden = linked;
             this.container.querySelector(".unlink-this-tab").hidden = !linked;
 
             this.visible = true;
         });
 
-        SendImage.add_message_listener("hide-link-tab", (message) => {
+        ppixiv.send_image.add_message_listener("hide-link-tab", (message) => {
             this.hide_timer.clear();
             this.visible = false;
         });
 
         // When "link this tab" is clicked, send a link-this-tab message.
         this.container.querySelector(".link-this-tab").addEventListener("click", (e) => {
-            SendImage.send_message({ message: "link-this-tab", to: [this.other_tab_id] });
+            ppixiv.send_image.send_message({ message: "link-this-tab", to: [this.other_tab_id] });
 
             // If we're linked to another tab, clear our linked tab list, to try to make
             // sure we don't have weird chains of tabs linking each other.
@@ -552,7 +545,7 @@ ppixiv.link_this_tab_popup = class extends ppixiv.dialog_widget
         });
 
         this.container.querySelector(".unlink-this-tab").addEventListener("click", (e) => {
-            SendImage.send_message({ message: "unlink-this-tab", to: [this.other_tab_id] });
+            ppixiv.send_image.send_message({ message: "unlink-this-tab", to: [this.other_tab_id] });
         });
     }
 
@@ -596,9 +589,9 @@ ppixiv.send_image_popup = class extends ppixiv.dialog_widget
             this.visible = false;
         });
 
-        SendImage.add_message_listener("take-image", (message) => {
+        ppixiv.send_image.add_message_listener("take-image", (message) => {
             let tab_id = message.from;
-            SendImage.send_image(this.media_id, [tab_id], "display");
+            ppixiv.send_image.send_image(this.media_id, [tab_id], "display");
 
             this.visible = false;
         });
@@ -618,7 +611,7 @@ ppixiv.send_image_popup = class extends ppixiv.dialog_widget
 
         if(!this.visible)
         {
-            SendImage.send_message({ message: "hide-send-image" });
+            ppixiv.send_image.send_message({ message: "hide-send-image" });
             return;
         }
 
@@ -626,7 +619,7 @@ ppixiv.send_image_popup = class extends ppixiv.dialog_widget
             // We should always be visible when this is called.
             console.assert(this.visible);
 
-            SendImage.send_message({ message: "show-send-image" });
+            ppixiv.send_image.send_message({ message: "show-send-image" });
         }, 1000, this.visibility_abort.signal);
     }
 }
@@ -652,13 +645,13 @@ ppixiv.send_here_popup = class extends ppixiv.dialog_widget
 
         // Show ourself when we see a show-link-tab message and hide if we see a
         // hide-link-tab-message.
-        SendImage.add_message_listener("show-send-image", (message) => {
+        ppixiv.send_image.add_message_listener("show-send-image", (message) => {
             this.other_tab_id = message.from;
             this.hide_timer.set(2000);
             this.visible = true;
         });
 
-        SendImage.add_message_listener("hide-send-image", (message) => {
+        ppixiv.send_image.add_message_listener("hide-send-image", (message) => {
             this.hide_timer.clear();
             this.visible = false;
         });
@@ -667,7 +660,7 @@ ppixiv.send_here_popup = class extends ppixiv.dialog_widget
     take_image = (e) =>
     {
         // Send take-image.  The sending tab will respond with a send-image message.
-        SendImage.send_message({ message: "take-image", to: [this.other_tab_id] });
+        ppixiv.send_image.send_message({ message: "take-image", to: [this.other_tab_id] });
     }
 
     visibility_changed()
