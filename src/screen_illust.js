@@ -36,7 +36,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
             parent: this,
         });
         
-        user_cache.user_modified_callbacks.register(this.refresh_ui);
+        user_cache.addEventListener("usermodified", this.refresh_ui, { signal: this.shutdown_signal.signal });        
         media_cache.addEventListener("mediamodified", this.refresh_ui, { signal: this.shutdown_signal.signal });
         settings.register_change_callback("recent-bookmark-tags", this.refresh_ui);
 

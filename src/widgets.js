@@ -667,7 +667,7 @@ ppixiv.avatar_widget = class extends widget
 
         helpers.set_class(this.container, "big", this.options.big);
 
-        user_cache.user_modified_callbacks.register(this.user_changed);
+        user_cache.addEventListener("usermodified", this.user_changed, { signal: this.shutdown_signal.signal });
 
         let element_author_avatar = this.container.querySelector(".avatar");
         let avatar_link = this.container.querySelector(".avatar-link");
@@ -717,11 +717,6 @@ ppixiv.avatar_widget = class extends widget
         new creepy_eye_widget(this.container.querySelector(".follow-icon .eye-image"));
     }
 
-    shutdown()
-    {
-        user_cache.user_modified_callbacks.unregister(this.user_changed);
-    }
-
     visibility_changed()
     {
         super.visibility_changed();
@@ -730,7 +725,7 @@ ppixiv.avatar_widget = class extends widget
     }
 
     // Refresh when the user changes.
-    user_changed = (user_id) =>
+    user_changed = ({user_id}) =>
     {
         if(this.user_id == null || this.user_id != user_id)
             return;
@@ -880,7 +875,7 @@ ppixiv.follow_widget = class extends widget
         });
 
         // Refresh if the user we're displaying changes.
-        user_cache.user_modified_callbacks.register(this.user_changed);
+        user_cache.addEventListener("usermodified", this.user_changed, { signal: this.shutdown_signal.signal });
 
         // Close if our container closes.
         new view_hidden_listener(this.container, (e) => {
@@ -888,7 +883,7 @@ ppixiv.follow_widget = class extends widget
         });
     }
 
-    user_changed = (user_id) =>
+    user_changed = ({user_id}) =>
     {
         if(!this.visible || user_id != this.user_id)
             return;

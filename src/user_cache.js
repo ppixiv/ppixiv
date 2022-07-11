@@ -4,7 +4,6 @@ ppixiv.UserCache = class extends EventTarget
     {
         super();
 
-        this.user_modified_callbacks = new callback_list();
         this.user_data = { };
         this.all_user_follow_tags = null;
         this.user_follow_info = { };
@@ -18,8 +17,6 @@ ppixiv.UserCache = class extends EventTarget
     call_user_modified_callbacks(user_id)
     {
         console.log("User modified:", user_id);
-        this.user_modified_callbacks.call(user_id);
-
         let event = new Event("usermodified");
         event.user_id = user_id;
         this.dispatchEvent(event);

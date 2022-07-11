@@ -416,7 +416,7 @@ ppixiv.screen_search = class extends ppixiv.screen
             </div>
         `});
 
-        user_cache.user_modified_callbacks.register(this.refresh_ui);
+        user_cache.addEventListener("usermodified", this.refresh_ui, { signal: this.shutdown_signal.signal });        
 
         new thumbnail_ui({
             parent: this,
