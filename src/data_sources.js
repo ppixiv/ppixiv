@@ -1166,7 +1166,7 @@ ppixiv.data_sources.discovery_users = class extends data_source
         if(this.showing_user_id != null)
         {
             // Make sure the user info is loaded.
-            this.user_info = await user_cache.singleton().get_user_info_full(this.showing_user_id);
+            this.user_info = await user_cache.get_user_info_full(this.showing_user_id);
 
             // Update to refresh our page title, which uses user_info.
             this.call_update_listeners();
@@ -1200,7 +1200,7 @@ ppixiv.data_sources.discovery_users = class extends data_source
 
         for(let user of result.body.users)
         {
-            user_cache.singleton().add_user_data(user);
+            user_cache.add_user_data(user);
 
             // Register this as quick user data, for use in thumbnails.
             extra_cache.singleton().add_quick_user_data(user, "recommendations");
@@ -1616,7 +1616,7 @@ ppixiv.data_sources.artist = class extends data_source
 
         // Make sure the user info is loaded.  This should normally be preloaded by globalInitData
         // in main.js, and this won't make a request.
-        this.user_info = await user_cache.singleton().get_user_info_full(this.viewing_user_id);
+        this.user_info = await user_cache.get_user_info_full(this.viewing_user_id);
 
         // Update to refresh our page title, which uses user_info.
         this.call_update_listeners();
@@ -1881,7 +1881,7 @@ ppixiv.data_sources.artist = class extends data_source
     {
         // Get user info.  We probably have this on this.user_info, but that async load
         // might not be finished yet.
-        var user_info = await user_cache.singleton().get_user_info_full(this.viewing_user_id);
+        var user_info = await user_cache.get_user_info_full(this.viewing_user_id);
         console.log("Loading tags for user", user_info.userId);
 
         // Load the user's common tags.
@@ -2111,7 +2111,7 @@ class data_source_bookmarks_base extends data_source
         this.fetch_bookmark_tag_counts();
         
         // Load the user's info.  We don't need to wait for this to finish.
-        let user_info_promise = user_cache.singleton().get_user_info_full(this.viewing_user_id);
+        let user_info_promise = user_cache.get_user_info_full(this.viewing_user_id);
         user_info_promise.then((user_info) => {
             // Stop if we were deactivated before this finished.
             if(!this.active)
@@ -3311,7 +3311,7 @@ ppixiv.data_sources.follows = class extends data_source
     {
         // Make sure the user info is loaded.  This should normally be preloaded by globalInitData
         // in main.js, and this won't make a request.
-        this.user_info = await user_cache.singleton().get_user_info_full(this.viewing_user_id);
+        this.user_info = await user_cache.get_user_info_full(this.viewing_user_id);
 
         // Update to refresh our page title, which uses user_info.
         this.call_update_listeners();
@@ -3640,7 +3640,7 @@ ppixiv.data_sources.completed_requests = class extends data_source
             request_data[request.requestId] = request;
         
         for(let user of result.body.users)
-            user_cache.singleton().add_user_data(user);
+            user_cache.add_user_data(user);
 
         await media_cache.add_media_infos_partial(result.body.thumbnails.illust, "normal");
         tag_translations.get().add_translations_dict(result.body.tagTranslation);

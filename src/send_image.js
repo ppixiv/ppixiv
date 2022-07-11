@@ -125,7 +125,7 @@ ppixiv.SendImage = class
         let media_info = ppixiv.media_cache.get_media_info_sync(media_id);
 
         let user_id = media_info?.userId;
-        let user_info = user_id? user_cache.singleton().get_user_info_sync(user_id):null;
+        let user_info = user_id? user_cache.get_user_info_sync(user_id):null;
 
         this.send_message({
             message: "send-image",
@@ -163,7 +163,7 @@ ppixiv.SendImage = class
         let media_info = ppixiv.media_cache.get_media_info_sync(media_id);
 
         let user_id = media_info?.userId;
-        let user_info = user_id? user_cache.singleton().get_user_info_sync(user_id):null;
+        let user_info = user_id? user_cache.get_user_info_sync(user_id):null;
 
         this.send_message({
             message: "image-info",
@@ -244,7 +244,7 @@ ppixiv.SendImage = class
                 console.log("Registering cached image info");
                 let user_info = data.user_info;
                 if(user_info != null)
-                    user_cache.singleton().add_user_data(user_info);
+                    user_cache.add_user_data(user_info);
 
                 let media_info = data.media_info;
                 if(media_info != null)
@@ -306,7 +306,7 @@ ppixiv.SendImage = class
 
                 let user_info = data.user_info;
                 if(user_info != null)
-                    user_cache.singleton().add_user_data(user_info);
+                    user_cache.add_user_data(user_info);
             } finally {
                 this.handling_broadcasted_image_info = false;
             }
@@ -343,7 +343,7 @@ ppixiv.SendImage = class
         let media_info = media_id? ppixiv.media_cache.get_media_info_sync(media_id):null;
 
         let user_id = media_info?.userId;
-        let user_info = user_id? user_cache.singleton().get_user_info_sync(user_id):null;
+        let user_info = user_id? user_cache.get_user_info_sync(user_id):null;
 
         let our_tab_info = {
             message: "tab-info",

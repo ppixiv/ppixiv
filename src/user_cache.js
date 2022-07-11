@@ -1,13 +1,5 @@
-ppixiv.user_cache = class extends EventTarget
+ppixiv.UserCache = class extends EventTarget
 {
-    // Return the singleton, creating it if needed.
-    static singleton()
-    {
-        if(user_cache._singleton == null)
-            user_cache._singleton = new user_cache();
-        return user_cache._singleton;
-    }
-    
     constructor()
     {
         super();

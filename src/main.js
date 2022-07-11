@@ -75,7 +75,8 @@ ppixiv.main_controller = class
 
         // Create singletons.
         ppixiv.media_cache = new ppixiv.MediaCache();
-        
+        ppixiv.user_cache = new ppixiv.UserCache();
+
         // Create the page manager.
         page_manager.singleton();
 
@@ -142,7 +143,7 @@ ppixiv.main_controller = class
         {
             preload = JSON.parse(preload.getAttribute("content"));
             for(var preload_user_id in preload.user)
-                user_cache.singleton().add_user_data(preload.user[preload_user_id]);
+                user_cache.add_user_data(preload.user[preload_user_id]);
             for(var preload_illust_id in preload.illust)
                 media_cache.add_media_info_full(preload.illust[preload_illust_id]);
         }

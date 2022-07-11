@@ -667,7 +667,7 @@ ppixiv.avatar_widget = class extends widget
 
         helpers.set_class(this.container, "big", this.options.big);
 
-        user_cache.singleton().user_modified_callbacks.register(this.user_changed);
+        user_cache.user_modified_callbacks.register(this.user_changed);
 
         let element_author_avatar = this.container.querySelector(".avatar");
         let avatar_link = this.container.querySelector(".avatar-link");
@@ -719,7 +719,7 @@ ppixiv.avatar_widget = class extends widget
 
     shutdown()
     {
-        user_cache.singleton().user_modified_callbacks.unregister(this.user_changed);
+        user_cache.user_modified_callbacks.unregister(this.user_changed);
     }
 
     visibility_changed()
@@ -779,7 +779,7 @@ ppixiv.avatar_widget = class extends widget
         this.container.classList.remove("loading");
         this.container.querySelector(".follow-icon").hidden = true;
 
-        let user_data = await user_cache.singleton().get_user_info(this.user_id);
+        let user_data = await user_cache.get_user_info(this.user_id);
         this.user_data = user_data;
         if(user_data == null)
             return;
@@ -880,7 +880,7 @@ ppixiv.follow_widget = class extends widget
         });
 
         // Refresh if the user we're displaying changes.
-        user_cache.singleton().user_modified_callbacks.register(this.user_changed);
+        user_cache.user_modified_callbacks.register(this.user_changed);
 
         // Close if our container closes.
         new view_hidden_listener(this.container, (e) => {
@@ -958,7 +958,7 @@ ppixiv.follow_widget = class extends widget
 
             // Refresh with whether we're followed or not, so the follow/unfollow UI is
             // displayed as early as possible.
-            let user_info = await user_cache.singleton().get_user_info(this.user_id);
+            let user_info = await user_cache.get_user_info(this.user_id);
             if(!this.visible)
                 return;
 
@@ -967,15 +967,15 @@ ppixiv.follow_widget = class extends widget
             if(!user_info.isFollowed)
             {
                 // We're not following, so just load the follow tag list.
-                let all_tags = await user_cache.singleton().load_all_user_follow_tags();
+                let all_tags = await user_cache.load_all_user_follow_tags();
                 this.refresh_with_data({ user_info, following: user_info.isFollowed, all_tags, selected_tags: new Set() });
                 return;
             }
 
             // Get full follow info to find out if the follow is public or private, and which
             // tags are selected.
-            let follow_info = await user_cache.singleton().get_user_follow_info(this.user_id);
-            let all_tags = await user_cache.singleton().load_all_user_follow_tags();
+            let follow_info = await user_cache.get_user_follow_info(this.user_id);
+            let all_tags = await user_cache.load_all_user_follow_tags();
             this.refresh_with_data({user_info, following: true, following_privately: follow_info?.following_privately, all_tags, selected_tags: follow_info?.tags});
         } finally {
             this.refreshing = false;
@@ -1085,7 +1085,7 @@ ppixiv.follow_widget = class extends widget
         let user_id = this.user_id;
 
         // If the user isn't followed, the first tag is added by following.
-        let user_data = await user_cache.singleton().get_user_info(user_id);
+        let user_data = await user_cache.get_user_info(user_id);
         if(!user_data.isFollowed)
         {
             // We're not following, so follow the user with default privacy and the
@@ -1095,7 +1095,7 @@ ppixiv.follow_widget = class extends widget
         }
 
         // We're already following, so update the existing tags.
-        let follow_info = await user_cache.singleton().get_user_follow_info(user_id);
+        let follow_info = await user_cache.get_user_follow_info(user_id);
         if(follow_info == null)
         {
             console.log("Error retrieving follow info to update tags");
