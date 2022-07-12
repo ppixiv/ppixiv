@@ -2112,9 +2112,12 @@ a.box-link, span.box-link
         &.selected {
             background-color: var(--box-link-selected-color);
         }
-        &:hover {
-            background-color: var(--box-link-hover-color);
-            &.selected { background-color: var(--box-link-selected-hover-color); }
+        
+        @media(hover: hover) {
+            &:hover {
+                background-color: var(--box-link-hover-color);
+                &.selected { background-color: var(--box-link-selected-hover-color); }
+            }
         }
     }
 }
