@@ -3188,6 +3188,7 @@ ppixiv.key_storage = class
         this.db_upgrade = db_upgrade;
         this.store_name = store_name;
         this.version = version;
+        this.failed = false;
     }
 
     // Open the database, run func, then close the database.
@@ -3196,9 +3197,23 @@ ppixiv.key_storage = class
     // any other database, any attempts to add stores (which you can do seamlessly with
     // any other database) will permanently wedge the database.  We have to open it and
     // close it around every op.
+    //
+    // If the database can't be opened, func won't be called and null will be returned.
     async db_op(func)
     {
-        let db = await this.open_database();
+        // Stop early if we've already failed, so we don't log an error for each op.
+        if(this.failed)
+            return null;
+
+        let db;
+        try {
+            db = await this.open_database();
+        } catch(e) {
+            console.log("Couldn't open database:", e);
+            this.failed = true;
+            return null;
+        }
+        
         try {
             return await func(db);
         } finally {
@@ -3244,8 +3259,7 @@ ppixiv.key_storage = class
             };
 
             request.onerror = e => {
-                console.log(`Error opening database: ${request.error}`);
-                reject(e);
+                reject(request.error);
             };
         });
     }
@@ -3288,7 +3302,7 @@ ppixiv.key_storage = class
         });
     }
 
-    // Given a list of keys, return known translations.  Tags that we don't have data for are null.
+    // Retrieve the values for a list of keys.  Return a dictionary of {key: value}.
     async multi_get(keys)
     {
         return await this.db_op(async (db) => {
@@ -3298,7 +3312,7 @@ ppixiv.key_storage = class
             for(let key of keys)
                 promises.push(key_storage.async_store_get(store, key));
             return await Promise.all(promises);
-        });
+        }) ?? {};
     }
 
     static async_store_set(store, key, value)

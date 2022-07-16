@@ -76,7 +76,7 @@ ppixiv.extra_image_data = class
                     promises[media_id] = data;
             }
             return await helpers.await_map(promises);
-        });
+        }) ?? {};
     }
 
     // Return data for all pages of illust_id.
@@ -99,7 +99,7 @@ ppixiv.extra_image_data = class
             }
     
             return results;
-        });
+        }) ?? {};
     }
 
     // Batch load a list of illust_ids.  The results are returned mapped by illust_id.
@@ -129,7 +129,7 @@ ppixiv.extra_image_data = class
             }
 
             return await helpers.await_map(promises);
-        });
+        }) ?? {};
     }
 
     // Return the media ID of all illust IDs.
@@ -154,7 +154,7 @@ ppixiv.extra_image_data = class
             }
     
             return results;
-        });
+        }) ?? [];
     }
 
     // Export the database contents to allow the user to back it up.
@@ -177,7 +177,7 @@ ppixiv.extra_image_data = class
             }
     
             return results;
-        });
+        }) ?? [];
 
         let exported_data = {
             type: "ppixiv-image-data",
