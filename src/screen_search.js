@@ -380,6 +380,8 @@ let thumbnail_ui = class extends ppixiv.widget
                             ${ helpers.create_box_link({label: "Name (inverse)", data_type: "local-sort-invert" }) }
                             ${ helpers.create_box_link({label: "Newest",         data_type: "local-sort-newest" }) }
                             ${ helpers.create_box_link({label: "Oldest",         data_type: "local-sort-oldest" }) }
+                            ${ helpers.create_box_link({label: "New bookmarks", data_type: "local-sort-bookmark-created-at-desc" }) }
+                            ${ helpers.create_box_link({label: "Old bookmarks", data_type: "local-sort-bookmark-created-at-asc" }) }
                         </div>
 
                         ${ helpers.create_box_link({ popup: "Shuffle", icon: "shuffle",   data_type: "local-sort-shuffle" }) }

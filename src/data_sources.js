@@ -4013,6 +4013,13 @@ ppixiv.data_sources.vview = class extends data_source
         this.set_item2(container, {type: "local-sort-oldest", fields: {"#order": "ctime"}, current_url: current_args.url });
         this.set_item2(container, {type: "local-sort-shuffle", fields: {"#order": "shuffle"}, toggle: true, current_url: current_args.url });
 
+        this.set_item2(container, {type: "local-sort-bookmark-created-at-desc", fields: {"#order": "bookmarked-at"}, current_url: current_args.url });
+        this.set_item2(container, {type: "local-sort-bookmark-created-at-asc", fields: {"#order": "-bookmarked-at"}, current_url: current_args.url });
+
+        // Disable the bookmark sorts if we're not viewing bookmarks.
+        helpers.set_class(container.querySelector('[data-type="local-sort-bookmark-created-at-desc"]'), "disabled", !current_args.hash.has("bookmarks"));
+        helpers.set_class(container.querySelector('[data-type="local-sort-bookmark-created-at-asc"]'), "disabled", !current_args.hash.has("bookmarks"));
+        
         this.refresh_bookmark_tag_list(container);
         this.set_active_popup_highlight(container);
     }

@@ -101,7 +101,17 @@ sort_orders = {
     # This is the default sort for Library.list.
     'natural': {
         'fs': _create_natsort(),
-    }
+    },
+
+    # Sort by time bookmarked.
+    'bookmarked-at': {
+        'index': [('bookmark_created_at', 'DESC')],
+
+        # Bookmark searches are always local index searches, so these aren't used.
+        'windows': [],
+        'entry': lambda entry: 0,
+        'fs': lambda entry: 0,
+    },
 }
 
 def _get_sort(sort_order):
