@@ -19,6 +19,11 @@ let _load_source_file = function(__pixiv, __source) {
 
 (async() =>
 {
+    // If this is an iframe, don't do anything, so if we're a debug environment for Pixiv we don't
+    // try to load in Pixiv iframes.
+    if(window.top != window.self)
+        return;
+
     console.log("ppixiv native bootstrap");
 
     // In a development build, our source and binary assets are in @resources, and we need
