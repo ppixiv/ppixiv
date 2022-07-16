@@ -88,6 +88,8 @@ class FileIndex(Database):
                             author NOT NULL,
                             bookmarked NOT NULL DEFAULT FALSE,
                             bookmark_tags NOT NULL DEFAULT "",
+                            bookmark_created_at NOT NULL DEFAULT 0,
+                            bookmark_updated_at NOT NULL DEFAULT 0,
                             directory_thumbnail_path,
                             codec,
                             animation NOT NULL DEFAULT FALSE,
@@ -113,6 +115,8 @@ class FileIndex(Database):
                     conn.execute(f'CREATE INDEX {self.schema}.files_mime_type on files(mime_type)')
                     conn.execute(f'CREATE INDEX {self.schema}.files_animation on files(animation) WHERE animation')
                     conn.execute(f'CREATE INDEX {self.schema}.files_bookmarked on files(bookmarked) WHERE bookmarked')
+                    conn.execute(f'CREATE INDEX {self.schema}.files_bookmark_created_at on files(bookmark_created_at) WHERE bookmarked')
+                    conn.execute(f'CREATE INDEX {self.schema}.files_bookmark_updated_at on files(bookmark_updated_at) WHERE bookmarked')
 
                     # This index is for the "normal" sort order.  See library.sort_orders.
                     conn.execute(f'CREATE INDEX {self.schema}.files_sort_normal on files(basename_if_directory_lowercase DESC, path_lowercase ASC)')

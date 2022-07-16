@@ -439,6 +439,13 @@ class Library:
         # Don't overwrite data that we got from the file directly.
         entry['bookmarked'] = file_metadata.get('bookmarked', False)
         entry['bookmark_tags'] = self.normalize_bookmark_tags(file_metadata.get('bookmark_tags', ''))
+
+        # To migrate older bookmarks from before this was added, use the file timestamp as the default
+        # bookmark time.  This should be quick, but just to be safe, make sure we don't stat the file
+        # if the file isn't bookmarked.
+        default_bookmark_time = path.stat().st_ctime if entry['bookmarked'] else 0
+        entry['bookmark_created_at'] = file_metadata.get('bookmark_created_at', default_bookmark_time)
+        entry['bookmark_updated_at'] = file_metadata.get('bookmark_updated_at', default_bookmark_time)
         if 'width' not in entry:
             entry['width'] = file_metadata.get('width')
         if 'height' not in entry:
@@ -1035,6 +1042,13 @@ class Library:
         with metadata_storage.load_and_lock_file_metadata(path) as file_metadata:
             if set_bookmark:
                 file_metadata['bookmarked'] = True
+
+                # Touch the updated time, and set the created time if it wasn't already set.
+                now = math.floor(time.time())
+                if 'bookmark_created_at' not in file_metadata:
+                    file_metadata['bookmark_created_at'] = now
+                file_metadata['bookmark_updated_at'] = now
+
                 if tags is not None:
                     tags = self.normalize_bookmark_tags(tags)
                     file_metadata['bookmark_tags'] = tags
@@ -1046,6 +1060,8 @@ class Library:
             else:
                 if 'bookmarked' in file_metadata: del file_metadata['bookmarked']
                 if 'bookmark_tags' in file_metadata: del file_metadata['bookmark_tags']
+                if 'bookmark_created_at' in file_metadata: del file_metadata['bookmark_created_at']
+                if 'bookmark_updated_at' in file_metadata: del file_metadata['bookmark_updated_at']
 
                 # Clear cached metadata too, so the metadata is empty after unbookmarking and the
                 # metadata file can be deleted.
@@ -1093,7 +1109,8 @@ class Library:
                     continue
 
                 # Remove from_tag and add to_tag.  In case we're merging a tag with another tag that
-                # already exists, make sure we don't add the new tag if it's already there.
+                # already exists, make sure we don't add the new tag if it's already there.  Note that
+                # we don't update bookmark_updated_at for batch renames.
                 entry_bookmark_tags.remove(from_tag)
                 if to_tag not in entry_bookmark_tags:
                     entry_bookmark_tags.append(to_tag)
