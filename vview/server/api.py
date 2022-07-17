@@ -304,11 +304,12 @@ async def _get_api_illust_info(info, media_id, *, generate_inpaint=False):
         # Generate it if it doesn't exist when image data is requested, since that's when
         # the user is viewing a single image.  This only matters if the cached data has been
         # deleted.
-        await inpainting.create_inpaint_for_entry(entry, info.manager)
+        _, patch_image, _ = await inpainting.create_inpaint_for_entry(entry, info.manager)
 
-        # Re-cache the file, so inpaint_timestamp is updated.  It's only imported if the
-        # inpaint file exists.
-        info.manager.library.get(absolute_path, force_refresh=True)
+        # If a new inpaint was created, patch_image will be set.  Re-cache the file, so
+        # inpaint_timestamp is updated.  It's only imported if the inpaint file exists.
+        if patch_image is not None:
+            info.manager.library.get(absolute_path, force_refresh=True)
 
     return illust_info
 
