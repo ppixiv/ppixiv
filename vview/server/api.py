@@ -288,7 +288,7 @@ async def api_illust(info):
     
 async def _get_api_illust_info(info, media_id, *, generate_inpaint=False):
     absolute_path = info.manager.resolve_path(media_id)
-    entry = info.manager.library.get(absolute_path, force_refresh=True)
+    entry = info.manager.library.get(absolute_path)
     if entry is None:
         raise misc.Error('not-found', 'File not in library')
 
