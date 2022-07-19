@@ -2468,10 +2468,15 @@ svg.heart-image .delete {
         color: #800 !important;
         stroke: none;
     }
-    &.bookmarked svg,
-    &.enabled:hover svg {
+    &.bookmarked svg {
         color: #f00 !important;
         stroke: none;
+    }
+    @media(hover: hover) {
+        &.enabled:hover svg {
+            color: #f00 !important;
+            stroke: none;
+        }
     }
 }
 
