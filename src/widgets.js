@@ -1277,7 +1277,6 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
             helpers.set_recent_bookmark_tags(bookmark_tags);
         });
 
-        media_cache.addEventListener("mediamodified", this.refresh.bind(this), { signal: this.shutdown_signal.signal });
         settings.addEventListener("recent-bookmark-tags", this.refresh.bind(this));
     }
 
@@ -1886,8 +1885,6 @@ ppixiv.bookmark_button_widget = class extends ppixiv.illust_widget
         this.bookmark_tag_widget = bookmark_tag_widget;
 
         this.container.addEventListener("click", this.clicked_bookmark);
-
-        media_cache.addEventListener("mediamodified", this.refresh.bind(this), { signal: this.shutdown_signal.signal });
     }
 
     refresh_internal({ media_id, media_info })
@@ -1983,13 +1980,6 @@ ppixiv.bookmark_button_widget = class extends ppixiv.illust_widget
 
 ppixiv.bookmark_count_widget = class extends ppixiv.illust_widget
 {
-    constructor(options)
-    {
-        super(options);
-
-        media_cache.addEventListener("mediamodified", this.refresh.bind(this), { signal: this.shutdown_signal.signal });
-    }
-
     refresh_internal({ media_info })
     {
         this.container.textContent = media_info? media_info.bookmarkCount:"---";
@@ -2005,8 +1995,6 @@ ppixiv.like_button_widget = class extends ppixiv.illust_widget
         super(options);
 
         this.container.addEventListener("click", this.clicked_like);
-
-        media_cache.addEventListener("mediamodified", this.refresh.bind(this), { signal: this.shutdown_signal.signal });
     }
 
     async refresh_internal({ media_id })
@@ -2034,12 +2022,6 @@ ppixiv.like_button_widget = class extends ppixiv.illust_widget
 
 ppixiv.like_count_widget = class extends ppixiv.illust_widget
 {
-    constructor(options)
-    {
-        super(options);
-        media_cache.addEventListener("mediamodified", this.refresh.bind(this), { signal: this.shutdown_signal.signal });
-    }
-
     async refresh_internal({ media_info })
     {
         this.container.textContent = media_info? media_info.likeCount:"---";
