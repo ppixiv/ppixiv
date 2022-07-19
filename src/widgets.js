@@ -1240,6 +1240,80 @@ ppixiv.text_prompt = class extends ppixiv.dialog_widget
     }
 }
 
+ppixiv.confirm_prompt = class extends ppixiv.dialog_widget
+{
+    constructor({
+        text,
+        ...options
+    }={})
+    {
+        super({...options, classes: "confirm-popup", dialog_type: "small", allow_close: false, template: `
+            <div class=text></div>
+            <div class=input-box>
+                ${helpers.create_box_link({
+                    label: "Yes",
+                    icon: "image",
+                    classes: ["yes"],
+                })}
+
+                ${helpers.create_box_link({
+                    label: "No",
+                    icon: "image",
+                    classes: ["no"],
+                })}
+            </div>
+        `});
+        
+        this.result = new Promise((completed, cancelled) => {
+            this._completed = completed;
+        });
+
+        this.container.querySelector(".text").innerText = text;
+        this.container.querySelector(".yes").addEventListener("click", () => this.submit(true), { signal: this.shutdown_signal.signal });
+        this.container.querySelector(".no").addEventListener("click", () => this.submit(false), { signal: this.shutdown_signal.signal });
+    }
+
+    onkeydown = (e) =>
+    {
+        if(e.key == "Escape")
+        {
+            e.preventDefault();
+            e.stopPropagation();
+            this.submit(false);
+        }
+
+        if(e.key == "Enter")
+        {
+            e.preventDefault();
+            e.stopPropagation();
+            this.submit(true);
+        }
+    }
+
+    visibility_changed()
+    {
+        super.visibility_changed();
+
+        if(this.visible)
+        {
+            window.addEventListener("keydown", this.onkeydown, { signal: this.visibility_abort.signal });
+        }
+        else
+        {
+            // If we didn't complete by now, cancel.
+            this._completed(null);
+        }
+    }
+
+    // Close the popup and call the completion callback with the result.
+    submit = (result) =>
+    {
+        this._completed(result);
+
+        this.visible = false;
+    }
+}
+
 // Widget for editing bookmark tags.
 ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
 {
@@ -1958,6 +2032,14 @@ ppixiv.bookmark_button_widget = class extends ppixiv.illust_widget
         let private_bookmark = this.bookmark_type == "private";
         if(illust_data.bookmarkData && illust_data.bookmarkData.private == private_bookmark)
         {
+            // Confirm removing bookmarks when on mobile.
+            if(ppixiv.mobile)
+            {
+                let result = await (new ppixiv.confirm_prompt({ text: "Remove bookmark?" })).result;
+                if(!result)
+                    return;
+            }
+
             let media_id = this._media_id;
             await actions.bookmark_remove(this._media_id);
 

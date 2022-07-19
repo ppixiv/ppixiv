@@ -2789,6 +2789,20 @@ svg.heart-image .delete {
     }
 }
 
+.dialog .confirm-popup
+{
+    gap: 0.5em;
+    .title {
+        font-size: 20px;
+    }
+
+    .input-box {
+        display: flex;
+        align-items: center;
+        gap: 0.5em;
+    }
+}
+
 .years-ago {
     padding: .25em;
     margin: .25em;
