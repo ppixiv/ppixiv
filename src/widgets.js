@@ -249,7 +249,10 @@ ppixiv.illust_widget = class extends ppixiv.widget
         super(options);
 
         // Refresh when the image data changes.
-        ppixiv.media_cache.addEventListener("mediamodified", this.refresh.bind(this), { signal: this.shutdown_signal.signal });
+        ppixiv.media_cache.addEventListener("mediamodified", (e) => {
+            if(e.media_id == this._media_id)
+                this.refresh();
+        }, { signal: this.shutdown_signal.signal });
     }
 
     // The data this widget needs.  This can be media_id (nothing but the ID), full or partial.
