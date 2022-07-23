@@ -35,6 +35,14 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         });
     }
 
+    get _page()
+    {
+        if(this.media_id == null)
+            return 0;
+        else
+            return helpers.parse_media_id(this.media_id).page;
+    }
+
     async load(signal,
         media_id, {
             restore_history=false,
@@ -45,7 +53,6 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         this.restore_history = restore_history;
 
         this.media_id = media_id;
-        this._page = helpers.parse_media_id(media_id).page;
         this._slideshow = slideshow;
         this._onnextimage = onnextimage;
 
@@ -56,23 +63,23 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         // take either full or partial info, whichever's available.  If we have partial
         // info, that's enough to set up the image list with preview URLs, so we can set
         // up the image view while we load full info.
-        let early_illust_data = await media_cache.get_media_info(this.media_id, { full: false, safe: false });
+        let illust_data = await media_cache.get_media_info(this.media_id, { full: false, safe: false });
 
         // Stop if we were removed before the request finished.
         signal.check();
 
         // See if we got full or partial info.
-        if(early_illust_data.full)
+        if(illust_data.full)
         {
             // We got full info, so we have all we need.
-            this.illust_data = early_illust_data;
+            this.illust_data = illust_data;
         } else {
             // We got partial info, which only gives us the image dimensions for page 1.
-            let extra_data = ppixiv.media_cache.get_extra_data(early_illust_data, this.media_id);
+            let extra_data = ppixiv.media_cache.get_extra_data(illust_data, this.media_id);
             this.images = [{
-                preview_url: early_illust_data.previewUrls[0],
-                width: early_illust_data.width,
-                height: early_illust_data.height,
+                preview_url: illust_data.previewUrls[0],
+                width: illust_data.width,
+                height: illust_data.height,
                 crop: extra_data?.crop,
                 pan: extra_data?.pan,
             }];
