@@ -509,10 +509,6 @@ ppixiv.screen_illust = class extends ppixiv.screen
             return;
 
         this.ui.refresh();
-
-        // Tell the view that illust data changed.
-        if(this.viewer?.illust_data_changed)
-            this.viewer.illust_data_changed();
     }
 
     onwheel = (e) =>

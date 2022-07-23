@@ -26,6 +26,14 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         // Make this the primary image viewer.
         image_viewer_base.set_primary(this.on_click_viewer);
 
+        media_cache.addEventListener("mediamodified", ({media_id}) => {
+            if(media_id == this.media_id)
+            {
+                console.log("refresh from modified");
+                this.media_info_modified();
+            }
+        }, { signal: this.shutdown_signal.signal });
+
         // Create the inpaint editor.  This is passed down to on_click_viewer to group
         // it with the image, but we create it here and reuse it.
         this.image_editor = new ppixiv.ImageEditor({
@@ -59,21 +67,22 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         // Tell the inpaint editor about the image.
         this.image_editor.set_media_id(this.media_id);
 
-        // Get whatever media info we already have.  full: false, safe: false means we'll
-        // take either full or partial info, whichever's available.  If we have partial
-        // info, that's enough to set up the image list with preview URLs, so we can set
-        // up the image view while we load full info.
-        let illust_data = await media_cache.get_media_info(this.media_id, { full: false, safe: false });
-
-        // Stop if we were removed before the request finished.
-        signal.check();
-
-        // See if we got full or partial info.
-        if(illust_data.full)
+        // If full info is already loaded, use it.  We don't need to go async at all in this case.
+        let illust_data = ppixiv.media_cache.get_media_info_sync(this.media_id);
+        if(illust_data)
         {
-            // We got full info, so we have all we need.
+            this._update_from_illust_data(illust_data);
+            return;
+        }
+
+        // We don't have full info yet.  See if we have partial info.  If we do, we can use it
+        // to set up the viewer immediately while we wait for full info to load.  This lets us
+        // display the preview image if possible and not flash a black screen.
+        illust_data = ppixiv.media_cache.get_media_info_sync(this.media_id, { full: false });
+        if(illust_data)
+        {
             this.illust_data = illust_data;
-        } else {
+
             // We got partial info, which only gives us the image dimensions for page 1.
             let extra_data = ppixiv.media_cache.get_extra_data(illust_data, this.media_id);
             this.images = [{
@@ -85,15 +94,20 @@ ppixiv.viewer_images = class extends ppixiv.viewer
             }];
 
             this.refresh();
-            
-            // Now wait for full illust info to load.
-            this.illust_data = await ppixiv.media_cache.get_media_info(this.media_id);
-
-            // Stop if we were removed before the request finished.
-            signal.check();
         }
 
-        // Update the list to include the image URLs.
+        // Load full info.
+        illust_data = await media_cache.get_media_info(this.media_id);
+
+        // Stop if we were called again while we were waiting.
+        signal.check();
+
+        this._update_from_illust_data(illust_data);
+    }
+
+    _update_from_illust_data(illust_data)
+    {
+        this.illust_data = illust_data;
         this.refresh_from_illust_data();
     }
 
@@ -120,21 +134,15 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         this.refresh();
     }
 
-    // If illust data changes, refresh in case any image URLs have changed.
-    illust_data_changed()
+    // If media info changes, refresh in case any image URLs have changed.
+    media_info_modified()
     {
-        // If we don't have illust_data, load() is still going.  Don't do anything here,
-        // let it finish and it'll pick up the latest data.
-        if(this.illust_data == null)
-            return;
-
         // Get the updated illust data.
         let illust_data = ppixiv.media_cache.get_media_info_sync(this.media_id);
         if(illust_data == null)
             return;
 
-        this.illust_data = illust_data;
-        this.refresh_from_illust_data();
+        this._update_from_illust_data(illust_data);
     }
 
     shutdown()
