@@ -137,13 +137,6 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         this.refresh_from_illust_data();
     }
 
-    // Note that this will always return JPG if all we have is the preview URL.
-    get current_image_type()
-    {
-        return helpers.get_extension(this.url).toUpperCase();
-    }
-    
-    
     shutdown()
     {
         super.shutdown();
@@ -180,7 +173,6 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         }
 
         // Create the new image and pass it to the viewer.
-        this.url = current_image.url || current_image.preview_url;
         this.on_click_viewer.set_new_image({
             media_id: this.media_id,
             url: current_image.url,

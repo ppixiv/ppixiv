@@ -21,9 +21,6 @@ ppixiv.viewer = class extends widget
     set active(value) { this._active = value; }
     get active() { return this._active; }
 
-    // Return the file type for display in the UI, eg. "PNG".
-    get current_image_type() { return null; }
-
     // If an image is displayed, clear it.
     //
     // This is only used with the illust viewer when changing manga pages in cases

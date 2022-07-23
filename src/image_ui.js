@@ -354,11 +354,16 @@ ppixiv.image_ui = class extends ppixiv.widget
         {
             var page_info = this.illust_data.mangaPages[this.displayed_page];
             info += page_info.width + "x" + page_info.height;
-        }
 
-        var ext = this.viewer? this.viewer.current_image_type:null;
-        if(ext != null)
-            info += " " + ext;
+            // For illusts, add the image type.  Don't do this for animations.
+            if(this.illust_data.illustType != 2)
+            {
+                let url = page_info.urls?.original;
+                let ext = helpers.get_extension(url).toUpperCase();
+                if(ext)
+                    info += " " + ext;
+            }
+        }
 
         set_info(".image-info", info);
 
