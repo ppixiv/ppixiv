@@ -121,10 +121,10 @@ ppixiv.image_ui = class extends ppixiv.widget
     </div>
     <div class=post-info>
         <div class="post-age popup" hidden></div>
+        <div class=image-info hidden></div>
         <div class=page-count hidden></div>
         <div class=ugoira-duration hidden></div>
         <div class=ugoira-frames hidden></div>
-        <div class=image-info hidden></div>
     </div>
     
     <div class="tag-list box-button-row"></div>
