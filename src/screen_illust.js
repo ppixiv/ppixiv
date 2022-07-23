@@ -300,7 +300,6 @@ ppixiv.screen_illust = class extends ppixiv.screen
         // Finalize the new illust ID.
         this.current_media_id = media_id;
         this.current_user_id = early_illust_data.userId;
-        this.ui.media_id = media_id;
         this.refresh_ui();
 
         // If the image has the ドット絵 tag, enable nearest neighbor filtering.
