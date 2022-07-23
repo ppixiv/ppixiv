@@ -648,7 +648,7 @@ ppixiv.LocalBroadcastChannel = class extends EventTarget
 
         this.name = name;
 
-        LocalBroadcastChannelConnection.get.addEventListener(this.name, this.receivedWebSocketsMessage);
+        ppixiv.LocalBroadcastChannelConnection.get.addEventListener(this.name, this.receivedWebSocketsMessage);
 
         // Create a regular BroadcastChannel.  Other tabs in the same browser will receive
         // messages through this, so they don't need to round-trip through WebSockets.
@@ -672,25 +672,25 @@ ppixiv.LocalBroadcastChannel = class extends EventTarget
 
     postMessage(data)
     {
-        LocalBroadcastChannelConnection.get.send(this.name, data);
+        ppixiv.LocalBroadcastChannelConnection.get.send(this.name, data);
         this.broadcast_channel.postMessage(data);
     }
 
     close()
     {
-        LocalBroadcastChannelConnection.get.removeEventListener(this.name, this.receivedWebSocketsMessage);
+        ppixiv.LocalBroadcastChannelConnection.get.removeEventListener(this.name, this.receivedWebSocketsMessage);
         this.broadcast_channel.removeEventListener("message", this.receivedBroadcastChannelMessage);
     }
 };
 
 // This creates a single WebSockets connection to the local server.  An event is dispatched
 // with the name of the channel when a WebSockets message is received.
-class LocalBroadcastChannelConnection extends EventTarget
+ppixiv.LocalBroadcastChannelConnection = class extends EventTarget
 {
     static get get()
     {
         if(this.singleton == null)
-            this.singleton = new LocalBroadcastChannelConnection;
+            this.singleton = new ppixiv.LocalBroadcastChannelConnection;
         return this.singleton;
     }
 
@@ -813,7 +813,7 @@ class LocalBroadcastChannelConnection extends EventTarget
 
     ws_closed = async(e) =>
     {
-        console.log("WebSockets connection closed");
+        console.log("WebSockets connection closed", e, e.wasClean, e.reason);
         this.disconnect();
         this.queue_reconnect();
     }
