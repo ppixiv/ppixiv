@@ -52,25 +52,22 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         // Tell the inpaint editor about the image.
         this.image_editor.set_media_id(this.media_id);
 
-        // First, load early illust data.  This is enough info to set up the image list
-        // with preview URLs, so we can start the image view early.  This can return either
-        // thumbnail info or illust info.
-        //
-        // If this blocks to load, the full illust data will be loaded, so we'll never
-        // run two separate requests here.
-        let early_illust_data = await media_cache.get_media_info(this.media_id, { full: false });
+        // Get whatever media info we already have.  full: false, safe: false means we'll
+        // take either full or partial info, whichever's available.  If we have partial
+        // info, that's enough to set up the image list with preview URLs, so we can set
+        // up the image view while we load full info.
+        let early_illust_data = await media_cache.get_media_info(this.media_id, { full: false, safe: false });
 
         // Stop if we were removed before the request finished.
         signal.check();
 
-        // See if we got illust info or thumbnail info.
-        if(early_illust_data.mangaPages != null)
+        // See if we got full or partial info.
+        if(early_illust_data.full)
         {
-            // We got illust data and not thumbnail data, so we have all we need.
+            // We got full info, so we have all we need.
             this.illust_data = early_illust_data;
         } else {
-            // We got thumbnail data, which only gives us the image dimensions for page 1.  We'll still
-            // have any extra_data.
+            // We got partial info, which only gives us the image dimensions for page 1.
             let extra_data = ppixiv.media_cache.get_extra_data(early_illust_data, this.media_id);
             this.images = [{
                 preview_url: early_illust_data.previewUrls[0],
