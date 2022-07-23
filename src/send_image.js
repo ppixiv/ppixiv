@@ -12,27 +12,10 @@ ppixiv.SendImage = class
         this.tab_id = this.create_tab_id();
         this.tab_id_tiebreaker = Date.now()
 
-        this.known_tabs = {};
         this.pending_movement = [0, 0];
         this.listeners = {};
 
         window.addEventListener("unload", this.window_onunload);
-
-        // Let other tabs know when the info we send in tab info changes.  For resize, delay this
-        // a bit so we don't spam broadcasts while the user is resizing the window.
-        window.addEventListener("resize", (e) => {
-            if(this.broadcast_info_after_resize_timer != -1)
-                clearTimeout(this.broadcast_info_after_resize_timer);
-            this.broadcast_info_after_resize_timer = setTimeout(this.broadcast_tab_info, 250);
-        });
-        window.addEventListener("visibilitychange", this.broadcast_tab_info);
-        document.addEventListener("windowtitlechanged", this.broadcast_tab_info);
-
-        // Send on window focus change, so we update things like screenX/screenY that we can't
-        // monitor.
-        window.addEventListener("focus", this.broadcast_tab_info);
-        window.addEventListener("blur", this.broadcast_tab_info);
-        window.addEventListener("popstate", this.broadcast_tab_info);
 
         // If we gain focus while quick view is active, finalize the image.  Virtual
         // history isn't meant to be left enabled, since it doesn't interact with browser
@@ -46,7 +29,9 @@ ppixiv.SendImage = class
         this.send_image_channel.addEventListener("message", this.received_message);
         this.broadcast_tab_info();
 
-        this.query_tabs();
+        // Ask other tabs to broadcast themselves, so we can see if we have a conflicting
+        // tab ID.
+        this.send_message({ message: "list-tabs" });
     }
 
     create_tab_id(recreate=false)
@@ -99,14 +84,6 @@ ppixiv.SendImage = class
             action: "cancel",
             to: settings.get("linked_tabs", []),
         });
-
-        // Tell other tabs that this tab has closed.
-        this.send_message({ message: "tab-closed" });
-    }
-
-    query_tabs()
-    {
-        this.send_message({ message: "list-tabs" });
     }
 
     // Send an image to another tab.  action is either "temp-view", to show the image temporarily,
@@ -190,12 +167,6 @@ ppixiv.SendImage = class
 
         if(data.message == "tab-info")
         {
-            // Info about a new tab, or a change in visibility.
-            //
-            // This may contain thumbnail and illust info.  We don't register it here.  It
-            // can be used explicitly when we're displaying a tab thumbnail, but each tab
-            // might have newer or older image info, and propagating them back and forth
-            // could be confusing.
             if(data.from == this.tab_id)
             {
                 // The other tab has the same ID we do.  The only way this normally happens
@@ -217,15 +188,11 @@ ppixiv.SendImage = class
                 // the other tab just sent on our ID.
                 this.broadcast_tab_info();
             }
-            this.known_tabs[data.from] = data;
-        }
-        else if(data.message == "tab-closed")
-        {
-            delete this.known_tabs[data.from];
         }
         else if(data.message == "list-tabs")
         {
-            // A new tab is populating its tab list.
+            // A new tab opened, and is asking for other tabs to broadcast themselves to check for
+            // tab ID conflicts.
             this.broadcast_tab_info();
         }
         else if(data.message == "send-image")
@@ -331,34 +298,12 @@ ppixiv.SendImage = class
 
     broadcast_tab_info = () =>
     {
-        let screen = main_controller.singleton.displayed_screen;
-        let media_id = screen? screen.displayed_media_id:null;
-        let media_info = media_id? ppixiv.media_cache.get_media_info_sync(media_id):null;
-
-        let user_id = media_info?.userId;
-        let user_info = user_id? user_cache.get_user_info_sync(user_id):null;
-
         let our_tab_info = {
             message: "tab-info",
             tab_id_tiebreaker: this.tab_id_tiebreaker,
-            visible: !document.hidden,
-            title: document.title,
-            window_width: window.innerWidth,
-            window_height: window.innerHeight,
-            screen_x: window.screenX,
-            screen_y: window.screenY,
-            media_id: media_id,
-
-            // Include whatever we know about this image, so if we want to display this in
-            // another tab, we don't have to look it up again.
-            media_info,
-            user_info: user_info,
         };
 
         this.send_message(our_tab_info);
-
-        // Add us to our own known_tabs.
-        this.known_tabs[this.tab_id] = our_tab_info;
     }
 
     send_message(data, send_to_self)
