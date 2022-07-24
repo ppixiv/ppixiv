@@ -132,7 +132,7 @@ ppixiv.viewer_video = class extends ppixiv.viewer
 
         if(this.video_ui)
         {
-            this.video_ui.video_changed();
+            this.video_ui.shutdown();
             this.video_ui = null;
         }
 
@@ -364,7 +364,7 @@ ppixiv.video_ui = class extends ppixiv.widget
         // listen for data-mobile-ui-visible and show our UI
         ClassFlags.get.addEventListener("mobile-ui-visible", (e) => {
             this.refresh_show_ui();
-        });
+        }, { signal: this.shutdown_signal.signal });
 
         // Set .dragging to stay visible during drags.
         this.pointer_listener = new ppixiv.pointer_listener({
@@ -417,14 +417,14 @@ ppixiv.video_ui = class extends ppixiv.widget
         this.container.querySelector(".play-button").addEventListener("click", () => {
             if(this.player != null)
                 this.player.set_want_playing(!this.player.want_playing);
-        });
+        }, { signal: this.shutdown_signal.signal });
 
         for(let button of this.container.querySelectorAll("[data-volume]"))
             button.addEventListener("click", () => {
                 if(this.video == null)
                     return;
                 this.video.muted = !this.video.muted;
-            });
+            }, { signal: this.shutdown_signal.signal });
 
         this.container.querySelector(".pip-button").addEventListener("click", async () => {
             if(this.video == null)
@@ -439,17 +439,18 @@ ppixiv.video_ui = class extends ppixiv.widget
             } catch(e) {
                 return false;
             }
-        });
+        }, { signal: this.shutdown_signal.signal });
+
         document.addEventListener("fullscreenchange", (e) => {
             this.set_seek_bar_pos();
-        });
+        }, { signal: this.shutdown_signal.signal });
 
         // Set up the fullscreen button.  Disable this on mobile, since it doesn't make sense there.
         let fullscreen_button = this.container.querySelector(".fullscreen");
         fullscreen_button.hidden = ppixiv.mobile;
         fullscreen_button.addEventListener("click", () => {
             helpers.toggle_fullscreen();
-        });
+        }, { signal: this.shutdown_signal.signal });
 
         this.video_changed();
     }
@@ -473,7 +474,15 @@ ppixiv.video_ui = class extends ppixiv.widget
 
         this.seek_bar.container.dataset.position = top? "top":"bottom";
     }
-    
+
+    shutdown()
+    {
+        // Remove any listeners.
+        this.video_changed();
+
+        super.shutdown();
+    }
+
     video_changed({player=null, video=null}={})
     {
         if(this.remove_video_listeners)

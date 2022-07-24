@@ -155,7 +155,7 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
 
         if(this.video_ui)
         {
-            this.video_ui.video_changed();
+            this.video_ui.shutdown();
             this.video_ui = null;
         }
 
