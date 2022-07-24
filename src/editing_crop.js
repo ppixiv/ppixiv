@@ -34,7 +34,6 @@ ppixiv.CropEditor = class extends ppixiv.widget
 
         this.editor_overlay = this.container.querySelector(".crop-editor-overlay");
         this.editor_overlay.remove();
-        this.editor_overlay.slot = "crop-editor";
         this.current_crop = null;
 
         this.editor_overlay.addEventListener("dblclick", this.ondblclick, { signal: this.shutdown_signal.signal });

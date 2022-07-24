@@ -65,7 +65,6 @@ ppixiv.InpaintEditor = class extends ppixiv.widget
         // have one, so it pans and zooms with the image.
         this.editor_overlay = this.container.querySelector(".inpaint-editor-overlay");
         this.editor_overlay.remove();
-        this.editor_overlay.slot = "inpaint-editor";
         this.svg = this.editor_overlay.querySelector(".inpaint-container");
 
         this.create_lines_button = this.container.querySelector(".create-lines");

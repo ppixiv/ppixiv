@@ -75,7 +75,6 @@ ppixiv.PanEditor = class extends ppixiv.widget
         this.editor_overlay = this.container.querySelector(".pan-editor-overlay");
         this.editor_crop_region = this.container.querySelector(".pan-editor-crop-region");
         this.editor_overlay.remove();
-        this.editor_overlay.slot = "crop-editor"; // XXX merge these
         this.handle = this.editor_overlay.querySelector(".handle");
 
         // The real zoom value is the amount the image will be zoomed onscreen: if it's set
