@@ -1433,6 +1433,10 @@ ppixiv.search_view = class extends ppixiv.widget
     // too.
     add_animation_listener(element)
     {
+        if(element.addedAnimationListener)
+            return;
+        element.addedAnimationListener = true;
+
         element.addEventListener("mouseover", (e) => {
             if(settings.get("disable_thumbnail_panning") || ppixiv.mobile)
                 return;
