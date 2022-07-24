@@ -348,8 +348,8 @@ ppixiv.screen_illust = class extends ppixiv.screen
                 // The viewer wants to go to the next image, normally during slideshows.
                 // Loop is true, so we loop back to the beginning of the search if we reach
                 // the end in a slideshow.
-                let skip_manga_pages = settings.get("slideshow_skips_manga");
-                return await this.navigate_to_next(1, { loop: true, flash_at_end: false, skip_manga_pages });
+                let manga = settings.get("slideshow_skips_manga")? "skip-to-first":"normal";
+                return await this.navigate_to_next(1, { loop: true, flash_at_end: false, manga });
             },
         });
 
@@ -521,7 +521,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
             return;
 
         var down = e.deltaY > 0;
-        this.navigate_to_next(down, { skip_manga_pages: e.shiftKey });
+        this.navigate_to_next(down, { manga: e.shiftKey? "skip-to-first":"normal" });
     }
 
     get displayed_media_id()
@@ -553,7 +553,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
             e.preventDefault();
             e.stopPropagation();
 
-            this.navigate_to_next(false, { skip_manga_pages: e.shiftKey });
+            this.navigate_to_next(false, { manga: e.shiftKey? "skip-to-first":"normal" });
             break;
 
         case "ArrowRight":
@@ -562,7 +562,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
             e.preventDefault();
             e.stopPropagation();
 
-            this.navigate_to_next(true, { skip_manga_pages: e.shiftKey });
+            this.navigate_to_next(true, { manga: e.shiftKey? "skip-to-first":"normal" });
             break;
         }
     }
@@ -570,7 +570,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
     // Get the media_id and page navigating down (or up) will go to.
     //
     // This may trigger loading the next page of search results, if we've reached the end.
-    async get_navigation(down, { skip_manga_pages=false, loop=false }={})
+    async get_navigation(down, { manga="normal", loop=false }={})
     {
         // Check if we're just changing pages within the same manga post.
         // If we have a target media_id, move relative to it.  Otherwise, move relative to the
@@ -582,7 +582,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
 
         // Get the next (or previous) illustration after the current one.  This will be null if we've
         // reached the end of the list.
-        let new_media_id = await this.data_source.get_or_load_neighboring_media_id(navigate_from_media_id, down, { skip_manga_pages: skip_manga_pages });
+        let new_media_id = await this.data_source.get_or_load_neighboring_media_id(navigate_from_media_id, down, { manga });
 
         // If we're at the end and we're looping, go to the first (or last) image.
         if(new_media_id == null && loop)
@@ -602,25 +602,18 @@ ppixiv.screen_illust = class extends ppixiv.screen
         if(new_media_id == null)
             return { };
 
-        // If we're moving backwards and not skipping manga pages, we want to go to the last page
-        // on the new image.  Load image info to get the page count.
-        let page = 0;
-        if(!down && !skip_manga_pages)
-        {
-            let new_page_info = await media_cache.get_media_info(new_media_id, { full: false });
-            page = new_page_info.pageCount - 1;
-        }
-
         return { media_id: new_media_id };
     }
 
     // Navigate to the next or previous image.
     //
-    // If skip_manga_pages is true, jump past any manga pages in the current illustration.  If
-    // this is true and we're navigating backwards, we'll also jump to the first manga page
-    // instead of the last.
-    async navigate_to_next(down, { skip_manga_pages=false, loop=false, flash_at_end=true }={})
+    // manga is a manga skip mode.  See illust_id_list.get_neighboring_media_id.
+    async navigate_to_next(down, { manga="normal", loop=false, flash_at_end=true }={})
     {
+        // If we're viewing a hidden muted image, always skip manga pages.
+        if(manga == "normal" && this.viewer instanceof viewer_muted)
+            manga = "skip-past";
+
         // Remember whether we're navigating forwards or backwards, for preloading.
         this.latest_navigation_direction_down = down;
 
@@ -631,7 +624,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
         // See if we should change the manga page.  This may block if it needs to load
         // the next page of search results.
         let { media_id: new_media_id } = await this.get_navigation(down, {
-            skip_manga_pages: skip_manga_pages,
+            manga,
             loop: loop,
         });
     

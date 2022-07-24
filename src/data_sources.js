@@ -158,15 +158,24 @@ class illust_id_list
     }
 
     // The actual logic for get_neighboring_media_id, except for skipping entries.
-    _get_neighboring_media_id_internal(media_id, next, { skip_manga_pages=false }={})
+    //
+    // manga tells us how to handle manga pages:
+    // - "normal": Navigate manga pages normally.
+    // - "skip-to-first": Skip past manga pages, and always go to the first page of the
+    //   next or previous image.
+    // - "skip-past": Skip past manga pages.  If we're navigating backwards, go to the
+    //   last page of the previous image, like we would normally.
+    _get_neighboring_media_id_internal(media_id, next, { manga='normal' }={})
     {
+        console.assert(manga == 'normal' || manga == 'skip-to-first' || manga == 'skip-past');
+
         if(media_id == null)
             return this.get_first_id();
 
-        // If we're navigating forwards, grab thumbnail info to get the page count to
-        // see if we're at the end. 
+        // If we're navigating forwards and we're not skipping manga pages, grab media info to
+        // get the page count to see if we're at the end. 
         let id = helpers.parse_media_id(media_id);
-        if(id.type == "illust" && !skip_manga_pages)
+        if(id.type == "illust" && manga == 'normal')
         {
             // If we're navigating backwards and we're past page 1, just go to the previous page.
             if(!next && id.page > 0)
@@ -235,8 +244,8 @@ class illust_id_list
             }
         }
 
-        // If we're navigating backwards, get the last page on new_media_id.
-        if(!next && !skip_manga_pages && helpers.parse_media_id(new_media_id).type == "illust")
+        // If we're navigating backwards and we're not in skip-to-first mode, get the last page on new_media_id.
+        if(!next && manga != 'skip-to-first' && helpers.parse_media_id(new_media_id).type == "illust")
         {
             let info = media_cache.get_media_info_sync(new_media_id, { full: false });
             if(info == null)
