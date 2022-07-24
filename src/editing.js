@@ -38,16 +38,19 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
             container: this.container,
             parent: this,
             mode: "crop",
+            visible: false,
         });
 
         let pan_editor = new ppixiv.PanEditor({
             container: this.container,
             parent: this,
+            visible: false,
         });
 
         let inpaint_editor = new ppixiv.InpaintEditor({
             container: this.container,
             parent: this,
+            visible: false,
         });
 
         this.editors = {

@@ -41,20 +41,16 @@ ppixiv.widget = class
 
         this.parent = parent;
 
-        // If we're visible, we'll unhide below.
-        this.have_set_initial_visibility = false;
+        // visible is the initial visibility.  We can't just set this.visible here, since
+        // it'll call refresh and visibility_changed, and the subclass isn't ready for those
+        // to be called since it hasn't initialized yet.  Set this._visible directly, and
+        // defer the initial refresh.
+        this._visible = visible;
+        this.refresh_visibility();
 
-        // Let the caller finish, then refresh.
         helpers.yield(() => {
+            this.visibility_changed();
             this.refresh();
-
-            // If we're initially visible, set ourselves visible now.  Skip this if something
-            // else modifies visible first.
-            if(visible && !this.have_set_initial_visibility)
-            {
-                this.have_set_initial_visibility = true;
-                this.visible = true;
-            }
         });
     }
 
@@ -86,8 +82,6 @@ ppixiv.widget = class
 
     set visible(value)
     {
-        this.have_set_initial_visibility = true;
-
         if(value == this.visible)
             return;
 
@@ -121,10 +115,9 @@ ppixiv.widget = class
     {
         if(this.visible)
         {
-            console.assert(this.visibility_abort == null);
-
             // Create an AbortController that will be aborted when the widget is hidden.
-            this.visibility_abort = new AbortController;
+            if(this.visibility_abort == null)
+                this.visibility_abort = new AbortController;
         } else {
             if(this.visibility_abort)
                 this.visibility_abort.abort();
