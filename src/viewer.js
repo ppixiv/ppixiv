@@ -16,6 +16,8 @@ ppixiv.viewer = class extends widget
     shutdown()
     {
         this.was_shutdown = true;
+
+        super.shutdown();
     }
 
     set active(value) { this._active = value; }

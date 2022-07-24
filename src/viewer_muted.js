@@ -70,7 +70,6 @@ ppixiv.viewer_muted = class extends ppixiv.viewer
     {
         super.shutdown();
 
-        this.container.parentNode.removeChild(this.container);
         this.slideshow_timer = null;
     }
 }
