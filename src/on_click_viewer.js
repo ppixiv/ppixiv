@@ -868,6 +868,17 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
 
         this.save_to_history_id = setTimeout(() => {
             this.save_to_history_id = null;
+
+            // Work around a Chrome bug: updating history causes the mouse cursor to become visible
+            // for one frame, which causes it to flicker while panning around.  Updating history state
+            // shouldn't affect the UI at all.  Work around this by just rescheduling the save if the
+            // mouse is currently pressed.
+            if(this._mouse_pressed)
+            {
+                this.schedule_save_to_history();
+                return;
+            }
+
             this.save_to_history();
         }, 250);
     }
