@@ -28,10 +28,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
 
         media_cache.addEventListener("mediamodified", ({media_id}) => {
             if(media_id == this.media_id)
-            {
-                console.log("refresh from modified");
                 this.media_info_modified();
-            }
         }, { signal: this.shutdown_signal.signal });
 
         // Create the inpaint editor.  This is passed down to on_click_viewer to group
