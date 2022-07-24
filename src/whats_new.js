@@ -3,6 +3,14 @@
 // This should be inside whats_new, but Firefox is in the dark ages and doesn't support class fields.
 let _update_history = [
     {
+        version: 151,
+        boring: true,
+        text: `
+            Navigating through images with the mousewheel now skips past manga pages if the image
+            is muted.
+        `
+    },
+    {
         version: 145,
         text: `
             Added support for viewing followed users who are accepting requests, and a link from
