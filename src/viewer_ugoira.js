@@ -46,7 +46,7 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
         // from this.want_playing so we stay paused after seeking if we were paused at the start.
         this.seeking = false;
 
-        window.addEventListener("visibilitychange", this.refresh_focus);
+        window.addEventListener("visibilitychange", this.refresh_focus, { signal: this.shutdown_signal.signal });
     }
 
     get bottom_reservation() { return "100px"; }
@@ -164,8 +164,6 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
             this.seek_bar.set_callback(null);
             this.seek_bar = null;
         }
-
-        window.removeEventListener("visibilitychange", this.refresh_focus);
 
         this.canvas.remove();
     }
