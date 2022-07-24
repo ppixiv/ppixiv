@@ -347,9 +347,8 @@ ppixiv.main_controller = class
 
         // Update the media ID with the current manga page, if any.
         let media_id = data_source.get_current_media_id(args);
-        let id = helpers.parse_media_id(media_id);
-        id.page = args.hash.has("page")? parseInt(args.hash.get("page"))-1:0;
-        media_id = helpers.encode_media_id(id);
+        let page = args.hash.has("page")? parseInt(args.hash.get("page"))-1:0;
+        media_id = helpers.get_media_id_for_page(media_id, page);
 
         // If we're on search, we don't care what image is current.  Clear media_id so we
         // tell context_menu that we're not viewing anything, so it disables bookmarking.

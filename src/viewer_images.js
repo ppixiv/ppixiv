@@ -224,14 +224,8 @@ ppixiv.viewer_images = class extends ppixiv.viewer
             e.stopPropagation();
             e.preventDefault();
 
-            let id = helpers.parse_media_id(this.media_id);
-        
-            if(e.code == "End")
-                id.page = this.illust_data.pageCount - 1;
-            else
-                id.page = 0;
-
-            let new_media_id = helpers.encode_media_id(id);
+            let new_page = e.code == "End"? this.illust_data.pageCount - 1:0;
+            let new_media_id = helpers.get_media_id_for_page(this.media_id, new_page);
             main_controller.singleton.show_media(new_media_id);
             return;
         }

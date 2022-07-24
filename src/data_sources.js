@@ -254,9 +254,7 @@ class illust_id_list
                 return null;
             }
 
-            let id = helpers.parse_media_id(new_media_id);
-            id.page = info.pageCount - 1;
-            new_media_id = helpers.encode_media_id(id);
+            new_media_id = helpers.get_media_id_for_page(new_media_id, info.pageCount - 1);
         }
 
         return new_media_id;
@@ -2045,13 +2043,9 @@ ppixiv.data_sources.manga = class extends data_source
         // Load media info before continuing.
         this.illust_info = await media_cache.get_media_info(this.media_id);
 
-        let data = helpers.parse_media_id(this.media_id);
         let page_media_ids = [];
         for(let page = 0; page < this.illust_info.pageCount; ++page)
-        {
-            data.page = page;
-            page_media_ids.push(helpers.encode_media_id(data));
-        }
+            page_media_ids.push(helpers.get_media_id_for_page(this.media_id, page));
 
         this.add_page(page, page_media_ids);
     }
