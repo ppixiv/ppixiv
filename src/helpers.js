@@ -414,17 +414,16 @@ ppixiv.helpers = {
 
     // Prompt to save a blob to disk.  For some reason, the really basic FileSaver API disappeared from
     // the web.
-    save_blob: function(blob, filename)
+    save_blob(blob, filename)
     {
-        var blobUrl = URL.createObjectURL(blob);
+        let blobUrl = URL.createObjectURL(blob);
 
-        var a = document.createElement("a");
+        let a = document.createElement("a");
         a.hidden = true;
-        document.body.appendChild(a);
         a.href = blobUrl;
-
         a.download = filename;
-        
+        document.body.appendChild(a);
+       
         a.click();
 
         // Clean up.
@@ -433,7 +432,7 @@ ppixiv.helpers = {
         // the save dialog, and there's no way to know when we can, so just use a large timeout.
         setTimeout(() => {
             window.URL.revokeObjectURL(blobUrl);
-            a.parentNode.removeChild(a);
+            a.remove();
         }, 1000);
     },
 
