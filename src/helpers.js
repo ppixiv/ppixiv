@@ -1080,7 +1080,7 @@ ppixiv.helpers = {
 
         data.method = options.method || "GET";
         data.signal = options.signal;
-        data.cache = options.cache;
+        data.cache = options.cache ?? "default";
         if(options.data)
             data.body = cloneInto(options.data, window); 
 
@@ -1277,17 +1277,15 @@ ppixiv.helpers = {
         if(query != "")
             url += "?" + query;
 
-        if(options == null)
-            options = {};
-
         var result = await helpers.send_pixiv_request({
-            "method": "GET",
-            "url": url,
-            "responseType": "json",
-            "signal": options.signal,
+            method: "GET",
+            url: url,
+            responseType: "json",
+            signal: options?.signal,
+            cache: options?.cache,
 
-            "headers": {
-                "Accept": "application/json",
+            headers: {
+                Accept: "application/json",
             },
         });
 
