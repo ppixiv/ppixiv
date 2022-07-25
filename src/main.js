@@ -49,14 +49,14 @@ ppixiv.main_controller = class
 
         console.log("ppixiv setup");
 
-        // Install polyfills.  Make sure we only do this if we're active, so we don't
-        // inject polyfills into Pixiv when we're not active.
-        install_polyfills();
-
         // Run cleanup_environment.  This will try to prevent the underlying page scripts from
         // making network requests or creating elements, and apply other irreversible cleanups
         // that we don't want to do before we know we're going to proceed.
         helpers.cleanup_environment();
+
+        // Install polyfills.  Make sure we only do this if we're active, so we don't
+        // inject polyfills into Pixiv when we're not active.
+        install_polyfills();
 
         if(!ppixiv.native)
             this.temporarily_hide_document();
