@@ -11,14 +11,6 @@ from ..build.source_files import source_files
 root_dir = Path(__file__) / '..' / '..' / '..' # XXX gross
 root_dir = root_dir.resolve()
 
-# /client/js -> root/src
-# /client/resources -> root/resources
-# XXX: generate this for distribution so we don't need to require libsass
-# /client/main.scss -> root/output/main.scss XXX: generate this
-
-def handle_css(request):
-    pass
-
 def add_routes(router):
     router.add_get('/client/init.js', handle_source_files)
     router.add_get('/client/{path:.*\.css}', handle_css)
