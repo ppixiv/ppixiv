@@ -339,6 +339,11 @@ ppixiv.data_source = class
     // the thumbnail view with that name.
     get name() { return null; }
     
+    toString()
+    {
+        return `${this.name}`;
+    }
+
     // Returns true if the data source might return manga pages that the user might want to
     // expand.  This is usually true, except for things like user lists and local files.  This
     // just hides the expand/collapse button at the top when it can't do anything.

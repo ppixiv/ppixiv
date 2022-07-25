@@ -652,14 +652,14 @@ ppixiv.search_view = class extends ppixiv.widget
         if(columns != null)
             start_idx -= start_idx % columns;
 
-        let media_ids = all_media_ids.slice(start_idx, end_idx+1);
         /*
         console.log(
-            "Nearby range:", first_nearby_media_id_idx, "to", last_nearby_media_id_idx,
-            "Loaded range:", first_loaded_media_id_idx, "to", last_loaded_media_id_idx,
-            "Forced idx:", forced_media_id_idx,
-            "Returning:", start_idx, "to", end_idx);
-*/
+            `Nearby range: ${first_nearby_media_id_idx} to ${last_nearby_media_id_idx}, loaded: ${first_loaded_media_id_idx} to ${last_loaded_media_id_idx}, ` +
+            `forced idx: ${forced_media_id_idx}, returning: ${start_idx} to ${end_idx}`);
+        */
+
+        let media_ids = all_media_ids.slice(start_idx, end_idx+1);
+
         // Load thumbnail info for the results.  We don't wait for this to finish.
         this.load_media_info_for_media_ids(all_media_ids, start_idx, end_idx);
 
