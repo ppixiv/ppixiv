@@ -1,6 +1,6 @@
 # This handles serving the UI so it can be run independently.
 
-import aiohttp, asyncio, base64, os, json
+import aiohttp, asyncio, base64, os, json, mimetypes
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
 from ..util import misc
@@ -10,6 +10,15 @@ from ..build.source_files import source_files
 
 root_dir = Path(__file__) / '..' / '..' / '..' # XXX gross
 root_dir = root_dir.resolve()
+
+# Work around a bug in the Python mimetypes module: it imports MIME types from
+# the Windows registry, allowing them to override the built-in MIME types.  That's
+# bad, because there's lot of crap in every Windows registry, which makes mimetypes
+# behave unpredictably.  Because of this, we need to explicitly register the MIME
+# types we use.  Python should import from the registry first (if at all, this is
+# a source of nasty cross-system differences) so the built-in types take priority.
+mimetypes.add_type('application/javascript', '.js')
+mimetypes.add_type('text/scss', '.scss')
 
 def add_routes(router):
     router.add_get('/client/init.js', handle_source_files)
@@ -123,10 +132,6 @@ def handle_client(request):
         response.last_modified = os.stat(path).st_mtime
     else:
         response = aiohttp.web.FileResponse(path, headers=headers)
-
-    # mimetypes doesn't know about .scss.  Fill it in, so these URLs open normally.
-    if path.suffix == '.scss':
-        response.content_type = 'text/scss'
 
     return response
 
