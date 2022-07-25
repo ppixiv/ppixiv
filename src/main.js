@@ -1,24 +1,10 @@
 "use strict";
 
 // This handles high-level navigation and controlling the different screens.
-ppixiv.main_controller = class
+ppixiv.MainController = class
 {
-    // This is called by bootstrap at startup.  Just create ourself.
-    static launch() { new this; }
-
-    static get singleton()
-    {
-        if(main_controller._singleton == null)
-            throw "main_controller isn't created";
-
-        return main_controller._singleton;
-    }
-
     constructor()
     {
-        if(main_controller._singleton != null)
-            throw "main_controller is already created";
-        main_controller._singleton = this;
         this.initial_setup();
     }
 

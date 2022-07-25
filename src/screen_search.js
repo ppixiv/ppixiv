@@ -737,12 +737,12 @@ ppixiv.screen_search = class extends ppixiv.screen
 
     refresh_search = () =>
     {
-        main_controller.singleton.refresh_current_data_source({remove_search_page: true});
+        main_controller.refresh_current_data_source({remove_search_page: true});
     }
 
     refresh_search_from_page = () =>
     {
-        main_controller.singleton.refresh_current_data_source({remove_search_page: false});
+        main_controller.refresh_current_data_source({remove_search_page: false});
     }
         
     // Set or clear the updates class on the "what's new" button.

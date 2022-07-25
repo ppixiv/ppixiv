@@ -1750,7 +1750,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                     icon: "mat:open_in_new",
                     requires_image: true,
                     onclick: () => {
-                        main_controller.singleton.send_image_popup.show_for_illust(this.media_id);
+                        main_controller.send_image_popup.show_for_illust(this.media_id);
                         this.parent.hide();
                     }
                 });
@@ -1764,7 +1764,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                     requires_image: true,
                     checked: helpers.args.location.hash.get("slideshow") == "1",
                     onclick: () => {
-                        main_controller.singleton.toggle_slideshow();
+                        main_controller.toggle_slideshow();
                         this.refresh();
                     }
                 });

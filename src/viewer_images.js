@@ -226,7 +226,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
 
             let new_page = e.code == "End"? this.illust_data.pageCount - 1:0;
             let new_media_id = helpers.get_media_id_for_page(this.media_id, new_page);
-            main_controller.singleton.show_media(new_media_id);
+            main_controller.show_media(new_media_id);
             return;
         }
     }

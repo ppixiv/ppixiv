@@ -184,7 +184,7 @@ ppixiv.image_ui = class extends ppixiv.widget
             button.addEventListener("click", this.clicked_download);
         this.container.querySelector(".download-manga-button").addEventListener("click", this.clicked_download);
         this.container.querySelector(".view-manga-button").addEventListener("click", (e) => {
-            main_controller.singleton.navigate_out();
+            main_controller.navigate_out();
         });
 
         this.container.querySelector(".preferences-button").addEventListener("click", (e) => {

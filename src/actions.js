@@ -490,7 +490,7 @@ ppixiv.actions = class
     // Download illust_data.
     static async download_illust(media_id, download_type)
     {
-        let progress_bar_controller = main_controller.singleton.progress_bar.controller();
+        let progress_bar_controller = main_controller.progress_bar.controller();
         
         let illust_data = await media_cache.get_media_info(media_id);
         let user_info = await user_cache.get_user_info(illust_data.userId);

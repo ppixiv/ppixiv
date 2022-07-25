@@ -217,5 +217,5 @@ let _load_source_file = function(__pixiv, __source) {
     window.ppixiv = env;
 
     // Create the main controller.
-    env.main_controller.launch();
+    env.main_controller = new ppixiv.MainController();
 })();

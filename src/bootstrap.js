@@ -94,7 +94,7 @@
             }
     
             // Create the main controller.
-            env.main_controller.launch();
+            env.main_controller = new ppixiv.MainController();
         }
     }(this);
 })();

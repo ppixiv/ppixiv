@@ -325,7 +325,7 @@ ppixiv.page_manager = class
     // search.  It can also be called while on an illust from slideshow_staging_dialog.
     get slideshow_url()
     {
-        let data_source = main_controller.singleton.data_source;
+        let data_source = main_controller.data_source;
         if(data_source == null)
             return null;
 

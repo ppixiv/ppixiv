@@ -270,7 +270,7 @@ let mobile_illust_ui_top_page = class extends mobile_illust_ui_page
 
         this.toggle_slideshow_bottom = this.container.querySelector(".button-toggle-slideshow");
         this.toggle_slideshow_bottom.addEventListener("click", (e) => {
-            main_controller.singleton.toggle_slideshow();
+            main_controller.toggle_slideshow();
             this.parent.hide();
             this.refresh();
         });
@@ -357,7 +357,7 @@ let mobile_illust_ui_top_page = class extends mobile_illust_ui_page
 
         let button_view_manga = this.container.querySelector(".button-view-manga");
         button_view_manga.dataset.popup = "View manga pages";
-        helpers.set_class(button_view_manga, "enabled", main_controller.singleton.navigate_out_enabled);
+        helpers.set_class(button_view_manga, "enabled", main_controller.navigate_out_enabled);
 
         // This isn't quite right since we might be the first history state, but it's tricky
         // to figure out if we can actually go back.  This at least greys out the button most
@@ -424,7 +424,7 @@ let mobile_illust_ui_top_page = class extends mobile_illust_ui_page
 
     clicked_view_manga = (e) =>
     {
-        main_controller.singleton.navigate_out();
+        main_controller.navigate_out();
     }
 
     clicked_go_to_parent = (e) =>

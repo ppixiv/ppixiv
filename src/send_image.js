@@ -233,7 +233,7 @@ ppixiv.SendImage = class
             console.assert(data.action == "temp-view" || data.action == "display", data.actionj);
 
             // Show the image.
-            main_controller.singleton.show_media(data.media_id, {
+            main_controller.show_media(data.media_id, {
                 temp_view: data.action == "temp-view",
                 source: "temp-view",
 

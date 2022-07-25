@@ -387,7 +387,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
             return true;
         }
 
-        main_controller.singleton.show_media(new_media_id, {
+        main_controller.show_media(new_media_id, {
             add_to_history: false,
         });
         return true;
@@ -649,7 +649,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
         this.pending_navigation = null;
 
         // Go to the new illustration.
-        main_controller.singleton.show_media(new_media_id);
+        main_controller.show_media(new_media_id);
         return { media_id: new_media_id };
     }
 

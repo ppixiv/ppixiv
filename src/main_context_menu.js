@@ -1111,7 +1111,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         // See if an element representing a user and/or an illust was under the cursor.
         if(target != null)
         {
-            let { user_id, media_id } = main_controller.singleton.get_illust_at_element(target);
+            let { user_id, media_id } = main_controller.get_illust_at_element(target);
             if(user_id != null)
                 this._set_temporary_user(user_id);
 
@@ -1165,7 +1165,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
     {
         let button_view_manga = this.container.querySelector(".button-view-manga");
         button_view_manga.dataset.popup = "View manga pages";
-        helpers.set_class(button_view_manga, "enabled", main_controller.singleton.navigate_out_enabled);
+        helpers.set_class(button_view_manga, "enabled", main_controller.navigate_out_enabled);
         this.refresh_tooltip();
 
         // Enable the zoom buttons if we're in the image view and we have an on_click_viewer.
@@ -1220,7 +1220,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
 
     clicked_view_manga = (e) =>
     {
-        main_controller.singleton.navigate_out();
+        main_controller.navigate_out();
     }
 
     clicked_fullscreen = (e) =>
