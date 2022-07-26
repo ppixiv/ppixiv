@@ -31,7 +31,7 @@
 # XXX: we shouldn't do a full refresh on changes, but not sure how to find out if
 # indexing is up to date for a path in order to use quick refresh
 
-import asyncio, collections, errno, itertools, os, time, traceback, json, heapq, natsort, random, math
+import asyncio, collections, errno, itertools, os, time, traceback, json, heapq, natsort, random, math, stat
 from pprint import pprint
 from pathlib import Path, PurePosixPath
 
@@ -584,7 +584,11 @@ class Library:
         XXX: store these in the db too during refreshes and only do the full populate later
         XXX: make sure cache_file includes bookmark_data
         """
-        if path.is_dir():
+        # Avoid calling path.is_dir() since we're calling stat() anyway, so we only make
+        # one stat call.
+        path_stat = path.stat()
+        is_directory = stat.S_ISDIR(path_stat.st_mode)
+        if is_directory:
             mime_type = 'application/folder'
         else:
             mime_type = misc.mime_type(os.fspath(path))
@@ -592,17 +596,16 @@ class Library:
                 # This file type isn't supported.
                 return None
 
-        stat = path.stat()
         return {
             'populated': False,
             'path': os.fspath(path),
             'path_lowercase': str(path.filesystem_file).lower(),
-            'basename_if_directory_lowercase': path.filesystem_file.name.lower() if path.is_dir() else None,
+            'basename_if_directory_lowercase': path.filesystem_file.name.lower() if is_directory else None,
             'filesystem_mtime': path.filesystem_file.stat().st_mtime,
-            'is_directory': path.is_dir(),
+            'is_directory': is_directory,
             'parent': str(Path(path).parent),
-            'ctime': stat.st_ctime,
-            'mtime': stat.st_mtime,
+            'ctime': path_stat.st_ctime,
+            'mtime': path_stat.st_mtime,
             'mime_type': mime_type,
             'title': '',
             'tags': '',
