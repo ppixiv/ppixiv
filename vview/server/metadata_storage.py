@@ -159,13 +159,18 @@ def load_and_lock_file_metadata(path):
         yield result
 
 def _load_file_metadata_locked(path, *, return_copy=True):
+    # Do the copy here if return_copy is true instead of having load_directory_metadata
+    # do it, so we only deep copy the file we're returning and not the entire directory.
     directory_path, filename = _directory_path_for_file(path)
-    directory_metadata = load_directory_metadata(directory_path, return_copy=return_copy)
+    directory_metadata = load_directory_metadata(directory_path, return_copy=False)
 
     result = directory_metadata.get(str(filename), {})
     if not isinstance(result, dict):
         print('Metadata for %s is corrupt' % path)
         result = {}
+
+    if return_copy:
+        result = copy.deepcopy(result)
 
     return result
 
