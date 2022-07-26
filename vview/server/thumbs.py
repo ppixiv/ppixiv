@@ -240,22 +240,35 @@ def _find_directory_thumbnail(path):
     """
     Find the first image in a directory to use as the thumbnail.
     """
+    # Try to find a file in the directory itself.  If we don't find one, but we do find some ZIPs,
+    # check for images inside the ZIPs, so we can give a thumbnail for directories that only contain
+    # image archives.
+    zips = []
     for idx, file in enumerate(path.scandir()):
-        if idx > 10:
+        if idx > 100:
             # In case this is a huge directory with no images, don't look too far.
             # If there are this many non-images, it's probably not an image directory
             # anyway.
             break
 
+        if file.suffix.lower() == '.zip':
+            zips.append(file)
+            continue
+
         # Ignore nested directories.
         if file.is_dir():
             continue
 
-        if misc.file_type(file.name) is None:
-            continue
+        if misc.file_type(file.name) is not None:
+            return file
 
-        return file
-
+    # Only check a couple ZIPs, so we don't scan lots of them if this isn't an image directory.
+    for zip_path in zips[0:2]:
+        path = open_path(zip_path)
+        for idx, file in enumerate(path.scandir()):
+            if misc.file_type(file.name) is not None:
+                return file
+        
     return None
 
 # Handle:
