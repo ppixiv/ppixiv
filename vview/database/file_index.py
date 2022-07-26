@@ -136,7 +136,7 @@ class FileIndex(Database):
                             FOREIGN KEY(file_id) REFERENCES files(id) ON DELETE CASCADE
                         )
                     ''')
-                    conn.execute(f'CREATE INDEX {self.schema}.file_keyords_file_id on file_keywords(file_id)')
+                    conn.execute(f'CREATE INDEX {self.schema}.file_keywords_file_id on file_keywords(file_id)')
                     conn.execute(f'CREATE INDEX {self.schema}.file_keywords_keyword on file_keywords(keyword)')
 
                     # This should be searched with:
@@ -271,7 +271,7 @@ class FileIndex(Database):
                     INSERT INTO {self.schema}.file_keywords (file_id, keyword) values (?, ?)
                 ''', keywords_to_add)
 
-            # Update tags if needed.
+            # Update bookmark tags if needed.
             if tag_update_needed:
                 # Delete old tags.
                 cursor.execute(f'DELETE FROM {self.schema}.bookmark_tags WHERE file_id = ?', [entry['id']])
