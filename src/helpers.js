@@ -2191,7 +2191,7 @@ ppixiv.helpers = {
 
     // Asynchronously wait for an animation frame.  Return true on success, or false if
     // aborted by signal.
-    async vsync({signal=null}={})
+    vsync({signal=null}={})
     {
         return new Promise((accept, reject) => {
             // The timestamp passed to the requestAnimationFrame callback is designed
@@ -2199,12 +2199,21 @@ ppixiv.helpers = {
             // meaningless.  It should give the time in the future the current frame is
             // expected to be displayed, which is what you get from things like Android's
             // choreographer to allow precise frame timing.
-            let id;
+            let id = null;
     
             let abort = () => {
-                cancelAnimationFrame(id);
+                if(id != null)
+                    cancelAnimationFrame(id);
+
                 accept(false);
             };
+
+            // Stop if we're already aborted.
+            if(signal?.aborted)
+            {
+                abort();
+                return;
+            }
     
             id = requestAnimationFrame((time) => {
                 signal.removeEventListener("abort", abort);
