@@ -2762,14 +2762,14 @@ ppixiv.helpers = {
     // don't want to, like forward slash.
     encodeURLHash(hash)
     {
-        return helpers.encodeURLPart(/[^A-Za-z0-9-_\.!~\*'()/:\[\]\^=&]/g, hash);
+        return helpers.encodeURLPart(/[^A-Za-z0-9-_\.!~\*'()/:\[\]\^#=&]/g, hash);
     },
 
     // This one escapes keys in hash parameters.  This is the same as encodeURLHash,
     // except it also encodes = and &.
     encodeHashParam(param)
     {
-        return helpers.encodeURLPart(/[^A-Za-z0-9-_\.!~\*'()/:\[\]\^]/g, param);
+        return helpers.encodeURLPart(/[^A-Za-z0-9-_\.!~\*'()/:\[\]\^#]/g, param);
     },
 
     // Encode a URLSearchParams for hash parameters.
