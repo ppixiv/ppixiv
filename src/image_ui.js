@@ -358,8 +358,8 @@ ppixiv.image_ui = class extends ppixiv.widget
             // For illusts, add the image type.  Don't do this for animations.
             if(this.illust_data.illustType != 2)
             {
-                let url = page_info.urls?.original;
-                let ext = helpers.get_extension(url).toUpperCase();
+                let url = new URL(page_info.urls?.original);
+                let ext = helpers.get_extension(url.pathname).toUpperCase();
                 if(ext)
                     info += " " + ext;
             }
