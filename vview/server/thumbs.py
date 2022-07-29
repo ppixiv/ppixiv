@@ -311,6 +311,10 @@ async def handle_thumb(request, mode='thumb'):
 
     data_dir = request.app['manager'].library.data_dir
 
+    entry = request.app['manager'].library.get(absolute_path)
+    if entry is None:
+        raise aiohttp.web.HTTPNotFound()
+
     # Generate the thumbnail in a thread.
     filetype = misc.file_type(str(absolute_path))
     if filetype == 'video':
@@ -323,12 +327,9 @@ async def handle_thumb(request, mode='thumb'):
             # Create the thumbnail in the same way we create image thumbs.
             thumbnail_file, mime_type = await create_thumb(path, thumb_path)
     else:
-        entry = request.app['manager'].library.get(absolute_path)
-        if entry is None:
-            raise aiohttp.web.HTTPNotFound()
-
         inpaint_path = inpainting.get_inpaint_path_for_entry(entry, request.app['manager'])
         thumbnail_file, mime_type = await create_thumb(path, absolute_path, inpaint_path=inpaint_path)
+        
     if thumbnail_file is None:
         raise aiohttp.web.HTTPNotFound()
 
