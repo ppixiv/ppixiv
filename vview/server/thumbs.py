@@ -223,16 +223,6 @@ async def _extract_video_thumbnail_frame(media_id, path, data_dir):
     copyfile(poster_path, thumb_path)
     return thumb_path
 
-async def create_video_thumb(media_id, absolute_path, mode, *, data_dir):
-    if mode =='poster':
-        file, mime_type = await _create_video_poster(media_id, absolute_path, data_dir)
-        return file.read_bytes(), mime_type
-    else:
-        thumb_path = await _extract_video_thumbnail_frame(media_id, absolute_path, data_dir)
-
-        # Create the thumbnail in the same way we create image thumbs.
-        return await asyncio.to_thread(threaded_create_thumb, thumb_path)
-
 async def create_thumb(media_id, absolute_path, *, inpaint_path=None):
     return await asyncio.to_thread(threaded_create_thumb, absolute_path, inpaint_path=inpaint_path)
 
@@ -324,7 +314,14 @@ async def handle_thumb(request, mode='thumb'):
     # Generate the thumbnail in a thread.
     filetype = misc.file_type(str(absolute_path))
     if filetype == 'video':
-        thumbnail_file, mime_type = await create_video_thumb(path, absolute_path, mode, data_dir=data_dir)
+        if mode =='poster':
+            file, mime_type = await _create_video_poster(path, absolute_path, data_dir)
+            thumbnail_file = file.read_bytes()
+        else:
+            thumb_path = await _extract_video_thumbnail_frame(path, absolute_path, data_dir)
+
+            # Create the thumbnail in the same way we create image thumbs.
+            thumbnail_file, mime_type = await create_thumb(path, thumb_path)
     else:
         entry = request.app['manager'].library.get(absolute_path)
         if entry is None:
