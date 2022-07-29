@@ -112,7 +112,10 @@ def create_handler_for_command(handler):
         if request.method != 'POST':
             raise aiohttp.web.HTTPMethodNotAllowed(method=request.method, allowed_methods=('POST', 'OPTIONS'))
 
-        data = await request.json()
+        try:
+            data = await request.json()
+        except ValueError as e:
+            return web.Response(status=400, body=f'Couldn\'t decode JSON request: {str(e)}\n')
 
         base_url = '%s://%s:%i' % (request.url.scheme, request.url.host, request.url.port)
         info = api.RequestInfo(request, data, base_url)
