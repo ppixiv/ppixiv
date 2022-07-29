@@ -31,7 +31,7 @@
 # XXX: we shouldn't do a full refresh on changes, but not sure how to find out if
 # indexing is up to date for a path in order to use quick refresh
 
-import asyncio, collections, errno, itertools, os, time, traceback, json, heapq, natsort, random, math, stat
+import asyncio, collections, errno, itertools, os, time, traceback, json, heapq, natsort, random, math, logging, stat
 from pprint import pprint
 from pathlib import Path, PurePosixPath
 
@@ -40,6 +40,8 @@ from . import metadata_storage
 from ..database.file_index import FileIndex
 from ..util.paths import open_path, PathBase
 from ..util.misc import TransientWriteConnection
+
+log = logging.getLogger(__name__)
 
 def _create_natsort():
     """
@@ -176,9 +178,8 @@ class Library:
         self.monitors = {}
         self._data_dir = data_dir
 
-        # Open our database.
-        dbpath = self.data_dir / 'index.sqlite'
-        self.db = FileIndex(dbpath)
+        # Open our databases.
+        self.db = FileIndex(self.data_dir / 'index.sqlite')
 
     def mount(self, path, name=None):
         path = open_path(path)
