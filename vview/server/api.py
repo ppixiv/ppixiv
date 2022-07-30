@@ -3,8 +3,8 @@ from datetime import datetime, timezone
 from pprint import pprint
 from collections import defaultdict
 from pathlib import PurePosixPath
-
-from ..util import misc, inpainting
+from ..util import misc, inpainting, windows_search
+from ..util.paths import open_path
 
 log = logging.getLogger(__name__)
 
@@ -191,6 +191,14 @@ async def api_bookmark_add(info):
 
     entry = info.manager.library.get(absolute_path)
     entry = info.manager.library.bookmark_edit(entry, set_bookmark=True, tags=tags)
+
+    # Index the image for similar image searching when it's bookmarked.  Normally this happens
+    # either when the image is viewed or when it's first indexed.  This just makes sure they're
+    # indexed if they're bookmarked when neither of those happen, like scripts editing bookmarks.
+    # If the image is already indexed then this won't do anything.
+    if not entry['is_directory']:
+        info.manager.sig_db.get_image_signature(entry['path'])
+
     return { 'success': True, 'bookmark': _bookmark_data(entry) }
 
 @reg('/bookmark/delete/{type:[^:]+}:{path:.+}')
@@ -257,6 +265,122 @@ async def api_illust(info):
     return {
         'success': True,
         'illust': illust_info,
+    }
+
+# Index a directory for similar image searching.
+@reg('/similar/index')
+async def api_similar_search(info):
+    # We can either index a path recursively, or all bookmarks.
+    path = info.data.get('path', None)
+    bookmarks = info.data.get('bookmarks', False)
+    if (path is not None) + bookmarks != 1:
+        raise misc.Error('invalid-request', 'Must specify a path or bookmarks')
+    
+    if path is not None:
+        absolute_path = info.manager.resolve_path(path)
+        entry = info.manager.library.get(absolute_path)
+        if entry is None:
+            raise misc.Error('not-found', 'File not in library')
+
+        # Check that the top path is in the library.  We don't check this for each result.
+        info.request.app['manager'].library.get_public_path(absolute_path)
+
+    async def do_index():
+        if path is not None:
+            # Read all paths first, so the search doesn't time out while we're processing files.
+            paths = [result.path for result in windows_search.search(paths=[str(absolute_path)], timeout=30)]
+        else:
+            paths = info.manager.library.get_all_bookmark_paths()
+
+        import concurrent
+        from concurrent.futures import ThreadPoolExecutor
+
+        def process(file_path):
+            result_absolute_path = open_path(file_path)
+            if not result_absolute_path.is_file():
+                return
+
+            # Create the signature if it's not already cached.
+            info.manager.sig_db.get_image_signature(result_absolute_path)
+
+        # Filter out non-images.
+        paths = [path for path in paths if misc.file_type(path) == 'image']
+
+        # Run these in parallel to speed it up.  Note that we can't use with ThreadPoolExecutor,
+        # since that gives no way to set cancel_futures when cleaning up.
+        executor = ThreadPoolExecutor(max_workers=8)
+        try:
+            futures = {executor.submit(process, file_path): file_path for file_path in paths}
+            for idx, future in enumerate(concurrent.futures.as_completed(futures)):
+                log.info(f'Indexed {idx}/{len(paths)}')
+
+                # Check if we've been cancelled as each file completes.
+                asyncio.tasks.current_task().throw_if_cancelled()
+        finally:
+            executor.shutdown(cancel_futures=True)
+
+    # This can take a long time, so run the job in a background task.
+    name = f'Indexing {absolute_path}' if path is not None else 'Indexing bookmarks'
+    task_id = info.manager.run_background_task(do_index(), name=name)
+
+    return {
+        'success': True,
+        'task_id': task_id,
+    }
+
+@reg('/similar/search')
+async def api_similar_search(info):
+    url = info.data.get('url', None)
+    path = info.data.get('path', None)
+    max_results = info.data.get('max_results', 10)
+    max_results = int(max_results)
+
+    count = (url is not None) + (path is not None)
+    if count != 1:
+        raise misc.Error('invalid-request', 'Must specify a URL or path')
+
+    if path is not None:
+        # Find the local path, and make sure it's in the library.
+        absolute_path = info.manager.resolve_path(path)
+        entry = info.manager.library.get(absolute_path)
+        if entry is None:
+            raise misc.Error('not-found', 'File not in library')
+
+        # Get the image's signature.  This will use the cached signature if it already
+        # exists, otherwise it'll create it.
+        signature = info.manager.sig_db.get_image_signature(absolute_path)
+    else:
+        assert url is not None
+
+        # Download the image.
+        signature = await info.manager.sig_db.get_url_signature(url)
+
+    similar_results = info.manager.sig_db.find_similar_images(signature, max_results=max_results)
+
+    # Convert the results to a list of entries.  The results are already sorted by score.
+    results = []
+    for result in similar_results:
+        try:
+            # The results are absolute paths.  Find them in the library.
+            absolute_path = open_path(result['path'])
+            result_path = info.request.app['manager'].library.get_public_path(absolute_path)
+            entry = await _get_api_illust_info(info, result_path)
+        except misc.Error as e:
+            print('Skipping result:', e, result['path'])
+            continue
+
+        results.append({
+            'similarity': {
+                'score': result['score'],
+                'unweighted_score': result['unweighted_score'],
+                'id': result['id'],
+            },
+            'entry': entry,
+        })
+
+    return {
+        'success': True,
+        'results': results,
     }
 
 # Batch retrieve info about files.
