@@ -92,7 +92,14 @@ def _image_is_transparent(img):
     else:
         return False
 
-def threaded_create_thumb(path, inpaint_path=None):
+async def create_thumb(*args, **kwargs):
+    """
+    Push creating thumbs into a thread, since it does a bunch of CPU-bound work that
+    isn't built on asyncs.  It'll release the GIL and allow other work happen.
+    """
+    return await asyncio.to_thread(threaded_create_thumb, *args, **kwargs)
+
+def threaded_create_thumb(request, path, *, inpaint_path=None):
     # Thumbnail the image.
     #
     # Don't use PIL's built-in behavior of clamping the size.  It works poorly for
@@ -139,6 +146,10 @@ def threaded_create_thumb(path, inpaint_path=None):
 
     # If the image has EXIF rotations, bake them into the thumbnail.
     image = _bake_exif_rotation(image, exif)
+
+    # Save this image's signature.  This will resize the image itself, so we do this
+    # on the already resized image so it has less resizing to do.
+    request.app['manager'].sig_db.save_image_signature(path, image)
 
     # If the image is transparent, save it as PNG.  Otherwise, save it as JPEG.
     if _image_is_transparent(image):
@@ -222,9 +233,6 @@ async def _extract_video_thumbnail_frame(media_id, path, data_dir):
     poster_path = _get_poster_path(path, data_dir)
     copyfile(poster_path, thumb_path)
     return thumb_path
-
-async def create_thumb(media_id, absolute_path, *, inpaint_path=None):
-    return await asyncio.to_thread(threaded_create_thumb, absolute_path, inpaint_path=inpaint_path)
 
 def _find_directory_thumbnail(path):
     """
@@ -325,11 +333,11 @@ async def handle_thumb(request, mode='thumb'):
             thumb_path = await _extract_video_thumbnail_frame(path, absolute_path, data_dir)
 
             # Create the thumbnail in the same way we create image thumbs.
-            thumbnail_file, mime_type = await create_thumb(path, thumb_path)
+            thumbnail_file, mime_type = await create_thumb(request, thumb_path)
     else:
         inpaint_path = inpainting.get_inpaint_path_for_entry(entry, request.app['manager'])
-        thumbnail_file, mime_type = await create_thumb(path, absolute_path, inpaint_path=inpaint_path)
-        
+        thumbnail_file, mime_type = await create_thumb(request, absolute_path, inpaint_path=inpaint_path)
+
     if thumbnail_file is None:
         raise aiohttp.web.HTTPNotFound()
 
