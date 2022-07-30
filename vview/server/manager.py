@@ -5,6 +5,7 @@ from collections import OrderedDict, namedtuple
 from .auth import Auth
 from ..util import misc
 from ..util.paths import open_path, PathBase
+from ..database.signature_db import SignatureDB
 from .library import Library
 
 class Manager:
@@ -32,6 +33,8 @@ class Manager:
 
         self.auth = Auth(self.data_dir / 'settings.json')
         self.library = Library(self.data_dir)
+        self.sig_db = SignatureDB(self.data_dir / 'signatures.sqlite')
+        self.sig_db.load_image_index()
 
         app.on_shutdown.append(self.shutdown)
 
