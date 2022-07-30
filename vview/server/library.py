@@ -267,6 +267,9 @@ class Library:
         if paths is None:
             paths = self.mounts
 
+        # Scan for metadata files.
+        log.info(f'Finding bookmarks...')
+        all_metadata_files = []
         for path in paths.values():
             # Find all metadata files.
             for result in windows_search.search(
@@ -274,8 +277,12 @@ class Library:
                     filename=metadata_storage.metadata_filename,
                     timeout=0, # disable timeouts
                 ):
-                path = open_path(result.path)
-                await self._refresh_metadata_file(path)
+                all_metadata_files.append(result.path)
+
+        log.info(f"Scanning {len(all_metadata_files)} directories with bookmarks")
+        for path in all_metadata_files:
+            path = open_path(path)
+            await self._refresh_metadata_file(path)
 
     async def refresh(self, *, paths=None):
         """
