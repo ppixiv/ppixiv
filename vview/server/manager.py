@@ -5,6 +5,7 @@ from collections import OrderedDict, namedtuple
 from .auth import Auth
 from ..util import misc
 from ..util.paths import open_path, PathBase
+from ..util.threaded_tasks import AsyncTaskQueue
 from ..database.signature_db import SignatureDB
 from .library import Library
 
@@ -17,6 +18,7 @@ class Manager:
     def __init__(self, app):
         self.app = app
         self.api_list_results = OrderedDict()
+        self.task_queue = AsyncTaskQueue()
 
         # Figure out where to put our files.  We can put it in AppData for a regular
         # installation, but it's convenient to have it in a local directory for
@@ -42,6 +44,9 @@ class Manager:
 
     async def shutdown(self, app):
         print('Shutting down manager')
+
+        await self.task_queue.shutdown()
+
         for name in list(self.library.mounts.keys()):
             await self.library.unmount(name)
         
@@ -92,7 +97,13 @@ class Manager:
         path = open_path(path)
 
         return path
-    
+
+    def run_background_task(self, func, *, name=None):
+        """
+        Run a background task.
+        """
+        return self.task_queue.run_task(func, name=name)
+
     # Values of api_list_results can be a dictionary, in which case they're a result
     # cached from a previous call.  They can also be a function, which is called to
     # retrieve the next page, which is used to continue previous searches.
