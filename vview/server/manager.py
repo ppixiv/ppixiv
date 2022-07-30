@@ -1,4 +1,4 @@
-import asyncio, os, time
+import asyncio, logging, os, time
 from pathlib import Path, PurePosixPath
 from collections import OrderedDict, namedtuple
 
@@ -7,6 +7,8 @@ from ..util import misc
 from ..util.paths import open_path, PathBase
 from ..database.signature_db import SignatureDB
 from .library import Library
+
+log = logging.getLogger(__name__)
 
 class Manager:
     """
