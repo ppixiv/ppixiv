@@ -3761,6 +3761,7 @@ ppixiv.data_sources.edited_images = class extends data_source_fake_pagination
 ppixiv.data_sources.vview = class extends data_source
 {
     get name() { return "vview"; }
+    get is_vview() { return true; }
     get can_return_manga() { return false; }
 
     constructor(url)
@@ -4138,6 +4139,87 @@ ppixiv.data_sources.vview = class extends data_source
     {
         // The user clicked the "copy local link" button.
         navigator.clipboard.writeText(this.local_path);
+    }
+}
+
+ppixiv.data_sources.vview_similar = class extends data_source
+{
+    get name() { return "similar"; }
+    get is_vview() { return true; }
+    get can_return_manga() { return false; }
+
+    async load_page_internal(page)
+    {
+        if(page != 1)
+            return;
+
+        // We can be given a local path or a URL to an image to search for.
+        let args = new helpers.args(this.url);
+        let path = args.hash.get("search_path");
+        let url = args.hash.get("search_url");
+
+        let result = await local_api.local_post_request(`/api/similar/search`, {
+            path,
+            url,
+            max_results: 10,
+        });
+
+        if(!result.success)
+        {
+            message_widget.singleton.show("Error reading search: " + result.reason);
+            return result;
+        }
+
+        let media_ids = [];
+        for(let item of result.results)
+        {
+            // console.log(item.score);
+
+            // Register the results with media_cache.
+            let entry = item.entry;
+            ppixiv.local_api.adjust_illust_info(entry);
+            await media_cache.add_media_info_full(entry, { preprocessed: true });
+
+            media_ids.push(entry.mediaId);
+        }
+
+        this.add_page(page, media_ids);
+    };
+
+    // We only load one page of results.
+    can_load_page(page)
+    {
+        return page == 1;
+    }
+
+    get page_title() { return this.get_displaying_text(); }
+
+    set_page_icon()
+    {
+        helpers.set_icon({vview: true});
+    }
+
+    get_displaying_text()
+    {
+        // If we have a path inside a search, show the path, since we're not showing the
+        // top-level search.  Otherwise, get the search title.
+        let args = new helpers.args(this.url);
+        if(args.hash.get("path") != null)
+        {
+            let folder_id = local_api.get_local_id_from_args(args, { get_folder: true });
+            return helpers.get_path_suffix(helpers.parse_media_id(folder_id).id);
+        }
+        else
+        {
+            return local_api.get_search_options_for_args(args).title;
+        }
+    }
+
+    refresh_thumbnail_ui(container)
+    {
+        let current_args = helpers.args.location;
+       
+        this.set_active_popup_highlight(container);
     }
 }
 

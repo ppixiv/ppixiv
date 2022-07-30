@@ -24,7 +24,9 @@ def add_routes(router):
     router.add_get('/client/init.js', handle_source_files)
     router.add_get('/client/{path:.*\.css}', handle_css)
     router.add_get('/client/{path:.*}', handle_client)
-    router.add_get('/', handle_root)
+
+    # All top-level paths serve the same file.
+    router.add_get('/{unused:[^/]*?}', handle_root)
 
 def handle_root(request):
     path = root_dir / 'resources/index.html'

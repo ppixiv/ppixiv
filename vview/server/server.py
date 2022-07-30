@@ -200,10 +200,12 @@ async def setup(*, set_main_task=None):
     app.router.add_get('/mjpeg-zip/{type:[^:]+}:{path:.+}', thumbs.handle_mjpeg)
     app.router.add_get('/inpaint/{type:[^:]+}:{path:.+}', thumbs.handle_inpaint)
     app.router.add_get('/open/{path:.+}', thumbs.handle_open)
-    ui.add_routes(app.router)
 
     # Set up WebSockets.
     websockets.setup(app)
+
+    # Add UI routes.  Do this last, since it handles the fallback for top-level files.
+    ui.add_routes(app.router)
 
     # Add a handler for each API call.
     for command, func in api.handlers.items():

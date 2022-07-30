@@ -129,7 +129,13 @@ ppixiv.page_manager = class
         else if(url.pathname.startsWith("/request/complete"))
             return data_sources.completed_requests;
         else if(url.pathname.startsWith(local_api.path))
-            return data_sources.vview;
+        {
+            let args = new helpers.args(url);
+            if(args.path == "/similar")
+                return data_sources.vview_similar;
+            else
+                return data_sources.vview;
+        }
         else if(first_part == "")
         {
             // Data sources that don't have a corresponding Pixiv page:

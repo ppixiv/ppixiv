@@ -538,8 +538,9 @@ ppixiv.screen_search = class extends ppixiv.screen
         if(ppixiv.local_api.is_enabled() && !local_api.local_info.bookmark_tag_searches_only)
         {
             // False if the user has hidden the navigation tree.  Default to false on mobile, since
-            // it takes up a lot of screen space.
-            this.local_navigation_visible = !ppixiv.mobile;
+            // it takes up a lot of screen space.  Also default to false if we were initially opened
+            // as a similar image search.
+            this.local_navigation_visible = !ppixiv.mobile && ppixiv.location.pathname != "/similar";
 
             this.local_nav_widget = new ppixiv.local_navigation_widget({
                 parent: this,
@@ -807,7 +808,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         this.data_source.refresh_thumbnail_ui(ui_box, this);
 
         // Refresh whether we're showing the local navigation widget and toggle button.
-        let local_search_active = this.data_source?.name == "vview" && !local_api?.local_info?.bookmark_tag_searches_only;
+        let local_search_active = this.data_source?.is_vview && !local_api?.local_info?.bookmark_tag_searches_only;
         helpers.set_dataset(this.container.dataset, "showNavigation", local_search_active && this.local_navigation_visible);
         if(this.toggle_local_navigation_button)
         {

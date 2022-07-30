@@ -693,7 +693,7 @@ ppixiv.search_view = class extends ppixiv.widget
         // Don't do this for the local API.  Making lots of tiny requests is harmless
         // there since it's all local, and requesting file info causes the file to be
         // scanned if it's not yet cached, so it's better to make fine-grained requests.
-        let min_to_load = this.data_source?.name == "vview"? 10: 30;
+        let min_to_load = this.data_source?.is_vview? 10: 30;
 
         let load_start_idx = start_idx;
         let load_end_idx = end_idx;
@@ -760,7 +760,7 @@ ppixiv.search_view = class extends ppixiv.widget
             // Allow more columns on the manga view, since that never loads more than one image.
             // Allow unlimited columns for local images.
             max_columns: manga_view? 15: 
-                this.data_source?.name == "vview"? 100:5,
+                this.data_source?.is_vview? 100:5,
 
             // Set a minimum padding to make sure there's room for the popup text to fit between images.
             min_padding: 15,

@@ -274,12 +274,12 @@ ppixiv.local_api = class
     //
     // Examples:
     //
-    // #ppixiv/images/pictures?path=vacation/day1
+    // #/images/pictures?path=vacation/day1
     //
     // The user searched inside /images/pictures, and is currently viewing the folder
     // /images/pictures/vacation/day1.
     //
-    // #ppixiv/images/pictures?file=vacation/image.jpg
+    // #/images/pictures?file=vacation/image.jpg
     //
     // The user searched inside /images/pictures, and is currently viewing the image
     // vacation/image.jpg.  There's no path, which means the image was listed directly in the
@@ -288,7 +288,7 @@ ppixiv.local_api = class
     // the path hasn't changed, the data source is still the search, so you can mousewheel
     // within the search.
     //
-    // #ppixiv/images/pictures?path=vacation/day1&file=image.jpg
+    // #/images/pictures?path=vacation/day1&file=image.jpg
     //
     // The user searched inside /images/pictures, navigated to the folder vacation/day1 in
     // the results, then viewed image.jpg from there.  The data source is the folder.
@@ -300,15 +300,14 @@ ppixiv.local_api = class
     // hash_path + path + file.
     static get_args_for_id(media_id, args)
     {
-        if(args.path != local_api.path)
+        // If we're navigating from a special page like /similar, ignore the previous
+        // URL and create a new one.  Those pages can have their own URL formats.
+        if(args.path != local_api.path || args.path != "/")
         {
-            // Navigating to a local URL from somewhere else.  The search options
-            // are unrelated, so just reset the URL.
-            // XXX: untested
             args.path = local_api.path;
             args.query = new URLSearchParams();
             args.hash = new URLSearchParams();
-            args.hash_path = "";
+            args.hash_path = "/";
         }
 
         // The path previously on args:
@@ -634,6 +633,27 @@ ppixiv.local_api = class
             args.hash.delete("search");
         args.set("p", null);
         helpers.set_page_url(args, true /* add_to_history */, "navigation");
+    }
+
+    static async index_folder(media_id)
+    {
+        let { type, id } = helpers.parse_media_id(media_id);
+        if(type != "folder")
+        {
+            console.log(`Not a folder: ${media_id}`);
+            return;
+        }
+
+        let result = await local_api.local_post_request(`/api/similar/index`, {
+            path: id,
+        });
+        if(!result.success)
+        {
+            message_widget.singleton.show(`Error indexing ${id}: ${result.reason}`);
+            return;
+        }
+
+        message_widget.singleton.show(`Begun indexing ${id} for similarity searching`);
     }
 }
 

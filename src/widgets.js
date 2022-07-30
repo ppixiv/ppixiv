@@ -1644,6 +1644,25 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                 });
             },
 
+            similar_local_images: () => {
+                return new menu_option_button({
+                    ...shared_options,
+                    label: "Similar images",
+                    icon: "ppixiv:suggestions",
+                    requires_image: true,
+                    onclick: () => {
+                        this.parent.hide();
+
+                        let args = new helpers.args("/");
+                        args.path = "/similar";
+                        args.hash_path = "/#/";
+                        let { id } = helpers.parse_media_id(this.media_id);
+                        args.hash.set("search_path", id);
+                        helpers.set_page_url(args, true /* add_to_history */, "navigation");
+                    }
+                });
+            },
+            
             similar_bookmarks: () => {
                 return new menu_option_button({
                     ...shared_options,
@@ -1656,6 +1675,25 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                         let [illust_id] = helpers.media_id_to_illust_id_and_page(this.media_id);
                         let args = new helpers.args(`/bookmark_detail.php?illust_id=${illust_id}#ppixiv`);
                         helpers.set_page_url(args, true /* add_to_history */, "navigation");
+                    }
+                });
+            },
+
+            index_folder: () => {
+                return new menu_option_button({
+                    ...shared_options,
+                    label: "Index similarity",
+                    icon: "ppixiv:suggestions",
+                    requires: ({media_id}) => {
+                        if(media_id == null)
+                            return false;
+                        let { type } = helpers.parse_media_id(media_id);
+                        return type == "folder";
+                    },
+
+                    onclick: () => {
+                        this.parent.hide();
+                        local_api.index_folder(this.media_id);
                     }
                 });
             },
@@ -1848,6 +1886,10 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
             this.menu_options.push(menu_options.download_video());
             this.menu_options.push(menu_options.edit_mutes());
         }
+        else
+        {
+            this.menu_options.push(menu_options.similar_local_images());
+        }
 
         this.menu_options.push(menu_options.send_to_tab());
         this.menu_options.push(menu_options.linked_tabs());
@@ -1856,6 +1898,8 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
         if(!ppixiv.mobile)
             this.menu_options.push(menu_options.toggle_slideshow());
         this.menu_options.push(menu_options.image_editing());
+        if(ppixiv.native)
+            this.menu_options.push(menu_options.index_folder());
         this.menu_options.push(menu_options.refresh_image());
 
         // Add settings for mobile.  On desktop, this is available in a bunch of other
