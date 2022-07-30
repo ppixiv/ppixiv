@@ -964,7 +964,7 @@ class Library:
             windows_search_iter = misc.ThreadedQueue(windows_search_iter)
             index_search_iter = misc.ThreadedQueue(index_search_iter)
 
-            # get_results_from_search iterate through those and yield entries.
+            # get_results_from_search iterates through those and yield entries.
             def get_results_from_index():
                 for result in index_search_iter:
                     entry = get_entry_from_result(result)
@@ -1044,6 +1044,27 @@ class Library:
         # Yield any leftover results.
         if results:
             yield results
+
+    def get_all_bookmark_paths(self):
+        """
+        Return the paths for all bookmarks.
+
+        This is an optimization for similar/index, which doesn't need entry info.
+        """
+        paths = self.mounts.values()
+
+        # Create the index search.
+        index_search_iter = self.db.search(paths=[str(path) for path in paths], bookmarked=True)
+
+        # Iterate over the final search, returning it in batches.
+        results = []
+        for entry in index_search_iter:
+            if entry is None:
+                continue
+
+            results.append(entry['path'])
+
+        return results
 
     def bookmark_edit(self, entry, set_bookmark, tags=None):
         """
