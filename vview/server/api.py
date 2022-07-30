@@ -1,10 +1,11 @@
-import os, urllib, uuid, time, asyncio, json, logging, traceback
+import base64, os, urllib, uuid, time, asyncio, json, logging, traceback, aiohttp, io
 from datetime import datetime, timezone
 from pprint import pprint
 from collections import defaultdict
 from pathlib import PurePosixPath
-from ..util import misc, inpainting, windows_search
+from ..util import misc, inpainting, windows_search, image_index
 from ..util.paths import open_path
+from PIL import Image
 
 log = logging.getLogger(__name__)
 
@@ -341,19 +342,40 @@ async def api_similar_search(info):
 
     if path is not None:
         # Find the local path, and make sure it's in the library.
-        absolute_path = info.manager.resolve_path(path)
-        entry = info.manager.library.get(absolute_path)
+        entry = await _get_api_illust_info(info, path)
         if entry is None:
             raise misc.Error('not-found', 'File not in library')
+
+        absolute_path = entry['localPath']
+        search_image_url = entry['urls']['small']
 
         # Get the image's signature.  This will use the cached signature if it already
         # exists, otherwise it'll create it.
         signature = info.manager.sig_db.get_image_signature(absolute_path)
+
     else:
         assert url is not None
 
         # Download the image.
-        signature = await info.manager.sig_db.get_url_signature(url)
+        async with aiohttp.ClientSession() as session:
+            try:
+                result = await session.get(url, headers={
+                    'Referer': url,
+                })
+                image_data = await result.read()
+            except Exception as e:
+                raise misc.Error('not-found', f'Couldn\'t download image: {str(e)}')
+
+        try:
+            image = Image.open(io.BytesIO(image_data))
+        except Exception as e:
+            raise misc.Error('not-found', f'Couldn\'t open image: {str(e)}')
+        signature = image_index.ImageSignature.from_image(image)
+
+        # Include a data URL to the image instead of the original image, since the browser session
+        # may not have access to the original URL.
+        data = base64.b64encode(image_data).decode('ascii')
+        search_image_url = 'data:image/jpeg;base64,%s' % data
 
     similar_results = info.manager.sig_db.find_similar_images(signature, max_results=max_results)
 
@@ -380,6 +402,7 @@ async def api_similar_search(info):
 
     return {
         'success': True,
+        'source_url': search_image_url,
         'results': results,
     }
 

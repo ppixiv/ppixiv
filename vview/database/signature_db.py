@@ -200,36 +200,6 @@ class SignatureDB(Database):
                 print('Couldn\'t read %s to create thumbnail: %s' % (path, e))
                 return None
 
-    @classmethod
-    async def get_url_signature(cls, url, *, session=None):
-        """
-        Download an image URL and return its ImageSignature.
-
-        session can be a running aiohttp.ClientSession.
-        """
-        if session is not None:
-            return await cls._get_url_signature(url, session=session)
-
-        async with aiohttp.ClientSession() as session:
-            return await cls._get_url_signature(url, session=session)
-
-    @classmethod
-    async def _get_url_signature(cls, url, *, session):
-        try:
-            result = await session.get(url, headers={
-                'Referer': url,
-            })
-            data = await result.read()
-        except Exception as e:
-            raise misc.Error('not-found', f'Couldn\'t download image: {str(e)}')
-
-        try:
-            image = Image.open(io.BytesIO(data))
-        except Exception as e:
-            raise misc.Error('not-found', f'Couldn\'t open image: {str(e)}')
-
-        return image_index.ImageSignature.from_image(image)
-
     def save_image_signature(self, path, image):
         """
         Save the signature for an image.

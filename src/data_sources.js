@@ -4170,6 +4170,9 @@ ppixiv.data_sources.vview_similar = class extends data_source
             return result;
         }
 
+        // This is a URL to the original image we're searching for.
+        this.source_url = result.source_url;
+
         let media_ids = [];
         for(let item of result.results)
         {
@@ -4211,14 +4214,35 @@ ppixiv.data_sources.vview_similar = class extends data_source
         }
         else
         {
-            return local_api.get_search_options_for_args(args).title;
+            return `Similar images`;
         }
     }
 
     refresh_thumbnail_ui(container)
     {
-        let current_args = helpers.args.location;
-       
+        // Set the source image.
+        let source_link = container.querySelector(".image-for-suggestions");
+        source_link.hidden = this.source_url == null;
+
+        // A URL for the image we're searching for.
+        if(this.source_url)
+        {
+            let img = source_link.querySelector("img");
+            img.src = this.source_url;
+        }
+
+        // If this is a search for a local path, link to the image.
+        let args = new helpers.args(this.url);
+        let path = args.hash.get("search_path");
+        if(path)
+        {
+            let media_id = helpers.encode_media_id({type: "file", id: path});
+            let link_args = helpers.get_url_for_id(media_id);
+            source_link.href = link_args;
+        }
+        else
+            source_link.href = "#";
+    
         this.set_active_popup_highlight(container);
     }
 }
