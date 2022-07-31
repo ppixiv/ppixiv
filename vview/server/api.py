@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from pprint import pprint
 from collections import defaultdict
 from pathlib import PurePosixPath
+from urllib import request
 from ..util import misc, inpainting, windows_search, image_index
 from ..util.paths import open_path
 from PIL import Image
@@ -357,14 +358,19 @@ async def api_similar_search(info):
         assert url is not None
 
         # Download the image.
-        async with aiohttp.ClientSession() as session:
-            try:
-                result = await session.get(url, headers={
-                    'Referer': url,
-                })
-                image_data = await result.read()
-            except Exception as e:
-                raise misc.Error('not-found', f'Couldn\'t download image: {str(e)}')
+        try:
+            # Why does aiohttp not handle data: URLs?
+            if url.startswith('data:'):
+                with request.urlopen(url) as response:
+                    image_data = response.read()
+            else:
+                async with aiohttp.ClientSession() as session:
+                    result = await session.get(url, headers={
+                        'Referer': url,
+                    })
+                    image_data = await result.read()
+        except Exception as e:
+            raise misc.Error('not-found', f'Couldn\'t download image: {str(e)}')
 
         try:
             image = Image.open(io.BytesIO(image_data))
