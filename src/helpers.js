@@ -5014,45 +5014,45 @@ ppixiv.TouchScroller = class
         // Bounce right:
         if(position.x < bounds.left)
         {
-            var bounce_velocity = bounds.left - position.x;
+            let bounce_velocity = bounds.left - position.x;
             bounce_velocity *= 0.011;
             position.x += bounce_velocity * duration * 300;
 
             if(position.x >= bounds.left - 1)
-            position.x = bounds.left;
+                position.x = bounds.left;
         }
 
         // Bounce left:
         if(position.x > bounds.right)
         {
-            var bounce_velocity = bounds.right - position.x;
+            let bounce_velocity = bounds.right - position.x;
             bounce_velocity *= 0.011;
             position.x += bounce_velocity * duration * 300;
 
             if(position.x <= bounds.right + 1)
-            position.x = bounds.right;
+                position.x = bounds.right;
         }
 
         // Bounce down:
         if(position.y < bounds.top)
         {
-            var bounce_velocity = bounds.top - position.y;
+            let bounce_velocity = bounds.top - position.y;
             bounce_velocity *= 0.011;
             position.y += bounce_velocity * duration * 300;
 
             if(position.y >= bounds.top - 1)
-            position.y = bounds.top;
+                position.y = bounds.top;
         }
 
         // Bounce up:
         if(position.y > bounds.bottom)
         {
-            var bounce_velocity = bounds.bottom - position.y;
+            let bounce_velocity = bounds.bottom - position.y;
             bounce_velocity *= 0.011;
             position.y += bounce_velocity * duration * 300;
 
             if(position.y <= bounds.bottom + 1)
-            position.y = bounds.bottom;
+                position.y = bounds.bottom;
         }
 
         // Return true if we're still out of bounds.
