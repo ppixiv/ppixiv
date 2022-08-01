@@ -1,7 +1,6 @@
 source_files = [
     'src/polyfills.js',
     'src/actions.js',
-    'src/crc32.js',
     'src/helpers.js',
     'src/settings.js',
     'src/fix_chrome_clicks.js',

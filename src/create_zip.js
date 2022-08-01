@@ -20,7 +20,7 @@ ppixiv.create_zip = function(filenames, files)
     for(var i = 0; i < filenames.length; ++i)
     {
         var data = files[i];
-        var crc = crc32(new Int8Array(data));
+        let crc = helpers.crc32(new Int8Array(data));
         crc32s.push(crc);
         blobs.push(new Blob([data]));
     }
