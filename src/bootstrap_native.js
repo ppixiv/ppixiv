@@ -20,8 +20,9 @@ let _load_source_file = function(__pixiv, __source) {
 (async() =>
 {
     // If this is an iframe, don't do anything, so if we're a debug environment for Pixiv we don't
-    // try to load in Pixiv iframes.
-    if(window.top != window.self)
+    // try to load in Pixiv iframes.  Do run if we're in an iframe on another site, to allow
+    // similar image iframes.
+    if(window.location.host == "www.pixiv.net" && window.top != window.self)
         return;
 
     console.log("ppixiv native bootstrap");
