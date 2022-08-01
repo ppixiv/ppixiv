@@ -4735,6 +4735,10 @@ ppixiv.TouchScroller = class
         // the zoom level changing.
         get_bounds,
 
+        // If the current zoom is outside the range the viewer wants, return the ratio from the
+        // current zoom to the wanted zoom.  This is applied along with rubber banding.
+        get_wanted_zoom,
+
         // An AbortSignal to shut down.
         signal,
     })
@@ -4744,6 +4748,7 @@ ppixiv.TouchScroller = class
             get_position,
             set_position,
             get_bounds,
+            get_wanted_zoom,
             adjust_zoom,
         };
 
@@ -4960,8 +4965,6 @@ ppixiv.TouchScroller = class
     // Handle a fling asynchronously.  Stop when the fling ends or signal is aborted.
     async run_fling(signal)
     {
-        let current_position = this.options.get_position();
-
         let previous_time = Date.now() / 1000;
         while(this.mode == "fling")
         {
@@ -4977,6 +4980,7 @@ ppixiv.TouchScroller = class
             let movementY = this.velocity.y * duration;
 
             // Apply the velocity to the current position.
+            let current_position = this.options.get_position();
             current_position.x += movementX;
             current_position.y += movementY;
 
@@ -4988,14 +4992,14 @@ ppixiv.TouchScroller = class
             // If we're out of bounds, accelerate towards being in-bounds.  This simply moves us
             // towards being in-bounds based on how far we are from it, which gives the effect
             // of acceleration.
-            let bounced = this.apply_bounce(duration, current_position);
+            let bounced = this.apply_position_bounce(duration, current_position);
+            if(this.apply_zoom_bounce(duration))
+                bounced = true;
 
             // Stop if our velocity has decayed and we're not rebounding.
             let total_velocity = Math.pow(Math.pow(this.velocity.x, 2) + Math.pow(this.velocity.y, 2), 0.5);
             if(!bounced && total_velocity < FlingMinimumVelocity)
                 break;
-    
-            this.options.set_position(current_position);
         }
 
         // We've reached (near) zero velocity.  Clamp the velocity to 0.
@@ -5005,9 +5009,38 @@ ppixiv.TouchScroller = class
         this.mode = null;
     }
 
+    apply_zoom_bounce(duration)
+    {
+        // See if we want to bounce the zoom.  This is used to scale the viewer back up to
+        // 1x if the image is zoomed lower than that.
+        let { ratio, centerX, centerY } = this.options.get_wanted_zoom();
+        if(Math.abs(1-ratio) < 0.001)
+            return false;
+
+        // While we're figuring out the speed, invert ratios less than 1 (zooming down) so
+        // the ratios are linear.
+        let inverted = ratio < 1;
+        if(inverted)
+            ratio = 1/ratio;
+
+        // The speed we'll actually apply the zoom ratio.  If this is 2, we'll adjust the ratio
+        // by 2x per second (or .5x when zooming down).  Clamp the ratio we'll apply based on
+        // the duration of this frame.
+        let zoom_ratio_per_second = 10;
+        let max_ratio_this_frame = Math.pow(zoom_ratio_per_second, duration);
+        ratio = Math.min(ratio, max_ratio_this_frame);
+
+        if(inverted)
+            ratio = 1/ratio;
+
+        // Zoom centered on the position bounds, which is normally the center of the image.
+        this.options.adjust_zoom({ratio, centerX, centerY});
+
+        return true;
+    }
     // If we're out of bounds, push the position towards being in bounds.  Return true if
     // we were out of bounds.
-    apply_bounce(duration, position)
+    apply_position_bounce(duration, position)
     {
         let bounds = this.options.get_bounds();
 
@@ -5054,6 +5087,8 @@ ppixiv.TouchScroller = class
             if(position.y <= bounds.bottom + 1)
                 position.y = bounds.bottom;
         }
+
+        this.options.set_position(position);
 
         // Return true if we're still out of bounds.
         return position.x < bounds.left ||

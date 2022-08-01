@@ -488,7 +488,11 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
     // A zoom level is the exponential ratio the user sees, and the zoom
     // factor is just the multiplier.
     zoom_level_to_zoom_factor(level) { return Math.pow(1.5, level); }
-    zoom_factor_to_zoom_level(factor) { return Math.log2(factor) / Math.log2(1.5); }
+    zoom_factor_to_zoom_level(factor) {
+        if(factor < 0.00001)
+            throw `Invalid zoom factor ${factor}`;
+        return Math.log2(factor) / Math.log2(1.5);
+    }
 
     // Get the effective zoom level, translating "cover" and "actual" to actual values.
     get _zoom_level_current()
@@ -588,6 +592,18 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         return [
             pos[0] + (screen_pos[0] - this.container_width/2)  / this.onscreen_width,
             pos[1] + (screen_pos[1] - this.container_height/2) / this.onscreen_height,
+        ];
+    }
+
+    // Return the screen coordinate for the given image coordinate (the inverse of get_image_position).
+    get_screen_pos_from_image_pos(image_pos, {pos=null}={})
+    {
+        if(pos == null)
+            pos = this.current_zoom_pos;
+            
+        return [
+            (image_pos[0] - pos[0]) * this.onscreen_width + this.container_width/2,
+            (image_pos[1] - pos[1]) * this.onscreen_height + this.container_height/2,
         ];
     }
 
@@ -1404,7 +1420,7 @@ ppixiv.image_viewer_mobile = class extends ppixiv.image_viewer_base
                 this.reposition({clamp_position: false});
             },
 
-            // Zoom by the given factor, centered around the given point.
+            // Zoom by the given factor, centered around the given screen position.
             adjust_zoom: ({ratio, centerX, centerY}) =>
             {
                 if(this.slideshow_enabled)
@@ -1440,6 +1456,23 @@ ppixiv.image_viewer_mobile = class extends ppixiv.image_viewer_base
                 bottom_right[1] *= this.onscreen_height;
 
                 return new ppixiv.FixedDOMRect(top_left[0], top_left[1], bottom_right[0], bottom_right[1]);
+            },
+
+            // We don't want to zoom under zoom factor 1x.  Return the zoom ratio needed to bring
+            // the current zoom factor back up to 1x.  For example, if the zoom factor is currently
+            // 0.5, return 2.
+            get_wanted_zoom: () =>
+            {
+                let zoom_factor = this._zoom_factor_current;
+                if(zoom_factor >= 1)
+                    return { ratio: 1, centerX: 0, centerY: 0 };
+
+                // TouchScroller will call adjust_zoom with the ratio we return to bounce us
+                // towards the ratio we want.  It uses the centerX and centerY we return here,
+                // which is the screen position the zoom will be around.  Use the screen position
+                // of the center of the image.
+                let [centerX, centerY] = this.get_screen_pos_from_image_pos([0.5, 0.5]);
+                return { ratio: 1 / zoom_factor, centerX, centerY };
             },
         });
     }
