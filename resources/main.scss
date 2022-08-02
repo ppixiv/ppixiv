@@ -2145,7 +2145,7 @@ a.box-link, span.box-link
     // Use a very slightly transparent black for the frame, and disable the box link background so it
     // just uses the frame background.
     // --frame-bg-color: #111;
-    --frame-bg-color: rgba(0,0,0,.85);
+    --frame-bg-color: rgba(0,0,0,.65);
     --box-link-bg-color: none;
 
     // Handle opening from the left or right side.  --page-left and --page-right position
@@ -2258,6 +2258,33 @@ a.box-link, span.box-link
         flex-direction: column;
     }
 
+    // For popup menus in the mobile UI like the bookmark tag list, transition
+    // opacity and transform together.  Note that we don't use a blur background
+    // for the larger dialogs.  They need a large blur radius to not cause eyestrain,
+    // which is too slow on Android.
+    .mobile-illust-ui-page:not(.top-page)
+    {
+        transition:
+            transform ease 0.2s,
+            opacity ease 0.2s;
+        opacity: var(--opacity);
+    }
+
+    // For the top-level menu, move the opacity into top-page-button-row.  This
+    // works around a compositing bug on mobile Chrome: it doesn't composite
+    // backdrop-filter layers correctly when a parent is transitioning opacity,
+    // and the opacity transition needs to happen on the same node.  iOS doesn't
+    // have this problem.
+    .mobile-illust-ui-page.top-page
+    {
+        transition: transform ease 0.2s;
+
+        .top-page-button-row {
+            transition: opacity ease 0.2s;
+            opacity: var(--opacity);
+        }
+    }
+
     // One UI page is shown at a time.
     .mobile-illust-ui-page
     {
@@ -2267,11 +2294,8 @@ a.box-link, span.box-link
         user-select: none;
         -webkit-user-select: none;
 
-        transition:
-            opacity ease 0.2s,
-            transform ease 0.2s;
         transform-origin: calc(var(--transform-side)) 50%;
-        opacity: 1;
+        --opacity: 1;
 
         pointer-events: none;
         
@@ -2286,7 +2310,7 @@ a.box-link, span.box-link
         > * { pointer-events: var(--pointer-events); }
 
         &:not(.active-tab) {
-            opacity: 0;
+            --opacity: 0;
             transform: translateX(calc(-20px*var(--transform-direction))) scale(0.75);
 
             // Disable pointer events while we're not visible.
@@ -2325,7 +2349,12 @@ a.box-link, span.box-link
             display: flex;
             flex-direction: column;
             gap: 10px;
-            border-radius: 8px;
+            border-radius: 15px;
+            background-color: rgba(0,0,0,0);
+
+            // CSS prefixing is horrible.
+            backdrop-filter: contrast(1.5) blur(20px);
+            -webkit-backdrop-filter: contrast(1.5) blur(20px);
 
             .item {
                 display: flex;
@@ -2337,24 +2366,24 @@ a.box-link, span.box-link
                 &:not(.enabled)
                 {
                     cursor: inherit;
-                    color: var(--toggle-button-fg-disabled-color);
+                    color: #aaa;
                     > .button {
-                        color: var(--toggle-button-fg-disabled-color);
+                        color: #aaa;
                     }
                 }
 
                 > .button {
-                    border-radius: 4px;
+                    border-radius: 15px;
                     padding: 6px;
                     display: flex;
                     flex-direction: row;
                     justify-content: center;
-                    background-color: var(--toggle-button-bg-dim-color);
-                    color: var(--toggle-button-fg-dim-color);
+                    background-color: rgba(0,0,0,.5);
+                    color: #fff;
 
                     & > svg {
-                        width: 32px;
-                        height: 32px;
+                        width: 2em;
+                        height: 2em;
                     }
 
                     /* We don't have a way to add classes to inlined SVGs yet, so for now just use nth-child.
@@ -2400,8 +2429,6 @@ a.box-link, span.box-link
 
                 > .top-page-button-row
                 {
-                    border: 1px solid #fff;
-
                     // Since we overrode pointer-events above, it won't reenable pointer events
                     // while we're visible.  Do that on the individual button rows instead.
                     pointer-events: var(--pointer-events);
