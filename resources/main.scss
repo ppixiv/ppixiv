@@ -1277,7 +1277,7 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
             * of other images.  This also helps hide the black bleed around the edge caused by
             * the blur. */
             .thumb {
-                filter: blur(10px);
+                filter: blur(5px) grayscale(1);
                 transform: scale(1.25, 1.25);
             }
 
