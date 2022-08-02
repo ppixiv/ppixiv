@@ -2069,7 +2069,7 @@ a.box-link, span.box-link
     background-color: var(--frame-bg-color);
     color: var(--frame-fg-color);
     position: absolute;
-    padding: 8px;
+    padding: 4px;
     top: calc(100%);
     border-radius: 0px 0px 4px 4px;
 
@@ -2106,7 +2106,7 @@ a.box-link, span.box-link
         display: flex;
         flex-direction: row;
         align-items: center;
-        padding: 4px 0px;
+        padding: 4px 8px;
         display: flex;
         cursor: pointer;
         > .tag-name {
