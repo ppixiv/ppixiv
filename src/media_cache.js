@@ -722,7 +722,7 @@ ppixiv.MediaCache = class extends EventTarget
             {
                 // If this is partial info, we don't know the dimensions of pages past the first.
                 if(image_data.mangaPages == null)
-                    return { };
+                    return { width: 1, height: 1 };
 
                 page_info = image_data.mangaPages[page];
             }
