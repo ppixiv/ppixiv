@@ -47,6 +47,13 @@ const partial_media_info_keys = Object.freeze([
     "full",
 ]);
 
+// Keys that we expect to see in full info.  Unlike partial info, we don't limit the data
+// to these keys, we just check that they're there.
+const full_media_info_keys = Object.freeze([
+    ...partial_media_info_keys,
+    "mangaPages",
+]);
+
 // This handles fetching and caching image data.
 ppixiv.MediaCache = class extends EventTarget
 {
@@ -592,7 +599,6 @@ ppixiv.MediaCache = class extends EventTarget
     //
     // will update likeCount on the image.
     //
-    // 
     // If we only have partial info, we'll only update keys for partial info.  We won't
     // add full info to media info if we don't have it to begin with, so we don't end up
     // with inconsistent fields.
@@ -610,12 +616,14 @@ ppixiv.MediaCache = class extends EventTarget
             // partial info.
             if(!image_data.full && partial_media_info_keys.indexOf(key) == -1)
             {
-                console.log("Not updating key for partial media info:", key);
+                console.log(`Not updating key "${key}" for partial media info: ${media_id}`);
                 continue;
             }
 
             image_data[key] = value;
         }
+
+        this._check_illust_data(image_data);
 
         this.call_illust_modified_callbacks(media_id);
     }
@@ -656,8 +664,19 @@ ppixiv.MediaCache = class extends EventTarget
         if(media_info == null)
             return;
 
+        // The key "id" should always be removed.
+        if("id" in media_info)
+            console.warn(`Unexpected key id:`, media_info);
+
         if(media_info.full)
+        {
+            for(let key of full_media_info_keys)
+            {
+                if(!(key in media_info))
+                    console.warn(`Missing key ${key} in full data`, media_info);
+            }
             return;
+        }
 
         for(let key of partial_media_info_keys)
         {
