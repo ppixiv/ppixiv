@@ -111,7 +111,6 @@ let mobile_illust_ui_page_bookmark_tags  = class extends mobile_illust_ui_page
         this.bookmark_tag_widget = new bookmark_tag_list_widget({
             parent: this,
             container: this.container,
-            visible: false,
         });
     }
     get content_node() { return this.bookmark_tag_widget.container; }
@@ -131,9 +130,12 @@ let mobile_illust_ui_page_bookmark_tags  = class extends mobile_illust_ui_page
 
     shown_changed()
     {
-        // Tell bookmark_tag_widget when it's actually visible, so it only loads tags from Pixiv
-        // when it's actually used.
-        this.bookmark_tag_widget.visible = this.tab_shown;
+        // Only tell bookmark_tag_widget the current media ID when we're visible, so it doesn't
+        // load Pixiv tags until it's actually used.  Tell it to save tags when we're not visible,
+        // since that normally happens when it's set to not visible, which we're not doing here.
+        this.bookmark_tag_widget.set_media_id(this._media_id);
+        if(!this.visible)
+            this.bookmark_tag_widget.save_current_tags();
     }
 
     set media_id(media_id)
