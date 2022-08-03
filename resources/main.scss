@@ -96,6 +96,8 @@ a {
 html.mobile {
     // Disable hover popups on mobile:
     .popup:after { display: none !important; }
+
+    font-size: 150%;
 }
 
 /* Theme colors: */
