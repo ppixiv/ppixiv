@@ -93,7 +93,7 @@ def get_illust_info(info, entry, base_url):
             'localPath': str(entry['path']),
             'illustTitle': entry['title'],
             'createDate': timestamp,
-            'bookmarkData': _bookmark_data(entry),
+            'bookmarkData': _bookmark_data(entry, info.user),
             'previewUrls': [remote_thumb_path],
             'userId': -1,
             'tagList': [],
@@ -141,7 +141,7 @@ def get_illust_info(info, entry, base_url):
         # We use -1 to indicate no user instead of null.  Pixiv user and illust IDs can
         # be treated as strings or ints, so using null is awkward.
         'userId': -1,
-        'bookmarkData': _bookmark_data(entry),
+        'bookmarkData': _bookmark_data(entry, info.user),
         'createDate': timestamp,
         'urls': urls,
         'width': size[0],
@@ -163,7 +163,7 @@ def get_illust_info(info, entry, base_url):
 
     return image_info
 
-def _bookmark_data(entry):
+def _bookmark_data(entry, user):
     """
     We encode bookmark info in a similar way to Pixiv to make it simpler to work
     with them both in the UI.
@@ -171,8 +171,18 @@ def _bookmark_data(entry):
     if not entry.get('bookmarked'):
         return None
 
+    tags = entry['bookmark_tags'].split()
+
+    # If the user's tag list is limited, remove tags that aren't in the list.
+    if user is not None and user.tag_list is not None:
+        tag_list = set(user.tag_list)
+        tags = set(tags) & tag_list
+        tags = list(tags)
+
+    tags.sort(key=lambda tag: tag.lower())
+
     return {
-        'tags': sorted(entry['bookmark_tags'].split(), key=lambda tag: tag.lower()),
+        'tags': tags,
         'private': False,
     }
 
@@ -201,7 +211,7 @@ async def api_bookmark_add(info):
     if not entry['is_directory']:
         info.manager.sig_db.get_image_signature(entry['path'])
 
-    return { 'success': True, 'bookmark': _bookmark_data(entry) }
+    return { 'success': True, 'bookmark': _bookmark_data(entry, info.user) }
 
 @reg('/bookmark/delete/{type:[^:]+}:{path:.+}')
 async def api_bookmark_delete(info):
