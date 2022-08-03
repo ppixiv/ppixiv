@@ -487,7 +487,7 @@ class mobile_overlay_bookmark_tag_widget extends ppixiv.illust_widget
         {
             let entry = this.create_template({name: "tag-entry", html: `
                 <div class="mobile-ui-tag-entry">
-                    ${ helpers.create_icon("ppixiv:tag") }                    
+                    ${ helpers.create_icon("ppixiv:tag", { classes: ["bookmark-tag-icon"] }) }
                     <span class=tag-name></span>
                 </div>
             `});
