@@ -43,16 +43,15 @@ ppixiv.extra_cache = class
         if(thumb && thumb.bookmarkData == null)
             return [];
 
-        // Stop if this is already loaded.
-        if(this.bookmarked_image_tags[media_id])
-            return this.bookmarked_image_tags[media_id]; 
-
-        // The local API just puts bookmark info on the illust info.
+        // The local API just puts bookmark info on the illust info.  Copy over the current
+        // data.
         if(helpers.is_media_id_local(media_id))
-        {
             this.bookmarked_image_tags[media_id] = thumb.bookmarkData.tags;
-            return this.bookmarked_image_tags[media_id]; 
-        }
+
+        // If we already have bookmark tags, return them.  Return a copy, so modifying the
+        // result doesn't change our cached data.
+        if(this.bookmarked_image_tags[media_id])
+            return [...this.bookmarked_image_tags[media_id]]; 
 
         let [illust_id] = helpers.media_id_to_illust_id_and_page(media_id);
         let bookmark_page = await helpers.fetch_document("/bookmark_add.php?type=illust&illust_id=" + illust_id);
