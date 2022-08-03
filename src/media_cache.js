@@ -692,19 +692,10 @@ ppixiv.MediaCache = class extends EventTarget
     }
 
     // Return the extra info for an image, given its image info.
-    //
-    // For local images, the extra info is simply stored on image_data.  This doesn't need
-    // to be used if you know you're working with a local image.
-    //
-    // For Pixiv images, extra info is stored in image_data.extraData, with page media IDs
-    // as keys.
     get_extra_data(image_data, media_id, page=null)
     {
         if(image_data == null)
             return { };
-
-        if(helpers.is_media_id_local(media_id))
-            return image_data;
 
         // If page is null, media_id is already this page's ID.
         if(page != null)

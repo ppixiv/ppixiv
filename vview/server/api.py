@@ -126,6 +126,18 @@ def get_illust_info(info, entry, base_url):
     preview_urls = [urls['small']]
     tags = entry['tags'].split()
 
+    # extra_data is editor data which is saved for both vview and ppixiv images.  This is returned
+    # in a separate dictionary to make compatibility with Pixiv easier: we store this data natively,
+    # but it's stored in IndexedDB when on Pixiv.
+    extra_data = {
+        'crop': json.loads(entry['crop']) if entry.get('crop') else None,
+        'pan': json.loads(entry['pan']) if entry.get('pan') else None,
+        'inpaint': None,
+    }
+    if entry.get('inpaint'):
+        extra_data['inpaint'] = json.loads(entry['inpaint'])
+        urls['inpaint'] = f'{base_url}/inpaint/{urllib.parse.quote(media_id, safe="/:")}?{image_timestamp_with_inpaint}'
+
     image_info = {
         'mediaId': media_id,
         'localPath': str(entry['path']),
@@ -150,16 +162,10 @@ def get_illust_info(info, entry, base_url):
         'illustComment': entry['comment'],
         'tagList': tags,
         'duration': entry['duration'],
+        'extraData': {
+            media_id: extra_data,
+        },
     }
-
-    # Add the inpaint info if this image has one.
-    if entry.get('inpaint'):
-        image_info['inpaint'] = json.loads(entry['inpaint'])
-        urls['inpaint'] = f'{base_url}/inpaint/{urllib.parse.quote(media_id, safe="/:")}?{image_timestamp_with_inpaint}'
-        image_info['inpaint_generated'] = entry.get('inpaint_timestamp') != 0
-
-    image_info['crop'] = json.loads(entry['crop']) if entry.get('crop') else None
-    image_info['pan'] = json.loads(entry['pan']) if entry.get('pan') else None
 
     return image_info
 
