@@ -200,7 +200,6 @@ ppixiv.image_preloader = class
 
         // If any preload in the list is running, stop.  We only run one preload at a time, so just
         // let it finish.
-        let any_preload_running = false;
         for(let preload of filtered_preloads)
         {
             let active_preload = this._find_active_preload_by_url(preload.url);

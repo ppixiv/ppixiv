@@ -348,7 +348,7 @@ let thumbnail_ui = class extends ppixiv.widget
                         ${ helpers.create_box_link({label: "Bookmarks",           popup: "Show bookmarks",                       data_type: "local-bookmarks-only" }) }
 
                         <div class=local-bookmark-tags-box>
-                            ${ helpers.create_box_link({label: "Tags",    icon: "bookmark", classes: ["popup-menu-box-button"] }) }
+                            ${ helpers.create_box_link({label: "Tags",    icon: "ppixiv:tag", classes: ["popup-menu-box-button"] }) }
                             <div class="popup-menu-box local-bookmark-tag-list vertical-list"></div>
                         </div>
 
