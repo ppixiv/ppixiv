@@ -518,8 +518,7 @@ ppixiv.MainController = class
         if(media_id == null)
             return;
 
-        let [illust_id, illust_page] = helpers.media_id_to_illust_id_and_page(media_id);
-        let args = new helpers.args(`/artworks/${illust_id}#ppixiv?manga=1`);
+        let args = helpers.get_url_for_id(media_id, { manga: true });
         helpers.set_page_url(args, true /* add_to_history */, "out");
     }
 

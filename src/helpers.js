@@ -2973,8 +2973,8 @@ ppixiv.helpers = {
     },
 
     // Return the canonical URL for an illust.  For most URLs this is
-    // /artworks/12345.
-    get_url_for_id(media_id)
+    // /artworks/12345.  If manga is true, return the manga viewer page.
+    get_url_for_id(media_id, { manga=false}={})
     {
         let args = null;
         let [illust_id, page] = helpers.media_id_to_illust_id_and_page(media_id);
@@ -2990,6 +2990,9 @@ ppixiv.helpers = {
         {
             args = new helpers.args("/", ppixiv.location);
             args.path  = `/artworks/${illust_id}`;
+
+            if(manga)
+                args.hash.set("manga", "1");
         }
 
         if(page != null && page > 0)

@@ -1163,9 +1163,14 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
     // Update selection highlight for the context menu.
     refresh()
     {
+        let media_id = this.effective_media_id;
+        let user_id = this.effective_user_id;
+        let info = media_id? media_cache.get_media_info_sync(media_id, { full: false }):null;
+
         let button_view_manga = this.container.querySelector(".button-view-manga");
         button_view_manga.dataset.popup = "View manga pages";
-        helpers.set_class(button_view_manga, "enabled", main_controller.navigate_out_enabled);
+        helpers.set_class(button_view_manga, "enabled", info?.pageCount > 1);
+
         this.refresh_tooltip();
 
         // Enable the zoom buttons if we're in the image view and we have an on_click_viewer.
@@ -1177,8 +1182,6 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         // don't blank themselves while we're still fading out.
         if(this.visible)
         {
-            let media_id = this.effective_media_id;
-            let user_id = this.effective_user_id;
             for(let widget of this.illust_widgets)
             {
                 if(widget.set_media_id)
@@ -1220,7 +1223,8 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
 
     clicked_view_manga = (e) =>
     {
-        main_controller.navigate_out();
+        let args = helpers.get_url_for_id(this.effective_media_id, { manga: true });
+        helpers.set_page_url(args, true /* add_to_history */, "out");
     }
 
     clicked_fullscreen = (e) =>
