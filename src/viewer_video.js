@@ -273,7 +273,7 @@ ppixiv.viewer_video = class extends ppixiv.viewer
             // paused, we'll stay paused.
             let args = helpers.args.location;
             args.state.paused = !value;
-            helpers.set_page_url(args, false, "updating-video-pause");
+            helpers.navigate(args, { add_to_history: false, cause: "updating-video-pause" });
 
             this.want_playing = value;
         }

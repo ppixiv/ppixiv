@@ -239,7 +239,7 @@ ppixiv.search_view = class extends ppixiv.widget
 
         let args = helpers.args.location;
         this.data_source.set_start_page(args, first_thumb.dataset.searchPage);
-        helpers.set_page_url(args, false, "viewing-page", { send_popstate: false });
+        helpers.navigate(args, { add_to_history: false, cause: "viewing-page", send_popstate: false });
 
         // Tell our parent that we changed the start page.
         if(this.onstartpagechanged)
@@ -430,7 +430,7 @@ ppixiv.search_view = class extends ppixiv.widget
             scroll_position: this.save_scroll_position(),
             nearby_media_ids: this.get_nearby_media_ids({all: true}),
         };
-        helpers.set_page_url(args, false, "viewing-page", { send_popstate: false });
+        helpers.navigate(args, { add_to_history: false, cause: "viewing-page", send_popstate: false });
     }
 
     // Cancel any call to restore_scroll_pos that's waiting for data.
@@ -1095,7 +1095,7 @@ ppixiv.search_view = class extends ppixiv.widget
 
         // Clear manually expanded/unexpanded thumbs, and navigate to the new setting.
         delete args.state.expanded_media_ids;
-        helpers.set_page_url(args, true, "viewing-page");
+        helpers.navigate(args);
     }
 
     load_expanded_media_ids()
@@ -1118,7 +1118,7 @@ ppixiv.search_view = class extends ppixiv.widget
     {
         let args = helpers.args.location;
         args.state.expanded_media_ids = Object.fromEntries(this.expanded_media_ids);
-        helpers.set_page_url(args, false, "viewing-page", { send_popstate: false });
+        helpers.navigate(args, { add_to_history: false, cause: "viewing-page", send_popstate: false });
     }
 
     is_media_id_expanded(media_id)

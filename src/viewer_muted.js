@@ -27,7 +27,7 @@ ppixiv.viewer_muted = class extends ppixiv.viewer
         this.container.querySelector(".view-muted-image").addEventListener("click", (e) => {
             let args = helpers.args.location;
             args.hash.set("view-muted", "1");
-            helpers.set_page_url(args, false /* add_to_history */, "override-mute");
+            helpers.navigate(args, { add_to_history: false, cause: "override-mute" });
         });
 
         // We don't skip muted images in slideshow immediately, since it could cause

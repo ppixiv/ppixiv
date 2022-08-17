@@ -103,7 +103,8 @@ ppixiv.tag_search_box_widget = class extends ppixiv.widget
         }
         
         // Run the search.
-        helpers.set_page_url(page_manager.singleton().get_args_for_tag_search(tags, ppixiv.location), true);
+        let args = page_manager.singleton().get_args_for_tag_search(tags, ppixiv.location);
+        helpers.navigate(args);
     }
 }
 
@@ -738,7 +739,8 @@ ppixiv.tag_search_edit_widget = class extends ppixiv.widget
 
         // Navigate to the edited search immediately.  Don't add these to history, since it
         // spams navigation history.
-        helpers.set_page_url(page_manager.singleton().get_args_for_tag_search(this.input_element.value, ppixiv.location), false);
+        let args = page_manager.singleton().get_args_for_tag_search(this.input_element.value, ppixiv.location);
+        helpers.navigate(args, { add_to_history: false });
     }
 }
 

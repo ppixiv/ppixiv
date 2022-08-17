@@ -742,7 +742,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         e.stopPropagation();
 
         let url = new URL(a.href, ppixiv.location);
-        helpers.set_page_url(url, true, "Clicked link in context menu");
+        helpers.navigate(url);
     }
 
     visibility_changed(value)
@@ -1224,7 +1224,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
     clicked_view_manga = (e) =>
     {
         let args = helpers.get_url_for_id(this.effective_media_id, { manga: true });
-        helpers.set_page_url(args, true /* add_to_history */, "out");
+        helpers.navigate(args);
     }
 
     clicked_fullscreen = (e) =>
@@ -1301,7 +1301,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
 
         let args = new helpers.args("/", ppixiv.location);
         local_api.get_args_for_id(parent_folder_id, args);
-        helpers.set_page_url(args.url, true, "navigation");
+        helpers.navigate(args.url);
     }
 }
 

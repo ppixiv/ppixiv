@@ -850,7 +850,7 @@ ppixiv.local_navigation_widget = class extends ppixiv.tree_widget
     {
         let args = new helpers.args(ppixiv.location);
         local_api.get_args_for_id(media_id, args);
-        helpers.set_page_url(args, true /* add_to_history */, "navigation");
+        helpers.navigate(args);
 
         // Hide the hover thumbnail on click to get it out of the way.
         this.set_hover(null);

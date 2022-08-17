@@ -270,7 +270,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
                 args.hash.delete("page");
 
             console.log("Updating URL with page number:", args.hash.toString());
-            helpers.set_page_url(args, false /* add_to_history */);
+            helpers.navigate(args, { add_to_history: false });
         }
 
         // This is the first image we're displaying if we previously had no illust ID, or

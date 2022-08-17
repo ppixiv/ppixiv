@@ -439,7 +439,7 @@ let mobile_illust_ui_top_page = class extends mobile_illust_ui_page
 
         let args = new helpers.args("/", ppixiv.location);
         local_api.get_args_for_id(parent_folder_id, args);
-        helpers.set_page_url(args.url, true, "navigation");
+        helpers.navigate(args);
     }
 
     clicked_toggle_zoom = (e) =>

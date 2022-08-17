@@ -532,7 +532,7 @@ ppixiv.screen_search = class extends ppixiv.screen
             let media_id = local_api.get_local_id_from_args(helpers.args.location, { get_folder: true });
             let args = new helpers.args("/", ppixiv.location);
             local_api.get_args_for_id(media_id, args);
-            helpers.set_page_url(args, true, "navigation");
+            helpers.navigate(args);
         });
             
         if(ppixiv.local_api.is_enabled() && !local_api.local_info.bookmark_tag_searches_only)
@@ -1142,7 +1142,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         let url = new URL("/search_user.php#ppixiv", ppixiv.location);
         url.searchParams.append("nick", search);
         url.searchParams.append("s_mode", "s_usr");
-        helpers.set_page_url(url, true);
+        helpers.navigate(url);
     }
     
     async handle_onkeydown(e)
@@ -1217,7 +1217,7 @@ ppixiv.slideshow_staging_dialog = class extends ppixiv.dialog_widget
         // that can be bookmarked but we won't actually navigate to it.  We don't want to navigate
         // to it since that'll change the placeholder "*" illust ID to a real illust ID, which
         // isn't what we want to bookmark.
-        helpers.set_page_url(slideshow_args, true, "navigation", { send_popstate: false });
+        helpers.navigate(slideshow_args, { send_popstate: false });
 
         new slideshow_staging_dialog();
     }

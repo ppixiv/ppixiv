@@ -1913,16 +1913,20 @@ ppixiv.helpers = {
         }
     },
 
-    // Set document.href, either adding or replacing the current history state.
-    //
-    // window.onpopstate will be synthesized if the URL is changing.
-    //
-    // If cause is set, it'll be included in the popstate event as navigationCause.
-    // This can be used in event listeners to determine what caused a navigation.
-    // For browser forwards/back, this won't be present.
-    //
-    // args can be a helpers.args object, or a URL object.
-    set_page_url(args, add_to_history, cause, { send_popstate=true }={})
+    // Navigate to args, which can be a URL object or a helpers.args.
+    navigate(args, {
+        // If true, push the navigation onto browser history.  If false, replace the current
+        // state.
+        add_to_history=true,
+
+        // popstate.navigationCause is set to this.  This allows event listeners to determine
+        // what caused a navigation.  For browser forwards/back, this won't be present.
+        cause="navigation",
+
+        // We normally synthesize window.onpopstate, so listeners for navigation will see this
+        // as a normal navigation.  If this is false, don't do this.
+        send_popstate=true,
+    }={})
     {
         if(args instanceof URL)
             args = new helpers.args(args);

@@ -873,7 +873,7 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
             animating: this.animations != null,
         };
 
-        helpers.set_page_url(args, false /* add_to_history */);
+        helpers.navigate(args, { add_to_history: false });
     }
 
     // Schedule save_to_history to run.  This is buffered so we don't call history.replaceState

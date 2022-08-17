@@ -60,7 +60,7 @@ ppixiv.SendImage = class
             console.log("Finalizing quick view image because we gained focus");
             args.hash.delete("virtual");
             args.hash.delete("temp-view");
-            ppixiv.helpers.set_page_url(args, false, "navigation");
+            ppixiv.helpers.navigate(args, { add_to_history: false });
         }
     }
 
@@ -218,7 +218,7 @@ ppixiv.SendImage = class
                 let args = ppixiv.helpers.args.location;
                 args.hash.delete("virtual");
                 args.hash.delete("temp-view");
-                ppixiv.helpers.set_page_url(args, false, "navigation");
+                ppixiv.helpers.navigate(args, { add_to_history: false });
                 return;
             }
 

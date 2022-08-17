@@ -105,7 +105,7 @@ ppixiv.local_api = class
         {
             let args = helpers.args.location;
             args.hash_path = "/";
-            helpers.set_page_url(args, false, "initial");
+            helpers.navigate(args, { add_to_history: false, cause: "initial" });
             return;
         }
 
@@ -118,7 +118,7 @@ ppixiv.local_api = class
 
         let args = helpers.args.location;
         local_api.get_args_for_id(media_id, args);
-        helpers.set_page_url(args, false, "initial");
+        helpers.navigate(args, { add_to_history: false, cause: "initial" });
     }
 
     // Run a search against the local API.
@@ -512,7 +512,7 @@ ppixiv.local_api = class
         let folder_id = libraries[0].mediaId;
         let args = new helpers.args("/", ppixiv.location);
         local_api.get_args_for_id(folder_id, args);
-        helpers.set_page_url(args.url, true /* add to history */, "navigation");
+        helpers.navigate(args);
     }
 
     // Load access info.  We always reload when this changes, eg. due to logging in
@@ -632,7 +632,7 @@ ppixiv.local_api = class
         else
             args.hash.delete("search");
         args.set("p", null);
-        helpers.set_page_url(args, true /* add_to_history */, "navigation");
+        helpers.navigate(args);
     }
 
     static async index_folder(media_id)

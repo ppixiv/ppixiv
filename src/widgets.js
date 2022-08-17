@@ -692,7 +692,7 @@ ppixiv.avatar_widget = class extends widget
             e.stopPropagation();
 
             let args = new helpers.args(`/users/${this.user_id}/artworks#ppixiv`);
-            helpers.set_page_url(args, true /* add_to_history */, "navigation");
+            helpers.navigate(args);
         });
 
         // A canvas filter for the avatar.  This has no actual filters.  This is just to kill off any
@@ -1625,7 +1625,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
 
                         let [illust_id] = helpers.media_id_to_illust_id_and_page(this.media_id);
                         let args = new helpers.args(`/bookmark_detail.php?illust_id=${illust_id}#ppixiv?recommendations=1`);
-                        helpers.set_page_url(args, true /* add_to_history */, "navigation");
+                        helpers.navigate(args);
                     }
                 });
             },
@@ -1639,7 +1639,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                         this.parent.hide();
 
                         let args = new helpers.args(`/discovery/users#ppixiv?user_id=${this.user_id}`);
-                        helpers.set_page_url(args, true /* add_to_history */, "navigation");
+                        helpers.navigate(args);
                     }
                 });
             },
@@ -1658,7 +1658,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                         args.hash_path = "/#/";
                         let { id } = helpers.parse_media_id(this.media_id);
                         args.hash.set("search_path", id);
-                        helpers.set_page_url(args, true /* add_to_history */, "navigation");
+                        helpers.navigate(args);
                     }
                 });
             },
@@ -1674,7 +1674,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
 
                         let [illust_id] = helpers.media_id_to_illust_id_and_page(this.media_id);
                         let args = new helpers.args(`/bookmark_detail.php?illust_id=${illust_id}#ppixiv`);
-                        helpers.set_page_url(args, true /* add_to_history */, "navigation");
+                        helpers.navigate(args);
                     }
                 });
             },

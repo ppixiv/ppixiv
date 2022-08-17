@@ -277,7 +277,7 @@ ppixiv.MainController = class
         // so we scroll to the top when we refresh.
         let args = helpers.args.location;
         delete args.state.scroll;
-        helpers.set_page_url(args, false, "refresh-data-source", { send_popstate: false });
+        helpers.navigate(args, { add_to_history: false, cause: "refresh-data-source", send_popstate: false });
 
         await this.set_current_data_source("refresh");
     }
@@ -456,7 +456,7 @@ ppixiv.MainController = class
     show_media(media_id, {add_to_history=false, source="", ...options}={})
     {
         let args = this.get_media_url(media_id, options);
-        helpers.set_page_url(args, add_to_history, "navigation");
+        helpers.navigate(args, { add_to_history });
     }
 
     // Return the displayed screen instance.
@@ -519,7 +519,7 @@ ppixiv.MainController = class
             return;
 
         let args = helpers.get_url_for_id(media_id, { manga: true });
-        helpers.set_page_url(args, true /* add_to_history */, "out");
+        helpers.navigate(args);
     }
 
     // This captures clicks at the window level, allowing us to override them.
@@ -576,8 +576,7 @@ ppixiv.MainController = class
             return;
         }
 
-        // Navigate to the URL in-page.
-        helpers.set_page_url(url, true /* add to history */, "navigation");
+        helpers.navigate(url);
     }
 
     async load_global_data_async()
@@ -918,7 +917,7 @@ ppixiv.MainController = class
 
         // If we're on the illust view this replaces the current URL since it's just a
         // settings change, otherwise this is a navigation.
-        helpers.set_page_url(args, !viewing_illust, "toggle slideshow");
+        helpers.navigate(args, { add_to_history: !viewing_illust, cause: "toggle slideshow" });
     }
 };
 
