@@ -2047,6 +2047,8 @@ ppixiv.data_sources.manga = class extends data_source
 
         // Load media info before continuing.
         this.illust_info = await media_cache.get_media_info(this.media_id);
+        if(this.illust_info == null)
+            return;
 
         let page_media_ids = [];
         for(let page = 0; page < this.illust_info.pageCount; ++page)

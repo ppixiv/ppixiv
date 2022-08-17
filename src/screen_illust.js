@@ -244,7 +244,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
         // If we didn't get illust info, the image has probably been deleted.
         if(early_illust_data == null)
         {
-            let message = media_cache.get_illust_load_error(illust_id);
+            let message = media_cache.get_media_load_error(illust_id);
             message_widget.singleton.show(message);
             message_widget.singleton.clear_timer();
             return;

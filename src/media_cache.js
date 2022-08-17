@@ -163,8 +163,8 @@ ppixiv.MediaCache = class extends EventTarget
         return media_info;
     }
     
-    // If get_image_info returned null, return the error message.
-    get_illust_load_error(media_id)
+    // If get_media_info returned null, return the error message.
+    get_media_load_error(media_id)
     {
         media_id = helpers.get_media_id_first_page(media_id);
         return this.nonexistant_media_ids[media_id];
