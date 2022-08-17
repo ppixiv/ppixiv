@@ -490,7 +490,11 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
     zoom_level_to_zoom_factor(level) { return Math.pow(1.5, level); }
     zoom_factor_to_zoom_level(factor) {
         if(factor < 0.00001)
-            throw `Invalid zoom factor ${factor}`;
+        {
+            console.error(`Invalid zoom factor ${factor}`);
+            factor = 1;
+        }
+        
         return Math.log2(factor) / Math.log2(1.5);
     }
 
