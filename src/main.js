@@ -607,7 +607,7 @@ ppixiv.MainController = class
         // The user is probably not logged in.  If this happens on this code path, we
         // can't restore the page.
         console.log("Couldn't find context data.  Are we logged in?");
-        this.show_logout_message(true);
+        this.show_logged_out_message(true);
 
         // Redirect to no-ppixiv, to reload the page disabled so we don't leave the user
         // on a blank page.  If this is a page where Pixiv itself requires a login (which
@@ -792,7 +792,7 @@ ppixiv.MainController = class
         }
     }
 
-    show_logout_message(force)
+    show_logged_out_message(force)
     {
         // Unless forced, don't show the message if we've already shown it recently.
         // A session might last for weeks, so we don't want to force it to only be shown
@@ -877,7 +877,7 @@ ppixiv.MainController = class
                 e.preventDefault();
                 e.stopPropagation();
 
-                this.show_logout_message(true);
+                this.show_logged_out_message(true);
             });
         }
     };
