@@ -103,6 +103,7 @@ async def check_origin(request, response):
         response.headers['Access-Control-Allow-Headers'] = 'Accept, Cache-Control, If-None-Match, If-Modified-Since, Origin, Range, X-Requested-With'
         response.headers['Access-Control-Expose-Headers'] = '*'
         response.headers['Access-Control-Max-Age'] = '1000000'
+        response.headers['Vary'] = 'Origin, Referer'
 
 def create_handler_for_command(handler):
     async def handle(request):
