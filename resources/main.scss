@@ -2363,6 +2363,9 @@ a.box-link, span.box-link
             border-radius: 15px;
             background-color: rgba(0,0,0,0);
 
+            border-top: 1px solid rgba(255,255,255,0.5);
+            border-left: 1px solid rgba(255,255,255,0.5);
+
             // CSS prefixing is horrible.
             backdrop-filter: contrast(1.5) blur(20px);
             -webkit-backdrop-filter: contrast(1.5) blur(20px);
