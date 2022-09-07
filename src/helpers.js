@@ -4444,27 +4444,6 @@ ppixiv.IncrementalTimer = class
     }
 };
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // This calculates the current velocity from recent motion.
 class FlingVelocity
 {

@@ -1848,9 +1848,16 @@ ppixiv.data_sources.artist = class extends data_source
             else
                 url.searchParams.delete("tag");
     
+            let classes = ["tag-entry"];
+
+            // If the user has searched for this tag recently, add the recent tag.  This is added
+            // in tag_list_opened.
+            if(tag_info.recent)
+                classes.push("recent");
+
             let a = helpers.create_box_link({
                 label: translated_tag,
-                classes: ["tag-entry"],
+                classes,
                 popup: tag_info?.cnt,
                 link: url.toString(),
                 as_element: true,
@@ -1896,8 +1903,29 @@ ppixiv.data_sources.artist = class extends data_source
         var user_info = await user_cache.get_user_info_full(this.viewing_user_id);
         console.log("Loading tags for user", user_info.userId);
 
-        // Load the user's common tags.
+        // Load this artist's common tags.
         this.post_tags = await this.get_user_tags(user_info);
+
+        // Make a set of tags the user has used in recent searches.
+        let user_tag_searches = new Set();
+        for(let tags of settings.get("recent-tag-searches") || [])
+        {
+            for(let tag of tags.split(" "))
+                user_tag_searches.add(tag);
+        }
+
+        // Mark the tags in this.post_tags that the user has searched for recently, so they can be
+        // marked in the UI.
+        for(let tag of this.post_tags)
+            tag.recent = user_tag_searches.has(tag.tag);
+
+        // Move tags that this artist uses to the top if the user has searched for them recently.
+        this.post_tags.sort((lhs, rhs) => {
+            if(rhs.recent != lhs.recent)
+                return rhs.recent - lhs.recent;
+            else
+                return rhs.cnt - lhs.cnt;
+        });
 
         let tags = [];
         for(let tag_info of this.post_tags)
@@ -1915,14 +1943,14 @@ ppixiv.data_sources.artist = class extends data_source
     async get_user_tags(user_info)
     {
         if(user_info.frequentTags)
-            return user_info.frequentTags;
+            return Array.from(user_info.frequentTags);
 
         var result = await helpers.get_request("/ajax/user/" + user_info.userId + "/illustmanga/tags", {});
         if(result.error)
         {
             console.error("Error fetching tags for user " + user_info.userId + ": " + result.error);
             user_info.frequentTags = [];
-            return user_info.frequentTags;
+            return Array.from(user_info.frequentTags);
         }
 
         // Sort most frequent tags first.
@@ -1948,7 +1976,7 @@ ppixiv.data_sources.artist = class extends data_source
 
         // Cache the results on the user info.
         user_info.frequentTags = result.body;
-        return result.body;
+        return Array.from(user_info.frequentTags);
     }
 
     get page_title()

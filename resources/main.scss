@@ -1735,15 +1735,20 @@ a.box-link, span.box-link
     overflow-x: hidden;
     overflow-y: auto;
     white-space: nowrap;
-}
 
-// Adjusts the popup for the tag lists so they don't cover the tag.
-.member-tags-box .post-tag-list .tag-entry:hover:after,
-.search-tags-box .related-tag-list .tag-entry:hover:after,
-.bookmark-tags-box .bookmark-tag-list .tag-entry:hover:after,
-.local-bookmark-tags-box .local-bookmark-tag-list .tag-entry:hover:after {
-    left: auto;
-    right: 0px;
+    // If this tag is marked as having been searched for recently, highlight it.
+    // This is used in the artist data source.
+    .recent {
+        --box-link-bg-color: #550;
+        --box-link-hover-color: #660;
+    }
+
+    // Adjust the popup for the tag lists so they don't cover the tag.
+    .tag-entry:hover:after
+    {
+        left: auto;
+        right: 0px;
+    }
 }
 
 /* These affect both the search edit and search history boxes. */
