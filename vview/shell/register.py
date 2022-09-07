@@ -147,8 +147,8 @@ def write_vview_config():
 
     local_data = Path(result.value)
     data_dir = local_data / 'VView'
+    data_dir.mkdir(parents=True, exist_ok=True)
     config_path = data_dir / 'interpreter.txt'
-    print(config_path)
     
     with config_path.open('w+t') as f:
         interpreter_path = sys.executable
@@ -170,6 +170,7 @@ def go():
             unregister()
         else:
             register()
+            write_vview_config()
     except:
         import traceback
         traceback.print_exc()
