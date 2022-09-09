@@ -1,7 +1,7 @@
 # Helpers that don't have dependancies on our other modules.
 import asyncio, concurrent, os, io, struct, os, re, threading, time, traceback, sys, queue
 from contextlib import contextmanager
-from PIL import Image, ExifTags
+from PIL import Image, ImageFile, ExifTags
 from pprint import pprint
 from ..util.tiff import get_tiff_metadata
 
@@ -26,6 +26,10 @@ video_types = {
     '.mov': 'video/video/quicktime',
     '.3gp': 'video/video/3gpp', 
 }
+
+# Work around PIL not being able to open PNGs with truncated ICCP profiles.  This is a bug
+# in PIL, since these files work everywhere else.
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 def file_type_from_ext(ext):
     if ext.lower() in image_types:
