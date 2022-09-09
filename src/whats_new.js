@@ -3,12 +3,20 @@
 // This should be inside whats_new, but Firefox is in the dark ages and doesn't support class fields.
 let _update_history = [
     {
+        version: 152,
+        boring: true,
+        text: `
+            Tags that have been searched for recently now appear at the top of the artist
+            tag list.
+        `,
+    },
+    {
         version: 151,
         boring: true,
         text: `
             Navigating through images with the mousewheel now skips past manga pages if the image
             is muted.
-        `
+        `,
     },
     {
         version: 145,
