@@ -22,6 +22,8 @@ ppixiv.ugoira_downloader_mjpeg = class
 
     async load_all_frames()
     {
+        message_widget.singleton.show(`Downloading video...`);
+
         let downloader = new ZipImageDownloader(this.metadata.originalSrc, {
             onprogress: (progress) => {
                 if(!this.onprogress)
@@ -42,6 +44,8 @@ ppixiv.ugoira_downloader_mjpeg = class
                 break;
             this.frames.push(file);
         }
+
+        message_widget.singleton.hide();
 
         // Some posts have the wrong dimensions in illust_data (63162632).  If we use it, the resulting
         // file won't play.  Decode the first image to find the real resolution.

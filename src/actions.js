@@ -526,7 +526,11 @@ ppixiv.actions = class
         if(download_type == "image")
             images = [images[manga_page]];
 
+        message_widget.singleton.show(images.length > 1? `Downloading ${images.length} pages...`:`Downloading image...`);
+
         let results = await helpers.download_urls(images);
+
+        message_widget.singleton.hide();
 
         // If there's just one image, save it directly.
         if(images.length == 1)
