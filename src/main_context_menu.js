@@ -949,6 +949,31 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
             return true;
         }
 
+        if(e.key.toUpperCase() == "S")
+        {
+            // Go async to get media info if it's not already available.
+            (async() => {
+                if(media_id == null)
+                    return;
+
+                // Download the image or video by default.  If alt is pressed and the image has
+                // multiple pages, download a ZIP instead.
+                let media_info = await media_cache.get_media_info(media_id, { full: false });
+                let download_type = "image";
+                if(actions.is_download_type_available("image", media_info))
+                    download_type = "image";
+                else if(actions.is_download_type_available("MKV", media_info))
+                    download_type = "MKV";
+
+                if(e.altKey && actions.is_download_type_available("ZIP", media_info))
+                    download_type = "ZIP";
+    
+                actions.download_illust(media_id, download_type);
+            })();
+
+            return true;
+        }
+
         return false;
     }
 
