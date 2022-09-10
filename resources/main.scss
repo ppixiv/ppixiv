@@ -1117,6 +1117,9 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
         gap: var(--thumb-padding);
         max-width: var(--container-width);
 
+        // Make room for Chrome's (ugly, annoying, distracting and pointless) status bar.
+        padding-bottom: 2em;
+
         display: flex;
         flex-wrap: wrap;
 
