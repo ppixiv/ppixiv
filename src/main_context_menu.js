@@ -364,6 +364,13 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
         }
     }
 
+    _get_hovered_element()
+    {
+        let x = pointer_listener.latest_mouse_screen_position[0];
+        let y = pointer_listener.latest_mouse_screen_position[1];
+        return document.elementFromPoint(x, y);
+    }
+
     ctrl_pressed = (down) =>
     {
         if(!settings.get("ctrl_opens_popup"))
@@ -373,9 +380,7 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
 
         if(down)
         {
-            let x = pointer_listener.latest_mouse_screen_position[0];
-            let y = pointer_listener.latest_mouse_screen_position[1];
-            let node = document.elementFromPoint(x, y);
+            let node = this._get_hovered_element();
             this.show(x, y, node);
         } else {
             this.hide_if_all_buttons_released();
@@ -875,6 +880,16 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         // was hovering over an image in search results.  We might not have the illust info yet,
         // but we at least need an illust ID.
         let media_id = this.effective_media_id;
+
+        // If there's no effective media ID, the user is pressing a key while the context menu isn't
+        // open.  If the cursor is over a search thumbnail, use its media ID if any, to allow hovering
+        // over a thumbnail and using bookmark, etc. hotkeys.  This isn't needed when ctrl_opens_popup
+        // is open since we'll already have effective_idmedia_id.
+        if(media_id == null)
+        {
+            let node = this._get_hovered_element();
+            media_id = main_controller.get_illust_at_element(node).media_id;
+        }
 
         // All of these hotkeys require Ctrl.
         if(!e.ctrlKey)
