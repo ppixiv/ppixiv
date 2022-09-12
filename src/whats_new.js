@@ -3,6 +3,17 @@
 // This should be inside whats_new, but Firefox is in the dark ages and doesn't support class fields.
 let _update_history = [
     {
+        version: 153,
+        boring: true,
+        text: `
+            Pressing Ctrl-S now saves the current image or video, and Ctrl-Alt-S saves a
+            ZIP of the current manga post.
+            <p>
+            Fixed hotkeys in search results, so hotkeys like Ctrl-B work when hovering over
+            thumbnails.
+        `,
+    },
+    {
         version: 152,
         boring: true,
         text: `
