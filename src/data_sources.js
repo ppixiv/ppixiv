@@ -2677,7 +2677,7 @@ ppixiv.data_sources.bookmarks_merged = class extends data_source_bookmarks_base
         // make more requests for this type.  Use the "empty" flag for this and not
         // whether there are any media IDs, in case there were IDs but they're all
         // deleted.
-        if(result.body.empty)
+        if(result.empty)
         {
             if(this.max_page_per_type[is_private] == -1)
                 this.max_page_per_type[is_private] = page;
