@@ -1324,11 +1324,16 @@ ppixiv.helpers = {
         return result.response;
     },
 
-    async_gm_xhr(options)
+    async_gm_xhr({url, ...options})
     {
         return new Promise((accept, reject) => {
             GM_xmlhttpRequest({
                 ...options,
+
+                // TamperMonkey takes a URL object, but ViolentMonkey throws an exception unless we
+                // convert to a string.
+                url: url.toString(),
+
                 onload: (result) => {
                     accept(result);
                 },
