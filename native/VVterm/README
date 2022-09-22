@@ -1,0 +1,7 @@
+This library opens a standalone terminal window that can be read and written to.  It can be
+used for debugging and log windows.  It's a massively stripped-down fork of Putty.
+
+Using console windows for this (AllocConsole, etc.) works, but has too many warts, such as
+unceremoniously killing the host application if the window is closed.  It's cleaner to just
+create our own window.
+
