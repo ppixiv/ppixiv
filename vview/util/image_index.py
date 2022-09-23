@@ -4,8 +4,8 @@ from pathlib import Path
 
 log = logging.getLogger(__name__)
 
-# The source for this DLL is in native/ImageIndex.
-_dll_path = Path(__file__) / '..' / 'ImageIndex.dll'
+# The source for this DLL is in bin/ImageIndex.
+_dll_path = Path(__file__) / '../../..' / 'bin' / 'ImageIndex.dll'
 _dll_path = _dll_path.resolve()
 try:
     dll = CDLL(str(_dll_path))
