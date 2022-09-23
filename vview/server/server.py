@@ -186,7 +186,7 @@ async def shutdown_requests(app):
     for task, request in dict(_running_requests).items():
         task.cancel()
 
-async def setup(*, set_main_task=None):
+async def setup_inner(*, set_main_task=None):
     set_main_task()
 
     app = web.Application(middlewares=[register_request_middleware, auth_middleware])
@@ -224,6 +224,21 @@ async def setup(*, set_main_task=None):
 
     return app
 
+async def setup(*args, **kwargs):
+    try:
+        return await setup_inner(*args, **kwargs)
+    except Exception as e:
+        # This is a fatal error during startup.  Errors later on can go to our custom
+        # logging terminal, but errors here are fatal and too early for that, so display
+        # the error in a dialog.  Note that earlier errors before asyncio is started are
+        # handled by vview.pyw at the top.
+        import traceback
+        error = traceback.format_exc()
+
+        from ..util import error_dialog
+        error_dialog.show_error_dialog_if_no_console('Error launching VView', 'An unexpected error occurred:\n\n' + error)
+        raise
+    
 class AccessLogger(AbstractAccessLogger):
     """
     A more readable access log.
