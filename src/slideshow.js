@@ -43,7 +43,7 @@ ppixiv.slideshow = class
         // mode always pans.
         let slideshow_default = ppixiv.settings.get("slideshow_default", "pan");
         if(this.slideshow_enabled && slideshow_default == "contain")
-            return this.get_animation(ppixiv.slideshow.pan.stationary);
+            return this.get_animation(ppixiv.slideshow.pans.stationary);
 
         // Choose which default to use.
         let animation = this.slideshow_enabled? ppixiv.slideshow.pans.default_slideshow:ppixiv.slideshow.pans.default_pan;
