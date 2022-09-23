@@ -1,3 +1,9 @@
+// TODO:
+// - font configuration
+// - store the window position and maximize state, so we don't revert every time
+// (and check that it's onscreen on creation)
+// - window icon
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -12,12 +18,11 @@ using namespace std;
 
 #include <winuser.h>
 
+#include "vvterm.h"
 #include "internal.h"
 #include "window.h"
-#include "backend.h"
-#include "backend_pty.h"
+#include "client.h"
 #include "terminal.h"
-#include "putty-rc.h"
 #include "callback.h"
 #include "handle_wait.h"
 #include "timing.h"
@@ -26,12 +31,8 @@ using namespace std;
 #pragma comment(lib, "Imm32.lib")
 #pragma comment(lib, "shcore.lib")
 
-// A helper for running a window in a thread:
-//
-// - Creating and running the window in a thread
-// - Sending blocking messages to it from another thread and receiving responses
-// - Shutting down cleanly
-class ThreadedWindow
+// A helper for starting a window.
+class WindowSetup
 {
 public:
     HINSTANCE hinst = nullptr;
@@ -41,7 +42,7 @@ public:
     wstring WindowClassName;
     HWND hwnd = nullptr;
 
-    ThreadedWindow()
+    WindowSetup()
     {
         // Get our HINSTANCE.  One of these is passed to WinMain, but instead of making
         // the caller find it and pass it along, just make our own.
@@ -79,7 +80,7 @@ public:
 
         UserWndProc = WndProc;
 
-        hwnd = CreateWindowExW(0, WindowClassName.c_str(), lpWindowName,
+        hwnd = CreateWindowExW(dwExStyle, WindowClassName.c_str(), lpWindowName,
             dwStyle, X, Y, nWidth, nHeight, hWndParent, hMenu, hinst, this);
 
         return hwnd;
@@ -91,7 +92,7 @@ public:
             return DefWindowProcW(hwnd, message, wParam, lParam);
 
         CREATESTRUCTW *create = (CREATESTRUCTW *) lParam;
-        ThreadedWindow *self = (ThreadedWindow *) create->lpCreateParams;
+        WindowSetup *self = (WindowSetup *) create->lpCreateParams;
 
         // Point the USERDATA pointer to our object, and switch to RealWndProc.
         SetWindowLongPtrW(hwnd, GWLP_USERDATA, (LONG_PTR) self);
@@ -101,7 +102,7 @@ public:
 
     static LRESULT CALLBACK WndProcStub(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     {
-        ThreadedWindow *self = (ThreadedWindow *) GetWindowLongPtr(hwnd, GWLP_USERDATA);
+        WindowSetup *self = (WindowSetup *) GetWindowLongPtr(hwnd, GWLP_USERDATA);
         return self->WndProc(hwnd, message, wParam, lParam);
     }
 
@@ -119,22 +120,10 @@ enum {
     // changes the clipboard.
     WM_APP_IGNORE_CLIP = WM_APP,
     WM_APP_TIMER_CHANGE,
-
-    // These messages are posted from ThreadedTerminalWindow.
-    WM_APP_SET_VISIBLE,
-    WM_APP_GET_VISIBLE,
-    WM_APP_GET_HANDLES, // see GetHandles
-    WM_APP_GET_NEXT_EVENT,
-    WM_APP_SHUTDOWN,
 };
 
-// WM_APP_GET_HANDLES lParam to store the result.
-struct GetHandles
-{
-    HANDLE *input = nullptr;
-    HANDLE *output = nullptr;
-    HANDLE *events = nullptr;
-};
+// Pixels of extra padding around the window:
+#define WINDOW_BORDER 1
 
 #define FONT_NORMAL 0
 #define FONT_BOLD 1
@@ -154,17 +143,29 @@ struct GetHandles
 
 // TermWinWindows is the main terminal window implementation.  This is the top level:
 // it creates and handles the window itself, interfaces to the terminal interpreter
-// and the backend, and provides the main VVTerm interface.
-class TermWinWindows: public TerminalInterface, public BackendInterface
+// and the client, and provides the main VVTerm interface.
+class TermWinWindows: public TerminalInterface, public ClientInterface
 {
 public:
     //
-    // BackendInterface
+    // ClientInterface
     //
-    void output(const void *data, size_t len) override
+    void output(const void *data, int len) override
     {
         term->term_data(data, len);
     }
+
+    void display_closed() override
+    {
+        // The client side of the display handle was closed.  Treat this as a Command_Shutdown
+        // command and shut down the window.
+        // XXX
+        DestroyWindow(hwnd);
+    }
+
+    // A packet was received on the control pipe.  This is sent by 
+    // ThreadedTerminalWindow::send_command_to_window.
+    void control(const void *data, int len) override;
 
     //
     // TerminalInterface
@@ -192,17 +193,16 @@ public:
 
     void move(int x, int y) override;
     void palette_set(unsigned start, unsigned ncolors, const rgb *colors) override;
-    void unthrottle(size_t bufsize) override;
 
     //
     // Implementation
     //
     void close_session();
 
-    TermWinWindows();
+    TermWinWindows(shared_ptr<ClientPipes> client_pipes, HICON icon);
     ~TermWinWindows();
 
-    ThreadedWindow threaded_window;
+    WindowSetup window_setup;
 
     // Run the message loop.
     int run();
@@ -245,7 +245,7 @@ public:
     HINSTANCE hinst = nullptr;
     HDC wintw_hdc = nullptr;
 
-    shared_ptr<Backend> backend;
+    shared_ptr<Client> client;
     shared_ptr<Terminal> term;
     shared_ptr<TermConfig> conf;
 
@@ -253,35 +253,7 @@ public:
     // API events
     //
     // API events waiting to be picked up by the user.
-    list<VVTermEvent> vvterm_events;
-    shared_ptr<HandleHolder> vvterm_event_handle;
     void send_vvterm_event(VVTermEvent event);
-
-    // Return the next event queued with send_vvterm_event, or VVTermEvent_None
-    // if the queue is empty.
-    VVTermEvent vvterm_event_pop()
-    {
-        if(vvterm_events.empty())
-            return VVTermEvent_None;
-
-        VVTermEvent result = vvterm_events.front();
-        vvterm_events.pop_front();
-        return result;
-    }
-
-    // These functions can be called from any thread.
-    VVTermEvent threaded_get_next_event()
-    {
-        VVTermEvent event = VVTermEvent_Invalid;
-        int success = (int) SendMessage(hwnd, WM_APP_GET_NEXT_EVENT, 0, (intptr_t) &event);
-        if(success)
-            return event;
-
-        // If the window is no longer running to respond to the message.  This should
-        // mean that VVTermEvent_Shutdown was queued, then the window exited before it
-        // was popped.  Just pop any remaining events directly.
-        return vvterm_event_pop();
-    }
 
     HFONT fonts[FONT_MAXNO];
     LOGFONT lfont;
@@ -312,6 +284,7 @@ public:
     HBITMAP caretbm;
 
     bool resizing = false;
+    bool need_client_resize = false;
 
     /* this allows xterm-style mouse handling. */
     bool send_raw_mouse = false;
@@ -322,7 +295,7 @@ public:
     int font_width = 10, font_height = 20;
     bool font_dualwidth = 1, font_varpitch = 1;
     int offset_width = 1, offset_height = 1;
-    bool was_zoomed = false;
+    bool was_maximized = false;
     int prev_rows = 0, prev_cols = 0;
 
     int caret_x = -1, caret_y = -1;
@@ -341,20 +314,18 @@ void TermWinWindows::close_session()
 {
     session_closed = true;
 
-    // Send a final event to let the user know that we're shutting down, so it
-    // should destroy its copy of the event handle.
+    // Send a final event to let the user know that we're shutting down.
     send_vvterm_event(VVTermEvent_Shutdown);
 
-    if (backend) {
-        backend->shutdown();
-        backend.reset();
+    if (client) {
+        client->shutdown();
+        client.reset();
     }
-    term->term_provide_backend(nullptr);
 
     hwnd = NULL;
 }
 
-TermWinWindows::TermWinWindows()
+TermWinWindows::TermWinWindows(shared_ptr<ClientPipes> client_pipes, HICON icon)
 {
     {
         // Get our HINSTANCE.  One of these is passed to WinMain, but instead of making
@@ -365,31 +336,24 @@ TermWinWindows::TermWinWindows()
     }
 
     conf = make_shared<TermConfig>();
+    window_name = appname;
 
     int guess_width = extra_width + font_width * conf->width;
     int guess_height = extra_height + font_height*conf->height;
     {
         RECT r = get_fullscreen_rect();
-        if (guess_width > r.right - r.left)
-            guess_width = r.right - r.left;
-        if (guess_height > r.bottom - r.top)
-            guess_height = r.bottom - r.top;
+        guess_width = min(guess_width, r.right - r.left);
+        guess_height  = min(guess_height, r.bottom - r.top);
     }
 
-    window_name = appname;
-    HANDLE hhh = CreateEvent(nullptr, false, false, nullptr);
-    vvterm_event_handle = make_shared<HandleHolder>(hhh);
-
     // Create the window class.
-    HICON icon = LoadIcon(hinst, MAKEINTRESOURCE(IDI_MAINICON));
-    threaded_window.CreateWindowClass(appname, icon);
+    window_setup.CreateWindowClass(appname, icon);
 
     // Create the window.
-    hwnd = threaded_window.Create(
+    hwnd = window_setup.Create(
         [this](HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) { return WndProc(hwnd, message, wParam, lParam); },
         0, utf8_to_wstring(window_name).c_str(),
-        WS_OVERLAPPEDWINDOW | WS_VSCROLL,
-        CW_USEDEFAULT, CW_USEDEFAULT,
+        WS_OVERLAPPEDWINDOW | WS_VSCROLL, CW_USEDEFAULT, CW_USEDEFAULT,
         guess_width, guess_height, NULL, NULL, hinst);
 
     if(!hwnd)
@@ -398,8 +362,6 @@ TermWinWindows::TermWinWindows()
         MessageBox(hwnd, message.c_str(), "Fatal Error", MB_SYSTEMMODAL | MB_ICONERROR | MB_OK);
         exit(1);
     }
-
-    memset(&dpi_info, 0, sizeof(dpi_info));
 
     init_dpi_info();
 
@@ -412,24 +374,26 @@ TermWinWindows::TermWinWindows()
     // Tell timing who to inform about timers.
     timing_set_hwnd(hwnd, WM_APP_TIMER_CHANGE);
 
+    client = Client::create(client_pipes, this);
+
     term = make_shared<Terminal>();
-    term->init(conf, this);
-    term->term_size(conf->height, conf->width, conf->savelines);
+    term->init(conf, this, client);
+    term->term_size(conf->height, conf->width, conf->scrollback_lines);
 
     // Correct the guesses for extra_{width,height}.
     {
         RECT cr, wr;
         GetWindowRect(hwnd, &wr);
         GetClientRect(hwnd, &cr);
-        offset_width = offset_height = conf->window_border;
+        offset_width = offset_height = WINDOW_BORDER;
         extra_width = wr.right - wr.left - cr.right + cr.left + offset_width*2;
         extra_height = wr.bottom - wr.top - cr.bottom + cr.top +offset_height*2;
     }
 
-    // Resize the window, now we know what size we _really_ want it to be.
+    // Resize the window, now we know what size we really want it to be.
     guess_width = extra_width + font_width * term->cols;
     guess_height = extra_height + font_height * term->rows;
-    SetWindowPos(hwnd, NULL, 0, 0, guess_width, guess_height, SWP_NOMOVE | SWP_NOREDRAW | SWP_NOZORDER);
+    SetWindowPos(hwnd, NULL, 0, 0, guess_width, guess_height, SWP_NOMOVE|SWP_NOREDRAW|SWP_NOZORDER|SWP_NOACTIVATE);
 
     // Set up a caret bitmap, with no content.
     {
@@ -441,7 +405,6 @@ TermWinWindows::TermWinWindows()
     // Initialize the scrollbar.
     {
         SCROLLINFO si;
-
         si.cbSize = sizeof(si);
         si.fMask = SIF_ALL | SIF_DISABLENOSCROLL;
         si.nMin = 0;
@@ -452,24 +415,9 @@ TermWinWindows::TermWinWindows()
     }
 
     // Prepare the mouse handler.
-    lastact = MA_NOTHING;
-    lastbtn = MBT_NOTHING;
     dbltime = GetDoubleClickTime();
 
-    backend = Create_Backend_PTY(this, conf);
-    string error = backend->init();
-
-    // Errors here are unexpected.
-    if(!error.empty())
-    {
-        MessageBox(NULL, error.c_str(), "Fatal error", MB_ICONERROR | MB_OK);
-        exit(0);
-    }
-
     term->term_setup_window_titles("vview");
-
-    // Connect the terminal to the backend for resize purposes.
-    term->term_provide_backend(backend);
 
     // Set up the initial input locale.
     set_input_locale(GetKeyboardLayout(0));
@@ -490,6 +438,7 @@ int TermWinWindows::run()
             term->term_set_focus(GetForegroundWindow() == hwnd);
         }
 
+        // Wait until a message is posted to the message queue or a waited handle is active.
         HandleWait::wait(timeout);
 
         while (PeekMessageW(&msg, NULL, 0, 0, PM_REMOVE)) {
@@ -615,31 +564,23 @@ int TermWinWindows::get_font_width(HDC hdc, const TEXTMETRIC *tm)
 
 void TermWinWindows::init_dpi_info()
 {
-    if (dpi_info.cur_dpi.x == 0 || dpi_info.cur_dpi.y == 0) {
-        UINT dpiX, dpiY;
-        HMONITOR currentMonitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTOPRIMARY);
-        if (GetDpiForMonitor(currentMonitor, MDT_EFFECTIVE_DPI,
-                                &dpiX, &dpiY) == S_OK) {
-            dpi_info.cur_dpi.x = (int)dpiX;
-            dpi_info.cur_dpi.y = (int)dpiY;
-        }
+    memset(&dpi_info, 0, sizeof(dpi_info));
 
-        /* Fall back to system DPI */
-        if (dpi_info.cur_dpi.x == 0 || dpi_info.cur_dpi.y == 0) {
-            HDC hdc = GetDC(hwnd);
-            dpi_info.cur_dpi.x = GetDeviceCaps(hdc, LOGPIXELSX);
-            dpi_info.cur_dpi.y = GetDeviceCaps(hdc, LOGPIXELSY);
-            ReleaseDC(hwnd, hdc);
-        }
+    UINT dpiX, dpiY;
+    HMONITOR currentMonitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTOPRIMARY);
+    if(GetDpiForMonitor(currentMonitor, MDT_EFFECTIVE_DPI, &dpiX, &dpiY) == S_OK) {
+        dpi_info.cur_dpi.x = (int)dpiX;
+        dpi_info.cur_dpi.y = (int)dpiY;
+    }
+
+    // Fall back to system DPI:
+    if(dpi_info.cur_dpi.x == 0 || dpi_info.cur_dpi.y == 0) {
+        HDC hdc = GetDC(hwnd);
+        dpi_info.cur_dpi.x = GetDeviceCaps(hdc, LOGPIXELSX);
+        dpi_info.cur_dpi.y = GetDeviceCaps(hdc, LOGPIXELSY);
+        ReleaseDC(hwnd, hdc);
     }
 }
-
-#define FONT_QUALITY(fq) ( \
-    (fq) == FQ_DEFAULT ? DEFAULT_QUALITY : \
-    (fq) == FQ_ANTIALIASED ? ANTIALIASED_QUALITY : \
-    (fq) == FQ_NONANTIALIASED ? NONANTIALIASED_QUALITY : \
-    CLEARTYPE_QUALITY)
-
 
 /*
  * Initialize all the fonts we will need initially. There may be as many as
@@ -811,7 +752,7 @@ void TermWinWindows::create_font(int fontno)
     fonts[fontno] = CreateFont(actual_font_height, actual_font_width, 0, 0,
         weight,
         false, underline, false, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS,
-        CLIP_DEFAULT_PRECIS, FONT_QUALITY(conf->font_quality),
+        CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY,
         FIXED_PITCH, font.name.c_str());
 }
 
@@ -873,14 +814,14 @@ void TermWinWindows::request_resize(int w, int h)
             SWP_NOMOVE | SWP_NOZORDER);
 
         if (!sent_term_size)
-            term->term_size(h, w, conf->savelines);
+            term->term_size(h, w, conf->scrollback_lines);
     } else {
         /*
          * If we're resizing by changing the font, we must tell the
          * terminal the new size immediately, so that reset_window
          * will know what to do.
          */
-        term->term_size(h, w, conf->savelines);
+        term->term_size(h, w, conf->scrollback_lines);
         reset_window(0);
     }
 
@@ -915,7 +856,7 @@ void TermWinWindows::reset_window(int reinit)
      * This function doesn't like to change the terminal size but if the
      * font size is locked that may be it's only soluion.
      */
-    int win_width, win_height, window_border;
+    int win_width, win_height;
     RECT cr, wr;
 
     /* Current window sizes ... */
@@ -924,8 +865,6 @@ void TermWinWindows::reset_window(int reinit)
 
     win_width  = cr.right - cr.left;
     win_height = cr.bottom - cr.top;
-
-    window_border = conf->window_border;
 
     /* Are we being forced to reload the fonts ? */
     if (reinit>1) {
@@ -954,7 +893,7 @@ void TermWinWindows::reset_window(int reinit)
             font_height * term->rows != win_height) {
             // Our only choice at this point is to change the
             // size of the terminal; Oh well.
-            term->term_size(win_height/font_height, win_width/font_width, conf->savelines);
+            term->term_size(win_height/font_height, win_width/font_width, conf->scrollback_lines);
             offset_width = (win_width-font_width*term->cols)/2;
             offset_height = (win_height-font_height*term->rows)/2;
             InvalidateRect(hwnd, NULL, true);
@@ -973,8 +912,8 @@ void TermWinWindows::reset_window(int reinit)
             &rect, (DWORD) GetWindowLongPtr(hwnd, GWL_STYLE),
             FALSE, (DWORD) GetWindowLongPtr(hwnd, GWL_EXSTYLE),
             dpi_info.cur_dpi.x);
-        rect.right += (window_border * 2);
-        rect.bottom += (window_border * 2);
+        rect.right += WINDOW_BORDER * 2;
+        rect.bottom += WINDOW_BORDER * 2;
         OffsetRect(&dpi_info.new_wnd_rect,
             ((dpi_info.new_wnd_rect.right - dpi_info.new_wnd_rect.left) -
              (rect.right - rect.left)) / 2,
@@ -993,7 +932,7 @@ void TermWinWindows::reset_window(int reinit)
      * so we resize to the default font size.
      */
     if (reinit>0) {
-        offset_width = offset_height = window_border;
+        offset_width = offset_height = WINDOW_BORDER;
         extra_width = wr.right - wr.left - cr.right + cr.left + offset_width*2;
         extra_height = wr.bottom - wr.top - cr.bottom + cr.top +offset_height*2;
 
@@ -1019,7 +958,7 @@ void TermWinWindows::reset_window(int reinit)
      * to change the terminal.
      */
     {
-        offset_width = offset_height = window_border;
+        offset_width = offset_height = WINDOW_BORDER;
         extra_width = wr.right - wr.left - cr.right + cr.left + offset_width*2;
         extra_height = wr.bottom - wr.top - cr.bottom + cr.top +offset_height*2;
 
@@ -1035,7 +974,7 @@ void TermWinWindows::reset_window(int reinit)
             {
                 if ( height > term->rows ) height = term->rows;
                 if ( width > term->cols )  width = term->cols;
-                term->term_size(height, width, conf->savelines);
+                term->term_size(height, width, conf->scrollback_lines);
             }
 
             SetWindowPos(hwnd, NULL, 0, 0,
@@ -1050,12 +989,12 @@ void TermWinWindows::reset_window(int reinit)
 
     /* We're allowed to or must change the font but do we want to ?  */
 
-    if (font_width != (win_width-window_border*2)/term->cols ||
-        font_height != (win_height-window_border*2)/term->rows) {
+    if (font_width != (win_width-WINDOW_BORDER*2)/term->cols ||
+        font_height != (win_height-WINDOW_BORDER*2)/term->rows) {
 
         deinit_fonts();
-        init_fonts((win_width-window_border*2)/term->cols,
-                   (win_height-window_border*2)/term->rows);
+        init_fonts((win_width-WINDOW_BORDER*2)/term->cols,
+                   (win_height-WINDOW_BORDER*2)/term->rows);
         offset_width = (win_width-font_width*term->cols)/2;
         offset_height = (win_height-font_height*term->rows)/2;
 
@@ -1161,13 +1100,11 @@ void TermWinWindows::free_hdc(HDC hdc)
     ReleaseDC(hwnd, hdc);
 }
 
-static bool need_backend_resize = false;
-
 void TermWinWindows::wm_size_resize_term(LPARAM lParam, bool border)
 {
     int width = LOWORD(lParam);
     int height = HIWORD(lParam);
-    int border_size = border ? conf->window_border : 0;
+    int border_size = border? WINDOW_BORDER : 0;
 
     int w = (width - border_size*2) / font_width;
     int h = (height - border_size*2) / font_height;
@@ -1185,11 +1122,11 @@ void TermWinWindows::wm_size_resize_term(LPARAM lParam, bool border)
          * resizing drag, so we don't spam the server with huge
          * numbers of resize events.
          */
-        need_backend_resize = true;
+        need_client_resize = true;
         conf->height = h;
         conf->width = w;
     } else {
-        term->term_size(h, w, conf->savelines);
+        term->term_size(h, w, conf->scrollback_lines);
 
         /* If this is happening re-entrantly during the call to
          * SetWindowPos in wintw_request_resize, let it know that
@@ -1417,12 +1354,12 @@ LRESULT CALLBACK TermWinWindows::WndProc(HWND hwnd, UINT message, WPARAM wParam,
         break;
     case WM_ENTERSIZEMOVE:
         resizing = true;
-        need_backend_resize = false;
+        need_client_resize = false;
         break;
     case WM_EXITSIZEMOVE:
         resizing = false;
-        if (need_backend_resize) {
-            term->term_size(conf->height, conf->width, conf->savelines);
+        if (need_client_resize) {
+            term->term_size(conf->height, conf->width, conf->scrollback_lines);
             InvalidateRect(hwnd, NULL, true);
         }
         recompute_window_offset();
@@ -1467,13 +1404,13 @@ LRESULT CALLBACK TermWinWindows::WndProc(HWND hwnd, UINT message, WPARAM wParam,
         SetWindowTextW(hwnd, utf8_to_wstring(window_name).c_str());
 
         if (wParam == SIZE_MAXIMIZED) {
-            was_zoomed = true;
+            was_maximized = true;
             prev_rows = term->rows;
             prev_cols = term->cols;
             wm_size_resize_term(lParam, false);
             reset_window(0);
-        } else if (wParam == SIZE_RESTORED && was_zoomed) {
-            was_zoomed = false;
+        } else if (wParam == SIZE_RESTORED && was_maximized) {
+            was_maximized = false;
             wm_size_resize_term(lParam, true);
             reset_window(2);
         } else if (wParam == SIZE_MINIMIZED) {
@@ -1647,7 +1584,7 @@ LRESULT CALLBACK TermWinWindows::WndProc(HWND hwnd, UINT message, WPARAM wParam,
             // term_keyinputw covering the whole of buff. So
             // instead we send the characters one by one.
             // don't divide SURROGATE PAIR
-            if (backend) {
+            if (client) {
                 for (i = 0; i < n; i += 2) {
                     WCHAR hs = buff[i];
                     if (IS_HIGH_SURROGATE(hs) && i+2 < n) {
@@ -1759,63 +1696,49 @@ LRESULT CALLBACK TermWinWindows::WndProc(HWND hwnd, UINT message, WPARAM wParam,
     case WM_APP_TIMER_CHANGE:
         timer_change((unsigned long) wParam);
         return 1;
-
-    case WM_APP_SET_VISIBLE:
-        ShowWindow(hwnd, wParam? SW_RESTORE:SW_HIDE);
-        return 1;
-
-    case WM_APP_GET_VISIBLE:
-    {
-        bool *result = (bool *) lParam;
-        LONG style = GetWindowLong(hwnd, GWL_STYLE);
-        *result = style & WS_VISIBLE;
-        return 1;
-    }
-
-    case WM_APP_GET_HANDLES:
-    {
-        GetHandles *result = (GetHandles *) lParam;
-
-        HANDLE input, output;
-        backend->get_handles(&input, &output);
-
-        *result->events = vvterm_event_handle->h;
-
-        // Duplicate the handles, so they're independant of ours.  It's the caller's
-        // responsibility to destroy these when it's done.
-        DuplicateHandle(GetCurrentProcess(), vvterm_event_handle->h, GetCurrentProcess(), result->events, 0, FALSE, DUPLICATE_SAME_ACCESS);
-        DuplicateHandle(GetCurrentProcess(), input, GetCurrentProcess(), result->input, 0, FALSE, DUPLICATE_SAME_ACCESS);
-        DuplicateHandle(GetCurrentProcess(), output, GetCurrentProcess(), result->output, 0, FALSE, DUPLICATE_SAME_ACCESS);
-
-        return 1;
-    }
-
-    // Return the next API event from the queue, or VVTermEvent_None if none.
-    case WM_APP_GET_NEXT_EVENT:
-    {
-        auto *result = (VVTermEvent *) lParam;
-        *result = vvterm_event_pop();
-        return 1;
-    }
-
-    case WM_APP_SHUTDOWN:
-        // The application wants us to shut down.  Destroy the window.  This
-        // will post WM_DESTROY, which will post WM_QUIT and cause run() to
-        // exit.
-        DestroyWindow(hwnd);
-        return 1;
     }
 
     return DefWindowProcW(hwnd, message, wParam, lParam);
 }
 
+void TermWinWindows::control(const void *data, int len)
+{
+    const VVtermMessage *message = (VVtermMessage *) data;
+    assert(len >= sizeof(VVtermMessage));
+    switch(message->command)
+    { 
+    case VVtermMessage::Command_SetVisible:
+    {
+        bool visible = message->param1 != 0;
+
+        // If we're displaying the window, restore the maximized state too.
+        if(visible)
+        {
+            ShowWindow(hwnd, was_maximized? SW_MAXIMIZE:SW_RESTORE);
+
+            // This is normally in response to a user action, so try to focus the window too.
+            SetForegroundWindow(hwnd);
+        }
+        else
+            ShowWindow(hwnd, SW_HIDE);
+
+        break;
+    }
+
+    case VVtermMessage::Command_Shutdown:
+        // The application wants us to shut down.  Destroy the window.  This
+        // will post WM_DESTROY, which will post WM_QUIT and cause run() to
+        // exit.
+        DestroyWindow(hwnd);
+        break;
+    }
+}
+
 // Queue an event that the caller can retrieve with get_next_event.
 void TermWinWindows::send_vvterm_event(VVTermEvent event)
 {
-    vvterm_events.push_back(event);
-
-    // Signal the event handle to let the user know there's an event waiting.
-    SetEvent(vvterm_event_handle->h);
+    string data((char *) &event, sizeof(event));
+    client->send_control(data);
 }
 
 /*
@@ -2531,8 +2454,6 @@ int TermWinWindows::TranslateKey(UINT message, WPARAM wParam, LPARAM lParam, uns
             return int(p - output);
         }
         if (wParam == VK_CANCEL && shift_state == 2) {  /* Ctrl-Break */
-            if (backend)
-                backend->special(SS_BRK, 0);
             return 0;
         }
         if (wParam == VK_PAUSE) {      /* Break/Pause */
@@ -2949,131 +2870,21 @@ RECT TermWinWindows::get_fullscreen_rect()
     return mi.rcMonitor;
 }
 
-void TermWinWindows::unthrottle(size_t bufsize)
+void RunTerminalWindow(shared_ptr<ClientPipes> client_pipes, HICON icon)
 {
-    if (backend)
-        backend->unthrottle(bufsize);
-}
+    // Create the window, handing it the ClientPipes so we can talk to it.
+    shared_ptr<TermWinWindows> window = make_shared<TermWinWindows>(client_pipes, icon);
 
-// A wrapper around TermWinWindows to run it in a thread, and allow interacting
-// with it from other threads.
-class ThreadedTerminalWindow: public VVTerm
-{
-public:
-    shared_ptr<TermWinWindows> window;
+    // We no longer need client_pipes.  Reset it so the handles can be released.
+    client_pipes.reset();
 
-    HANDLE thread = INVALID_HANDLE_VALUE;
-    CRITICAL_SECTION crit_section;
-    CONDITION_VARIABLE condition = CONDITION_VARIABLE_INIT;
+    // Run the message loop.  This will run until we're shut down.
+    window->run();
 
-    ThreadedTerminalWindow()
-    {
-        // Start our thread.
-        thread = CreateThread(NULL, 0, init_stub, this, 0, nullptr);
+    // We're shutting down.
+    window->close_session();
 
-        // Wait until init() is done initializing.
-        InitializeCriticalSection(&crit_section);
-        EnterCriticalSection(&crit_section);
-        while(window == nullptr)
-            SleepConditionVariableCS(&condition, &crit_section, INFINITE);
-        LeaveCriticalSection(&crit_section);
-    }
-
-    static DWORD init_stub(void *ptr) { ThreadedTerminalWindow *self = (ThreadedTerminalWindow *) ptr; self->init(); return 0; }
-    void init()
-    {
-        // Lock while we create the window, then signal the condition to let the
-        // application thread know window->hwnd is ready.
-        EnterCriticalSection(&crit_section);
-        window = make_shared<TermWinWindows>();
-        WakeAllConditionVariable(&condition);
-        LeaveCriticalSection(&crit_section);
-
-        // Run the message loop.  This will run until we're shut down.
-        window->run();
-
-        // Lock while we clear window->hwnd, then signal to let shutdown() know
-        // that hwnd is null.
-        EnterCriticalSection(&crit_section);
-        window->close_session();
-        assert(window->hwnd == nullptr);
-        WakeAllConditionVariable(&condition);
-        LeaveCriticalSection(&crit_section);
-    }
-
-    // VVTerm implementation
-    // 
-    // These functions can be called from any thread.  They shouldn't be called from
-    // multiple threads concurrently.
-    //
-    // Note that if the thread is shut down, SendMessage will return 0.
-    void set_visible(bool visible) override
-    {
-        SendMessage(window->hwnd, WM_APP_SET_VISIBLE, visible, 0);
-    }
-
-    bool get_visible() const override
-    {
-        bool result = false;
-        SendMessage(window->hwnd, WM_APP_GET_VISIBLE, 0, (intptr_t) &result);
-        return result;
-    }
-
-    void get_handles(HANDLE *events, HANDLE *input, HANDLE *output) override
-    {
-        *events = *input = *output = INVALID_HANDLE_VALUE;
-
-        GetHandles result;
-        result.input = input;
-        result.output = output;
-        result.events = events;
-
-        SendMessage(window->hwnd, WM_APP_GET_HANDLES, 0, (LPARAM) &result);
-    }
-
-    VVTermEvent get_next_event() override
-    {
-        return window->threaded_get_next_event();
-    }
-
-    ~ThreadedTerminalWindow()
-    {
-        // Run WM_APP_SHUTDOWN.  SendMessage won't return until the message is processed,
-        // so the window will be shut down when this returns.
-        LRESULT result = SendMessage(window->hwnd, WM_APP_SHUTDOWN, 0, 0);
-
-        // If result returned 0, the window has already exited.  This happens if the
-        // application is exiting without having closed the window first, so the window
-        // has already exited.  
-        // If SendMessage returned 1, WM_APP_SHUTDOWN ran normally, so wait until run()
-        // exits and shuts down the window.
-        //
-        // If SendMessage returned 0, the window has already exited and the window has
-        // already been destroyed.  This normally only happens if the application is exiting
-        // and we're being shut down during global cleanup.  Don't wait in this case, since
-        // there's no window running and we'll get stuck.
-        string s = win_strerror(GetLastError());
-        if(result != 0)
-        {
-            EnterCriticalSection(&crit_section);
-            while(window->hwnd != nullptr)
-                SleepConditionVariableCS(&condition, &crit_section, INFINITE);
-            LeaveCriticalSection(&crit_section);
-        }
-
-        // Clean up the thread.
-        WaitForSingleObject(thread, INFINITE);
-        CloseHandle(thread);
-        thread = INVALID_HANDLE_VALUE;
-        DeleteCriticalSection(&crit_section);
-
-        // Destroy the TermWinWindows.  This will happen when we return anyway,
-        // this is just clearer when debugging.
-        window.reset();
-    }
-};
-
-shared_ptr<VVTerm> VVTerm::create()
-{
-    return make_shared<ThreadedTerminalWindow>();
+    // Destroy the TermWinWindows.  This will happen when we return anyway,
+    // this is just clearer when debugging.
+    window.reset();
 }

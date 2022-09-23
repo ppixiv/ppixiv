@@ -11,7 +11,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="VVTermTest.cpp" />
+    <ClCompile Include="VVtermTest.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\VVterm\VVterm.vcxproj">

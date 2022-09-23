@@ -17,7 +17,8 @@ string vssprintf(const char *fmt, va_list va)
     string result;
     result.resize(needed+1);
 	vsnprintf(result.data(), needed+1, fmt, va);
-	return result;
+    result.resize(needed); // remove null terminator
+    return result;
 }
 
 string ssprintf(const char *fmt, ...)
@@ -50,6 +51,19 @@ HandleHolder::HandleHolder(HANDLE h_): h(h_) { }
 
 HandleHolder::~HandleHolder()
 {
+    Close();
+}
+
+void HandleHolder::Close()
+{
     if(h != INVALID_HANDLE_VALUE)
         CloseHandle(h);
+    h = INVALID_HANDLE_VALUE;
+}
+
+HANDLE HandleHolder::Take()
+{
+    HANDLE result = h;
+    h = INVALID_HANDLE_VALUE;
+    return result;
 }

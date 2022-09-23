@@ -63,8 +63,14 @@ struct HandleHolder
     HandleHolder(const HandleHolder &rhs) = delete;
     ~HandleHolder();
 
-    HANDLE h;
+    void Close();
+
+    // Return the handle, passing ownership of it to the caller.
+    HANDLE Take();
+
     HandleHolder &operator=(const HandleHolder &rhs) = delete;
+
+    HANDLE h;
 };
 
 #endif

@@ -11,15 +11,14 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="backend.h" />
-    <ClInclude Include="backend_pty.h" />
+    <ClInclude Include="client.h" />
     <ClInclude Include="bufchain.h" />
     <ClInclude Include="callback.h" />
     <ClInclude Include="handle_io.h" />
     <ClInclude Include="handle_wait.h" />
     <ClInclude Include="internal.h" />
     <ClInclude Include="misc.h" />
-    <ClInclude Include="putty-rc.h" />
+    <ClInclude Include="resource.h" />
     <ClInclude Include="terminal.h" />
     <ClInclude Include="timing.h" />
     <ClInclude Include="unicode.h" />
@@ -28,7 +27,7 @@
     <ClInclude Include="window.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="backend_pty.cpp" />
+    <ClCompile Include="client.cpp" />
     <ClCompile Include="bufchain.cpp" />
     <ClCompile Include="callback.cpp" />
     <ClCompile Include="handle_io.cpp" />
@@ -41,6 +40,14 @@
     <ClCompile Include="vvterm.cpp" />
     <ClCompile Include="wcwidth.cpp" />
     <ClCompile Include="window.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="..\..\resources\vview-icon.png" />
+    <Image Include="bitmap1.bmp" />
+    <Image Include="icon.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="resource.rc" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

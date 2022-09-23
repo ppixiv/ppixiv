@@ -14,7 +14,7 @@
 #include <list>
 #include <vector>
 
-class Backend;
+class Client;
 
 #define OSC4_NCOLORS 262              /* 256 + the same 6 special ones */
 
@@ -183,11 +183,6 @@ public:
      * text. One call to this function sets 'ncolors' consecutive
      * colors in the OSC 4 sequence, starting at 'start'. */
     virtual void palette_set(unsigned start, unsigned ncolors, const rgb *colors) = 0;
-
-    /* Notify the front end that the terminal's buffer of unprocessed
-     * output has reduced. (Front ends will likely pass this straight
-     * on to backend_unthrottle.) */
-    virtual void unthrottle(size_t bufsize) = 0;
 };
 
 
@@ -233,6 +228,10 @@ struct termline {
     bool temporary;                    /* true if decompressed from scrollback */
     int cc_free;                       /* offset to first cc in free list */
     vector<termchar> chars;
+
+    termline(int cols, bool bce, termchar erase_char);
+    void clear_combining_character(int col);
+    void add_combining_character(int col, unsigned long chr);
 };
 
 struct bidi_cache_entry {
@@ -258,7 +257,7 @@ typedef enum {
 class Terminal
 {
 public:
-    void init(shared_ptr<const TermConfig> conf, TerminalInterface *win);
+    void init(shared_ptr<const TermConfig> conf, TerminalInterface *win, shared_ptr<Client> client);
 
     void term_free();
     void term_size(int, int, int);
@@ -279,7 +278,6 @@ public:
     void term_reconfig(shared_ptr<const TermConfig> conf);
     void term_request_paste();
     void term_data(const void *data, size_t len);
-    void term_provide_backend(shared_ptr<Backend> backend);
     void term_set_focus(bool has_focus);
     void term_keyinput(int codepage, const char *buf, int len);
     void term_keyinputw(const wchar_t * widebuf, int len);
@@ -401,7 +399,7 @@ public:
     string paste_buffer;
     int paste_pos;
 
-    shared_ptr<Backend> backend;
+    shared_ptr<Client> client;
 
     TerminalInterface *win;
 
@@ -438,18 +436,6 @@ public:
      */
     bool window_update_pending, window_update_cooldown;
     long window_update_cooldown_end;
-
-    /*
-     * We copy a bunch of stuff out of the Conf structure into local
-     * fields in the Terminal structure, to avoid the repeated
-     * list lookups which would be involved in fetching them from
-     * the former every time.
-     */
-    bool ansi_color;
-    int conf_height;
-    int conf_width;
-    bool xterm_256_color;
-    bool true_color;
 
     string window_title;
     bool minimized;
@@ -553,10 +539,11 @@ private:
     string term_input_data_from_charset(int codepage, const char *str, int len);
 
     static void term_out_hook(void *ctx);
-    void term_out(bool called_from_term_data);
+    void term_out();
+    void term_out_inner(unsigned long c);
     inline void term_write(ptrlen data) { term_data(data.ptr, data.len); }
 
-    void term_added_data(bool called_from_term_data);
+    void term_added_data();
     void term_display_graphic_char(unsigned long c);
 
     void term_keyinput_internal(const char *buf, int len, bool interactive);
@@ -582,7 +569,6 @@ private:
         wchar_t *ch, int ccount, unsigned long attr, truecolor tc);
     void update_sbar();
 
-    void term_copy_stuff_from_conf();
     void term_update_raw_mouse_mode();
     void term_request_resize(int cols, int rows);
     void toggle_mode(int mode, int query, bool state);

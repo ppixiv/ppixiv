@@ -15,7 +15,7 @@
 #include "internal.h"
 #include "unicode.h"
 #include "terminal.h"
-#include "backend.h"
+#include "client.h"
 #include "callback.h"
 #include "timing.h"
 #include "wcwidth.h"
@@ -85,18 +85,18 @@ const static short wordness[] = {
  */
 static void parse_optionalrgb(optionalrgb *out, unsigned *values);
 
+termline::termline(int cols_, bool bce, termchar erase_char)
+{
+    cols = size = cols_;
+    chars.resize(cols, erase_char);
+    lattr = LATTR_NORM;
+    temporary = false;
+    cc_free = 0;
+}
+
 static shared_ptr<termline> newtermline(Terminal *term, int cols, bool bce)
 {
-    shared_ptr<termline> line = make_shared<termline>();
-    line->chars.resize(cols);
-    for(int j = 0; j < cols; j++)
-        line->chars[j] = (bce ? term->erase_char : term->basic_erase_char);
-    line->cols = line->size = cols;
-    line->lattr = LATTR_NORM;
-    line->temporary = false;
-    line->cc_free = 0;
-
-    return line;
+    return make_shared<termline>(cols, bce, bce ? term->erase_char: term->basic_erase_char);
 }
 
 #ifdef TERM_CC_DIAGS
@@ -107,7 +107,7 @@ static shared_ptr<termline> newtermline(Terminal *term, int cols, bool bce)
  * This is a performance-intensive check, so it's no longer enabled
  * by default.
  */
-static void cc_check(shared_ptr<termline> line)
+static void cc_check(const termline *line)
 {
     int i, j;
 
@@ -149,16 +149,12 @@ static void cc_check(shared_ptr<termline> line)
 }
 #endif
 
-static void clear_cc(shared_ptr<termline> line, int col);
-
 /*
  * Add a combining character to a character cell.
  */
-static void add_cc(shared_ptr<termline> line, int col, unsigned long chr)
+void termline::add_combining_character(int col, unsigned long chr)
 {
-    int newcc;
-
-    assert(col >= 0 && col < line->cols);
+    assert(col >= 0 && col < cols);
 
     /*
      * Don't add combining characters at all to U+FFFD REPLACEMENT
@@ -167,7 +163,7 @@ static void add_cc(shared_ptr<termline> line, int col, unsigned long chr)
      * too many ccs, in which case we want it to be a fixed point when
      * further ccs are added.)
      */
-    if (line->chars[col].chr == 0xFFFD)
+    if (chars[col].chr == 0xFFFD)
         return;
 
     /*
@@ -176,8 +172,8 @@ static void add_cc(shared_ptr<termline> line, int col, unsigned long chr)
      */
     size_t ncc = 0;
     int origcol = col;
-    while (line->chars[col].cc_next) {
-        col += line->chars[col].cc_next;
+    while (chars[col].cc_next) {
+        col += chars[col].cc_next;
         if (++ncc >= CC_LIMIT) {
             /*
              * There are already too many combining characters in this
@@ -196,8 +192,8 @@ static void add_cc(shared_ptr<termline> line, int col, unsigned long chr)
              * Per the code above, this will also prevent any further
              * ccs from being added to this cell.
              */
-            clear_cc(line, origcol);
-            line->chars[origcol].chr = 0xFFFD;
+            clear_combining_character(origcol);
+            chars[origcol].chr = 0xFFFD;
             return;
         }
     }
@@ -205,20 +201,20 @@ static void add_cc(shared_ptr<termline> line, int col, unsigned long chr)
     /*
      * Extend the cols array if the free list is empty.
      */
-    if (!line->cc_free) {
-        int n = line->size;
+    if (!cc_free) {
+        int n = size;
 
-        size_t tmpsize = line->size;
-        line->chars.resize(tmpsize);
+        size_t tmpsize = size;
+        chars.resize(tmpsize+1);
         assert(tmpsize <= INT_MAX);
-        line->size = tmpsize;
+        size = tmpsize;
 
-        line->cc_free = n;
-        while (n < line->size) {
-            if (n+1 < line->size)
-                line->chars[n].cc_next = 1;
+        cc_free = n;
+        while (n < size) {
+            if (n+1 < size)
+                chars[n].cc_next = 1;
             else
-                line->chars[n].cc_next = 0;
+                chars[n].cc_next = 0;
             n++;
         }
     }
@@ -227,45 +223,44 @@ static void add_cc(shared_ptr<termline> line, int col, unsigned long chr)
      * `col' now points at the last cc currently in this cell; so
      * we simply add another one.
      */
-    newcc = line->cc_free;
-    if (line->chars[newcc].cc_next)
-        line->cc_free = newcc + line->chars[newcc].cc_next;
+    int newcc = cc_free;
+    if (chars[newcc].cc_next)
+        cc_free = newcc + chars[newcc].cc_next;
     else
-        line->cc_free = 0;
-    line->chars[newcc].cc_next = 0;
-    line->chars[newcc].chr = chr;
-    line->chars[col].cc_next = newcc - col;
+        cc_free = 0;
+    chars[newcc].cc_next = 0;
+    chars[newcc].chr = chr;
+    chars[col].cc_next = newcc - col;
 
 #ifdef TERM_CC_DIAGS
-    cc_check(line);
+    cc_check(this);
 #endif
 }
 
 /*
  * Clear the combining character list in a character cell.
  */
-static void clear_cc(shared_ptr<termline> line, int col)
+void termline::clear_combining_character(int col)
 {
-    int oldfree, origcol = col;
+    assert(col >= 0 && col < cols);
 
-    assert(col >= 0 && col < line->cols);
+    if (!chars[col].cc_next)
+        return;                        // nothing to do
 
-    if (!line->chars[col].cc_next)
-        return;                        /* nothing needs doing */
-
-    oldfree = line->cc_free;
-    line->cc_free = col + line->chars[col].cc_next;
-    while (line->chars[col].cc_next)
-        col += line->chars[col].cc_next;
+    int origcol = col;
+    int oldfree = cc_free;
+    cc_free = col + chars[col].cc_next;
+    while (chars[col].cc_next)
+        col += chars[col].cc_next;
     if (oldfree)
-        line->chars[col].cc_next = oldfree - col;
+        chars[col].cc_next = oldfree - col;
     else
-        line->chars[col].cc_next = 0;
+        chars[col].cc_next = 0;
 
-    line->chars[origcol].cc_next = 0;
+    chars[origcol].cc_next = 0;
 
 #ifdef TERM_CC_DIAGS
-    cc_check(line);
+    cc_check(this);
 #endif
 }
 
@@ -306,14 +301,14 @@ static bool termchars_equal(termchar *a, termchar *b)
  */
 static void copy_termchar(shared_ptr<termline> destline, int x, termchar *src)
 {
-    clear_cc(destline, x);
+    destline->clear_combining_character(x);
 
     destline->chars[x] = *src;         /* copy everything except cc-list */
     destline->chars[x].cc_next = 0;    /* and make sure this is zero */
 
     while (src->cc_next) {
         src += src->cc_next;
-        add_cc(destline, x, src->chr);
+        destline->add_combining_character(x, src->chr);
     }
 
 #ifdef TERM_CC_DIAGS
@@ -326,7 +321,7 @@ static void copy_termchar(shared_ptr<termline> destline, int x, termchar *src)
 static void move_termchar(shared_ptr<termline> line, int dstpos, int srcpos)
 {
     /* First clear the cc list from the original char, just in case. */
-    clear_cc(line, dstpos);
+    line->clear_combining_character(dstpos);
 
     /* Move the character cell and adjust its cc_next. */
     termchar &dst = line->chars[dstpos];
@@ -364,7 +359,7 @@ void Terminal::resizeline(shared_ptr<termline> line, int cols)
          * return their cc lists to the cc free list.
          */
         for (i = cols; i < oldcols; i++)
-            clear_cc(line, i);
+            line->clear_combining_character(i);
 
         /*
          * If we're shrinking the line, we now bodily move the
@@ -656,8 +651,8 @@ void Terminal::power_on(bool clear)
     default_attr = save_attr = alt_save_attr = curr_attr = ATTR_DEFAULT;
     curr_truecolor.fg = curr_truecolor.bg = optionalrgb_none;
     save_truecolor = alt_save_truecolor = curr_truecolor;
-    app_cursor_keys = conf->app_cursor;
-    app_keypad_keys = conf->app_keypad;
+    app_cursor_keys = false;
+    app_keypad_keys = false;
     use_bce = true;
     erase_char = basic_erase_char;
     alt_which = 0;
@@ -753,22 +748,6 @@ void Terminal::set_erase_char()
 }
 
 /*
- * We copy a bunch of stuff out of the Conf structure into local
- * fields in the Terminal structure, to avoid the repeated list
- * lookups which would be involved in fetching them from the former
- * every time.
- */
-// XXX remove
-void Terminal::term_copy_stuff_from_conf()
-{
-    ansi_color = conf->ansi_color;
-    conf_height = conf->height;
-    conf_width = conf->width;
-    xterm_256_color = conf->xterm_256_color;
-    true_color = conf->true_color;
-}
-
-/*
  * When the user reconfigures us, we need to check the forbidden-
  * alternate-screen config option, disable raw mouse mode if the
  * user has disabled mouse reporting, and abandon a print job if
@@ -792,7 +771,6 @@ void Terminal::term_reconfig(shared_ptr<const TermConfig> new_conf)
 
     conf = make_shared<TermConfig>(*new_conf);
 
-    term_copy_stuff_from_conf();
     term_update_raw_mouse_mode();
 }
 
@@ -912,11 +890,14 @@ void Terminal::palette_reset()
 /*
  * Initialize the terminal.
  */
-void Terminal::init(shared_ptr<const TermConfig> myconf, TerminalInterface *win_)
+void Terminal::init(shared_ptr<const TermConfig> myconf, TerminalInterface *win_, shared_ptr<Client> client_)
 {
     Terminal *term = this;
+
     term->win = win_;
     term->conf = make_shared<TermConfig>(*myconf);
+    client = client_;
+
     term->compatibility_level = TM_PUTTY;
     strcpy(term->id_string, "\033[?6c");
     term->cr_lf_return = false;
@@ -928,8 +909,6 @@ void Terminal::init(shared_ptr<const TermConfig> myconf, TerminalInterface *win_
     term->termstate = Terminal::TOPLEVEL;
     term->selstate = NO_SELECTION;
     term->curstype = 0;
-
-    term_copy_stuff_from_conf();
 
     term->tempsblines = 0;
     term->alt_sblines = 0;
@@ -1160,18 +1139,8 @@ void Terminal::term_size(int newrows, int newcols, int newsavelines)
 
     win_scrollbar_update_pending = true;
     schedule_update();
-    if (backend)
-        backend->size(cols, rows);
-}
-
-/*
- * Hand a backend to the terminal, so it can be notified of resizes.
- */
-void Terminal::term_provide_backend(shared_ptr<Backend> backend_)
-{
-    backend = backend_;
-    if (backend && cols > 0 && rows > 0)
-        backend->size(cols, rows);
+    if(client)
+        client->size(cols, rows);
 }
 
 /* Find the bottom line on the screen that has any content.
@@ -1403,6 +1372,7 @@ void Terminal::scroll(int topline, int botline, int lines, bool sb)
                     disptop--;
             }
 
+
             line = newtermline(this, cols, false); // XXX: not sure about bce flag
             clear_line(line);
             insert_line(screen, line, botline);
@@ -1540,8 +1510,8 @@ void Terminal::check_boundary(int x, int y)
         ldata->lattr &= ~LATTR_WRAPPED2;
     } else {
         if (ldata->chars[x].chr == UCSWIDE) {
-            clear_cc(ldata, x-1);
-            clear_cc(ldata, x);
+            ldata->clear_combining_character(x-1);
+            ldata->clear_combining_character(x);
             ldata->chars[x-1].chr = ' ';
             ldata->chars[x] = ldata->chars[x-1];
         }
@@ -1881,7 +1851,7 @@ void Terminal::do_osc()
         schedule_update();
         break;
     case 4:
-        if (backend && !strcmp(osc_string, "?")) {
+        if (!strcmp(osc_string, "?")) {
             unsigned index = esc_args[1];
             if (index < OSC4_NCOLORS) {
                 rgb color = palette[index];
@@ -1890,7 +1860,7 @@ void Terminal::do_osc()
                     (unsigned)color.r * 0x0101,
                     (unsigned)color.g * 0x0101,
                     (unsigned)color.b * 0x0101);
-                backend->send(reply_buf.c_str(), reply_buf.size());
+                client->send(reply_buf.c_str(), reply_buf.size());
             }
         }
         break;
@@ -1967,7 +1937,7 @@ void Terminal::term_display_graphic_char(unsigned long c)
         }
 
         /* FULL-TERMCHAR */
-        clear_cc(cline, curs.x);
+        cline->clear_combining_character(curs.x);
         cline->chars[curs.x].chr = c;
         cline->chars[curs.x].attr = curr_attr;
         cline->chars[curs.x].truecolor = curr_truecolor;
@@ -1975,7 +1945,7 @@ void Terminal::term_display_graphic_char(unsigned long c)
         curs.x++;
 
         /* FULL-TERMCHAR */
-        clear_cc(cline, curs.x);
+        cline->clear_combining_character(curs.x);
         cline->chars[curs.x].chr = UCSWIDE;
         cline->chars[curs.x].attr = curr_attr;
         cline->chars[curs.x].truecolor = curr_truecolor;
@@ -1986,7 +1956,7 @@ void Terminal::term_display_graphic_char(unsigned long c)
         check_boundary(curs.x+1, curs.y);
 
         /* FULL-TERMCHAR */
-        clear_cc(cline, curs.x);
+        cline->clear_combining_character(curs.x);
         cline->chars[curs.x].chr = c;
         cline->chars[curs.x].attr = curr_attr;
         cline->chars[curs.x].truecolor = curr_truecolor;
@@ -2010,7 +1980,7 @@ void Terminal::term_display_graphic_char(unsigned long c)
                 x--;
             }
 
-            add_cc(cline, x, c);
+            cline->add_combining_character(x, c);
             saw_disp_event();
         }
         return;
@@ -2078,17 +2048,16 @@ void Terminal::term_keyinput_internal(const char *buf, int len, bool interactive
          * input _within_ the terminal, e.g. in response to terminal
          * query sequences, or the bracketing sequences of bracketed
          * paste mode. Those will be sent directly via
-         * backend->send() and won't go through this function.
+         * client->send() and won't go through this function.
          */
 
-        // Mimic the special case of negative length in backend->send
+        // Mimic the special case of negative length in client->send
         int true_len = len >= 0 ? len : strlen(buf);
 
         inbuf.add(buf, true_len);
-        term_added_data(false);
+        term_added_data();
     }
-    if (backend)
-        backend->send(buf, len);
+    client->send(buf, len);
 }
 
 unsigned long Terminal::term_translate(struct term_utf8_decode *utf8, unsigned char c)
@@ -2180,7 +2149,7 @@ unsigned long Terminal::term_translate(struct term_utf8_decode *utf8, unsigned c
  * in-memory display. There's a big state machine in here to
  * process escape sequences...
  */
-void Terminal::term_out(bool called_from_term_data)
+void Terminal::term_out()
 {
     unsigned long c;
     int unget = -1;
@@ -2197,37 +2166,33 @@ void Terminal::term_out(bool called_from_term_data)
     while (nchars_got < nchars_used || unget != -1 || inbuf.size() > 0)
     {
         if (unget != -1) {
-            /*
-             * Handle a character we left in 'unget' the last time
-             * round this loop. This happens if a UTF-8 sequence is
-             * aborted early, by containing fewer continuation bytes
-             * than its introducer expected: the non-continuation byte
-             * that interrupted the sequence must now be processed
-             * as a fresh piece of input in its own right.
-             */
+            // Handle a character we left in 'unget' the last time
+            // round this loop. This happens if a UTF-8 sequence is
+            // aborted early, by containing fewer continuation bytes
+            // than its introducer expected: the non-continuation byte
+            // that interrupted the sequence must now be processed
+            // as a fresh piece of input in its own right.
             c = unget;
             unget = -1;
         } else {
-            /*
-             * If we're waiting for a terminal resize triggered by an
-             * escape sequence, we defer processing the terminal
-             * output until we receive acknowledgment from the front
-             * end that the resize has happened, so that further
-             * output will be processed in the context of the new
-             * size.
-             *
-             * This test goes inside the main while-loop, so that we
-             * exit early if we encounter a resize escape sequence
-             * part way through inbuf.
-             *
-             * It's also in the branch of this if statement that
-             * doesn't deal with a character left in 'unget' by the
-             * previous loop iteration, because if we break out of
-             * this loop with an ungot character still pending, we'll
-             * lose it. (And in any case, if the previous thing that
-             * happened was a truncated UTF-8 sequence, then it won't
-             * have scheduled a pending resize.)
-             */
+            // If we're waiting for a terminal resize triggered by an
+            // escape sequence, we defer processing the terminal
+            // output until we receive acknowledgment from the front
+            // end that the resize has happened, so that further
+            // output will be processed in the context of the new
+            // size.
+            //
+            // This test goes inside the main while-loop, so that we
+            // exit early if we encounter a resize escape sequence
+            // part way through inbuf.
+            //
+            // It's also in the branch of this if statement that
+            // doesn't deal with a character left in 'unget' by the
+            // previous loop iteration, because if we break out of
+            // this loop with an ungot character still pending, we'll
+            // lose it. (And in any case, if the previous thing that
+            // happened was a truncated UTF-8 sequence, then it won't
+            // have scheduled a pending resize.)
             if (win_resize_pending != Terminal::WIN_RESIZE_NO)
                 break;
 
@@ -2248,12 +2213,7 @@ void Terminal::term_out(bool called_from_term_data)
             c = chars[nchars_used++];
         }
 
-        /* Note only VT220+ are 8-bit VT102 is seven bit, it shouldn't even
-         * be able to display 8-bit characters, but I'll let that go 'cause
-         * of i18n.
-         */
-
-        /* Do character-set translation. */
+        // Do character-set translation.
         if (termstate == Terminal::TOPLEVEL) {
             unsigned long t = term_translate(&utf8, char(c));
             switch (t) {
@@ -2271,885 +2231,875 @@ void Terminal::term_out(bool called_from_term_data)
             }
         }
 
-        /*
-         * How about C1 controls?
-         * Explicitly ignore SCI (0x9a), which we don't translate to DECID.
-         */
-        if ((c & -32) == 0x80 && termstate < Terminal::DO_CTRLS &&
-            has_compat(VT220)) {
-            if (c == 0x9a)
-                c = 0;
-            else {
-                termstate = Terminal::SEEN_ESC;
-                esc_query = 0;
-                c = '@' + (c & 0x1F);
+        term_out_inner(c);
+
+        if (selstate != NO_SELECTION) {
+            pos cursplus = curs;
+            incpos(cursplus);
+            check_selection(curs, cursplus);
+        }
+    }
+
+    inbuf.consume(nchars_used);
+}
+
+void Terminal::term_out_inner(unsigned long c)
+{
+    // How about C1 controls?
+    // Explicitly ignore SCI (0x9a), which we don't translate to DECID.
+    if ((c & -32) == 0x80 && termstate < Terminal::DO_CTRLS &&
+        has_compat(VT220)) {
+        if (c == 0x9a)
+            c = 0;
+        else {
+            termstate = Terminal::SEEN_ESC;
+            esc_query = 0;
+            c = '@' + (c & 0x1F);
+        }
+    }
+
+    // Or the GL control.
+    if (c == '\177' && termstate < Terminal::DO_CTRLS && has_compat(OTHER)) {
+        if (curs.x && !wrapnext)
+            curs.x--;
+        wrapnext = false;
+
+        // destructive backspace might be disabled
+        check_boundary(curs.x, curs.y);
+        check_boundary(curs.x+1, curs.y);
+        copy_termchar(scrlineptr(curs.y), curs.x, &erase_char);
+        return;
+    }
+
+    // Or normal C0 controls.
+    if ((c & ~0x1F) == 0 && termstate < Terminal::DO_CTRLS) {
+        switch (c) {
+        case '\007': {            /* BEL: Bell */
+            if (termstate == Terminal::SEEN_OSC ||
+                termstate == Terminal::SEEN_OSC_W) {
+                // In an OSC context, BEL is one of the ways to terminate
+                // the whole sequence. We process it as such even if we
+                // haven't got into the final OSC_STRING state yet, so that
+                // OSC sequences without a string will be handled cleanly.
+                do_osc();
+                termstate = Terminal::TOPLEVEL;
+                break;
             }
+
+            /*
+            * Perform an actual beep if we're not overloaded.
+            */
+            term_schedule_vbell(false, 0);
+            saw_disp_event();
+            break;
+        }
+        case '\b':              /* BS: Back space */
+            if (curs.x == 0 && curs.y == 0)
+                /* do nothing */ ;
+            else if (curs.x == 0 && curs.y > 0)
+                curs.x = cols - 1, curs.y--;
+            else if (wrapnext)
+                wrapnext = false;
+            else
+                curs.x--;
+            saw_disp_event();
+            break;
+        case '\016':            /* LS1: Locking-shift one */
+            compatibility(CL_VT100);
+            cset = 1;
+            break;
+        case '\017':            /* LS0: Locking-shift zero */
+            compatibility(CL_VT100);
+            cset = 0;
+            break;
+        case '\033':            /* ESC: Escape */
+            compatibility(CL_ANSIMIN);
+            termstate = Terminal::SEEN_ESC;
+            esc_query = 0;
+            break;
+        case '\015':            /* CR: Carriage return */
+            curs.x = 0;
+            wrapnext = false;
+            saw_disp_event();
+            break;
+        case '\014':            /* FF: Form feed */
+            if (has_compat(SCOANSI)) {
+                move_cursor(0, 0, 0);
+                erase_lots(false, false, true);
+                disptop = 0;
+                wrapnext = false;
+                saw_disp_event();
+                break;
+            }
+        case '\013':            /* VT: Line tabulation */
+            compatibility(CL_VT100);
+        case '\012':            /* LF: Line feed */
+            if (curs.y == marg_b)
+                scroll(marg_t, marg_b, 1, true);
+            else if (curs.y < rows - 1)
+                curs.y++;
+            wrapnext = false;
+            saw_disp_event();
+            break;
+        case '\t': {              /* HT: Character tabulation */
+            pos old_curs = curs;
+            shared_ptr<termline> ldata = scrlineptr(curs.y);
+
+            do {
+                curs.x++;
+            } while (curs.x < cols - 1 &&
+                !tabs[curs.x]);
+
+            if ((ldata->lattr & LATTR_MODE) != LATTR_NORM) {
+                if (curs.x >= cols / 2)
+                    curs.x = cols / 2 - 1;
+            } else {
+                if (curs.x >= cols)
+                    curs.x = cols - 1;
+            }
+
+            check_selection(old_curs, curs);
+            saw_disp_event();
+            break;
+        }
+        }
+        return;
+    }
+
+    switch (termstate) {
+    case Terminal::TOPLEVEL:
+        // Only graphic characters get this far; ctrls are stripped above
+        term_display_graphic_char(c);
+        last_graphic_char = c;
+        break;
+
+    case Terminal::OSC_MAYBE_ST:
+        /*
+        * This state is virtually identical to SEEN_ESC, with the
+        * exception that we have an OSC sequence in the pipeline,
+        * and _if_ we see a backslash, we process it.
+        */
+        if (c == '\\') {
+            do_osc();
+            termstate = Terminal::TOPLEVEL;
+            break;
+        }
+        // fallthrough
+    case Terminal::SEEN_ESC:
+        if (c >= ' ' && c <= '/') {
+            if (esc_query)
+                esc_query = -1;
+            else
+                esc_query = c;
+            break;
+        }
+        termstate = Terminal::TOPLEVEL;
+        switch (ANSI(c, esc_query)) {
+        case '[':             /* enter CSI mode */
+            termstate = Terminal::SEEN_CSI;
+            esc_nargs = 1;
+            esc_args[0] = ARG_DEFAULT;
+            esc_query = 0;
+            break;
+        case ']':             /* OSC: xterm escape sequences */
+                              /* Compatibility is nasty here, xterm, linux, decterm yuk! */
+            compatibility(CL_OTHER);
+            termstate = Terminal::SEEN_OSC;
+            esc_args[0] = 0;
+            esc_nargs = 1;
+            break;
+        case '7':             /* DECSC: save cursor */
+            compatibility(CL_VT100);
+            save_cursor(true);
+            break;
+        case '8':             /* DECRC: restore cursor */
+            compatibility(CL_VT100);
+            save_cursor(false);
+            saw_disp_event();
+            break;
+        case '=':             /* DECKPAM: Keypad application mode */
+            compatibility(CL_VT100);
+            app_keypad_keys = true;
+            break;
+        case '>':             /* DECKPNM: Keypad numeric mode */
+            compatibility(CL_VT100);
+            app_keypad_keys = false;
+            break;
+        case 'D':            /* IND: exactly equivalent to LF */
+            compatibility(CL_VT100);
+            if (curs.y == marg_b)
+                scroll(marg_t, marg_b, 1, true);
+            else if (curs.y < rows - 1)
+                curs.y++;
+            wrapnext = false;
+            saw_disp_event();
+            break;
+        case 'E':            /* NEL: exactly equivalent to CR-LF */
+            compatibility(CL_VT100);
+            curs.x = 0;
+            if (curs.y == marg_b)
+                scroll(marg_t, marg_b, 1, true);
+            else if (curs.y < rows - 1)
+                curs.y++;
+            wrapnext = false;
+            saw_disp_event();
+            break;
+        case 'M':            /* RI: reverse index - backwards LF */
+            compatibility(CL_VT100);
+            if (curs.y == marg_t)
+                scroll(marg_t, marg_b, -1, true);
+            else if (curs.y > 0)
+                curs.y--;
+            wrapnext = false;
+            saw_disp_event();
+            break;
+        case 'Z':            /* DECID: terminal type query */
+            compatibility(CL_VT100);
+            client->send(id_string, strlen(id_string));
+            break;
+        case 'c':            /* RIS: restore power-on settings */
+            compatibility(CL_VT100);
+            power_on(true);
+            if (reset_132) {
+                term_request_resize(80, rows);
+                reset_132 = false;
+            }
+            disptop = 0;
+            saw_disp_event();
+            break;
+        case 'H':            /* HTS: set a tab */
+            compatibility(CL_VT100);
+            tabs[curs.x] = true;
+            break;
+
+        case ANSI('8', '#'): { /* DECALN: fills screen with Es :-) */
+            compatibility(CL_VT100);
+            shared_ptr<termline> ldata;
+            int i, j;
+            pos scrtop, scrbot;
+
+            for (i = 0; i < rows; i++) {
+                ldata = scrlineptr(i);
+                check_line_size(ldata);
+                for (j = 0; j < cols; j++) {
+                    copy_termchar(ldata, j, &basic_erase_char);
+                    ldata->chars[j].chr = 'E';
+                }
+                ldata->lattr = LATTR_NORM;
+            }
+            disptop = 0;
+            saw_disp_event();
+            scrtop.x = scrtop.y = 0;
+            scrbot.x = 0;
+            scrbot.y = rows;
+            check_selection(scrtop, scrbot);
+            break;
         }
 
-        /* Or the GL control. */
-        if (c == '\177' && termstate < Terminal::DO_CTRLS && has_compat(OTHER)) {
-            if (curs.x && !wrapnext)
-                curs.x--;
-            wrapnext = false;
-            /* destructive backspace might be disabled */
-            check_boundary(curs.x, curs.y);
-            check_boundary(curs.x+1, curs.y);
-            copy_termchar(scrlineptr(curs.y),
-                            curs.x, &erase_char);
-        } else
-        /* Or normal C0 controls. */
-        if ((c & ~0x1F) == 0 && termstate < Terminal::DO_CTRLS) {
-            switch (c) {
-              case '\007': {            /* BEL: Bell */
-                if (termstate == Terminal::SEEN_OSC ||
-                    termstate == Terminal::SEEN_OSC_W) {
-                    /*
-                     * In an OSC context, BEL is one of the ways to terminate
-                     * the whole sequence. We process it as such even if we
-                     * haven't got into the final OSC_STRING state yet, so that
-                     * OSC sequences without a string will be handled cleanly.
-                     */
-                    do_osc();
-                    termstate = Terminal::TOPLEVEL;
-                    break;
-                }
+        case ANSI('3', '#'):
+        case ANSI('4', '#'):
+        case ANSI('5', '#'):
+        case ANSI('6', '#'): {
+            compatibility(CL_VT100);
+            int nlattr;
+            shared_ptr<termline> ldata;
 
-                /*
-                 * Perform an actual beep if we're not overloaded.
-                 */
-                term_schedule_vbell(false, 0);
-                saw_disp_event();
+            switch (ANSI(c, esc_query)) {
+            case ANSI('3', '#'): /* DECDHL: 2*height, top */
+                nlattr = LATTR_TOP;
                 break;
-              }
-              case '\b':              /* BS: Back space */
-                if (curs.x == 0 && curs.y == 0)
-                    /* do nothing */ ;
-                else if (curs.x == 0 && curs.y > 0)
-                    curs.x = cols - 1, curs.y--;
-                else if (wrapnext)
-                    wrapnext = false;
-                else
-                    curs.x--;
-                saw_disp_event();
+            case ANSI('4', '#'): /* DECDHL: 2*height, bottom */
+                nlattr = LATTR_BOT;
                 break;
-              case '\016':            /* LS1: Locking-shift one */
-                compatibility(CL_VT100);
-                cset = 1;
+            case ANSI('5', '#'): /* DECSWL: normal */
+                nlattr = LATTR_NORM;
                 break;
-              case '\017':            /* LS0: Locking-shift zero */
-                compatibility(CL_VT100);
-                cset = 0;
+            default: /* case ANSI('6', '#'): DECDWL: 2*width */
+                nlattr = LATTR_WIDE;
                 break;
-              case '\033':            /* ESC: Escape */
-                compatibility(CL_ANSIMIN);
-                termstate = Terminal::SEEN_ESC;
-                esc_query = 0;
-                break;
-              case '\015':            /* CR: Carriage return */
-                curs.x = 0;
-                wrapnext = false;
-                saw_disp_event();
-                break;
-              case '\014':            /* FF: Form feed */
-                if (has_compat(SCOANSI)) {
-                    move_cursor(0, 0, 0);
-                    erase_lots(false, false, true);
-                    disptop = 0;
-                    wrapnext = false;
-                    saw_disp_event();
-                    break;
-                }
-              case '\013':            /* VT: Line tabulation */
-                compatibility(CL_VT100);
-              case '\012':            /* LF: Line feed */
-                if (curs.y == marg_b)
-                    scroll(marg_t, marg_b, 1, true);
-                else if (curs.y < rows - 1)
-                    curs.y++;
-                wrapnext = false;
-                saw_disp_event();
-                break;
-              case '\t': {              /* HT: Character tabulation */
-                pos old_curs = curs;
-                shared_ptr<termline> ldata = scrlineptr(curs.y);
-
-                do {
-                    curs.x++;
-                } while (curs.x < cols - 1 &&
-                         !tabs[curs.x]);
-
-                if ((ldata->lattr & LATTR_MODE) != LATTR_NORM) {
-                    if (curs.x >= cols / 2)
-                        curs.x = cols / 2 - 1;
-                } else {
-                    if (curs.x >= cols)
-                        curs.x = cols - 1;
-                }
-
-                check_selection(old_curs, curs);
-                saw_disp_event();
-                break;
-              }
             }
-        } else
-            switch (termstate) {
-              case Terminal::TOPLEVEL:
-                /* Only graphic characters get this far;
-                 * ctrls are stripped above */
-                term_display_graphic_char(c);
-                last_graphic_char = c;
-                break;
-
-              case Terminal::OSC_MAYBE_ST:
-                /*
-                 * This state is virtually identical to SEEN_ESC, with the
-                 * exception that we have an OSC sequence in the pipeline,
-                 * and _if_ we see a backslash, we process it.
-                 */
-                if (c == '\\') {
-                    do_osc();
-                    termstate = Terminal::TOPLEVEL;
-                    break;
-                }
-                /* else fall through */
-              case Terminal::SEEN_ESC:
-                if (c >= ' ' && c <= '/') {
-                    if (esc_query)
-                        esc_query = -1;
-                    else
-                        esc_query = c;
-                    break;
-                }
-                termstate = Terminal::TOPLEVEL;
-                switch (ANSI(c, esc_query)) {
-                  case '[':             /* enter CSI mode */
-                    termstate = Terminal::SEEN_CSI;
-                    esc_nargs = 1;
-                    esc_args[0] = ARG_DEFAULT;
-                    esc_query = 0;
-                    break;
-                  case ']':             /* OSC: xterm escape sequences */
-                    /* Compatibility is nasty here, xterm, linux, decterm yuk! */
-                    compatibility(CL_OTHER);
-                    termstate = Terminal::SEEN_OSC;
-                    esc_args[0] = 0;
-                    esc_nargs = 1;
-                    break;
-                  case '7':             /* DECSC: save cursor */
-                    compatibility(CL_VT100);
-                    save_cursor(true);
-                    break;
-                  case '8':             /* DECRC: restore cursor */
-                    compatibility(CL_VT100);
-                    save_cursor(false);
-                    saw_disp_event();
-                    break;
-                  case '=':             /* DECKPAM: Keypad application mode */
-                    compatibility(CL_VT100);
-                    app_keypad_keys = true;
-                    break;
-                  case '>':             /* DECKPNM: Keypad numeric mode */
-                    compatibility(CL_VT100);
-                    app_keypad_keys = false;
-                    break;
-                  case 'D':            /* IND: exactly equivalent to LF */
-                    compatibility(CL_VT100);
-                    if (curs.y == marg_b)
-                        scroll(marg_t, marg_b, 1, true);
-                    else if (curs.y < rows - 1)
-                        curs.y++;
-                    wrapnext = false;
-                    saw_disp_event();
-                    break;
-                  case 'E':            /* NEL: exactly equivalent to CR-LF */
-                    compatibility(CL_VT100);
-                    curs.x = 0;
-                    if (curs.y == marg_b)
-                        scroll(marg_t, marg_b, 1, true);
-                    else if (curs.y < rows - 1)
-                        curs.y++;
-                    wrapnext = false;
-                    saw_disp_event();
-                    break;
-                  case 'M':            /* RI: reverse index - backwards LF */
-                    compatibility(CL_VT100);
-                    if (curs.y == marg_t)
-                        scroll(marg_t, marg_b, -1, true);
-                    else if (curs.y > 0)
-                        curs.y--;
-                    wrapnext = false;
-                    saw_disp_event();
-                    break;
-                  case 'Z':            /* DECID: terminal type query */
-                    compatibility(CL_VT100);
-                    if (backend)
-                        backend->send(id_string, strlen(id_string));
-                    break;
-                  case 'c':            /* RIS: restore power-on settings */
-                    compatibility(CL_VT100);
-                    power_on(true);
-                    if (reset_132) {
-                        term_request_resize(80, rows);
-                        reset_132 = false;
-                    }
-                    disptop = 0;
-                    saw_disp_event();
-                    break;
-                  case 'H':            /* HTS: set a tab */
-                    compatibility(CL_VT100);
-                    tabs[curs.x] = true;
-                    break;
-
-                  case ANSI('8', '#'): { /* DECALN: fills screen with Es :-) */
-                    compatibility(CL_VT100);
-                    shared_ptr<termline> ldata;
-                    int i, j;
-                    pos scrtop, scrbot;
-
-                    for (i = 0; i < rows; i++) {
-                        ldata = scrlineptr(i);
-                        check_line_size(ldata);
-                        for (j = 0; j < cols; j++) {
-                            copy_termchar(ldata, j,
-                                          &basic_erase_char);
-                            ldata->chars[j].chr = 'E';
-                        }
-                        ldata->lattr = LATTR_NORM;
-                    }
-                    disptop = 0;
-                    saw_disp_event();
-                    scrtop.x = scrtop.y = 0;
-                    scrbot.x = 0;
-                    scrbot.y = rows;
-                    check_selection(scrtop, scrbot);
-                    break;
-                  }
-
-                  case ANSI('3', '#'):
-                  case ANSI('4', '#'):
-                  case ANSI('5', '#'):
-                  case ANSI('6', '#'): {
-                    compatibility(CL_VT100);
-                    int nlattr;
-                    shared_ptr<termline> ldata;
-
-                    switch (ANSI(c, esc_query)) {
-                      case ANSI('3', '#'): /* DECDHL: 2*height, top */
-                        nlattr = LATTR_TOP;
-                        break;
-                      case ANSI('4', '#'): /* DECDHL: 2*height, bottom */
-                        nlattr = LATTR_BOT;
-                        break;
-                      case ANSI('5', '#'): /* DECSWL: normal */
-                        nlattr = LATTR_NORM;
-                        break;
-                      default: /* case ANSI('6', '#'): DECDWL: 2*width */
-                        nlattr = LATTR_WIDE;
-                        break;
-                    }
-                    ldata = scrlineptr(curs.y);
-                    check_line_size(ldata);
-                    ldata->lattr = nlattr;
-                    break;
-                  }
-                  // GZD4: G0 designate 94-set (removed, we're in the wrong century for this)
-                  case ANSI('A', '('):
-                  case ANSI('B', '('):
-                  case ANSI('0', '('):
-                  case ANSI('A', ')'):
-                  case ANSI('B', ')'):
-                  case ANSI('0', ')'):
-                  case ANSI('U', ')'):
-                      compatibility(CL_VT100);
-                      break;
-                  case ANSI('U', '('):
-                      compatibility(CL_OTHER);
-                      break;
-                  /* DOCS: Designate other coding system */
-                  case ANSI('8', '%'):  /* Old Linux code */
-                  case ANSI('G', '%'):
-                    compatibility(CL_OTHER);
-                    break;
-                  case ANSI('@', '%'):
-                    compatibility(CL_OTHER);
-                    break;
-                }
-                break;
-              case Terminal::SEEN_CSI:
-                termstate = Terminal::TOPLEVEL;  /* default */
-                if (isdigit(c)) {
-                    if (esc_nargs <= ARGS_MAX) {
-                        if (esc_args[esc_nargs - 1] == ARG_DEFAULT)
-                            esc_args[esc_nargs - 1] = 0;
-                        if (esc_args[esc_nargs - 1] <= UINT_MAX / 10 &&
-                            esc_args[esc_nargs - 1] * 10 <= UINT_MAX - c - '0')
-                            esc_args[esc_nargs - 1] = 10 * esc_args[esc_nargs - 1] + c - '0';
-                        else
-                            esc_args[esc_nargs - 1] = UINT_MAX;
-                    }
-                    termstate = Terminal::SEEN_CSI;
-                } else if (c == ';') {
-                    if (esc_nargs < ARGS_MAX)
-                        esc_args[esc_nargs++] = ARG_DEFAULT;
-                    termstate = Terminal::SEEN_CSI;
-                } else if (c < '@') {
-                    if (esc_query)
-                        esc_query = -1;
-                    else if (c == '?')
-                        esc_query = 1;
-                    else
-                        esc_query = c;
-                    termstate = Terminal::SEEN_CSI;
-                } else
+            ldata = scrlineptr(curs.y);
+            check_line_size(ldata);
+            ldata->lattr = nlattr;
+            break;
+        }
+        // GZD4: G0 designate 94-set (removed, we're in the wrong century for this)
+        case ANSI('A', '('):
+        case ANSI('B', '('):
+        case ANSI('0', '('):
+        case ANSI('A', ')'):
+        case ANSI('B', ')'):
+        case ANSI('0', ')'):
+        case ANSI('U', ')'):
+            compatibility(CL_VT100);
+            break;
+        case ANSI('U', '('):
+            compatibility(CL_OTHER);
+            break;
+            /* DOCS: Designate other coding system */
+        case ANSI('8', '%'):  /* Old Linux code */
+        case ANSI('G', '%'):
+            compatibility(CL_OTHER);
+            break;
+        case ANSI('@', '%'):
+            compatibility(CL_OTHER);
+            break;
+        }
+        break;
+    case Terminal::SEEN_CSI:
+        termstate = Terminal::TOPLEVEL;  /* default */
+        if (isdigit(c)) {
+            if (esc_nargs <= ARGS_MAX) {
+                if (esc_args[esc_nargs - 1] == ARG_DEFAULT)
+                    esc_args[esc_nargs - 1] = 0;
+                if (esc_args[esc_nargs - 1] <= UINT_MAX / 10 &&
+                    esc_args[esc_nargs - 1] * 10 <= UINT_MAX - c - '0')
+                    esc_args[esc_nargs - 1] = 10 * esc_args[esc_nargs - 1] + c - '0';
+                else
+                    esc_args[esc_nargs - 1] = UINT_MAX;
+            }
+            termstate = Terminal::SEEN_CSI;
+        } else if (c == ';') {
+            if (esc_nargs < ARGS_MAX)
+                esc_args[esc_nargs++] = ARG_DEFAULT;
+            termstate = Terminal::SEEN_CSI;
+        } else if (c < '@') {
+            if (esc_query)
+                esc_query = -1;
+            else if (c == '?')
+                esc_query = 1;
+            else
+                esc_query = c;
+            termstate = Terminal::SEEN_CSI;
+        } else switch (ANSI(c, esc_query)) {
 #define CLAMP(arg, lim) ((arg) = ((arg) > (lim)) ? (lim) : (arg))
-                    switch (ANSI(c, esc_query)) {
-                      case 'A':       /* CUU: move up N lines */
-                        CLAMP(esc_args[0], rows);
-                        move_cursor(curs.x, curs.y - def(esc_args[0], 1), 1);
-                        saw_disp_event();
-                        break;
-                      case 'e':         /* VPR: move down N lines */
-                        compatibility(CL_ANSI);
-                        /* FALLTHROUGH */
-                      case 'B':         /* CUD: Cursor down */
-                        CLAMP(esc_args[0], rows);
-                        move_cursor(curs.x, curs.y + def(esc_args[0], 1), 1);
-                        saw_disp_event();
-                        break;
-                      case 'b':        /* REP: repeat previous grap */
-                        CLAMP(esc_args[0], rows * cols);
-                        if (last_graphic_char) {
-                            unsigned i;
-                            for (i = 0; i < esc_args[0]; i++)
-                                term_display_graphic_char(last_graphic_char);
-                        }
-                        break;
-                      case ANSI('c', '>'):      /* DA: report xterm version */
-                        compatibility(CL_OTHER);
-                        /* this reports xterm version 136 so that VIM can
-                           use the drag messages from the mouse reporting */
-                        if (backend)
-                            backend->send("\033[>0;136;0c", 11);
-                        break;
-                      case 'a':         /* HPR: move right N cols */
-                        compatibility(CL_ANSI);
-                        /* FALLTHROUGH */
-                      case 'C':         /* CUF: Cursor right */
-                        CLAMP(esc_args[0], cols);
-                        move_cursor(curs.x + def(esc_args[0], 1), curs.y, 1);
-                        saw_disp_event();
-                        break;
-                      case 'D':       /* CUB: move left N cols */
-                        CLAMP(esc_args[0], cols);
-                        move_cursor(curs.x - def(esc_args[0], 1), curs.y, 1);
-                        saw_disp_event();
-                        break;
-                      case 'E':       /* CNL: move down N lines and CR */
-                        compatibility(CL_ANSI);
-                        CLAMP(esc_args[0], rows);
-                        move_cursor(0, curs.y + def(esc_args[0], 1), 1);
-                        saw_disp_event();
-                        break;
-                      case 'F':       /* CPL: move up N lines and CR */
-                        compatibility(CL_ANSI);
-                        CLAMP(esc_args[0], rows);
-                        move_cursor(0, curs.y - def(esc_args[0], 1), 1);
-                        saw_disp_event();
-                        break;
-                      case 'G':       /* CHA */
-                      case '`':       /* HPA: set horizontal posn */
-                        compatibility(CL_ANSI);
-                        CLAMP(esc_args[0], cols);
-                        move_cursor(def(esc_args[0], 1) - 1, curs.y, 0);
-                        saw_disp_event();
-                        break;
-                      case 'd':       /* VPA: set vertical posn */
-                        compatibility(CL_ANSI);
-                        CLAMP(esc_args[0], rows);
-                        move_cursor(curs.x, (def(esc_args[0], 1) - 1), 0);
-                        saw_disp_event();
-                        break;
-                      case 'H':      /* CUP */
-                      case 'f':      /* HVP: set horz and vert posns at once */
-                        if (esc_nargs < 2)
-                            esc_args[1] = ARG_DEFAULT;
-                        CLAMP(esc_args[0], rows);
-                        CLAMP(esc_args[1], cols);
-                        move_cursor(def(esc_args[1], 1) - 1, (def(esc_args[0], 1) - 1), 0);
-                        saw_disp_event();
-                        break;
-                      case 'J': {       /* ED: erase screen or parts of it */
-                        unsigned int i = def(esc_args[0], 0);
-                        if (i == 3) {
-                            /* Erase Saved Lines (xterm)
-                             * This follows Thomas Dickey's xterm. */
-                            term_clrsb();
-                        } else {
-                            i++;
-                            if (i > 3)
-                                i = 0;
-                            erase_lots(false, !!(i & 2), !!(i & 1));
-                        }
-                        disptop = 0;
-                        saw_disp_event();
-                        break;
-                      }
-                      case 'K': {       /* EL: erase line or parts of it */
-                        unsigned int i = def(esc_args[0], 0) + 1;
-                        if (i > 3)
-                            i = 0;
-                        erase_lots(true, !!(i & 2), !!(i & 1));
-                        saw_disp_event();
-                        break;
-                      }
-                      case 'L':       /* IL: insert lines */
-                        compatibility(CL_VT102);
-                        CLAMP(esc_args[0], rows);
-                        if (curs.y <= marg_b)
-                            scroll(curs.y, marg_b, -int(def(esc_args[0], 1)), false);
-                        saw_disp_event();
-                        break;
-                      case 'M':       /* DL: delete lines */
-                        compatibility(CL_VT102);
-                        CLAMP(esc_args[0], rows);
-                        if (curs.y <= marg_b)
-                            scroll(curs.y, marg_b, def(esc_args[0], 1), true);
-                        saw_disp_event();
-                        break;
-                      case '@':       /* ICH: insert chars */
-                        /* XXX VTTEST says this is vt220, vt510 manual says vt102 */
-                        compatibility(CL_VT102);
-                        CLAMP(esc_args[0], cols);
-                        insch(def(esc_args[0], 1));
-                        saw_disp_event();
-                        break;
-                      case 'P':       /* DCH: delete chars */
-                        compatibility(CL_VT102);
-                        CLAMP(esc_args[0], cols);
-                        insch(-int(def(esc_args[0], 1)));
-                        saw_disp_event();
-                        break;
-                      case 'c':       /* DA: terminal type query */
-                        compatibility(CL_VT100);
-                        /* This is the response for a VT102 */
-                        if (backend)
-                            backend->send(id_string, strlen(id_string));
-                        break;
-                      case 'n':       /* DSR: cursor position query */
-                        if (backend) {
-                            if (esc_args[0] == 6) {
-                                char buf[32];
-                                sprintf(buf, "\033[%d;%dR", curs.y + 1,
-                                        curs.x + 1);
-                                backend->send( buf, strlen(buf));
-                            } else if (esc_args[0] == 5) {
-                                backend->send("\033[0n", 4);
-                            }
-                        }
-                        break;
-                      case 'h':       /* SM: toggle modes to high */
-                      case ANSI_QUE('h'):
-                        compatibility(CL_VT100);
-                        for (int i = 0; i < esc_nargs; i++)
-                            toggle_mode(esc_args[i], esc_query, true);
-                        break;
-                      case 'i':         /* MC: Media copy */
-                      case ANSI_QUE('i'): {
-                        compatibility(CL_VT100);
-                        break;
-                      }
-                      case 'l':       /* RM: toggle modes to low */
-                      case ANSI_QUE('l'):
-                        compatibility(CL_VT100);
-                        for (int i = 0; i < esc_nargs; i++)
-                            toggle_mode(esc_args[i], esc_query, false);
-                        break;
-                      case 'g':       /* TBC: clear tabs */
-                        compatibility(CL_VT100);
-                        if (esc_nargs == 1) {
-                            if (esc_args[0] == 0) {
-                                tabs[curs.x] = false;
-                            } else if (esc_args[0] == 3) {
-                                int i;
-                                for (i = 0; i < cols; i++)
-                                    tabs[i] = false;
-                            }
-                        }
-                        break;
-                      case 'r':       /* DECSTBM: set scroll margins */
-                        compatibility(CL_VT100);
-                        if (esc_nargs <= 2) {
-                            int top, bot;
-                            CLAMP(esc_args[0], rows);
-                            CLAMP(esc_args[1], rows);
-                            top = def(esc_args[0], 1) - 1;
-                            bot = (esc_nargs <= 1 || esc_args[1] == 0 ? rows : def(esc_args[1], rows)) - 1;
-                            if (bot >= rows)
-                                bot = rows - 1;
-                            /* VTTEST Bug 9 - if region is less than 2 lines
-                             * don't change region.
-                             */
-                            if (bot - top > 0) {
-                                marg_t = top;
-                                marg_b = bot;
-                                curs.x = 0;
-                                curs.y = 0;
-                                saw_disp_event();
-                            }
-                        }
-                        break;
-                      case 'm':       /* SGR: set graphics rendition */
-                        /*
-                         * A VT100 without the AVO only had one attribute, either underline or reverse
-                         * video depending on the cursor type, this was selected by CSI 7m.
-                         *
-                         * case 2:
-                         *  This is sometimes DIM, eg on the GIGI and Linux
-                         * case 8:
-                         *  This is sometimes INVIS various ANSI.
-                         * case 21:
-                         *  This like 22 disables BOLD, DIM and INVIS
-                         *
-                         * The ANSI colors appear on any terminal that has color (obviously) but the
-                         * interaction between sgr0 and the colors varies but is usually related to the
-                         * background color erase item. The interaction between color attributes and
-                         * the mono ones is also very implementation dependent.
-                         *
-                         * The 39 and 49 attributes are likely to be unimplemented.
-                         */
-                        for (int i = 0; i < esc_nargs; i++)
-                        switch (def(esc_args[i], 0)) {
-                          case 0:       /* restore defaults */
-                            curr_attr = default_attr;
-                            curr_truecolor = basic_erase_char.truecolor;
+        case 'A':       // CUU: move up N lines
+            CLAMP(esc_args[0], rows);
+            move_cursor(curs.x, curs.y - def(esc_args[0], 1), 1);
+            saw_disp_event();
+            break;
+        case 'e':         /* VPR: move down N lines */
+            compatibility(CL_ANSI);
+            /* FALLTHROUGH */
+        case 'B':         /* CUD: Cursor down */
+            CLAMP(esc_args[0], rows);
+            move_cursor(curs.x, curs.y + def(esc_args[0], 1), 1);
+            saw_disp_event();
+            break;
+        case 'b':        /* REP: repeat previous grap */
+            CLAMP(esc_args[0], rows * cols);
+            if (last_graphic_char) {
+                unsigned i;
+                for (i = 0; i < esc_args[0]; i++)
+                    term_display_graphic_char(last_graphic_char);
+            }
+            break;
+        case ANSI('c', '>'):      /* DA: report xterm version */
+            compatibility(CL_OTHER);
+            // this reports xterm version 136 so that VIM can use the drag messages from the mouse reporting
+            client->send("\033[>0;136;0c", 11);
+            break;
+        case 'a':         /* HPR: move right N cols */
+            compatibility(CL_ANSI);
+            // fallthrough
+        case 'C':         /* CUF: Cursor right */
+            CLAMP(esc_args[0], cols);
+            move_cursor(curs.x + def(esc_args[0], 1), curs.y, 1);
+            saw_disp_event();
+            break;
+        case 'D':       /* CUB: move left N cols */
+            CLAMP(esc_args[0], cols);
+            move_cursor(curs.x - def(esc_args[0], 1), curs.y, 1);
+            saw_disp_event();
+            break;
+        case 'E':       /* CNL: move down N lines and CR */
+            compatibility(CL_ANSI);
+            CLAMP(esc_args[0], rows);
+            move_cursor(0, curs.y + def(esc_args[0], 1), 1);
+            saw_disp_event();
+            break;
+        case 'F':       /* CPL: move up N lines and CR */
+            compatibility(CL_ANSI);
+            CLAMP(esc_args[0], rows);
+            move_cursor(0, curs.y - def(esc_args[0], 1), 1);
+            saw_disp_event();
+            break;
+        case 'G':       /* CHA */
+        case '`':       /* HPA: set horizontal posn */
+            compatibility(CL_ANSI);
+            CLAMP(esc_args[0], cols);
+            move_cursor(def(esc_args[0], 1) - 1, curs.y, 0);
+            saw_disp_event();
+            break;
+        case 'd':       /* VPA: set vertical posn */
+            compatibility(CL_ANSI);
+            CLAMP(esc_args[0], rows);
+            move_cursor(curs.x, (def(esc_args[0], 1) - 1), 0);
+            saw_disp_event();
+            break;
+        case 'H':      /* CUP */
+        case 'f':      /* HVP: set horz and vert posns at once */
+            if (esc_nargs < 2)
+                esc_args[1] = ARG_DEFAULT;
+            CLAMP(esc_args[0], rows);
+            CLAMP(esc_args[1], cols);
+            move_cursor(def(esc_args[1], 1) - 1, (def(esc_args[0], 1) - 1), 0);
+            saw_disp_event();
+            break;
+        case 'J': {       /* ED: erase screen or parts of it */
+            unsigned int i = def(esc_args[0], 0);
+            if (i == 3) {
+                /* Erase Saved Lines (xterm)
+                * This follows Thomas Dickey's xterm. */
+                term_clrsb();
+            } else {
+                i++;
+                if (i > 3)
+                    i = 0;
+                erase_lots(false, !!(i & 2), !!(i & 1));
+            }
+            disptop = 0;
+            saw_disp_event();
+            break;
+        }
+        case 'K': {       /* EL: erase line or parts of it */
+            unsigned int i = def(esc_args[0], 0) + 1;
+            if (i > 3)
+                i = 0;
+            erase_lots(true, !!(i & 2), !!(i & 1));
+            saw_disp_event();
+            break;
+        }
+        case 'L':       /* IL: insert lines */
+            compatibility(CL_VT102);
+            CLAMP(esc_args[0], rows);
+            if (curs.y <= marg_b)
+                scroll(curs.y, marg_b, -int(def(esc_args[0], 1)), false);
+            saw_disp_event();
+            break;
+        case 'M':       /* DL: delete lines */
+            compatibility(CL_VT102);
+            CLAMP(esc_args[0], rows);
+            if (curs.y <= marg_b)
+                scroll(curs.y, marg_b, def(esc_args[0], 1), true);
+            saw_disp_event();
+            break;
+        case '@':       /* ICH: insert chars */
+                        // XXX VTTEST says this is vt220, vt510 manual says vt102
+            compatibility(CL_VT102);
+            CLAMP(esc_args[0], cols);
+            insch(def(esc_args[0], 1));
+            saw_disp_event();
+            break;
+        case 'P':       /* DCH: delete chars */
+            compatibility(CL_VT102);
+            CLAMP(esc_args[0], cols);
+            insch(-int(def(esc_args[0], 1)));
+            saw_disp_event();
+            break;
+        case 'c':       /* DA: terminal type query */
+            compatibility(CL_VT100);
+            /* This is the response for a VT102 */
+            client->send(id_string, strlen(id_string));
+            break;
+        case 'n':       /* DSR: cursor position query */
+            if (esc_args[0] == 6) {
+                char buf[32];
+                sprintf(buf, "\033[%d;%dR", curs.y + 1,
+                    curs.x + 1);
+                client->send( buf, strlen(buf));
+            } else if (esc_args[0] == 5) {
+                client->send("\033[0n", 4);
+            }
+            break;
+        case 'h':       /* SM: toggle modes to high */
+        case ANSI_QUE('h'):
+            compatibility(CL_VT100);
+            for (int i = 0; i < esc_nargs; i++)
+                toggle_mode(esc_args[i], esc_query, true);
+            break;
+        case 'i':         /* MC: Media copy */
+        case ANSI_QUE('i'): {
+            compatibility(CL_VT100);
+            break;
+        }
+        case 'l':       /* RM: toggle modes to low */
+        case ANSI_QUE('l'):
+            compatibility(CL_VT100);
+            for (int i = 0; i < esc_nargs; i++)
+                toggle_mode(esc_args[i], esc_query, false);
+            break;
+        case 'g':       /* TBC: clear tabs */
+            compatibility(CL_VT100);
+            if (esc_nargs == 1) {
+                if (esc_args[0] == 0) {
+                    tabs[curs.x] = false;
+                } else if (esc_args[0] == 3) {
+                    int i;
+                    for (i = 0; i < cols; i++)
+                        tabs[i] = false;
+                }
+            }
+            break;
+        case 'r':       /* DECSTBM: set scroll margins */
+            compatibility(CL_VT100);
+            if (esc_nargs <= 2) {
+                int top, bot;
+                CLAMP(esc_args[0], rows);
+                CLAMP(esc_args[1], rows);
+                top = def(esc_args[0], 1) - 1;
+                bot = (esc_nargs <= 1 || esc_args[1] == 0 ? rows : def(esc_args[1], rows)) - 1;
+                if (bot >= rows)
+                    bot = rows - 1;
+                // VTTEST Bug 9 - if region is less than 2 lines don't change region.
+                if (bot - top > 0) {
+                    marg_t = top;
+                    marg_b = bot;
+                    curs.x = 0;
+                    curs.y = 0;
+                    saw_disp_event();
+                }
+            }
+            break;
+        case 'm':       /* SGR: set graphics rendition */
+            // A VT100 without the AVO only had one attribute, either underline or reverse
+            // video depending on the cursor type, this was selected by CSI 7m.
+            //
+            // case 2:
+            //  This is sometimes DIM, eg on the GIGI and Linux
+            // case 8:
+            //  This is sometimes INVIS various ANSI.
+            // case 21:
+            //  This like 22 disables BOLD, DIM and INVIS
+            //
+            // The ANSI colors appear on any terminal that has color (obviously) but the
+            // interaction between sgr0 and the colors varies but is usually related to the
+            // background color erase item. The interaction between color attributes and
+            // the mono ones is also very implementation dependent.
+            //
+            // The 39 and 49 attributes are likely to be unimplemented.
+            for (int i = 0; i < esc_nargs; i++)
+            {
+                switch (def(esc_args[i], 0)) {
+                case 0:       /* restore defaults */
+                    curr_attr = default_attr;
+                    curr_truecolor = basic_erase_char.truecolor;
+                    break;
+                case 1:       /* enable bold */
+                    compatibility(CL_VT100AVO);
+                    curr_attr |= ATTR_BOLD;
+                    break;
+                case 2:       /* enable dim */
+                    compatibility(CL_OTHER);
+                    curr_attr |= ATTR_DIM;
+                    break;
+                case 21:      /* (enable double underline) */
+                    compatibility(CL_OTHER);
+                case 4:       /* enable underline */
+                    compatibility(CL_VT100AVO);
+                    curr_attr |= ATTR_UNDER;
+                    break;
+                case 5:       /* enable blink */
+                    compatibility(CL_VT100AVO);
+                    curr_attr |= ATTR_BLINK;
+                    break;
+                case 6:       /* SCO light bkgrd */
+                    compatibility(CL_SCOANSI);
+                    curr_attr |= ATTR_BLINK;
+                    break;
+                case 7:       /* enable reverse video */
+                    curr_attr |= ATTR_REVERSE;
+                    break;
+                case 9:       /* enable strikethrough */
+                    curr_attr |= ATTR_STRIKE;
+                    break;
+                case 10:      /* SCO acs (removed) */
+                case 11:      /* SCO acs on */
+                case 12:      /* SCO acs on, |0x80 */
+                    compatibility(CL_SCOANSI);
+                    break;
+                case 22:      /* disable bold and dim */
+                    compatibility2(CL_OTHER, CL_VT220);
+                    curr_attr &= ~(ATTR_BOLD | ATTR_DIM);
+                    break;
+                case 24:      /* disable underline */
+                    compatibility2(CL_OTHER, CL_VT220);
+                    curr_attr &= ~ATTR_UNDER;
+                    break;
+                case 25:      /* disable blink */
+                    compatibility2(CL_OTHER, CL_VT220);
+                    curr_attr &= ~ATTR_BLINK;
+                    break;
+                case 27:      /* disable reverse video */
+                    compatibility2(CL_OTHER, CL_VT220);
+                    curr_attr &= ~ATTR_REVERSE;
+                    break;
+                case 29:      /* disable strikethrough */
+                    curr_attr &= ~ATTR_STRIKE;
+                    break;
+                case 30:
+                case 31:
+                case 32:
+                case 33:
+                case 34:
+                case 35:
+                case 36:
+                case 37:
+                    /* foreground */
+                    curr_truecolor.fg.enabled = false;
+                    curr_attr &= ~ATTR_FGMASK;
+                    curr_attr |= (esc_args[i] - 30)<<ATTR_FGSHIFT;
                             break;
-                          case 1:       /* enable bold */
-                            compatibility(CL_VT100AVO);
-                            curr_attr |= ATTR_BOLD;
-                            break;
-                          case 2:       /* enable dim */
-                            compatibility(CL_OTHER);
-                            curr_attr |= ATTR_DIM;
-                            break;
-                          case 21:      /* (enable double underline) */
-                            compatibility(CL_OTHER);
-                          case 4:       /* enable underline */
-                            compatibility(CL_VT100AVO);
-                            curr_attr |= ATTR_UNDER;
-                            break;
-                          case 5:       /* enable blink */
-                            compatibility(CL_VT100AVO);
-                            curr_attr |= ATTR_BLINK;
-                            break;
-                          case 6:       /* SCO light bkgrd */
-                            compatibility(CL_SCOANSI);
-                            curr_attr |= ATTR_BLINK;
-                            break;
-                          case 7:       /* enable reverse video */
-                            curr_attr |= ATTR_REVERSE;
-                            break;
-                          case 9:       /* enable strikethrough */
-                            curr_attr |= ATTR_STRIKE;
-                            break;
-                          case 10:      /* SCO acs (removed) */
-                          case 11:      /* SCO acs on */
-                          case 12:      /* SCO acs on, |0x80 */
-                              compatibility(CL_SCOANSI);
-                              break;
-                          case 22:      /* disable bold and dim */
-                            compatibility2(CL_OTHER, CL_VT220);
-                            curr_attr &= ~(ATTR_BOLD | ATTR_DIM);
-                            break;
-                          case 24:      /* disable underline */
-                            compatibility2(CL_OTHER, CL_VT220);
-                            curr_attr &= ~ATTR_UNDER;
-                            break;
-                          case 25:      /* disable blink */
-                            compatibility2(CL_OTHER, CL_VT220);
-                            curr_attr &= ~ATTR_BLINK;
-                            break;
-                          case 27:      /* disable reverse video */
-                            compatibility2(CL_OTHER, CL_VT220);
-                            curr_attr &= ~ATTR_REVERSE;
-                            break;
-                          case 29:      /* disable strikethrough */
-                            curr_attr &= ~ATTR_STRIKE;
-                            break;
-                          case 30:
-                          case 31:
-                          case 32:
-                          case 33:
-                          case 34:
-                          case 35:
-                          case 36:
-                          case 37:
-                            /* foreground */
-                            curr_truecolor.fg.enabled = false;
-                            curr_attr &= ~ATTR_FGMASK;
-                            curr_attr |= (esc_args[i] - 30)<<ATTR_FGSHIFT;
-                            break;
-                          case 90:
-                          case 91:
-                          case 92:
-                          case 93:
-                          case 94:
-                          case 95:
-                          case 96:
-                          case 97:
-                            /* aixterm-style bright foreground */
-                            curr_truecolor.fg.enabled = false;
-                            curr_attr &= ~ATTR_FGMASK;
-                            curr_attr |= ((esc_args[i] - 90 + 8) << ATTR_FGSHIFT);
-                            break;
-                          case 39:      /* default-foreground */
-                            curr_truecolor.fg.enabled = false;
-                            curr_attr &= ~ATTR_FGMASK;
-                            curr_attr |= ATTR_DEFFG;
-                            break;
-                          case 40:
-                          case 41:
-                          case 42:
-                          case 43:
-                          case 44:
-                          case 45:
-                          case 46:
-                          case 47:
-                            /* background */
-                            curr_truecolor.bg.enabled = false;
-                            curr_attr &= ~ATTR_BGMASK;
-                            curr_attr |= (esc_args[i] - 40)<<ATTR_BGSHIFT;
-                            break;
-                          case 100:
-                          case 101:
-                          case 102:
-                          case 103:
-                          case 104:
-                          case 105:
-                          case 106:
-                          case 107:
-                            /* aixterm-style bright background */
-                            curr_truecolor.bg.enabled = false;
-                            curr_attr &= ~ATTR_BGMASK;
-                            curr_attr |= ((esc_args[i] - 100 + 8)
-                                 << ATTR_BGSHIFT);
-                            break;
-                          case 49:      /* default-background */
-                            curr_truecolor.bg.enabled = false;
-                            curr_attr &= ~ATTR_BGMASK;
-                            curr_attr |= ATTR_DEFBG;
-                            break;
+                case 90:
+                case 91:
+                case 92:
+                case 93:
+                case 94:
+                case 95:
+                case 96:
+                case 97:
+                    /* aixterm-style bright foreground */
+                    curr_truecolor.fg.enabled = false;
+                    curr_attr &= ~ATTR_FGMASK;
+                    curr_attr |= ((esc_args[i] - 90 + 8) << ATTR_FGSHIFT);
+                    break;
+                case 39:      /* default-foreground */
+                    curr_truecolor.fg.enabled = false;
+                    curr_attr &= ~ATTR_FGMASK;
+                    curr_attr |= ATTR_DEFFG;
+                    break;
+                case 40:
+                case 41:
+                case 42:
+                case 43:
+                case 44:
+                case 45:
+                case 46:
+                case 47:
+                    /* background */
+                    curr_truecolor.bg.enabled = false;
+                    curr_attr &= ~ATTR_BGMASK;
+                    curr_attr |= (esc_args[i] - 40)<<ATTR_BGSHIFT;
+                    break;
+                case 100:
+                case 101:
+                case 102:
+                case 103:
+                case 104:
+                case 105:
+                case 106:
+                case 107:
+                    /* aixterm-style bright background */
+                    curr_truecolor.bg.enabled = false;
+                    curr_attr &= ~ATTR_BGMASK;
+                    curr_attr |= ((esc_args[i] - 100 + 8)
+                        << ATTR_BGSHIFT);
+                    break;
+                case 49:      /* default-background */
+                    curr_truecolor.bg.enabled = false;
+                    curr_attr &= ~ATTR_BGMASK;
+                    curr_attr |= ATTR_DEFBG;
+                    break;
 
-                            /*
-                             * 256-color and true-color sequences. A 256-color foreground is selected by a
-                             * sequence of 3 arguments in the form 38;5;n, where n is in the range 0-255. A
-                             * true-color RGB triple is selected by 5 args of the form 38;2;r;g;b. Replacing
-                             * the initial 38 with 48 in both cases selects the same color as the background.
-                             */
-                          case 38:
-                            if (i+2 < esc_nargs &&
-                                esc_args[i+1] == 5) {
-                                curr_attr &= ~ATTR_FGMASK;
-                                curr_attr |= ((esc_args[i+2] & 0xFF) << ATTR_FGSHIFT);
-                                curr_truecolor.fg = optionalrgb_none;
-                                i += 2;
-                            }
-                            if (i + 4 < esc_nargs &&
-                                esc_args[i + 1] == 2) {
-                                parse_optionalrgb(&curr_truecolor.fg, esc_args + (i+2));
-                                i += 4;
-                            }
-                            break;
-                          case 48:
-                            if (i+2 < esc_nargs &&
-                                esc_args[i+1] == 5) {
-                                curr_attr &= ~ATTR_BGMASK;
-                                curr_attr |= ((esc_args[i+2] & 0xFF) << ATTR_BGSHIFT);
-                                curr_truecolor.bg = optionalrgb_none;
-                                i += 2;
-                            }
-                            if (i + 4 < esc_nargs && esc_args[i+1] == 2) {
-                                parse_optionalrgb(&curr_truecolor.bg, esc_args + (i+2));
-                                i += 4;
-                            }
-                            break;
-                        }
-                        set_erase_char();
-                        break;
-                      case 's':       /* save cursor */
+                    /*
+                    * 256-color and true-color sequences. A 256-color foreground is selected by a
+                    * sequence of 3 arguments in the form 38;5;n, where n is in the range 0-255. A
+                    * true-color RGB triple is selected by 5 args of the form 38;2;r;g;b. Replacing
+                    * the initial 38 with 48 in both cases selects the same color as the background.
+                    */
+                case 38:
+                    if (i+2 < esc_nargs &&
+                        esc_args[i+1] == 5) {
+                        curr_attr &= ~ATTR_FGMASK;
+                        curr_attr |= ((esc_args[i+2] & 0xFF) << ATTR_FGSHIFT);
+                        curr_truecolor.fg = optionalrgb_none;
+                        i += 2;
+                    }
+                    if (i + 4 < esc_nargs &&
+                        esc_args[i + 1] == 2) {
+                        parse_optionalrgb(&curr_truecolor.fg, esc_args + (i+2));
+                        i += 4;
+                    }
+                    break;
+                case 48:
+                    if (i+2 < esc_nargs &&
+                        esc_args[i+1] == 5) {
+                        curr_attr &= ~ATTR_BGMASK;
+                        curr_attr |= ((esc_args[i+2] & 0xFF) << ATTR_BGSHIFT);
+                        curr_truecolor.bg = optionalrgb_none;
+                        i += 2;
+                    }
+                    if (i + 4 < esc_nargs && esc_args[i+1] == 2) {
+                        parse_optionalrgb(&curr_truecolor.bg, esc_args + (i+2));
+                        i += 4;
+                    }
+                    break;
+                }
+            }
+            set_erase_char();
+            break;
+        case 's':       /* save cursor */
                         save_cursor(true);
                         break;
-                      case 'u':       /* restore cursor */
-                        save_cursor(false);
-                        saw_disp_event();
-                        break;
-                      case 't': /* DECSLPP: set page size - ie window height */
-                        /*
-                         * VT340/VT420 sequence DECSLPP, DEC only allows values
-                         *  24/25/36/48/72/144 other emulators (eg dtterm) use
-                         * illegal values (eg first arg 1..9) for window changing
-                         * and reports.
-                         */
-                        if (esc_nargs <= 1 && (esc_args[0] < 1 || esc_args[0] >= 24)) {
-                            compatibility(CL_VT340TEXT);
-                            term_request_resize(cols, 24);
-                            deselect();
-                        } else if (esc_nargs >= 1 &&
-                                   esc_args[0] >= 1 &&
-                                   esc_args[0] < 24) {
-                            compatibility(CL_OTHER);
+        case 'u':       /* restore cursor */
+            save_cursor(false);
+            saw_disp_event();
+            break;
+        case 't': /* DECSLPP: set page size - ie window height */
+            // VT340/VT420 sequence DECSLPP, DEC only allows values
+            //  24/25/36/48/72/144 other emulators (eg dtterm) use
+            // illegal values (eg first arg 1..9) for window changing
+            // and reports.
+            if (esc_nargs <= 1 && (esc_args[0] < 1 || esc_args[0] >= 24)) {
+                compatibility(CL_VT340TEXT);
+                term_request_resize(cols, 24);
+                deselect();
+            } else if (esc_nargs >= 1 &&
+                esc_args[0] >= 1 &&
+                esc_args[0] < 24) {
+                compatibility(CL_OTHER);
 
-                            int len;
-                            char buf[80];
-                            const char *p;
-                            switch (esc_args[0]) {
-                            case 1:
-                            case 2:
-                                // Minimize and maximize the window (removed)
-                                  break;
-                            case 3:
-                                if (esc_nargs >= 3) {
-                                    win_move_pending = true;
-                                    win_move_pending_x = def(esc_args[1], 0);
-                                    win_move_pending_y = def(esc_args[2], 0);
-                                    schedule_update();
-                                }
-                                break;
-                            case 4:
-                                // Resize to pixels (useless)
-                                break;
-                            case 5:
-                            case 6:
-                                // Removed support for moving the window to the top (Windows doesn't even
-                                // allow that), and for moving to the bottom.
-                                break;
-                            case 7:
-                                win_refresh_pending = true;
-                                schedule_update();
-                                break;
-                            case 8:
-                                if (esc_nargs >= 3) {
-                                    term_request_resize(
-                                        def(esc_args[2], conf_width),
-                                        def(esc_args[1], conf_height));
-                                }
-                                break;
-                            case 9:
-                                // Maximize/unmaximize (removed)
-                                break;
-                            case 11:
-                                if (backend)
-                                    backend->send(minimized? "\033[2t" : "\033[1t", 4);
-                                break;
-                            case 13:
-                            case 14:
-                                // Removed handling for things like querying the window size and position in
-                                // pixels.  I can't think of any reason a terminal client would need to know
-                                // the physical dimensions of the terminal.
-                                break;
-                            case 18:
-                                if (backend) {
-                                    len = sprintf(buf, "\033[8;%d;%dt", rows, cols);
-                                    backend->send(buf, len);
-                                }
-                                break;
-                            case 19:
-                                /*
-                                * Hmmm. Strictly speaking we should return `the size of the screen in characters, but
-                                * that's not easy: (a) window furniture being what it is it's hard to compute, and (b)
-                                * in resize-font mode maximizing the window wouldn't change the number of characters.
-                                * *shrug*. I think we'll ignore it for the moment and see if anyone complains, and then
-                                * ask them what they would like it to do.
-                                */
-                                break;
-                            case 20: // set icon title: ignored (not used on Windows)
-                                break;
-                            case 21:
-                                if (backend) {
-                                    p = window_title.c_str();
-                                    len = strlen(p);
-                                    backend->send("\033]l", 3);
-                                    backend->send(p, len);
-                                    backend->send("\033\\", 2);
-                                }
-                                break;
-                            }
-                        }
-                        break;
-                      case 'S':         /* SU: Scroll up */
-                        CLAMP(esc_args[0], rows);
-                        compatibility(CL_SCOANSI);
-                        scroll(marg_t, marg_b, def(esc_args[0], 1), true);
-                        wrapnext = false;
-                        saw_disp_event();
-                        break;
-                      case 'T':         /* SD: Scroll down */
-                        CLAMP(esc_args[0], rows);
-                        compatibility(CL_SCOANSI);
-                        scroll(marg_t, marg_b, -int(def(esc_args[0], 1)), true);
-                        wrapnext = false;
-                        saw_disp_event();
-                        break;
-                      case ANSI('|', '*'): /* DECSNLS */
-                        /*
-                         * Set number of lines on screen
-                         * VT420 uses VGA like hardware and can
-                         * support any size in reasonable range
-                         * (24..49 AIUI) with no default specified.
-                         */
-                        compatibility(CL_VT420);
-                        if (esc_nargs == 1 && esc_args[0] > 0) {
-                            term_request_resize(cols, def(esc_args[0], conf_height));
-                            deselect();
-                        }
-                        break;
-                      case ANSI('|', '$'): /* DECSCPP */
-                        /*
-                         * Set number of columns per page
-                         * Docs imply range is only 80 or 132, but
-                         * I'll allow any.
-                         */
-                        compatibility(CL_VT340TEXT);
-                        if (esc_nargs <= 1) {
-                            term_request_resize(def(esc_args[0], conf_width), rows);
-                            deselect();
-                        }
-                        break;
-                      case 'X': {   /* ECH: write N spaces w/o moving cursor */
-                        /* XXX VTTEST says this is vt220, vt510 manual
-                         * says vt100 */
-                        compatibility(CL_ANSIMIN);
-                        CLAMP(esc_args[0], cols);
-                        int n = def(esc_args[0], 1);
-                        pos cursplus;
-                        int p = curs.x;
-                        shared_ptr<termline> cline = scrlineptr(curs.y);
+                int len;
+                char buf[80];
+                const char *p;
+                switch (esc_args[0]) {
+                case 1:
+                case 2:
+                    // Minimize and maximize the window (removed)
+                    break;
+                case 3:
+                    if (esc_nargs >= 3) {
+                        win_move_pending = true;
+                        win_move_pending_x = def(esc_args[1], 0);
+                        win_move_pending_y = def(esc_args[2], 0);
+                        schedule_update();
+                    }
+                    break;
+                case 4:
+                    // Resize to pixels (useless)
+                    break;
+                case 5:
+                case 6:
+                    // Removed support for moving the window to the top (Windows doesn't even
+                    // allow that), and for moving to the bottom.
+                    break;
+                case 7:
+                    win_refresh_pending = true;
+                    schedule_update();
+                    break;
+                case 8:
+                    if (esc_nargs >= 3) {
+                        term_request_resize(
+                            def(esc_args[2], conf->width),
+                            def(esc_args[1], conf->height));
+                    }
+                    break;
+                case 9:
+                    // Maximize/unmaximize (removed)
+                    break;
+                case 11:
+                    client->send(minimized? "\033[2t" : "\033[1t", 4);
+                    break;
+                case 13:
+                case 14:
+                    // Removed handling for things like querying the window size and position in
+                    // pixels.  I can't think of any reason a terminal client would need to know
+                    // the physical dimensions of the terminal.
+                    break;
+                case 18:
+                    len = sprintf(buf, "\033[8;%d;%dt", rows, cols);
+                    client->send(buf, len);
+                    break;
+                case 19:
+                    /*
+                    * Hmmm. Strictly speaking we should return `the size of the screen in characters, but
+                    * that's not easy: (a) window furniture being what it is it's hard to compute, and (b)
+                    * in resize-font mode maximizing the window wouldn't change the number of characters.
+                    * *shrug*. I think we'll ignore it for the moment and see if anyone complains, and then
+                    * ask them what they would like it to do.
+                    */
+                    break;
+                case 20: // set icon title: ignored (not used on Windows)
+                    break;
+                case 21:
+                    p = window_title.c_str();
+                    len = strlen(p);
+                    client->send("\033]l", 3);
+                    client->send(p, len);
+                    client->send("\033\\", 2);
+                    break;
+                }
+            }
+            break;
+        case 'S':         /* SU: Scroll up */
+            CLAMP(esc_args[0], rows);
+            compatibility(CL_SCOANSI);
+            scroll(marg_t, marg_b, def(esc_args[0], 1), true);
+            wrapnext = false;
+            saw_disp_event();
+            break;
+        case 'T':         /* SD: Scroll down */
+            CLAMP(esc_args[0], rows);
+            compatibility(CL_SCOANSI);
+            scroll(marg_t, marg_b, -int(def(esc_args[0], 1)), true);
+            wrapnext = false;
+            saw_disp_event();
+            break;
+        case ANSI('|', '*'): /* DECSNLS */
+                             // Set number of lines on screen
+                             // VT420 uses VGA like hardware and can
+                             // support any size in reasonable range
+                             // (24..49 AIUI) with no default specified.
+            compatibility(CL_VT420);
+            if (esc_nargs == 1 && esc_args[0] > 0) {
+                term_request_resize(cols, def(esc_args[0], conf->height));
+                deselect();
+            }
+            break;
+        case ANSI('|', '$'): /* DECSCPP */
+                             // Set number of columns per page
+                             // Docs imply range is only 80 or 132, but
+                             // I'll allow any.
+            compatibility(CL_VT340TEXT);
+            if (esc_nargs <= 1) {
+                term_request_resize(def(esc_args[0], conf->width), rows);
+                deselect();
+            }
+            break;
+        case 'X': {   /* ECH: write N spaces w/o moving cursor */
+                      // XXX VTTEST says this is vt220, vt510 manual says vt100
+            compatibility(CL_ANSIMIN);
+            CLAMP(esc_args[0], cols);
+            int n = def(esc_args[0], 1);
+            pos cursplus;
+            int p = curs.x;
+            shared_ptr<termline> cline = scrlineptr(curs.y);
 
-                        if (n > cols - curs.x)
-                            n = cols - curs.x;
-                        cursplus = curs;
-                        cursplus.x += n;
-                        check_boundary(curs.x, curs.y);
-                        check_boundary(curs.x+n, curs.y);
-                        check_selection(curs, cursplus);
-                        while (n--)
-                            copy_termchar(cline, p++,
-                                          &erase_char);
-                        saw_disp_event();
-                        break;
-                      }
-                      case 'x':       /* DECREQTPARM: report terminal characteristics */
-                        compatibility(CL_VT100);
-                        if (backend) {
-                            char buf[32];
-                            int i = def(esc_args[0], 0);
-                            if (i == 0 || i == 1) {
-                                strcpy(buf, "\033[2;1;1;112;112;1;0x");
-                                buf[2] += i;
-                                backend->send(buf, 20);
-                            }
-                        }
-                        break;
-                      case 'Z': {         /* CBT */
+            if (n > cols - curs.x)
+                n = cols - curs.x;
+            cursplus = curs;
+            cursplus.x += n;
+            check_boundary(curs.x, curs.y);
+            check_boundary(curs.x+n, curs.y);
+            check_selection(curs, cursplus);
+            while (n--)
+                copy_termchar(cline, p++, &erase_char);
+            saw_disp_event();
+            break;
+        }
+        case 'x':       /* DECREQTPARM: report terminal characteristics */
+            compatibility(CL_VT100);
+            {
+                char buf[32];
+                int i = def(esc_args[0], 0);
+                if (i == 0 || i == 1) {
+                    strcpy(buf, "\033[2;1;1;112;112;1;0x");
+                    buf[2] += i;
+                    client->send(buf, 20);
+                }
+            }
+            break;
+        case 'Z': {         /* CBT */
                         compatibility(CL_OTHER);
                         CLAMP(esc_args[0], cols);
                         int i = def(esc_args[0], 1);
@@ -3162,262 +3112,237 @@ void Terminal::term_out(bool called_from_term_data)
                         }
                         check_selection(old_curs, curs);
                         break;
-                      }
-                      case ANSI('c', '='):      /* Hide or Show Cursor */
-                        compatibility(CL_SCOANSI);
-                        switch(esc_args[0]) {
-                        case 0:  /* hide cursor */
-                            cursor_on = false;
-                            break;
-                        case 1:  /* restore cursor */
-                            cursor_on = true;
-                            break;
-                        case 2:  /* block cursor */
-                            cursor_on = true;
-                            break;
-                        }
-                        break;
-                      case ANSI('C', '='):
-                        /*
-                         * set cursor start on scanline esc_args[0] and
-                         * end on scanline esc_args[1].If you set
-                         * the bottom scan line to a value less than
-                         * the top scan line, the cursor will disappear.
-                         */
-                        compatibility(CL_SCOANSI);
-                        if (esc_nargs >= 2) {
-                            if (esc_args[0] > esc_args[1])
-                                cursor_on = false;
-                            else
-                                cursor_on = true;
-                        }
-                        break;
-                      case ANSI('D', '='):
-                        compatibility(CL_SCOANSI);
-                        if (esc_args[0]>=1)
-                            curr_attr |= ATTR_BLINK;
-                        else
-                            curr_attr &= ~ATTR_BLINK;
-                        break;
-                      case ANSI('E', '='):
-                        compatibility(CL_SCOANSI);
-                        break;
-                      case ANSI('F', '='):      /* set normal foreground */
-                        compatibility(CL_SCOANSI);
-                        if (esc_args[0] < 16) {
-                            long color = (sco2ansicolor[esc_args[0] & 0x7] | (esc_args[0] & 0x8)) << ATTR_FGSHIFT;
-                            curr_attr &= ~ATTR_FGMASK;
-                            curr_attr |= color;
-                            curr_truecolor.fg = optionalrgb_none;
-                            default_attr &= ~ATTR_FGMASK;
-                            default_attr |= color;
-                            set_erase_char();
-                        }
-                        break;
-                      case ANSI('G', '='):      /* set normal background */
-                        compatibility(CL_SCOANSI);
-                        if (esc_args[0] < 16) {
-                            long color =
-                                (sco2ansicolor[esc_args[0] & 0x7] |
-                                 (esc_args[0] & 0x8)) <<
-                                ATTR_BGSHIFT;
-                            curr_attr &= ~ATTR_BGMASK;
-                            curr_attr |= color;
-                            curr_truecolor.bg = optionalrgb_none;
-                            default_attr &= ~ATTR_BGMASK;
-                            default_attr |= color;
-                            set_erase_char();
-                        }
-                        break;
-                      case ANSI('L', '='):
-                        compatibility(CL_SCOANSI);
-                        use_bce = (esc_args[0] <= 0);
-                        set_erase_char();
-                        break;
-                    case ANSI('p', '"'): /* DECSCL: set compat level (removed) */
-                          break;
-                    }
-                break;
-              case Terminal::SEEN_OSC:
-                osc_w = false;
-                switch (c) {
-                  case 'W':            /* word-set */
-                    termstate = Terminal::SEEN_OSC_W;
-                    osc_w = true;
-                    break;
-                  case '0':
-                  case '1':
-                  case '2':
-                  case '3':
-                  case '4':
-                  case '5':
-                  case '6':
-                  case '7':
-                  case '8':
-                  case '9':
-                    if (esc_args[esc_nargs-1] <= UINT_MAX / 10 &&
-                        esc_args[esc_nargs-1] * 10 <= UINT_MAX - c - '0')
-                        esc_args[esc_nargs-1] = 10 * esc_args[esc_nargs-1] + c - '0';
-                    else
-                        esc_args[esc_nargs-1] = UINT_MAX;
-                    break;
-                  default:
-                    /*
-                     * _Most_ other characters here terminate the
-                     * immediate parsing of the OSC sequence and go
-                     * into OSC_STRING state, but we deal with a
-                     * couple of exceptions first.
-                     */
-                    if (c == 'L' && esc_args[0] == 2) {
-                        /*
-                         * Grotty hack to support xterm and DECterm title
-                         * sequences concurrently.
-                         */
-                        esc_args[0] = 1;
-                    } else if (c == ';' && esc_nargs == 1 && esc_args[0] == 4) {
-                        /*
-                         * xterm's OSC 4 sequence to query the current RGB value of a color takes a second
-                         * numeric argument which is easiest to parse using the existing system rather than in
-                         * do_osc.
-                         */
-                        esc_args[esc_nargs++] = 0;
-                    } else {
-                        termstate = Terminal::OSC_STRING;
-                        osc_strlen = 0;
-                    }
-                }
-                break;
-              case Terminal::OSC_STRING:
-                /*
-                 * OSC sequences can be terminated or aborted in
-                 * various ways.
-                 *
-                 * The official way to terminate an OSC, per written
-                 * standards, is the String Terminator, SC. That can
-                 * appear in a 7-bit two-character form ESC \, or as
-                 * an 8-bit C1 control 0x9C.
-                 *
-                 * We only accept 0x9C in circumstances where it
-                 * doesn't interfere with our main character set
-                 * processing: so in ISO 8859-1, for example, the byte
-                 * 0x9C is interpreted as ST, but in CP437 it's
-                 * interpreted as an ordinary printing character (as
-                 * it happens, the pound sign), because you might
-                 * perfectly well want to put it in the window title
-                 * like any other printing character.
-                 *
-                 * In particular, in UTF-8 mode, 0x9C is a perfectly
-                 * valid continuation byte for an ordinary printing
-                 * character, so we don't accept the C1 control form
-                 * of ST unless it appears as a full UTF-8 character
-                 * in its own right, i.e. bytes 0xC2 0x9C.
-                 *
-                 * BEL is also treated as a clean termination of OSC,
-                 * which I believe was a behaviour introduced by
-                 * xterm.
-                 *
-                 * To prevent run-on storage of OSC data forever if
-                 * emission of a control sequence is interrupted, we
-                 * also treat various control characters as illegal,
-                 * so that they abort the OSC without processing it
-                 * and return to TOPLEVEL state. These are CR, LF, and
-                 * any ESC that is *not* followed by \.
-                 */
-
-                if (c == '\012' || c == '\015') {
-                    /* CR or LF aborts */
-                    termstate = Terminal::TOPLEVEL;
-                    break;
-                }
-
-                if (c == '\033') {
-                    /* ESC goes into a state where we wait to see if
-                     * the next character is \ */
-                    termstate = Terminal::OSC_MAYBE_ST;
-                    break;
-                }
-
-                if (c == '\007') {
-                    /* BEL, or the C1 ST appearing as a one-byte
-                     * encoding, cleanly terminates the OSC right here */
-                    do_osc();
-                    termstate = Terminal::TOPLEVEL;
-                    break;
-                }
-
-                if (c == 0xC2) {
-                    /* 0xC2 is the UTF-8 character that might
-                     * introduce the encoding of C1 ST */
-                    termstate = Terminal::OSC_MAYBE_ST_UTF8;
-                    break;
-                }
-
-                /* Anything else gets added to the string */
-                if (osc_strlen < OSC_STR_MAX)
-                    osc_string[osc_strlen++] = (char)c;
-                break;
-              case Terminal::OSC_MAYBE_ST_UTF8:
-                /* In UTF-8 mode, we've seen C2, so are we now seeing
-                 * 9C? */
-                if (c == 0x9C) {
-                    /* Yes, so cleanly terminate the OSC */
-                    do_osc();
-                    termstate = Terminal::TOPLEVEL;
-                    break;
-                }
-                /* No, so append the pending C2 byte to the OSC string
-                 * followed by the current character, and go back to
-                 * OSC string accumulation */
-                if (osc_strlen < OSC_STR_MAX)
-                    osc_string[osc_strlen++] = char(0xC2);
-                if (osc_strlen < OSC_STR_MAX)
-                    osc_string[osc_strlen++] = (char)c;
-                termstate = Terminal::OSC_STRING;
-                break;
-              case Terminal::SEEN_OSC_W:
-                switch (c) {
-                  case '0':
-                  case '1':
-                  case '2':
-                  case '3':
-                  case '4':
-                  case '5':
-                  case '6':
-                  case '7':
-                  case '8':
-                  case '9':
-                    if (esc_args[0] <= UINT_MAX / 10 &&
-                        esc_args[0] * 10 <= UINT_MAX - c - '0')
-                        esc_args[0] = 10 * esc_args[0] + c - '0';
-                    else
-                        esc_args[0] = UINT_MAX;
-                    break;
-                  default:
-                    termstate = Terminal::OSC_STRING;
-                    osc_strlen = 0;
-                }
-                break;
-
-              default: break;          /* placate gcc warning about enum use */
-            }
-        if (selstate != NO_SELECTION) {
-            pos cursplus = curs;
-            incpos(cursplus);
-            check_selection(curs, cursplus);
         }
+        case ANSI('c', '='):      /* Hide or Show Cursor */
+            compatibility(CL_SCOANSI);
+            switch(esc_args[0]) {
+            case 0:  /* hide cursor */
+                cursor_on = false;
+                break;
+            case 1:  /* restore cursor */
+                cursor_on = true;
+                break;
+            case 2:  /* block cursor */
+                cursor_on = true;
+                break;
+            }
+            break;
+        case ANSI('C', '='):
+            // set cursor start on scanline esc_args[0] and
+            // end on scanline esc_args[1].If you set
+            // the bottom scan line to a value less than
+            // the top scan line, the cursor will disappear.
+            compatibility(CL_SCOANSI);
+            if (esc_nargs >= 2) {
+                if (esc_args[0] > esc_args[1])
+                    cursor_on = false;
+                else
+                    cursor_on = true;
+            }
+            break;
+        case ANSI('D', '='):
+            compatibility(CL_SCOANSI);
+            if (esc_args[0]>=1)
+                curr_attr |= ATTR_BLINK;
+            else
+                curr_attr &= ~ATTR_BLINK;
+            break;
+        case ANSI('E', '='):
+            compatibility(CL_SCOANSI);
+            break;
+        case ANSI('F', '='):      /* set normal foreground */
+            compatibility(CL_SCOANSI);
+            if (esc_args[0] < 16) {
+                long color = (sco2ansicolor[esc_args[0] & 0x7] | (esc_args[0] & 0x8)) << ATTR_FGSHIFT;
+                curr_attr &= ~ATTR_FGMASK;
+                curr_attr |= color;
+                curr_truecolor.fg = optionalrgb_none;
+                default_attr &= ~ATTR_FGMASK;
+                default_attr |= color;
+                set_erase_char();
+            }
+            break;
+        case ANSI('G', '='):      /* set normal background */
+            compatibility(CL_SCOANSI);
+            if (esc_args[0] < 16) {
+                long color =
+                    (sco2ansicolor[esc_args[0] & 0x7] |
+                        (esc_args[0] & 0x8)) <<
+                    ATTR_BGSHIFT;
+                curr_attr &= ~ATTR_BGMASK;
+                curr_attr |= color;
+                curr_truecolor.bg = optionalrgb_none;
+                default_attr &= ~ATTR_BGMASK;
+                default_attr |= color;
+                set_erase_char();
+            }
+            break;
+        case ANSI('L', '='):
+            compatibility(CL_SCOANSI);
+            use_bce = (esc_args[0] <= 0);
+            set_erase_char();
+            break;
+        case ANSI('p', '"'): /* DECSCL: set compat level (removed) */
+            break;
+        }
+        break;
+    case Terminal::SEEN_OSC:
+        osc_w = false;
+        switch (c) {
+        case 'W':            /* word-set */
+            termstate = Terminal::SEEN_OSC_W;
+            osc_w = true;
+            break;
+        case '0':
+        case '1':
+        case '2':
+        case '3':
+        case '4':
+        case '5':
+        case '6':
+        case '7':
+        case '8':
+        case '9':
+            if (esc_args[esc_nargs-1] <= UINT_MAX / 10 &&
+                esc_args[esc_nargs-1] * 10 <= UINT_MAX - c - '0')
+                esc_args[esc_nargs-1] = 10 * esc_args[esc_nargs-1] + c - '0';
+            else
+                esc_args[esc_nargs-1] = UINT_MAX;
+            break;
+        default:
+            /*
+            * _Most_ other characters here terminate the
+            * immediate parsing of the OSC sequence and go
+            * into OSC_STRING state, but we deal with a
+            * couple of exceptions first.
+            */
+            if (c == 'L' && esc_args[0] == 2) {
+                /*
+                * Grotty hack to support xterm and DECterm title
+                * sequences concurrently.
+                */
+                esc_args[0] = 1;
+            } else if (c == ';' && esc_nargs == 1 && esc_args[0] == 4) {
+                /*
+                * xterm's OSC 4 sequence to query the current RGB value of a color takes a second
+                * numeric argument which is easiest to parse using the existing system rather than in
+                * do_osc.
+                */
+                esc_args[esc_nargs++] = 0;
+            } else {
+                termstate = Terminal::OSC_STRING;
+                osc_strlen = 0;
+            }
+        }
+        break;
+    case Terminal::OSC_STRING:
+        // OSC sequences can be terminated or aborted in various ways.
+        //
+        // The official way to terminate an OSC, per written standards, is the
+        // String Terminator, SC. That can appear in a 7-bit two-character form
+        // ESC \, or as an 8-bit C1 control 0x9C.
+        //
+        // We only accept 0x9C in circumstances where it doesn't interfere with
+        // our main character set processing: so in ISO 8859-1, for example, the
+        // byte 0x9C is interpreted as ST, but in CP437 it's interpreted as an
+        // ordinary printing character (as it happens, the pound sign), because
+        // you might perfectly well want to put it in the window title like any
+        // other printing character.
+        //
+        // In particular, in UTF-8 mode, 0x9C is a perfectly valid continuation
+        // byte for an ordinary printing character, so we don't accept the C1
+        // control form of ST unless it appears as a full UTF-8 character in its
+        // own right, i.e. bytes 0xC2 0x9C.
+        //
+        // BEL is also treated as a clean termination of OSC, which I believe was
+        // a behaviour introduced by xterm.
+        //
+        // To prevent run-on storage of OSC data forever if emission of a control
+        // sequence is interrupted, we also treat various control characters as illegal,
+        // so that they abort the OSC without processing it and return to TOPLEVEL
+        // state. These are CR, LF, and any ESC that is *not* followed by \.
+        if (c == '\012' || c == '\015') {
+            /* CR or LF aborts */
+            termstate = Terminal::TOPLEVEL;
+            break;
+        }
+
+        if (c == '\033') {
+            // ESC goes into a state where we wait to see if the next character is
+            termstate = Terminal::OSC_MAYBE_ST;
+            break;
+        }
+
+        if (c == '\007') {
+            /* BEL, or the C1 ST appearing as a one-byte
+            * encoding, cleanly terminates the OSC right here */
+            do_osc();
+            termstate = Terminal::TOPLEVEL;
+            break;
+        }
+
+        if (c == 0xC2) {
+            /* 0xC2 is the UTF-8 character that might
+            * introduce the encoding of C1 ST */
+            termstate = Terminal::OSC_MAYBE_ST_UTF8;
+            break;
+        }
+
+        /* Anything else gets added to the string */
+        if (osc_strlen < OSC_STR_MAX)
+            osc_string[osc_strlen++] = (char)c;
+        break;
+    case Terminal::OSC_MAYBE_ST_UTF8:
+        // In UTF-8 mode, we've seen C2, so are we now seeing 9C?
+        if (c == 0x9C) {
+            /* Yes, so cleanly terminate the OSC */
+            do_osc();
+            termstate = Terminal::TOPLEVEL;
+            break;
+        }
+        /* No, so append the pending C2 byte to the OSC string
+        * followed by the current character, and go back to
+        * OSC string accumulation */
+        if (osc_strlen < OSC_STR_MAX)
+            osc_string[osc_strlen++] = char(0xC2);
+        if (osc_strlen < OSC_STR_MAX)
+            osc_string[osc_strlen++] = (char)c;
+        termstate = Terminal::OSC_STRING;
+        break;
+    case Terminal::SEEN_OSC_W:
+        switch (c) {
+        case '0':
+        case '1':
+        case '2':
+        case '3':
+        case '4':
+        case '5':
+        case '6':
+        case '7':
+        case '8':
+        case '9':
+            if (esc_args[0] <= UINT_MAX / 10 &&
+                esc_args[0] * 10 <= UINT_MAX - c - '0')
+                esc_args[0] = 10 * esc_args[0] + c - '0';
+            else
+                esc_args[0] = UINT_MAX;
+            break;
+        default:
+            termstate = Terminal::OSC_STRING;
+            osc_strlen = 0;
+        }
+        break;
+
+    default:
+        break;
     }
-
-    inbuf.consume(nchars_used);
-
-    if (!called_from_term_data)
-        win->unthrottle(inbuf.size());
 }
 
 /* Wrapper on term_out with the right prototype to be a toplevel callback */
 void Terminal::term_out_hook(void *ctx)
 {
     Terminal *pSelf = (Terminal *)ctx;
-    pSelf->term_out(false);
+    pSelf->term_out();
 }
 
 /*
@@ -3531,32 +3456,12 @@ void Terminal::do_paint()
          * each character cell to look like.
          */
         for (j = 0; j < cols; j++) {
-            unsigned long tattr, tchar;
             termchar *d = &lchars[j];
             scrpos.x = backward ? backward[j] : j;
 
-            tchar = d->chr;
-            tattr = d->attr;
-
-            if (!ansi_color)
-                tattr = (tattr & ~(ATTR_FGMASK | ATTR_BGMASK)) |
-                ATTR_DEFFG | ATTR_DEFBG;
-
-            if (!xterm_256_color) {
-                int color;
-                color = (tattr & ATTR_FGMASK) >> ATTR_FGSHIFT;
-                if (color >= 16 && color < 256)
-                    tattr = (tattr &~ ATTR_FGMASK) | ATTR_DEFFG;
-                color = (tattr & ATTR_BGMASK) >> ATTR_BGSHIFT;
-                if (color >= 16 && color < 256)
-                    tattr = (tattr &~ ATTR_BGMASK) | ATTR_DEFBG;
-            }
-
-            if (true_color) {
-                tc = d->truecolor;
-            } else {
-                tc.fg = tc.bg = optionalrgb_none;
-            }
+            unsigned long tchar = d->chr;
+            unsigned long tattr = d->attr;
+            tc = d->truecolor;
 
             if (j < cols-1 && d[1].chr == UCSWIDE)
                 tattr |= ATTR_WIDE;
@@ -4144,9 +4049,7 @@ void Terminal::term_paste()
         if (paste_buffer[paste_pos + n++] == '\r')
             break;
     }
-    if (backend) {
-        term_keyinput_internal(paste_buffer.c_str(), paste_buffer.size(), false);
-    }
+    term_keyinput_internal(paste_buffer.c_str(), paste_buffer.size(), false);
     paste_pos += n;
 
     if (paste_pos == paste_buffer.size())
@@ -4208,8 +4111,7 @@ void Terminal::term_do_paste(const wstring &data)
 
     /* Assume a small paste will be OK in one go. */
     if (paste_buffer.size() < 256) {
-        if (backend)
-            term_keyinput_internal(paste_buffer.c_str(), paste_buffer.size(), false);
+        term_keyinput_internal(paste_buffer.c_str(), paste_buffer.size(), false);
         paste_buffer.clear();
         paste_pos = 0;
     }
@@ -4278,76 +4180,74 @@ void Terminal::term_mouse_action(Mouse_Button braw, Mouse_Button bcooked,
         char abuf[32];
         int len = 0;
 
-        if (backend) {
-            switch (braw) {
-            case MBT_LEFT:
-                encstate = 0x00;               /* left button down */
-                wheel = false;
-                break;
-            case MBT_MIDDLE:
-                encstate = 0x01;
-                wheel = false;
-                break;
-            case MBT_RIGHT:
-                encstate = 0x02;
-                wheel = false;
-                break;
-            case MBT_WHEEL_UP:
-                encstate = 0x40;
-                wheel = true;
-                break;
-            case MBT_WHEEL_DOWN:
-                encstate = 0x41;
-                wheel = true;
-                break;
-            default:
-                return;
-            }
-            if (wheel) {
-                /* For mouse wheel buttons, we only ever expect to see
-                 * MA_CLICK actions, and we don't try to keep track of
-                 * the buttons being 'pressed' (since without matching
-                 * click/release pairs that's pointless). */
-                if (a != MA_CLICK)
-                    return;
-            } else switch (a) {
-              case MA_DRAG:
-                if (xterm_mouse == 1)
-                    return;
-                encstate += 0x20;
-                break;
-              case MA_RELEASE:
-                /* If multiple extensions are enabled, the xterm 1006 is used, so it's okay to check for only that */
-                if (!xterm_extended_mouse)
-                    encstate = 0x03;
-                mouse_is_down = 0;
-                break;
-              case MA_CLICK:
-                if (mouse_is_down == braw)
-                    return;
-                mouse_is_down = braw;
-                break;
-              default:
-                return;
-            }
-            if (shift)
-                encstate += 0x04;
-            if (ctrl)
-                encstate += 0x10;
-            r = y + 1;
-            c = x + 1;
-
-            /* Check the extensions in decreasing order of preference. Encoding the release event above assumes that 1006 comes first. */
-            if (xterm_extended_mouse) {
-                len = sprintf(abuf, "\033[<%d;%d;%d%c", encstate, c, r, a == MA_RELEASE ? 'm' : 'M');
-            } else if (urxvt_extended_mouse) {
-                len = sprintf(abuf, "\033[%d;%d;%dM", encstate + 32, c, r);
-            } else if (c <= 223 && r <= 223) {
-                len = sprintf(abuf, "\033[M%c%c%c", encstate + 32, c + 32, r + 32);
-            }
-            if (len > 0)
-                backend->send(abuf, len);
+        switch (braw) {
+        case MBT_LEFT:
+            encstate = 0x00;               /* left button down */
+            wheel = false;
+            break;
+        case MBT_MIDDLE:
+            encstate = 0x01;
+            wheel = false;
+            break;
+        case MBT_RIGHT:
+            encstate = 0x02;
+            wheel = false;
+            break;
+        case MBT_WHEEL_UP:
+            encstate = 0x40;
+            wheel = true;
+            break;
+        case MBT_WHEEL_DOWN:
+            encstate = 0x41;
+            wheel = true;
+            break;
+        default:
+            return;
         }
+        if (wheel) {
+            /* For mouse wheel buttons, we only ever expect to see
+                * MA_CLICK actions, and we don't try to keep track of
+                * the buttons being 'pressed' (since without matching
+                * click/release pairs that's pointless). */
+            if (a != MA_CLICK)
+                return;
+        } else switch (a) {
+            case MA_DRAG:
+            if (xterm_mouse == 1)
+                return;
+            encstate += 0x20;
+            break;
+            case MA_RELEASE:
+            /* If multiple extensions are enabled, the xterm 1006 is used, so it's okay to check for only that */
+            if (!xterm_extended_mouse)
+                encstate = 0x03;
+            mouse_is_down = 0;
+            break;
+            case MA_CLICK:
+            if (mouse_is_down == braw)
+                return;
+            mouse_is_down = braw;
+            break;
+            default:
+            return;
+        }
+        if (shift)
+            encstate += 0x04;
+        if (ctrl)
+            encstate += 0x10;
+        r = y + 1;
+        c = x + 1;
+
+        /* Check the extensions in decreasing order of preference. Encoding the release event above assumes that 1006 comes first. */
+        if (xterm_extended_mouse) {
+            len = sprintf(abuf, "\033[<%d;%d;%d%c", encstate, c, r, a == MA_RELEASE ? 'm' : 'M');
+        } else if (urxvt_extended_mouse) {
+            len = sprintf(abuf, "\033[%d;%d;%dM", encstate + 32, c, r);
+        } else if (c <= 223 && r <= 223) {
+            len = sprintf(abuf, "\033[M%c%c%c", encstate + 32, c + 32, r + 32);
+        }
+        if (len > 0)
+            client->send(abuf, len);
         return;
     }
 
@@ -4471,7 +4371,7 @@ void Terminal::term_mouse_action(Mouse_Button braw, Mouse_Button bcooked,
      * should make sure to write any pending output if one has just
      * finished.
      */
-    term_out(false);
+    term_out();
     schedule_update();
 }
 
@@ -4488,7 +4388,7 @@ void Terminal::term_cancel_selection_drag()
      */
     if (selstate == DRAGGING)
         selstate = NO_SELECTION;
-    term_out(false);
+    term_out();
     schedule_update();
 }
 
@@ -4671,15 +4571,15 @@ void Terminal::term_lost_clipboard_ownership()
      * should make sure to write any pending output if one has just
      * finished.
      */
-    term_out(false);
+    term_out();
 }
 
-void Terminal::term_added_data(bool called_from_term_data)
+void Terminal::term_added_data()
 {
     if (!in_term_out) {
         in_term_out = true;
         saw_disp_event();
-        term_out(called_from_term_data);
+        term_out();
         in_term_out = false;
     }
 }
@@ -4687,7 +4587,7 @@ void Terminal::term_added_data(bool called_from_term_data)
 void Terminal::term_data(const void *data, size_t len)
 {
     inbuf.add(data, len);
-    term_added_data(true);
+    term_added_data();
 }
 
 void Terminal::term_set_focus(bool has_focus_)

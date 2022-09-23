@@ -36,7 +36,6 @@ struct pending_callback {
     void *ctx;
 };
 
-static shared_ptr<pending_callback> cbcurr;
 static list<shared_ptr<pending_callback>> all_callbacks;
 
 void callback::delete_callbacks_for_context(void *ctx)
@@ -67,21 +66,14 @@ bool callback::run_pending()
     if(all_callbacks.empty())
         return false;
 
-    // Transfer the head callback into cbcurr to indicate that
-    // it's being executed. Then operations which transform the
-    // queue, like delete_callbacks_for_context, can proceed as if
-    // it's not there.
-    cbcurr = all_callbacks.front();
+    auto cb = all_callbacks.front();
     all_callbacks.pop_front();
-
-    // Now run the callback, then clear it out of cbcurr.
-    cbcurr->fn(cbcurr->ctx);
-    cbcurr.reset();
+    cb->fn(cb->ctx);
 
     return true;
 }
 
 bool callback::pending()
 {
-    return cbcurr != NULL || !all_callbacks.empty();
+    return !all_callbacks.empty();
 }

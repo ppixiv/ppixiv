@@ -1,14 +1,12 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClInclude Include="backend.h" />
-    <ClInclude Include="backend_pty.h" />
+    <ClInclude Include="client.h" />
     <ClInclude Include="bufchain.h" />
     <ClInclude Include="callback.h" />
     <ClInclude Include="handle_io.h" />
     <ClInclude Include="handle_wait.h" />
     <ClInclude Include="misc.h" />
-    <ClInclude Include="putty-rc.h" />
     <ClInclude Include="terminal.h" />
     <ClInclude Include="timing.h" />
     <ClInclude Include="unicode.h" />
@@ -16,9 +14,10 @@
     <ClInclude Include="wcwidth.h" />
     <ClInclude Include="window.h" />
     <ClInclude Include="internal.h" />
+    <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="backend_pty.cpp" />
+    <ClCompile Include="client.cpp" />
     <ClCompile Include="bufchain.cpp" />
     <ClCompile Include="callback.cpp" />
     <ClCompile Include="handle_io.cpp" />
@@ -31,5 +30,13 @@
     <ClCompile Include="window.cpp" />
     <ClCompile Include="vvterm.cpp" />
     <ClCompile Include="ldisc.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="..\..\resources\vview-icon.png" />
+    <Image Include="bitmap1.bmp" />
+    <Image Include="icon.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="resource.rc" />
   </ItemGroup>
 </Project>

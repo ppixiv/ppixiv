@@ -32,10 +32,6 @@ typedef enum {
     MA_NOTHING, MA_CLICK, MA_2CLK, MA_3CLK, MA_DRAG, MA_RELEASE
 } Mouse_Action;
 
-enum {
-    FQ_DEFAULT, FQ_ANTIALIASED, FQ_NONANTIALIASED, FQ_CLEARTYPE
-};
-
 /*
  * Name of this particular application, for use in the config box
  * and other pieces of text.
@@ -78,29 +74,16 @@ struct FontSpec {
 
 struct TermConfig
 {
-    TermConfig():
-        font("Courier New", false, 10) { }
+    // This is just set to the random font I've used for years, since there's no font
+    // configuration yet. XXX
+    TermConfig(): font("MS Gothic", false, 12) { }
 
-    // Keyboard options
-    bool app_cursor = false;
-    bool app_keypad = false;
-    bool fullscreenonaltenter = true;
-    string wintitle = "title"; // initial window title
+    string wintitle = "VView";
 
     // Terminal options
-    int savelines = 2000;
-    bool lfhascr;
-    int width = 80;
-    int height = 24;
-
+    int scrollback_lines = 2000;
+    int width = 80, height = 24;
     FontSpec font;
-    int font_quality = FQ_DEFAULT; // FQ_DEFAULT, FQ_ANTIALIASED, ...
-    int window_border = 1; // in pixels
-
-    // Color options
-    bool ansi_color = true;
-    bool xterm_256_color = true;
-    bool true_color = true;
 };
 
 typedef enum SmallKeypadKey {
