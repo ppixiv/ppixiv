@@ -10,18 +10,26 @@ ppixiv.MainController = class
 
     async initial_setup()
     {
+        console.log("ppixiv setup");
+
         try {
             // GM_info isn't a property on window in all script managers, so we can't check it
             // safely with window.GM_info?.scriptHandler.  Instead, try to check it and catch
             // the exception if GM_info isn't there for some reason.
-            if(!ppixiv.native && GM_info?.scriptHandler == "Greasemonkey")
+            if(!ppixiv.native)
             {
-                console.info("ppixiv doesn't work with GreaseMonkey.  GreaseMonkey hasn't been updated in a long time, try TamperMonkey instead.");
-                return;
+                if(GM_info?.scriptHandler == "Greasemonkey")
+                {
+                    console.info("ppixiv doesn't work with GreaseMonkey.  GreaseMonkey hasn't been updated in a long time, try TamperMonkey instead.");
+                    return;
+                }
+
+                console.log("ppixiv is running in", GM_info?.scriptHandler, GM_info?.version);
             }
         } catch(e) {
             console.error(e);
         }
+        console.log("Browser:", navigator.appVersion);
 
         // If we're not active, just see if we need to add our button, and stop without messing
         // around with the page more than we need to.
@@ -32,8 +40,6 @@ ppixiv.MainController = class
             this.setup_disabled_ui();
             return;
         }
-
-        console.log("ppixiv setup");
 
         // Run cleanup_environment.  This will try to prevent the underlying page scripts from
         // making network requests or creating elements, and apply other irreversible cleanups
