@@ -1,4 +1,4 @@
-import asyncio, cairo, time, uuid, os, json, hashlib, traceback, math
+import asyncio, cairo, time, uuid, os, json, hashlib, traceback, math, logging
 import PIL
 from PIL import Image, ImageFilter
 from io import BytesIO
@@ -6,6 +6,8 @@ from pathlib import Path
 from pprint import pprint
 
 from . import video
+
+log = logging.getLogger(__name__)
 
 class InpaintError(Exception): pass
 class DataError(InpaintError): pass
@@ -56,7 +58,7 @@ def draw(actions, width, height, dilate=0):
 
                 ctx.stroke()
             case _:
-                print('Unknown action:', cmd)
+                log.warn('Unknown action:', cmd)
 
     # Convert to a PIL image.
     img = PIL.Image.frombuffer('L', (surface.get_width(), surface.get_height()), surface.get_data())
@@ -75,7 +77,7 @@ class tm:
         delta = now - self.t
         self.total += delta
         self.t = now
-        print('%30s %.3f %.3f' % (text, delta, self.total))
+        log.info('%30s %.3f %.3f' % (text, delta, self.total))
 
 async def _create_correction(source_image, lines):
     s = tm()
@@ -273,8 +275,7 @@ async def create_inpaint_for_entry(entry, manager):
         return await create_inpaint_or_wait(entry['path'], inpaint, patch_filename=patch_filename)
     except Exception:
         # Don't let errors with inpainting prevent us from doing anything with the image.
-        print('Error generating inpaint')
-        traceback.print_exc()
+        log.exception('Error generating inpaint')
         return None, None, ''
 
 def apply_inpaint(source_image, inpaint_image):
@@ -293,8 +294,7 @@ def apply_inpaint(source_image, inpaint_image):
         return source_image.convert(original_mode)
     except Exception:
         # Don't let errors with inpainting prevent us from doing anything with the image.
-        print('Error applying inpaint')
-        traceback.print_exc()
+        log.exception('Error applying inpaint')
         return source_image
 
 # Creating these can take some time, and there are cases where we might get a couple
@@ -307,7 +307,7 @@ async def create_inpaint_or_wait(*args, patch_filename, **kwargs):
     # If this inpaint is already being generated, just wait for that task to finish.
     if patch_filename in _inpaint_jobs:
         # Just wait for it to finish.
-        print(f'Inpaint {patch_filename} is already being generated, waiting for it')
+        log.info(f'Inpaint {patch_filename} is already being generated, waiting for it')
         existing_task = _inpaint_jobs[patch_filename]
         return await existing_task
 

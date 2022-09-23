@@ -1,5 +1,7 @@
-import ctypes, os, msvcrt, traceback, errno, json
+import ctypes, os, msvcrt, traceback, errno, json, logging
 from ctypes import wintypes
+
+log = logging.getLogger(__name__)
 
 kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
 
@@ -102,24 +104,23 @@ def read_metadata(path: os.PathLike, metadata_filename):
             if e.errno != errno.ENOENT:
                 raise
 
-            # print('No directory metadata: %s' % path)
+            # log.error('No directory metadata: %s' % path)
             return {}
 
         try:
             data = json.loads(json_data)
         except ValueError:
-            print('Directory metadata invalid: %s', stream_filename)
+            log.error('Directory metadata invalid: %s', stream_filename)
             return {}
 
         if not isinstance(data, dict):
-            print('Directory metadata invalid (not a dictionary): %s', stream_filename)
+            log.error('Directory metadata invalid (not a dictionary): %s', stream_filename)
             return {}
 
         return data
 
     except Exception as e:
-        print('Error reading directory metadata: %s', stream_filename)
-        traceback.print_exc()
+        log.exception('Error reading directory metadata: %s', stream_filename)
         return {}
 
 def write_metadata(path: os.PathLike, metadata_filename, data):
@@ -151,7 +152,7 @@ def get_volume_serial_number(root):
     serial_number = wintypes.DWORD()
     result = kernel32.GetVolumeInformationW(root, None, 0, ctypes.byref(serial_number), None, None, None, 0)
     if not result:
-        print('Couldn\'t get volume ID for %s: %s' % (str(root), ctypes.WinError(ctypes.get_last_error())))
+        log.warn('Couldn\'t get volume ID for %s: %s' % (str(root), ctypes.WinError(ctypes.get_last_error())))
         return None
 
     _volume_id_cache[root] = serial_number.value
@@ -175,7 +176,7 @@ FILE_ATTRIBUTE_HIDDEN = 2
 def go():
     from pathlib import Path
     serial = get_volume_serial_number(Path('c:\\'))
-    print(serial)
+    log.info(serial)
 
 def set_file_hidden(file, hide=True):
     """

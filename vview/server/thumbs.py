@@ -77,7 +77,7 @@ def _bake_exif_rotation(image, exif):
     ]
 
     if image_orientation >= len(flip_mode):
-        print('Unexpected EXIF orientation: %i' % image_orientation)
+        log.warn('Unexpected EXIF orientation: %i' % image_orientation)
         return image
 
     return image.transpose(flip_mode[image_orientation])
@@ -117,7 +117,7 @@ def threaded_create_thumb(request, path, *, inpaint_path=None):
             # open.
             exif = image.getexif()
         except Exception as e:
-            print('Couldn\'t read %s to create thumbnail: %s' % (path, e))
+            log.warn('Couldn\'t read %s to create thumbnail: %s' % (path, e))
             return None, None
 
     # See if we have an inpaint image that we can apply.  We never create these in
@@ -131,7 +131,7 @@ def threaded_create_thumb(request, path, *, inpaint_path=None):
                 image = inpainting.apply_inpaint(image, inpaint)
             except Exception as e:
                 # Just log errors for these, don't fail the request.
-                print('Couldn\'t read inpaint %s for thumbnail: %s' % (path, e))
+                log.warn('Couldn\'t read inpaint %s for thumbnail: %s' % (path, e))
 
     total_pixels = image.size[0]*image.size[1]
     ratio = max_thumbnail_pixels / total_pixels
@@ -141,7 +141,7 @@ def threaded_create_thumb(request, path, *, inpaint_path=None):
     try:
         image.thumbnail(new_size)
     except OSError as e:
-        print('Couldn\'t create thumbnail for %s: %s' % (path, str(e)))
+        log.warn('Couldn\'t create thumbnail for %s: %s' % (path, str(e)))
         raise aiohttp.web.HTTPUnsupportedMediaType()
 
     # If the image has EXIF rotations, bake them into the thumbnail.
@@ -531,7 +531,7 @@ def _threaded_convert_to_browser_image(path):
             image = Image.open(f)
             image.load()
         except Exception as e:
-            print('Couldn\'t read %s to convert for viewing: %s' % (path, e))
+            log.warn('Couldn\'t read %s to convert for viewing: %s' % (path, e))
             return None, None
 
     options = {}

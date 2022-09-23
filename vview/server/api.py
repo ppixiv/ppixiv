@@ -410,7 +410,7 @@ async def api_similar_search(info):
             result_path = info.request.app['manager'].library.get_public_path(absolute_path)
             entry = await _get_api_illust_info(info, result_path)
         except misc.Error as e:
-            print('Skipping result:', e, result['path'])
+            log.warn('Skipping result:', e, result['path'])
             continue
 
         results.append({
@@ -445,7 +445,7 @@ async def api_illust(info):
             media_info = await _get_api_illust_info(info, path)
         except misc.Error as e:
             # Ignore errors for individual files.
-            print('Error loading %s: %s' % (media_id, e))
+            log.warn('Error loading %s: %s' % (media_id, e))
             continue
 
         results.append(media_info)
@@ -635,7 +635,7 @@ def api_list_impl(info):
         
         if isinstance(value, list):
             if len(value) != 2:
-                print('Invalid search parameter for %s: %s' % (name, value))
+                log.warn('Invalid search parameter for %s: %s' % (name, value))
                 return None
 
             return [value[0], value[1]]

@@ -1,5 +1,7 @@
-import asyncio, sqlite3, threading, traceback, time
+import asyncio, sqlite3, threading, traceback, time, logging
 from contextlib import contextmanager
+
+log = logging.getLogger(__name__)
 
 _transactions = {}
 
@@ -43,9 +45,7 @@ def transaction(conn):
         if isinstance(e, (Exception, KeyboardInterrupt, asyncio.CancelledError)):
             raise
 
-        print('BaseException %s caused database rollback' % e.__class__)
-        print(e)
-        traceback.print_exc()
+        log.exception('BaseException %s caused database rollback' % e.__class__)
 
         # Still roll back the transaction.
         conn.execute('ROLLBACK TRANSACTION TO SAVEPOINT %s' % savepoint_name)
@@ -125,7 +125,7 @@ class Database:
             # has always been the biggest problem people have with SQLite, and it's no wonder
             # why: it gives no tools whatsoever for troubleshooting it.
             if (write or change_count > 0) and took > 1:
-                print('Database transaction took a long time (%.1f seconds)' % took)
+                log.info('Database transaction took a long time (%.1f seconds)' % took)
                 traceback.print_stack()
 
         finally:

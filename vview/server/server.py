@@ -126,7 +126,7 @@ def create_handler_for_command(handler):
         except misc.Error as e:
             result = e.data()
         except Exception as e:
-            traceback.print_exception(e)
+            log.exception('Error handling request')
             stack = traceback.format_exception(e)
             result = { 'success': False, 'code': 'internal-error', 'reason': str(e), 'stack': stack }
 
@@ -136,7 +136,7 @@ def create_handler_for_command(handler):
             data = json.dumps(result, indent=4, ensure_ascii=False) + '\n'
         except TypeError as e:
             # Something in the result isn't serializable.
-            print('Invalid response data:', e)
+            log.warn('Invalid response data:', e)
             pprint(result)
 
             result = { 'success': False, 'code': 'internal-error', 'reason': str(e) }

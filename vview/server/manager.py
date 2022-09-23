@@ -43,7 +43,7 @@ class Manager:
         app.on_shutdown.append(self.shutdown)
 
     async def shutdown(self, app):
-        print('Shutting down manager')
+        log.info('Shutting down manager')
 
         await self.task_queue.shutdown()
 
@@ -51,7 +51,7 @@ class Manager:
             await self.library.unmount(name)
         
     async def init(self):
-        print('Initializing libraries...')
+        log.info('Initializing libraries...')
         for folder in self.auth.data.get('folders', []):
             name = folder.get('name')
             path = folder.get('path')
@@ -59,23 +59,23 @@ class Manager:
             path = Path(path)
             path = path.resolve()
             if not path.exists():
-                print('Library path doesn\'t exist: %s', str(path))
+                log.warn('Library path doesn\'t exist: %s', str(path))
                 continue
 
             if not path.is_dir():
-                print('Library path isn\'t a directory: %s', str(path))
+                log.warn('Library path isn\'t a directory: %s', str(path))
                 continue
 
             self.library.mount(path, name)
 
-            print('Initializing library: %s' % path)
+            log.info('Initializing library: %s' % path)
 
             # Run a quick refresh at startup.
             start = time.time()
             await self.library.quick_refresh()
             #await self.library.refresh()
             end = time.time()
-            print('Indexing took %.2f seconds' % (end-start))
+            log.info('Indexing took %.2f seconds' % (end-start))
 
     def resolve_path(self, relative_path):
         """
@@ -167,7 +167,7 @@ class Manager:
             return True
 
         if not request['is_local']:
-            print('Not allowing access for non-local request:', path)
+            log.warn('Not allowing access for non-local request:', path)
             if throw:
                 raise misc.Error('not-found', 'File not in library')
             else:

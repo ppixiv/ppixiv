@@ -1,8 +1,10 @@
-import copy, json, os, threading
+import copy, json, os, threading, logging
 from contextlib import contextmanager
 from ..util import win32
 from ..util.paths import open_path
 from pprint import pprint
+
+log = logging.getLogger(__name__)
 
 metadata_filename = '.vview.txt'
 
@@ -52,12 +54,12 @@ def _load_directory_metadata_locked(directory_path, *, return_copy=True):
             try:
                 result = json.loads(data)
             except ValueError as e:
-                print('Metadata file %s is corrupt: %s' % (this_metadata_filename, str(e)))
+                log.warn('Metadata file %s is corrupt: %s' % (this_metadata_filename, str(e)))
                 result = {}
 
             result = result.get('data', { })
             if not isinstance(result, dict):
-                print('Metadata file %s is corrupt: data isn\'t a dictionary' % this_metadata_filename)
+                log.warn('Metadata file %s is corrupt: data isn\'t a dictionary' % this_metadata_filename)
                 result = { }
 
             _metadata_cache[this_metadata_filename] = result
@@ -66,7 +68,7 @@ def _load_directory_metadata_locked(directory_path, *, return_copy=True):
         _metadata_cache[this_metadata_filename] = { }
         return { }
     except json.decoder.JSONDecodeError as e:
-        print('Error reading metadata from %s: %s' % (this_metadata_filename, e))
+        log.warn('Error reading metadata from %s: %s' % (this_metadata_filename, e))
         _metadata_cache[this_metadata_filename] = { }
         return { }
 
@@ -166,7 +168,7 @@ def _load_file_metadata_locked(path, *, return_copy=True):
 
     result = directory_metadata.get(str(filename), {})
     if not isinstance(result, dict):
-        print('Metadata for %s is corrupt' % path)
+        log.warn('Metadata for %s is corrupt' % path)
         result = {}
 
     if return_copy:

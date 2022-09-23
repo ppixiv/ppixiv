@@ -1,11 +1,13 @@
 # Helpers that don't have dependancies on our other modules.
-import asyncio, concurrent, os, io, struct, os, re, threading, time, traceback, sys, queue
+import asyncio, concurrent, os, io, struct, logging, os, re, threading, time, traceback, sys, queue
 from contextlib import contextmanager
 from PIL import Image, ImageFile, ExifTags
 from pprint import pprint
 from ..util.tiff import get_tiff_metadata
 
 from .video_metadata import mp4, mkv, gif
+
+log = logging.getLogger(__name__)
 
 image_types = {
     '.png': 'image/png',
@@ -131,7 +133,7 @@ def read_metadata(f, mime_type):
     try:
         img = Image.open(f)
     except Exception as e: # should be IOError, but the WebP decoder sometimes fails with RuntimeError
-        print('Couldn\'t read metadata from %s: %s' % (f, e))
+        log.error('Couldn\'t read metadata from %s: %s' % (f, e))
         return { }
 
     result['width'] = img.size[0]
@@ -261,18 +263,18 @@ class RunMainTask:
                 last_interrupt_at = time.time()
                 if interrupt_count >= 3:
                     # The user hit ^C a few times and we haven't exited, so force the issue.
-                    print('Exiting')
+                    log.info('Exiting')
                     os._exit(0)
                 
                 self._cancel_main_task()
 
     def _cancel_main_task(self):
         if self._main_task is None:
-            print('No main task to cancel')
+            log.error('No main task to cancel')
             return
         assert self._main_loop is not None
 
-        print('Shutting down...')
+        log.info('Shutting down...')
         future = asyncio.run_coroutine_threadsafe(self._do_cancel_main_task(), self._main_loop)
 
         try:
@@ -281,7 +283,7 @@ class RunMainTask:
             return
         except concurrent.futures.TimeoutError:
             # This should never happen.
-            print('Shutdown timed out')
+            log.error('Shutdown timed out')
 
         this_thread_id = threading.current_thread().ident
         frames = sys._current_frames()
@@ -293,20 +295,20 @@ class RunMainTask:
             if not thread.is_alive():
                 continue
             
-            print(f'Thread {thread_id}: {thread.name}')
+            log.info(f'Thread {thread_id}: {thread.name}')
             thread_frames = frames.get(thread_id)
             if thread_frames:
                 traceback.print_stack(thread_frames, limit=4)
-            print('')
+            log.info('')
 
         del frames
 
         if False:
             for task in asyncio.all_tasks(self._main_loop):
-                print(task)
-                print('stack:')
+                log.info(task)
+                log.info('stack:')
                 task.print_stack()
-                print('')
+                log.info('')
 
     async def _do_cancel_main_task(self):
         self._main_task.cancel()
@@ -395,7 +397,7 @@ class TransientWriteConnection:
         if not self.in_use:
             return
 
-        print('Warning: TransientWriteConnection wasn\'t closed')
+        log.warn('TransientWriteConnection wasn\'t closed')
 
 class WithBuilder:
     """

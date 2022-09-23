@@ -197,7 +197,7 @@ class SignatureDB(Database):
                 return self.save_image_signature(path, image)
 
             except Exception as e:
-                print('Couldn\'t read %s to create thumbnail: %s' % (path, e))
+                log.warn('Couldn\'t read %s to create thumbnail: %s' % (path, e))
                 return None
 
     def save_image_signature(self, path, image):

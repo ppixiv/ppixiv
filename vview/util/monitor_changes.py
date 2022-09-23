@@ -1,7 +1,9 @@
-import asyncio, ctypes, os, traceback
+import asyncio, ctypes, os, traceback, logging
 from pathlib import Path
 from ctypes.wintypes import BYTE, DWORD
 kernel32 = ctypes.windll.kernel32
+
+log = logging.getLogger(__name__)
 
 from . import win32
 
@@ -61,8 +63,7 @@ class MonitorChanges:
             try:
                 await func(path, old_path, action)
             except Exception as e:
-                print('Error monitoring %s' % self.path)
-                traceback.print_exc()
+                log.exception('Error monitoring %s' % self.path)
 
     # Yield changes to the directory.
     #
@@ -100,9 +101,9 @@ class MonitorChanges:
                     # ERROR_INVALID_FUNCTION means this path doesn't support monitoring.
                     # The most common cause is probably that it's an SMB mount that doesn't
                     # support it.
-                    print('File monitoring not supported on volume: %s' % self.path)
+                    log.warn('File monitoring not supported on volume: %s' % self.path)
                 else:
-                    print('Error monitoring %s: %s' % (self.path, e.strerror))
+                    log.warn('Error monitoring %s: %s' % (self.path, e.strerror))
 
                 return
 
@@ -124,7 +125,7 @@ class MonitorChanges:
                     rename_old_path = path
                 elif action == FileAction.FILE_ACTION_RENAMED_NEW_NAME:
                     if rename_old_path is None:
-                        print('Received FILE_ACTION_RENAMED_NEW_NAME without FILE_ACTION_RENAMED_OLD_NAME')
+                        log.warn('Received FILE_ACTION_RENAMED_NEW_NAME without FILE_ACTION_RENAMED_OLD_NAME')
                     else:
                         yield (path, rename_old_path), FileAction.FILE_ACTION_RENAMED
                         rename_old_path = None
@@ -172,7 +173,7 @@ async def go():
     monitor = MonitorChanges(Path('f:/'))
 
     async def changes(path, old_path, action):
-        print('...', path, old_path, action)
+        log.info('...', path, old_path, action)
     monitor_promise = monitor.monitor_call(changes)
     monitor_task = asyncio.create_task(monitor_promise)
 

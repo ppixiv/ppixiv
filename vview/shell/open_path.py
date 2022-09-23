@@ -1,5 +1,7 @@
-import subprocess, sys, webbrowser, urllib.parse, winreg
+import subprocess, sys, webbrowser, urllib.parse, winreg, logging
 from pathlib import Path
+
+log = logging.getLogger(__name__)
 
 # vview.shell.register registers this for file type associations.
 # This is normally called through VView.exe.
@@ -56,7 +58,7 @@ def open_path(path):
 
 def go():
     if len(sys.argv) < 2:
-        print('No path specified')
+        log.info('No path specified')
         return
 
     open_path(sys.argv[1])

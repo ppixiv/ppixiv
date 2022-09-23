@@ -1,10 +1,12 @@
-import asyncio, os, re
+import asyncio, os, re, logging
 from enum import Enum
 from pathlib import Path
 from .database import Database, transaction
 from pprint import pprint
 from ..util import misc
 from ..util.misc import WithBuilder
+
+log = logging.getLogger(__name__)
 
 # This implements the database storage for library.  It stores similar data to
 # what we get from the Windows index.
@@ -311,7 +313,7 @@ class FileIndex(Database):
             ''', path_list)
 
             deleted = cursor.connection.total_changes - count
-            # print('Deleted %i (%s)' % (deleted, paths))
+            # log.info('Deleted %i (%s)' % (deleted, paths))
 
     def rename(self, old_path, new_path, *, conn=None):
         """
@@ -321,7 +323,7 @@ class FileIndex(Database):
         """
         with self.cursor(conn) as cursor:
             # Update "path" and "parent" for old_path and all files inside it.
-            print('Renaming "%s" -> "%s"' % (old_path, new_path))
+            log.info('Renaming "%s" -> "%s"' % (old_path, new_path))
             old_path = Path(old_path)
             new_path = Path(new_path)
 
@@ -564,11 +566,11 @@ class FileIndex(Database):
         """
         with self.cursor(conn) as cursor:
             if debug:
-                print(query)
-                print(params)
+                log.debug(query)
+                log.debug(params)
                 for row in cursor.execute('EXPLAIN QUERY PLAN ' + query, params):
                     result = dict(row)
-                    print('plan:', result)
+                    log.debug('plan:', result)
 
             for row in cursor.execute(query, params):
                 result = dict(row)
@@ -752,12 +754,12 @@ async def test():
 #    db.add_record(entry)
 #
 #    for entry in db.search(): #substr='tag1'):
-#        print(entry)
+#        log.info(entry)
     return
 
-    print('go:')
+    log.info('go:')
     for row in db.conn.execute('select * from file_tags'):
-        print(row['file_id'], row['tag'])
+        log.info(row['file_id'], row['tag'])
 
 if __name__ == '__main__':
     asyncio.run(test())

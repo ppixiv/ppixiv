@@ -1,5 +1,8 @@
+import logging
 from ctypes import *
 from pathlib import Path
+
+log = logging.getLogger(__name__)
 
 # The source for this DLL is in native/ImageIndex.
 _dll_path = Path(__file__) / '..' / 'ImageIndex.dll'
@@ -7,7 +10,7 @@ _dll_path = _dll_path.resolve()
 try:
     dll = CDLL(str(_dll_path))
 except FileNotFoundError:
-    print('ImageIndex.dll not available')
+    log.warn('ImageIndex.dll not available')
     dll = None
 
 available = dll is not None
@@ -152,11 +155,11 @@ def _test():
     signature = ImageSignature.from_image(image)
     index.add_image(11, signature)
 
-    print(index.image_search(10))
+    log.info(index.image_search(10))
 
-    print(index.has_image(10))
+    log.info(index.has_image(10))
     index.remove_image(10)
-    print(index.has_image(10))
+    log.info(index.has_image(10))
 
 if __name__ == '__main__':
     _test()

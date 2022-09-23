@@ -1,17 +1,19 @@
 # This gives an interface to Windows Search, returning results similar to
 # os.scandir.
 
-import asyncio, time, os, stat
+import asyncio, time, os, stat, logging
 from adodbapi import ado_consts
 from pathlib import Path
 from pprint import pprint
+
+log = logging.getLogger(__name__)
 
 # Get this from pywin32, not from adodbapi:
 try:
     import adodbapi
 except ImportError as e:
     adodbapi = None
-    print('Windows search not available: %s' % e)
+    log.warn('Windows search not available: %s' % e)
 
 # adodbapi seems to have no way to escape strings, and Search.CollatorDSO doesn't seem
 # to support parameters at all.
@@ -228,7 +230,7 @@ def search(*,
     try:
         conn = adodbapi.connect('Provider=Search.CollatorDSO; Extended Properties="Application=Windows"', timeout=timeout)
     except Exception as e:
-        print('Couldn\'t connect to search: %s' % str(e))
+        log.warn('Couldn\'t connect to search: %s' % str(e))
         return
 
     # For some reason, adodbapi defaults to adUseClient, which is extraordinarily
@@ -354,14 +356,14 @@ def search(*,
             # during that yield don't cause nested exceptions.
             timed_out = True
         else:
-            print('Windows search error:', e)
+            log.warn('Windows search error:', e)
 
     # If the user explicitly requested a timeout, return SearchTimeout to let him know that
     # the results were incomplete.  If no timeout was requested, raise an exception.  The
     # caller isn't explicitly handling timeouts, so treat this as an error to prevent possibly
     # incomplete results from being committed to the database.
     if timed_out:
-        print(f'Windows Search probably timed out.  Timeout: {timeout} Time elapsed: {runtime}')
+        log.warn(f'Windows Search probably timed out.  Timeout: {timeout} Time elapsed: {runtime}')
         if yield_timeouts:
             yield SearchTimeout
         else:
@@ -371,14 +373,14 @@ def test():
     path=Path(r'F:\stuff\ppixiv\python\temp')
     for idx, entry in enumerate(search(paths=[path], timeout=1, substr='png')):
         if entry is SearchTimeout:
-            print('Timed out')
+            log.warn('Timed out')
         if entry is None:
             continue
 
-        print(entry)
+        log.info(entry)
         st = os.stat(entry.path)
-        # print(entry.is_file())
-        # print(entry.is_dir())
+        # log.info(entry.is_file())
+        # log.info(entry.is_dir())
 
 if __name__ == '__main__':
     test()

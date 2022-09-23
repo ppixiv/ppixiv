@@ -8,11 +8,10 @@
 
 # See "mkvuser.py" for the example
 
-import traceback
+import logging, sys, datetime
 from struct import unpack
 
-import sys
-import datetime
+log = logging.getLogger(__name__)
 
 if sys.version < '3':
     range=xrange
@@ -676,7 +675,8 @@ def mkvparse(f, handler):
                 data = tree
 
         except Exception:
-            traceback.print_exc()
+            log.exception('Error parsing MKV')
+
             handler.before_handling_an_element()
             (resync_element_id, resync_element_size, resync_element_headersize) = resync(f)
             if resync_element_id:

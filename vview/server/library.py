@@ -134,7 +134,7 @@ def _get_sort(sort_order):
 
     order = sort_orders.get(sort_order)
     if order is None:
-        print('Unsupported sort order: %s' % sort_order)
+        log.warn('Unsupported sort order: %s' % sort_order)
         return None
 
     order = dict(order)
@@ -193,7 +193,7 @@ class Library:
 
     async def unmount(self, name):
         if name not in self.mounts:
-            print('unmount(%s): Path wasn\'t mounted' % name)
+            log.warn('unmount(%s): Path wasn\'t mounted' % name)
             return
 
         await self.stop_monitoring(name)
@@ -305,14 +305,14 @@ class Library:
 
         while not pending_paths.empty():
             if total_refresh > 1 and (refreshed % 1000) == 0:
-                print('Refreshing %i/%i (%i left)' % (refreshed, total_refresh, pending_paths.qsize()))
+                log.info('Refreshing %i/%i (%i left)' % (refreshed, total_refresh, pending_paths.qsize()))
 
             path = pending_paths.get()
             refreshed += 1
 
             # Make sure path is inside this library.
             if self.get_mount_for_path(path) is None:
-                print('Path %s isn\'t mounted' % path)
+                log.warn('Path %s isn\'t mounted' % path)
                 continue
 
             # Let other tasks run periodically.
@@ -337,7 +337,7 @@ class Library:
                 # metadata files.
                 self._get_entry(path=path, conn=conn, populate=False, check_mtime=False)
             except FileNotFoundError as e:
-                print('Bookmarked file %s doesn\'t exist' % path)
+                log.warn('Bookmarked file %s doesn\'t exist' % path)
                 continue
 
     def monitor(self, mount):
@@ -354,7 +354,7 @@ class Library:
         monitor = monitor_changes.MonitorChanges(path.path)
         task = asyncio.create_task(monitor.monitor_call(self.monitored_file_changed), name='MonitorChanges(%s)' % (mount))
         self.monitors[mount] = task
-        print('Started monitoring: %s' % path)
+        log.info('Started monitoring: %s' % path)
 
     async def stop_monitoring(self, mount):
         """
@@ -371,7 +371,7 @@ class Library:
         task.cancel()
         await task
 
-        print('Stopped monitoring: %s' % path)
+        log.info('Stopped monitoring: %s' % path)
 
     async def monitored_file_changed(self, path, old_path, action):
         path = open_path(path)
@@ -409,7 +409,7 @@ class Library:
             if not path.is_real_dir():
                 return
 
-            print('Refreshing added directory: %s' % path)
+            log.info('Refreshing added directory: %s' % path)
             await self.refresh(paths=[path])
 
     def _get_entry_from_path(self, path: os.PathLike, *, populate=True, extra_metadata=None):
@@ -508,7 +508,7 @@ class Library:
             with path.open('rb', shared=True) as f:
                 media_metadata = misc.read_metadata(f, mime_type)
         except IOError as e:
-            print('Couldn\'t open %s: %s' % (path, e))
+            log.error('Couldn\'t open %s: %s' % (path, e))
             return None
         
         width = media_metadata.get('width')
@@ -554,7 +554,7 @@ class Library:
         try:
             stat = path.stat()
         except IOError as e:
-            print('Couldn\'t open %s: %s' % (path, e))
+            log.error('Couldn\'t open %s: %s' % (path, e))
             return None
 
         data = {
@@ -787,7 +787,7 @@ class Library:
         except OSError as e:
             # The only common error is ENOENT, but treat any error as stale.
             if e.errno != errno.ENOENT:
-                print('Error checking entry %s: %s' % (path.filesystem_file, str(e)))
+                log.warn('Error checking entry %s: %s' % (path.filesystem_file, str(e)))
             return False
 
         # The entry is stale if the timestamp of the file matches the timestamp on the entry.
@@ -831,7 +831,7 @@ class Library:
         if entry is None:
             # The file doesn't exist on disk.  Delete any stale entries pointing at
             # it.
-            # print('Path doesn\'t exist, purging any cached entries: %s' % path)
+            # log.info('Path doesn\'t exist, purging any cached entries: %s' % path)
             self.db.delete_recursively([path], conn=conn)
             return None
 
@@ -894,7 +894,7 @@ class Library:
         if sort_order_info is not None:
             for key in ('entry', 'index', 'windows'):
                 if key not in sort_order_info:
-                    print(f'Sort "{sort_order}" not supported for searching')
+                    log.warn(f'Sort "{sort_order}" not supported for searching')
                     sort_order_info = sort_orders['normal']
                     break
 
@@ -930,7 +930,7 @@ class Library:
                 # for shuffled searches, in case they match tons of results.
                 return None
             elif isinstance(result, windows_search.SearchDirEntry):
-                # print('Search result from Windows:', result.path)
+                # log.info('Search result from Windows:', result.path)
                 if result.path in seen_paths:
                     return
                 seen_paths.add(result.path)
@@ -940,7 +940,7 @@ class Library:
                 path = open_path(result.path)
                 return self._get_entry_from_path(path, populate=False, extra_metadata=result.metadata)
             else:
-                # print('Search result from database:', entry['id'], entry['path_lowercase'])
+                # log.info('Search result from database:', entry['id'], entry['path_lowercase'])
                 if str(result['path']) in seen_paths:
                     return
                 seen_paths.add(str(result['path']))
@@ -1009,7 +1009,7 @@ class Library:
                 # the result now and not waste time reading the full entry.  This makes some
                 # searches a lot faster.
                 if not self.db.entry_matches_search(entry, incomplete=True, **search_options):
-                    # print('Early discarded search result that doesn\'t match: %s' % entry['path'])
+                    # log.info('Early discarded search result that doesn\'t match: %s' % entry['path'])
                     continue
 
                 # Load the full entry.
@@ -1022,7 +1022,7 @@ class Library:
                 # search.  For example, Windows index searching doesn't know if a GIF is animated.
                 # Re-check the result now that we have a populated entry.
                 if not self.db.entry_matches_search(entry, **search_options):
-                    print('Discarded search result that doesn\'t match: %s' % entry['path'])
+                    log.info('Discarded search result that doesn\'t match: %s' % entry['path'])
                     continue
 
             # If we're verifying files, see if the file needs to be refreshed.
@@ -1032,7 +1032,7 @@ class Library:
                     # The entry is stale or no longer exists, so refresh it.  If the file still
                     # exists we'll get the updated entry.
                     # The cached entry is out of date, so refresh or delete it.
-                    print('Refreshing stale entry:', entry['path'],)
+                    log.info('Refreshing stale entry:', entry['path'],)
                     path = open_path(entry['path'])
                     entry = self._get_entry(path, force_refresh=True)
 
@@ -1142,12 +1142,12 @@ class Library:
                 # Our search is from the database, but the file metadata is authoritative.  Make sure
                 # the image is actually bookmarked and has the tag we're looking for.
                 if not file_metadata.get('bookmarked'):
-                    print(f"Path is bookmarked in the database, but not on disk: {entry['path']}")
+                    log.warn(f"Path is bookmarked in the database, but not on disk: {entry['path']}")
                     continue
 
                 entry_bookmark_tags = file_metadata.get('bookmark_tags', '').split(' ')
                 if from_tag not in entry_bookmark_tags:
-                    print(f"Path has tag {from_tag} in the database, but not on disk: {entry['path']}")
+                    log.warn(f"Path has tag {from_tag} in the database, but not on disk: {entry['path']}")
                     continue
 
                 # Remove from_tag and add to_tag.  In case we're merging a tag with another tag that
@@ -1233,7 +1233,7 @@ async def test():
     library = Library('test', 'test.sqlite', path)
 
     def progress_func(total):
-        print('Indexing progress:', total)
+        log.info('Indexing progress:', total)
 
     from concurrent.futures import ThreadPoolExecutor
     executor = ThreadPoolExecutor()
@@ -1243,11 +1243,11 @@ async def test():
     s = time.time()
     await library.refresh(progress=progress_func)
     e = time.time()
-    print('Index refresh took:', e-s)
+    log.info('Index refresh took:', e-s)
 
     library.monitor()
     #for info in library.search(path=path, substr='a', include_files=False, include_dirs=True):
-    #    print('result:', info)
+    #    log.info('result:', info)
     
     while True:
         await asyncio.sleep(0.5)
