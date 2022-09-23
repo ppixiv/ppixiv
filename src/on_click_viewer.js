@@ -521,8 +521,15 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         return this.zoom_level_to_zoom_factor(this._zoom_level_current);
     }
 
-    // The zoom factor for cover mode:
-    get _zoom_factor_cover() { return Math.max(this.container_width/this.width, this.container_height/this.height); }
+    // The zoom factor for cover mode.
+    get _zoom_factor_cover()
+    {
+        let result = Math.max(this.container_width/this.width, this.container_height/this.height) || 1;
+
+        // If container_width/height is zero then we're hidden and have no size, so this zoom factor
+        // isn't meaningful.  Just make sure we don't return 0.
+        return result == 0? 1:result;
+    }
     get _zoom_level_cover() { return this.zoom_factor_to_zoom_level(this._zoom_factor_cover); }
 
     // The zoom level for "actual" mode:
@@ -727,8 +734,9 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         if(this.viewer_images == null)
             return;
 
-        // Stop if we're being called after being disabled.
-        if(this.container == null)
+        // Stop if we're being called after being disabled, or if we have no container
+        // (our parent has been removed and we're being shut down).
+        if(this.container == null || this.container_width == 0)
             return;
 
         // Stop if there's an animation active.
