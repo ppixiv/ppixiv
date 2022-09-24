@@ -9,7 +9,7 @@ from aiohttp.abc import AbstractAccessLogger
 from aiohttp.web_log import AccessLogger
 
 from . import api, thumbs, ui, websockets
-from ..util import misc, windows_ui
+from ..util import misc, windows_ui, win32
 from .manager import Manager
 
 log = logging.getLogger(__name__)
@@ -271,7 +271,45 @@ def run_server(*, set_main_task):
         access_log_class=AccessLogger)
 
 def run():
+    """
+    Run the server, blocking until it's told to exit.  Return True when finished.
+
+    If the server is already running somewhere else, return False.
+    """
+    # Take the server lock, so other instances of the server won't start and we can tell
+    # that we're running.
+    if not win32.take_server_lock():
+        log.info('The server is already running')
+        return False
+
     misc.RunMainTask(run_server)
+    return True
+
+def fork_server():
+    """
+    If the server isn't already running, start it in a new process.
+
+    This is used when we want to make sure the server is running before doing something
+    that requires it, like opening a file association.  Note that this doesn't wait for
+    the server to be ready to receive requests.
+    """
+    if win32.is_server_running():
+        return
+
+    # Run this module in a new process.
+    import subprocess, sys
+    process = subprocess.Popen([sys.executable, "-m", "vview.server.server"])
+
+def run_task_with_server(func):
+    """
+    Start the server if necessary, then run func().
+
+    This is used when we're running a user command, like opening a file from Explorer,
+    and we need to make sure the server is running.  We'll start the server in another
+    process, so it doesn't prevent this process from exiting normally.
+    """
+    fork_server()
+    func()
 
 if __name__ == '__main__':
     run()

@@ -204,6 +204,64 @@ def set_file_hidden(file, hide=True):
     if not SetFileInformationByHandle(handle, FileBasicInfo, ctypes.byref(info), ctypes.sizeof(info)):
         raise ctypes.WinError(ctypes.get_last_error())
 
+_server_lock_handle = None
+_server_lock_name = 'vview-server-lock'
+
+EVENT_MODIFY_STATE = 0x0002
+ERROR_FILE_NOT_FOUND = 2
+ERROR_ALREADY_EXISTS = 0xB7
+
+def take_server_lock():
+    """
+    Open the server lock, claiming ourself as the server until we exit.  Return true if
+    we successfully took the lock, or false if the lock was already taken.
+    """
+    global _server_lock_handle
+    if _server_lock_handle is not None:
+        # We're already locked.
+        return True
+
+    _server_lock_handle = kernel32.CreateEventExW(None, _server_lock_name, 0, EVENT_MODIFY_STATE)
+    if _server_lock_handle == 0:
+        # We don't expect this to fail.
+        log.warn('Unable to create server lock: %s' %  ctypes.WinError(ctypes.get_last_error()))
+        return False
+
+    # If the event already existed, it's not ours, so we didn't get the lock, and we shouldn't
+    # keep it open.
+    already_exists = ctypes.get_last_error() == ERROR_ALREADY_EXISTS
+    if already_exists:
+        kernel32.CloseHandle(_server_lock_handle)
+        _server_lock_handle = None
+    
+    return not already_exists
+
+def is_server_running():
+    """
+    Return true if the server is running (either in this process or somewhere else).
+    """
+    if _server_lock_handle is not None:
+        # We are the server.
+        return True
+
+    # Test if the server is running by trying to open the event.  We expect this to fail,
+    # and we're just checking which error we get.
+    handle = kernel32.OpenEventW(EVENT_MODIFY_STATE, False, _server_lock_name)
+
+    if handle != 0:
+        # We were able to open the event, so there's a server running.  We don't actually do
+        # anything with the event currently, so just close it.
+        kernel32.CloseHandle(handle)
+        return True
+
+    # We expect ERROR_FILE_NOT_FOUND if there's no server with the event open.
+    # We don't expect other errors.
+    error = ctypes.get_last_error()
+    if error != ERROR_FILE_NOT_FOUND:
+        log.warn('Unable to check server lock: %s' %  ctypes.WinError(ctypes.get_last_error()))
+
+    return False
+    
 def go():
     with open('test.txt', 'r+b') as f:
         set_file_hidden(f, hide=False)
