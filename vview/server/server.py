@@ -9,7 +9,7 @@ from aiohttp.abc import AbstractAccessLogger
 from aiohttp.web_log import AccessLogger
 
 from . import api, thumbs, ui, websockets
-from ..util import misc
+from ..util import misc, windows_ui
 from .manager import Manager
 
 log = logging.getLogger(__name__)
@@ -191,6 +191,10 @@ async def setup_inner(*, set_main_task=None):
     set_main_task()
 
     app = web.Application(middlewares=[register_request_middleware, auth_middleware])
+
+    # Set up the Windows tray icon and terminal window.
+    windows_ui.WindowsUI.get.create()
+
     app.on_response_prepare.append(check_origin)
     app.on_shutdown.append(shutdown_requests)
 
