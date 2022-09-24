@@ -81,8 +81,8 @@ class WindowsUI:
 
     async def on_tray_click(self):
         # Open a browser window to our UI.
-        from ..shell import open_path
-        open_path.open_top()
+        from ..util import open_in_browser
+        open_in_browser.open_top()
 
     async def exit(self):
         # Ask aiohttp to shut down.
