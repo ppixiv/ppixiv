@@ -11,7 +11,7 @@ def run():
         error = traceback.format_exc()
 
         from vview.util import error_dialog
-        error_dialog.show_error_dialog('Error launching VView', 'An unexpected error occurred:\n\n' + error)
+        error_dialog.show_error_dialog_if_no_console('Error launching VView', 'An unexpected error occurred:\n\n' + error)
     
         raise
     
