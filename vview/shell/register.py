@@ -12,7 +12,7 @@ add_to_context_menu = True
 # Get the path to VView.exe.
 # XXX: This is stupid.
 root_dir = Path(__file__).parent.parent.parent 
-vview_exe = root_dir / "VView.exe"
+vview_exe = root_dir / 'bin' / 'VView.exe'
 
 application_name = 'VView'
 
