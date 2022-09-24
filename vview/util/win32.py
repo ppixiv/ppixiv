@@ -86,52 +86,6 @@ def open_shared(path, mode='r', encoding=None):
         os.close(fd)
         raise
 
-def read_metadata(path: os.PathLike, metadata_filename):
-    """
-    If this is a directory, see if we've stored metadata in our NTFS
-    stream.  This is the only way to associate data with a directory.
-    """
-    stream_filename = os.fspath(path) + ':' + metadata_filename
-
-    try:
-        # Open this file shared, since opening this file will prevent modifying
-        # the directory.
-        try:
-            with open_shared(stream_filename) as f:
-                json_data = f.read()
-        except IOError as e:
-            # It's normal for this to not exist.
-            if e.errno != errno.ENOENT:
-                raise
-
-            # log.error('No directory metadata: %s' % path)
-            return {}
-
-        try:
-            data = json.loads(json_data)
-        except ValueError:
-            log.error('Directory metadata invalid: %s', stream_filename)
-            return {}
-
-        if not isinstance(data, dict):
-            log.error('Directory metadata invalid (not a dictionary): %s', stream_filename)
-            return {}
-
-        return data
-
-    except Exception as e:
-        log.exception('Error reading directory metadata: %s', stream_filename)
-        return {}
-
-def write_metadata(path: os.PathLike, metadata_filename, data):
-    """
-    Save data to the given directory's metadata.
-    """
-    json_data = json.dumps(data, indent=4) + '\n'
-    stream_filename = str(path) + ':' + metadata_filename
-    with open_shared(stream_filename, mode='w') as f:
-        f.write(json_data)
-
 kernel32.GetVolumeInformationW.argtypes = \
     wintypes.LPCWSTR, wintypes.LPWSTR, wintypes.DWORD, wintypes.LPDWORD, \
     wintypes.LPDWORD, wintypes.LPDWORD, wintypes.LPWSTR, wintypes.DWORD
