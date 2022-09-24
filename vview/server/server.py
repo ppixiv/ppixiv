@@ -163,6 +163,7 @@ async def handle_unknown_api_call(info):
 logging.basicConfig(level=logging.INFO)
 logging.getLogger('vview').setLevel(logging.INFO)
 logging.captureWarnings(True)
+misc.fix_basic_logging()
 
 _running_requests = {}
 

@@ -633,3 +633,18 @@ class reverse_order_str(str):
     """
     def __lt__(self, rhs):
         return not super().__lt__(rhs)
+
+def fix_basic_logging():
+    """
+    Work around a bug in Python's logging module: if there's no sys.stderr
+    when logging.basicConfig is called, it creates a StreamHandler with
+    a stream of None, and throws an exception every time something is logged.
+    That's easy to miss when logging isn't going anywhere, but we're setting
+    up an output window after the fact, so we get spammed with these.  It's
+    also probably slow, since it's formatting a backtrace for every log.
+    """
+    # Find the StreamHandler with no stream and remove it.
+    for handler in logging.root.handlers:
+        if isinstance(handler, logging.StreamHandler) and handler.stream is None:
+            logging.root.removeHandler(handler)
+            return
