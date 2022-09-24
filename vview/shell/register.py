@@ -27,7 +27,7 @@ def _signal_file_association_changes():
 
 def register_view_in_explorer():
     """
-    REgister the vviewinexplorer scheme.
+    Register the vviewinexplorer scheme.
 
     This handles "View in Explorer" in the UI.
     """
