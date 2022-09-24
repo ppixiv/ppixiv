@@ -151,10 +151,15 @@ def write_vview_config():
     config_path = data_dir / 'interpreter.txt'
     
     with config_path.open('w+t') as f:
-        interpreter_path = sys.executable
-        root_path = os.getcwd()
+        # sys.executable should point to python3.exe.  We want to store the DLL path, which
+        # is next to it in the Python installation.
+        dll_path = Path(sys.executable) / '..' / 'python3.dll'
+        dll_path = dll_path.resolve()
+        if not dll_path.exists():
+            print(f'python3.dll doesn\'t exist (looked at: {dll_path}')
+       
+        interpreter_path = str(dll_path)
         f.write(f'{interpreter_path}\n')
-        f.write(f'{root_path}\n')
 
 def go():
     try:
