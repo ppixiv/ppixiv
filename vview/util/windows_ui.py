@@ -117,11 +117,6 @@ class NOTIFYICONDATAW(ctypes.Structure):
         ('hBalloonIcon', wintypes.HICON),
     ]
 
-NIF_GUID = 0x20
-
-# bf6ed896-c9f4-40bb-a1ee-a0d369db33ca
-tray_icon_uuid = bytes([0xbf, 0x6e, 0xd8, 0x96, 0xc9, 0xf4, 0x40, 0xbb, 0xa1, 0xee, 0xa0, 0xd3, 0x69, 0xdb, 0x33, 0xca])
-
 shell32 = ctypes.WinDLL('shell32', use_last_error=True)
 Shell_NotifyIcon = shell32.Shell_NotifyIconW
 Shell_NotifyIcon.argtypes = (wintypes.DWORD, ctypes.POINTER(NOTIFYICONDATAW))
@@ -262,21 +257,34 @@ class _TrayIcon:
             
         hicon = self._get_icon()
 
-        # Create the icon with a UUID.  This way, if we exit and don't manage to clean up the
-        # icon and then restart, we can still remove the old one if we're restarted, so they
-        # don't accumulate.  This also lets us shut down from any thread, even if our HWND
-        # no longer exists.
+        # It would be nice to be able to use a UUID for the tray icon.  That way, we can remove
+        # the icon without needing an hwnd, so it's safer to remove it from another thread, and
+        # if we're terminated without being able to remove the tray icon, we can replace the existing
+        # one, preventing the old Windows bug where tray icons accumulate since the taskbar fails
+        # to clean up after closed applications.
+        #
+        # But, NIF_GUID is catastrophically broken: it associates the UUID with your application
+        # path, and if the path changes, it fails with an "unspecified error" error.
+        #
+        # https://docs.microsoft.com/en-us/windows/win32/api/shellapi/ns-shellapi-notifyicondataa
+        #
+        # They tell you to generate a UUID at installation time and regenerate it any time the
+        # application path changes (and if you have multiple entry points, you're out of luck).
+        # That's insane and pointless and I'm not going to jump hoops like that just to display
+        # an icon.  So, we do it the old-fashioned way.
         data = NOTIFYICONDATAW()
         data.cbSize = ctypes.sizeof(data)
         data.hWnd = self.hwnd
         data.uCallbackMessage = self.open_tray_message
         data.hIcon = hicon
         data.szTip = 'vview'
-        data.guidItem = tray_icon_uuid
-        data.uFlags = win32gui.NIF_ICON | win32gui.NIF_MESSAGE | win32gui.NIF_TIP | NIF_GUID
+        data.TimeoutOrVersion.uVersion = 0
+        data.uFlags = win32gui.NIF_ICON | win32gui.NIF_MESSAGE | win32gui.NIF_TIP
 
         if not Shell_NotifyIcon(win32gui.NIM_MODIFY, data):
-            Shell_NotifyIcon(win32gui.NIM_ADD, data)
+            if not Shell_NotifyIcon(win32gui.NIM_ADD, data):
+                error = ctypes.WinError(ctypes.get_last_error())
+                log.warn('Couldn\'t create tray icon: ' + str(error))
 
         self.icon_created = True
 
@@ -284,10 +292,14 @@ class _TrayIcon:
         """
         It's safe to call this from either the window thread or the main thread.
         """
+        if self.hwnd is None:
+            return
+
+        # We might be in another thread, but we should still be able to remove the icon if we
+        # still have access to the HWND.
         data = NOTIFYICONDATAW()
         data.cbSize = ctypes.sizeof(data)
-        data.guidItem = tray_icon_uuid
-        data.uFlags = NIF_GUID
+        data.hWnd = self.hwnd
         Shell_NotifyIcon(win32gui.NIM_DELETE, data)
 
     def _threaded_tray_message(self, hwnd, msg, wparam, lparam):
