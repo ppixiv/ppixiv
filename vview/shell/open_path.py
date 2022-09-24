@@ -25,13 +25,22 @@ def _firefox_path():
     """
     return _application_path('firefox.exe')
 
+def open_top():
+    """
+    Open a default Vview window in a browser.
+    """
+    _open_url_path('')
+
 def open_path(path):
     """
-    Open path in a browser using the local viewer API.
+    Open path in a Vview browser window.
     """
     path = Path(path)
     url_path = str(path).replace('\\', '/')
-    url = 'http://127.0.0.1:8235/open/' + urllib.parse.quote(url_path)
+    _open_url_path('open/' + url_path)
+    
+def _open_url_path(path):
+    url = 'http://127.0.0.1:8235/' + urllib.parse.quote(path)
 
     # Don't use the webbrowser module.  The Windows implementation is an afterthought, and
     # the module should never have been added to the Python core library in its current state.
