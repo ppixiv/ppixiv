@@ -4,6 +4,7 @@ from ..util import error_dialog
 # This is normally called through VView.exe.
 def go():
     import logging, sys
+    from ..server import server
     from ..util import open_in_browser
 
     log = logging.getLogger(__name__)
@@ -12,6 +13,7 @@ def go():
         log.info('No path specified')
         return
 
+    server.fork_server()
     open_in_browser.open_path(sys.argv[1])
 
 if __name__=='__main__':
