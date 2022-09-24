@@ -2,7 +2,8 @@
 # module, and avoid unnecessary imports.  If this fails for some reason we don't have any
 # fallback to talk to the user.
 
-import ctypes
+import ctypes, traceback
+from contextlib import contextmanager
 
 MB_OK = 0
 MB_ICONERROR = 0x10
@@ -55,3 +56,17 @@ def show_error_dialog_if_no_console(title, message):
         return
 
     return show_error_dialog(title, message)
+
+@contextmanager
+def show_errors():
+    """
+    Run a block of code, showing a dialog if it throws an exception.
+
+    This is used for top-level scripts when we don't yet have a terminal set up.
+    """
+    try:
+        yield
+    except Exception as e:
+        error = traceback.format_exc()
+        show_error_dialog_if_no_console('Error launching VView', 'An unexpected error occurred:\n\n' + error)
+        raise
