@@ -380,6 +380,8 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
 
         if(down)
         {
+            let x = pointer_listener.latest_mouse_screen_position[0];
+            let y = pointer_listener.latest_mouse_screen_position[1];
             let node = this._get_hovered_element();
             this.show(x, y, node);
         } else {
