@@ -257,7 +257,7 @@ let thumbnail_ui = class extends ppixiv.widget
                             ${ helpers.create_box_link({label: "Square",            data_type: "aspect-ratio-square",    icon: "crop_square" }) }
                         </div>
 
-                        ${ helpers.create_box_link({label: "Bookmarks",    classes: ["popup-menu-box-button"] }) }
+                        ${ helpers.create_box_link({label: "Bookmarks",    classes: ["popup-menu-box-button", "premium-only"] }) }
                         <div hidden class="popup-menu-box vertical-list">
                             <!-- The Pixiv search form shows 300-499, 500-999 and 1000-.  That's not
                                  really useful and the query parameters let us filter differently, so we
