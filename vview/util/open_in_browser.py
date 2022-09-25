@@ -47,13 +47,15 @@ def _open_url_path(path):
     # Don't use the webbrowser module.  The Windows implementation is an afterthought, and
     # the module should never have been added to the Python core library in its current state.
     if True:
-        # Open directly with Chrome.  This lets us open in a new window.  It would be nicer to open without
-        # browser chrome, but Chrome won't do that unless we open in a separate profile, which is worse.
+        # Open directly with Chrome.
         chrome_path = _chrome_path()
         args = [
             chrome_path,
-            '--new-window',
-            url,
+
+            # This isn't great (it doesn't remember window positions, etc.), but it seems like the
+            # best we can do without a whole CEF setup (90MB+).  --window-size, etc. don't work
+            # when a Chrome session is already running.
+            '--app=%s' % url,
         ]
         subprocess.Popen(args)
     elif True:
