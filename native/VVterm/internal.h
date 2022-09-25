@@ -82,8 +82,13 @@ struct TermConfig
 
     // Terminal options
     int scrollback_lines = 2000;
-    int width = 80, height = 24;
     FontSpec font;
+
+    // Window positioning.  These are used to remember the window position between
+    // sessions.
+    int width = 80, height = 24;
+    int x = CW_USEDEFAULT, y = CW_USEDEFAULT;
+    bool maximized = true;
 };
 
 typedef enum SmallKeypadKey {

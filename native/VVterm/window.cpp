@@ -364,6 +364,8 @@ TermWinWindows::TermWinWindows(shared_ptr<ClientPipes> client_pipes, HICON icon)
 
     // Create the window.
     int style = WS_OVERLAPPEDWINDOW | WS_VSCROLL;
+    if(conf->maximized)
+        style |= WS_MAXIMIZE;
     WindowSetup::Create(
         [this](HWND hwnd_) {
             hwnd = hwnd_;
@@ -377,7 +379,7 @@ TermWinWindows::TermWinWindows(shared_ptr<ClientPipes> client_pipes, HICON icon)
         [this](HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) { return WndProc(hwnd, message, wParam, lParam); },
         appname, icon,
         0, window_name.c_str(),
-        style, CW_USEDEFAULT, CW_USEDEFAULT,
+        style, conf->x, conf->y,
         guess_width, guess_height, NULL, NULL, hinst);
 
     if(!hwnd)
