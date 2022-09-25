@@ -17,6 +17,7 @@
 #include <shlobj_core.h>
 #include <windows.h>
 #include <winreg.h>
+#include <assert.h>
 
 #include <io.h>
 #include <fcntl.h>
@@ -51,9 +52,9 @@ namespace
         MessageBoxW(NULL, error.c_str(), L"Error launching VView", MB_ICONHAND|MB_OK);
     }
 
-    // We expect to be VView\bin\VView.exe.  Set the CWD to the parent directory
-    // of bin, which should be the top of the installation.
-    void SetDirectory()
+    // We expect to be VView\bin\VView.exe.  The parent of "bin" should be the
+    // top of the installation.
+    wstring GetTopDirectory()
     {
         WCHAR path[MAX_PATH] = L"";
         GetModuleFileNameW(NULL, path, MAX_PATH);
@@ -70,7 +71,7 @@ namespace
         if(p0)
             *p0 = 0;
 
-        SetCurrentDirectory(path);
+        return path;
     }
 
     string ReadFileFromDisk(const wstring &path)
@@ -115,7 +116,7 @@ namespace
         int size = FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, 0, error, 0, buffer, 1024,nullptr );
         return wstring(buffer, size);
     }
-
+#if 0
     wstring GetLocalDataDir()
     {
         wchar_t result[MAX_PATH];
@@ -154,19 +155,75 @@ namespace
 
         return true;
     }
+#endif
+
+    // Return the commandline.
+    void GetCommandline(vector<wstring> &args)
+    {
+        int argc;
+        WCHAR **argv = CommandLineToArgvW(GetCommandLineW(), &argc);
+
+        args.clear();
+        for(int i = 0; i < argc; ++i)
+            args.push_back(argv[i]);
+    }
+
+    // Convert a vector of strings to a vector of WCHAR*.  This can be pass as
+    // a WCHAR** to Py_Main.  Note that the pointers in argv will be invalidated
+    // if args is modified.
+    void ArrayToArgs(const vector<wstring> &args, vector<WCHAR *> &argv)
+    {
+        argv.clear();
+        for(const wstring &arg: args)
+            argv.push_back(const_cast<WCHAR *>(arg.data()));
+        argv.push_back(nullptr);
+    }
+
+    // Remove all environment variables starting with PYTHON.
+    void ClearPythonEnvironmentVars()
+    {
+        WCHAR *args = GetEnvironmentStrings();
+        WCHAR *arg = args;
+        while(*arg)
+        {
+            WCHAR *next = wcschr(arg, '\0');
+
+            // Key=Value
+            //    ^
+            WCHAR *separator = wcschr(arg, '=');
+            if(separator)
+            {
+                wstring name(arg, separator);
+                if(name.size() >= 6 && name.substr(0, 6) == L"PYTHON")
+                    SetEnvironmentVariable(name.c_str(), nullptr);
+            }
+
+            arg = next+1;
+        }
+
+        FreeEnvironmentStrings(args);
+    }
 }
 
 int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nCmdShow)
 {
-    SetDirectory();
+    wstring top_dir = GetTopDirectory();
 
+    // Set the CWD to the top of the installation.
+    //
+    // This isn't strictly necessary (we could set the directory in siteconfig.py),
+    // but Python adds '' to sys.path, and if we're running from some other random
+    // directory, we might import some random script since it's at the very start of
+    // the path.  It's a pain to prevent it from doing that, so let's just make things
+    // consistent before we launch Python.  We aren't normally launched with relative paths
+    // anyway.
+    SetCurrentDirectory(top_dir.c_str());
+
+    // We can either use our embedded Python installation or a system one.  Using our
+    // own means we know its version matches with our site-packages, and we don't
+    // have to tell users that they need to install Python first to use the application.
     wstring python_path;
-    wstring error;
-    if(!GetExecutable(python_path, error))
-    {
-        ShowErrorDialog(error);
-        return 1;
-    }
+    python_path = top_dir + L"\\bin\\Python\\python3.dll";
 
     HMODULE python = LoadLibraryExW(python_path.c_str(), NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
     if(!python)
@@ -175,31 +232,57 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmd
         return 1;
     }
 
-    // Grab the commandline.
-    int argc;
-    WCHAR **argv = CommandLineToArgvW(GetCommandLineW(), &argc);
-
-    // If we were given no arguments, use the default.
-    if(argc == 1)
-    {
-        static const WCHAR *default_args[] = {
-            argv[0],
-            L"-m", L"vview.shell.default",
-        };
-
-        argc = 3;
-        argv = (WCHAR **) default_args;
-    }
-
-    // Jump to Python.
     auto Py_Main = (PyMainT) GetProcAddress(python, "Py_Main");
     if(!Py_Main)
     {
-        ShowErrorDialog(L"Error reading GetProcAddress from Python3.dll");
+        ShowErrorDialog(L"Couldn't find Py_Main");
         return 1;
     }
 
-    return Py_Main(argc, argv);
+    vector<wstring> args;
+    GetCommandline(args);
+    assert(args.size() >= 1); // always has the process name
+
+    vector<wstring> python_args = {
+        args[0],
+
+        // Ignore the user's site-packages and just use our own.
+        L"-s",
+
+        // Enable isolated mode: (this makes loading our own directory difficult)
+        // L"-I";
+    };
+
+    // Add our commandline after the above arguments, so anything after
+    // -m package stays at the end.  If there were no arguments, use the default.
+    if(args.size() == 1)
+    {
+        python_args.push_back(L"-m");
+        python_args.push_back(L"vview.shell.default");
+    }
+    else
+    {
+        // Add our arguments to the end, skipping the executable.
+        python_args.insert(python_args.end(), args.begin() + 1, args.end());
+    }
+
+    // Remove any environment variables that start with PYTHON.
+    //
+    // This is the same as the Python -E argument.  We do this instead since
+    // -E prevents "" and our own PYTHONPATH from being added to sys.path, so our
+    // own scripts won't run.
+    ClearPythonEnvironmentVars();
+
+    // Set PYTHONPATH to our top directory, so we're added to the start of sys.path.
+    // This will cause our siteconfig.py to be run and allow everything else to be run.
+    // (This isn't strictly necessary since we're in that directory and the default
+    // '' at the start of sys.path would do this too.)
+    SetEnvironmentVariable(L"PYTHONPATH", top_dir.c_str());
+
+    // Jump to Python.
+    vector<WCHAR *> argv;
+    ArrayToArgs(python_args, argv);
+    return Py_Main(argv.size()-1, argv.data());
 }
 
 // Loosely based on https://github.com/genosse-einhorn/python-exe-stub:
