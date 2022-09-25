@@ -42,6 +42,21 @@ wstring utf8_to_wstring(string s)
     return codepage_to_wstring(CP_UTF8, s.c_str());
 }
 
+string wstring_to_codepage(int codepage, wstring s)
+{
+    int len = WideCharToMultiByte(codepage, 0, s.c_str(), s.size(), nullptr, 0, nullptr, nullptr);
+
+    string result(len, 0);
+    WideCharToMultiByte(codepage, 0, s.c_str(), s.size(), result.data(), result.size(), nullptr,nullptr);
+
+    return result;
+}
+
+string wstring_to_utf8(wstring s)
+{
+    return wstring_to_codepage(CP_UTF8, s.c_str());
+}
+
 wchar_t xlat_uskbd2cyrllic(int ch)
 {
     static const wchar_t cyrtab[] = {

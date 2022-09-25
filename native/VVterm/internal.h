@@ -36,7 +36,7 @@ typedef enum {
  * Name of this particular application, for use in the config box
  * and other pieces of text.
  */
-extern const char *const appname;
+extern const wchar_t *const appname;
 
 /*
  * Data type definitions for true-color terminal display.

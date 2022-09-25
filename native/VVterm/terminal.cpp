@@ -828,7 +828,7 @@ void Terminal::term_setup_window_titles(string title_hostname)
     if(!conf->wintitle.empty())
         window_title = conf->wintitle;
     else
-        window_title = title_hostname.empty()? title_hostname:appname;
+        window_title = title_hostname.empty()? title_hostname:wstring_to_utf8(appname);
 
     win_title_pending = true;
 }

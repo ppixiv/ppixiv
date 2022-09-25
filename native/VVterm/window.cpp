@@ -35,81 +35,96 @@ using namespace std;
 class WindowSetup
 {
 public:
-    HINSTANCE hinst = nullptr;
-    bool CreatedWindowClass = false;
     typedef function<LRESULT(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)> UserWndProcFunc;
-    UserWndProcFunc UserWndProc;
-    wstring WindowClassName;
-    HWND hwnd = nullptr;
 
-    WindowSetup()
+    struct SetupData
+    {
+        function<void(HWND)> WindowCreated;
+        UserWndProcFunc *UserWndProc;
+    };
+
+    static HINSTANCE GetInstance()
     {
         // Get our HINSTANCE.  One of these is passed to WinMain, but instead of making
         // the caller find it and pass it along, just make our own.
         char path[MAX_PATH];
         GetModuleFileName(NULL, path, MAX_PATH);
-        hinst = LoadLibrary(path);
+        return LoadLibrary(path);
     }
 
     // Note that RealWindowClass.lpfnWndProc is unused.  Pass the WndProc to Create
     // instead.
-    void CreateWindowClass(string name, HICON icon)
+    static void CreateWindowClass(wstring window_class_name, HICON icon)
     {
-        assert(!CreatedWindowClass);
-        CreatedWindowClass = true;
-
-        // Remember the window class name.
-        WindowClassName = utf8_to_wstring(name);
-
         WNDCLASSW WindowClass = {0};
         WindowClass.lpfnWndProc = InitialWndProc;
-        WindowClass.hInstance = hinst;
+        WindowClass.hInstance = GetInstance();
         WindowClass.hIcon = icon;
         WindowClass.hCursor = LoadCursor(NULL, IDC_IBEAM);
-        WindowClass.lpszClassName = WindowClassName.c_str();
+        WindowClass.lpszClassName = window_class_name.c_str();
         RegisterClassW(&WindowClass);
     }
 
-    HWND Create(
+    // Create a window class and a window.
+    //
+    // WndProc may be called before this function returns, if window messages are received
+    // synchronously.  hwnd will be filled in before that happens.
+    static void Create(
+        // This is called once we know the window handle.
+        function<void(HWND)> WindowCreated,
         UserWndProcFunc WndProc,
+        wstring window_class_name, HICON icon,
         DWORD dwExStyle, LPCWSTR lpWindowName, DWORD dwStyle,
         int X, int Y, int nWidth, int nHeight,
         HWND hWndParent, HMENU hMenu, HINSTANCE hInstance)
     {
-        assert(CreatedWindowClass);
+        HINSTANCE hinst = GetInstance();
 
-        UserWndProc = WndProc;
+        CreateWindowClass(window_class_name, icon);
 
-        hwnd = CreateWindowExW(dwExStyle, WindowClassName.c_str(), lpWindowName,
-            dwStyle, X, Y, nWidth, nHeight, hWndParent, hMenu, hinst, this);
+        // Data that InitialWndProc needs.  Duplicate WndProc, since we'll continue to
+        // need it after this function returns.
+        SetupData data;
+        data.WindowCreated = WindowCreated;
+        data.UserWndProc = new UserWndProcFunc(WndProc);
 
-        return hwnd;
+        CreateWindowExW(dwExStyle, window_class_name.c_str(), lpWindowName,
+            dwStyle, X, Y, nWidth, nHeight, hWndParent, hMenu, hinst, &data);
     }
 
     static LRESULT CALLBACK InitialWndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     {
+        // We don't have access to lpCreateParams until WM_NCCREATE, so no messages before
+        // it are meaningful.
         if(message != WM_NCCREATE)
             return DefWindowProcW(hwnd, message, wParam, lParam);
 
+        // We're always still inside Create() when this is called, so SetupData on the stack
+        // is still available.
         CREATESTRUCTW *create = (CREATESTRUCTW *) lParam;
-        WindowSetup *self = (WindowSetup *) create->lpCreateParams;
+        SetupData *setup = (SetupData *) create->lpCreateParams;
 
-        // Point the USERDATA pointer to our object, and switch to RealWndProc.
-        SetWindowLongPtrW(hwnd, GWLP_USERDATA, (LONG_PTR) self);
+        setup->WindowCreated(hwnd);
+
+        // Point the USERDATA pointer to setup->UserWndProc, which RealWndProc will call.
+        // SetupData will no longer be available when Create() returns, but RealWndProc
+        // is.
+        SetWindowLongPtrW(hwnd, GWLP_USERDATA, (LONG_PTR) setup->UserWndProc);
         SetWindowLongPtrW(hwnd, GWLP_WNDPROC,(LONG_PTR) WndProcStub);
+
         return WndProcStub(hwnd, message, wParam, lParam);
     }
 
     static LRESULT CALLBACK WndProcStub(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     {
-        WindowSetup *self = (WindowSetup *) GetWindowLongPtr(hwnd, GWLP_USERDATA);
-        return self->WndProc(hwnd, message, wParam, lParam);
-    }
+        UserWndProcFunc *WndProc = (UserWndProcFunc *) GetWindowLongPtr(hwnd, GWLP_USERDATA);
+        LRESULT result = (*WndProc)(hwnd, message, wParam, lParam);
 
-    // Just call the user's WndProc.
-    LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
-    {
-        return UserWndProc(hwnd, message, wParam, lParam);
+        // If this is WM_DESTROY, the window is exiting.  Free the callback.
+        if(message == WM_DESTROY)
+            delete WndProc;
+
+        return result;
     }
 };
 
@@ -202,8 +217,6 @@ public:
     TermWinWindows(shared_ptr<ClientPipes> client_pipes, HICON icon);
     ~TermWinWindows();
 
-    WindowSetup window_setup;
-
     // Run the message loop.
     int run();
 
@@ -270,7 +283,7 @@ public:
     } und_mode;
 
     int compose_state = 0;
-    string window_name;
+    wstring window_name;
     bool pointer_indicates_raw_mouse = false;
 
     int dbltime = 0, lasttime = 0;
@@ -339,6 +352,8 @@ TermWinWindows::TermWinWindows(shared_ptr<ClientPipes> client_pipes, HICON icon)
     conf = make_shared<TermConfig>();
     window_name = appname;
 
+    client = Client::create(client_pipes, this);
+
     int guess_width = extra_width + font_width * conf->width;
     int guess_height = extra_height + font_height*conf->height;
     {
@@ -347,14 +362,22 @@ TermWinWindows::TermWinWindows(shared_ptr<ClientPipes> client_pipes, HICON icon)
         guess_height  = min(guess_height, r.bottom - r.top);
     }
 
-    // Create the window class.
-    window_setup.CreateWindowClass(appname, icon);
-
     // Create the window.
-    hwnd = window_setup.Create(
+    int style = WS_OVERLAPPEDWINDOW | WS_VSCROLL;
+    WindowSetup::Create(
+        [this](HWND hwnd_) {
+            hwnd = hwnd_;
+            
+            // The window has been created.  More messages might be delivered to WndProc before
+            // Create() can return, and those messages might interact with the terminal, so create
+            // term here.
+            term = make_shared<Terminal>();
+            term->init(conf, this, client);
+        },
         [this](HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) { return WndProc(hwnd, message, wParam, lParam); },
-        0, utf8_to_wstring(window_name).c_str(),
-        WS_OVERLAPPEDWINDOW | WS_VSCROLL, CW_USEDEFAULT, CW_USEDEFAULT,
+        appname, icon,
+        0, window_name.c_str(),
+        style, CW_USEDEFAULT, CW_USEDEFAULT,
         guess_width, guess_height, NULL, NULL, hinst);
 
     if(!hwnd)
@@ -375,10 +398,6 @@ TermWinWindows::TermWinWindows(shared_ptr<ClientPipes> client_pipes, HICON icon)
     // Tell timing who to inform about timers.
     timing_set_hwnd(hwnd, WM_APP_TIMER_CHANGE);
 
-    client = Client::create(client_pipes, this);
-
-    term = make_shared<Terminal>();
-    term->init(conf, this, client);
     term->term_size(conf->height, conf->width, conf->scrollback_lines);
 
     // Correct the guesses for extra_{width,height}.
@@ -1410,7 +1429,7 @@ LRESULT CALLBACK TermWinWindows::WndProc(HWND hwnd, UINT message, WPARAM wParam,
         break;
     case WM_SIZE:
         term->term_notify_minimized(wParam == SIZE_MINIMIZED);
-        SetWindowTextW(hwnd, utf8_to_wstring(window_name).c_str());
+        SetWindowTextW(hwnd, window_name.c_str());
 
         if (wParam == SIZE_MAXIMIZED) {
             was_maximized = true;
@@ -2699,10 +2718,12 @@ int TermWinWindows::TranslateKey(UINT message, WPARAM wParam, LPARAM lParam, uns
 
 void TermWinWindows::set_title(string title)
 {
-    if(window_name == title)
+    wstring wtitle = utf8_to_wstring(title);
+
+    if(window_name == wtitle)
         return;
 
-    window_name = title;
+    window_name = wtitle;
     SetWindowTextW(hwnd, utf8_to_wstring(title).c_str());
 }
 

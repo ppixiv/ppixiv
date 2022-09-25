@@ -4,7 +4,7 @@
 
 #include "internal.h"
 
-const char *const appname = "APPNAME";
+const wchar_t *const appname = L"APPNAME";
 
 string vssprintf(const char *fmt, va_list va)
 {
