@@ -76,8 +76,10 @@ public:
     // VVTerm implementation
     void get_handles(HANDLE *events, HANDLE *display) override
     {
-        *events = events_handle->h;
-        *display = display_handle->h;
+        // Return duplicated handles.  The caller closes these when he's done with them.  This
+        // keeps the handles the caller works with separate from ours.
+        DuplicateHandle(GetCurrentProcess(), events_handle->h, GetCurrentProcess(), events, 0, FALSE, DUPLICATE_SAME_ACCESS);
+        DuplicateHandle(GetCurrentProcess(), display_handle->h, GetCurrentProcess(), display, 0, FALSE, DUPLICATE_SAME_ACCESS);
     }
 
     void set_visible(bool visible) override
@@ -144,7 +146,6 @@ public:
                 break;
         }
 
-        // Wait for the thread to exit in response to WindowCommand_Shutdown.
         window_thread.reset();
     }
 };
