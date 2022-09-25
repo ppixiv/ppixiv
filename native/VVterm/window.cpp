@@ -256,6 +256,7 @@ public:
     void send_vvterm_event(VVTermEvent event);
 
     HFONT fonts[FONT_MAXNO];
+    bool created_font[FONT_MAXNO];
     LOGFONT lfont;
     int descent, font_strikethrough_y;
 
@@ -602,7 +603,10 @@ void TermWinWindows::init_dpi_info()
 void TermWinWindows::init_fonts(int pick_width, int pick_height)
 {
     for(int i = 0; i < FONT_MAXNO; i++)
+    {
         fonts[i] = NULL;
+        created_font[i] = false;
+    }
 
     und_mode = UND_FONT;
 
@@ -725,6 +729,10 @@ void TermWinWindows::create_font(int fontno)
     if (fontno < 0 || fontno >= FONT_MAXNO)
         return;
 
+    // Stop if we've already tried to create this font.
+    if(created_font[fontno])
+        return;
+
     FontSpec font = conf->font;
 
     // If we're drawing bold and the font itself is already bold, draw heavy instead.
@@ -754,6 +762,7 @@ void TermWinWindows::create_font(int fontno)
         false, underline, false, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS,
         CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY,
         FIXED_PITCH, font.name.c_str());
+    created_font[fontno] = true;
 }
 
 void TermWinWindows::deinit_fonts()
