@@ -1,0 +1,7 @@
+aiohttp==3.8.1
+libsass==0.21.0
+natsort==8.1.0
+Pillow==9.2.0
+pycairo==1.21.0
+pywin32==304
+
