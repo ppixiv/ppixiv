@@ -21,13 +21,20 @@
 #include <assert.h>
 
 #include "Helpers.h"
-#include "LoadPython.h"
+
+// Python.h tries to link to "python310_d.lib" by default, which doesn't even
+// exist in the distribution.  Turn that off so we can link the correct library
+// ourself.
+#define Py_NO_ENABLE_SHARED
+#include <Python.h>
 
 #include <io.h>
 #include <fcntl.h>
 #include <string>
 #include <vector>
 using namespace std;
+
+#pragma comment(lib, "python310.lib")
 
 namespace
 {
@@ -36,25 +43,35 @@ namespace
         MessageBoxW(NULL, message.c_str(), L"Error launching VView", MB_ICONHAND|MB_OK);
     }
 
-    // We expect to be VView\bin\VView.exe.  The parent of "bin" should be the
-    // top of the installation.
-    wstring GetTopDirectory()
+    wstring GetModulePath()
     {
         WCHAR path[MAX_PATH] = L"";
         GetModuleFileNameW(NULL, path, MAX_PATH);
+        return path;
+    }
 
-        // VView\bin\VView.exe
-        //          ^
-        WCHAR *p0 = wcsrchr(path, '\\');
-        if(p0)
-            *p0 = 0;
+    wstring GetParent(wstring path)
+    {
+        size_t p0 = path.rfind(L'\\');
+        if(p0 != wstring::npos)
+            path.erase(p0);
+        return path;
+    }
 
-        // VView\bin\VView.exe
-        //      ^
-        p0 = wcsrchr(path, '\\');
-        if(p0)
-            *p0 = 0;
+    // We expect to be VView\bin\VView.exe.  Return VView\bin.
+    wstring GetBinaryPath()
+    {
+        wstring path = GetModulePath();
+        return GetParent(path); // VView\bin\VView.exe -> VView\bin
+    }
 
+    // We expect to be VView\bin\VView.exe.  Return VView, which is the
+    // top of the installation.
+    wstring GetTopPath()
+    {
+        wstring path = GetModulePath();
+        path = GetParent(path); // VView\bin\VView.exe -> VView\bin
+        path = GetParent(path); // VView\bin -> VView
         return path;
     }
 
@@ -67,6 +84,19 @@ namespace
         return path + L"\\VView";
     }
 
+    // wcsdup() using Python's allocators.  Python already has _PyMem_RawWcsdup, but
+    // they spitefully made it private for some reason.
+    wchar_t *python_wcsdup(const wchar_t *s)
+    {
+        int size = wcslen(s);
+        size *= sizeof(wchar_t);
+        wchar_t *p = (wchar_t *) PyMem_RawMalloc(size + 1);
+        if(p == nullptr)
+            return nullptr;
+        wcscpy(p, s);
+        return p;
+    }
+
     // A helper for releasing PyObject references.
     struct PyObj
     {
@@ -76,7 +106,7 @@ namespace
         }
         static PyObj String(wstring s)
         {
-            return Python::PyUnicode_FromWideChar(s.data(), s.size());
+            return PyUnicode_FromWideChar(s.data(), s.size());
         }
 
         // Return the PyObject, releasing it from this object so it won't be freed.
@@ -95,46 +125,13 @@ namespace
 
         PyObject *o = nullptr;
     };
-
-#if 0
-    // Add our site-packages directory as a package directory.
-    // 
-    // This is the same as:
-    // 
-    // import site
-    // site.addsitepackages(set(), [top_dir + '/bin/site-packages'])
-    bool AddSitePackagesDirectory(wstring top_dir, wstring &error)
-    {
-        PyObj path = PyObj::String(top_dir + L"/bin/python/Lib/site-packages");
-        PyObj site_packages_path_array = Python::PyList_New(0);
-        Python::PyList_Append(site_packages_path_array.o, path.o);
-
-        PyObj known_paths = Python::PySet_New(nullptr);
-
-        PyObj site = Python::PyImport_ImportModule("site");
-        if(site.o == nullptr)
-        {
-            error = L"Could not import site module";
-            return false;
-        }
-
-        PyObj addsitepackages = Python::PyObject_GetAttrString(site.o, "addsitepackages");
-        if(addsitepackages.o == nullptr)
-        {
-            error = L"Couldn't import site.addsitepackages";
-            return false;
-        }
-
-        PyObj runargs = Python::PyTuple_Pack(2, known_paths, site_packages_path_array);
-        PyObj result = Python::PyObject_Call(addsitepackages.o, runargs.o, nullptr);
-        return true;
-    }
-#endif
 }
 
-int RunVView(bool terminal)
+extern "C" int RunVView(bool terminal)
 {
-    wstring top_dir = GetTopDirectory();
+    wstring binary_path = GetBinaryPath();
+    wstring top_dir = GetTopPath();
+    wstring python_path = binary_path + L"\\Python";
 
     // Even if we're running in windowed mode, we might have stdout, for example if
     // we're running in a virtual terminal environment like pterm.  Make sure it's
@@ -145,49 +142,30 @@ int RunVView(bool terminal)
     // Set the CWD to the top of the installation.
     SetCurrentDirectory(top_dir.c_str());
 
-    wstring data_dir = GetLocalDataDir();
-    if(data_dir.empty())
+    wstring local_data_dir = GetLocalDataDir();
+    if(local_data_dir.empty())
     {
         ShowErrorDialog(L"Error getting AppData/Local");
         return 1;
     }
 
-    // Open our embedded Python DLL.
-    wstring python_path;
-    python_path = top_dir + L"\\bin\\python\\python310.dll";
-
-    HMODULE python = LoadLibraryExW(python_path.c_str(), NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
-    if(!python)
-    {
-        ShowErrorDialog(L"python3.dll couldn't be loaded: " + Helpers::GetError(GetLastError()));
-        return 1;
-    }
-
-    // Load Python symbols.
-    wstring PythonLoadError;
-    if(!Python::Load(python, PythonLoadError))
-    {
-        ShowErrorDialog(PythonLoadError);
-        return 1;
-    }
-
-    Python::Py_SetProgramName(L"VView");
-    Python::Py_SetPythonHome((top_dir + L"/").c_str());
-    Python::Py_SetStandardStreamEncoding("utf-8", "utf-8");
+    Py_SetProgramName(L"VView");
+    Py_SetPythonHome((top_dir + L"/").c_str());
+    Py_SetStandardStreamEncoding("utf-8", "utf-8");
     
     // Do Python preconfiguration.
     {
         PyPreConfig preconfig;
-        Python::PyPreConfig_InitIsolatedConfig(&preconfig);
+        PyPreConfig_InitIsolatedConfig(&preconfig);
         preconfig.use_environment = false;
         preconfig.utf8_mode = true;
-        Python::Py_PreInitialize(&preconfig);
+        Py_PreInitialize(&preconfig);
     }
 
     // Do Python configuration.
     {
         PyConfig config;
-        Python::PyConfig_InitIsolatedConfig(&config);
+        PyConfig_InitIsolatedConfig(&config);
         config.user_site_directory = false;
         config.isolated = true;
         config.use_environment = false;
@@ -198,18 +176,17 @@ int RunVView(bool terminal)
         // We're in isolated mode, but we do want to parse the commandline.
         config.parse_argv = 1;
 
-        // Put .pyc files inside our data directory, so we keep the installation
-        // directory read-only.
         {
-            wstring pyc_path = data_dir + L"\\python";
-            config.pycache_prefix = Python::python_wcsdup(pyc_path.c_str());
+            // Put .pyc files inside our data directory, so we keep the installation
+            // directory read-only.
+            wstring pyc_path = local_data_dir + L"\\python";
+            config.pycache_prefix = python_wcsdup(pyc_path.c_str());
 
             // Set the Python prefix to bin/Python, which is where our embedded Python
             // lives.  This tells Python where things like bin/Python/Lib/site-packages
             // are.
-            wstring prefix = top_dir + L"\\bin\\Python";
-            config.prefix = Python::python_wcsdup(prefix.c_str());
-            config.exec_prefix = Python::python_wcsdup(prefix.c_str());
+            config.prefix = python_wcsdup(python_path.c_str());
+            config.exec_prefix = python_wcsdup(python_path.c_str());
         }
 
         vector<wstring> args;
@@ -228,39 +205,33 @@ int RunVView(bool terminal)
         // Convert back to a WCHAR ** to pass arguments to PyConfig_SetArgv.
         vector<WCHAR *> PythonArgs;
         Helpers::ArrayToArgs(args, PythonArgs);
-        PyStatus status = Python::PyConfig_SetArgv(&config, PythonArgs.size()-1, PythonArgs.data());
-        if (Python::PyStatus_Exception(status)) {
-            if(Python::PyStatus_IsError(status))
+        PyStatus status = PyConfig_SetArgv(&config, PythonArgs.size()-1, PythonArgs.data());
+        if (PyStatus_Exception(status)) {
+            if(PyStatus_IsError(status))
                 ShowErrorDialog(Helpers::UTF8ToWide(status.err_msg));
 
-            if(Python::PyStatus_IsExit(status))
+            if(PyStatus_IsExit(status))
                 return status.exitcode;
         }
 
         // Set the Python path.
         wstring path =
             top_dir + L";" +
-            top_dir + L"\\bin\\python\\python310.zip;" +
-            top_dir + L"\\bin\\python";
-        Python::Py_SetPath(path.c_str());
+            python_path + L"\\python310.zip;" +
+            python_path;
+        Py_SetPath(path.c_str());
 
-        status = Python::Py_InitializeFromConfig(&config);
-        if (Python::PyStatus_Exception(status)) {
-            if(Python::PyStatus_IsError(status))
+        status = Py_InitializeFromConfig(&config);
+        if (PyStatus_Exception(status)) {
+            if(PyStatus_IsError(status))
                 ShowErrorDialog(Helpers::UTF8ToWide(status.err_msg));
 
-            if(Python::PyStatus_IsExit(status))
+            if(PyStatus_IsExit(status))
                 return status.exitcode;
         }
 
-        Python::PyConfig_Clear(&config);
+        PyConfig_Clear(&config);
     }
 
-//    wstring error;
-//    if(!AddSitePackagesDirectory(top_dir, error))
-//        ShowErrorDialog(error);
-
-    Python::Py_RunMain();
-
-    return 0;
+    return Py_RunMain();
 }

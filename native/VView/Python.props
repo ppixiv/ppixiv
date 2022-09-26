@@ -1,11 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ImportGroup Label="PropertySheets" />
-  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Label="UserMacros">
+    <PythonPath>C:\Program Files\Python310</PythonPath>
+  </PropertyGroup>
   <PropertyGroup>
-    <ExternalIncludePath>C:\Program Files\Python310\include;$(ExternalIncludePath)</ExternalIncludePath>
-    <LibraryPath>C:\Program Files\Python310\libs;$(LibraryPath)</LibraryPath>
+    <ExternalIncludePath>$(PythonPath)\include;$(ExternalIncludePath)</ExternalIncludePath>
+    <LibraryPath>$(PythonPath)\libs;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup />
-  <ItemGroup />
+  <ItemGroup>
+    <BuildMacro Include="PythonPath">
+      <Value>$(PythonPath)</Value>
+    </BuildMacro>
+  </ItemGroup>
 </Project>

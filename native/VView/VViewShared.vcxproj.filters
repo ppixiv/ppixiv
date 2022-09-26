@@ -2,11 +2,9 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="VView.cpp" />
-    <ClCompile Include="LoadPython.cpp" />
     <ClCompile Include="Helpers.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="LoadPython.h" />
     <ClInclude Include="Helpers.h" />
     <ClInclude Include="VView.h" />
   </ItemGroup>

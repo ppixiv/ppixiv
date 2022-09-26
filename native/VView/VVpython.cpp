@@ -1,7 +1,7 @@
 #include "VView.h"
 
-// VVpython.exe is just a console build of VView.exe, and runs a regular Python terminal
-// by default.
+// This is the console front-end for VViewShared, which is our actual Python
+// environment.
 int main()
 {
     return RunVView(true /* terminal */);
