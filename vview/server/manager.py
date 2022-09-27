@@ -20,16 +20,9 @@ class Manager:
         self.api_list_results = OrderedDict()
         self.task_queue = AsyncTaskQueue()
 
-        # Figure out where to put our files.  We can put it in AppData for a regular
-        # installation, but it's convenient to have it in a local directory for
-        # development.
-        local_data = False
-        if local_data:
-            # Get AppData/Local.
-            local_data = Path(os.getenv('LOCALAPPDATA'))
-            data_dir = local_data / 'vview'
-        else:
-            data_dir = Path(os.path.dirname(__file__)) / '../data'
+        # Figure out where to put our files.
+        local_data = Path(os.getenv('LOCALAPPDATA'))
+        data_dir = local_data / 'vview'
         
         data_dir = open_path(data_dir.resolve())
         self.data_dir = data_dir
