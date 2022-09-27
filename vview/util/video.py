@@ -79,10 +79,11 @@ async def run_ffmpeg(args, stdin=None):
     args = list(args)
     args = [ffmpeg] + args
     
+    # Use DETACHED_PROCESS so a console window isn't created.
+    DETACHED_PROCESS = 0x00000008
     process = await asyncio.create_subprocess_exec(*args,
-        stdin=stdin.read if stdin else subprocess.DEVNULL)#,
-        #stdout=subprocess.DEVNULL)#,
-        #stderr=subprocess.DEVNULL)
+        stdin=stdin.read if stdin else subprocess.DEVNULL,
+        creationflags=DETACHED_PROCESS)
 
     wait = wait_or_kill_process(process)
     if stdin is not None:
