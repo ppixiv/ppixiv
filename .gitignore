@@ -3,5 +3,6 @@ output
 chrome
 unused
 bin
+notes
 **/__pycache__
 **/*.vcxproj.user
