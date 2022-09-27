@@ -217,7 +217,7 @@ async def _extract_video_thumbnail_frame(media_id, path, data_dir):
     """
     Extract the frame to be used for the thumbnail from a video file and return its path.
 
-    This will also cache the video poster if it's needed to create the poster.
+    This will also cache the video poster if it's needed to create the thumbnail.
     """
     thumb_path = _get_thumbnail_path(path, data_dir)
     if thumb_path.exists():

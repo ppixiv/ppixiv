@@ -57,26 +57,44 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
     }={}) =>
     {
         this.unload();
-
-        // Load early data to show the low-res preview quickly.  This is a simpler version of
-        // what viewer_images does,.
-        let early_illust_data = await media_cache.get_media_info(media_id, { full: false });
-        signal.check();
-        this.create_preview_images(early_illust_data.previewUrls[0], null);
+        
+        // Show a static image while we're waiting for the video to load, like viewer_images.
+        //
+        // Pixiv gives us two usable images: the search thumbnail (previewUrls[0] + urls.small),
+        // and urls.original, which is a full-size frame of the first frame.  We'll show the
+        // thumbnail immediately if we have early illust data to avoid flickering a black screen,
+        // then switch to urls.original once we have it to get away from the blurry thumbnail.
+        //
+        // Vview has two types of image for videos: thumbs (urls.small) and posters (urls.poster).
+        // The thumbnail is a few seconds into the video to avoid completely black thumbs, so we
+        // don't want to use it here.  Only use the poster image, so it matches up with the start
+        // of the video.
+        //
+        // First, show the thumbnail if we're on Pixiv:
+        let local = helpers.is_media_id_local(media_id);
+        if(!local)
+        {
+            // Load early data to show the low-res preview quickly.  This is a simpler version of
+            // what viewer_images does.
+            let early_illust_data = await media_cache.get_media_info(media_id, { full: false });
+            signal.check();
+            this.create_preview_images(early_illust_data.previewUrls[0], null);
+        }
 
         // Load full data.
         this.illust_data = await ppixiv.media_cache.get_media_info(media_id);
         signal.check();
 
-        // illust_data.urls for Pixiv, mangaPages[0] for local.
-        let urls = this.illust_data.urls || this.illust_data.mangaPages[0].urls;
-        this.create_preview_images(urls.small, urls.original);
+        // Now show the poster if we're local, or change to the original image on Pixiv.
+        if(local)
+            this.create_preview_images(this.illust_data.urls.poster, null);
+        else
+            this.create_preview_images(this.illust_data.previewUrls[0], this.illust_data.urls.original);
 
         // This can be used to abort ZipImagePlayer's download.
         this.abort_controller = new AbortController;
 
         let source = null;
-        let local = helpers.is_media_id_local(media_id);
         if(local)
         {
             // The local API returns a separate path for these, since it doesn't have
