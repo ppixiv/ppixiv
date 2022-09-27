@@ -167,7 +167,7 @@ class Manager:
             return True
 
         if not request['is_local']:
-            log.warn('Not allowing access for non-local request:', path)
+            log.warn('Not allowing access for non-local request: %s', path)
             if throw:
                 raise misc.Error('not-found', 'File not in library')
             else:
