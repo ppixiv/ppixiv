@@ -148,11 +148,6 @@ class Manager:
         """
         Return true if path should be accessible to the current request.
         If throw is true, raise an API exception.
-
-        Note that we mostly rely on the fact that we only run on localhost, so we can
-        only receive requests from the local PC, and we only allow requests from the local
-        system with origin checks.  This is just an extra check to limit what can be
-        accessed by scripts running on Pixiv.
         """
         # If path isn't in a mounted directory, only allow access for the local UI.
         # Otherwise, we'd be giving Pixiv full access to the filesystem.

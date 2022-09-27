@@ -14,30 +14,64 @@ from .manager import Manager
 
 log = logging.getLogger(__name__)
 
-def _check_auth(request):
-    auth = request.app['manager'].auth
-    request['user'] = auth.get_guest()
+@web.middleware
+async def auth_middleware(request, handler):
+    # auth/login is the only API call we allow without any authentication.
+    if request.path == '/api/auth/login':
+        return await handler(request)
 
-    origin = request.headers.get('Origin') or request.headers.get('Referer')
-    if origin:
-        origin = urllib.parse.urlparse(origin)
+    # If true, this request is local, either coming from our local UI or from the user accessing
+    # us directly (no Origin header), so it's trusted and runs as admin.
+    request['is_local'] =  _is_trusted_local_request(request)
 
+    # Set request['user']:
+    _check_auth(request)
+
+    # Allow the main page to load without authentication, as well as our static scripts and
+    # resources.
+    requires_auth = request.path != '/' and not request.path.startswith('/client/')
+    if requires_auth and request['user'] is None:
+        if request.path.startswith('/api/'):
+            result = { 'success': False, 'code': 'access-denied', 'reason': 'Authentication required' }
+            raise aiohttp.web.HTTPUnauthorized(body=json.dumps(result))
+        else:
+            raise aiohttp.web.HTTPUnauthorized()
+
+    return await handler(request)
+
+def _is_trusted_local_request(request):
+    """
+    Return true if request is coming from localhost, and isn't coming from another site.
+    """
     # Check if this request is from localhost.  Don't use request.host, since that comes
     # from the Host header.  If we were running behind a front-end server like nginx over
     # a local forwarding port, we'd need to check request.forwarded instead, since all
     # requests would be connections from localhost.
     sock = request.get_extra_info('socket')
     remote_addr = sock.getpeername()[0] if sock else None
-    from_localhost = remote_addr == '127.0.0.1'
+    if remote_addr != '127.0.0.1':
+        return False
+
+    # Don't treat this as a local request if it's being made from another site the user
+    # is viewing.
+    origin = request.headers.get('Origin') or request.headers.get('Referer')
+    if origin:
+        origin = urllib.parse.urlparse(origin)
+        if origin.hostname != '127.0.0.1':
+            return False
+
+    return True
+
+def _check_auth(request):
+    auth = request.app['manager'].auth
+    request['user'] = auth.get_guest()
 
     # Allow unauthenticated requests on localhost if the origin is localhost, so we
     # always give access to the local UI.
-    if from_localhost:
-        if origin is None or origin.hostname == '127.0.0.1':
-            log.debug('Request to localhost is admin')
-            request['user'] = auth.get_local_user()
-            request['is_localhost'] = True
-            return
+    if request['is_local']:
+        log.debug('Request to localhost is admin')
+        request['user'] = auth.get_local_user()
+        return
 
     # Allow unauthenticated requests to the authentication interface.
     if request.path == '/api/auth/login' or request.path == '/client/auth.html':
@@ -57,37 +91,6 @@ def _check_auth(request):
 
     log.debug('Unauthenticated request')
     request['user'] = auth.get_guest()
-
-@web.middleware
-async def auth_middleware(request, handler):
-    # auth/login is the only API call we allow without any authentication.
-    if request.path == '/api/auth/login':
-        return await handler(request)
-
-    _check_auth(request)
-
-    # Allow the main page to load without authentication, as well as our static scripts and
-    # resources.
-    requires_auth = request.path != '/' and not request.path.startswith('/client/')
-    if requires_auth and request['user'] is None:
-        if request.path.startswith('/api/'):
-            result = { 'success': False, 'code': 'access-denied', 'reason': 'Authentication required' }
-            raise aiohttp.web.HTTPUnauthorized(body=json.dumps(result))
-        else:
-            raise aiohttp.web.HTTPUnauthorized()
-
-    # Set a flag if a request has an origin of localhost, which means it's from the local UI
-    # and not through Pixiv.  We only give access to /root to access non-mounted directories
-    # for the local UI.  This is also limited to localhost, since any non-browser client can
-    # set an arbitrary origin.
-    origin = request.headers.get('Origin') or request.headers.get('Referer')
-    if origin is not None and request.get('is_localhost'):
-        origin_url = urllib.parse.urlparse(origin)
-        request['is_local'] = origin_url.hostname == '127.0.0.1'
-    else:
-        request['is_local'] = False
-
-    return await handler(request)
 
 async def check_origin(request, response):
     """

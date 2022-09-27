@@ -812,8 +812,6 @@ async def api_auth_login(info):
 
 @reg('/auth/set-password')
 async def api_auth_set_password(info):
-    # When we're local we don't use authentication and the user points at a dummy.
-    # if info.request['is_local']
     new_password = info.data.get('new_password')
     username = info.data.get('username')
 
@@ -828,7 +826,7 @@ async def api_auth_set_password(info):
     if info.user.is_virtual:
         # This is a dummy admin user for local access.  It isn't authenticated or stored
         # to disk, so it doesn't make sense to edit its password.
-        assert info.request.get('is_localhost')
+        assert info.request.get('is_local')
         raise misc.Error('invalid-request', 'A username must be specified')
 
     if not info.user.is_admin:
