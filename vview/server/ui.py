@@ -25,17 +25,27 @@ def add_routes(router):
     router.add_get('/client/{path:.*\.css}', handle_css)
     router.add_get('/client/{path:.*}', handle_client)
 
-    # All top-level paths serve the same file.
-    router.add_get('/{unused:[^/]*?}', handle_root)
+    router.add_get('/', handle_resource('resources/index.html'))
 
-def handle_root(request):
-    path = root_dir / 'resources/index.html'
-    if not path.exists():
-        raise aiohttp.web.HTTPNotFound()
+    # Chrome asks for favicon.ico sometimes, such as when viewing an image directly.  Give
+    # it a PNG instead.
+    router.add_get('/favicon.ico', handle_resource('resources/vview-icon.png'))
 
-    return aiohttp.web.FileResponse(path, headers={
-        'Cache-Control': 'public, no-cache',
-    })
+def handle_resource(path):
+    """
+    Handle returning a specific file inside resources.
+    """
+    path = root_dir / path
+
+    def handle_file(request):
+        if not path.exists():
+            raise aiohttp.web.HTTPNotFound()
+
+        return aiohttp.web.FileResponse(path, headers={
+            'Cache-Control': 'public, no-cache',
+        })
+
+    return handle_file
 
 def _get_path_timestamp_suffix(path):
     fs_path = root_dir / Path(path)
