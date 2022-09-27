@@ -1,5 +1,6 @@
-import asyncio, cairo, time, uuid, os, json, hashlib, traceback, math, logging
+import asyncio, cairo, time, uuid, os, json, hashlib, traceback, math, logging, tempfile, random
 import PIL
+from pathlib import Path
 from PIL import Image, ImageFilter
 from io import BytesIO
 from pathlib import Path
@@ -79,6 +80,15 @@ class tm:
         self.t = now
         log.info('%30s %.3f %.3f' % (text, delta, self.total))
 
+def _escape_ffmpeg_path(path):
+    """
+    Escape a path for passing to FFmpeg filter strings.
+
+    FFmpeg wants really nasty escaping if you're foolish enough to have colons in your
+    absolute paths, and don't even think about backslashes.
+    """
+    return str(path).replace('\\', '/').replace(':', '\\\\:')
+
 async def _create_correction(source_image, lines):
     s = tm()
     # We'll need to load the source file eventually, so do it now to catch any errors early.
@@ -104,38 +114,43 @@ async def _create_correction(source_image, lines):
         downscaled_mask = downscaled_mask.resize(target_size, reducing_gap=2)
         s.go('pre-downscale')
 
-    # Save the mask for ffmpeg.
-    downscaled_mask.save('mask.bmp', format='bmp')
-    s.go('save mask')
+    # Save the mask to a file.
+    mask_path = Path(tempfile.gettempdir()) / f'vview-mask-{random.randint(0,10000000)}.bmp'
+    try:
+        # Save the mask for ffmpeg.
+        downscaled_mask.save(mask_path, format='bmp')
+        s.go('save mask')
 
-    # Pipe the image to ffmpeg as a BMP.  This allows us to send embedded images, and avoids
-    # having FFmpeg decompress PNGs a second time.
-    source_bmp = BytesIO()
-    downscaled_source_image.save(source_bmp, format='bmp')
-    s.go('save downscaled image')
+        # Pipe the image to ffmpeg as a BMP.  This allows us to send embedded images, and avoids
+        # having FFmpeg decompress PNGs a second time.
+        source_bmp = BytesIO()
+        downscaled_source_image.save(source_bmp, format='bmp')
+        s.go('save downscaled image')
 
-    source_bmp.seek(0)
-    stdin = video.pipe_to_process(source_bmp)
+        source_bmp.seek(0)
+        stdin = video.pipe_to_process(source_bmp)
 
-    # Write the output to a file.  It would be better to stream this, but asyncio is
-    # a pain and I don't feel like fighting with it right now.
-    tempdir = Path(os.environ['TEMP'])
-    temp_filename = 'vview-temp-%s.bmp' % str(uuid.uuid4())
-    temp_file = Path(tempdir) / temp_filename
+        # Write the output to a file.  It would be better to stream this, but asyncio is
+        # a pain and I don't feel like fighting with it right now.
+        tempdir = Path(os.environ['TEMP'])
+        temp_filename = 'vview-temp-%s.bmp' % str(uuid.uuid4())
+        temp_file = Path(tempdir) / temp_filename
 
-    result = await video.run_ffmpeg([
-        '-hide_banner',
-        '-y',
-        '-i', '-',
-        '-vf', "removelogo=f=mask.bmp",
-        '-c:v', 'bmp',
-        '-f', 'image2pipe',
-        str(temp_file),
-        '-loglevel', 'error',
-    ], stdin=stdin)
-    if result != 0:
-        raise Exception('Error running FFmpeg to create correction image')
-    s.go('ffmpeg')
+        result = await video.run_ffmpeg([
+            '-hide_banner',
+            '-y',
+            '-i', '-',
+            '-vf', f'removelogo=f={_escape_ffmpeg_path(mask_path)}',
+            '-c:v', 'bmp',
+            '-f', 'image2pipe',
+            str(temp_file),
+            '-loglevel', 'error',
+        ], stdin=stdin)
+        if result != 0:
+            raise Exception('Error running FFmpeg to create correction image')
+        s.go('ffmpeg')
+    finally:
+        mask_path.unlink(missing_ok=True)
 
     try:
         with temp_file.open('rb') as result:
