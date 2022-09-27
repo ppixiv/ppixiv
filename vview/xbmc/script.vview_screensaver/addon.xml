@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<addon id="script.vview_screensaver" name="VView" version="1.0" provider-name="VView">
+    <requires>
+        <import addon="xbmc.python" version="3.0.0" />
+    </requires>
+
+    <extension point="xbmc.ui.screensaver" library="vview.py" />
+
+    <extension point="xbmc.addon.metadata">
+        <summary lang="en">Run VView as a screensaver.</summary>
+        <description lang="en">Requires Chrome.</description>
+    </extension>
+</addon>
