@@ -376,7 +376,7 @@ async def handle_mjpeg(request):
 
     with absolute_path.open('rb') as f:
         # We can convert MJPEG MKVs and GIFs to animation ZIPs.
-        if mime_type == 'video/x-matroska':
+        if mime_type in ('video/x-matroska', 'video/webm'):
             # Get frame durations.  This is where we expect an exception to be thrown if
             # the file isn't an MJPEG, so we do this before creating our response.
             frame_durations = mjpeg_mkv_to_zip.get_frame_durations(f)
@@ -384,6 +384,8 @@ async def handle_mjpeg(request):
         elif mime_type == 'image/gif':
             frame_durations = gif_to_zip.get_frame_durations(f)
             output_file, task = gif_to_zip.create_ugoira(f, frame_durations)
+        else:
+            raise aiohttp.web.HTTPNotFound(f'Thumbnails not supported for {mime_type}')
 
         response = aiohttp.web.Response(status=200, headers={
             'Content-Type': 'application/zip',
