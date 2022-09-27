@@ -971,7 +971,7 @@ void Terminal::term_get_cursor_position(int *x, int *y)
 /*
  * Set up the terminal for a given size.
  */
-void Terminal::term_size(int newrows, int newcols, int newsavelines)
+void Terminal::term_size(int newcols, int newrows, int newsavelines)
 {
     int i, j, oldrows = rows;
     int save_alt_which = alt_which;

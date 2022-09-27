@@ -260,7 +260,7 @@ public:
     void init(shared_ptr<const TermConfig> conf, TerminalInterface *win, shared_ptr<Client> client);
 
     void term_free();
-    void term_size(int, int, int);
+    void term_size(int newcols, int newrows, int newsavelines);
     void term_paint(int left, int top, int right, int bottom, bool immediately);
     void term_scroll(int rel, int where);
     void term_scroll_to_selection(int which_end);

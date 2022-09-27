@@ -86,7 +86,7 @@ struct TermConfig
 
     // Window positioning.  These are used to remember the window position between
     // sessions.
-    int width = 80, height = 24;
+    int width = 120, height = 40;
     int x = CW_USEDEFAULT, y = CW_USEDEFAULT;
     bool maximized = true;
 };

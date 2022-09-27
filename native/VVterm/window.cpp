@@ -375,6 +375,10 @@ TermWinWindows::TermWinWindows(shared_ptr<ClientPipes> client_pipes, HICON icon)
             // term here.
             term = make_shared<Terminal>();
             term->init(conf, this, client);
+
+            // Set the scrollback size, and the default window size.  The window size may be
+            // changed immediately from an initial WM_SIZE (this happens if we're maximized).
+            term->term_size(conf->width, conf->height, conf->scrollback_lines);
         },
         [this](HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) { return WndProc(hwnd, message, wParam, lParam); },
         appname, icon,
@@ -399,8 +403,6 @@ TermWinWindows::TermWinWindows(shared_ptr<ClientPipes> client_pipes, HICON icon)
 
     // Tell timing who to inform about timers.
     timing_set_hwnd(hwnd, WM_APP_TIMER_CHANGE);
-
-    term->term_size(conf->height, conf->width, conf->scrollback_lines);
 
     // Correct the guesses for extra_{width,height}.
     {
@@ -844,14 +846,14 @@ void TermWinWindows::request_resize(int w, int h)
             SWP_NOMOVE | SWP_NOZORDER);
 
         if (!sent_term_size)
-            term->term_size(h, w, conf->scrollback_lines);
+            term->term_size(w, h, conf->scrollback_lines);
     } else {
         /*
          * If we're resizing by changing the font, we must tell the
          * terminal the new size immediately, so that reset_window
          * will know what to do.
          */
-        term->term_size(h, w, conf->scrollback_lines);
+        term->term_size(w, h, conf->scrollback_lines);
         reset_window(0);
     }
 
@@ -923,7 +925,7 @@ void TermWinWindows::reset_window(int reinit)
             font_height * term->rows != win_height) {
             // Our only choice at this point is to change the
             // size of the terminal; Oh well.
-            term->term_size(win_height/font_height, win_width/font_width, conf->scrollback_lines);
+            term->term_size(win_width/font_width, win_height/font_height, conf->scrollback_lines);
             offset_width = (win_width-font_width*term->cols)/2;
             offset_height = (win_height-font_height*term->rows)/2;
             InvalidateRect(hwnd, NULL, true);
@@ -1004,7 +1006,7 @@ void TermWinWindows::reset_window(int reinit)
             {
                 if ( height > term->rows ) height = term->rows;
                 if ( width > term->cols )  width = term->cols;
-                term->term_size(height, width, conf->scrollback_lines);
+                term->term_size(width, height, conf->scrollback_lines);
             }
 
             SetWindowPos(hwnd, NULL, 0, 0,
@@ -1156,7 +1158,7 @@ void TermWinWindows::wm_size_resize_term(LPARAM lParam, bool border)
         conf->height = h;
         conf->width = w;
     } else {
-        term->term_size(h, w, conf->scrollback_lines);
+        term->term_size(w, h, conf->scrollback_lines);
 
         /* If this is happening re-entrantly during the call to
          * SetWindowPos in wintw_request_resize, let it know that
@@ -1389,7 +1391,7 @@ LRESULT CALLBACK TermWinWindows::WndProc(HWND hwnd, UINT message, WPARAM wParam,
     case WM_EXITSIZEMOVE:
         resizing = false;
         if (need_client_resize) {
-            term->term_size(conf->height, conf->width, conf->scrollback_lines);
+            term->term_size(conf->width, conf->height, conf->scrollback_lines);
             InvalidateRect(hwnd, NULL, true);
         }
         recompute_window_offset();
