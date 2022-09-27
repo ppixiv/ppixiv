@@ -2,28 +2,13 @@
 # os.scandir.
 
 import asyncio, time, os, stat, logging
-from adodbapi import ado_consts
 from pathlib import Path
 from pprint import pprint
 
 log = logging.getLogger(__name__)
 
-# Get this from pywin32, not from adodbapi:
-try:
-    import adodbapi
-except ImportError as e:
-    adodbapi = None
-    log.warn('Windows search not available: %s' % e)
-
-# adodbapi seems to have no way to escape strings, and Search.CollatorDSO doesn't seem
-# to support parameters at all.
-def escape_sql(s):
-    result = ''
-    for c in s:
-        if c == '\'':
-            result += "'"
-        result += c
-    return result
+from . import windows_search_api
+escape_sql = windows_search_api.escape_sql
 
 FILE_ATTRIBUTE_READONLY = 0x01
 FILE_ATTRIBUTE_DIRECTORY = 0x10
@@ -38,14 +23,14 @@ class SearchDirEntryStat:
     def __init__(self, data):
         self._data = data
 
-        self.st_size = data['System.Size']
+        self.st_size = data['SYSTEM.SIZE']
         self._st_atime = None
         self._st_ctime = None
         self._st_mtime = None
 
-        # System.FileAttributes is WIN32_FIND_DATA.dwFileAttributes.  Convert
+        # SYSTEM.FILEATTRIBUTES is WIN32_FIND_DATA.dwFileAttributes.  Convert
         # it to st_mode in the same way Python does.
-        attr = data['System.FileAttributes']
+        attr = data['SYSTEM.FILEATTRIBUTES']
         if attr & FILE_ATTRIBUTE_DIRECTORY:
             mode = stat.S_IFDIR | 0o111
         else:
@@ -89,7 +74,7 @@ class SearchDirEntryStat:
         if self._st_atime is not None:
             return self._st_atime
 
-        self._st_atime = self._data['System.DateAccessed'].timestamp() - time.timezone
+        self._st_atime = self._data['SYSTEM.DATEACCESSED'].timestamp() - time.timezone
         return self._st_atime
 
     @property
@@ -97,7 +82,7 @@ class SearchDirEntryStat:
         if self._st_ctime is not None:
             return self._st_ctime
 
-        self._st_ctime = self._data['System.DateCreated'].timestamp() - time.timezone
+        self._st_ctime = self._data['SYSTEM.DATECREATED'].timestamp() - time.timezone
         return self._st_ctime
 
     @property
@@ -105,7 +90,7 @@ class SearchDirEntryStat:
         if self._st_mtime is not None:
             return self._st_mtime
 
-        self._st_mtime = self._data['System.DateModified'].timestamp() - time.timezone
+        self._st_mtime = self._data['SYSTEM.DATEMODIFIED'].timestamp() - time.timezone
         return self._st_mtime
 
 def _matches_range(range, value):
@@ -130,7 +115,7 @@ class SearchDirEntry(os.PathLike):
     """
     def __init__(self, data):
         self._data = data
-        self._path = data['System.ItemPathDisplay']
+        self._path = data['SYSTEM.ITEMPATHDISPLAY']
         self._stat = None
 
     @property
@@ -140,11 +125,11 @@ class SearchDirEntry(os.PathLike):
         """
         result = { }
 
-        if self._data['System.Image.HorizontalSize']:
-            result['width'] = self._data['System.Image.HorizontalSize']
+        if self._data['SYSTEM.IMAGE.HORIZONTALSIZE']:
+            result['width'] = self._data['SYSTEM.IMAGE.HORIZONTALSIZE']
 
-        if self._data['System.Image.VerticalSize']:
-            result['height'] = self._data['System.Image.VerticalSize']
+        if self._data['SYSTEM.IMAGE.VERTICALSIZE']:
+            result['height'] = self._data['SYSTEM.IMAGE.VERTICALSIZE']
 
         return result
 
@@ -157,10 +142,10 @@ class SearchDirEntry(os.PathLike):
         return os.path.basename(self._path)
 
     def is_dir(self, *, follow_symlinks=True):
-        return self._data['System.ItemType'] == 'Directory'
+        return self._data['SYSTEM.ITEMTYPE'] == 'Directory'
 
     def is_file(self, *, follow_symlinks=True):
-        return self._data['System.ItemType'] != 'Directory'
+        return self._data['SYSTEM.ITEMTYPE'] != 'Directory'
 
     def exists(self, *, follow_symlinks=True):
         return True
@@ -220,44 +205,30 @@ def search(*,
         include_files=True,
         include_dirs=True,
     ):
-    if adodbapi is None:
-        return
 
     yield_timeouts = (timeout is not None)
     if timeout is None:
         timeout = 10
 
-    try:
-        conn = adodbapi.connect('Provider=Search.CollatorDSO; Extended Properties="Application=Windows"', timeout=timeout)
-    except Exception as e:
-        log.warn('Couldn\'t connect to search: %s' % str(e))
-        return
-
-    # For some reason, adodbapi defaults to adUseClient, which is extraordinarily
-    # slow: if you make a request that matches 100k files, it reads the entire record
-    # set before seeing any of them.  Switch this to adUseServer to get a normal
-    # database cursor.
-    conn.connector.CursorLocation = ado_consts.adUseServer
-
     select = [
         # These fields are required for SearchDirEntry.
-        'System.ItemPathDisplay',
-        'System.ItemType',
-        'System.DateAccessed',
-        'System.DateModified',
-        'System.DateCreated',
-        'System.FileAttributes',
-        'System.Size',
+        'SYSTEM.ITEMPATHDISPLAY',
+        'SYSTEM.ITEMTYPE',
+        'SYSTEM.DATEACCESSED',
+        'SYSTEM.DATEMODIFIED',
+        'SYSTEM.DATECREATED',
+        'SYSTEM.FILEATTRIBUTES',
+        'SYSTEM.SIZE',
 
         # The rest are optional.
-        'System.Rating',
-        'System.Image.HorizontalSize',
-        'System.Image.VerticalSize',
-        'System.Keywords',
-        'System.ItemAuthors',
-        'System.Title',
-        'System.Comment',
-        'System.MIMEType',
+        'SYSTEM.RATING',
+        'SYSTEM.IMAGE.HORIZONTALSIZE',
+        'SYSTEM.IMAGE.VERTICALSIZE',
+        'SYSTEM.KEYWORDS',
+        'SYSTEM.ITEMAUTHORS',
+        'SYSTEM.TITLE',
+        'SYSTEM.COMMENT',
+        'SYSTEM.MIMETYPE',
     ]
 
     where = []
@@ -278,11 +249,11 @@ def search(*,
         where.append(f"({ ' OR '.join(parts) })")
 
     if exact_path is not None:
-        where.append("System.ItemPathDisplay = '%s'" % escape_sql(str(exact_path)))
+        where.append("SYSTEM.ITEMPATHDISPLAY = '%s'" % escape_sql(str(exact_path)))
     if contents:
         where.append("""CONTAINS(System.Search.Contents, '"%s"')""" % escape_sql(str(contents)))
     if filename is not None:
-        where.append("System.FileName = '%s'" % escape_sql(str(filename)))
+        where.append("SYSTEM.FILENAME = '%s'" % escape_sql(str(filename)))
         
     # Add filters.
     if substr is not None:
@@ -290,27 +261,27 @@ def search(*,
             # Note that the double-escaping is required to make substring searches
             # work.  '"file*"' will prefix match "file*", but 'file*' won't.  This
             # seems to be efficient at prefix and suffix matches.
-            where.append("""CONTAINS(System.FileName, '"*%s*"')""" % escape_sql(word))
+            where.append("""CONTAINS(SYSTEM.FILENAME, '"*%s*"')""" % escape_sql(word))
 
     if not include_files:
-        where.append("System.ItemType = 'Directory'")
+        where.append("SYSTEM.ITEMTYPE = 'Directory'")
     if not include_dirs:
-        where.append("System.ItemType != 'Directory'")
+        where.append("SYSTEM.ITEMTYPE != 'Directory'")
 
     if media_type == 'images':
-        where.append("System.Kind = 'picture'")
+        where.append("SYSTEM.KIND = 'picture'")
     elif media_type == 'videos':
         # Include GIFs when searching for videos.  We can't filter for animated GIFs here,
         # so include them and let the caller finish filtering them.
-        where.append("(System.Kind = 'video' OR System.ItemType = '.gif')")
+        where.append("(SYSTEM.KIND = 'video' OR SYSTEM.ITEMTYPE = '.gif')")
 
-    # where.append("(System.ItemType = 'Directory' OR System.Kind = 'picture' OR System.Kind = 'video')")
+    # where.append("(SYSTEM.ITEMTYPE = 'Directory' OR SYSTEM.KIND = 'picture' OR SYSTEM.KIND = 'video')")
 
-    # System.Rating is null for no rating, and 1, 25, 50, 75, 99 for 1, 2, 3, 4, 5
+    # SYSTEM.RATING is null for no rating, and 1, 25, 50, 75, 99 for 1, 2, 3, 4, 5
     # stars.  It's a bit weird, but we only use it for bookmarking.  Any image with 50 or
     # higher rating is considered bookmarked.
     if bookmarked:
-        where.append("System.Rating >= 50")
+        where.append("SYSTEM.RATING >= 50")
 
     # If sort_results is true, sort directories first, then alphabetical.  This is
     # useful but makes the search slower.
@@ -327,23 +298,20 @@ def search(*,
     start_time = time.time()
     timed_out = False
     try:
-        with conn:
-            with conn.cursor() as cursor:
-                cursor.execute(query)
-                for row in cursor:
-                    # Handle search filters that the index doesn't do for us.  This is just a best-effort
-                    # to filter these early, since if we can do it directly from the search rows, it's faster
-                    # than having it go through the higher-level filtering.
-                    if row['System.Image.HorizontalSize'] is not None and row['System.Image.VerticalSize'] is not None:
-                        if not _matches_range(aspect_ratio, row['System.Image.HorizontalSize'] / row['System.Image.VerticalSize']):
-                            continue
+        for row in windows_search_api.search(timeout=timeout, query=query):
+            # Handle search filters that the index doesn't do for us.  This is just a best-effort
+            # to filter these early, since if we can do it directly from the search rows, it's faster
+            # than having it go through the higher-level filtering.
+            if row['SYSTEM.IMAGE.HORIZONTALSIZE'] is not None and row['SYSTEM.IMAGE.VERTICALSIZE'] is not None:
+                if not _matches_range(aspect_ratio, row['SYSTEM.IMAGE.HORIZONTALSIZE'] / row['SYSTEM.IMAGE.VERTICALSIZE']):
+                    continue
 
-                    if row['System.Image.HorizontalSize'] is not None and row['System.Image.VerticalSize'] is not None:
-                        if not _matches_range(total_pixels, row['System.Image.HorizontalSize'] * row['System.Image.VerticalSize']):
-                            continue
+            if row['SYSTEM.IMAGE.HORIZONTALSIZE'] is not None and row['SYSTEM.IMAGE.VERTICALSIZE'] is not None:
+                if not _matches_range(total_pixels, row['SYSTEM.IMAGE.HORIZONTALSIZE'] * row['SYSTEM.IMAGE.VERTICALSIZE']):
+                    continue
 
-                    entry = SearchDirEntry(row)
-                    yield entry
+            entry = SearchDirEntry(row)
+            yield entry
 
     except Exception as e:
         # How do we figure out if this exception is from a timeout?  The HResult in the
@@ -356,7 +324,7 @@ def search(*,
             # during that yield don't cause nested exceptions.
             timed_out = True
         else:
-            log.warn('Windows search error:', e)
+            log.exception('Windows search error')
 
     # If the user explicitly requested a timeout, return SearchTimeout to let him know that
     # the results were incomplete.  If no timeout was requested, raise an exception.  The
