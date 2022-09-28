@@ -231,9 +231,11 @@ ppixiv.MainController = class
         if(initial_stylesheet)
             initial_stylesheet.remove();
        
-        // Create the shared title and page icon.
+        // Create the shared title.  This is set by helpers.set_page_title.
         document.head.appendChild(document.createElement("title"));
-        var document_icon = document.head.appendChild(document.createElement("link"));
+        
+        // Create the shared page icon.  This is set by set_page_icon.
+        let document_icon = document.head.appendChild(document.createElement("link"));
         document_icon.setAttribute("rel", "icon");
 
         helpers.add_clicks_to_search_history(document.body);
