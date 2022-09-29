@@ -33,7 +33,7 @@ def open_top():
     """
     _open_url_path('')
 
-def open_path(path):
+def open_path_in_browser(path):
     """
     Open path in a Vview browser window.
     """

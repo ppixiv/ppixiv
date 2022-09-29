@@ -14,7 +14,7 @@ def go():
         return
 
     server.fork_server()
-    open_in_browser.open_path(sys.argv[1])
+    open_in_browser.open_path_in_browser(sys.argv[1])
 
 if __name__=='__main__':
     with error_dialog.show_errors():
