@@ -328,7 +328,7 @@ async def create_inpaint_or_wait(*args, patch_filename, **kwargs):
 
     # Run the inpaint.
     task = create_inpaint(*args, **kwargs, patch_filename=patch_filename)
-    task = asyncio.create_task(task)
+    task = asyncio.create_task(task, name='Inpainting')
     _inpaint_jobs[patch_filename] = task
 
     try:

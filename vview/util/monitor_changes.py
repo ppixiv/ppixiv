@@ -175,7 +175,7 @@ async def go():
     async def changes(path, old_path, action):
         log.info('...', path, old_path, action)
     monitor_promise = monitor.monitor_call(changes)
-    monitor_task = asyncio.create_task(monitor_promise)
+    monitor_task = asyncio.create_task(monitor_promise, 'FS change monitor')
 
     await monitor_task
 

@@ -366,7 +366,7 @@ class _Terminal:
             log.warn('Couldn\'t create console, using Windows console instead')
         else:
             stdin, stdout = self.vvterm.open_handles()
-            self.event_task = asyncio.create_task(self.handle_events())
+            self.event_task = asyncio.create_task(self.handle_events(), name='Terminal')
 
         # Make our terminal stdout and stderr if we didn't already have one.  If we were
         # started with another terminal, don't override it.

@@ -191,6 +191,9 @@ async def shutdown_requests(app):
         task.cancel()
 
 async def setup_inner(*, set_main_task=None):
+    # aiohttp doesn't set a name for the main task, so do it ourself.
+    asyncio.current_task().set_name('Webserver')
+
     set_main_task()
 
     app = web.Application(middlewares=[register_request_middleware, auth_middleware])

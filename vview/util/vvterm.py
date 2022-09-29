@@ -189,7 +189,7 @@ async def go():
                         print('Terminal window shut down')
                         return
 
-    await asyncio.create_task(handle_events())
+    await asyncio.create_task(handle_events(), name='VVterm')
     return
 
     while True:

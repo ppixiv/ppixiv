@@ -29,6 +29,11 @@ class WebsocketClientConnection:
 
         self.browser_id = init.get('browser_id')
 
+        # Set a better name for WebSockets tasks.
+        # aiohttp doesn't set a name for the main task, so do it ourself.
+        task = asyncio.current_task()
+        task.set_name('WS-' + task.get_name())
+
         log.info('WebSockets connection opened from %s (%s)', self.request.remote, self.browser_id)
 
         # Add ourself to the connection list, so we'll receive broadcasts from other clients.

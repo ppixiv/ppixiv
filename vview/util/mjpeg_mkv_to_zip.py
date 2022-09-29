@@ -136,5 +136,5 @@ async def create_ugoira(file, frame_durations):
     write = FixedZipPipe(write)
 
     promise = asyncio.to_thread(_create_ugoira, file, write, frame_durations)
-    promise = asyncio.create_task(promise)
+    promise = asyncio.create_task(promise, name='MKV-to-ZIP')
     return read, promise

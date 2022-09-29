@@ -47,8 +47,8 @@ class pipe_to_process:
         # Wait for all data to be sent and the process to exit.  If we're cancelled,
         # wait_or_kill_process will kill the process, which will also cause the writer
         # to receive BrokenPipeError and stop.
-        send_promise = asyncio.create_task(asyncio.to_thread(self._send))
-        wait_promise = asyncio.create_task(wait_promise)
+        send_promise = asyncio.create_task(asyncio.to_thread(self._send), name='Process pipe (send)')
+        wait_promise = asyncio.create_task(wait_promise, name='Process pipe (wait)')
 
         waits = {send_promise, wait_promise}
         while waits:
