@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="VVbrowser.cpp" />
+    <ClCompile Include="VVbrowserWindow.cpp" />
+    <ClCompile Include="WebViewHelpers.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="VVbrowserWindow.h" />
+    <ClInclude Include="WebViewHelpers.h" />
+    <ClInclude Include="Resource.h" />
+    <ClInclude Include="..\shared\PythonHeader.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Resource.rc" />
+  </ItemGroup>
+</Project>

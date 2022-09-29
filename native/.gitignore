@@ -1,3 +1,6 @@
+# Ignore NuGet packages.  Sync these in Visual Studio by selecting "Restore NuGet Packages" in
+# the solution context menu.
+packages
 .vs
 build-*
 **/*.aps
