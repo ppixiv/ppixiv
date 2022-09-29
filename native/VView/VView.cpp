@@ -22,19 +22,13 @@
 
 #include "Helpers.h"
 
-// Python.h tries to link to "python310_d.lib" by default, which doesn't even
-// exist in the distribution.  Turn that off so we can link the correct library
-// ourself.
-#define Py_NO_ENABLE_SHARED
-#include <Python.h>
+#include "../shared/PythonHeader.h"
 
 #include <io.h>
 #include <fcntl.h>
 #include <string>
 #include <vector>
 using namespace std;
-
-#pragma comment(lib, "python310.lib")
 
 namespace
 {
@@ -216,7 +210,11 @@ extern "C" int RunVView(bool terminal)
 
         // Set the Python path.
         wstring path =
+            // Add the top of the distribution, for importing vview.
             top_dir + L";" +
+
+            // Add bin/Python and python/Python/python310.zip, for Python standard
+            // libraries.  We also put our own .pyd's inside bin/Python.
             python_path + L"\\python310.zip;" +
             python_path;
         Py_SetPath(path.c_str());
