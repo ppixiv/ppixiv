@@ -321,6 +321,9 @@ LRESULT VVbrowserWindow::HandleWindowMessage(HWND hWnd, UINT message, WPARAM wPa
     case WM_ACTIVATE:
         // When we gain focus, we have to manually tell the controller to focus the view,
         // or it won't receive some keyboard inputs until the window is clicked on.
+        if(wParam == 0)
+            break;
+
         RunAsync([this]() {
             if(controller)
                 controller->MoveFocus(COREWEBVIEW2_MOVE_FOCUS_REASON_PROGRAMMATIC);
