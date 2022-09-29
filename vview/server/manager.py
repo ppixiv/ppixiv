@@ -61,14 +61,10 @@ class Manager:
 
             self.library.mount(path, name)
 
-            log.info('Initializing library: %s' % path)
-
-            # Run a quick refresh at startup.
-            start = time.time()
-            await self.library.quick_refresh()
-            #await self.library.refresh()
-            end = time.time()
-            log.info('Indexing took %.2f seconds' % (end-start))
+            # Run a quick refresh at startup.  This can still take a few seconds for larger
+            # libraries, so run this in a task to allow requests to start being handled immediately.
+            refresh_task = self.library.quick_refresh()
+            self.run_background_task(refresh_task, name=f'Indexing {path}')
 
     def resolve_path(self, relative_path):
         """

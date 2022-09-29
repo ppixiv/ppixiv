@@ -266,6 +266,8 @@ class Library:
         """
         if paths is None:
             paths = self.mounts
+        log.info('Initializing library: %s' % ', '.join(paths))
+        start = time.time()
 
         # Scan for metadata files.
         log.info(f'Finding bookmarks...')
@@ -278,11 +280,18 @@ class Library:
                     timeout=0, # disable timeouts
                 ):
                 all_metadata_files.append(result.path)
+                await asyncio.sleep(0)
 
         log.info(f"Scanning {len(all_metadata_files)} directories with bookmarks")
         for path in all_metadata_files:
             path = open_path(path)
             await self._refresh_metadata_file(path)
+
+            # Yield as we go, to make sure we allow other things to happen if this takes a while.
+            await asyncio.sleep(0)
+
+        end = time.time()
+        log.info(f'Indexing {", ".join(paths)} took %.2f seconds' % (end-start))
 
     async def refresh(self, *, paths=None):
         """
