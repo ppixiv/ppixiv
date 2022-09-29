@@ -61,32 +61,28 @@ namespace
     {
         // XXX: AdjustWindowRectExForDpi?
 
-        // XXX: AdjustWindowRectEx includes the shadow around the window, which we want to ignore
-        // while figuring out how to size and position the window.  How do we get the real window
-        // size?  DwmGetWindowAttribute can return this, but that only works on a window that's
-        // already created.
-
         RECT rect1 = { 100, 100, 200, 200 };
         RECT rect2 = rect1;
         AdjustWindowRectEx(&rect2, windowStyle, false /* no menu */, exWindowStyle);
         *extraWindowWidth = (rect2.right - rect2.left) - (rect1.right - rect1.left);
         *extraWindowHeight = (rect2.bottom - rect2.top) - (rect1.bottom - rect1.top);
-        /*
+
+#if 0
+        // XXX: AdjustWindowRectEx includes the shadow around the window, which we want to ignore
+        // while figuring out how to size and position the window.  How do we get the real window
+        // size?  DwmGetWindowAttribute can return this, but that only works on a window that's
+        // already created and visible, so this flashes a dummy window briefly.
+
         const wchar_t *dummyWindowClass = GetDummyWindowClass(hinst);
 
-        HWND hwnd = CreateWindowExW(
-            exWindowStyle, dummyWindowClass, L"", windowStyle,
-            100, 100, 500, 500,
-            nullptr, nullptr, hinst, nullptr);
+        HWND hwnd = CreateWindowExW(exWindowStyle, dummyWindowClass, L"", windowStyle,
+            100, 100, 500, 500, nullptr, nullptr, hinst, nullptr);
 
-        //SetLayeredWindowAttributes(hwnd, 0, 0, LWA_ALPHA);
-
-        // gross and flickers the window
         ShowWindow(hwnd, SW_SHOWMINNOACTIVE);
         RECT foo;
         DwmGetWindowAttribute(hwnd, DWMWA_EXTENDED_FRAME_BOUNDS, &foo, sizeof(RECT));
         DestroyWindow(hwnd);
-        */
+#endif
     }
 }
 
@@ -182,16 +178,16 @@ VVbrowserWindow::VVbrowserWindow(Config config_)
     const wchar_t *windowClass = GetWindowClass(hinst);
 
     // Create the window.
-    m_mainWindow = CreateWindowExW(
+    hwnd = CreateWindowExW(
         exWindowStyle, windowClass, config.windowTitle.c_str(), windowStyle,
         x, y, width, height,
         nullptr, nullptr, hinst, nullptr);
 
-    SetWindowLongPtr(m_mainWindow, GWLP_USERDATA, (LONG_PTR) this);
+    SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR) this);
 
     // Set the default window icon.
-    SendMessage(m_mainWindow, WM_SETICON, ICON_BIG, (LPARAM) config.defaultIcon);
-    // SetWindowPos(m_mainWindow, HWND_TOP, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOOWNERZORDER);
+    SendMessage(hwnd, WM_SETICON, ICON_BIG, (LPARAM) config.defaultIcon);
+    // SetWindowPos(hwnd, HWND_TOP, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOOWNERZORDER);
 
     // Enable dark theming for the window.
     //
@@ -201,7 +197,7 @@ VVbrowserWindow::VVbrowserWindow(Config config_)
     // default and it's ugly to have a bright taskbar on top of it.
     int on = true;
     const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
-    DwmSetWindowAttribute(m_mainWindow, DWMWA_USE_IMMERSIVE_DARK_MODE, &on, sizeof(on));
+    DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &on, sizeof(on));
 
     // If we're starting in fullscreen, set it up before showing the window, so we
     // don't flash the non-fullscreen window briefly.
@@ -209,18 +205,18 @@ VVbrowserWindow::VVbrowserWindow(Config config_)
         EnterFullScreen();
 
     if(config.maximized)
-        ShowWindow(m_mainWindow, SW_MAXIMIZE);
+        ShowWindow(hwnd, SW_MAXIMIZE);
     else
-        ShowWindow(m_mainWindow, SW_SHOWDEFAULT);
+        ShowWindow(hwnd, SW_SHOWDEFAULT);
 
-    SetFocus(m_mainWindow);
-    UpdateWindow(m_mainWindow);
+    SetFocus(hwnd);
+    UpdateWindow(hwnd);
 
     // Check if the runtime is installed.  This is be checked by the Python binding first,
     // so this shouldn't fail.
     if(WebViewInstallationRequired())
     {
-        MessageBox(m_mainWindow, L"The WebView2 runtime isn't installed.", nullptr, MB_OK);
+        MessageBox(hwnd, L"The WebView2 runtime isn't installed.", nullptr, MB_OK);
         return;
     }
 
@@ -513,7 +509,7 @@ void VVbrowserWindow::InitializeWebView()
         switch(hr)
         {
         case HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND):
-            MessageBox(m_mainWindow, L"Couldn't find WebView2 runtime.", nullptr, MB_OK);
+            MessageBox(hwnd, L"Couldn't find WebView2 runtime.", nullptr, MB_OK);
             break;
         default:
             ShowFailure(hr, L"Error creating view");
@@ -528,7 +524,7 @@ HRESULT VVbrowserWindow::OnCreateEnvironmentCompleted(HRESULT result, ICoreWebVi
     webviewEnvironment = environment;
 
     CHECK_FAILURE(webviewEnvironment->CreateCoreWebView2Controller(
-        m_mainWindow,
+        hwnd,
         Callback<ICoreWebView2CreateCoreWebView2ControllerCompletedHandler>(
             this, &VVbrowserWindow::OnCreateCoreWebView2ControllerCompleted)
         .Get()));
@@ -614,7 +610,7 @@ void VVbrowserWindow::AddCallbacks()
     {
         wil::unique_cotaskmem_string title;
         CHECK_FAILURE(sender->get_DocumentTitle(&title));
-        SetWindowText(m_mainWindow, title.get());
+        SetWindowText(hwnd, title.get());
         return S_OK;
     }).Get(), nullptr));
 
@@ -674,7 +670,7 @@ void VVbrowserWindow::AddCallbacks()
             // Store the new icon and set it.
             // XXX: this gives a low-res alt-tab icon for some reason
             wil::unique_hicon windowIcon = std::move(icon);
-            SendMessage(m_mainWindow, WM_SETICON, ICON_BIG, (LPARAM) windowIcon.get());
+            SendMessage(hwnd, WM_SETICON, ICON_BIG, (LPARAM) windowIcon.get());
 
             return S_OK;
         }).Get());
@@ -894,7 +890,7 @@ HRESULT VVbrowserWindow::HandleWebViewError(ICoreWebView2 *sender, ICoreWebView2
         //
         // We could just go ahead and reload, but we want to make sure we don't get stuck
         // restarting endlessly if something is broken on the browser side.
-        int result = MessageBox(m_mainWindow, message, title, MB_YESNO);
+        int result = MessageBox(hwnd, message, title, MB_YESNO);
         if(result != IDYES)
             return S_OK;
 
@@ -916,7 +912,7 @@ void VVbrowserWindow::SetWebViewSize()
         return;
 
     RECT webviewBounds = {0};
-    GetClientRect(m_mainWindow, &webviewBounds);
+    GetClientRect(hwnd, &webviewBounds);
 
     LONG width = LONG((webviewBounds.right - webviewBounds.left));
     LONG height = LONG((webviewBounds.bottom - webviewBounds.top));
@@ -945,26 +941,26 @@ void VVbrowserWindow::CloseWebView()
 void VVbrowserWindow::CloseAppWindow()
 {
     CloseWebView();
-    DestroyWindow(m_mainWindow);
+    DestroyWindow(hwnd);
 }
 
 void VVbrowserWindow::RunAsync(std::function<void()> callback)
 {
     auto* task = new std::function<void()>(std::move(callback));
-    PostMessage(m_mainWindow, WM_APP_RUN_ASYNC_MESSAGE, reinterpret_cast<WPARAM>(task), 0);
+    PostMessage(hwnd, WM_APP_RUN_ASYNC_MESSAGE, reinterpret_cast<WPARAM>(task), 0);
 }
 
 void VVbrowserWindow::AsyncMessageBox(std::wstring message, std::wstring title)
 {
     RunAsync([this, message = std::move(message), title = std::move(title)]
     {
-        MessageBox(m_mainWindow, message.c_str(), title.c_str(), MB_OK);
+        MessageBox(hwnd, message.c_str(), title.c_str(), MB_OK);
     });
 }
 
 bool VVbrowserWindow::IsFullscreen() const
 {
-    DWORD style = GetWindowLong(m_mainWindow, GWL_STYLE);
+    DWORD style = GetWindowLong(hwnd, GWL_STYLE);
     return !(style & WS_OVERLAPPEDWINDOW);
 }
 
@@ -974,34 +970,34 @@ void VVbrowserWindow::EnterFullScreen()
         return;
 
     // Store the window size so we can restore it when we exit fullscreen.
-    if(!GetWindowRect(m_mainWindow, &windowSizeToRestore))
+    if(!GetWindowRect(hwnd, &windowSizeToRestore))
         return;
 
     // Enable borderless windowed mode.
     MONITORINFO monitorInfo = {sizeof(monitorInfo)};
-    if(!GetMonitorInfo(MonitorFromWindow(m_mainWindow, MONITOR_DEFAULTTOPRIMARY), &monitorInfo))
+    if(!GetMonitorInfo(MonitorFromWindow(hwnd, MONITOR_DEFAULTTOPRIMARY), &monitorInfo))
         return;
 
-    DWORD style = GetWindowLong(m_mainWindow, GWL_STYLE);
-    SetWindowLong(m_mainWindow, GWL_STYLE, style & ~WS_OVERLAPPEDWINDOW);
+    DWORD style = GetWindowLong(hwnd, GWL_STYLE);
+    SetWindowLong(hwnd, GWL_STYLE, style & ~WS_OVERLAPPEDWINDOW);
     SetWindowPos(
-        m_mainWindow, HWND_TOP, monitorInfo.rcMonitor.left, monitorInfo.rcMonitor.top,
+        hwnd, HWND_TOP, monitorInfo.rcMonitor.left, monitorInfo.rcMonitor.top,
         monitorInfo.rcMonitor.right - monitorInfo.rcMonitor.left,
         monitorInfo.rcMonitor.bottom - monitorInfo.rcMonitor.top,
         SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
 
     // Clear the window, so we don't flash the default white background before the first paint.
     PAINTSTRUCT ps;
-    BeginPaint(m_mainWindow, &ps);
+    BeginPaint(hwnd, &ps);
 
     RECT rect;
-    GetClientRect(m_mainWindow, &rect); 
+    GetClientRect(hwnd, &rect); 
 
-    HDC hdc = GetDC(m_mainWindow);
+    HDC hdc = GetDC(hwnd);
     FillRect(hdc, &rect, (HBRUSH) GetStockObject(BLACK_BRUSH));
-    ReleaseDC(m_mainWindow, hdc);
+    ReleaseDC(hwnd, hdc);
 
-    EndPaint(m_mainWindow, &ps);
+    EndPaint(hwnd, &ps);
 
     SetWebViewSize();
 }
@@ -1009,10 +1005,10 @@ void VVbrowserWindow::EnterFullScreen()
 void VVbrowserWindow::ExitFullScreen()
 {
     // Exit fullscreen, restoring the window size we had before enabling it.
-    DWORD style = GetWindowLong(m_mainWindow, GWL_STYLE);
-    SetWindowLong(m_mainWindow, GWL_STYLE, style | WS_OVERLAPPEDWINDOW);
+    DWORD style = GetWindowLong(hwnd, GWL_STYLE);
+    SetWindowLong(hwnd, GWL_STYLE, style | WS_OVERLAPPEDWINDOW);
     SetWindowPos(
-        m_mainWindow, NULL, windowSizeToRestore.left, windowSizeToRestore.top,
+        hwnd, NULL, windowSizeToRestore.left, windowSizeToRestore.top,
         windowSizeToRestore.right - windowSizeToRestore.left,
         windowSizeToRestore.bottom - windowSizeToRestore.top,
         SWP_NOOWNERZORDER | SWP_FRAMECHANGED);

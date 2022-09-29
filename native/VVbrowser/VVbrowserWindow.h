@@ -76,18 +76,13 @@ private:
     static DWORD WINAPI DownloadAndInstallRuntime(void *lpParameter);
 
     Config config;
-    HWND m_mainWindow = nullptr;
+    HWND hwnd = nullptr;
+    RECT windowSizeToRestore;
 
-    // The following is state that belongs with the webview, and should
-    // be reinitialized along with it. Everything here is undefined when
-    // webview is null.
+    // WebView2 interfaces:
     wil::com_ptr<ICoreWebView2_13> webview;
     wil::com_ptr<ICoreWebView2Controller2> controller;
     wil::com_ptr<ICoreWebView2Environment> webviewEnvironment;
-
-    // Fullscreen related code
-    RECT windowSizeToRestore;
-
 };
 
 #endif
