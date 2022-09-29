@@ -17,7 +17,7 @@
 #
 # We don't share IDs with file_index, and there's no foreign key relationship since
 # we're in a separate database.  We just use the path to match them up.
-import aiohttp, logging, sqlite3, io
+import asyncio, logging, sqlite3, io
 from .database import Database, transaction
 from ..util import image_index, misc
 from PIL import Image
@@ -90,7 +90,7 @@ class SignatureDB(Database):
 
         assert self.get_db_version(conn=conn) == 1
 
-    def load_image_index(self):
+    async def load_image_index(self):
         """
         Load the image index with saved signatures.
         """
@@ -102,6 +102,11 @@ class SignatureDB(Database):
         for idx, sig_entry in enumerate(self.all_signatures()):
             signature = image_index.ImageSignature(sig_entry['signature'])
             self.image_index.add_image(sig_entry['id'], signature)
+
+            # Yield periodically to let other things happen.
+            if (idx % 10) == 0:
+                await asyncio.sleep(0)
+
         log.info(f'Loaded {idx} image signatures')
 
     def get_from_ids(self, ids, *, conn=None):

@@ -31,7 +31,6 @@ class Manager:
         self.auth = Auth(self.data_dir / 'settings.json')
         self.library = Library(self.data_dir)
         self.sig_db = SignatureDB(self.data_dir / 'signatures.sqlite')
-        self.sig_db.load_image_index()
 
         app.on_shutdown.append(self.shutdown)
 
@@ -44,6 +43,16 @@ class Manager:
             await self.library.unmount(name)
         
     async def init(self):
+        """
+        Initialize libraries.
+
+        This can take some time, so most of this is run asynchronously, since we don't
+        need to wait for this to complete to begin handling requests.
+        """
+        # Load the image signature database.
+        load_index_task = self.sig_db.load_image_index()
+        self.run_background_task(load_index_task, name=f'Loading similarity index')
+
         log.info('Initializing libraries...')
         for folder in self.auth.data.get('folders', []):
             name = folder.get('name')
