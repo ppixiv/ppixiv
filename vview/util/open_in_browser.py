@@ -1,9 +1,15 @@
-from ..util import error_dialog
-
-import subprocess, sys, webbrowser, urllib.parse, winreg, logging
+import subprocess, sys, os, webbrowser, urllib.parse, winreg, logging
 from pathlib import Path
+from . import misc
+from ..util import error_dialog
+from ..util.paths import open_path
 
 log = logging.getLogger(__name__)
+
+try:
+    import VVbrowser
+except ImportError as e:
+    VVbrowser = None
 
 # vview.shell.register registers this for file type associations.
 # This is normally called through VView.exe.
@@ -37,12 +43,63 @@ def open_path_in_browser(path):
     """
     Open path in a Vview browser window.
     """
+    path = open_path(path)
+
+    # Try to get the dimensions if this is an image or video.
+    width = None
+    height = None
+    mime_type = misc.mime_type(path)
+    try:
+        with path.open('rb', shared=True) as f:
+            media_metadata = misc.read_metadata(f, mime_type)
+            width = media_metadata['width']
+            height = media_metadata['height']
+    except IOError as e:
+        print(e)
+    
     path = Path(path)
     url_path = str(path).replace('\\', '/')
-    _open_url_path('open/' + url_path)
-    
-def _open_url_path(path):
+    _open_url_path('open/' + url_path, width=width, height=height)
+
+def _browser_profile_path():
+    """
+    Return the path for storing VVbrowser's user profile.
+    """
+    local_data = Path(os.getenv('LOCALAPPDATA'))
+    data_dir = local_data / 'vview'
+    return data_dir / 'browser'
+
+def _open_url_path(path, **kwargs):
     url = 'http://127.0.0.1:8235/' + urllib.parse.quote(path)
+    _open_url(url, **kwargs)
+
+def _open_url(url, width=None, height=None, fullscreen=False):
+    """
+    Open URL in a browser, using VVbrowser if available.
+
+    If width and height are available, the window size will be scaled to fit an image of those dimensions.
+    """
+    # Try to use our own browser front-end.
+    if VVbrowser is not None:
+        browser_profile_dir = _browser_profile_path()
+
+        # Note that this becomes the browser front-end window, and doesn't return until the
+        # user closes the window.
+        args = {
+            'url': url,
+            'fullscreen': fullscreen,
+            'fitOnWindow': True,
+            'profile': str(browser_profile_dir),
+        }
+
+        if width is not None and height is not None:
+            args['size'] = (width, height)
+
+        VVbrowser.open(**args)
+        return
+
+    # VVbrowser isn't available for some reason.  Fall back on a regular browser window.
+    log.info('VVbrowser isn\'t available')
 
     # Don't use the webbrowser module.  The Windows implementation is an afterthought, and
     # the module should never have been added to the Python core library in its current state.
