@@ -2547,19 +2547,40 @@ ppixiv.helpers = {
         return animation;
     },
 
-    set_title(illust_data)
+    get_title_for_illust(illust_data)
     {
         if(illust_data == null)
+            return null;
+
+        let page_title = "";
+    
+        if(!helpers.is_media_id_local(illust_data.mediaId))
         {
-            helpers.set_page_title("Loading...");
-            return;
+            // For Pixiv images, use the username and title, and indicate if the image is bookmarked.
+            // We don't show bookmarks in the title for local images, since it's less useful.
+            if(illust_data.bookmarkData)
+                page_title += "★";
+
+            page_title += illust_data.userName + " - " + illust_data.illustTitle;
+            return page_title;
+        }
+        else
+        {
+            // For local images, put the filename at the front, and the two parent directories after
+            // it.  For example, "books/Book Name/001" will be displayed a "001 - books/Book Name".
+            // This is consistent with the title we use in the search view.
+            let {id} = helpers.parse_media_id(illust_data.mediaId);
+            let name = helpers.get_path_suffix(id, 1, 0); // filename
+            let parent = helpers.get_path_suffix(id, 2, 1); // parent directories
+            page_title += `${name} - ${parent}`;
         }
 
-        var page_title = "";
-        if(illust_data.bookmarkData)
-            page_title += "★";
+        return page_title;
+    },
 
-        page_title += illust_data.userName + " - " + illust_data.illustTitle;
+    set_title(illust_data)
+    {
+        let page_title = helpers.get_title_for_illust(illust_data) ?? "Loading...";
         helpers.set_page_title(page_title);
     },
 
