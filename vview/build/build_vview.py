@@ -282,7 +282,16 @@ class VViewBuild:
         msbuild = self.find_msbuild()
         python_path = sys.prefix
 
-        # SharedProperties.props sets properties
+        # Restore NuGet packages.  We should be able to do this in the same build as below, but new packages
+        # don't actually have their include paths added to the build until the next execution.
+        result = subprocess.run([
+            msbuild,
+            'native\VView.sln',
+            '-property:RestorePackagesConfig=true',
+            '-t:Restore',
+            '-verbosity:minimal',
+        ])
+
         # The "OutputDir" property sets the directory the build will output to.  The variables look
         # like:
         #
@@ -291,13 +300,7 @@ class VViewBuild:
         # BinDir        $(TopDir)\$(OutputDir)\
         # 
         # We override OutputDir to the path we've been told to build into, though this is usually just
-        # left at "bin", which is the same as the default.
-
-
-        #.  It's is set to "bin" by default in
-        # SharedProperties.props, so that's where it'll go if you build by loading the solution in VS.  We can override
-        # that here if bin_dir has changed.  It's always a directory directly underneath top_dir, since that's used by
-        # VView.exe to find the top directory.
+        # left at "bin", which is the same as the default set in SharedProperties.props.
         #
         # PythonPath tells the build where to find Python headers and libraries.  We get it from our own sys.prefix.
         # This can also be set in SharedProperties.props for building in VS.
