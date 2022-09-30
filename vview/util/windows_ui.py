@@ -1,6 +1,5 @@
 import asyncio, ctypes, atexit, logging, sys, os, threading, time, msvcrt
 import win32api, win32gui, win32con, win32gui_struct
-from aiohttp import web_runner
 from .vvterm import VVterm, VVtermEvent
 from pathlib import Path
 
@@ -87,7 +86,7 @@ class WindowsUI:
     async def exit(self):
         # Ask aiohttp to shut down.
         log.info('Shutting down on user request')
-        raise web_runner.GracefulExit()
+        raise SystemExit('User requested shutdown')
 
 # win32gui has Shell_NotifyIcon, but it's years out of date and doesn't support
 # NOTIFYICONDATA.guidItem, so we have to do this ourself.
@@ -348,7 +347,12 @@ class _TrayIcon:
         # The user selected a menu option.  Queue it to run in the main thread.
         menu_action = self.menu_actions_by_id[id]      
         future = asyncio.run_coroutine_threadsafe(menu_action(), self.main_loop)
-        future.result(timeout=5)
+        try:
+            future.result(timeout=5)
+        except SystemExit as e:
+            # exit() will raise SystemExit to trigger a shutdown.  Don't raise that through here
+            # to our threaded WndProc.
+            pass
 
     def _threaded_on_tray_click(self):
         future = asyncio.run_coroutine_threadsafe(self.on_click(), self.main_loop)
