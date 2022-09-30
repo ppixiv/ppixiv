@@ -148,17 +148,11 @@ VVbrowserWindow::VVbrowserWindow(Config config_)
         availableHeight -= extraWindowHeight;
 
         // Fit width/height to fit in availableWidth/availableHeight:
-        int clientWidth, clientHeight;
-        if(availableWidth / width < availableHeight / height)
-        {
-            // Fit the width to the display, and set the height proportionally.
-            clientWidth = availableWidth;
-            clientHeight = clientWidth * height / width;
-        } else {
-            // Fit the height to the display, and set the width proportionally.
-            clientHeight = availableHeight;
-            clientWidth = clientHeight * width / height;
-        }
+        float ratioFitVertical = float(availableHeight) / height;
+        float ratioFitHorizontal = float(availableWidth) / width;
+        float ratio = min(ratioFitVertical, ratioFitHorizontal);
+        int clientHeight = lrintf(height * ratio);
+        int clientWidth = lrintf(width * ratio);
 
         // Adjust clientWidth and clientHeight to get the window size.
         RECT fixedWindowRect = { 0, 0, clientWidth, clientHeight };
