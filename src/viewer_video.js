@@ -414,6 +414,13 @@ ppixiv.video_ui = class extends ppixiv.widget
         
         this.time = this.container.querySelector(".time");
 
+        // Prevent dblclick from propagating to our parent, so double-clicking inside the
+        // UI strip doesn't toggle fullscreen.
+        this.container.addEventListener("dblclick", (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+        });
+
         this.container.querySelector(".play-button").addEventListener("click", () => {
             if(this.player != null)
                 this.player.set_want_playing(!this.player.want_playing);
