@@ -12,10 +12,15 @@
 #include <shobjidl.h>
 #include <gdiplus.h>
 #include <dwmapi.h>
+#include <shlwapi.h>
+#include <wininet.h>
+using namespace std;
 
 #pragma comment(lib, "urlmon.lib") // URLDownloadToFile
 #pragma comment(lib, "pathcch.lib") // PathCchRemoveFileSpec
 #pragma comment(lib, "dwmapi.lib") // DwmSetWindowAttribute
+#pragma comment(lib, "shlwapi.lib") // UrlUnescape
+
 // #pragma comment(lib, "gdiplus.lib")
 
 using namespace Microsoft::WRL;
@@ -721,12 +726,22 @@ void VVbrowserWindow::AddCallbacks()
         // Cancel the navigation and handle it directly.
         args->put_Cancel(true);
 
+        // Extract the path.
         wil::com_ptr<IUri> urlObject;
-        CreateUri(url.c_str(), Uri_CREATE_CANONICALIZE | Uri_CREATE_NO_DECODE_EXTRA_INFO, 0, &urlObject);
+        CreateUri(url.c_str(),
+            Uri_CREATE_CANONICALIZE | Uri_CREATE_NO_DECODE_EXTRA_INFO | Uri_CREATE_NO_ENCODE_FORBIDDEN_CHARACTERS, 0,
+            &urlObject);
 
         wil::unique_bstr path;
         urlObject->GetPath(&path);
-        wchar_t *path2 = path.get();
+
+        // A separate API to get the unescaped path?  Surely there's a better API to do all this.
+        wchar_t decodedPath[INTERNET_MAX_URL_LENGTH];
+        DWORD decodedPathSize = sizeof(decodedPath);
+
+        HRESULT hr = UrlUnescape(const_cast<wchar_t *>(path.get()), decodedPath, &decodedPathSize, URL_UNESCAPE_AS_UTF8);
+
+        wchar_t *path2 = decodedPath;
         if(wcslen(path2) == 0)
             return S_OK;
 
@@ -739,9 +754,17 @@ void VVbrowserWindow::AddCallbacks()
             if(*p == '/')
                 *p = '\\';
 
-        // Use "open", not "explore".  For some reason "explore" opens the directory with
-        // default File Explorer settings.
-        ShellExecute(nullptr, L"open", path2, nullptr, nullptr, SW_SHOWNORMAL);
+        // Show the path in Explorer.
+        wstring command = L"explorer.exe /select,";
+        command += path2;
+
+        STARTUPINFOW si = {};
+        si.cb = sizeof(si);
+
+        PROCESS_INFORMATION pi = {};
+        CreateProcess(nullptr, const_cast<wchar_t *>(command.c_str()), nullptr, nullptr,
+            false, 0, nullptr, nullptr, &si, &pi);
+
         return S_OK;
     }).Get(), nullptr));
 
