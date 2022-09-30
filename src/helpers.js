@@ -1961,7 +1961,10 @@ ppixiv.helpers = {
         if(args instanceof URL)
             args = new helpers.args(args);
 
-        var old_url = ppixiv.location.toString();
+        // Store the previous URL for comparison.  Normalize it with args, so comparing it with
+        // toString() is reliable if the escaping is different, such as different %1E case or
+        // not escaping spaces as +.
+        let old_url = new ppixiv.helpers.args(ppixiv.location).toString();
 
         // Use the history state from args if it exists.
         let history_data = {
