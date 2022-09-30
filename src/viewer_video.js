@@ -445,6 +445,10 @@ ppixiv.video_ui = class extends ppixiv.widget
             this.set_seek_bar_pos();
         }, { signal: this.shutdown_signal.signal });
 
+        window.addEventListener("resize", (e) => {
+            this.set_seek_bar_pos();
+        }, { signal: this.shutdown_signal.signal });
+
         // Set up the fullscreen button.  Disable this on mobile, since it doesn't make sense there.
         let fullscreen_button = this.container.querySelector(".fullscreen");
         fullscreen_button.hidden = ppixiv.mobile;
@@ -466,8 +470,8 @@ ppixiv.video_ui = class extends ppixiv.widget
     // Set whether the seek bar is above or below the video UI.
     set_seek_bar_pos()
     {
-        let top = document.fullscreenElement == null;
         // Insert the seek bar into the correct container.
+        let top = !helpers.is_fullscreen();
         this.seek_bar.container.remove();
         let seek_bar_container = top? ".seek-bar-container-top":".seek-bar-container-bottom";
         this.container.querySelector(seek_bar_container).appendChild(this.seek_bar.container);

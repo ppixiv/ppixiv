@@ -1376,6 +1376,31 @@ ppixiv.helpers = {
         else
             document.exitFullscreen();
     },
+
+    is_fullscreen()
+    {
+        if(document.fullscreenElement != null)
+            return true;
+
+        // Work around a dumb browser bug: document.fullscreen is false if fullscreen is set by something other
+        // than the page, like pressing F11, making it a pain to adjust the UI for fullscreen.  Try to detect
+        // this by checking if the window size matches the screen size.  This requires working around even more
+        // ugliness:
+        //
+        // - We have to check innerWidth rather than outerWidth.  In fullscreen they should be the same since
+        // there's no window frame, but in Chrome, the inner size is 16px larger than the outer size.
+        // - innerWidth is scaled by devicePixelRatio, so we have to factor that out.  Since this leads to
+        // fractional values, we also need to threshold the result.
+        //
+        // If only there was an API that could just tell us whether we're fullscreened.  Maybe it could be called
+        // "document.fullscreen".  We can only dream...
+        let window_width = window.innerWidth * devicePixelRatio;
+        let window_height = window.innerHeight * devicePixelRatio;
+        if(Math.abs(window_width - window.screen.width) < 2 && Math.abs(window_height - window.screen.height) < 2)
+            return true;
+
+        return false;
+    },
     
     set_recent_bookmark_tags(tags)
     {
