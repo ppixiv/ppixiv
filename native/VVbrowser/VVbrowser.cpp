@@ -44,34 +44,26 @@ static PyObject *VVbrowser_open(PyObject *self, PyObject *args, PyObject *kwargs
         "profile",
         "fullscreen",
         "maximized",
-        "fitOnWindow",
-        "size",
+        "fitImageSize",
         nullptr
     };
 
     VVbrowserWindow::Config config;
 
     PyObject *urlObj = nullptr, *profileObj = nullptr, *downloadDirObj = nullptr;
-    if(!PyArg_ParseTupleAndKeywords(args, kwargs, "|$UUbbb(ii)", (char **) kwlist, 
+    if(!PyArg_ParseTupleAndKeywords(args, kwargs, "|$UUbb(ii)", (char **) kwlist, 
         &urlObj,
         &profileObj,
         &config.fullscreen,
         &config.maximized,
-        &config.fitOnWindow,
-        &config.width,
-        &config.height
+        &config.fitWidth,
+        &config.fitHeight
     ))
         return NULL;
 
     if(urlObj == nullptr)
     {
         PyErr_SetString(PyExc_RuntimeError, "A URL must be specified");
-        return nullptr;
-    }
-
-    if((config.width != -1) != (config.height != -1))
-    {
-        PyErr_SetString(PyExc_RuntimeError, "If width or height are used, both must be set");
         return nullptr;
     }
 

@@ -33,36 +33,8 @@ static thread_local size_t instanceCount = 0;
 
 namespace
 {
-    /*
-    PCWSTR GetDummyWindowClass(HINSTANCE hinst)
-    {
-        // Only do this once.
-        static PCWSTR windowClass = [hinst] {
-            const wchar_t *windowClass = L"VViewDummyBrowserWindow";
-
-            WNDCLASSEXW wcex = {0};
-            wcex.cbSize = sizeof(WNDCLASSEX);
-            wcex.style = CS_HREDRAW | CS_VREDRAW;
-            wcex.lpfnWndProc = DefWindowProc;
-            wcex.hInstance = hinst;
-            wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);
-            wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
-            wcex.lpszClassName = windowClass;
-
-            RegisterClassExW(&wcex);
-            return windowClass;
-        }();
-
-        return windowClass;
-    }
-    */
-
     // Get the width and height added to the client size to get the window size.
-    //
-    // We don't want this to include the window shadow, but there seems to be no
-    // good way to find out what that is.
-    void GetWindowBorderSize(HINSTANCE hinst, int windowStyle, int exWindowStyle,
-        int *extraWindowWidth, int *extraWindowHeight)
+    void GetWindowBorderSize(int windowStyle, int exWindowStyle, int *extraWindowWidth, int *extraWindowHeight)
     {
         // XXX: AdjustWindowRectExForDpi?
 
@@ -71,23 +43,6 @@ namespace
         AdjustWindowRectEx(&rect2, windowStyle, false /* no menu */, exWindowStyle);
         *extraWindowWidth = (rect2.right - rect2.left) - (rect1.right - rect1.left);
         *extraWindowHeight = (rect2.bottom - rect2.top) - (rect1.bottom - rect1.top);
-
-#if 0
-        // XXX: AdjustWindowRectEx includes the shadow around the window, which we want to ignore
-        // while figuring out how to size and position the window.  How do we get the real window
-        // size?  DwmGetWindowAttribute can return this, but that only works on a window that's
-        // already created and visible, so this flashes a dummy window briefly.
-
-        const wchar_t *dummyWindowClass = GetDummyWindowClass(hinst);
-
-        HWND hwnd = CreateWindowExW(exWindowStyle, dummyWindowClass, L"", windowStyle,
-            100, 100, 500, 500, nullptr, nullptr, hinst, nullptr);
-
-        ShowWindow(hwnd, SW_SHOWMINNOACTIVE);
-        RECT foo;
-        DwmGetWindowAttribute(hwnd, DWMWA_EXTENDED_FRAME_BOUNDS, &foo, sizeof(RECT));
-        DestroyWindow(hwnd);
-#endif
     }
 }
 
@@ -109,43 +64,54 @@ VVbrowserWindow::VVbrowserWindow(Config config_)
     GetModuleFileName(NULL, appPath, MAX_PATH);
     HINSTANCE hinst = LoadLibrary(appPath);
 
-    int windowStyle = WS_OVERLAPPEDWINDOW, exWindowStyle = WS_EX_CONTROLPARENT;
-
-    // Get the amount of extra space used by the window frame and titlebar.
-    int extraWindowWidth, extraWindowHeight;
-    GetWindowBorderSize(hinst, windowStyle, exWindowStyle, &extraWindowWidth, &extraWindowHeight);
-
-    // Figure out which monitor we want to put the window on.  Currently, we use the
-    // monitor the cursor is on.
-    POINT cursorPos;
-    GetCursorPos(&cursorPos);
-
-    HMONITOR monitor = MonitorFromPoint(cursorPos, MONITOR_DEFAULTTOPRIMARY);
-    MONITORINFO monitorInfo = {sizeof(monitorInfo)};
-    if(!GetMonitorInfo(monitor, &monitorInfo))
-    {
-        MessageBox(nullptr, L"GetMonitorInfo failed", nullptr, MB_OK);
-        return;
-    }
+    int windowStyle = WS_OVERLAPPEDWINDOW, exWindowStyle = WS_EX_CONTROLPARENT | WS_EX_LAYERED;
 
     int x = CW_USEDEFAULT;
     int y = CW_USEDEFAULT;
-    int width = config.width != -1? config.width:CW_USEDEFAULT;
-    int height = config.height != -1? config.height:CW_USEDEFAULT;
+    int width = CW_USEDEFAULT, height = CW_USEDEFAULT;
 
-    // If fitOnWindow is true, width and height are a hint.  Adjust them to fill the work area
-    // of the monitor we're using, keeping the aspect ratio of the client area, and center the
-    // window on the monitor.  If it's false, use the width and height as-is and use the default
-    // window positioning.
-    if(config.fitOnWindow && width != CW_USEDEFAULT)
+    // If fitWidth and fitHeight are set, figure out a window size to view an image of that
+    // size, and center it on the monitor.  Otherwise, we'll just use default window positioning.
+    if(config.fitWidth != -1 && config.fitHeight != -1)
     {
-        // The size to fit to.  We're sizing the client area, so fit it to the work area of the monitor
-        // minus the extra space we need to leave available for the window frame.
-        int availableWidth = monitorInfo.rcWork.right - monitorInfo.rcWork.left;
-        availableWidth -= extraWindowWidth;
+        width = config.fitWidth;
+        height = config.fitHeight;
 
-        int availableHeight = monitorInfo.rcWork.bottom - monitorInfo.rcWork.top;
-        availableHeight -= extraWindowHeight;
+        // Decide which monitor we want to put the window on.  Use the monitor the cursor is
+        // on, to mimic Windows's default behavior.
+        POINT cursorPos;
+        GetCursorPos(&cursorPos);
+        HMONITOR monitor = MonitorFromPoint(cursorPos, MONITOR_DEFAULTTOPRIMARY);
+
+        MONITORINFO monitorInfo = {sizeof(monitorInfo)};
+        if(!GetMonitorInfo(monitor, &monitorInfo))
+        {
+            MessageBox(nullptr, L"GetMonitorInfo failed", nullptr, MB_OK);
+            return;
+        }
+
+        // The size we're fitting into:
+        int monitorWidth = monitorInfo.rcWork.right - monitorInfo.rcWork.left;
+        int monitorHeight = monitorInfo.rcWork.bottom - monitorInfo.rcWork.top;
+
+        // The amount of extra space used by the window frame and titlebar:
+        int extraWindowWidth, extraWindowHeight;
+        GetWindowBorderSize(windowStyle, exWindowStyle, &extraWindowWidth, &extraWindowHeight);
+
+        // If we're fitting the window to the screen, availableWidth/availableHeight is the maximum
+        // size we have available for the client area: the monitor size minus the window border.
+        int availableWidth = monitorWidth - extraWindowWidth;
+        int availableHeight = monitorHeight - extraWindowHeight;
+
+        // Windows adds an annoying shadow around the window, and this is part of the window size.
+        // This causes lots of complications if we want to size the window to match the display on
+        // one axis.  We can only access the shadow size after the window is created, and if we match
+        // the display size horizontally, the shadow leaks onto the neighboring monitor (this happens
+        // even with docking), and it generally makes this a pain.  Instead, don't try to match the
+        // display exactly and always leave a bit of space on the edge, so the window is floating
+        // slightly.  If the user wants to fill the screen, maximize or fullscreen instead.
+        availableWidth -= 50;
+        availableHeight -= 50;
 
         // Fit width/height to fit in availableWidth/availableHeight:
         float ratioFitVertical = float(availableHeight) / height;
@@ -159,19 +125,16 @@ VVbrowserWindow::VVbrowserWindow(Config config_)
         AdjustWindowRectEx(&fixedWindowRect, windowStyle, false /* no menu */, exWindowStyle);
         width = fixedWindowRect.right - fixedWindowRect.left;
         height = fixedWindowRect.bottom - fixedWindowRect.top;
-
+        
         // Center the result on the monitor.
-        x = (monitorInfo.rcWork.left + monitorInfo.rcWork.right) / 2;
+        x = monitorWidth / 2;
         x -= width / 2;
-        y = (monitorInfo.rcWork.top + monitorInfo.rcWork.bottom) / 2;
+        y = monitorHeight / 2;
         y -= height / 2;
-    }
-    else if(width != CW_USEDEFAULT)
-    {
-        // We have a client size and fitOnWindow is false.  Just convert the client size to
-        // a window size.
-        width += extraWindowWidth;
-        height += extraWindowHeight;
+
+        // Move onto the monitor we selected.
+        x += monitorInfo.rcWork.left;
+        y += monitorInfo.rcWork.top;
     }
 
     const wchar_t *windowClass = GetWindowClass(hinst);
@@ -349,7 +312,7 @@ LRESULT VVbrowserWindow::HandleWindowMessage(HWND hWnd, UINT message, WPARAM wPa
         //
         // to try to keep Windows from flashing an ugly white frame when the window
         // is displayed.
-        if (!GetLayeredWindowAttributes(hWnd, NULL, NULL, NULL))
+        if(!GetLayeredWindowAttributes(hWnd, NULL, NULL, NULL))
         {
             SetLayeredWindowAttributes(hWnd, 0, 0, LWA_ALPHA);
             DefWindowProc(hWnd, WM_ERASEBKGND, (WPARAM)GetDC(hWnd), lParam);
@@ -831,7 +794,7 @@ void VVbrowserWindow::AddCallbacks()
 
         Config windowConfig = config;
         // Don't inherit the window size of the parent.
-        config.width = config.height = -1;
+        config.fitWidth = config.fitHeight = -1;
 
         /*
         BOOL hasPosition = false;
@@ -935,17 +898,9 @@ void VVbrowserWindow::SetWebViewSize()
     if(!controller)
         return;
 
-    RECT webviewBounds = {0};
-    GetClientRect(hwnd, &webviewBounds);
-
-    LONG width = LONG((webviewBounds.right - webviewBounds.left));
-    LONG height = LONG((webviewBounds.bottom - webviewBounds.top));
-
-    RECT desiredBounds = webviewBounds;
-    desiredBounds.bottom = LONG(height + webviewBounds.top);
-    desiredBounds.right = LONG(width + webviewBounds.left);
-
-    controller->put_Bounds(desiredBounds);
+    RECT rect = {0};
+    GetClientRect(hwnd, &rect);
+    controller->put_Bounds(rect);
 }
 
 // Close the WebView and deinitialize related state. This doesn't close the app window.

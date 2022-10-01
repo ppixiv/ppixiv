@@ -26,12 +26,9 @@ public:
         std::wstring profilePath;
         std::wstring windowTitle = L"VView";
 
-        // The size and position for the window, if setsWindowSize is true.  Otherwise, uses
-        // the system default, which should remember the user's window positioning.
-        int width = -1, height = -1;
-
-        // If true, the window position will be adjusted proportionally to fit on the monitor.
-        bool fitOnWindow = false;
+        // The size of an image that will be viewed.  If set, we'll choose window dimensions
+        // that fits an image of this size.
+        int fitWidth = -1, fitHeight = -1;
 
         bool maximized = false;
         bool fullscreen = false;

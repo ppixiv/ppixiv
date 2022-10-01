@@ -73,7 +73,7 @@ def _open_url_path(path, **kwargs):
     url = 'http://127.0.0.1:8235/' + urllib.parse.quote(path)
     _open_url(url, **kwargs)
 
-def _open_url(url, width=None, height=None, fullscreen=False):
+def _open_url(url, width=None, height=None, fullscreen=True):
     """
     Open URL in a browser, using VVbrowser if available.
 
@@ -88,12 +88,11 @@ def _open_url(url, width=None, height=None, fullscreen=False):
         args = {
             'url': url,
             'fullscreen': fullscreen,
-            'fitOnWindow': True,
             'profile': str(browser_profile_dir),
         }
 
         if width is not None and height is not None:
-            args['size'] = (width, height)
+            args['fitImageSize'] = (width, height)
 
         VVbrowser.open(**args)
         return
