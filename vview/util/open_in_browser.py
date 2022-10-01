@@ -6,6 +6,8 @@ from ..util.paths import open_path
 
 log = logging.getLogger(__name__)
 
+from ..server import metadata_storage
+
 try:
     import VVbrowser
 except ImportError as e:
@@ -45,17 +47,32 @@ def open_path_in_browser(path):
     """
     path = open_path(path)
 
-    # Try to get the dimensions if this is an image or video.
+    # Try to get the dimensions if this is an image or video, so we can size the browser
+    # window to fit the image.
+    #
+    # If this image was cropped, we want to use the crop size instead of the image size.
+    # We're not running in the server when we get here, so we don't really want to access
+    # the server database, and making a request to the server to ask for this adds some
+    # complications (we might have just started the server and it might not be responding
+    # to requests yet).  Instead, just pull it from the metadata file directly.
     width = None
     height = None
-    mime_type = misc.mime_type(path)
-    try:
-        with path.open('rb', shared=True) as f:
-            media_metadata = misc.read_metadata(f, mime_type)
-            width = media_metadata['width']
-            height = media_metadata['height']
-    except IOError as e:
-        print(e)
+
+    file_metadata = metadata_storage.load_file_metadata(path)
+    crop = file_metadata.get('crop')
+    if crop:
+        width = crop[2] - crop[0]
+        height = crop[3] - crop[1]
+    else:
+        # If the image wasn't cropped, just get the image dimensions.
+        mime_type = misc.mime_type(path)
+        try:
+            with path.open('rb', shared=True) as f:
+                media_metadata = misc.read_metadata(f, mime_type)
+                width = media_metadata['width']
+                height = media_metadata['height']
+        except IOError as e:
+            log.exception('Couldn\'t get image dimensions for opening in browser: %s' % path)
     
     path = Path(path)
     url_path = str(path).replace('\\', '/')
