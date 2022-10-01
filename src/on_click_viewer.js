@@ -799,9 +799,12 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
             }
 
             // If we're narrower than the screen, lock to the middle.
-            if(screen_width >= zoomed_width)
+            //
+            // Take the floor of these, so if we're covering a 1500x1200 window with a 1500x1200.2 image we
+            // won't wiggle back and forth by one pixel.
+            if(screen_width >= Math.floor(zoomed_width))
                 zoom_pos[0] = 0.5; // center horizontally
-            if(screen_height >= zoomed_height)
+            if(screen_height >= Math.floor(zoomed_height))
                 zoom_pos[1] = 0.5; // center vertically
         }
 
