@@ -44,6 +44,22 @@ namespace
         *extraWindowWidth = (rect2.right - rect2.left) - (rect1.right - rect1.left);
         *extraWindowHeight = (rect2.bottom - rect2.top) - (rect1.bottom - rect1.top);
     }
+
+    void ClearWindow(HWND hwnd)
+    {
+        // Clear the window, so we don't flash the default white background before the first paint.
+        PAINTSTRUCT ps;
+        BeginPaint(hwnd, &ps);
+
+        RECT rect;
+        GetClientRect(hwnd, &rect); 
+
+        HDC hdc = GetDC(hwnd);
+        FillRect(hdc, &rect, (HBRUSH) GetStockObject(BLACK_BRUSH));
+        ReleaseDC(hwnd, hdc);
+
+        EndPaint(hwnd, &ps);
+    }
 }
 
 VVbrowserWindow::VVbrowserWindow(Config config_)
@@ -325,19 +341,7 @@ LRESULT VVbrowserWindow::HandleWindowMessage(HWND hWnd, UINT message, WPARAM wPa
     {
         // This erases the background to black.  It works in fullscreen, but in a window
         // we need the above WM_SHOWWINDOW hack, and that works in fullscreen without this too.
-#if 0
-        PAINTSTRUCT ps;
-        BeginPaint(hWnd, &ps);
-
-        RECT rect;
-        GetClientRect(hWnd, &rect); 
-
-        HDC hdc = GetDC(hWnd);
-        FillRect(hdc, &rect, (HBRUSH) GetStockObject(BLACK_BRUSH));
-        ReleaseDC(hWnd, hdc);
-
-        EndPaint(hWnd, &ps);
-#endif
+        // ClearWindow(hWnd);
         return true;
     }
     case WM_APP_RUN_ASYNC_MESSAGE:
@@ -956,6 +960,7 @@ void VVbrowserWindow::EnterFullScreen()
 
     DWORD style = GetWindowLong(hwnd, GWL_STYLE);
     SetWindowLong(hwnd, GWL_STYLE, style & ~WS_OVERLAPPEDWINDOW);
+
     SetWindowPos(
         hwnd, HWND_TOP, monitorInfo.rcMonitor.left, monitorInfo.rcMonitor.top,
         monitorInfo.rcMonitor.right - monitorInfo.rcMonitor.left,
@@ -963,17 +968,7 @@ void VVbrowserWindow::EnterFullScreen()
         SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
 
     // Clear the window, so we don't flash the default white background before the first paint.
-    PAINTSTRUCT ps;
-    BeginPaint(hwnd, &ps);
-
-    RECT rect;
-    GetClientRect(hwnd, &rect); 
-
-    HDC hdc = GetDC(hwnd);
-    FillRect(hdc, &rect, (HBRUSH) GetStockObject(BLACK_BRUSH));
-    ReleaseDC(hwnd, hdc);
-
-    EndPaint(hwnd, &ps);
+    ClearWindow(hwnd);
 
     SetWebViewSize();
 }
