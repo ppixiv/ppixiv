@@ -482,6 +482,12 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
     // of the screen after toggling fullscreen.
     add_window_movement_listeneres()
     {
+        // Firefox doesn't send any mouse events at all when the window moves (not even focus
+        // changes), which makes this look weird since it doesn't update until the mouse moves.
+        // Just disable it on Firefox.
+        if(navigator.userAgent.indexOf("Firefox/") != -1)
+            return;
+
         if(this.remove_window_movement_listeners != null)
             return;
 
