@@ -50,6 +50,12 @@ ppixiv.local_api = class
         return ppixiv.local_api.local_url != null;
     }
 
+    // Return true if we're running in VVbrowser.
+    static is_vvbrowser()
+    {
+        return navigator.userAgent.indexOf("VVbrowser/")  != -1;
+    }
+
     // Load image info from the local API.
     static async load_media_info(media_id)
     {
