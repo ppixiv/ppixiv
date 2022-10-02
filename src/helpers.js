@@ -2279,14 +2279,13 @@ ppixiv.helpers = {
             }
     
             id = requestAnimationFrame((time) => {
-                signal.removeEventListener("abort", abort);
+                if(signal)
+                    signal.removeEventListener("abort", abort);
                 accept(true);
             });
 
             if(signal)
-            {
                 signal.addEventListener("abort", abort, { once: true });
-            }
         });
     },
     
