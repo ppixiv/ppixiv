@@ -14,6 +14,17 @@
     body { background-color: #222; }
 </style>
 
+<!-- In VVbrowser, leave it on the default background.  It has a dark background which will
+    always be displayed before we get here, and if we're displaying an image it's better to leave
+    it on black the whole time than to flash #222 briefly. -->
+<script>
+    (() => {
+        let in_vvbrowser = navigator.userAgent.indexOf("VVbrowser/")  != -1;
+        if(in_vvbrowser)
+            document.querySelector("#initial-style").disabled = true;
+    })();
+</script>
+
 <body>
 
 <script src=/client/js/bootstrap_native.js></script>
