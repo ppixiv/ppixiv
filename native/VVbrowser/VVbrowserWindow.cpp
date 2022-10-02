@@ -80,11 +80,8 @@ VVbrowserWindow::VVbrowserWindow(Config config_)
     GetModuleFileName(NULL, appPath, MAX_PATH);
     HINSTANCE hinst = LoadLibrary(appPath);
 
-    // Using WS_EX_COMPOSITED and not WS_EX_LAYERED seems to reduce the chances of
-    // the default window frame flickering on screen for a frame when entering
-    // fullscreen.  I'm not sure why.
     int windowStyle = WS_OVERLAPPEDWINDOW;
-    int exWindowStyle = WS_EX_CONTROLPARENT | WS_EX_COMPOSITED;
+    int exWindowStyle = WS_EX_CONTROLPARENT;
 
     int x = CW_USEDEFAULT;
     int y = CW_USEDEFAULT;
