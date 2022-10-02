@@ -710,7 +710,9 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
             this.refresh();
         });
 
-        this.container.querySelector(".button-view-manga").addEventListener("click", this.clicked_view_manga);
+        this.button_view_manga = this.container.querySelector(".button-view-manga");
+        this.button_view_manga.addEventListener("click", this.clicked_view_manga);
+
         this.container.querySelector(".button-fullscreen").addEventListener("click", this.clicked_fullscreen);
         this.container.querySelector(".button-zoom").addEventListener("click", this.clicked_zoom_toggle);
         this.container.querySelector(".button-browser-back").addEventListener("click", (e) => {
@@ -1299,9 +1301,8 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         let user_id = this.effective_user_id;
         let info = media_id? media_cache.get_media_info_sync(media_id, { full: false }):null;
 
-        let button_view_manga = this.container.querySelector(".button-view-manga");
-        button_view_manga.dataset.popup = "View manga pages";
-        helpers.set_class(button_view_manga, "enabled", info?.pageCount > 1);
+        this.button_view_manga.dataset.popup = "View manga pages";
+        helpers.set_class(this.button_view_manga, "enabled", info?.pageCount > 1);
 
         this.refresh_tooltip();
 
@@ -1355,6 +1356,9 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
 
     clicked_view_manga = (e) =>
     {
+        if(!this.button_view_manga.classList.contains("enabled"))
+            return;
+
         let args = helpers.get_url_for_id(this.effective_media_id, { manga: true });
         helpers.navigate(args);
     }
