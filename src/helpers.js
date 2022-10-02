@@ -1625,7 +1625,17 @@ ppixiv.helpers = {
         if(title_element.textContent == title)
             return;
 
-        title_element.textContent = title;
+        // Work around a Chrome bug: changing the title by modifying textContent occasionally flickers
+        // a default title.  It seems like it's first assigning "", triggering the default, and then
+        // assigning the new value.  This becomes visible especially on high refresh-rate monitors.
+        // Work around this by adding a new title element with the new text and then removing the old
+        // one, which prevents this from happening.  This is easy to see by monitoring title change
+        // messages in VVbrowser.
+        let new_title = document.createElement("title");
+        new_title.textContent = title;
+        document.head.appendChild(new_title);
+        title_element.remove();
+
         document.dispatchEvent(new Event("windowtitlechanged"));
     },
 
