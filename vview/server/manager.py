@@ -51,7 +51,7 @@ class Manager:
         """
         # Load the image signature database.
         load_index_task = self.sig_db.load_image_index()
-        self.run_background_task(load_index_task, name=f'Loading similarity index')
+        self.run_background_task(load_index_task, name=f'Signature db')
 
         log.info('Initializing libraries...')
         for folder in self.auth.data.get('folders', []):
@@ -73,7 +73,7 @@ class Manager:
             # Run a quick refresh at startup.  This can still take a few seconds for larger
             # libraries, so run this in a task to allow requests to start being handled immediately.
             refresh_task = self.library.quick_refresh()
-            self.run_background_task(refresh_task, name=f'Indexing {path}')
+            self.run_background_task(refresh_task, name=f'Indexing {name}')
 
     def resolve_path(self, relative_path):
         """

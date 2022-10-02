@@ -163,6 +163,7 @@ async def handle_unknown_api_call(info):
     name = info.request.match_info['name']
     return { 'success': False, 'code': 'invalid-request', 'reason': 'Invalid API: /api/%s' % name }
 
+misc.add_logging_record_factory()
 logging.basicConfig(level=logging.INFO)
 logging.getLogger('vview').setLevel(logging.INFO)
 logging.captureWarnings(True)

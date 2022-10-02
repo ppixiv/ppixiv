@@ -634,6 +634,37 @@ class reverse_order_str(str):
     def __lt__(self, rhs):
         return not super().__lt__(rhs)
 
+def add_logging_record_factory():
+    """
+    Add a logging factory to make some extra tags available for logging.
+    """
+    old_factory = logging.getLogRecordFactory()
+
+    def record_factory(*args, **kwargs):
+        record = old_factory(*args, **kwargs)
+
+        # Add logTime, which is relativeCreated in seconds instead of milliseconds.
+        record.logTime = record.relativeCreated / 1000.0
+
+        # If we're logging while inside a task, make the name of the task available for logging.
+        #
+        # asyncio assumes that you always know whether you're running in a task already and should
+        # never ask about the task if you're not in one, but we don't since we're inside a generic
+        # logger.
+        try:
+            task = asyncio.current_task()
+        except RuntimeError:
+            task = None
+
+        if task is None:
+            record.task_name = ''
+        else:
+            record.task_name = task.get_name()
+
+        return record
+        
+    logging.setLogRecordFactory(record_factory)
+
 def fix_basic_logging():
     """
     Work around a bug in Python's logging module: if there's no sys.stderr
