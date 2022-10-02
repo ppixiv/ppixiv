@@ -983,15 +983,20 @@ void VVbrowserWindow::EnterFullScreen()
 void VVbrowserWindow::ExitFullScreen()
 {
     // Exit fullscreen, restoring the window size we had before enabling it.
-    // Set the window size before changing the window style, or the window sometimes
-    // flickers a wrong size as it changes.
+    // If we clear WS_OVERLAPPEDWINDOW without resetting the window size first
+    // the window can flicker in its fullscreen size before the resize takes effect,
+    // but if we SetWindowPos first the window size will be wrong.  So, hide the
+    // window while we set the new window style, apply the position, then unhide
+    // it.
     DWORD style = GetWindowLong(hwnd, GWL_STYLE);
+    style |= WS_OVERLAPPEDWINDOW;
+    SetWindowLong(hwnd, GWL_STYLE, style & ~WS_VISIBLE);
     SetWindowPos(
         hwnd, NULL, windowSizeToRestore.left, windowSizeToRestore.top,
         windowSizeToRestore.right - windowSizeToRestore.left,
         windowSizeToRestore.bottom - windowSizeToRestore.top,
         SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
-    SetWindowLong(hwnd, GWL_STYLE, style | WS_OVERLAPPEDWINDOW);
+    SetWindowLong(hwnd, GWL_STYLE, style);
 }
 
 // XXX: move to Python
