@@ -1,4 +1,4 @@
-import asyncio, ctypes, atexit, logging, sys, os, threading, time, msvcrt
+import asyncio, ctypes, atexit, logging, sys, os, threading, time, msvcrt, subprocess
 import win32api, win32gui, win32con, win32gui_struct
 from .vvterm import VVterm, VVtermEvent
 from pathlib import Path
@@ -79,9 +79,10 @@ class WindowsUI:
         self.terminal.visible = not self.terminal.visible
 
     async def on_tray_click(self):
-        # Open a browser window to our UI.
-        from ..util import open_in_browser
-        open_in_browser.open_top()
+        # Open a browser window to our UI.  Run this is a separate process, since it
+        # might load VVbrowser and block.  We could do it in a thread, but this keeps
+        # the browser windows separate from the server process.
+        subprocess.Popen([sys.executable, '-m', 'vview.shell.default'])
 
     async def exit(self):
         # Ask aiohttp to shut down.
