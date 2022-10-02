@@ -80,7 +80,11 @@ VVbrowserWindow::VVbrowserWindow(Config config_)
     GetModuleFileName(NULL, appPath, MAX_PATH);
     HINSTANCE hinst = LoadLibrary(appPath);
 
-    int windowStyle = WS_OVERLAPPEDWINDOW, exWindowStyle = WS_EX_CONTROLPARENT | WS_EX_LAYERED;
+    // Using WS_EX_COMPOSITED and not WS_EX_LAYERED seems to reduce the chances of
+    // the default window frame flickering on screen for a frame when entering
+    // fullscreen.  I'm not sure why.
+    int windowStyle = WS_OVERLAPPEDWINDOW;
+    int exWindowStyle = WS_EX_CONTROLPARENT | WS_EX_COMPOSITED;
 
     int x = CW_USEDEFAULT;
     int y = CW_USEDEFAULT;
@@ -976,13 +980,15 @@ void VVbrowserWindow::EnterFullScreen()
 void VVbrowserWindow::ExitFullScreen()
 {
     // Exit fullscreen, restoring the window size we had before enabling it.
+    // Set the window size before changing the window style, or the window sometimes
+    // flickers a wrong size as it changes.
     DWORD style = GetWindowLong(hwnd, GWL_STYLE);
-    SetWindowLong(hwnd, GWL_STYLE, style | WS_OVERLAPPEDWINDOW);
     SetWindowPos(
         hwnd, NULL, windowSizeToRestore.left, windowSizeToRestore.top,
         windowSizeToRestore.right - windowSizeToRestore.left,
         windowSizeToRestore.bottom - windowSizeToRestore.top,
         SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+    SetWindowLong(hwnd, GWL_STYLE, style | WS_OVERLAPPEDWINDOW);
 }
 
 // XXX: move to Python
