@@ -79,7 +79,9 @@ static PyObject *VVbrowser_open(PyObject *self, PyObject *args, PyObject *kwargs
     // about the DLL it's in.
     config.defaultIcon = LoadIcon(hinstance, MAKEINTRESOURCE(IDI_WINDOW_ICON));
 
+    Py_BEGIN_ALLOW_THREADS
     VVbrowserWindow::OpenBrowserWindow(config);
+    Py_END_ALLOW_THREADS
 
     return PyLong_FromLong(1);
 }
