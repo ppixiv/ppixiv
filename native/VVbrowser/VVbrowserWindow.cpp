@@ -548,6 +548,13 @@ HRESULT VVbrowserWindow::OnCreateCoreWebView2ControllerCompleted(HRESULT result,
         CHECK_FAILURE(settings->put_AreDefaultScriptDialogsEnabled(true));
         CHECK_FAILURE(settings->put_AreDevToolsEnabled(true));
 
+        // Set our user-agent, so our scripts can detect that they're running
+        // in this environment.
+        wchar_t *userAgent;
+        CHECK_FAILURE(settings->get_UserAgent(&userAgent));
+        wstring ourUserAgent = wstring(userAgent) + L" VVbrowser/1.0";
+        settings->put_UserAgent(ourUserAgent.c_str());
+
         COREWEBVIEW2_COLOR m_webViewColor = { 0, 0, 0, 255 };
         controller->put_DefaultBackgroundColor(m_webViewColor);
     }
