@@ -342,12 +342,8 @@ LRESULT VVbrowserWindow::HandleWindowMessage(HWND hWnd, UINT message, WPARAM wPa
         break;
 
     case WM_ERASEBKGND:
-    {
-        // This erases the background to black.  It works in fullscreen, but in a window
-        // we need the above WM_SHOWWINDOW hack, and that works in fullscreen without this too.
-        // ClearWindow(hWnd);
+        ClearWindow(hWnd);
         return true;
-    }
     case WM_APP_RUN_ASYNC_MESSAGE:
     {
         auto *task = reinterpret_cast<std::function<void()>*>(wParam);
