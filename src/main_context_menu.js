@@ -318,7 +318,7 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
             if(this.toggle_mode && this.visible)
                 this.hide();
             else
-                this.show(e.clientX, e.clientY, e.target);
+                this.show({x: e.clientX, y: e.clientY, target: e.target});
         } else {
             // Releasing the left or right mouse button hides the menu if both the left
             // and right buttons are released.  Pressing right, then left, then releasing
@@ -383,7 +383,7 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
             let x = pointer_listener.latest_mouse_screen_position[0];
             let y = pointer_listener.latest_mouse_screen_position[1];
             let node = this._get_hovered_element();
-            this.show(x, y, node);
+            this.show({x, y, target: node});
         } else {
             this.hide_if_all_buttons_released();
         }
@@ -411,7 +411,7 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
         return null;
     }
 
-    show(x, y, target)
+    show({x, y})
     {
         if(this.visible)
             return;
@@ -451,8 +451,12 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
         pos[1] += centered_element.offsetHeight * 3 / 4;
         x -= pos[0];
         y -= pos[1];
-        this.displayed_menu.style.left = x + "px";
-        this.displayed_menu.style.top = y + "px";
+
+        this.popup_position = { x, y };
+        this.set_current_position();
+
+        // Start listening for the window moving.
+        this.add_window_movement_listeneres();
 
         // Adjust the fade-in so it's centered around the centered element.
         this.displayed_menu.style.transformOrigin = (pos[0]) + "px " + (pos[1]) + "px";
@@ -460,6 +464,77 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
         hide_mouse_cursor_on_idle.disable_all("context-menu");
     }
 
+    set_current_position()
+    {
+        this.displayed_menu.style.left = `${this.popup_position.x}px`;
+        this.displayed_menu.style.top = `${this.popup_position.y}px`;
+    }
+
+    // Try to keep the context menu in the same place on screen when we toggle fullscreen.
+    //
+    // To do this, we need to know when the position of the client area on the screen changes.
+    // There are no APIs to query this directly (window.screenX/screenY don't work, those are
+    // the position of the window rather than the client area).  Figure it out by watching
+    // mouse events, and comparing the client and screen position of the cursor.  If it's 100x50, the
+    // client area is at 100x50 on the screen.
+    //
+    // It's not perfect, but it helps keep the context menu from being way off in another part
+    // of the screen after toggling fullscreen.
+    add_window_movement_listeneres()
+    {
+        if(this.remove_window_movement_listeners != null)
+            return;
+
+        this.last_offset = null;
+        let controller = new AbortController();
+        let signal = controller.signal;
+
+        signal.addEventListener("abort", () => {
+            this.remove_window_movement_listeners = null;
+        });
+
+        // Call this.remove_window_movement_listeners() to turn this back off.
+        this.remove_window_movement_listeners = controller.abort.bind(controller);
+
+        // Listen for hover events too.  We don't get mousemouve events if the window changes
+        // but the mouse doesn't move, but the hover usually does change.
+        for(let event of ["mouseenter", "mouseleave", "mousemove", "mouseover", "mouseout"])
+        {
+            window.addEventListener(event, this.mouse_position_changed, { capture: true, signal });
+        }
+    }
+
+    mouse_position_changed = (e) => {
+        if(!this.visible)
+            throw new Error("Expected to be visible");
+
+            // The position of the client area onscreen.  If we have client scaling, this is
+        // in client units.
+        let windowX = e.screenX/window.devicePixelRatio - e.clientX;
+        let windowY = e.screenY/window.devicePixelRatio - e.clientY;
+
+        // Stop if it hasn't changed.  screenX/devicePixelRatio can be fractional and not match up
+        // with clientX exactly, so ignore small changes.
+        if(this.last_offset != null &&
+            Math.abs(windowX - this.last_offset.x) <= 1 &&
+            Math.abs(windowY - this.last_offset.y) <= 1)
+            return;
+
+        let previous = this.last_offset;
+        this.last_offset = { x: windowX, y: windowY };
+        if(previous == null)
+            return;
+
+        // If the window has moved by 20x10, move the context menu by -20x-10.
+        let windowDeltaX = windowX - previous.x;
+        let windowDeltaY = windowY - previous.y;
+        console.log(windowDeltaX, windowDeltaY);
+
+        this.popup_position.x -= windowDeltaX;
+        this.popup_position.y -= windowDeltaY;
+        this.set_current_position();
+    };
+    
     // If element is within a button that has a tooltip set, show it.
     show_tooltip_for_element(element)
     {
@@ -571,6 +646,9 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
             this.click_outside_listener.shutdown();
             this.click_outside_listener = null;
         }
+
+        if(this.remove_window_movement_listeners)
+            this.remove_window_movement_listeners();
     }
 
     cancel_event = (e) =>
@@ -1144,7 +1222,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         this.refresh();
     }
 
-    show(x, y, target)
+    show({target, ...options})
     {
         // When we hide, we clear which ID we want to display, but we don't refresh the
         // display so it doesn't flicker while it fades out.  Refresh now instead, so
@@ -1167,7 +1245,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
                 this._set_temporary_illust(media_id);
         }
 
-        super.show(x, y, target);
+        super.show({...options});
 
         // Make sure we're up to date if we deferred an update while hidden.
         this._effective_media_id_changed();
