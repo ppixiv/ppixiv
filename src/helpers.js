@@ -1369,12 +1369,15 @@ ppixiv.helpers = {
         });
     },
 
-    toggle_fullscreen()
+    async toggle_fullscreen()
     {
-        if(!document.fullscreenElement)
-            document.documentElement.requestFullscreen();
-        else
+        if(document.fullscreenElement)
+        {
             document.exitFullscreen();
+            return;
+        }
+
+        await document.documentElement.requestFullscreen();
     },
 
     is_fullscreen()
