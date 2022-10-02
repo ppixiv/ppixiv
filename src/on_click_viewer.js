@@ -1231,19 +1231,20 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
             this.locked_zoom = true;
         }
 
+        let previous_zoom_level = this._zoom_level_current;
         this.change_zoom(down);
 
-        // As a special case, 
-        // If that put us in 0x zoom, we're now showing the image identically to not being zoomed
-        // at all.  That's confusing, since toggling zoom does nothing since it toggles between
-        // unzoomed and an identical zoom.  When this happens, switch zoom off and change the zoom
-        // level to "cover".  The display will be identical, but clicking will zoom.
-        //
-        // This works with the test above: if you zoom again after this happens, we'll turn locked_zoom
-        // back on.
+        // If the zoom level didn't change, try one more time.  For example, if cover mode
+        // is equal to zoom level 2 and we just switched between them, we've changed zoom
+        // modes but nothing will actually change, so we should skip to the next level.
+        if(Math.abs(previous_zoom_level - this._zoom_level_current) < 0.01)
+            this.change_zoom(down);
+
+        // If we're selecting zoom level 0, turn off zoom lock and set the zoom level to cover.
+        // That displays the same thing, since 0 zoom is the same as unzoomed, but clicking the
+        // image will zoom to cover, which is more natural.
         if(this.zoom_level == 0)
         {
-            // but this should leave locked_zoom false, which we don't want
             this.zoom_level = "cover";
             this.locked_zoom = false;
         }
