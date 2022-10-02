@@ -7,14 +7,12 @@ def go():
     import time
     from ..util import win32
     from ..util import open_in_browser
-    from ..server import server
-
-    #is_running = win32.is_server_running()
+    from ..server.launch_server import fork_server
 
     # open_top will open a browser window.  If fork_server needs to start the server it won't
     # be ready immediately.  For now we rely on browsers retrying failed connections, so we can
     # open the browser window immediately.
-    server.fork_server()
+    fork_server()
     open_in_browser.open_top()
     
 if __name__=='__main__':

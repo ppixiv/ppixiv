@@ -291,31 +291,5 @@ def run():
     misc.RunMainTask(run_server)
     return True
 
-def fork_server():
-    """
-    If the server isn't already running, start it in a new process.
-
-    This is used when we want to make sure the server is running before doing something
-    that requires it, like opening a file association.  Note that this doesn't wait for
-    the server to be ready to receive requests.
-    """
-    if win32.is_server_running():
-        return
-
-    # Run this module in a new process.
-    import subprocess, sys
-    process = subprocess.Popen([sys.executable, "-m", "vview.server.server"])
-
-def run_task_with_server(func):
-    """
-    Start the server if necessary, then run func().
-
-    This is used when we're running a user command, like opening a file from Explorer,
-    and we need to make sure the server is running.  We'll start the server in another
-    process, so it doesn't prevent this process from exiting normally.
-    """
-    fork_server()
-    func()
-
 if __name__ == '__main__':
     run()

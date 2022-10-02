@@ -7,8 +7,8 @@
 from ..util import error_dialog
 
 def go():
-    from ..server import server
-    server.fork_server()
+    from ..server.launch_server import fork_server
+    fork_server()
 
 if __name__=='__main__':
     with error_dialog.show_errors():
