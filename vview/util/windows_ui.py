@@ -382,7 +382,7 @@ class _Terminal:
 
         # Add a log handler that writes to the terminal.
         handler = logging.StreamHandler(stdout)
-        handler.setFormatter(logging.Formatter(logging.BASIC_FORMAT))
+        handler.setFormatter(logging.Formatter('%(task_name)20s %(logTime)8.3f %(levelname)s:%(name)s:%(message)s'))
         logging.root.addHandler(handler)
 
     def _create_system_console(self):

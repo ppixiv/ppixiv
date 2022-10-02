@@ -164,7 +164,7 @@ async def handle_unknown_api_call(info):
     return { 'success': False, 'code': 'invalid-request', 'reason': 'Invalid API: /api/%s' % name }
 
 misc.add_logging_record_factory()
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, format='%(task_name)20s %(logTime)8.3f %(levelname)s:%(name)s:%(message)s')
 logging.getLogger('vview').setLevel(logging.INFO)
 logging.captureWarnings(True)
 misc.fix_basic_logging()
