@@ -426,9 +426,6 @@ std::function<void()> VVbrowserWindow::GetHotkey(UINT key)
     if(key == VK_F12)
         return [this] { webview->OpenDevToolsWindow(); };
 
-    if(alt && key == VK_RETURN)
-        return [this] { if(IsFullscreen()) ExitFullScreen(); else EnterFullScreen(); };
-
     if(shift && key == VK_ESCAPE)
     {
         return [this] {

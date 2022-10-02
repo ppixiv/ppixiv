@@ -1057,6 +1057,12 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         if(e.type != "keydown")
             return false;
 
+        if(e.altKey && e.key == "Enter")
+        {
+            helpers.toggle_fullscreen();
+            return true;
+        }
+
         if(this._is_zoom_ui_enabled)
         {
             // Ctrl-0 toggles zoom, similar to the browser Ctrl-0 reset zoom hotkey.
