@@ -1372,12 +1372,42 @@ ppixiv.helpers = {
     async toggle_fullscreen()
     {
         if(document.fullscreenElement)
-        {
-            document.exitFullscreen();
-            return;
+            await helpers.hide_body_during_request(async() => { document.exitFullscreen() });
+        else
+            await helpers.hide_body_during_request(async() => { document.documentElement.requestFullscreen() });
+    },
+
+    async hide_body_during_request(func)
+    {
+        // This hack tries to prevent the browser from flickering content in the wrong
+        // place while switching to and from fullscreen by hiding content while it's changing.
+        // There's no reliable way to tell when changing opacity has actually been displayed
+        // since displaying frames isn't synchronized with toggling fullscreen, so we just
+        // wait briefly based on testing.
+        document.body.style.opacity = 0;
+        let wait_promise = null;
+        try {
+            // Wait briefly for the opacity change to be drawn.
+            let delay = 50;
+            let start = Date.now();
+
+            while(Date.now() - start < delay)
+                await helpers.vsync();
+
+            // Start entering or exiting fullscreen.
+            wait_promise = func();
+
+            start = Date.now();
+            while(Date.now() - start < delay)
+                await helpers.vsync();
+        } finally {
+            document.body.style.opacity = 1;
         }
 
-        await document.documentElement.requestFullscreen();
+        // Wait for requestFullscreen to finish after restoring opacity, so if it's waiting
+        // to request permission we won't leave the window blank the whole time.  We'll just
+        // flash black briefly.
+        await wait_promise;
     },
 
     is_fullscreen()
