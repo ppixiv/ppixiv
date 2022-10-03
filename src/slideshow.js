@@ -19,8 +19,8 @@ ppixiv.slideshow = class
         // The minimum zoom level to allow:
         minimum_zoom,
 
-        // If true, we're being used for slideshow mode, otherwise auto-pan mode.
-        slideshow_enabled,
+        // One of "slideshow" or "auto-pan".
+        mode,
 
         // The slideshow is normally clamped to the window.  This can be disabled by the
         // editor.
@@ -32,7 +32,7 @@ ppixiv.slideshow = class
         this.container_width = container_width;
         this.container_height = container_height;
         this.minimum_zoom = minimum_zoom;
-        this.slideshow_enabled = slideshow_enabled;
+        this.mode = mode;
         this.clamp_to_window = clamp_to_window;
     }
 
@@ -42,18 +42,18 @@ ppixiv.slideshow = class
         // If we're in slideshow mode, see if we have a different default animation.  Panning
         // mode always pans.
         let slideshow_default = ppixiv.settings.get("slideshow_default", "pan");
-        if(this.slideshow_enabled && slideshow_default == "contain")
+        if(this.mode == "slideshow" && slideshow_default == "contain")
             return this.get_animation(ppixiv.slideshow.pans.stationary);
 
         // Choose which default to use.
-        let animation = this.slideshow_enabled? ppixiv.slideshow.pans.default_slideshow:ppixiv.slideshow.pans.default_pan;
+        let animation = this.mode == "slideshow"? ppixiv.slideshow.pans.default_slideshow:ppixiv.slideshow.pans.default_pan;
 
         // If the default animation doesn't go anywhere, the visible area's aspect ratio very
         // closely matches the screen's, so there's nowhere to pan.  Use a pull-in animation
         // instead.  We don't currently use this in pan mode, because zooming the image when
         // in pan mode and controlling multiple tabs can be annoying.
         animation = this.get_animation(animation);
-        if(animation.total_travel > 0.05 || !this.slideshow_enabled)
+        if(animation.total_travel > 0.05 || this.mode == "auto-pan")
             return animation;
 
         console.log(`Slideshow: pan animation had nowhere to move, using a pull-in instead (total_travel ${animation.total_travel})`);
@@ -133,12 +133,12 @@ ppixiv.slideshow = class
     _get_parameters()
     {
         // The target duration of the animation:
-        let pan_duration = this.slideshow_enabled?
+        let pan_duration = this.mode == "slideshow"?
             ppixiv.settings.get("slideshow_duration"):
             ppixiv.settings.get("auto_pan_duration");
 
         let ease;
-        if(this.slideshow_enabled)
+        if(this.mode == "slideshow")
         {
             // In slideshow mode, we always fade through black, so we don't need any easing on the
             // transition.
@@ -169,8 +169,8 @@ ppixiv.slideshow = class
         max_speed = helpers.clamp(max_speed, 0.25, 0.5);
 
         // Choose a fade duration.  This needs to be quicker if the slideshow is very brief.
-        let fade_in = this.slideshow_enabled? Math.min(pan_duration * 0.1, 2.5):0;
-        let fade_out = this.slideshow_enabled? Math.min(pan_duration * 0.1, 2.5):0;
+        let fade_in = this.mode == "slideshow"? Math.min(pan_duration * 0.1, 2.5):0;
+        let fade_out = this.mode == "slideshow"? Math.min(pan_duration * 0.1, 2.5):0;
 
         return { ease, pan_duration, max_speed, fade_in, fade_out };
     }

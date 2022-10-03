@@ -140,7 +140,7 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         this.container.addEventListener("selectstart", this.block_event, { signal: this.event_shutdown.signal });
 
         // Start or stop panning if the user changes it while we're active, eg. by pressing ^P.
-        settings.addEventListener("auto_pan", this.refresh_autopan.bind(this), { signal: this.event_shutdown.signal });
+        settings.addEventListener("auto_pan", this.refresh_animation.bind(this), { signal: this.event_shutdown.signal });
 
         // This is like pointermove, but received during quick view from the source tab.
         window.addEventListener("quickviewpointermove", this.quickviewpointermove, { signal: this.event_shutdown.signal });
@@ -264,7 +264,7 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         this.original_width = width;
         this.original_height = height;
         this._cropped_size = crop && crop.length == 4? new FixedDOMRect(crop[0], crop[1], crop[2], crop[3]):null;
-        this.pan = pan;
+        this.custom_animation = pan;
         this.viewer_images = viewer_images;
         this.onnextimage = onnextimage;
 
@@ -400,7 +400,7 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
     reset_position()
     {
         // See if we want to play an animation instead.
-        this.refresh_autopan();
+        this.refresh_animation();
         if(this.animations != null)
             return;
 
@@ -449,7 +449,7 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         this.reposition();
 
         if(this.animations)
-            this.refresh_autopan();
+            this.refresh_animation();
     }
 
     // Enable or disable zoom lock.
@@ -867,7 +867,7 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
 
         // If we were animating, start animating again.
         if(args.state.zoom.animating)
-            this.refresh_autopan();
+            this.refresh_animation();
 
         this.zoom_level = args.state.zoom?.zoom;
         this.locked_zoom = args.state.zoom?.lock;
@@ -931,7 +931,7 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
     }
 
     // Start a pan/zoom animation.  If it's already running, update it in place.
-    refresh_autopan()
+    refresh_animation()
     {
         if(!this.animation_enabled)
         {
@@ -939,11 +939,13 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
             return;
         }
 
-        // If we were already animating for slideshow and we're now panning instead or
-        // vice versa, stop the animation so we start the new type.
-        if(this.animation_enabled_for_slideshow != this.slideshow_enabled)
+        let animation_mode = this.slideshow_enabled? "slideshow":"auto-pan";
+
+        // If we're changing animation types, stop the previous animation.  Do this before
+        // we start creating the new one, so the previous animation will be committed.
+        if(this.current_animation_mode != animation_mode)
             this.stop_animation();
-        this.animation_enabled_for_slideshow = this.slideshow_enabled;
+        this.current_animation_mode = animation_mode;
 
         let slideshow = new ppixiv.slideshow({
             // this.width/this.height are the size of the image at 1x zoom, which is to fit
@@ -953,21 +955,16 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
             height: this.height * this._zoom_factor_cover,
             container_width: this.container_width,
             container_height: this.container_height,
-            slideshow_enabled: this.slideshow_enabled,
+            mode: animation_mode,
 
             // Set the minimum zoom to 1 / cover, so the smallest zoom it allows brings the image
             // back to fit onscreen, and we don't go any smaller than that.
             minimum_zoom: 1 / this._zoom_factor_cover,
         });
 
-        // Try to create a vertical or horizontal pan, or load the user's transition if there is one.
-        let animation = this.pan? slideshow.get_animation(this.pan):slideshow.get_default_animation();
-        this.run_animation(animation);
-    }
-
-    // animation must be prepared with prepare_animation first.
-    run_animation(animation)
-    {
+        // Create the animation, using the user's custom animation if we have one.
+        let animation = this.custom_animation? slideshow.get_animation(this.custom_animation):slideshow.get_default_animation();
+        
         // If we're not updating an already-running animation, set up the image for animating.
         if(this.animation == null)
         {
@@ -975,6 +972,7 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
             this.image_box.style.height = Math.round(animation.default_height) + "px";
         }
 
+        // Create keyframes for the animation.
         let keyframes = [];
         let current_time = 0;
         for(let point of animation.pan)
@@ -989,14 +987,18 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
             current_time += point.duration;
         }
 
-        // Create the animation, or update it in-place if it already exists, probably due to the
-        // window being resized.  total_time won't be updated when we do this.
+        // If an animation is already running, we're updating the same type of animation.
+        // Just update the main animation in place, so we adjust the animation if the window
+        // is resized.  This doesn't adjust everything, like total time or the fade.
         if(this.animations != null)
         {
             this.animations[0].effect.setKeyframes(keyframes);
             return;
         }
 
+        this.animations = [];
+
+        // Create the main animation.
         let main_animation = new Animation(new KeyframeEffect(
             this.image_box,
             keyframes,
@@ -1005,46 +1007,33 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
                 fill: 'forwards',
             }
         ));
+        this.animations.push(main_animation);
 
         // Create a separate animation for fade-in and fade-out.
-        let fade_keyframes = [{
-        }];
-
         let fade_duration = animation.fade_in + animation.fade_out;
         if(fade_duration > 0 && fade_duration <= animation.total_time)
         {
-            fade_keyframes = [{
-                opacity: 0,
-            }, {
-                opacity: 1,
-                easing: "linear",
-                offset: animation.fade_in / animation.total_time,
-            }, {
-                opacity: 1,
-                offset: 1 - (animation.fade_out / animation.total_time),
-            }, {
-                opacity: 0,
-                offset: 1,
-            }];
+            let fade_keyframes = [
+                { opacity: 0, offset: 0 },
+                { opacity: 1, offset:       animation.fade_in / animation.total_time, easing: "linear",  },
+                { opacity: 1, offset: 1 - (animation.fade_out / animation.total_time) },
+                { opacity: 0, offset: 1 },
+            ];
+
+            let fade_animation = new Animation(new KeyframeEffect(
+                this.image_box, fade_keyframes, {
+                    duration: animation.total_time * 1000,
+                    fill: 'forwards',
+                }
+            ));
+
+            this.animations.push(fade_animation);
         }
-
-        let fade_animation = new Animation(new KeyframeEffect(
-            this.image_box, fade_keyframes, {
-                duration: animation.total_time * 1000,
-                fill: 'forwards',
-            }
-        ));
         
-        this.animations = [main_animation, fade_animation];
-
-        // Commit and remove the animation when it finishes, so the history state remembers that
-        // we were no longer animating.  This way, viewing an image in a linked tab and then removing
-        // it doesn't restart a long-finished animation.  We only pay attention to the main animation
-        // for this and ignore the fade.
-        this.animations[0].onfinish = async (e) => {
-            if(!this.slideshow_enabled || !this.onnextimage)
+        main_animation.onfinish = async (e) => {
+            // If we're not in slideshow mode, just clean up the animation and stop.
+            if(this.current_animation_mode != "slideshow" || !this.onnextimage)
             {
-                // We're just panning, so clean up the animation and stop.
                 this.stop_animation();
                 return;
             }
@@ -1085,8 +1074,8 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
                 animation.commitStyles();
         } catch {
             applied_animations = false;
-
         }
+
         // Cancel all animations.  We don't need to wait for animation.pending here.
         for(let animation of this.animations)
             animation.cancel();
@@ -1096,6 +1085,7 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         this.image_box.style.opacity = "";
 
         this.animations = null;
+        this.current_animation_mode = null;
 
         if(!applied_animations)
         {
@@ -1280,7 +1270,7 @@ ppixiv.image_viewer_desktop = class extends ppixiv.image_viewer_base
 
    pointerevent = (e) =>
    {
-       if(e.mouseButton != 0 || this.slideshow_enabled)
+       if(e.mouseButton != 0 || this.current_animation_mode == "slideshow")
            return;
 
        if(e.pressed && this.captured_pointer_id == null)
@@ -1414,8 +1404,8 @@ ppixiv.image_viewer_mobile = class extends ppixiv.image_viewer_base
 
             // Return the current position in screen coordinates.
             get_position: () => {
-                // We're about to start touch dragging, so stop any running pan.
-                if(!this.slideshow_enabled)
+                // We're about to start touch dragging, so stop any running pan.  Don't stop slideshows.
+                if(this.current_animation_mode != "slideshow")
                     this.stop_animation();
 
                 return {
@@ -1427,7 +1417,7 @@ ppixiv.image_viewer_mobile = class extends ppixiv.image_viewer_base
             // Set the current position in screen coordinates.
             set_position: ({x, y}) =>
             {
-                if(this.slideshow_enabled)
+                if(this.current_animation_mode == "slideshow")
                     return;
 
                 this.stop_animation();
