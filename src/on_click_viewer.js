@@ -813,10 +813,17 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         let x = screen_width/2 - zoom_pos[0]*zoomed_width;
         let y = screen_height/2 - zoom_pos[1]*zoomed_height;
 
-        // Only shift by integer amounts.  This only matters when at 1:1, so there's
-        // no subpixel offset.
-        x = Math.round(x);
-        y = Math.round(y);
+        // If the display is 1:1 to the image, make sure there's no subpixel offset.  Do this if
+        // we're in "actual" zoom mode, or if we're in another zoom with the same effect, such as
+        // if we're viewing a 1920x1080 image on a 1920x1080 screen and we're in "cover" mode.
+        // If we're scaling the image at all due to zooming, allow it to be fractional to allow
+        // smoother panning.
+        let in_actual_zoom_mode = Math.abs(this._zoom_factor_current - this._zoom_factor_actual) < 0.001;
+        if(in_actual_zoom_mode)
+        {
+            x = Math.round(x);
+            y = Math.round(y);
+        }
 
         return { zoom_pos, zoomed_width, zoomed_height, image_position: {x,y} };
     }
