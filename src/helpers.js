@@ -1432,6 +1432,11 @@ ppixiv.helpers = {
         if(Math.abs(window_width - window.screen.width) < 2 && Math.abs(window_height - window.screen.height) < 2)
             return true;
 
+        // In Firefox, outer size is correct, so check it too.  This makes us detect fullscreen if inner dimensions
+        // are reduced by panels in fullscreen.
+        if(window.outerWidth == window.screen.width && window.outerHeight == window.screen.height)
+            return true;
+
         return false;
     },
     
