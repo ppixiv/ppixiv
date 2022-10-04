@@ -269,6 +269,10 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         // the editor.
         this.crop_box.insertAdjacentElement("afterbegin", this.viewer_images.container);
 
+        // Set the size of the image box.
+        this.image_box.style.width = Math.round(this.width) + "px";
+        this.image_box.style.height = Math.round(this.height) + "px";
+        
         this.update_crop();
 
         // If the main image is already ready, show it.  Otherwise, show the preview image.
@@ -445,6 +449,7 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
     {
         this.reposition();
 
+        // If the window size changes while we have an animation running, update the animation.
         if(this.animations)
             this.refresh_animation();
     }
@@ -481,17 +486,36 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         settings.set("zoom-level", this._zoom_level);
         this.reposition();
     }
-    
-    // A zoom level is the exponential ratio the user sees, and the zoom
-    // factor is just the multiplier.
-    zoom_level_to_zoom_factor(level) { return Math.pow(1.5, level); }
-    zoom_factor_to_zoom_level(factor) {
+
+    // Convert between zoom levels and zoom factors.
+    //
+    // The zoom factor is the actual amount we zoom the image by, relative to its
+    // base size (this.width and this.height).  A zoom factor of 1 will fill the
+    // screen ("cover" mode).
+    //
+    // The zoom level is the user-facing exponential zoom, with a level of 0 fitting
+    // the image on screen ("contain" mode).
+    zoom_level_to_zoom_factor(level)
+    {
+        // Convert from an exponential zoom level to a linear zoom factor.
+        let linear = Math.pow(1.5, level);
+
+        // If linear == 1 (level 0), we want the image to fit on the screen ("contain" mode),
+        // but the image is actually scaled to cover the screen.
+        let factor = linear * this._image_to_contain_ratio / this._image_to_cover_ratio;
+        return factor;
+    }
+
+    zoom_factor_to_zoom_level(factor)
+    {
+        // This is just the inverse of zoom_level_to_zoom_factor.
         if(factor < 0.00001)
         {
             console.error(`Invalid zoom factor ${factor}`);
             factor = 1;
         }
         
+        factor /= this._image_to_contain_ratio / this._image_to_cover_ratio;
         return Math.log2(factor) / Math.log2(1.5);
     }
 
@@ -513,8 +537,6 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
     // Return the active zoom ratio.  A zoom of 1x corresponds to "contain" zooming.
     get _zoom_factor_current()
     {
-        if(!this.zoom_active)
-            return 1;
         return this.zoom_level_to_zoom_factor(this._zoom_level_current);
     }
 
@@ -529,8 +551,8 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
     }
     get _zoom_level_cover() { return this.zoom_factor_to_zoom_level(this._zoom_factor_cover); }
 
-    // The zoom level for "actual" mode:
-    get _zoom_factor_actual() { return 1 / this._image_to_screen_ratio; }
+    // The zoom level for "actual" mode.  This inverts the base scaling.
+    get _zoom_factor_actual() { return 1 / this._image_to_cover_ratio; }
     get _zoom_level_actual() { return this.zoom_factor_to_zoom_level(this._zoom_factor_actual); }
 
     // Zoom in or out.  If zoom_in is true, zoom in by one level, otherwise zoom out by one level.
@@ -669,6 +691,12 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         // Scale movement by the zoom factor, so we move faster if we're zoomed
         // further in.
         let zoom_factor = this._zoom_factor_current;
+
+        // This is a hack to keep the same panning sensitivity.  The sensitivity was based on
+        // _zoom_factor_current being relative to "contain" mode, but it changed to "cover".
+        // Adjust the panning speed so it's not affected by this change.
+        zoom_factor /= this._image_to_contain_ratio / this._image_to_cover_ratio;
+
         x_offset *= zoom_factor;
         y_offset *= zoom_factor;
 
@@ -684,7 +712,24 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         return this._mouse_pressed || this.locked_zoom;
     }
 
-    get _image_to_screen_ratio()
+    // Return the ratio to scale from the image's natural dimensions to cover the screen,
+    // filling the screen on both dimensions and only overflowing on one axis.  We use this
+    // as the underlying image size.
+    get _image_to_cover_ratio()
+    {
+        let screen_width = this.container_width;
+        let screen_height = this.container_height;
+
+        // In case we're hidden and have no width, make sure we don't return an invalid value.
+        if(screen_width == 0 || screen_height == 0)
+            return 1;
+
+        return Math.max(screen_width/this.cropped_size.width, screen_height/this.cropped_size.height);
+    }
+
+    // Return the ratio to scale from the image's natural dimensions to contain it to the
+    // screen, filling the screen on one axis and not overflowing either axis.
+    get _image_to_contain_ratio()
     {
         let screen_width = this.container_width;
         let screen_height = this.container_height;
@@ -707,8 +752,8 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
     }
     
     // Return the width and height of the image when at 1x zoom.
-    get width() { return this.cropped_size.width * this._image_to_screen_ratio; }
-    get height() { return this.cropped_size.height * this._image_to_screen_ratio; }
+    get width() { return this.cropped_size.width * this._image_to_cover_ratio; }
+    get height() { return this.cropped_size.height * this._image_to_cover_ratio; }
 
     // The actual size of the image with its current zoom.
     get onscreen_width() { return this.width * this._zoom_factor_current; }
@@ -742,16 +787,14 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
 
         this.schedule_save_to_history();
 
-        let { zoom_pos, zoomed_width, zoomed_height, image_position } = this.get_current_actual_position({clamp_position});
+        let { zoom_pos, zoom_factor, image_position } = this.get_current_actual_position({clamp_position});
 
         // Save the clamped position to center_pos, so after dragging off of the left edge,
         // dragging to the right starts moving immediately and doesn't drag through the clamped
         // distance.
         this.center_pos = zoom_pos;
         
-        this.image_box.style.width = Math.round(zoomed_width) + "px";
-        this.image_box.style.height = Math.round(zoomed_height) + "px";
-        this.image_box.style.transform = `translate(${image_position.x}px, ${image_position.y}px)`;
+        this.image_box.style.transform = `translateX(${image_position.x}px) translateY(${image_position.y}px) scale(${zoom_factor})`;
     }
 
     // Return the size and position of the image, given the current pan and zoom.
@@ -822,7 +865,7 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
             y = Math.round(y);
         }
 
-        return { zoom_pos, zoomed_width, zoomed_height, image_position: {x,y} };
+        return { zoom_pos, zoom_factor, image_position: {x,y} };
     }
 
     update_crop()
@@ -948,27 +991,20 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
             // this.width/this.height are the size of the image at 1x zoom, which is to fit
             // onto the screen.  Scale this up by zoom_factor_cover, so the slideshow's default
             // zoom level is to cover the screen.
-            width: this.width * this._zoom_factor_cover,
-            height: this.height * this._zoom_factor_cover,
+            width: this.width,
+            height: this.height,
             container_width: this.container_width,
             container_height: this.container_height,
             mode: animation_mode,
 
-            // Set the minimum zoom to 1 / cover, so the smallest zoom it allows brings the image
-            // back to fit onscreen, and we don't go any smaller than that.
-            minimum_zoom: 1 / this._zoom_factor_cover,
+            // Set the minimum zoom to 1, so we don't zoom below cover mode and leave blank space
+            // onscreen, which is ugly.
+            minimum_zoom: 1,
         });
 
         // Create the animation, using the user's custom animation if we have one.
         let animation = this.custom_animation? slideshow.get_animation(this.custom_animation):slideshow.get_default_animation();
         
-        // If we're not updating an already-running animation, set up the image for animating.
-        if(this.animation == null)
-        {
-            this.image_box.style.width = Math.round(animation.default_width) + "px";
-            this.image_box.style.height = Math.round(animation.default_height) + "px";
-        }
-
         // Create keyframes for the animation.
         let keyframes = [];
         let current_time = 0;
@@ -1091,17 +1127,17 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
             return;
         }
 
-        // Figure out the zoom factor the animation left us with.  The zoom factor is 1 if
-        // the image width equals this.width.
-        let { width, left, top } = this.image_box.getBoundingClientRect();
-        let zoom_factor = width / this.width;
+        // Pull out the transform and scale we were left on when the animation stopped.
+        let computed_style = getComputedStyle(this.image_box);
+        let matrix = new DOMMatrix(computed_style.transform);
+        let zoom_factor = matrix.a, left = matrix.e, top = matrix.f;
         let zoom_level = this.zoom_factor_to_zoom_level(zoom_factor);
 
-        // Apply the current zoom and pan position.  If zoom_factor is 1x then just disable
+        // Apply the current zoom and pan position.  If the zoom level is 0 then just disable
         // zoom, and use "cover" if the zoom level matches it.  The zoom we set here doesn't
         // have to be one that's selectable in the UI.
         this.locked_zoom = true;
-        if(Math.abs(zoom_factor - 1) < 0.001)
+        if(Math.abs(zoom_level) < 0.001)
             this.locked_zoom = false;
         else if(Math.abs(zoom_level - this._zoom_level_cover) < 0.01)
             this.zoom_level = "cover";
