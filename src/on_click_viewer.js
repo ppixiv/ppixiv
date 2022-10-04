@@ -1025,14 +1025,14 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         // is resized.  This doesn't adjust everything, like total time or the fade.
         if(this.animations != null)
         {
-            this.animations[0].effect.setKeyframes(keyframes);
+            this.animations.main.effect.setKeyframes(keyframes);
             return;
         }
 
-        this.animations = [];
+        this.animations = {};
 
         // Create the main animation.
-        let main_animation = new Animation(new KeyframeEffect(
+        this.animations.main = new Animation(new KeyframeEffect(
             this.image_box,
             keyframes,
             {
@@ -1040,7 +1040,6 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
                 fill: 'forwards',
             }
         ));
-        this.animations.push(main_animation);
 
         // Create a separate animation for fade-in and fade-out.
         let fade_duration = animation.fade_in + animation.fade_out;
@@ -1053,17 +1052,15 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
                 { opacity: 0, offset: 1 },
             ];
 
-            let fade_animation = new Animation(new KeyframeEffect(
+            this.animations.fade = new Animation(new KeyframeEffect(
                 this.image_box, fade_keyframes, {
                     duration: animation.total_time * 1000,
                     fill: 'forwards',
                 }
             ));
-
-            this.animations.push(fade_animation);
         }
         
-        main_animation.onfinish = async (e) => {
+        this.animations.main.onfinish = async (e) => {
             // If we're not in slideshow mode, just clean up the animation and stop.
             if(this.current_animation_mode != "slideshow" || !this.onnextimage)
             {
@@ -1087,7 +1084,7 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
             }
         };
 
-        for(let animation of this.animations)
+        for(let animation of Object.values(this.animations))
             animation.play();
     }
 
@@ -1103,14 +1100,14 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         // Commit the current state of the main animation so we can read where the image was.
         let applied_animations = true;
         try {
-            for(let animation of this.animations)
+            for(let animation of Object.values(this.animations))
                 animation.commitStyles();
         } catch {
             applied_animations = false;
         }
 
         // Cancel all animations.  We don't need to wait for animation.pending here.
-        for(let animation of this.animations)
+        for(let animation of Object.values(this.animations))
             animation.cancel();
 
         // Make sure we don't leave the image faded out if we stopped while in the middle
@@ -1185,7 +1182,7 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
             return;
 
         // Note that playbackRate is broken on iOS.
-        for(let animation of this.animations)
+        for(let animation of Object.values(this.animations))
         {
             if(should_be_paused)
                 animation.pause();
