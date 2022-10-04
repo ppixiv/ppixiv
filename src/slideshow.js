@@ -235,6 +235,15 @@ ppixiv.slideshow = class
             point.computed_zoom = zoom;
             point.computed_tx = move_x;
             point.computed_ty = move_y;
+
+            // The bounds of the image at each corner, after zoom is applied.  This is used for speed
+            // calculations later.
+            point.corners = [
+                { x: -move_x,                y: -move_y },
+                { x: -move_x,                y: -move_y + zoomed_height },
+                { x: -move_x + zoomed_width, y: -move_y },
+                { x: -move_x + zoomed_width, y: -move_y + zoomed_height },
+            ];
         }
 
         // Calculate the duration for keyframes that specify a speed.
@@ -249,13 +258,20 @@ ppixiv.slideshow = class
                 continue;
 
             // speed is relative to the screen size, so it's not tied too tightly to the resolution
-            // of the window.  The "size" of the window depends on which way we're moving: if we're moving
-            // horizontally we only care about the horizontal size, and if we're moving diagonally, weight
-            // the two.  This way, the speed is relative to the screen size in the direction we're moving.
-            // If it's 0.5 and we're only moving horizontally, we'll move half a screen width per second.
-            let distance_x = Math.abs(p0.computed_tx - p1.computed_tx);
-            let distance_y = Math.abs(p0.computed_ty - p1.computed_ty);
-            if(distance_x == 0 && distance_y == 0)
+            // of the window.  A speed of 1 means we want one diagonal screen size per second.
+            //
+            // The animation might be translating, or it might be anchored to one corner and just zooming.  Treat
+            // movement speed as the maximum distance any corner is moving.  For example, if we're anchored
+            // in the top-left corner and zooming, the top-left corner is stationary, but the bottom-right
+            // corner is moving.  Use the maximum amount any individual corner is moving as the speed.
+            let distance_in_pixels = 0;
+            for(let corner = 0; corner < 4; ++corner)
+            {
+                let distance = helpers.distance(p0.corners[corner], p1.corners[corner]);
+                distance_in_pixels = Math.max(distance_in_pixels, distance);
+            }
+
+            if(distance_in_pixels == 0)
             {
                 // We're not moving at all.  If the animation is based on speed, just set a small duration
                 // to avoid division by zero.
@@ -265,11 +281,8 @@ ppixiv.slideshow = class
                 continue;
             }
 
-            let distance_ratio = distance_y / (distance_x + distance_y); // 0 = horizontal only, 1 = vertical only
-            let screen_size = (this.container_height * distance_ratio) + (this.container_width * (1-distance_ratio));
-
-            // The screen distance we're moving:
-            let distance_in_pixels = helpers.distance({x: p0.computed_tx, y: p0.computed_ty}, {x: p1.computed_tx, y: p1.computed_ty});
+            // The diagonal size of the screen is what our speed is relative to.
+            let screen_size = helpers.distance({x: 0, y: 0}, { x: this.container_height, y: this.container_width });
 
             // pixels_per_second is the speed we'll move at the given speed.  Note that this ignores
             // easing, and we'll actually move faster or slower than this during the transition.
