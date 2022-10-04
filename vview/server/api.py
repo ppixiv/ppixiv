@@ -97,6 +97,9 @@ def get_illust_info(info, entry, base_url):
             'previewUrls': [remote_thumb_path],
             'userId': -1,
             'tagList': [],
+            'extraData': {
+                media_id: { },
+            }
         }
 
         return image_info
