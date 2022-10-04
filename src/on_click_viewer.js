@@ -39,7 +39,7 @@ class ViewerImages extends ppixiv.widget
             this.preview_img = null;
         }
 
-        this.container.remove();
+        super.shutdown();
     }
 
     set_image_urls(image_url, inpaint_url)
@@ -128,25 +128,22 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         this.locked_zoom = settings.get("zoom-mode") == "locked";
         this._zoom_level = settings.get("zoom-level", "cover");
 
-        // This is aborted when we shut down to remove listeners.
-        this.event_shutdown = new AbortController();
-
         this.editing_container = new ImageEditingOverlayContainer({
             container: this.crop_box,
         });
 
-        window.addEventListener("resize", this.onresize, { signal: this.event_shutdown.signal, capture: true });
-        this.container.addEventListener("dragstart", this.block_event, { signal: this.event_shutdown.signal });
-        this.container.addEventListener("selectstart", this.block_event, { signal: this.event_shutdown.signal });
+        window.addEventListener("resize", this.onresize, { signal: this.shutdown_signal.signal, capture: true });
+        this.container.addEventListener("dragstart", this.block_event, { signal: this.shutdown_signal.signal });
+        this.container.addEventListener("selectstart", this.block_event, { signal: this.shutdown_signal.signal });
 
         // Start or stop panning if the user changes it while we're active, eg. by pressing ^P.
-        settings.addEventListener("auto_pan", this.refresh_animation.bind(this), { signal: this.event_shutdown.signal });
+        settings.addEventListener("auto_pan", this.refresh_animation.bind(this), { signal: this.shutdown_signal.signal });
 
         // This is like pointermove, but received during quick view from the source tab.
-        window.addEventListener("quickviewpointermove", this.quickviewpointermove, { signal: this.event_shutdown.signal });
+        window.addEventListener("quickviewpointermove", this.quickviewpointermove, { signal: this.shutdown_signal.signal });
 
         // Listen for open widgets changing.  We'll pause the slideshow while UI is open.
-        OpenWidgets.singleton.addEventListener("changed", this.open_widgets_changed, { signal: this.event_shutdown.signal });
+        OpenWidgets.singleton.addEventListener("changed", this.open_widgets_changed, { signal: this.shutdown_signal.signal });
     }
 
     // Load the given illust and page.
@@ -382,9 +379,9 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
 
         this.remove_images();
         
-        this.container.remove();
-        this.event_shutdown.abort();
         this.set_new_image.abort();
+
+        super.shutdown();
     }
 
     // Return "portrait" if the image is taller than the screen, otherwise "landscape".
@@ -1258,12 +1255,12 @@ ppixiv.image_viewer_desktop = class extends ppixiv.image_viewer_base
     {
         super(options);
  
-        window.addEventListener("blur", this.window_blur, { signal: this.event_shutdown.signal });
+        window.addEventListener("blur", this.window_blur, { signal: this.shutdown_signal.signal });
 
         this.pointer_listener = new ppixiv.pointer_listener({
             element: this.container,
             button_mask: 1,
-            signal: this.event_shutdown.signal,
+            signal: this.shutdown_signal.signal,
             callback: this.pointerevent,
         });
    }
@@ -1400,7 +1397,7 @@ ppixiv.image_viewer_mobile = class extends ppixiv.image_viewer_base
  
         this.touch_scroller = new ppixiv.TouchScroller({
             container: this.container,
-            signal: this.event_shutdown.signal,
+            signal: this.shutdown_signal.signal,
 
             // Return the current position in screen coordinates.
             get_position: () => {
