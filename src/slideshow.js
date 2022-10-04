@@ -19,7 +19,7 @@ ppixiv.slideshow = class
         // The minimum zoom level to allow:
         minimum_zoom,
 
-        // One of "slideshow" or "auto-pan".
+        // One of "slideshow", "slideshow-hold" or "auto-pan".
         mode,
 
         // The slideshow is normally clamped to the window.  This can be disabled by the
@@ -46,7 +46,9 @@ ppixiv.slideshow = class
             return this.get_animation(ppixiv.slideshow.pans.stationary);
 
         // Choose which default to use.
-        let animation = this.mode == "slideshow"? ppixiv.slideshow.pans.default_slideshow:ppixiv.slideshow.pans.default_pan;
+        let animation = this.mode == "slideshow" || this.mode == "slideshow-hold"?
+            ppixiv.slideshow.pans.default_slideshow:
+            ppixiv.slideshow.pans.default_pan;
 
         // If the default animation doesn't go anywhere, the visible area's aspect ratio very
         // closely matches the screen's, so there's nowhere to pan.  Use a pull-in animation
@@ -135,6 +137,7 @@ ppixiv.slideshow = class
         // The target duration of the animation:
         let pan_duration = this.mode == "slideshow"?
             ppixiv.settings.get("slideshow_duration"):
+            this.mode == "slideshow-hold"? 30: // XXX
             ppixiv.settings.get("auto_pan_duration");
 
         let ease;
@@ -144,7 +147,7 @@ ppixiv.slideshow = class
             // transition.
             ease = "linear";
         }
-        else
+        else if(this.mode == "auto-pan")
         {
             // There's no fading in auto-pan mode.  Use an ease-out transition, so we start
             // quickly and decelerate at the end.  We're jumping from another image anyway
@@ -156,6 +159,13 @@ ppixiv.slideshow = class
             // the ease-out as much (they're already slow), so we have more even motion.
             let factor = helpers.scale_clamp(pan_duration, 5, 15, 0.58, 1);
             ease = `cubic-bezier(0.0, 0.0, ${factor}, 1.0)`;
+        }
+        else if(this.mode == "slideshow-hold")
+        {
+            // Similar to auto-pan, but using an ease-in-out transition instead, and we always keep
+            // some easing around even for very long animations.
+            let factor = helpers.scale_clamp(pan_duration, 5, 15, 0.58, 0.90);
+            ease = `cubic-bezier(${1-factor}, 0.0, ${factor}, 1.0)`;
         }
 
         // Max speed sets how fast the image is allowed to move.  If it's 0.5, the image shouldn't
@@ -200,8 +210,8 @@ ppixiv.slideshow = class
             let zoom = helpers.clamp(point.zoom, minimum_zoom, maximum_zoom);
 
             // The screen size the image will have:
-            let zoomed_width = animation.default_width * zoom;
-            let zoomed_height = animation.default_height * zoom;
+            let zoomed_width = this.width * zoom;
+            let zoomed_height = this.height * zoom;
 
             // Initially, the image will be aligned to the top-left of the screen.  Shift right and
             // down to align the anchor the origin.  This is usually the center of the image.

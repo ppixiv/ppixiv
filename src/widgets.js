@@ -1800,7 +1800,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                     label: "Slideshow",
                     icon: "mat:wallpaper",
                     requires_image: true,
-                    checked: helpers.args.location.hash.get("slideshow") == "1",
+                    checked: helpers.args.location.hash.get("slideshow") != null,
                     onclick: () => {
                         main_controller.toggle_slideshow();
                         this.refresh();

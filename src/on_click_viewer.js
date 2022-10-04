@@ -159,9 +159,9 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         // This callback will be run once an image has actually been displayed.
         ondisplayed,
 
-        // If true, we're in slideshow mode.  We'll always start an animation, and image
-        // navigation will be disabled.
-        slideshow=false,
+        // If set, we're in slideshow mode.  We'll always start an animation, and image
+        // navigation will be disabled.  This can be null, "slideshow", or "slideshow-hold".
+        slideshow=null,
 
         // If we're animating, this will be called when the animation finishes.
         onnextimage=null,
@@ -186,6 +186,8 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
             this.remove_images();
             return;
         }
+
+        this.slideshow_mode = slideshow;
 
         // Don't show low-res previews during slideshows.
         if(slideshow)
@@ -283,14 +285,14 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         //
         // Also do this if we already have animations running, so we update the slideshow/panning
         // if the mode changes.
-        if(restore_position == "auto" || this.slideshow_enabled || this.animations != null)
+        if(restore_position == "auto" || this.slideshow_mode || this.animations != null)
             this.reset_position();
         else if(restore_position == "history")
             this.restore_from_history();
 
         // If we're in slideshow mode, we aren't using the preview image.  Pause the animation
         // until we actually display it so it doesn't run while there's nothing visible.
-        if(this.slideshow_enabled)
+        if(this.slideshow_mode)
             this.pause_animation = true;
 
         this.reposition();
@@ -979,13 +981,17 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
             return;
         }
 
-        let animation_mode = this.slideshow_enabled? "slideshow":"auto-pan";
+        // Decide which animation mode to use.
+        let animation_mode = "auto-pan";
+        if(this.slideshow_mode == "hold")
+            animation_mode = "slideshow-hold";
+        else if(this.slideshow_mode)
+            animation_mode = "slideshow";
 
         // If we're changing animation types, stop the previous animation.  Do this before
         // we start creating the new one, so the previous animation will be committed.
         if(this.current_animation_mode != animation_mode)
             this.stop_animation();
-        this.current_animation_mode = animation_mode;
 
         let slideshow = new ppixiv.slideshow({
             // this.width/this.height are the size of the image at 1x zoom, which is to fit
@@ -1038,12 +1044,16 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
             {
                 duration: animation.total_time * 1000,
                 fill: 'forwards',
+
+                // In slideshow-hold mode, alternate the animation forever.  Other animations just run once.
+                direction: animation_mode == "slideshow-hold"? "alternate":"normal",
+                iterations: animation_mode == "slideshow-hold"? Infinity:1,
             }
         ));
 
         // Create a separate animation for fade-in and fade-out.
         let fade_duration = animation.fade_in + animation.fade_out;
-        if(fade_duration > 0 && fade_duration <= animation.total_time)
+        if(animation_mode != "slideshow-hold" && fade_duration > 0 && fade_duration <= animation.total_time)
         {
             let fade_keyframes = [
                 { opacity: 0, offset: 0 },
@@ -1059,9 +1069,65 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
                 }
             ));
         }
-        
+
+        // Handle transitioning from slideshow to slideshow-hold.
+        //
+        // Its animation is slightly different, since it has easing at the ends and regular slideshow
+        // doesn't, so we need to figure out what start time in the new animation will match up with
+        // the last one.  The animations follow the same path, so they should always line up.  The
+        // nice way to do this would be to convert between the bezier curves, but it's not worth
+        // pulling in a bunch of bezier code to do that.  Instead, we just binary search the new
+        // animation's timeline to find where to start.  If we're not coming from slideshow for some
+        // reason this won't do anything useful, but it shouldn't break.
+        if(this.current_animation_mode && this.current_animation_mode != "slideshow-hold" && animation_mode == "slideshow-hold")
+        {
+            // The previous animation was committed to this.image_box, so we can get the previous
+            // position from it.  Store this before we start changing the animation time, which
+            // will clobber it.
+            let old_matrix = new DOMMatrix(getComputedStyle(this.image_box).transform);
+
+            let start = 0, end = 1000 * animation.total_time;
+            let transform_from_matrix = (matrix) => {
+                return { zoom_factor: matrix.a, x: matrix.e, y: matrix.f };
+            };
+            let transform_at_time = (time) => {
+                this.animations.main.currentTime = time;
+                let matrix = new DOMMatrix(getComputedStyle(this.image_box).transform);
+                return transform_from_matrix(matrix);
+            };
+
+            // The animation might be changing the x position, y position and/or the zoom.  We
+            // can use any of them to binary search the position as long as we don't pick one that's
+            // fixed in this animation.
+            let start_transform = transform_at_time(start);
+            let end_transform = transform_at_time(end);
+            let field;
+            if(Math.abs(start_transform.x - end_transform.x) > 0.01) field = "x";
+            else if(Math.abs(start_transform.y - end_transform.y) > 0.01) field = "y";
+            else if(Math.abs(start_transform.zoom_factor - end_transform.zoom_factor) > 0.01) field = "zoom_factor";
+            else
+            {
+                console.warn("Slideshow wasn't moving or zooming");
+                field = "x";
+            }
+
+            // The position of the old animation, on the field we chose:
+            let old_position = transform_from_matrix(old_matrix)[field];
+
+            // Binary search over the animation's duration for the time corresponding to where we
+            // were in the previous animation.
+            let time = helpers.binary_search(start, end, old_position, (time) => {
+                return transform_at_time(time)[field];
+            });
+
+            // Start the animation at the time we found.
+            for(let animation of Object.values(this.animations))
+                animation.currentTime = time;
+        }
+
         this.animations.main.onfinish = async (e) => {
-            // If we're not in slideshow mode, just clean up the animation and stop.
+            // If we're not in slideshow mode, just clean up the animation and stop.  We should
+            // never get here in slideshow-hold.
             if(this.current_animation_mode != "slideshow" || !this.onnextimage)
             {
                 this.stop_animation();
@@ -1086,6 +1152,8 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
 
         for(let animation of Object.values(this.animations))
             animation.play();
+
+        this.current_animation_mode = animation_mode;
     }
 
     // If a pan animation is running, cancel it.
@@ -1125,8 +1193,7 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         }
 
         // Pull out the transform and scale we were left on when the animation stopped.
-        let computed_style = getComputedStyle(this.image_box);
-        let matrix = new DOMMatrix(computed_style.transform);
+        let matrix = new DOMMatrix(getComputedStyle(this.image_box).transform);
         let zoom_factor = matrix.a, left = matrix.e, top = matrix.f;
         let zoom_level = this.zoom_factor_to_zoom_level(zoom_factor);
 
@@ -1152,12 +1219,7 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
     {
         if(ppixiv.settings.get("auto_pan"))
             return true;
-        return this.slideshow_enabled;
-    }
-
-    get slideshow_enabled()
-    {
-        return helpers.args.location.hash.get("slideshow") == "1";
+        return this.slideshow_mode != null;
     }
 
     set pause_animation(pause)
@@ -1300,7 +1362,7 @@ ppixiv.image_viewer_desktop = class extends ppixiv.image_viewer_base
 
    pointerevent = (e) =>
    {
-       if(e.mouseButton != 0 || this.current_animation_mode == "slideshow")
+       if(e.mouseButton != 0 || this.current_animation_mode == "slideshow" || this.current_animation_mode == "slideshow-hold")
            return;
 
        if(e.pressed && this.captured_pointer_id == null)
@@ -1435,7 +1497,7 @@ ppixiv.image_viewer_mobile = class extends ppixiv.image_viewer_base
             // Return the current position in screen coordinates.
             get_position: () => {
                 // We're about to start touch dragging, so stop any running pan.  Don't stop slideshows.
-                if(this.current_animation_mode != "slideshow")
+                if(this.current_animation_mode != "slideshow" || this.current_animation_mode != "slideshow-hold")
                     this.stop_animation();
 
                 return {
@@ -1447,7 +1509,7 @@ ppixiv.image_viewer_mobile = class extends ppixiv.image_viewer_base
             // Set the current position in screen coordinates.
             set_position: ({x, y}) =>
             {
-                if(this.current_animation_mode == "slideshow")
+                if(this.current_animation_mode != "slideshow" || this.current_animation_mode != "slideshow-hold")
                     return;
 
                 this.stop_animation();
@@ -1466,7 +1528,7 @@ ppixiv.image_viewer_mobile = class extends ppixiv.image_viewer_base
             // Zoom by the given factor, centered around the given screen position.
             adjust_zoom: ({ratio, centerX, centerY}) =>
             {
-                if(this.slideshow_enabled)
+                if(this.slideshow_mode)
                     return;
 
                 this.stop_animation();

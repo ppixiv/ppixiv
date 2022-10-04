@@ -459,6 +459,41 @@ ppixiv.helpers = {
         return array;
     },
 
+    // Binary search between start and end looking for target.  get_value(position) returns the
+    // value at that position.
+    binary_search(start, end, target, get_value, max_error=1)
+    {
+        let start_value = get_value(start);
+        let end_value = get_value(end);
+
+        // If end is before start, swap the ends.
+        if(start_value > end_value)
+        {
+            [start, end] = [end, start];
+            [start_value, end_value] = [end_value, start_value];
+        }
+
+        while(true)
+        {
+            let guess = (start + end) / 2;
+            let value = get_value(guess);
+
+            if(target > value)
+            {
+                start = guess;
+                start_value = value;
+            }
+            else
+            {
+                end = guess;
+                end_value = value;
+            }
+
+            if(Math.abs(start-end) < max_error)
+                return guess;
+        }          
+    },
+
     // Run func from the event loop.
     //
     // This is like setTimeout(func, 0), but avoids problems with setTimeout

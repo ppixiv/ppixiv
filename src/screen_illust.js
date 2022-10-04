@@ -336,7 +336,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
             });
         }
 
-        let slideshow = helpers.args.location.hash.get("slideshow") == "1";
+        let slideshow = helpers.args.location.hash.get("slideshow");
 
         this.viewer.load(media_id, {
             restore_history: restore_history,

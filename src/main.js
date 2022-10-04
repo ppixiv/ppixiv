@@ -918,7 +918,7 @@ ppixiv.MainController = class
         else
             args = this.get_media_url(this.media_id);
 
-        let enabled = args.hash.get("slideshow") == "1";
+        let enabled = args.hash.get("slideshow") != null;
         if(enabled)
             args.hash.delete("slideshow");
         else
