@@ -193,21 +193,13 @@ ppixiv.slideshow = class
         // Make a deep copy before modifying it.
         animation = JSON.parse(JSON.stringify(animation));
 
-        let screen_width = this.container_width;
-        let screen_height = this.container_height;
-
-        animation.default_width = this.width;
-        animation.default_height = this.height;
-
-        // Don't let the zoom go below the original 1:1 size.  This allows panning to 1:1
-        // by setting zoom to 0.  There's no inherent max zoom.
-        let minimum_zoom = this.minimum_zoom;
-        let maximum_zoom = 999;
-
         // Calculate the scale and translate for each point.
         for(let point of animation.pan)
         {
-            let zoom = helpers.clamp(point.zoom, minimum_zoom, maximum_zoom);
+            // Don't let the zoom level go below this.minimum_zoom.  This is usually the zoom
+            // level where the image covers the screen, and going lower would leave part of
+            // the screen blank.
+            let zoom = Math.max(point.zoom, this.minimum_zoom);
 
             // The screen size the image will have:
             let zoomed_width = this.width * zoom;
@@ -216,8 +208,8 @@ ppixiv.slideshow = class
             // Initially, the image will be aligned to the top-left of the screen.  Shift right and
             // down to align the anchor the origin.  This is usually the center of the image.
             let { anchor_x=0.5, anchor_y=0.5 } = point;
-            let move_x = screen_width * anchor_x;
-            let move_y = screen_height * anchor_y;
+            let move_x = this.container_width * anchor_x;
+            let move_y = this.container_height * anchor_y;
 
             // Then shift up and left to center the point:
             move_x -= point.x*zoomed_width;
@@ -227,16 +219,17 @@ ppixiv.slideshow = class
             {
                 // Clamp the translation to keep the image in the window.  This is inverted, since
                 // move_x and move_y are transitions and not the image position.
-                let max_x = zoomed_width - screen_width, max_y = zoomed_height - screen_height;
+                let max_x = zoomed_width - this.container_width,
+                    max_y = zoomed_height - this.container_height;
                 move_x = helpers.clamp(move_x, 0, -max_x);
                 move_y = helpers.clamp(move_y, 0, -max_y);
 
                 // If the image isn't filling the screen on either axis, center it.  This only applies at
                 // keyframes (we won't always be centered while animating).
-                if(zoomed_width < screen_width)
-                    move_x = (screen_width - zoomed_width) / 2;
-                if(zoomed_height < screen_height)
-                    move_y = (screen_height - zoomed_height) / 2;
+                if(zoomed_width < this.container_width)
+                    move_x = (this.container_width - zoomed_width) / 2;
+                if(zoomed_height < this.container_height)
+                    move_y = (this.container_height - zoomed_height) / 2;
             }
 
             point.computed_zoom = zoom;
@@ -273,7 +266,7 @@ ppixiv.slideshow = class
             }
 
             let distance_ratio = distance_y / (distance_x + distance_y); // 0 = horizontal only, 1 = vertical only
-            let screen_size = (screen_height * distance_ratio) + (screen_width * (1-distance_ratio));
+            let screen_size = (this.container_height * distance_ratio) + (this.container_width * (1-distance_ratio));
 
             // The screen distance we're moving:
             let distance_in_pixels = helpers.distance({x: p0.computed_tx, y: p0.computed_ty}, {x: p1.computed_tx, y: p1.computed_ty});
