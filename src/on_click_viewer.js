@@ -272,9 +272,8 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         this.crop_box.insertAdjacentElement("afterbegin", this.viewer_images.container);
 
         // Set the size of the image box.
-        this.image_box.style.width = Math.round(this.width) + "px";
-        this.image_box.style.height = Math.round(this.height) + "px";
-        
+        this.set_image_box_size();
+
         this.update_crop();
 
         // If the main image is already ready, show it.  Otherwise, show the preview image.
@@ -447,8 +446,15 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         e.preventDefault();
     }
 
+    set_image_box_size()
+    {
+        this.image_box.style.width = Math.round(this.width) + "px";
+        this.image_box.style.height = Math.round(this.height) + "px";
+    }    
+
     onresize = (e) =>
     {
+        this.set_image_box_size();
         this.reposition();
 
         // If the window size changes while we have an animation running, update the animation.
@@ -988,11 +994,6 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         else if(this.slideshow_mode)
             animation_mode = "slideshow";
 
-        // If we're changing animation types, stop the previous animation.  Do this before
-        // we start creating the new one, so the previous animation will be committed.
-        if(this.current_animation_mode != animation_mode)
-            this.stop_animation();
-
         let slideshow = new ppixiv.slideshow({
             // this.width/this.height are the size of the image at 1x zoom, which is to fit
             // onto the screen.  Scale this up by zoom_factor_cover, so the slideshow's default
@@ -1026,14 +1027,26 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
             current_time += animation.duration;
         }
 
-        // If an animation is already running, we're updating the same type of animation.
-        // Just update the main animation in place, so we adjust the animation if the window
-        // is resized.  This doesn't adjust everything, like total time or the fade.
-        if(this.animations != null)
+        // If the mode isn't changing, just update the existing animation in place, so we
+        // update the animation if the window is resized.  This doesn't adjust everything,
+        // like total time or the fade.
+        if(this.current_animation_mode == animation_mode)
         {
             this.animations.main.effect.setKeyframes(keyframes);
             return;
         }
+
+        // Remember the old animation mode, and store the old animation in case we need it.
+        let old_animation_mode = this.current_animation_mode;
+
+        // If the previous animation had a fade-in running, remove it from the list and hold onto
+        // it, so it doesn't get cancelled by stop_animation.  We'll reuse it so it can complete.
+        let old_fade_in = this.take_animation("fade_in");
+
+        // Stop the previous animation.  If it had a fade-in, keep it.
+        this.stop_animation();
+    
+        this.current_animation_mode = animation_mode;
 
         this.animations = {};
 
@@ -1051,35 +1064,19 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
             }
         ));
 
-        // Create a separate animation for fade-in and fade-out.
-        let fade_duration = animation.fade_in + animation.fade_out;
-        if(animation_mode != "slideshow-hold" && fade_duration > 0 && fade_duration <= animation.duration)
-        {
-            let fade_keyframes = [
-                { opacity: 0, offset: 0 },
-                { opacity: 1, offset:       animation.fade_in / animation.duration, easing: "linear",  },
-                { opacity: 1, offset: 1 - (animation.fade_out / animation.duration) },
-                { opacity: 0, offset: 1 },
-            ];
-
-            this.animations.fade = new Animation(new KeyframeEffect(
-                this.image_box, fade_keyframes, {
-                    duration: animation.duration * 1000,
-                    fill: 'forwards',
-                }
-            ));
-        }
-
-        // Handle transitioning from slideshow to slideshow-hold.
+        // Handle transitioning between slideshow and slideshow-hold.
         //
-        // Its animation is slightly different, since it has easing at the ends and regular slideshow
-        // doesn't, so we need to figure out what start time in the new animation will match up with
-        // the last one.  The animations follow the same path, so they should always line up.  The
-        // nice way to do this would be to convert between the bezier curves, but it's not worth
+        // These animations follow identical paths, but have different timing curves.  Figure out
+        // the start time in the new animation that matches up with where we were in the last one,
+        // so we transition between these smoothly.
+        //
+        // The nice way to do this would be to convert between the bezier curves, but it's not worth
         // pulling in a bunch of bezier code to do that.  Instead, we just binary search the new
         // animation's timeline to find where to start.  If we're not coming from slideshow for some
         // reason this won't do anything useful, but it shouldn't break.
-        if(this.current_animation_mode && this.current_animation_mode != "slideshow-hold" && animation_mode == "slideshow-hold")
+        let was_slideshow = old_animation_mode == "slideshow" || old_animation_mode == "slideshow-hold";
+        let is_slideshow = animation_mode == "slideshow" || animation_mode == "slideshow-hold";
+        if(old_animation_mode && was_slideshow && is_slideshow)
         {
             // The previous animation was committed to this.image_box, so we can get the previous
             // position from it.  Store this before we start changing the animation time, which
@@ -1121,8 +1118,38 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
             });
 
             // Start the animation at the time we found.
-            for(let animation of Object.values(this.animations))
-                animation.currentTime = time;
+            this.animations.main.currentTime = time;
+        }
+
+        // Create separate animations for fade-in and fade-out.  This allows us to keep the
+        // fade-in running if the animation mode changes.  If we kept a fade-in from the previous
+        // animation, let it continue.
+        if(old_fade_in)
+            this.animations.fade_in = old_fade_in;
+        else if(animation.fade_in > 0)
+        {
+            this.animations.fade_in = new Animation(new KeyframeEffect(
+                this.image_box, [
+                    { opacity: 0, offset: 0 },
+                    { opacity: 1, offset:       animation.fade_in / animation.duration, easing: "linear",  },
+                ], {
+                    duration: animation.duration * 1000,
+                    fill: 'forwards',
+                }
+            ));
+        }
+
+        if(animation.fade_out > 0)
+        {
+            this.animations.fade_out = new Animation(new KeyframeEffect(
+                this.image_box, [
+                    { opacity: 1, offset: 1 - (animation.fade_out / animation.duration) },
+                    { opacity: 0, offset: 1 },
+                ], {
+                    duration: animation.duration * 1000,
+                    fill: 'forwards',
+                }
+            ));
         }
 
         this.animations.main.onfinish = async (e) => {
@@ -1152,8 +1179,6 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
 
         for(let animation of Object.values(this.animations))
             animation.play();
-
-        this.current_animation_mode = animation_mode;
     }
 
     // If a pan animation is running, cancel it.
@@ -1212,6 +1237,18 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         this.set_image_position([left, top], [0,0]);
     
         this.reposition();
+    }
+
+    // If an animation with the given name is running, remove it from this.animations and
+    // return it.
+    take_animation(name)
+    {
+        if(this.animations == null)
+            return null;
+
+        let result = this.animations[name];
+        delete this.animations[name];
+        return result;
     }
 
     // Return true if we want to be animating.

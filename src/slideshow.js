@@ -126,7 +126,7 @@ ppixiv.slideshow = class
         max_speed = helpers.clamp(max_speed, 0.25, 0.5);
 
         let animation_data = {
-            fade_in, fade_out, duration, max_speed,
+            duration, max_speed,
 
             pan: [{
                 x: pan.x1, y: pan.y1, zoom: pan.start_zoom ?? 1,
@@ -170,9 +170,13 @@ ppixiv.slideshow = class
         }        
 
         // Choose a fade duration.  This needs to be quicker if the slideshow is very brief.
-        animation.fade_in = this.mode == "slideshow"? Math.min(duration * 0.1, 2.5):0;
+        animation.fade_in = this.mode == "slideshow" || this.mode == "slideshow-hold"? Math.min(duration * 0.1, 2.5):0;
         animation.fade_out = this.mode == "slideshow"? Math.min(duration * 0.1, 2.5):0;
         
+        // If the animation is shorter than the total fade, remove the fade.
+        if(animation.fade_in + animation.fade_out > animation.duration)
+            animation.fade_in = animation.fade_out = 0;
+
         return animation;
     }
 
