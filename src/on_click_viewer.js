@@ -1036,12 +1036,9 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
             return;
         }
 
-        // Remember the old animation mode, and store the old animation in case we need it.
-        let old_animation_mode = this.current_animation_mode;
-
         // If the previous animation had a fade-in running, remove it from the list and hold onto
         // it, so it doesn't get cancelled by stop_animation.  We'll reuse it so it can complete.
-        let old_fade_in = this.take_animation("fade_in");
+        let old_fade_in = animation_mode == "slideshow-hold"? this.take_animation("fade_in"):null;
 
         // Stop the previous animation.  If it had a fade-in, keep it.
         this.stop_animation();
@@ -1064,19 +1061,16 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
             }
         ));
 
-        // Handle transitioning between slideshow and slideshow-hold.
+        // Handle transitioning into slideshow-hold, usually from slideshow.
         //
         // These animations follow identical paths, but have different timing curves.  Figure out
         // the start time in the new animation that matches up with where we were in the last one,
-        // so we transition between these smoothly.
-        //
-        // The nice way to do this would be to convert between the bezier curves, but it's not worth
-        // pulling in a bunch of bezier code to do that.  Instead, we just binary search the new
-        // animation's timeline to find where to start.  If we're not coming from slideshow for some
-        // reason this won't do anything useful, but it shouldn't break.
-        let was_slideshow = old_animation_mode == "slideshow" || old_animation_mode == "slideshow-hold";
-        let is_slideshow = animation_mode == "slideshow" || animation_mode == "slideshow-hold";
-        if(old_animation_mode && was_slideshow && is_slideshow)
+        // so we transition between these smoothly.  Usually we're going from slideshow to slideshow-hold
+        // and we'll find an exact match, but we do a best effort to find a close position if we're
+        // coming from something else.  This doesn't work for going from slideshow-hold back to
+        // slideshow, since we'd have to figure out matching when the animation is alternating, which
+        // is more complex than it's worth.
+        if(animation_mode == "slideshow-hold")
         {
             // The previous animation was committed to this.image_box, so we can get the previous
             // position from it.  Store this before we start changing the animation time, which
@@ -1094,13 +1088,18 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
             };
 
             // The animation might be changing the x position, y position and/or the zoom.  We
-            // can use any of them to binary search the position as long as we don't pick one that's
-            // fixed in this animation.
+            // can use any of them to search for the position as long as we don't pick one that's
+            // not moving in this animation.  Choose the axis with the most motion, or the zoom
+            // level if it's not translating.
             let start_transform = transform_at_time(start);
             let end_transform = transform_at_time(end);
+            let x_movement = Math.abs(start_transform.x - end_transform.x);
+            let y_movement = Math.abs(start_transform.y - end_transform.y);
+
             let field;
-            if(Math.abs(start_transform.x - end_transform.x) > 0.01) field = "x";
-            else if(Math.abs(start_transform.y - end_transform.y) > 0.01) field = "y";
+            if(x_movement > 0.01 && y_movement > 0.01) field = x_movement > y_movement? "x":"y";
+            else if(x_movement > 0.01) field = "x";
+            else if(y_movement > 0.01) field = "y";
             else if(Math.abs(start_transform.zoom_factor - end_transform.zoom_factor) > 0.01) field = "zoom_factor";
             else
             {
