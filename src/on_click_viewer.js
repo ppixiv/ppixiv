@@ -1362,7 +1362,7 @@ ppixiv.image_viewer_desktop = class extends ppixiv.image_viewer_base
 
    pointerevent = (e) =>
    {
-       if(e.mouseButton != 0 || this.current_animation_mode == "slideshow" || this.current_animation_mode == "slideshow-hold")
+       if(e.mouseButton != 0 || this.slideshow_mode)
            return;
 
        if(e.pressed && this.captured_pointer_id == null)
@@ -1497,7 +1497,7 @@ ppixiv.image_viewer_mobile = class extends ppixiv.image_viewer_base
             // Return the current position in screen coordinates.
             get_position: () => {
                 // We're about to start touch dragging, so stop any running pan.  Don't stop slideshows.
-                if(this.current_animation_mode != "slideshow" || this.current_animation_mode != "slideshow-hold")
+                if(!this.slideshow_mode)
                     this.stop_animation();
 
                 return {
@@ -1509,7 +1509,7 @@ ppixiv.image_viewer_mobile = class extends ppixiv.image_viewer_base
             // Set the current position in screen coordinates.
             set_position: ({x, y}) =>
             {
-                if(this.current_animation_mode != "slideshow" || this.current_animation_mode != "slideshow-hold")
+                if(this.slideshow_mode)
                     return;
 
                 this.stop_animation();
