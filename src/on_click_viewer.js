@@ -1121,9 +1121,8 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
             this.animations.main.currentTime = time;
         }
 
-        // Create separate animations for fade-in and fade-out.  This allows us to keep the
-        // fade-in running if the animation mode changes.  If we kept a fade-in from the previous
-        // animation, let it continue.
+        // Create the fade-in.  If we're replacing an animation that already had a fade-in,
+        // keep it instead of creating a new one.
         if(old_fade_in)
             this.animations.fade_in = old_fade_in;
         else if(animation.fade_in > 0)
@@ -1131,22 +1130,24 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
             this.animations.fade_in = new Animation(new KeyframeEffect(
                 this.image_box, [
                     { opacity: 0, offset: 0 },
-                    { opacity: 1, offset:       animation.fade_in / animation.duration, easing: "linear",  },
+                    { opacity: 1, offset: 1 },
                 ], {
-                    duration: animation.duration * 1000,
+                    duration: animation.fade_in * 1000,
                     fill: 'forwards',
                 }
             ));
         }
 
+        // Create the fade-out.
         if(animation.fade_out > 0)
         {
             this.animations.fade_out = new Animation(new KeyframeEffect(
                 this.image_box, [
-                    { opacity: 1, offset: 1 - (animation.fade_out / animation.duration) },
+                    { opacity: 1, offset: 0 },
                     { opacity: 0, offset: 1 },
                 ], {
-                    duration: animation.duration * 1000,
+                    duration: animation.fade_in * 1000,
+                    delay: (animation.duration - animation.fade_out) * 1000,
                     fill: 'forwards',
                 }
             ));
