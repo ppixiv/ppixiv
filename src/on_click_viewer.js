@@ -1177,8 +1177,13 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
             }
         };
 
+        // Start the animations.  If any animation is finished, it was inherited from a
+        // previous animation, so don't call play() since that'll restart it.
         for(let animation of Object.values(this.animations))
-            animation.play();
+        {
+            if(animation.playState != "finished")
+                animation.play();
+        }
     }
 
     // If a pan animation is running, cancel it.
@@ -1283,9 +1288,10 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         // Note that playbackRate is broken on iOS.
         for(let animation of Object.values(this.animations))
         {
-            if(should_be_paused)
+            // If an animation is finished, don't restart it, or it'll rewind.
+            if(should_be_paused && animation.playState == "running")
                 animation.pause();
-            else
+            else if(!should_be_paused && animation.playState == "paused")
                 animation.play();
         }
     }
