@@ -297,6 +297,8 @@ ppixiv.screen_illust = class extends ppixiv.screen
             })();
         }
 
+        let media_id_changed = this.current_media_id != media_id;
+
         // Finalize the new illust ID.
         this.current_media_id = media_id;
         this.current_user_id = early_illust_data.userId;
@@ -306,7 +308,8 @@ ppixiv.screen_illust = class extends ppixiv.screen
         helpers.set_class(document.body, "dot", helpers.tags_contain_dot(early_illust_data));
 
         // Dismiss any message when changing images.
-        message_widget.singleton.hide();
+        if(media_id_changed)
+            message_widget.singleton.hide();
        
         // Create the image viewer.
         let viewer_class;

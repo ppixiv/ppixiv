@@ -1808,6 +1808,27 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                 });
             },
 
+            hold_slideshow: () => {
+                return new menu_option_toggle({
+                    ...shared_options,
+                    label: "Hold slideshow",
+                    checked: helpers.args.location.hash.get("slideshow") == "hold",
+                    icon: "mat:replay_circle_filled",
+                    requires_image: true,
+                    available: () => { return main_controller.slideshow_mode != null; },
+                    hide_if_unavailable: true,
+                    onclick: () => {
+                        main_controller.hold_slideshow();
+                        this.refresh();
+
+                        // This option isn't very obvious, but showing a message is a little annoying.  Is there
+                        // a better way to explain this?
+                        if(helpers.args.location.hash.get("slideshow") == "hold")
+                            message_widget.singleton.show("Change images to continue slideshow");
+                    },
+                });
+            },
+
             linked_tabs: () => {
                 return new menu_option_toggle_setting({
                     container: option_box,
@@ -1894,9 +1915,12 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
         this.menu_options.push(menu_options.send_to_tab());
         this.menu_options.push(menu_options.linked_tabs());
 
-        // This is in the top-level menu on mobile.
+        // These are in the top-level menu on mobile.
         if(!ppixiv.mobile)
+        {
             this.menu_options.push(menu_options.toggle_slideshow());
+            this.menu_options.push(menu_options.hold_slideshow());
+        }
         this.menu_options.push(menu_options.image_editing());
         if(ppixiv.native)
             this.menu_options.push(menu_options.index_folder());
