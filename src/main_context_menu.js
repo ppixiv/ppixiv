@@ -713,7 +713,9 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         this.button_view_manga = this.container.querySelector(".button-view-manga");
         this.button_view_manga.addEventListener("click", this.clicked_view_manga);
 
-        this.container.querySelector(".button-fullscreen").addEventListener("click", this.clicked_fullscreen);
+        this.button_fullscreen = this.container.querySelector(".button-fullscreen");
+        this.button_fullscreen.addEventListener("click", this.clicked_fullscreen);
+
         this.container.querySelector(".button-zoom").addEventListener("click", this.clicked_zoom_toggle);
         this.container.querySelector(".button-browser-back").addEventListener("click", (e) => {
             e.preventDefault();
@@ -1303,6 +1305,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
 
         this.button_view_manga.dataset.popup = "View manga pages";
         helpers.set_class(this.button_view_manga, "enabled", info?.pageCount > 1);
+        helpers.set_class(this.button_fullscreen, "selected", document.fullscreenElement != null);
 
         this.refresh_tooltip();
 
@@ -1363,12 +1366,13 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         helpers.navigate(args);
     }
 
-    clicked_fullscreen = (e) =>
+    clicked_fullscreen = async (e) =>
     {
         e.preventDefault();
         e.stopPropagation();
 
-        helpers.toggle_fullscreen();
+        await helpers.toggle_fullscreen();
+        this.refresh();
     }
 
     // "Zoom lock", zoom as if we're holding the button constantly
