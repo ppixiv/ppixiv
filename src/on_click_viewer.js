@@ -1017,13 +1017,13 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         for(let point of animation.pan)
         {
             let keyframe = {
-                transform: `translateX(${point.computed_tx}px) translateY(${point.computed_ty}px) scale(${point.computed_zoom})`,
-                easing: point.ease ?? "ease-out",
-                offset: current_time / animation.total_time,
+                transform: `translateX(${point.tx}px) translateY(${point.ty}px) scale(${point.scale})`,
+                easing: animation.ease ?? "ease-out",
+                offset: current_time / animation.duration,
             };
 
             keyframes.push(keyframe);
-            current_time += point.duration;
+            current_time += animation.duration;
         }
 
         // If an animation is already running, we're updating the same type of animation.
@@ -1042,7 +1042,7 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
             this.image_box,
             keyframes,
             {
-                duration: animation.total_time * 1000,
+                duration: animation.duration * 1000,
                 fill: 'forwards',
 
                 // In slideshow-hold mode, alternate the animation forever.  Other animations just run once.
@@ -1053,18 +1053,18 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
 
         // Create a separate animation for fade-in and fade-out.
         let fade_duration = animation.fade_in + animation.fade_out;
-        if(animation_mode != "slideshow-hold" && fade_duration > 0 && fade_duration <= animation.total_time)
+        if(animation_mode != "slideshow-hold" && fade_duration > 0 && fade_duration <= animation.duration)
         {
             let fade_keyframes = [
                 { opacity: 0, offset: 0 },
-                { opacity: 1, offset:       animation.fade_in / animation.total_time, easing: "linear",  },
-                { opacity: 1, offset: 1 - (animation.fade_out / animation.total_time) },
+                { opacity: 1, offset:       animation.fade_in / animation.duration, easing: "linear",  },
+                { opacity: 1, offset: 1 - (animation.fade_out / animation.duration) },
                 { opacity: 0, offset: 1 },
             ];
 
             this.animations.fade = new Animation(new KeyframeEffect(
                 this.image_box, fade_keyframes, {
-                    duration: animation.total_time * 1000,
+                    duration: animation.duration * 1000,
                     fill: 'forwards',
                 }
             ));
@@ -1086,7 +1086,7 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
             // will clobber it.
             let old_matrix = new DOMMatrix(getComputedStyle(this.image_box).transform);
 
-            let start = 0, end = 1000 * animation.total_time;
+            let start = 0, end = 1000 * animation.duration;
             let transform_from_matrix = (matrix) => {
                 return { zoom_factor: matrix.a, x: matrix.e, y: matrix.f };
             };

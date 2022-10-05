@@ -372,13 +372,13 @@ ppixiv.PanEditor = class extends ppixiv.widget
         box.style.width = `${100 * preview_width / scaled_width}%`;
         box.style.height = `${100 * preview_height / scaled_height}%`;
 
-        let tx = 100 * -pan.computed_tx / scaled_width;
-        let ty = 100 * -pan.computed_ty / scaled_height;
+        let tx = 100 * -pan.tx / scaled_width;
+        let ty = 100 * -pan.ty / scaled_height;
 
         // Apply the zoom by scaling the box's parent.  Scaling inside style.transform makes this simpler,
         // but makes things like outlines ugly.
-        this.monitor_preview_box.style.width = `${100 / pan.computed_zoom}%`;
-        this.monitor_preview_box.style.height = `${100 / pan.computed_zoom}%`;
+        this.monitor_preview_box.style.width = `${100 / pan.scale}%`;
+        this.monitor_preview_box.style.height = `${100 / pan.scale}%`;
         this.monitor_preview_box.style.transform = `
             translateX(${tx}%)
             translateY(${ty}%)
@@ -451,8 +451,8 @@ ppixiv.PanEditor = class extends ppixiv.widget
             // Moving the anchor will also move the view, so we also adjust the view position by
             // the same amount below.  This cancels out the movement of the anchor, so the display
             // position is stationary as we move the anchor.
-            let monitor_width = (preview_width / scaled_width) / pan.computed_zoom;
-            let monitor_height = (preview_height / scaled_height) / pan.computed_zoom;
+            let monitor_width = (preview_width / scaled_width) / pan.scale;
+            let monitor_height = (preview_height / scaled_height) / pan.scale;
             if(this.editing == "start")
             {
                 this.anchor.x1 += delta_x / monitor_width;
