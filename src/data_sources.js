@@ -41,18 +41,13 @@ class illust_id_list
 
     get_lowest_loaded_page()
     {
-        let min_page = 999999;
-        for(let page of this.media_ids_by_page.keys())
-            min_page = Math.min(min_page, page);
-        return min_page;
+        // Give a default in case media_ids_by_page is empty, so we don't return infinity.
+        return Math.min(999999, ...this.media_ids_by_page.keys());
     }
 
     get_highest_loaded_page()
     {
-        let max_page = 0;
-        for(let page of this.media_ids_by_page.keys())
-            max_page = Math.max(max_page, page);
-        return max_page;
+        return Math.max(0, ...this.media_ids_by_page.keys());
     }
 
     // Add a page of results.
@@ -266,9 +261,19 @@ class illust_id_list
         if(this.media_ids_by_page.size == 0)
             return null;
 
-        let keys = this.media_ids_by_page.keys();
-        let page = keys.next().value;
-        return this.media_ids_by_page.get(page)[0];
+        let first_page = this.get_lowest_loaded_page();
+        return this.media_ids_by_page.get(first_page)[0];
+    }
+
+    // Return the last ID, or null if we don't have any.
+    get_last_id()
+    {
+        if(this.media_ids_by_page.size == 0)
+            return null;
+
+        let last_page = this.get_highest_loaded_page();
+        let ids = this.media_ids_by_page.get(last_page);
+        return ids[ids.length-1];
     }
 
     // Return true if the given page is loaded.
