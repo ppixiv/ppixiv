@@ -1296,16 +1296,25 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
     // open over the image and registered with OpenWidgets, like the context menu.
     refresh_animation_paused()
     {
-        let should_be_paused = this._pause_animation || !OpenWidgets.singleton.empty;
         if(this.animations == null)
             return;
 
+        let paused_for_dialog = !OpenWidgets.singleton.empty;
+        let paused_for_load = this._pause_animation;
+        let should_be_paused = paused_for_dialog || paused_for_load;
+
         // Note that playbackRate is broken on iOS.
-        for(let animation of Object.values(this.animations))
+        for(let [name, animation] of Object.entries(this.animations))
         {
             // If an animation is finished, don't restart it, or it'll rewind.
             if(should_be_paused && animation.playState == "running")
+            {
+                // If we're only pausing because a menu is open, allow the fade-in to continue.
+                if(name == "fade_in" && !paused_for_load)
+                    continue;
+
                 animation.pause();
+            }
             else if(!should_be_paused && animation.playState == "paused")
                 animation.play();
         }
