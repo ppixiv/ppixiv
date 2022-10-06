@@ -3831,7 +3831,7 @@ ppixiv.data_sources.vview = class extends data_source
         this.bookmark_tag_counts = null;
         this._all_pages_loaded = false;
 
-        this.load_page(1, { cause: "preload" });
+        this.load_page(this.initial_page, { cause: "preload" });
     }
 
     get supports_start_page() { return true; }
