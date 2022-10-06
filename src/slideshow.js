@@ -177,6 +177,20 @@ ppixiv.slideshow = class
         if(animation.fade_in + animation.fade_out > animation.duration)
             animation.fade_in = animation.fade_out = 0;
 
+        // For convenience, create KeyframeEffect data.
+        let points = [];
+        for(let point of animation.pan)
+            points.push(`translateX(${point.tx}px) translateY(${point.ty}px) scale(${point.scale})`);
+
+        animation.keyframes = [
+            {
+                transform: points[0],
+                easing: animation.ease ?? "ease-out",
+            }, {
+                transform: points[1],
+            }
+        ];
+    
         return animation;
     }
 

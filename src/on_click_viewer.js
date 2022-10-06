@@ -1012,27 +1012,13 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         // Create the animation, using the user's custom animation if we have one.
         let animation = this.custom_animation? slideshow.get_animation(this.custom_animation):slideshow.get_default_animation();
         
-        // Create keyframes for the animation.
-        let keyframes = [];
-        let current_time = 0;
-        for(let point of animation.pan)
-        {
-            let keyframe = {
-                transform: `translateX(${point.tx}px) translateY(${point.ty}px) scale(${point.scale})`,
-                easing: animation.ease ?? "ease-out",
-                offset: current_time / animation.duration,
-            };
-
-            keyframes.push(keyframe);
-            current_time += animation.duration;
-        }
 
         // If the mode isn't changing, just update the existing animation in place, so we
         // update the animation if the window is resized.  This doesn't adjust everything,
         // like total time or the fade.
         if(this.current_animation_mode == animation_mode)
         {
-            this.animations.main.effect.setKeyframes(keyframes);
+            this.animations.main.effect.setKeyframes(animation.keyframes);
             return;
         }
 
@@ -1050,7 +1036,7 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         // Create the main animation.
         this.animations.main = new Animation(new KeyframeEffect(
             this.image_box,
-            keyframes,
+            animation.keyframes,
             {
                 duration: animation.duration * 1000,
                 fill: 'forwards',
