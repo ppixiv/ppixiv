@@ -971,14 +971,6 @@ ppixiv.search_view = class extends ppixiv.widget
         this.set_visible_thumbs();
     }
 
-    // Handle clicks on the "load previous results" button.
-    //
-    // If we let the regular click handling in main_controller.set_current_data_source do this,
-    // it'll notice that the requested page isn't loaded and create a new data source.  We know
-    // we can view the previous page, so special case this so we don't lose the pages that are
-    // already loaded.
-    //
-    // This can also trigger for the "return to start" button if we happen to be on page 2.
     thumbnail_onclick = async(e) =>
     {
         let page_count_box = e.target.closest(".expand-button");
@@ -989,16 +981,7 @@ ppixiv.search_view = class extends ppixiv.widget
             let id_node = page_count_box.closest("[data-id]");
             let media_id = id_node.dataset.id;
             this.set_media_id_expanded(media_id, !this.is_media_id_expanded(media_id));
-            return;
         }
-
-        // This only matters if the data source supports start pages.
-        if(!this.data_source.supports_start_page)
-            return;
-
-        let a = e.target.closest("A");
-        if(a == null)
-            return;
     }
 
     // See if we can load page in-place.  Return true if we were able to, and the click that
