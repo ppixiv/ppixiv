@@ -4042,8 +4042,10 @@ ppixiv.data_sources.vview = class extends data_source
         if(illust_id)
             return illust_id;
 
+        // If the URL points to a file, return it.  If no image is being viewed this will give
+        // the folder we're in, which shouldn't be returned here.
         illust_id = local_api.get_local_id_from_args(args);
-        if(illust_id != null)
+        if(illust_id != null && illust_id.startsWith("file:"))
             return illust_id;
         
         return this.id_list.get_first_id();
