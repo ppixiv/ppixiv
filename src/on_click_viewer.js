@@ -138,6 +138,8 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
 
         // Start or stop panning if the user changes it while we're active, eg. by pressing ^P.
         settings.addEventListener("auto_pan", this.refresh_animation.bind(this), { signal: this.shutdown_signal.signal });
+        settings.addEventListener("slideshow_duration", this.refresh_animation_speed, { signal: this.shutdown_signal.signal });
+        settings.addEventListener("auto_pan_duration", this.refresh_animation_speed, { signal: this.shutdown_signal.signal });
 
         // This is like pointermove, but received during quick view from the source tab.
         window.addEventListener("quickviewpointermove", this.quickviewpointermove, { signal: this.shutdown_signal.signal });
@@ -978,14 +980,10 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         }
     }
 
-    // Start a pan/zoom animation.  If it's already running, update it in place.
-    refresh_animation()
+    _create_current_animation()
     {
         if(!this.animation_enabled)
-        {
-            this.stop_animation();
-            return;
-        }
+            return { };
 
         // Decide which animation mode to use.
         let animation_mode = "auto-pan";
@@ -1012,12 +1010,26 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         // Create the animation.
         let animation = slideshow.get_animation(this.custom_animation);        
 
+        return { animation_mode, animation };
+    }
+
+    // Start a pan/zoom animation.  If it's already running, update it in place.
+    refresh_animation()
+    {
+        // Create the animation.
+        let { animation_mode, animation } = this._create_current_animation();
+        if(animation == null)
+        {
+            this.stop_animation();
+            return;
+        }
+
         // If the mode isn't changing, just update the existing animation in place, so we
-        // update the animation if the window is resized.  This doesn't adjust everything,
-        // like total time or the fade.
+        // update the animation if the window is resized.
         if(this.current_animation_mode == animation_mode)
         {
             this.animations.main.effect.setKeyframes(animation.keyframes);
+            this.animations.main.updatePlaybackRate(1 / animation.duration);
             return;
         }
 
@@ -1037,7 +1049,8 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
             this.image_box,
             animation.keyframes,
             {
-                duration: animation.duration * 1000,
+                // The actual duration is set by updatePlaybackRate.
+                duration: 1000,
                 fill: 'forwards',
 
                 // In slideshow-hold mode, alternate the animation forever.  Other animations just run once.
@@ -1045,6 +1058,10 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
                 iterations: animation_mode == "slideshow-hold"? Infinity:1,
             }
         ));
+
+        // Set the speed.  Setting it this way instead of with the duration lets us change it smoothly
+        // if settings are changed.
+        this.animations.main.updatePlaybackRate(1 / animation.duration);
 
         // Handle transitioning into slideshow-hold, usually from slideshow.
         //
@@ -1169,6 +1186,19 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
             if(animation.playState != "finished")
                 animation.play();
         }
+    }
+
+    // Update just the animation speed, so we can smoothly show changes to the animation
+    // speed as the user changes it.
+    refresh_animation_speed = () =>
+    {
+        if(!this.animations)
+            return;
+
+        // Don't update keyframes, since changing the speed can change keyframes too,
+        // which will jump when we set them.  Just update the playback rate.
+        let { animation } = this._create_current_animation();
+        this.animations.main.updatePlaybackRate(1 / animation.duration);
     }
 
     // If a pan animation is running, cancel it.
