@@ -690,6 +690,28 @@ ppixiv.data_source = class
     // Register a page of data.
     add_page(page, media_ids, {...options}={})
     {
+        // If an image view is reloaded, it may no longer be on the same page in the underlying
+        // search.  New posts might have pushed it onto another page, or the search might be
+        // random.  This is confusing if you're trying to mousewheel navigate to other images.
+        //
+        // Work around this by making sure the initial image is on the initial page.  If we load
+        // the first page and the image we were on isn't there anymore, insert it into the results.
+        // It's probably still in the results somewhere, but we can't tell where.
+        //
+        // This allows the user to navigate to neighboring images normally.  We'll go to different
+        // images, but at least we can still navigate, and we can get back to where we started
+        // if the user navigates down and then back up.  If the image shows up in real results later,
+        // it'll be filtered out.
+        let initial_media_id = this.get_current_media_id(helpers.args.location);
+        if(page == this.initial_page &&
+            initial_media_id != null &&
+            this.id_list.get_page_for_illust(initial_media_id).page == null &&
+            media_ids.indexOf(initial_media_id) == -1)
+        {
+            console.log(`Adding initial media ID ${initial_media_id} to initial page ${this.initial_page}`);
+            media_ids = [initial_media_id, ...media_ids];
+        }
+
         this.id_list.add_page(page, media_ids, {...options});
 
         // Call update listeners asynchronously to let them know we have more data.
@@ -931,44 +953,35 @@ ppixiv.data_source = class
             return new_media_id;
 
         // We didn't have the new illustration, so we may need to load another page of search results.
-        // Find the page this illustration is on, or use the initial page if media_id is null.
-        let next_page;
-        if(media_id == null)
+        // See if we know which page media_id is on.
+        let page = media_id != null? this.id_list.get_page_for_illust(media_id).page:null;
+
+        // Find the page this illustration is on.  If we don't know which page to start on,
+        // use the initial page.
+        if(page != null)
         {
-            next_page = this.initial_page;
+            page += next? +1:-1;
+            if(page < 1)
+                return null;
         }
         else
         {
-            // Return the page we need to load to get the next or previous illustration.  This only
-            // makes sense if get_neighboring_illust returns null.
-            let { page } = this.id_list.get_page_for_illust(media_id);
-
-            // If media_id isn't loaded, then we're trying to navigate from an image that isn't
-            // actually in the search results.  This can happen if the page is reloaded, and we're
-            // showing the previous image but don't have any corresponding search results.
-            if(page == null)
-            {
-                console.log("Don't know the next page for illust", media_id);
-                return null;
-            }
-
-            next_page = page + (next? +1:-1);
-            if(next_page < 1)
-                return null;
+            // If we don't know which page media_id is on, start from initial_page.
+            page = this.initial_page;
         }
-
-        console.log("Loading the next page of results:", next_page);
+        
+        console.log("Loading the next page of results:", page);
 
         // The page shouldn't already be loaded.  Double-check to help prevent bugs that might
         // spam the server requesting the same page over and over.
-        if(this.id_list.is_page_loaded(next_page))
+        if(this.id_list.is_page_loaded(page))
         {
-            console.error("Page", next_page, "is already loaded");
+            console.error(`Page ${page} is already loaded`);
             return null;
         }
 
         // Load a page.
-        let new_page_loaded = await this.load_page(next_page, { cause: "illust navigation" });
+        let new_page_loaded = await this.load_page(page, { cause: "illust navigation" });
         if(!new_page_loaded)
             return null;
 
@@ -3875,7 +3888,7 @@ ppixiv.data_sources.vview = class extends data_source
         else
         {
             // This isn't our start page, and it doesn't match up with our next or previous page.
-            console.log(`Loaded unexpected page ${page} (${lowest_page}...${highest_page})`);
+            console.error(`Loaded unexpected page ${page} (${lowest_page}...${highest_page})`);
             return;
         }
     
