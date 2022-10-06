@@ -119,15 +119,19 @@ ppixiv.slideshow = class
             (this.mode == "slideshow" || this.mode == "slideshow-hold")? ppixiv.settings.get("slideshow_duration"):
             ppixiv.settings.get("auto_pan_duration");
 
-        // max_speed sets how fast the image is allowed to move.  If it's 0.5, the image shouldn't
-        // scroll more half a screen per second, and the duration will be increased if needed to slow
-        // it down.  This keeps the animation from being too fast for very tall and wide images.
+        // If we're viewing a very wide or tall image, such as a 1:20 manga strip, it's useful
+        // to clamp the speed of the animation.  If this is a 3-second pan, the image would
+        // fly past too quickly to see.  To adjust for this, we set a maximum speed based on
+        // the duration.
         //
-        // Scale the max speed based on the duration.  With a 5-second duration, allow the image
-        // to move half a screen per second.  With a 15-second duration, slow it down to no more
+        // Scale the max speed based on the duration.  With a 5-second duration or less, allow the
+        // image to move half a screen per second.  At 15 seconds or more, slow it down to no more
         // than a quarter screen per second.
-        let max_speed = helpers.scale(duration, 5, 15, 0.5, 0.25);
-        max_speed = helpers.clamp(max_speed, 0.25, 0.5);
+        //
+        // This usually only has an effect for exceptionally wide images.  Most of the time the
+        // maximum speed ends up being much lower than the actual speed, and we use the duration
+        // as-is.
+        let max_speed = helpers.scale_clamp(duration, 5, 15, 0.5, 0.25);
 
         let animation_data = {
             duration, max_speed,
