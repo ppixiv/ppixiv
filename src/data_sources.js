@@ -354,6 +354,9 @@ ppixiv.data_source = class
     // just hides the expand/collapse button at the top when it can't do anything.
     get can_return_manga() { return true; }
 
+    // Return true if all pages have been loaded.
+    get loaded_all_pages() { return this.first_empty_page != -1; }
+
     // Return a canonical URL for this data source.  If the canonical URL is the same,
     // the same instance of the data source should be used.
     //
@@ -425,11 +428,7 @@ ppixiv.data_source = class
         this.active = false;
     }
 
-    // Load the given page, or the page of the current history state if page is null.
-    // Call callback when the load finishes.
-    //
-    // If we synchronously know that the page doesn't exist, return false and don't
-    // call callback.  Otherwise, return true.
+    // Load the given page.  Return true if the page was loaded.
     load_page(page, { cause }={})
     {
         // Note that we don't remove entries from loading_pages when they finish, so
@@ -976,6 +975,28 @@ ppixiv.data_source = class
         // Now that we've loaded data, try to find the new image again.
         console.log("Finishing navigation after data load");
         return this.id_list.get_neighboring_media_id(media_id, next, options);
+    }
+
+    // Get the next or previous image to from_media_id.  If we're at the end, loop back
+    // around to the other end.  options is the same as get_or_load_neighboring_media_id.
+    async get_neighboring_media_id_with_loop(from_media_id, next, options={})
+    {
+        // See if we can keep moving in this direction.
+        let media_id = await this.get_or_load_neighboring_media_id(from_media_id, next, options);
+        if(media_id)
+            return media_id;
+
+        // We're out of results in this direction.  If we're moving backwards, only loop
+        // if we have all results.  Otherwise, we'll go to the last loaded image, but if
+        // the user then navigates forwards, he'll just go to the next image instead of
+        // where he came from, which is confusing.
+        if(!next && !this.loaded_all_pages)
+        {
+            console.log("Not looping backwards since we don't have all pages");
+            return null;
+        }
+
+        return next? this.id_list.get_first_id():this.id_list.get_last_id();
     }
 };
 

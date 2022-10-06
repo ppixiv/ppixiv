@@ -288,8 +288,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
             // get_navigation may block to load more search results.  Run this async without
             // waiting for it.
             (async() => {
-                let { media_id: new_media_id } =
-                    await this.get_navigation(this.latest_navigation_direction_down);
+                let new_media_id = await this.get_navigation(this.latest_navigation_direction_down);
 
                 // Let image_preloader handle speculative loading.  If new_media_id is null,
                 // we're telling it that we don't need to load anything.
@@ -349,10 +348,8 @@ ppixiv.screen_illust = class extends ppixiv.screen
                     return { };
 
                 // The viewer wants to go to the next image, normally during slideshows.
-                // Loop is true, so we loop back to the beginning of the search if we reach
-                // the end in a slideshow.
                 let manga = settings.get("slideshow_skips_manga")? "skip-to-first":"normal";
-                return await this.navigate_to_next(1, { loop: true, flash_at_end: false, manga });
+                return await this.navigate_to_next(1, { flash_at_end: false, manga });
             },
         });
 
@@ -583,36 +580,31 @@ ppixiv.screen_illust = class extends ppixiv.screen
         if(navigate_from_media_id == null)
             navigate_from_media_id = this.current_media_id;
 
-        // Get the next (or previous) illustration after the current one.  This will be null if we've
-        // reached the end of the list.
-        let new_media_id = await this.data_source.get_or_load_neighboring_media_id(navigate_from_media_id, down, { manga });
+        // Get the next (or previous) illustration after the current one.
+        if(!loop)
+            return await this.data_source.get_or_load_neighboring_media_id(navigate_from_media_id, down, { manga });
 
-        // If we're at the end and we're looping, go to the first (or last) image.
-        if(new_media_id == null && loop)
+        let media_id = await this.data_source.get_neighboring_media_id_with_loop(navigate_from_media_id, down, { manga });
+
+        // If we only have one image, don't loop.  We won't actually navigate so things
+        // don't quite work, since navigating to the same media ID won't trigger a navigation.
+        if(media_id == navigate_from_media_id)
         {
-            new_media_id = down? this.data_source.id_list.get_first_id():this.data_source.id_list.get_last_id();
-
-            // If we only have one image, don't loop.  We won't actually navigate so things
-            // don't quite work (navigating to the same media ID won't trigger a navigation
-            // at all), and it's not very useful.
-            if(new_media_id == navigate_from_media_id)
-            {
-                console.log("Not looping since we only have one media ID");
-                return { };
-            }
+            console.log("Not looping since we only have one media ID");
+            return null;
         }
-    
-        if(new_media_id == null)
-            return { };
 
-        return { media_id: new_media_id };
+        return media_id;
     }
 
     // Navigate to the next or previous image.
     //
     // manga is a manga skip mode.  See illust_id_list.get_neighboring_media_id.
-    async navigate_to_next(down, { manga="normal", loop=false, flash_at_end=true }={})
+    async navigate_to_next(down, { manga="normal", flash_at_end=true }={})
     {
+        // Loop if we're in slideshow mode, otherwise stop when we reach the end.
+        let loop = helpers.args.location.hash.get("slideshow") != null;
+
         // If we're viewing a hidden muted image, always skip manga pages.
         if(manga == "normal" && this.viewer instanceof viewer_muted)
             manga = "skip-past";
@@ -626,10 +618,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
 
         // See if we should change the manga page.  This may block if it needs to load
         // the next page of search results.
-        let { media_id: new_media_id } = await this.get_navigation(down, {
-            manga,
-            loop: loop,
-        });
+        let new_media_id = await this.get_navigation(down, { manga, loop });
     
         // If we didn't get a page, we're at the end of the search results.  Flash the
         // indicator to show we've reached the end and stop.
