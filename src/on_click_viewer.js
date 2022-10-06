@@ -1009,9 +1009,8 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
             minimum_zoom: 1,
         });
 
-        // Create the animation, using the user's custom animation if we have one.
-        let animation = this.custom_animation? slideshow.get_animation(this.custom_animation):slideshow.get_default_animation();
-        
+        // Create the animation.
+        let animation = slideshow.get_animation(this.custom_animation);        
 
         // If the mode isn't changing, just update the existing animation in place, so we
         // update the animation if the window is resized.  This doesn't adjust everything,

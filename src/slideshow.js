@@ -107,9 +107,13 @@ ppixiv.slideshow = class
     }
 
     // Load a saved animation from a description, which is either created with PanEditor or
-    // programmatically here.
+    // programmatically here.  If pan is null, return the default animation for the current
+    // mode.
     get_animation(pan)
     {
+        if(pan == null)
+            return this.get_default_animation();
+
         // The target duration of the animation:
         let duration = 
             (this.mode == "slideshow" || this.mode == "slideshow-hold")? ppixiv.settings.get("slideshow_duration"):
