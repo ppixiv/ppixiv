@@ -1074,64 +1074,11 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         this.animations.main.updatePlaybackRate(1 / animation.duration);
         this.animations.main.onfinish = this.animation_onfinish;
 
-        // Handle transitioning into slideshow-hold, usually from slideshow.
-        //
-        // These animations follow identical paths, but have different timing curves.  Figure out
-        // the start time in the new animation that matches up with where we were in the last one,
-        // so we transition between these smoothly.  Usually we're going from slideshow to slideshow-hold
-        // and we'll find an exact match, but we do a best effort to find a close position if we're
-        // coming from something else.  This doesn't work for going from slideshow-hold back to
-        // slideshow, since we'd have to figure out matching when the animation is alternating, which
-        // is more complex than it's worth.
+        // If we're starting slideshow-hold, try to find a matching position.  Slideshow and slideshow-hold
+        // have the same paths and we often change from slideshow into slideshow-hold, so this tries to continue
+        // at an equivalent point in the new animation.
         if(animation_mode == "slideshow-hold")
-        {
-            // The previous animation was committed to this.image_box, so we can get the previous
-            // position from it.  Store this before we start changing the animation time, which
-            // will clobber it.
-            let old_matrix = new DOMMatrix(getComputedStyle(this.image_box).transform);
-
-            let start = 0, end = 1000 * animation.duration;
-            let transform_from_matrix = (matrix) => {
-                return { zoom_factor: matrix.a, x: matrix.e, y: matrix.f };
-            };
-            let transform_at_time = (time) => {
-                this.animations.main.currentTime = time;
-                let matrix = new DOMMatrix(getComputedStyle(this.image_box).transform);
-                return transform_from_matrix(matrix);
-            };
-
-            // The animation might be changing the x position, y position and/or the zoom.  We
-            // can use any of them to search for the position as long as we don't pick one that's
-            // not moving in this animation.  Choose the axis with the most motion, or the zoom
-            // level if it's not translating.
-            let start_transform = transform_at_time(start);
-            let end_transform = transform_at_time(end);
-            let x_movement = Math.abs(start_transform.x - end_transform.x);
-            let y_movement = Math.abs(start_transform.y - end_transform.y);
-
-            let field;
-            if(x_movement > 0.01 && y_movement > 0.01) field = x_movement > y_movement? "x":"y";
-            else if(x_movement > 0.01) field = "x";
-            else if(y_movement > 0.01) field = "y";
-            else if(Math.abs(start_transform.zoom_factor - end_transform.zoom_factor) > 0.01) field = "zoom_factor";
-            else
-            {
-                console.warn("Slideshow wasn't moving or zooming");
-                field = "x";
-            }
-
-            // The position of the old animation, on the field we chose:
-            let old_position = transform_from_matrix(old_matrix)[field];
-
-            // Binary search over the animation's duration for the time corresponding to where we
-            // were in the previous animation.
-            let time = helpers.binary_search(start, end, old_position, (time) => {
-                return transform_at_time(time)[field];
-            });
-
-            // Start the animation at the time we found.
-            this.animations.main.currentTime = time;
-        }
+            this.animations.main.currentTime = helpers.binary_search_animation(this.animations.main);
 
         // Create the fade-in.  If we're replacing an animation that already had a fade-in,
         // keep it instead of creating a new one.
