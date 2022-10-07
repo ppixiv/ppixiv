@@ -123,6 +123,7 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
 
         this.center_pos = [0, 0];
         this.drag_movement = [0,0];
+        this.animations = { };
 
         // Restore the most recent zoom mode.  We assume that there's only one of these on screen.
         this.set_locked_zoom(settings.get("zoom-mode") == "locked");
@@ -1044,14 +1045,12 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
 
         // If the previous animation had a fade-in running, remove it from the list and hold onto
         // it, so it doesn't get cancelled by stop_animation.  We'll reuse it so it can complete.
-        let old_fade_in = animation_mode == "slideshow-hold"? this.take_animation("fade_in"):null;
+        let keep_animations = animation_mode == "slideshow-hold"? ["fade_in"]:[];
 
-        // Stop the previous animation.  If it had a fade-in, keep it.
-        this.stop_animation();
+        // Stop the previous animations.
+        this.stop_animation({ keep_animations });
     
         this.current_animation_mode = animation_mode;
-
-        this.animations = {};
 
         // Create the main animation.
         this.animations.main = new Animation(new KeyframeEffect(
@@ -1079,11 +1078,8 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         if(animation_mode == "slideshow-hold")
             this.animations.main.currentTime = helpers.binary_search_animation(this.animations.main);
 
-        // Create the fade-in.  If we're replacing an animation that already had a fade-in,
-        // keep it instead of creating a new one.
-        if(old_fade_in)
-            this.animations.fade_in = old_fade_in;
-        else if(animation.fade_in > 0)
+        // Create the fade-in if this animation has one and we didn't keep one from the previous animation.
+        if(this.animations.fade_in == null && animation.fade_in > 0)
             this.animations.fade_in = ppixiv.slideshow.make_fade_in(this.image_box, { duration: animation.fade_in * 1000 });
 
         // Create the fade-out.
@@ -1143,33 +1139,41 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         this.animations.main.updatePlaybackRate(1 / animation.duration);
     }
 
-    // If a pan animation is running, cancel it.
+    // If an animation is running, cancel it.
     //
-    // Animation is separate from pan and zoom, and any interaction with pan and zoom will
-    // cancel the animation.
-    stop_animation()
+    // keep_animations is a list of animations to leave running.  For example, ["fade_in"] will leave
+    // any fade-in animation alone.
+    stop_animation({
+        keep_animations=[],
+    }={})
     {
-        if(this.animations == null)
-            return;
-
         // Commit the current state of the main animation so we can read where the image was.
         let applied_animations = true;
         try {
-            for(let animation of Object.values(this.animations))
+            for(let [name, animation] of Object.entries(this.animations))
+            {
+                if(keep_animations.indexOf(name) != -1)
+                    continue;
                 animation.commitStyles();
+            }
         } catch {
             applied_animations = false;
         }
 
         // Cancel all animations.  We don't need to wait for animation.pending here.
-        for(let animation of Object.values(this.animations))
+        for(let [name, animation] of Object.entries(this.animations))
+        {
+            if(keep_animations.indexOf(name) != -1)
+                continue;
+
             animation.cancel();
+            delete this.animations[name];
+        }
 
         // Make sure we don't leave the image faded out if we stopped while in the middle
         // of a fade.
         this.image_box.style.opacity = "";
 
-        this.animations = null;
         this.current_animation_mode = null;
 
         if(!applied_animations)
@@ -1202,21 +1206,9 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         this.reposition();
     }
 
-    // If an animation with the given name is running, remove it from this.animations and
-    // return it.
-    take_animation(name)
-    {
-        if(this.animations == null)
-            return null;
-
-        let result = this.animations[name];
-        delete this.animations[name];
-        return result;
-    }
-
     get animations_running()
     {
-        return this.animations != null;
+        return this.animations.main != null;
     }
 
     set pause_animation(pause)
@@ -1236,9 +1228,6 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
     // open over the image and registered with OpenWidgets, like the context menu.
     refresh_animation_paused()
     {
-        if(this.animations == null)
-            return;
-
         let paused_for_dialog = !OpenWidgets.singleton.empty;
         let paused_for_load = this._pause_animation;
         let should_be_paused = paused_for_dialog || paused_for_load;
