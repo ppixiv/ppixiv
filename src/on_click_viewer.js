@@ -260,7 +260,7 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         // new ones.
         //
         // If we're displaying the same image, don't remove the animation if one is running.
-        this.remove_images({remove_animation: !this.animation_enabled || media_id != this.media_id});
+        this.remove_images({remove_animation: !this.animations_running || media_id != this.media_id});
         this.media_id = media_id;
         this.original_width = width;
         this.original_height = height;
@@ -994,15 +994,16 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
 
     _create_current_animation()
     {
-        if(!this.animation_enabled)
-            return { };
-
         // Decide which animation mode to use.
-        let animation_mode = "auto-pan";
+        let animation_mode;
         if(this.slideshow_mode == "hold")
             animation_mode = "slideshow-hold";
-        else if(this.slideshow_mode)
+        else if(this.slideshow_mode != null)
             animation_mode = "slideshow";
+        else if(ppixiv.settings.get("auto_pan"))
+            animation_mode = "auto-pan";
+        else
+            return { };
 
         let slideshow = new ppixiv.slideshow({
             // this.width/this.height are the size of the image at 1x zoom, which is to fit
@@ -1215,14 +1216,6 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         let result = this.animations[name];
         delete this.animations[name];
         return result;
-    }
-
-    // Return true if we want to be animating.
-    get animation_enabled()
-    {
-        if(ppixiv.settings.get("auto_pan"))
-            return true;
-        return this.slideshow_mode != null;
     }
 
     get animations_running()
