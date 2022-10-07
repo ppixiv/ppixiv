@@ -544,7 +544,7 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
             return level;
     }
 
-    // Return the active zoom ratio.  A zoom of 1x corresponds to "contain" zooming.
+    // Return the active zoom ratio.  A zoom of 1x corresponds to "cover" zooming.
     get _zoom_factor_current()
     {
         return this.zoom_level_to_zoom_factor(this._zoom_level_current);
@@ -560,6 +560,16 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         return result == 0? 1:result;
     }
     get _zoom_level_cover() { return this.zoom_factor_to_zoom_level(this._zoom_factor_cover); }
+
+    get _zoom_factor_contain()
+    {
+        let result = Math.min(this.container_width/this.width, this.container_height/this.height) || 1;
+
+        // If container_width/height is zero then we're hidden and have no size, so this zoom factor
+        // isn't meaningful.  Just make sure we don't return 0.
+        return result == 0? 1:result;
+    }
+    get _zoom_level_contain() { return this.zoom_factor_to_zoom_level(this._zoom_factor_contain); }
 
     // The zoom level for "actual" mode.  This inverts the base scaling.
     get _zoom_factor_actual() { return 1 / this._image_to_cover_ratio; }
@@ -1635,7 +1645,7 @@ ppixiv.image_viewer_mobile = class extends ppixiv.image_viewer_base
             // 0.5, return 2.
             get_wanted_zoom: () =>
             {
-                let zoom_factor = this._zoom_factor_current;
+                let zoom_factor = this._zoom_factor_current / this._zoom_factor_contain;
                 if(zoom_factor >= 1)
                     return { ratio: 1, centerX: 0, centerY: 0 };
 
