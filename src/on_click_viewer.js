@@ -1158,6 +1158,11 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         keep_animations=[],
     }={})
     {
+        // Only continue if we have a main animation.  If we don't have an animation, we don't
+        // want to modify the zoom/pan position and there's nothing to stop.
+        if(!this.animations.main)
+            return;
+
         // Commit the current state of the main animation so we can read where the image was.
         let applied_animations = true;
         try {
