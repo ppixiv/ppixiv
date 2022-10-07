@@ -1072,6 +1072,7 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         // Set the speed.  Setting it this way instead of with the duration lets us change it smoothly
         // if settings are changed.
         this.animations.main.updatePlaybackRate(1 / animation.duration);
+        this.animations.main.onfinish = this.animation_onfinish;
 
         // Handle transitioning into slideshow-hold, usually from slideshow.
         //
@@ -1137,57 +1138,16 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         if(old_fade_in)
             this.animations.fade_in = old_fade_in;
         else if(animation.fade_in > 0)
-        {
-            this.animations.fade_in = new Animation(new KeyframeEffect(
-                this.image_box, [
-                    { opacity: 0, offset: 0 },
-                    { opacity: 1, offset: 1 },
-                ], {
-                    duration: animation.fade_in * 1000,
-                    fill: 'forwards',
-                }
-            ));
-        }
+            this.animations.fade_in = ppixiv.slideshow.make_fade_in(this.image_box, { duration: animation.fade_in * 1000 });
 
         // Create the fade-out.
         if(animation.fade_out > 0)
         {
-            this.animations.fade_out = new Animation(new KeyframeEffect(
-                this.image_box, [
-                    { opacity: 1, offset: 0 },
-                    { opacity: 0, offset: 1 },
-                ], {
-                    duration: animation.fade_in * 1000,
-                    delay: (animation.duration - animation.fade_out) * 1000,
-                    fill: 'forwards',
-                }
-            ));
+            this.animations.fade_out = ppixiv.slideshow.make_fade_out(this.image_box, {
+                duration: animation.fade_in * 1000,
+                delay: (animation.duration - animation.fade_out) * 1000,
+            });
         }
-
-        this.animations.main.onfinish = async (e) => {
-            // If we're not in slideshow mode, just clean up the animation and stop.  We should
-            // never get here in slideshow-hold.
-            if(this.current_animation_mode != "slideshow" || !this.onnextimage)
-            {
-                this.stop_animation();
-                return;
-            }
-
-            // Tell the caller that we're ready for the next image.  Don't call stop_animation yet,
-            // so we don't cancel opacity and cause the image to flash onscreen while the new one
-            // is loading.  We'll stop if when onnextimage navigates.
-            let { media_id } = await this.onnextimage();
-
-            // onnextimage is normally viewer_images.navigate_to_next().  It'll return the new
-            // media_id if it navigated to one.  If it didn't navigate, call stop_animation so
-            // we clean up the animation and make it visible again if it's faded out.  This
-            // typically only happens if we only have one image.
-            if(media_id == null)
-            {
-                console.log("The slideshow didn't have a new image.  Resetting the slideshow animation");
-                this.stop_animation();
-            }
-        };
 
         // Start the animations.  If any animation is finished, it was inherited from a
         // previous animation, so don't call play() since that'll restart it.
@@ -1195,6 +1155,32 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         {
             if(animation.playState != "finished")
                 animation.play();
+        }
+    }
+
+    animation_onfinish = async(e) =>
+    {
+        // If we're not in slideshow mode, just clean up the animation and stop.  We should
+        // never get here in slideshow-hold.
+        if(this.current_animation_mode != "slideshow" || !this.onnextimage)
+        {
+            this.stop_animation();
+            return;
+        }
+
+        // Tell the caller that we're ready for the next image.  Don't call stop_animation yet,
+        // so we don't cancel opacity and cause the image to flash onscreen while the new one
+        // is loading.  We'll stop if when onnextimage navigates.
+        let { media_id } = await this.onnextimage();
+
+        // onnextimage is normally viewer_images.navigate_to_next().  It'll return the new
+        // media_id if it navigated to one.  If it didn't navigate, call stop_animation so
+        // we clean up the animation and make it visible again if it's faded out.  This
+        // typically only happens if we only have one image.
+        if(media_id == null)
+        {
+            console.log("The slideshow didn't have a new image.  Resetting the slideshow animation");
+            this.stop_animation();
         }
     }
 

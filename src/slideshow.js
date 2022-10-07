@@ -307,4 +307,30 @@ ppixiv.slideshow = class
             duration,
         };
     }
+
+    static make_fade_in(target, options)
+    {
+        return new Animation(new KeyframeEffect(
+            target, [
+                { opacity: 0, offset: 0 },
+                { opacity: 1, offset: 1 },
+            ], {
+                fill: 'forwards',
+                ...options
+            }
+        ));
+    }
+
+    static make_fade_out(target, options)
+    {
+        return new Animation(new KeyframeEffect(
+            target, [
+                { opacity: 1, offset: 0 },
+                { opacity: 0, offset: 1 },
+            ], {
+                fill: 'forwards',
+                ...options
+            }
+        ));
+    }
 }
