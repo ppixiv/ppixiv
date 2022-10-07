@@ -281,15 +281,18 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         // If the main image is already ready, show it.  Otherwise, show the preview image.
         this.set_displayed_image(img_ready? "main":"preview");
 
-        // Restore history or set the initial position, then call reposition() to apply it
-        // and do any clamping.  Do this atomically with updating the images.
-        //
-        // Also do this if we already have animations running, so we update the slideshow/panning
-        // if the mode changes.
-        if(restore_position == "auto" || this.slideshow_mode || this.animations_running)
-            this.reset_position();
-        else if(restore_position == "history")
-            this.restore_from_history();
+        // See if we have an animation to run.
+        this.refresh_animation();
+
+        // If we didn't start an animation, see if we need to set the initial image position.
+        // Do this atomically with updating the images.
+        if(!this.animations_running)
+        {
+            if(restore_position == "auto")
+                this.reset_position();
+            else if(restore_position == "history")
+                this.restore_from_history();
+        }
 
         // If we're in slideshow mode, we aren't using the preview image.  Pause the animation
         // until we actually display it so it doesn't run while there's nothing visible.
@@ -403,11 +406,6 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
     // Set the pan position to the default for this image, or start the selected animation.
     reset_position()
     {
-        // See if we want to play an animation instead.
-        this.refresh_animation();
-        if(this.animations_running)
-            return;
-
         // Illustration viewing mode:
         //
         // If this.set_initial_image_position is true, then we're changing pages in the same illustration
@@ -937,8 +935,6 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         this.set_initial_image_position = true;
         this.initial_image_position_aspect = null;
         this.reposition();
-
-        this.set_initial_image_position = true;
     }
 
     // Save the pan and zoom state to history.
