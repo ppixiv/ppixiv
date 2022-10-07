@@ -1070,7 +1070,7 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         // Set the speed.  Setting it this way instead of with the duration lets us change it smoothly
         // if settings are changed.
         this.animations.main.updatePlaybackRate(1 / animation.duration);
-        this.animations.main.onfinish = this.animation_onfinish;
+        this.animations.main.onfinish = this.check_animation_finished;
 
         // If we're starting slideshow-hold, try to find a matching position.  Slideshow and slideshow-hold
         // have the same paths and we often change from slideshow into slideshow-hold, so this tries to continue
@@ -1100,13 +1100,24 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         }
     }
 
-    animation_onfinish = async(e) =>
+    check_animation_finished = async(e) =>
     {
+        if(this.animations.main?.playState != "finished")
+            return;
+
         // If we're not in slideshow mode, just clean up the animation and stop.  We should
         // never get here in slideshow-hold.
         if(this.current_animation_mode != "slideshow" || !this.onnextimage)
         {
             this.stop_animation();
+            return;
+        }
+
+        // Don't move to the next image while the user has a popup open.  We'll return here when
+        // dialogs are closed.
+        if(!OpenWidgets.singleton.empty)
+        {
+            console.log("Deferring next image while UI is open");
             return;
         }
 
@@ -1221,30 +1232,22 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
     // opened or closed.
     open_widgets_changed = () =>
     {
-        this.refresh_animation_paused();
+        // Switching images is delayed while dialogs are open.  Check if we should do
+        // it now.
+        this.check_animation_finished();
     }
 
     // The animation is paused if we're explicitly paused while loading, or if something is
     // open over the image and registered with OpenWidgets, like the context menu.
     refresh_animation_paused()
     {
-        let paused_for_dialog = !OpenWidgets.singleton.empty;
-        let paused_for_load = this._pause_animation;
-        let should_be_paused = paused_for_dialog || paused_for_load;
-
         // Note that playbackRate is broken on iOS.
-        for(let [name, animation] of Object.entries(this.animations))
+        for(let animation of Object.values(this.animations))
         {
             // If an animation is finished, don't restart it, or it'll rewind.
-            if(should_be_paused && animation.playState == "running")
-            {
-                // If we're only pausing because a menu is open, allow the fade-in to continue.
-                if(name == "fade_in" && !paused_for_load)
-                    continue;
-
+            if(this._pause_animation && animation.playState == "running")
                 animation.pause();
-            }
-            else if(!should_be_paused && animation.playState == "paused")
+            else if(!this._pause_animation && animation.playState == "paused")
                 animation.play();
         }
     }
