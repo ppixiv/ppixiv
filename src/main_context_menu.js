@@ -1349,11 +1349,11 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
 
         if(this._is_zoom_ui_enabled)
         {
-            helpers.set_class(this.container.querySelector(".button-zoom"), "selected", this._on_click_viewer.locked_zoom);
+            helpers.set_class(this.container.querySelector(".button-zoom"), "selected", this._on_click_viewer.get_locked_zoom());
 
-            var zoom_level = this._on_click_viewer.zoom_level;
-            for(var button of this.container.querySelectorAll(".button-zoom-level"))
-                helpers.set_class(button, "selected", this._on_click_viewer.locked_zoom && button.dataset.level == zoom_level);
+            let zoom_level = this._on_click_viewer.get_zoom_level();
+            for(let button of this.container.querySelectorAll(".button-zoom-level"))
+                helpers.set_class(button, "selected", this._on_click_viewer.get_locked_zoom() && button.dataset.level == zoom_level);
         }
     }
 

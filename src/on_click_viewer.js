@@ -125,7 +125,7 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         this.drag_movement = [0,0];
 
         // Restore the most recent zoom mode.  We assume that there's only one of these on screen.
-        this.locked_zoom = settings.get("zoom-mode") == "locked";
+        this.set_locked_zoom(settings.get("zoom-mode") == "locked");
         this._zoom_level = settings.get("zoom-level", "cover");
 
         this.editing_container = new ImageEditingOverlayContainer({
@@ -465,13 +465,13 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
     }
 
     // Enable or disable zoom lock.
-    get locked_zoom()
+    get_locked_zoom()
     {
         return this._locked_zoom;
     }
 
     // Select between click-pan zooming and sticky, filled-screen zooming.
-    set locked_zoom(enable)
+    set_locked_zoom(enable)
     {
         this.stop_animation();
 
@@ -482,12 +482,12 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
 
     // Relative zoom is applied on top of the main zoom.  At 0, no adjustment is applied.
     // Positive values zoom in and negative values zoom out.
-    get zoom_level()
+    get_zoom_level()
     {
         return this._zoom_level;
     }
 
-    set zoom_level(value)
+    set_zoom_level(value)
     {
         // If the zoom level is changing, stop any running animation.
         this.stop_animation();
@@ -630,7 +630,7 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
             new_level = helpers.clamp(new_level, -8, +8);
         }
 
-        this.zoom_level = new_level;
+        this.set_zoom_level(new_level);
     }
 
     // Return the image coordinate at a given screen coordinate.
@@ -729,7 +729,7 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
     // Return true if zooming is active.
     get zoom_active()
     {
-        return this._mouse_pressed || this.locked_zoom;
+        return this._mouse_pressed || this.get_locked_zoom();
     }
 
     // Return the ratio to scale from the image's natural dimensions to cover the screen,
@@ -929,8 +929,8 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         if(args.state.zoom.animating)
             this.refresh_animation();
 
-        this.zoom_level = args.state.zoom?.zoom;
-        this.locked_zoom = args.state.zoom?.lock;
+        this.set_zoom_level(args.state.zoom?.zoom);
+        this.set_locked_zoom(args.state.zoom?.lock);
         this.center_pos = [...args.state.zoom?.pos];
         this.set_initial_image_position = true;
         this.initial_image_position_aspect = null;
@@ -946,8 +946,8 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         let args = helpers.args.location;
         args.state.zoom = {
             pos: this.center_pos,
-            zoom: this.zoom_level,
-            lock: this.locked_zoom,
+            zoom: this.get_zoom_level(),
+            lock: this.get_locked_zoom(),
             animating: this.animations_running,
         };
 
@@ -1188,13 +1188,13 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         // Apply the current zoom and pan position.  If the zoom level is 0 then just disable
         // zoom, and use "cover" if the zoom level matches it.  The zoom we set here doesn't
         // have to be one that's selectable in the UI.
-        this.locked_zoom = true;
+        this.set_locked_zoom(true);
         if(Math.abs(zoom_level) < 0.001)
-            this.locked_zoom = false;
+            this.set_locked_zoom(false);
         else if(Math.abs(zoom_level - this._zoom_level_cover) < 0.01)
-            this.zoom_level = "cover";
+            this.set_zoom_level("cover");
         else
-            this.zoom_level = zoom_level;
+            this.set_zoom_level(zoom_level);
 
         // Set the image position to match where the animation left it.
         this.set_image_position([left, top], [0,0]);
@@ -1283,7 +1283,7 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         }
 
         let center = this.get_image_position([x, y]);
-        this.locked_zoom = !this.locked_zoom;
+        this.set_locked_zoom(!this.get_locked_zoom());
         this.set_image_position([x, y], center);
         this.reposition();
     }
@@ -1295,9 +1295,9 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
 
         // If the zoom level that's already selected is clicked and we're already zoomed,
         // just toggle zoom as if the toggle zoom button was pressed.
-        if(this.zoom_level == level && this.locked_zoom)
+        if(this.get_zoom_level() == level && this.get_locked_zoom())
         {
-            this.locked_zoom = false;
+            this.set_locked_zoom(false);
             this.reposition();
             return;
         }
@@ -1306,8 +1306,8 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         
         // Each zoom button enables zoom lock, since otherwise changing the zoom level would
         // only have an effect when click-dragging, so it looks like the buttons don't do anything.
-        this.zoom_level = level;
-        this.locked_zoom = true;
+        this.set_zoom_level(level);
+        this.set_locked_zoom(true);
         this.set_image_position([x, y], center);
 
         this.reposition();
@@ -1331,8 +1331,8 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         // a 1x zoom factor, so we zoom relative to the previously unzoomed image.
         if(!this.zoom_active)
         {
-            this.zoom_level = 0;
-            this.locked_zoom = true;
+            this.set_zoom_level(0);
+            this.set_locked_zoom(true);
         }
 
         let previous_zoom_level = this._zoom_level_current;
@@ -1347,10 +1347,10 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         // If we're selecting zoom level 0, turn off zoom lock and set the zoom level to cover.
         // That displays the same thing, since 0 zoom is the same as unzoomed, but clicking the
         // image will zoom to cover, which is more natural.
-        if(this.zoom_level == 0)
+        if(this.get_zoom_level() == 0)
         {
-            this.zoom_level = "cover";
-            this.locked_zoom = false;
+            this.set_zoom_level("cover");
+            this.set_locked_zoom(false);
         }
 
         this.set_image_position([x, y], center);
@@ -1394,14 +1394,14 @@ ppixiv.image_viewer_desktop = class extends ppixiv.image_viewer_base
            if(e.type != "simulatedpointerdown")
                this.stop_animation();
 
-           if(!this.locked_zoom)
+           if(!this.get_locked_zoom())
                var zoom_center_pos = this.get_image_position([e.pageX, e.pageY]);
 
            // If this is a simulated press event, the button was pressed on the previous page,
            // probably due to quick view.  Don't zoom from this press, but do listen to pointermove,
            // so send_mouse_movement_to_linked_tabs is still called.
            let allow_zoom = true;
-           if(e.type == "simulatedpointerdown" && !this.locked_zoom)
+           if(e.type == "simulatedpointerdown" && !this.get_locked_zoom())
                allow_zoom = false;
 
            if(allow_zoom)
@@ -1415,7 +1415,7 @@ ppixiv.image_viewer_desktop = class extends ppixiv.image_viewer_base
 
            // If this is a click-zoom, align the zoom to the point on the image that
            // was clicked.
-           if(!this.locked_zoom)
+           if(!this.get_locked_zoom())
                this.set_image_position([e.pageX, e.pageY], zoom_center_pos);
 
            this.reposition();
@@ -1598,8 +1598,8 @@ ppixiv.image_viewer_mobile = class extends ppixiv.image_viewer_base
     }
 
     // The mobile UI is always in locked zoom mode.
-    get locked_zoom() { return true; }
-    set locked_zoom(enable) { }
+    get_locked_zoom() { return true; }
+    set_locked_zoom(enable) { }
 
     // Cancel any running fling when we remove the image.  This uses the same logic as cancelling
     // animations, so we cancel the fling if the media ID changes.
