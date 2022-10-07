@@ -286,7 +286,7 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         //
         // Also do this if we already have animations running, so we update the slideshow/panning
         // if the mode changes.
-        if(restore_position == "auto" || this.slideshow_mode || this.animations != null)
+        if(restore_position == "auto" || this.slideshow_mode || this.animations_running)
             this.reset_position();
         else if(restore_position == "history")
             this.restore_from_history();
@@ -405,7 +405,7 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
     {
         // See if we want to play an animation instead.
         this.refresh_animation();
-        if(this.animations != null)
+        if(this.animations_running)
             return;
 
         // Illustration viewing mode:
@@ -460,7 +460,7 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         this.reposition();
 
         // If the window size changes while we have an animation running, update the animation.
-        if(this.animations)
+        if(this.animations_running)
             this.refresh_animation();
     }
 
@@ -802,7 +802,7 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
             return;
 
         // Stop if there's an animation active.
-        if(this.animations != null)
+        if(this.animations_running)
             return;
 
         this.schedule_save_to_history();
@@ -948,7 +948,7 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
             pos: this.center_pos,
             zoom: this.zoom_level,
             lock: this.locked_zoom,
-            animating: this.animations != null,
+            animating: this.animations_running,
         };
 
         helpers.navigate(args, { add_to_history: false });
@@ -1135,7 +1135,7 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
     // speed as the user changes it.
     refresh_animation_speed = () =>
     {
-        if(!this.animations)
+        if(!this.animations_running)
             return;
 
         // Don't update keyframes, since changing the speed can change keyframes too,
@@ -1220,6 +1220,11 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         if(ppixiv.settings.get("auto_pan"))
             return true;
         return this.slideshow_mode != null;
+    }
+
+    get animations_running()
+    {
+        return this.animations != null;
     }
 
     set pause_animation(pause)
@@ -1486,7 +1491,7 @@ ppixiv.image_viewer_desktop = class extends ppixiv.image_viewer_base
         // default SM_CXDRAG/SM_CYDRAG behavior.
         this.drag_movement[0] += e.movementX;
         this.drag_movement[1] += e.movementY;
-        if(this.animations && this.drag_movement[0] < 4 && this.drag_movement[1] < 4)
+        if(this.animations_running && this.drag_movement[0] < 4 && this.drag_movement[1] < 4)
             return;
 
         this.apply_pointer_movement({movementX: e.movementX, movementY: e.movementY});
