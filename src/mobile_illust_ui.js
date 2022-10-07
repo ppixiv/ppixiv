@@ -161,6 +161,13 @@ let mobile_illust_ui_top_page = class extends mobile_illust_ui_page
                             <span class=label>Slideshow</span>
                         </div>
 
+                        <div class="item button-toggle-hold-slideshow enabled">
+                            <div class=button>
+                                ${ helpers.create_icon("mat:replay_circle_filled") }
+                            </div>
+                            <span class=label>Hold slideshow</span>
+                        </div>
+
                         <div class="item button-toggle-zoom">
                             <div class=button>
                                 <ppixiv-inline src="resources/zoom-full.svg"></ppixiv-inline>
@@ -270,13 +277,20 @@ let mobile_illust_ui_top_page = class extends mobile_illust_ui_page
         this.toggle_zoom_button = this.container.querySelector(".button-toggle-zoom");
         this.toggle_zoom_button.addEventListener("click", this.clicked_toggle_zoom);
 
-        this.toggle_slideshow_bottom = this.container.querySelector(".button-toggle-slideshow");
-        this.toggle_slideshow_bottom.addEventListener("click", (e) => {
+        this.toggle_slideshow_button = this.container.querySelector(".button-toggle-slideshow");
+        this.toggle_slideshow_button.addEventListener("click", (e) => {
             main_controller.toggle_slideshow();
             this.parent.hide();
             this.refresh();
         });
 
+        this.toggle_hold_slideshow_button = this.container.querySelector(".button-toggle-hold-slideshow");
+        this.toggle_hold_slideshow_button.addEventListener("click", (e) => {
+            main_controller.hold_slideshow();
+            this.parent.hide();
+            this.refresh();
+        });
+        
         this.avatar_widget = new avatar_widget({
             container: this.container.querySelector(".avatar-widget-container"),
             mode: "overlay",
