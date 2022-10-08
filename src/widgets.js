@@ -1919,7 +1919,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
         if(!ppixiv.mobile)
         {
             this.menu_options.push(menu_options.toggle_slideshow());
-            this.menu_options.push(menu_options.hold_slideshow());
+            // this.menu_options.push(menu_options.hold_slideshow());
         }
         this.menu_options.push(menu_options.image_editing());
         if(ppixiv.native)
