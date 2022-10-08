@@ -1,4 +1,4 @@
-import base64, collections, errno, glob, json, io, os, re, sys, subprocess
+import argparse, base64, collections, errno, glob, hashlib, json, io, os, re, sys, subprocess
 from pathlib import Path
 import sass
 from pprint import pprint
@@ -31,10 +31,20 @@ def to_javascript_string(s):
     return '`%s`' % escaped
 
 class Build(object):
+    # Source maps will point to here:
     github_root = 'https://raw.githubusercontent.com/ppixiv/ppixiv/'
+
+    # Info for deployment.  If you're just building locally, these won't be used.
+    deploy_s3_bucket = 'ppixiv'
+    distribution_root = f'https://ppixiv.org'
 
     @classmethod
     def build(cls):
+        parser = argparse.ArgumentParser()
+        parser.add_argument('--deploy', '-d', action='store_true', default=False)
+        parser.add_argument('--latest', '-l', action='store_true', default=False)
+        args = parser.parse_args()
+
         # This is a release if it has a tag and the working copy is clean.
         result = subprocess.run(['git', 'describe', '--tags', '--match=r*', '--exact-match'], capture_output=True)
         is_tagged = result.returncode == 0
@@ -70,31 +80,113 @@ class Build(object):
             if e.errno != errno.EEXIST:
                 raise
 
-        cls().build_with_settings(is_release=is_release, git_tag=git_tag)
+        cls().build_with_settings(is_release=is_release, git_tag=git_tag, deploy=args.deploy, latest=args.latest)
 
-    def build_with_settings(self, *, is_release=False, git_tag='devel'):
+    def build_with_settings(self, *, is_release=False, git_tag='devel', deploy=False, latest=False):
         self.is_release = is_release
         self.git_tag = git_tag
+        self.distribution_url = f'{self.distribution_root}/builds/{get_git_tag()}'
 
         self.resources = self.build_resources()
         self.build_release()
         self.build_debug()
+        if deploy:
+            self.deploy(latest=latest)
+
+    def deploy(self, latest=False):
+        """
+        Deploy the distribution to the website.
+        """
+        def copy_file(source, path, output_filename=None):
+            if output_filename is None:
+                output_filename = os.path.basename(source)
+            subprocess.check_call([
+                'aws', 's3', 'cp',
+                '--acl', 'public-read',
+                source,
+                f's3://{self.deploy_s3_bucket}/{path}/{output_filename}',
+            ])
+
+        if not self.is_release:
+            # If we're deploying a dirty build, just copy the full build to https://ppixiv.org/beta
+            # for quick testing.  Don't clutter the build directory with "r123-dirty" builds.
+            print('Deploying beta only')
+            copy_file('output/ppixiv-main.user.js', 'beta', output_filename='ppixiv.user.js')
+            return
+
+        # Copy files for this version into https://ppixiv.org/builds/r1234.
+        version = get_git_tag()
+        for filename in ('ppixiv.user.js', 'ppixiv-main.user.js', 'main.scss.map'):
+            copy_file(f'output/{filename}', f'builds/{version}')
+
+        # Update the beta to point to this build.  Since we've deployed a tag for this, we can
+        # use the loader for this.
+        copy_file('output/ppixiv.user.js', 'beta')
+
+        if latest:
+            # Copy the loader to https://ppixiv.org/latest:
+            copy_file('output/ppixiv.user.js', 'latest')
 
     def build_release(self):
         """
         Build the final output/ppixiv.user.js script.
         """
-        output_file = 'output/ppixiv.user.js'
+        # Generate the main script.  This can be installed directly, or loaded by the
+        # loader script.
+        output_file = 'output/ppixiv-main.user.js'
         print('Building: %s' % output_file)
-        with open(output_file, 'w+t', encoding='utf-8', newline='\n') as output_file:
-            header = self.build_output(for_debug=False)
-            output_file.write(header)
+
+        data = self.build_output()
+        data = data.encode('utf-8')
+        sha256 = hashlib.sha256(data).hexdigest()
+
+        with open(output_file, 'w+b') as output_file:
+            output_file.write(data)
+
+        # Generate the loader script.  This is intended for use on GreasyFork so we can update
+        # the script without pushing a 1.5MB update each time, and so we won't eventually run
+        # into the 2MB size limit.
+        output_loader_file = 'output/ppixiv.user.js'
+        print('Building: %s' % output_loader_file)
+        result = self.build_header(for_debug=False)
+
+        # Add the URL where the above script will be available.
+        main_url = f'{self.distribution_url}/ppixiv-main.user.js'
+        result.append(f'// @require     {main_url}#sha256={sha256}')
+        result.append(f'// ==/UserScript==')
+
+        data = '\n'.join(result) + '\n'
+        data = data.encode('utf-8')
+        with open(output_loader_file, 'w+b') as output_file:
+            output_file.write(data)
 
     def build_debug(self):
         output_file = 'output/ppixiv-debug.user.js'
         print('Building: %s' % output_file)
 
-        lines = self.build_output(for_debug=True)
+        result = self.build_header(for_debug=True)
+        result.append(f'// ==/UserScript==')
+
+        # Add the loading code for debug builds, which just runs bootstrap_native.js.
+        result.append('''
+// Load and run the bootstrap script.  Note that we don't do this with @require, since TamperMonkey caches
+// requires overly aggressively, ignoring server cache headers.  Use sync XHR so we don't allow the site
+// to continue loading while we're setting up.
+(() => {
+    // If this is an iframe, don't do anything.
+    if(window.top != window.self)
+        return;
+
+    window.vviewURL = "http://127.0.0.1:8235";
+
+    let xhr = new XMLHttpRequest();
+    xhr.open("GET", `${window.vviewURL}/client/js/bootstrap_native.js`, false);
+    xhr.send();
+    eval(xhr.responseText);
+})();
+        ''')
+
+        lines = '\n'.join(result) + '\n'
 
         with open(output_file, 'w+t', encoding='utf-8', newline='\n') as f:
             f.write(lines)
@@ -114,18 +206,18 @@ class Build(object):
             parts = cwd.split('/')
             cwd = '%s:/%s' % (parts[1], '/'.join(parts[2:]))
 
-        return 'file:///%s/' % cwd
+        return 'file:///%s' % cwd
 
-    def get_source_root_url(self):
+    def get_source_root_url(self, filetype='source'):
         """
-        Return the URL used in sourceURL and source map URLs.
+        Return the URL to the top of the source tree, which source maps point to.
+        
+        This is used in used in sourceURL, and the URLs source maps point to.  In development,
+        this is a file: URL pointing to the local source tree.  For releases, this points to
+        the tag on GitHub for this release.
         """
-        # When we're building for development, the source map root is the local directory containing source
-        # files.
-        #
-        # For releases, use the raw GitHub URL where the file will be on GitHub once the current tag is pushed.
         if self.is_release:
-            return self.github_root + self.git_tag + '/'
+            return self.github_root + self.git_tag
         else:
             return self.get_local_root_url()
 
@@ -167,11 +259,7 @@ class Build(object):
 
     def build_resources(self):
         """
-        Compile files in resource/ and inline-resource/ into output/resource.js that we can include as
-        a source file.
-
-        These are base64-encoded and not easily read in the output file.  We should only use this for
-        markup and images and not scripts, since we don't want to obfuscate code in the output.
+        Build all resources, returning a dictionary of resource names to data.
         """
         # Collect resources into an OrderedDict, so we always output data in the same order.
         # This prevents the output from changing.
@@ -183,17 +271,19 @@ class Build(object):
             if ext == '.scss':
                 data, source_map = self.build_css(path)
 
-                # Write out the source map.  Chrome does allow us to reference file:/// URLs in
-                # source map URLs.
-                source_map_filename = 'output/%s.map' % os.path.basename(fn)
-                with open(source_map_filename, 'w+t', encoding='utf-8', newline='\n') as f:
+                # Output the source map separately.
+                source_map_filename = f'{os.path.basename(fn)}.map'
+                source_map_path = f'output/{source_map_filename}'
+                with open(source_map_path, 'w+t', encoding='utf-8', newline='\n') as f:
                     f.write(source_map)
 
-                # We can embed the source map, but the stylesheet one is pretty big (larger than the
-                # stylesheet itself).
-                # encoded_source_map = base64.b64encode(source_map.encode()).decode('ascii')
-                # url = 'data:application/json;base64,%s' % encoded_source_map
-                url = self.get_source_root_url() + source_map_filename
+                # In release, point to the distribution path for the source map.  For development, just
+                # point to the source map on the local filesystem.
+                if self.is_release:
+                    url = f'{self.distribution_url}/{source_map_filename}'
+                else:
+                    url = f'{self.get_local_root_url()}/{source_map_path}'
+
                 data += "\n/*# sourceMappingURL=%s */" % url
             elif ext in ('.png', '.woff'):
                 mime_types = {
@@ -216,7 +306,7 @@ class Build(object):
 
         return resources
 
-    def build_output(self, for_debug):
+    def build_header(self, for_debug):
         result = []
         with open('src/header.js', 'rt', encoding='utf-8') as input_file:
             for line in input_file.readlines():
@@ -232,35 +322,25 @@ class Build(object):
         if for_debug:
             version = 'testing'
         else:
-            version = get_git_tag()
-
-            # Version tags look like "r100".  Remove the "r" from the @version.
-            assert version.startswith('r')
-            version = version[1:]
-        result.append('// @version     %s' % version)
-        result.append('// ==/UserScript==')
-
-        if for_debug:
-            # Add the loading code for debug builds, which just runs bootstrap_native.js.
-            result.append('''
-// Load and run the bootstrap script.  Note that we don't do this with @require, since TamperMonkey caches
-// requires overly aggressively, ignoring server cache headers.  Use sync XHR so we don't allow the site
-// to continue loading while we're setting up.
-(() => {
-    // If this is an iframe, don't do anything.
-    if(window.top != window.self)
-        return;
-
-    window.vviewURL = "http://127.0.0.1:8235";
-
-    let xhr = new XMLHttpRequest();
-    xhr.open("GET", `${window.vviewURL}/client/js/bootstrap_native.js`, false);
-    xhr.send();
-    eval(xhr.responseText);
-})();
-            ''')
-            return '\n'.join(result) + '\n'
+            version = self.get_release_version()
             
+        result.append('// @version     %s' % version)
+
+        return result
+
+    def get_release_version(self):
+        version = get_git_tag()
+
+        # Release tags look like "r100".  Remove the "r" from the @version.
+        assert version.startswith('r')
+        version = version[1:]
+
+        return version
+
+    def build_output(self):
+        result = self.build_header(for_debug=False)
+        result.append(f'// ==/UserScript==')
+
         # All resources that we include in the script.
         all_resources = list(source_files)
 
@@ -269,7 +349,7 @@ class Build(object):
         result.append('const ppixiv = this;\n')
 
         result.append('with(this) {\n')
-        result.append(f'ppixiv.version = "{version}";')
+        result.append(f'ppixiv.version = "{self.get_release_version()}";')
         result.append('ppixiv.resources = {};\n')
 
         output_resources = collections.OrderedDict()
@@ -285,7 +365,7 @@ class Build(object):
 
                 # Wrap source files in a function, so we can load them when we're ready in bootstrap.js.
                 if fn in source_files:
-                    script += '\n//# sourceURL=%s%s\n' % (self.get_source_root_url(), fn)
+                    script += '\n//# sourceURL=%s/%s\n' % (self.get_source_root_url(), fn)
                     script = to_javascript_string(script)
 
                 output_resources[fn] = script
