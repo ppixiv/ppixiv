@@ -22,11 +22,6 @@ ppixiv.screen = class extends ppixiv.widget
         return null;
     }
 
-    // These are called to restore the scroll position on navigation.
-    scroll_to_top() { }
-    restore_scroll_position() { }
-    scroll_to_media_id(media_id) { }
-
     async set_active(active)
     {
         // Show or hide the screen.
