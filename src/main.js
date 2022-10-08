@@ -723,14 +723,12 @@ ppixiv.MainController = class
         if(document.body.dataset.popupOpen)
             return;
 
-        // If the keyboard input didn't go to an element inside the screen, redirect
-        // it to the screen's container.
-        var target = e.target;
         // If the event is going to an element inside the screen already, just let it continue.
         if(helpers.is_above(screen.container, e.target))
             return;
 
-        // Clone the event and redispatch it to the screen's container.
+        // If the keyboard input didn't go to an element inside the screen, redirect
+        // it to the screen's container.
         var e2 = new e.constructor(e.type, e);
         if(!screen.container.dispatchEvent(e2))
         {
