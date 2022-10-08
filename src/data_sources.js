@@ -4037,14 +4037,9 @@ ppixiv.data_sources.vview = class extends data_source
 
     get_current_media_id(args)
     {
-        // If illust_id is in the URL, it's a regular ID.
-        let illust_id = args.hash.get("illust_id");
-        if(illust_id)
-            return illust_id;
-
         // If the URL points to a file, return it.  If no image is being viewed this will give
         // the folder we're in, which shouldn't be returned here.
-        illust_id = local_api.get_local_id_from_args(args);
+        let illust_id = local_api.get_local_id_from_args(args);
         if(illust_id != null && illust_id.startsWith("file:"))
             return illust_id;
         
