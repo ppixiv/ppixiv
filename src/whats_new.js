@@ -341,15 +341,26 @@ ppixiv.whats_new = class extends ppixiv.dialog_widget
         // Not really needed, since our contents never change
         helpers.remove_elements(items_box);
 
-        for(let update of _update_history)
+        let github_top_url = "https://github.com/ppixiv/ppixiv/";
+
+        for(let idx = 0; idx < _update_history.length; ++idx)
         {
+            let update = _update_history[idx];
+            let previous_update = _update_history[idx+1];
             let entry = this.create_template({name: "item", html: `
                 <div>
-                    <div class=rev></div>
+                    <a class=rev href=#></a>
                     <div class=text></span>
                 </div>
             `});
-            entry.querySelector(".rev").innerText = "r" + update.version;
+
+            let rev = entry.querySelector(".rev");
+            rev.innerText = "r" + update.version;
+
+            // Link to the change list between this revision and the next revision that has release notes.
+            let previous_version = previous_update? ("r" + previous_update.version):"r1";
+            rev.href = `${github_top_url}/compare/${previous_version}...r${update.version}`;
+
             entry.querySelector(".text").innerHTML = update.text;
             items_box.appendChild(entry);
         }
