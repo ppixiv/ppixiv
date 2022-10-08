@@ -80,7 +80,7 @@ class Build(object):
         """
         output_file = 'output/ppixiv.user.js'
         print('Building: %s' % output_file)
-        with open(output_file, 'w+t', encoding='utf-8') as output_file:
+        with open(output_file, 'w+t', encoding='utf-8', newline='\n') as output_file:
             header = self.build_output(for_debug=False)
             output_file.write(header)
 
@@ -90,7 +90,7 @@ class Build(object):
 
         lines = self.build_output(for_debug=True)
 
-        with open(output_file, 'w+t', encoding='utf-8') as f:
+        with open(output_file, 'w+t', encoding='utf-8', newline='\n') as f:
             f.write(lines)
 
     def get_local_root_url(self):
@@ -180,7 +180,7 @@ class Build(object):
                 # Write out the source map.  Chrome does allow us to reference file:/// URLs in
                 # source map URLs.
                 source_map_filename = 'output/%s.map' % os.path.basename(fn)
-                with open(source_map_filename, 'w+t', encoding='utf-8') as f:
+                with open(source_map_filename, 'w+t', encoding='utf-8', newline='\n') as f:
                     f.write(source_map)
 
                 # We can embed the source map, but the stylesheet one is pretty big (larger than the
