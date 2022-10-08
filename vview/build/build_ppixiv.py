@@ -10,12 +10,18 @@ from pprint import pprint
 # Source files will be loaded in the order they're listed.
 from .source_files import source_files
 
+_git_tag = None
 def get_git_tag():
     """
     Return the current git tag.
     """
+    global _git_tag
+    if _git_tag is not None:
+        return _git_tag
+        
     result = subprocess.run(['git', 'describe', '--tags', '--dirty', '--match=r*'], capture_output=True)
-    return result.stdout.strip().decode()
+    _git_tag = result.stdout.strip().decode()
+    return _git_tag
 
 def to_javascript_string(s):
     """
