@@ -155,6 +155,11 @@ class Build(object):
         result.append(f'// @require     {main_url}#sha256={sha256}')
         result.append(f'// ==/UserScript==')
 
+        # Add a dummy statement.  Greasy Fork complains about "contains no executable code" if there's
+        # nothing in the top-level script, since it doesn't understand that all of our code is in a
+        # @require.
+        result.append('(() => {})();')
+
         data = '\n'.join(result) + '\n'
         data = data.encode('utf-8')
         with open(output_loader_file, 'w+b') as output_file:
