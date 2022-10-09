@@ -655,6 +655,16 @@ ppixiv.MainController = class
         let global_data = doc.querySelector("#meta-global-data");
         if(global_data != null)
             global_data = JSON.parse(global_data.getAttribute("content"));
+        else
+        {
+            // And another one.  This one's used on /request.
+            global_data = doc.querySelector("script#__NEXT_DATA__");
+            if(global_data != null)
+            {
+                global_data = JSON.parse(global_data.innerText);
+                global_data = global_data.props.pageProps;
+            }
+        }
 
         // This is the global "pixiv" object, which is used on older pages.
         let pixiv = helpers.get_pixiv_data(doc);
