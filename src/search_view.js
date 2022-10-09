@@ -1290,6 +1290,7 @@ ppixiv.search_view = class extends ppixiv.widget
             {
                 thumb.src = url;
                 element.classList.remove("muted");
+                local_api.thumbnail_loaded(url);
 
                 // Try to set up the aspect ratio.
                 this.thumb_image_load_finished(element, { cause: "setup" });

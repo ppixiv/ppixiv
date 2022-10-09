@@ -196,6 +196,16 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         if(slideshow)
             preview_url = url;
         
+        // If this is a local image, don't display the thumbnail if we haven't loaded it recently.  That's
+        // intended to show the thumbnail from a recent search to make loading smoother, but if we're local
+        // and it causes us to load the image, the local server will decompress the whole image, which defeats
+        // the point and makes us decode images twice.
+        if(preview_url && helpers.is_media_id_local(media_id))
+        {
+            if(!local_api.was_thumbnail_loaded_recently(preview_url))
+                preview_url = null;
+        }
+
         // Don't restore the position if we're displaying the same image, so we don't interrupt
         // the user interacting with the image.
         if(media_id == this.media_id)

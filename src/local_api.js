@@ -661,6 +661,19 @@ ppixiv.local_api = class
 
         message_widget.singleton.show(`Begun indexing ${id} for similarity searching`);
     }
+
+    // Remember that we've loaded a thumbnail this session.
+    static thumbnail_loaded(url)
+    {
+        this._thumbnails_loaded_recently ??= new Set();
+        this._thumbnails_loaded_recently.add(url);
+    }
+
+    // Return true if we've loaded a thumbnail this session.  This is used to optimize image display.
+    static was_thumbnail_loaded_recently(url)
+    {
+        return this._thumbnails_loaded_recently && this._thumbnails_loaded_recently.has(url);
+    }
 }
 
 // LocalBroadcastChannel implements the same API as BroadcastChannel, but sends messages
