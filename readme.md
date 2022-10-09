@@ -1,8 +1,8 @@
 This user script improves viewing illustrations on Pixiv.
 
-The most recent version [can be installed here](https://s3.amazonaws.com/ppixiv/ppixiv.user.js).
+The most recent version [can be installed here](https://ppixiv.org/install).
 
-![](https://s3.amazonaws.com/ppixiv/screenshot.png)
+![](https://ppixiv.org/screenshot.png)
 
 Features:
 
