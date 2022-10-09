@@ -308,10 +308,14 @@ ppixiv.image_preloader = class
             return [new img_preloader(illust_data.mangaPages[0].urls.poster) ];
 
         // Otherwise, preload the images.  Preload thumbs first, since they'll load
-        // much faster.
+        // much faster.  Don't preload local thumbs, since they're generated on-demand
+        // by the local server and are just as expensive to load as the full image.
         let results = [];
-        for(let url of illust_data.previewUrls)
-            results.push(new img_preloader(url));
+        if(!helpers.is_media_id_local(media_id))
+        {
+            for(let url of illust_data.previewUrls)
+                results.push(new img_preloader(url));
+        }
 
         // Preload the requested page.
         let page = helpers.parse_media_id(media_id).page;
