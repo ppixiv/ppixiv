@@ -14,4 +14,3 @@
 // @connect     i.pximg.net
 // @connect     self
 // @namespace   ppixiv
-// @inject-into page
