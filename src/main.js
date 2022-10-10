@@ -592,26 +592,18 @@ ppixiv.MainController = class
         helpers.navigate(url);
     }
 
+    // This is called if we're on a page that didn't give us init data.  We'll load it from
+    // a page that does.
     async load_global_data_async()
     {
         console.assert(!ppixiv.native);
 
-        // Doing this sync works better, because it 
         console.log("Reloading page to get init data");
 
-        // /local is used as a placeholder path for the local API, and it's a 404
-        // on the actual page.  It doesn't have global data, so load some other arbitrary
-        // page to get it.
-        let url = document.location;
-        if(url.pathname.startsWith('/local'))
-            url = new URL("/discovery", url);
-
-        // Some Pixiv pages try to force cache expiry.  We really don't want that to happen
-        // here, since we just want to grab the page we're on quickly.  Setting cache: force_cache
-        // tells Chrome to give us the cached page even if it's expired.
-        let result = await helpers.fetch_document(url.toString(), {
-            cache: "force-cache",
-        });
+        // Use the requests page to get init data.  This is handy since it works even if the
+        // site thinks we're mobile, so it still works if we're testing with DevTools set to
+        // mobile mode.
+        let result = await helpers.fetch_document("/request");
 
         console.log("Finished loading init data");
         if(this.load_global_info_from_document(result))
