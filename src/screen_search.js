@@ -1085,7 +1085,7 @@ ppixiv.screen_search = class extends ppixiv.screen
     refresh_slideshow_button()
     {
         let node = this.container.querySelector("A.slideshow");
-        node.href = page_manager.singleton().slideshow_url.url;
+        node.href = main_controller.slideshow_url.url;
     }
 
     // Use different icons for sites where you can give the artist money.  This helps make
@@ -1209,7 +1209,7 @@ ppixiv.slideshow_staging_dialog = class extends ppixiv.dialog_widget
 {
     static show()
     {
-        let slideshow_args = page_manager.singleton().slideshow_url;
+        let slideshow_args = main_controller.slideshow_url;
         if(slideshow_args == null)
             return;
 

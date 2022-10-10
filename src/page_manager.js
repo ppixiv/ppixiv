@@ -300,28 +300,5 @@ ppixiv.page_manager = class
         // or if we remove support for a page that people have in their browser session.
         return helpers.is_ppixiv_url(ppixiv.location) && this.available_for_url(ppixiv.location);
     };
-
-    // Return the URL args to display a slideshow from the current page.
-    //
-    // This is usually used from a search, and displays a slideshow for the current
-    // search.  It can also be called while on an illust from slideshow_staging_dialog.
-    get slideshow_url()
-    {
-        let data_source = main_controller.data_source;
-        if(data_source == null)
-            return null;
-
-        // For local images, set file=*.  For Pixiv, set the media ID to *.  Leave it alone
-        // if we're on the manga view and just add slideshow=1.
-        let args = helpers.args.location;
-        if(data_source.name == "vview")
-            args.hash.set("file", "*");
-        else if(data_source.name != "manga")
-            data_source.set_current_media_id("*", args);
-
-        args.hash.set("slideshow", "1");
-        args.hash.set("view", "illust");
-        return args;
-    }
 }
 
