@@ -2366,12 +2366,21 @@ a.box-link, span.box-link
             border-radius: 15px;
             background-color: rgba(0,0,0,0);
 
-            border-top: 1px solid rgba(255,255,255,0.5);
             border-left: 1px solid rgba(255,255,255,0.5);
+            &.top {
+                border-bottom: 1px solid rgba(255,255,255,0.5);
+            }
+            
+            &.bottom {
+                border-top: 1px solid rgba(255,255,255,0.5);
+            }
 
-            // CSS prefixing is horrible.
-            backdrop-filter: contrast(1.5) blur(20px);
-            -webkit-backdrop-filter: contrast(1.5) blur(20px);
+            // A backdrop filter looks interesting, but it triggers compositing bugs on iOS: if
+            // the window loses focus while a CSS slideshow animation is running, the contents of
+            // the menu sometimes stop rendering if they have a backdrop-filter.  They're also
+            // fairly slow on Android.
+            //backdrop-filter: contrast(1.5) blur(20px);
+            //-webkit-backdrop-filter: contrast(1.5) blur(20px);
 
             .item {
                 display: flex;

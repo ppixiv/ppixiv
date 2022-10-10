@@ -153,7 +153,7 @@ let mobile_illust_ui_top_page = class extends mobile_illust_ui_page
         super({...options, visible: true, template: `
             <div class="mobile-illust-ui-page top-page">
                 <div class=top-page-buttons>
-                    <div class=top-page-button-row>
+                    <div class="top-page-button-row top">
                         <div class="item button-toggle-slideshow enabled">
                             <div class=button>
                                 ${ helpers.create_icon("mat:wallpaper") }
@@ -199,7 +199,7 @@ let mobile_illust_ui_top_page = class extends mobile_illust_ui_page
                         </div>
                     </div>
 
-                    <div class=top-page-button-row>
+                    <div class="top-page-button-row bottom">
                         <div class="item button-browser-back">
                             <div class=button>
                                 <ppixiv-inline src="resources/exit-icon.svg" style="transform: scaleX(-1);"></ppixiv-inline>
