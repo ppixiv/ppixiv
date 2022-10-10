@@ -61,15 +61,6 @@ ppixiv.install_polyfills = function()
         }
     }
 
-    // Workaround for "Violentmonkey", which is missing exportFunction:
-    if(!("exportFunction" in window))
-    {
-        window.exportFunction = function(func)
-        {
-            return func;
-        };
-    }
-
     // Make IDBRequest an async generator.
     //
     // Note that this will clobber onsuccess and onerror on the IDBRequest.
