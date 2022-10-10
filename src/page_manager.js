@@ -301,30 +301,6 @@ ppixiv.page_manager = class
         return helpers.is_ppixiv_url(ppixiv.location) && this.available_for_url(ppixiv.location);
     };
 
-    // Given a list of tags, return the URL to use to search for them.  This differs
-    // depending on the current page.
-    get_args_for_tag_search(tags, url)
-    {
-        url = helpers.get_url_without_language(url);
-
-        let type = helpers.get_page_type_from_url(url);
-        if(type == "tags")
-        {
-            // If we're on search already, just change the search tag, so we preserve other settings.
-            // /tags/tag/artworks -> /tag/new tag/artworks
-            let parts = url.pathname.split("/");
-            parts[2] = encodeURIComponent(tags);
-            url.pathname = parts.join("/");
-        } else {
-            // If we're not, change to search and remove the rest of the URL.
-            url = new URL("/tags/" + encodeURIComponent(tags) + "/artworks#ppixiv", url);
-        }
-        
-        // Don't include things like the current page in the URL.
-        let args = data_source.get_canonical_url(url);
-        return args;
-    }
-
     // Return the URL args to display a slideshow from the current page.
     //
     // This is usually used from a search, and displays a slideshow for the current
