@@ -1108,7 +1108,7 @@ ppixiv.tag_widget = class extends ppixiv.widget
 
     format_tag_link(tag)
     {
-        return ppixiv.helpers.get_args_for_tag_search(tag, ppixiv.location);
+        return ppixiv.helpers.get_args_for_tag_search(tag, ppixiv.plocation);
     };
 
     async set(tags)

@@ -280,7 +280,7 @@ ppixiv.page_manager = class
         if(window.sessionStorage.ppixiv_disabled)
             return false;
 
-        return this.available_for_url(ppixiv.location);
+        return this.available_for_url(ppixiv.plocation);
     };
 
     // Return true if we're currently active.
@@ -289,7 +289,7 @@ ppixiv.page_manager = class
     _active_internal()
     {
         // If the hash is empty, use the default.
-        if(ppixiv.location.hash == "")
+        if(ppixiv.plocation.hash == "")
             return this.active_by_default();
 
         // If we have a hash and it's not #ppixiv, then we're explicitly disabled.  If we
@@ -298,7 +298,7 @@ ppixiv.page_manager = class
         // If we're explicitly enabled but aren't actually available, we're disabled.  This
         // makes sure we don't break pages if we accidentally load them with a #ppixiv hash,
         // or if we remove support for a page that people have in their browser session.
-        return helpers.is_ppixiv_url(ppixiv.location) && this.available_for_url(ppixiv.location);
+        return helpers.is_ppixiv_url(ppixiv.plocation) && this.available_for_url(ppixiv.plocation);
     };
 }
 

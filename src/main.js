@@ -163,10 +163,10 @@ ppixiv.MainController = class
         // still work, but none of the URLs we create will have #ppixiv, so we won't handle navigation
         // directly and the page will reload on every click.  Do this before we create any of our
         // UI, so our links inherit the hash.
-        if(!ppixiv.native && !helpers.is_ppixiv_url(ppixiv.location))
+        if(!ppixiv.native && !helpers.is_ppixiv_url(ppixiv.plocation))
         {
             // Don't create a new history state.
-            let newURL = new URL(ppixiv.location);
+            let newURL = new URL(ppixiv.plocation);
             newURL.hash = "#ppixiv";
             history.replaceState(null, "", newURL.toString());
         }
@@ -185,7 +185,7 @@ ppixiv.MainController = class
 
         // Copy the location to the document copy, so the data source can tell where
         // it came from.
-        html.location = ppixiv.location;
+        html.location = ppixiv.plocation;
 
         // Now that we've cleared the document, we can unhide it.
         document.documentElement.hidden = false;
@@ -279,8 +279,8 @@ ppixiv.MainController = class
         // Create a new data source for the same URL, replacing the previous one.
         // This returns the data source, but just call set_current_data_source so
         // we load the new one.
-        console.log("Refreshing data source for", ppixiv.location.toString());
-        page_manager.singleton().create_data_source_for_url(ppixiv.location, {force: true, remove_search_page});
+        console.log("Refreshing data source for", ppixiv.plocation.toString());
+        page_manager.singleton().create_data_source_for_url(ppixiv.plocation, {force: true, remove_search_page});
 
         // Screens store their scroll position in args.state.scroll.  On refresh, clear it
         // so we scroll to the top when we refresh.
@@ -301,7 +301,7 @@ ppixiv.MainController = class
         var old_media_id = old_screen? old_screen.displayed_media_id:null;
 
         // Get the data source for the current URL.
-        let data_source = page_manager.singleton().create_data_source_for_url(ppixiv.location);
+        let data_source = page_manager.singleton().create_data_source_for_url(ppixiv.plocation);
 
         // Figure out which screen to display.
         var new_screen_name;
@@ -868,7 +868,7 @@ ppixiv.MainController = class
         disabled_ui.addEventListener("focus", (e) => { this.refresh_disabled_ui(disabled_ui); }, true);
         window.addEventListener("popstate", (e) => { this.refresh_disabled_ui(disabled_ui); }, true);
 
-        if(page_manager.singleton().available_for_url(ppixiv.location))
+        if(page_manager.singleton().available_for_url(ppixiv.plocation))
         {
             // Remember that we're disabled in this tab.  This way, clicking the "return
             // to Pixiv" button will remember that we're disabled.  We do this on page load
@@ -899,10 +899,10 @@ ppixiv.MainController = class
     {
         // If we're on a page that we don't support, like the top page, rewrite the link to switch to
         // a page we do support.  Otherwise, replace the hash with #ppixiv.
-        console.log(ppixiv.location.toString());
-        if(page_manager.singleton().available_for_url(ppixiv.location))
+        console.log(ppixiv.plocation.toString());
+        if(page_manager.singleton().available_for_url(ppixiv.plocation))
         {
-            let url = ppixiv.location;
+            let url = ppixiv.plocation;
             url.hash = "#ppixiv";
             disabled_ui.querySelector("a").href = url;
         }

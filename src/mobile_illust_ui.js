@@ -451,7 +451,7 @@ let mobile_illust_ui_top_page = class extends mobile_illust_ui_page
         if(parent_folder_id == null)
             return;
 
-        let args = new helpers.args("/", ppixiv.location);
+        let args = new helpers.args("/", ppixiv.plocation);
         local_api.get_args_for_id(parent_folder_id, args);
         helpers.navigate(args);
     }

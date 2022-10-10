@@ -530,7 +530,7 @@ ppixiv.screen_search = class extends ppixiv.screen
             // Get the URL for the current folder and set it to a new URL, so it removes search
             // parameters.
             let media_id = local_api.get_local_id_from_args(helpers.args.location, { get_folder: true });
-            let args = new helpers.args("/", ppixiv.location);
+            let args = new helpers.args("/", ppixiv.plocation);
             local_api.get_args_for_id(media_id, args);
             helpers.navigate(args);
         });
@@ -540,7 +540,7 @@ ppixiv.screen_search = class extends ppixiv.screen
             // False if the user has hidden the navigation tree.  Default to false on mobile, since
             // it takes up a lot of screen space.  Also default to false if we were initially opened
             // as a similar image search.
-            this.local_navigation_visible = !ppixiv.mobile && ppixiv.location.pathname != "/similar";
+            this.local_navigation_visible = !ppixiv.mobile && ppixiv.plocation.pathname != "/similar";
 
             this.local_nav_widget = new ppixiv.local_navigation_widget({
                 parent: this,
@@ -873,25 +873,25 @@ ppixiv.screen_search = class extends ppixiv.screen
         if(user_info != null)
         {
             extra_links.push({
-                url: new URL(`/messages.php?receiver_id=${user_info.userId}`, ppixiv.location),
+                url: new URL(`/messages.php?receiver_id=${user_info.userId}`, ppixiv.plocation),
                 type: "contact-link",
                 label: "Send a message",
             });
             
             extra_links.push({
-                url: new URL(`/users/${user_info.userId}/following#ppixiv`, ppixiv.location),
+                url: new URL(`/users/${user_info.userId}/following#ppixiv`, ppixiv.plocation),
                 type: "following-link",
                 label: `View ${user_info.name}'s followed users`,
             });
 
             extra_links.push({
-                url: new URL(`/users/${user_info.userId}/bookmarks/artworks#ppixiv`, ppixiv.location),
+                url: new URL(`/users/${user_info.userId}/bookmarks/artworks#ppixiv`, ppixiv.plocation),
                 type: "bookmarks-link",
                 label: user_info? `View ${user_info.name}'s bookmarks`:`View bookmarks`,
             });
 
             extra_links.push({
-                url: new URL(`/discovery/users#ppixiv?user_id=${user_info.userId}`, ppixiv.location),
+                url: new URL(`/discovery/users#ppixiv?user_id=${user_info.userId}`, ppixiv.plocation),
                 type: "similar-artists",
                 label: "Similar artists",
             });
@@ -1139,7 +1139,7 @@ ppixiv.screen_search = class extends ppixiv.screen
     submit_user_search = (e) =>
     {
         let search = this.container.querySelector(".user-search-box input.search-users").value;
-        let url = new URL("/search_user.php#ppixiv", ppixiv.location);
+        let url = new URL("/search_user.php#ppixiv", ppixiv.plocation);
         url.searchParams.append("nick", search);
         url.searchParams.append("s_mode", "s_usr");
         helpers.navigate(url);

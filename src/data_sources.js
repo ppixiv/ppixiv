@@ -1765,7 +1765,7 @@ ppixiv.data_sources.artist = class extends data_source
         if(this.accepting_requests)
         {
             links.push({
-                url: new URL(`/users/${this.viewing_user_id}/request#no-ppixiv`, ppixiv.location),
+                url: new URL(`/users/${this.viewing_user_id}/request#no-ppixiv`, ppixiv.plocation),
                 type: "request",
                 label: "Accepting requests",
             });

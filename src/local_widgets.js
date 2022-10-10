@@ -848,7 +848,7 @@ ppixiv.local_navigation_widget = class extends ppixiv.tree_widget
     // Navigate to media_id, which should be an entry in the current tree.
     show_item(media_id)
     {
-        let args = new helpers.args(ppixiv.location);
+        let args = new helpers.args(ppixiv.plocation);
         local_api.get_args_for_id(media_id, args);
         helpers.navigate(args);
 
@@ -1095,7 +1095,7 @@ ppixiv.local_search_dropdown_widget = class extends ppixiv.widget
 
         entry.querySelector(".search").appendChild(span);
 
-        let args = new helpers.args("/", ppixiv.location);
+        let args = new helpers.args("/", ppixiv.plocation);
         args.path = local_api.path;
         args.hash_path = "/";
         args.hash.set("search", search);

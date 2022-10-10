@@ -293,7 +293,7 @@ ppixiv.image_ui = class extends ppixiv.widget
             folder_text_element.innerText = helpers.get_path_suffix(id, 2, 1); // last two parent directories
 
             let parent_folder_id = local_api.get_parent_folder(id);
-            let args = new helpers.args("/", ppixiv.location);
+            let args = new helpers.args("/", ppixiv.plocation);
             local_api.get_args_for_id(parent_folder_id, args);
             folder_text_element.href = args.url;
         }

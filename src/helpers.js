@@ -1189,7 +1189,7 @@ ppixiv.helpers = {
         // Only set x-csrf-token for requests to www.pixiv.net.  It's only needed for API
         // calls (not things like ugoira ZIPs), and the request will fail if we're in XHR
         // mode and set headers, since it'll trigger CORS.
-        var hostname = new URL(options.url, ppixiv.location).hostname;
+        var hostname = new URL(options.url, ppixiv.plocation).hostname;
         if(hostname == "www.pixiv.net" && "global_data" in window)
         {
             options.headers["x-csrf-token"] = global_data.csrf_token;
@@ -1632,7 +1632,7 @@ ppixiv.helpers = {
 
         for(var a of root.querySelectorAll("A"))
         {
-            var url = new URL(a.href, ppixiv.location);
+            var url = new URL(a.href, ppixiv.plocation);
             if(url.hostname != "pixiv.net" && url.hostname != "www.pixiv.net" || url.hash != "")
                 continue;
 
@@ -1919,7 +1919,7 @@ ppixiv.helpers = {
     {
         constructor(url)
         {
-            url = new URL(url, ppixiv.location);
+            url = new URL(url, ppixiv.plocation);
 
             this.path = url.pathname;
             this.query = url.searchParams;
@@ -1935,7 +1935,7 @@ ppixiv.helpers = {
         // Return the args for the current page.
         static get location()
         {
-            let result = new this(ppixiv.location);
+            let result = new this(ppixiv.plocation);
 
             // Include history state as well.  Make a deep copy, so changing this doesn't
             // modify history.state.
@@ -1946,7 +1946,7 @@ ppixiv.helpers = {
 
         get url()
         {
-            let url = new URL(ppixiv.location);
+            let url = new URL(ppixiv.plocation);
             url.pathname = this.path;
             url.search = this.query.toString();
 
@@ -2076,7 +2076,7 @@ ppixiv.helpers = {
         // Store the previous URL for comparison.  Normalize it with args, so comparing it with
         // toString() is reliable if the escaping is different, such as different %1E case or
         // not escaping spaces as +.
-        let old_url = new ppixiv.helpers.args(ppixiv.location).toString();
+        let old_url = new ppixiv.helpers.args(ppixiv.plocation).toString();
 
         // Use the history state from args if it exists.
         let history_data = {
@@ -2104,13 +2104,13 @@ ppixiv.helpers = {
         // and not just pushState (which you should be able to call as fast as you want).
         //
         // People don't think things through.
-        // console.log("Set URL to", ppixiv.location.toString(), add_to_history);
+        // console.log("Set URL to", ppixiv.plocation.toString(), add_to_history);
 
-        if(send_popstate && ppixiv.location.toString() != old_url)
+        if(send_popstate && ppixiv.plocation.toString() != old_url)
         {
             // Browsers don't send onpopstate for history changes, but we want them, so
             // send a synthetic one.
-            // console.log("Dispatching popstate:", ppixiv.location.toString());
+            // console.log("Dispatching popstate:", ppixiv.plocation.toString());
             var event = new PopStateEvent("popstate");
 
             // Set initialNavigation to true.  This indicates that this event is for a new
@@ -3114,7 +3114,7 @@ ppixiv.helpers = {
         // /c/540x540_70/img-master/img/.../12345678_master1200.jpg
         //
         // The resolution field is changed, and "square1200" is changed to "master1200".
-        var url = new URL(url, ppixiv.location);
+        var url = new URL(url, ppixiv.plocation);
         var path = url.pathname;
         var re = /(\/c\/)([^\/]+)(.*)(square1200|master1200|custom1200).jpg/;
         var match = re.exec(path);
@@ -3157,7 +3157,7 @@ ppixiv.helpers = {
         }
         else
         {
-            args = new helpers.args("/", ppixiv.location);
+            args = new helpers.args("/", ppixiv.plocation);
             args.path  = `/artworks/${illust_id}`;
 
             if(manga)
@@ -3599,7 +3599,7 @@ ppixiv.key_storage = class
 }
 
 // VirtualHistory is a wrapper for document.location and window.history to allow
-// setting a virtual, temporary document location.  These are ppixiv.location and
+// setting a virtual, temporary document location.  These are ppixiv.plocation and
 // ppixiv.history, and have roughly the same interface.
 //
 // This can be used to preview another page without changing browser history, and
@@ -3612,8 +3612,8 @@ ppixiv.VirtualHistory = class
     {
         this.virtual_url = null;
 
-        // ppixiv.location can be accessed like document.location.
-        Object.defineProperty(ppixiv, "location", {
+        // ppixiv.plocation can be accessed like document.location.
+        Object.defineProperty(ppixiv, "plocation", {
             get: () => {
                 // If we're not using a virtual location, return document.location.
                 // Otherwise, return virtual_url.  Always return a copy of virtual_url,
@@ -3625,9 +3625,9 @@ ppixiv.VirtualHistory = class
                     return new URL(this.virtual_url);
             },
             set: (value) => {
-                // We could support assigning ppixiv.location, but we always explicitly
+                // We could support assigning ppixiv.plocation, but we always explicitly
                 // pushState.  Just throw an exception if we get here accidentally.
-                throw Error("Can't assign to ppixiv.location");
+                throw Error("Can't assign to ppixiv.plocation");
 
                 /*
                 if(!this.virtual)

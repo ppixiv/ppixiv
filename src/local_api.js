@@ -516,7 +516,7 @@ ppixiv.local_api = class
         }
 
         let folder_id = libraries[0].mediaId;
-        let args = new helpers.args("/", ppixiv.location);
+        let args = new helpers.args("/", ppixiv.plocation);
         local_api.get_args_for_id(folder_id, args);
         helpers.navigate(args);
     }
@@ -631,7 +631,7 @@ ppixiv.local_api = class
             local_api.add_recent_local_search(tags);
 
         // Run the search.  We expect to be on the local data source when this is called.
-        let args = new helpers.args(ppixiv.location);
+        let args = new helpers.args(ppixiv.plocation);
         console.assert(args.path == local_api.path);
         if(tags)
             args.hash.set("search", tags);

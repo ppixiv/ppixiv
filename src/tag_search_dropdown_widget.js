@@ -103,7 +103,7 @@ ppixiv.tag_search_box_widget = class extends ppixiv.widget
         }
         
         // Run the search.
-        let args = ppixiv.helpers.get_args_for_tag_search(tags, ppixiv.location);
+        let args = ppixiv.helpers.get_args_for_tag_search(tags, ppixiv.plocation);
         helpers.navigate(args);
     }
 }
@@ -376,7 +376,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
             tag_container.appendChild(span);
         }
 
-        var url = ppixiv.helpers.get_args_for_tag_search(tag_search, ppixiv.location);
+        var url = ppixiv.helpers.get_args_for_tag_search(tag_search, ppixiv.plocation);
         entry.href = url;
         return entry;
     }
@@ -632,7 +632,7 @@ ppixiv.tag_search_edit_widget = class extends ppixiv.widget
             tag_container.appendChild(span);
         }
 
-        var url = ppixiv.helpers.get_args_for_tag_search(tag_search, ppixiv.location);
+        var url = ppixiv.helpers.get_args_for_tag_search(tag_search, ppixiv.plocation);
         entry.querySelector("A.search").href = url;
         return entry;
     }
@@ -739,7 +739,7 @@ ppixiv.tag_search_edit_widget = class extends ppixiv.widget
 
         // Navigate to the edited search immediately.  Don't add these to history, since it
         // spams navigation history.
-        let args = ppixiv.helpers.get_args_for_tag_search(this.input_element.value, ppixiv.location);
+        let args = ppixiv.helpers.get_args_for_tag_search(this.input_element.value, ppixiv.plocation);
         helpers.navigate(args, { add_to_history: false });
     }
 }

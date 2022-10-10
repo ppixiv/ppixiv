@@ -836,7 +836,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         e.preventDefault();
         e.stopPropagation();
 
-        let url = new URL(a.href, ppixiv.location);
+        let url = new URL(a.href, ppixiv.plocation);
         helpers.navigate(url);
     }
 
@@ -1439,7 +1439,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         if(parent_folder_id == null)
             return;
 
-        let args = new helpers.args("/", ppixiv.location);
+        let args = new helpers.args("/", ppixiv.plocation);
         local_api.get_args_for_id(parent_folder_id, args);
         helpers.navigate(args.url);
     }
