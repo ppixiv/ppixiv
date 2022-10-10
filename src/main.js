@@ -172,7 +172,7 @@ ppixiv.MainController = class
         }
         
         // Don't restore the scroll position.  We handle this ourself.
-        window.history.scrollRestoration = "manual";  // not ppixiv.history
+        window.history.scrollRestoration = "manual";  // not ppixiv.phistory
        
         // If we're running on Pixiv, remove Pixiv's content from the page and move it into a
         // dummy document.

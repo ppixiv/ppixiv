@@ -240,7 +240,7 @@ ppixiv.SendImage = class
                 // When we first show a preview, add it to history.  If we show another image
                 // or finalize the previewed image while we're showing a preview, replace the
                 // preview history entry.
-                add_to_history: !ppixiv.history.virtual,
+                add_to_history: !ppixiv.phistory.virtual,
             });
         }
         else if(data.message == "image-info")
@@ -274,7 +274,7 @@ ppixiv.SendImage = class
         else if(data.message == "preview-mouse-movement")
         {
             // Ignore this message if we're not displaying a quick view image.
-            if(!ppixiv.history.virtual)
+            if(!ppixiv.phistory.virtual)
                 return;
             
             // The mouse moved in the tab that's sending quick view.  Broadcast an event
@@ -327,11 +327,11 @@ ppixiv.SendImage = class
     // where we were before.
     hide_preview_image()
     {
-        let was_in_preview = ppixiv.history.virtual;
+        let was_in_preview = ppixiv.phistory.virtual;
         if(!was_in_preview)
             return;
 
-        ppixiv.history.back();        
+        ppixiv.phistory.back();        
     }
 
     send_mouse_movement_to_linked_tabs(x, y)

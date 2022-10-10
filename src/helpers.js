@@ -2091,9 +2091,9 @@ ppixiv.helpers = {
 
         // console.log("Changing state to", args.url.toString());
         if(add_to_history)
-            ppixiv.history.pushState(history_data, "", args.url.toString());
+            ppixiv.phistory.pushState(history_data, "", args.url.toString());
         else
-            ppixiv.history.replaceState(history_data, "", args.url.toString());
+            ppixiv.phistory.replaceState(history_data, "", args.url.toString());
 
         // Chrome is broken.  After replacing state for a while, it starts logging
         //
@@ -3599,8 +3599,8 @@ ppixiv.key_storage = class
 }
 
 // VirtualHistory is a wrapper for document.location and window.history to allow
-// setting a virtual, temporary document location.  These are ppixiv.plocation and
-// ppixiv.history, and have roughly the same interface.
+// setting a virtual, temporary document location.  These are ppixiv.plocationl and
+// ppixiv.phistory, and have roughly the same interface.
 //
 // This can be used to preview another page without changing browser history, and
 // works around a really painful problem with the history API: while history.pushState
@@ -3748,7 +3748,7 @@ ppixiv.VirtualHistory = class
         window.dispatchEvent(e);
     }
 };
-ppixiv.history = new VirtualHistory;
+ppixiv.phistory = new VirtualHistory;
 
 ppixiv.PointerEventMovement = class
 {
