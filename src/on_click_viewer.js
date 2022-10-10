@@ -1046,7 +1046,10 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
 
         // If the mode isn't changing, just update the existing animation in place, so we
         // update the animation if the window is resized.
-        if(this.current_animation_mode == animation_mode)
+        //
+        // Modifying animations while they're running is broken on iOS and just cause the animation
+        // to freeze, so on iOS we just restart the animation.
+        if(this.current_animation_mode == animation_mode && !ppixiv.ios)
         {
             this.animations.main.effect.setKeyframes(animation.keyframes);
             this.animations.main.updatePlaybackRate(1 / animation.duration);
