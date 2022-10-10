@@ -1,15 +1,5 @@
 "use strict";
 
-// This is thrown when an XHR request fails.
-ppixiv.APIError = class extends Error
-{
-    constructor(message, url)
-    {
-        super(message);
-        this.url = url;
-    }
-};
-
 // This is thrown when we disable creating blocked elements.
 ppixiv.ElementDisabled = class extends Error
 {
