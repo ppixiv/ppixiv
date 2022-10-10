@@ -41,9 +41,9 @@ ppixiv.page_manager = class
     // Return the singleton, creating it if needed.
     static singleton()
     {
-        if(page_manager._singleton == null)
-            page_manager._singleton = new page_manager();
-        return page_manager._singleton;
+        if(this._singleton == null)
+            this._singleton = new this();
+        return this._singleton;
     };
 
     // Return the data source for a URL, or null if the page isn't supported.
