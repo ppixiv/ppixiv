@@ -141,7 +141,7 @@ let _load_source_file = function(__pixiv, __source) {
         let source_url = new URL(url);
         source_url.search = "";
         data += "\n";
-        data += `//# sourceURL=${source_url}\n`;
+        data += `//` + `# sourceURL=${source_url}\n`; // split so browsers don't interpret this line as a sourceURL
 
         env.resources[path] = data;
     }
@@ -186,7 +186,7 @@ let _load_source_file = function(__pixiv, __source) {
         if(url.pathname.endsWith(".js"))
         {
             data += "\n";
-            data += `//# sourceURL=${source_url}\n`;
+            data += `//# sourceURL=${source_url}\n`; // split so browsers don't interpret this line as a sourceURL
         }
 
         env.resources[path] = data;
