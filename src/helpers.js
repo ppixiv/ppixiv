@@ -1315,53 +1315,100 @@ ppixiv.helpers = {
         return result;
     },
 
-    download_url: async function(url)
+    _download_port: null,
+
+
+    // GM.xmlHttpRequest is handled by the sandboxed side of the user script, which lives in
+    // bootstrap.js.  Request a MessagePort which can be used to request GM.xmlHttpRequest
+    // downloads.
+    _get_xhr_server()
     {
-        if(url == null)
-        {
-            accept(null);
-            return;
-        }
+        // If we already have a download port, return it.
+        if(this._download_port != null)
+            return this._download_port;
 
-        // We use i-cf for image URLs, but we don't currently have this in @connect,
-        // so we can't use that here.  Switch from i-cf back to the original URLs.
-        url = new URL(url);
-        if(url.hostname == "i-cf.pximg.net")
-            url.hostname = "i.pximg.net";
+        return new Promise((accept, reject) => {
+            // Send request-download-channel to window to ask the user script to send us the
+            // GM.xmlHttpRequest message port.  If this is handled and we can expect a response,
+            // the event will be cancelled.
+            let e = new Event("request-download-channel", { cancelable: true });
+            if(window.dispatchEvent(e))
+            {
+                reject("GM.xmlHttpRequest isn't available");
+                return;
+            }
 
-        let result = await helpers.async_gm_xhr({
-            url,
-            method: "GET",
-            url: url,
-            responseType: "arraybuffer",
+            // The MessagePort will be returned as a message posted to the window.
+            let receive_message_port = (e) => {
+                if(e.data.cmd != "download-setup")
+                    return;
 
-            headers: {
-                "Cache-Control": "max-age=360000",
-                Referer: "https://www.pixiv.net/",
-                Origin: "https://www.pixiv.net/",
-            },
+                window.removeEventListener("message", receive_message_port);
+                helpers._download_port = e.ports[0];
+                accept(e.ports[0]);
+            };
+
+            window.addEventListener("message", receive_message_port);
         });
-        return result.response;
     },
 
-    async_gm_xhr({url, ...options})
+    // Download a Pixiv image using a GM.xmlHttpRequest server port retrieved
+    // with _get_xhr_server.
+    _download_using_xhr_server: function(server_port, url)
     {
         return new Promise((accept, reject) => {
-            GM_xmlhttpRequest({
-                ...options,
+            if(url == null)
+            {
+                reject(null);
+                return;
+            }
 
-                // TamperMonkey takes a URL object, but ViolentMonkey throws an exception unless we
-                // convert to a string.
+            // We use i-cf for image URLs, but we don't currently have this in @connect,
+            // so we can't use that here.  Switch from i-cf back to the original URLs.
+            url = new URL(url);
+            if(url.hostname == "i-cf.pximg.net")
+                url.hostname = "i.pximg.net";
+
+            // Send a message to the (possibly sandboxed) top-level script to retrieve the image
+            // with GM.xmlHttpRequest, giving it a message port to send the result back on.
+            let { port1: server_response_port, port2: client_response_port } = new MessageChannel();
+
+            client_response_port.onmessage = (e) => {
+                client_response_port.close();
+                
+                if(e.data.success)
+                    accept(e.data.response);
+                else
+                    reject(e.data.error);
+            };
+
+            server_port.realPostMessage({
                 url: url.toString(),
 
-                onload: (result) => {
-                    accept(result);
+                options: {
+                    responseType: "arraybuffer",
+                    headers: {
+                        "Cache-Control": "max-age=360000",
+                        Referer: "https://www.pixiv.net/",
+                        Origin: "https://www.pixiv.net/",
+                    },
                 },
-                onerror: (e) => {
-                    reject(e);
-                },
-            });
+            }, [server_response_port]);
         });
+    },
+
+    // Download url, returning the data.
+    //
+    // This is only used to download Pixiv images to save to disk.  Pixiv doesn't have CORS
+    // set up to give itself access to its own images, so we have to use GM.xmlHttpRequest to
+    // do this.
+    download_url: async function(url)
+    {
+        let server = await this._get_xhr_server();
+        if(server == null)
+            throw new Error("Downloading not available");
+
+        return await this._download_using_xhr_server(server, url);
     },
 
     download_urls: async function(urls)

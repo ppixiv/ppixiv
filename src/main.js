@@ -10,8 +10,8 @@ ppixiv.MainController = class
 
     async initial_setup()
     {
-        console.log("ppixiv setup");
-        console.log("Browser:", navigator.appVersion);
+        console.log(`${ppixiv.native? "vview":"ppixiv"} setup`);
+        console.log("Browser:", navigator.userAgent);
 
         // If we're not active, just see if we need to add our button, and stop without messing
         // around with the page more than we need to.
@@ -45,7 +45,7 @@ ppixiv.MainController = class
     // This is where the actual UI starts.
     async setup()
     {
-        console.log("ppixiv controller setup");
+        console.log(`${ppixiv.native? "vview":"ppixiv"} controller setup`);
 
         // Create singletons.
         ppixiv.settings = new ppixiv.Settings();

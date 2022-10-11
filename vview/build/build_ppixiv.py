@@ -184,10 +184,18 @@ class Build(object):
 
     window.vviewURL = "http://127.0.0.1:8235";
 
+    // Load NativeLoader.
     let xhr = new XMLHttpRequest();
     xhr.open("GET", `${window.vviewURL}/client/js/bootstrap_native.js`, false);
     xhr.send();
     eval(xhr.responseText);
+
+    xhr = new XMLHttpRequest();
+    xhr.open("GET", `${window.vviewURL}/client/js/bootstrap.js`, false);
+    xhr.send();
+    eval(xhr.responseText);
+
+    Bootstrap(null, NativeLoader);
 })();
         ''')
 
@@ -356,6 +364,12 @@ class Build(object):
         result.append(f'env.version = "{self.get_release_version()}";')
         result.append('env.resources = {};\n')
 
+        # Add the list of source files to resources, so bootstrap.js knows what to load.
+        init = {
+            'source_files': source_files,
+        }
+        result.append(f'env.init = {json.dumps(init, indent=4)};\n')
+
         output_resources = collections.OrderedDict()
 
         # Add resources.  These are already encoded as JavaScript strings, including quotes
@@ -374,12 +388,9 @@ class Build(object):
 
                 output_resources[fn] = script
 
-        # Add the list of source files to resources, so bootstrap.js knows what to load.
-        init = {
-            'source_files': source_files,
-        }
-        output_resources['init.js'] = json.dumps(init, indent=4) + '\n'
-
+        # Output resources.  We do it this way instead of just putting everything in a dictionary
+        # and JSON-encoding the dictionary so that source files are output in a readable format.  If
+        # we JSON-encode them, they'll end up on one long line with JSON newline escapes instead.
         for fn, data in output_resources.items():
             data = '''env.resources["%s"] = %s;''' % (fn, data)
             result.append(data)
@@ -387,6 +398,7 @@ class Build(object):
         # Add the bootstrap code directly.
         bootstrap = open('src/bootstrap.js', 'rt', encoding='utf-8').read()
         result.append(bootstrap)
+        result.append('Bootstrap(env);\n')
 
         result.append('})();\n')
 

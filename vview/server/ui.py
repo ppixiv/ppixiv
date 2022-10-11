@@ -106,9 +106,8 @@ def handle_client(request):
     path = Path(path)
 
     cache_control = 'public, immutable'
-    if path == Path('js/bootstrap_native.js'):
-        # Don't cache bootstrap_native.js.  That's where the URL cache busting itself
-        # actually happens, so we can't cache it or we'll have no way of refreshing it.
+    if path in (Path('js/bootstrap.js'), Path('js/bootstrap_native.js')):
+        # Don't cache these.  They're loaded before URL cache busting is available.
         cache_control = 'no-store'
 
     if path.parts[0] == 'js':

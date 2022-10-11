@@ -528,7 +528,13 @@ ppixiv.actions = class
 
         message_widget.singleton.show(images.length > 1? `Downloading ${images.length} pages...`:`Downloading image...`);
 
-        let results = await helpers.download_urls(images);
+        let results;
+        try {
+            results = await helpers.download_urls(images);
+        } catch(e) {
+            message_widget.singleton.show(e.toString());
+            return;
+        }
 
         message_widget.singleton.hide();
 
@@ -536,7 +542,6 @@ ppixiv.actions = class
         if(images.length == 1)
         {
             var url = images[0];
-            var buf = results[0];
             var blob = new Blob([results[0]]);
             var ext = helpers.get_extension(url);
             let filename = user_info.name + " - " + illust_data.illustId;
