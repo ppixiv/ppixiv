@@ -170,7 +170,12 @@ def handle_css(request):
             raise aiohttp.web.HTTPNotModified()
 
     build = Build()
-    data, source_map = build.build_css(path, source_map_embed=True, embed_source_root='/client')
+
+    # The source root for the CSS source map needs to be an absolute URL, since it might be
+    # loaded into the user script and a relative domain will resolve to that domain instead
+    # of ours.
+    base_url = '%s://%s:%i' % (request.url.scheme, request.url.host, request.url.port)
+    data, source_map = build.build_css(path, source_map_embed=True, embed_source_root=f'{base_url}/client')
 
     response = aiohttp.web.Response(body=data, headers={
         'Cache-Control': 'public, immutable',

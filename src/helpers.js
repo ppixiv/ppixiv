@@ -55,10 +55,12 @@ ppixiv.helpers = {
         return descendant == ancestor;
     },
 
-    create_style: function(css)
+    create_style: function(css, { id }={})
     {
         var style = document.realCreateElement("style");
         style.type = "text/css";
+        if(id)
+            style.id = id;
         style.textContent = css;
         return style;
     },

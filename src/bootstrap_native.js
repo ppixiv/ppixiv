@@ -62,16 +62,14 @@ window.NativeLoader = class
     {
         url = new URL(url, this.root_url);
 
-        // Just load binary resources and CSS as URLs.  This lets them be cached normally.
-        // It also make CSS source maps work when running the script on Pixiv but hosting
-        // it on a local server, which doesn't work if we load the stylesheet as text.
+        // Just load binary resources as URLs.  This lets them be cached normally.
         //
         // If we're not native (we're running on Pixiv), don't do this for PNGs, since Chrome
         // spams the console with mixed content warnings that weren't thought out very well.
         // (Why is it warning about insecure connections to localhost?)
         let filename = (new URL(path, this.root_url)).pathname;
         let binary = filename.endsWith(".png") || filename.endsWith(".woff");
-        if((this.native && binary) || filename.endsWith(".scss"))
+        if(this.native && binary)
             return url;
 
         // Other resources are loaded as text resources.  This is needed for SVG because we

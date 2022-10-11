@@ -195,17 +195,8 @@ ppixiv.MainController = class
         `));
 
         // Add the main stylesheet.
-        {
-            let link = document.realCreateElement("link");
-            link.href = resources['resources/main.scss'];
-            link.rel = "stylesheet";
-            document.querySelector("head").appendChild(link);
-
-            // Wait for the stylesheet to actually load before continuing.  This is quick, but if we
-            // continue before it's ready, we can flash unstyled content or have other weird nondeterministic
-            // problems.
-            await helpers.wait_for_load(link);
-        }
+        let main_stylesheet = resources['resources/main.scss'];
+        document.head.appendChild(helpers.create_style(main_stylesheet, { id: "main" }));
 
         // If we're running natively, index.html included an initial stylesheet to set the background
         // color.  Remove it now that we have our real stylesheet.
@@ -774,22 +765,7 @@ ppixiv.MainController = class
     // place they're used.
     async load_resource_blobs()
     {
-        // If we're native, stylesheets are already URLs.  If we're running as a user script, they're
-        // text, so stuff them into a blob URL to make this consistent.
-        for(let [name, data] of Object.entries(ppixiv.resources))
-        {
-            if(!name.endsWith(".scss"))
-                continue;
-
-            // Skip this if it's already a URL.
-            if(data.startsWith("http:") || data.startsWith("https:") || data.startsWith("blob:"))
-                continue;
-
-            let blob = new Blob([data]);
-            let blobURL = URL.createObjectURL(blob);
-            ppixiv.resources[name] = blobURL;
-        }
-
+        // Load data URLs into blobs.
         for(let [name, dataURL] of Object.entries(ppixiv.resources))
         {
             if(!dataURL.startsWith || !dataURL.startsWith("data:"))
