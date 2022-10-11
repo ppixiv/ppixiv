@@ -337,7 +337,7 @@ ppixiv.message_widget = class extends widget
 
         this.container.classList.add("show");
         this.container.classList.remove("centered");
-        this.timer = setTimeout(() => {
+        this.timer = helpers.setTimeout(() => {
             this.container.classList.remove("show");
         }, 3000);
     }
@@ -346,7 +346,7 @@ ppixiv.message_widget = class extends widget
     {
         if(this.timer != null)
         {
-            clearTimeout(this.timer);
+            helpers.clearTimeout(this.timer);
             this.timer = null;
         }
     }

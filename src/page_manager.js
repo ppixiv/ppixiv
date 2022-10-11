@@ -50,7 +50,7 @@ ppixiv.page_manager = class
     get_data_source_for_url(url)
     {
         // url is usually document.location, which for some reason doesn't have .searchParams.
-        var url = new unsafeWindow.URL(url);
+        var url = new URL(url);
         url = helpers.get_url_without_language(url);
 
         let first_part = helpers.get_page_type_from_url(url);

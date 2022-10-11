@@ -57,7 +57,7 @@ ppixiv.track_mouse_movement = class
         // If we see mouse movement that isn't enough to cause us to display the cursor
         // and we don't see more movement for a while, reset anchor_pos so we discard
         // the movement we saw.
-        this.set_mouse_anchor_timeout = setTimeout(() => {
+        this.set_mouse_anchor_timeout = helpers.setTimeout(() => {
             this.set_mouse_anchor_timeout = -1;
             this.anchor_pos = this.last_mouse_pos;
         }, 500);
@@ -69,7 +69,7 @@ ppixiv.track_mouse_movement = class
         if(this.set_mouse_anchor_timeout == -1)
             return;
 
-        clearTimeout(this.set_mouse_anchor_timeout);
+        helpers.clearTimeout(this.set_mouse_anchor_timeout);
         this.set_mouse_anchor_timeout = -1;
     }
 
@@ -78,7 +78,7 @@ ppixiv.track_mouse_movement = class
         if(!this.timer)
             return;
 
-        clearTimeout(this.timer);
+        helpers.clearTimeout(this.timer);
         this.timer = null;
     }
 
@@ -92,7 +92,7 @@ ppixiv.track_mouse_movement = class
         this.clear_mouse_anchor_timeout();
 
         this.remove_timer();
-        this.timer = setTimeout(this.idle, 500);
+        this.timer = helpers.setTimeout(this.idle, 500);
 
         if(!this._active)
         {

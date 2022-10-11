@@ -212,7 +212,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
     {
         console.assert(media_id != null);
 
-        helpers.set_class(document.body,  "force-ui", unsafeWindow.debug_show_ui);
+        helpers.set_class(document.body,  "force-ui", window.debug_show_ui);
         let [illust_id, manga_page] = helpers.media_id_to_illust_id_and_page(media_id);
 
         // If we previously set a pending navigation, this navigation overrides it.

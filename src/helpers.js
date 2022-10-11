@@ -704,12 +704,13 @@ ppixiv.helpers = {
         {
             // We're running in a local environment and not on Pixiv, so we don't need to do
             // this stuff.  Just add stubs for the functions we'd set up here.
-            helpers.fetch = unsafeWindow.fetch;
+            helpers.fetch = window.fetch;
+            helpers.setTimeout = window.setTimeout.bind(window);
+            helpers.setInterval = window.setInterval.bind(window);
+            helpers.clearTimeout = window.clearTimeout.bind(window);
+            helpers.Image = window.Image;
+
             window.HTMLDocument.prototype.realCreateElement = window.HTMLDocument.prototype.createElement;
-            window.cloneInto = (data, window) =>
-            {
-                return data;
-            }
             return;
         }
 
@@ -725,12 +726,12 @@ ppixiv.helpers = {
         // implement run-at: document-start correctly), so clear it if it's there.
         for(let key of ["onerror", "onunhandledrejection", "_send", "_time", "webpackJsonp"])
         {
-            unsafeWindow[key] = null;
+            window[key] = null;
 
             // Use an empty setter instead of writable: false, so errors aren't triggered all the time.
-            Object.defineProperty(unsafeWindow, key, {
-                get: exportFunction(function() { return null; }, unsafeWindow),
-                set: exportFunction(function(value) { }, unsafeWindow),
+            Object.defineProperty(window, key, {
+                get: function() { return null; },
+                set: function(value) { },
             });
         }
 
@@ -777,10 +778,10 @@ ppixiv.helpers = {
         }
 
         try {
-            unwrap_func(unsafeWindow, "fetch");
-            unwrap_func(unsafeWindow, "setTimeout");
-            unwrap_func(unsafeWindow, "setInterval");
-            unwrap_func(unsafeWindow, "clearInterval");
+            unwrap_func(window, "fetch");
+            unwrap_func(window, "setTimeout");
+            unwrap_func(window, "setInterval");
+            unwrap_func(window, "clearInterval");
             unwrap_func(EventTarget.prototype, "addEventListener");
             unwrap_func(EventTarget.prototype, "removeEventListener");
             unwrap_func(XMLHttpRequest.prototype, "send");
@@ -791,8 +792,8 @@ ppixiv.helpers = {
 
             // Delete wrappers on window.history set by the site, and freeze it so they can't
             // be added.
-            delete_overrides(unsafeWindow.history);
-            delete_overrides(unsafeWindow.document);
+            delete_overrides(window.history);
+            delete_overrides(window.document);
 
             // Remove Pixiv's wrappers from console.log, etc., and then apply our own to console.error
             // to silence its error spam.  This will cause all error messages out of console.error
@@ -806,7 +807,7 @@ ppixiv.helpers = {
             // their scripts.  Try to replace jQuery's exception hook with an empty one to
             // silence these.  This won't work if jQuery finishes loading after we do, but
             // that's not currently happening, so this is all we do for now.
-            if("jQuery" in unsafeWindow)
+            if("jQuery" in window)
                 jQuery.Deferred.exceptionHook = () => { };
         } catch(e) {
             console.error("Error unwrapping environment", e);
@@ -818,54 +819,52 @@ ppixiv.helpers = {
         //
         // Store the real postMessage, so we can still use it ourself.
         try {
-            unsafeWindow.MessagePort.prototype.realPostMessage = unsafeWindow.MessagePort.prototype.postMessage;
-            unsafeWindow.MessagePort.prototype.postMessage = (msg) => { };
+            window.MessagePort.prototype.realPostMessage = window.MessagePort.prototype.postMessage;
+            window.MessagePort.prototype.postMessage = (msg) => { };
         } catch(e) {
             console.error("Error disabling postMessage", e);
         }
 
-        // TamperMonkey reimplements setTimeout, etc. for some reason, which is slower
-        // than the real versions.  Grab them instead.
-        ppixiv.setTimeout = unsafeWindow.setTimeout.bind(unsafeWindow);
-        ppixiv.setInterval = unsafeWindow.setInterval.bind(unsafeWindow);
-        ppixiv.clearTimeout = unsafeWindow.clearTimeout.bind(unsafeWindow);
-        ppixiv.clearInterval = unsafeWindow.clearInterval.bind(unsafeWindow);
-
         // Disable the page's timers.  This helps prevent things like GTM from running.
-        unsafeWindow.setTimeout = (f, ms) => { return -1; };
-        unsafeWindow.setInterval = (f, ms) => { return -1; };
-        unsafeWindow.clearTimeout = () => { };
+        helpers.setTimeout = window.setTimeout.bind(window);
+        window.setTimeout = (f, ms) => { return -1; };
+
+        helpers.setInterval = window.setInterval.bind(window);
+        window.setInterval = (f, ms) => { return -1; };
+
+        helpers.clearTimeout = window.clearTimeout.bind(window);
+        window.clearTimeout = () => { };
 
         try {
-            window.addEventListener = Window.prototype.addEventListener.bind(unsafeWindow);
-            window.removeEventListener = Window.prototype.removeEventListener.bind(unsafeWindow);
+            window.addEventListener = Window.prototype.addEventListener.bind(window);
+            window.removeEventListener = Window.prototype.removeEventListener.bind(window);
         } catch(e) {
             // This fails on iOS.  That's OK, since Pixiv's mobile site doesn't mess
             // with these (and since we can't write to these, it wouldn't be able to either).
         }
 
-        // We have to use unsafeWindow.fetch in Firefox, since window.fetch is from a different
-        // context and won't send requests with the site's origin, which breaks everything.  In
-        // Chrome it doesn't matter.
-        helpers.fetch = unsafeWindow.fetch.bind(unsafeWindow);
-        unsafeWindow.Image = exportFunction(function() { }, unsafeWindow);
+        helpers.Image = window.Image;
+        window.Image = function() { };
 
-        // Replace window.fetch with a dummy to prevent some requests from happening.
+        // Replace window.fetch with a dummy to prevent some requests from happening.  Store it
+        // in helpers.fetch so we can use it.
+        helpers.fetch = window.fetch.bind(window);
         class dummy_fetch
         {
             sent() { return this; }
         };
         dummy_fetch.prototype.ok = true;
-        unsafeWindow.fetch = exportFunction(function() { return new dummy_fetch(); }, unsafeWindow);
+        window.fetch = function() { return new dummy_fetch(); };
 
-        unsafeWindow.XMLHttpRequest = exportFunction(function() { }, exportFunction);
+        // We don't use XMLHttpRequest.  Disable it to make sure the page doesn't.
+        window.XMLHttpRequest = function() { };
 
         // Similarly, prevent it from creating script and style elements.  Sometimes site scripts that
         // we can't disable keep running and do things like loading more scripts or adding stylesheets.
         // Use realCreateElement to bypass this.
-        let origCreateElement = unsafeWindow.HTMLDocument.prototype.createElement;
-        unsafeWindow.HTMLDocument.prototype.realCreateElement = unsafeWindow.HTMLDocument.prototype.createElement;
-        unsafeWindow.HTMLDocument.prototype.createElement = function(type, options)
+        let origCreateElement = window.HTMLDocument.prototype.createElement;
+        window.HTMLDocument.prototype.realCreateElement = window.HTMLDocument.prototype.createElement;
+        window.HTMLDocument.prototype.createElement = function(type, options)
         {
             // Prevent the underlying site from creating new script and style elements.
             if(type == "script" || type == "style")
@@ -880,7 +879,7 @@ ppixiv.helpers = {
         //
         // This is crazy: the error event doesn't actually receive the unhandled exception.
         // We have to examine the message to guess whether an error is ours.
-        unsafeWindow.addEventListener("error", (e) => {
+        window.addEventListener("error", (e) => {
             if(e.message && e.message.indexOf("Element disabled") == -1)
                 return;
 
@@ -1146,22 +1145,16 @@ ppixiv.helpers = {
         let fetch = helpers.fetch || window.fetch;
 
         let data = { };
-
-        // For Firefox, we need to clone data into the page context.  In Chrome this does nothing.
-        if(window.cloneInto)
-            data = cloneInto(data, window);
-
         data.method = options.method || "GET";
         data.signal = options.signal;
         data.cache = options.cache ?? "default";
         if(options.data)
-            data.body = cloneInto(options.data, window); 
+            data.body = options.data 
 
-        // Convert options.headers to a Headers object.  For Firefox, this has to be
-        // unsafeWindow.Headers.
+        // Convert options.headers to a Headers object.
         if(options.headers)
         {
-            let headers = new unsafeWindow.Headers();
+            let headers = new Headers();
             for(let key in options.headers)
                 headers.append(key, options.headers[key]);
             data.headers = headers;
@@ -1203,19 +1196,7 @@ ppixiv.helpers = {
         // Return the requested type.  If we don't know the type, just return the
         // request promise itself.
         if(options.responseType == "json")
-        {
-            let json = await result.json();
-
-            // In Firefox we need to use unsafeWindow.fetch, since window.fetch won't run
-            // as the page to get the correct referer.  Work around secondary brain damage:
-            // since it comes from the page it's in a wrapper object that we need to remove.
-            // We shouldn't be seeing Firefox wrapper behavior at all.  It's there to
-            // protect the user from us, not us from the page.
-            if(json.wrappedJSObject)
-                json = json.wrappedJSObject;
-
-            return json;
-        }
+            return await result.json();
 
         if(options.responseType == "document")
         {
@@ -1691,7 +1672,7 @@ ppixiv.helpers = {
     // From a URL like "/en/tags/abcd", return "tags".
     get_page_type_from_url: function(url)
     {
-        url = new unsafeWindow.URL(url);
+        url = new URL(url);
         url = helpers.get_url_without_language(url);
         let parts = url.pathname.split("/");
         return parts[1];
@@ -1815,7 +1796,7 @@ ppixiv.helpers = {
     get_hash_args: function(url)
     {
         if(!helpers.is_ppixiv_url(url))
-            return { path: "", query: new unsafeWindow.URLSearchParams() };
+            return { path: "", query: new URLSearchParams() };
 
         // The hash looks like:
         //
@@ -1849,11 +1830,10 @@ ppixiv.helpers = {
         hash_path = hash_path.replace(/\+/g, " ");
         hash_path = decodeURIComponent(hash_path);
 
-        // Use unsafeWindow.URLSearchParams to work around https://bugzilla.mozilla.org/show_bug.cgi?id=1414602.
         if(query == null)
-            return { path: hash_path, query: new unsafeWindow.URLSearchParams() };
+            return { path: hash_path, query: new URLSearchParams() };
         else
-            return { path: hash_path, query: new unsafeWindow.URLSearchParams(query) };
+            return { path: hash_path, query: new URLSearchParams(query) };
     },
     
     // Replace the given field in the URL path.
@@ -1906,7 +1886,7 @@ ppixiv.helpers = {
     // Given a URLSearchParams, return a new URLSearchParams with keys sorted alphabetically.
     sort_query_parameters(search)
     {
-        var search_keys = unsafeWindow.Array.from(search.keys()); // GreaseMonkey encapsulation is bad
+        let search_keys = Array.from(search.keys());
         search_keys.sort();
 
         var result = new URLSearchParams();
@@ -3714,9 +3694,7 @@ ppixiv.VirtualHistory = class
         if(this.virtual)
             return this.virtual_data;
 
-        // Use unsafeWindow.history instead of window.history to avoid unnecessary
-        // TamperMonkey wrappers.
-        return unsafeWindow.history.state;
+        return window.history.state;
     }
 
     set state(value)
@@ -3724,7 +3702,7 @@ ppixiv.VirtualHistory = class
         if(this.virtual)
             this.virtual_data = value;
         else
-            unsafeWindow.history.state = value;
+            window.history.state = value;
     }
     
     back()

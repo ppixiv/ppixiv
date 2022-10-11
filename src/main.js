@@ -11,24 +11,6 @@ ppixiv.MainController = class
     async initial_setup()
     {
         console.log("ppixiv setup");
-
-        try {
-            // GM_info isn't a property on window in all script managers, so we can't check it
-            // safely with window.GM_info?.scriptHandler.  Instead, try to check it and catch
-            // the exception if GM_info isn't there for some reason.
-            if(!ppixiv.native)
-            {
-                if(GM_info?.scriptHandler == "Greasemonkey")
-                {
-                    console.info("ppixiv doesn't work with GreaseMonkey.  GreaseMonkey hasn't been updated in a long time, try TamperMonkey instead.");
-                    return;
-                }
-
-                console.log("ppixiv is running in", GM_info?.scriptHandler, GM_info?.version);
-            }
-        } catch(e) {
-            console.error(e);
-        }
         console.log("Browser:", navigator.appVersion);
 
         // If we're not active, just see if we need to add our button, and stop without messing
@@ -563,7 +545,7 @@ ppixiv.MainController = class
             return;
 
         // If this isn't a #ppixiv URL, let it run normally.
-        let url = new unsafeWindow.URL(a.href, document.href);
+        let url = new URL(a.href, document.href);
         if(!helpers.is_ppixiv_url(url))
             return;
 

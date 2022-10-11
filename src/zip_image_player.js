@@ -452,7 +452,7 @@ ppixiv.ZipImagePlayer = class
         if(!this.timer)
             return;
 
-        clearTimeout(this.timer);
+        helpers.clearTimeout(this.timer);
         this.timer = null;
     }
 
@@ -462,7 +462,7 @@ ppixiv.ZipImagePlayer = class
             return;
 
         this.unset_timer();
-        this.timer = setTimeout(this.next_frame, this.pending_frame_metadata.delay / this.speed);
+        this.timer = helpers.setTimeout(this.next_frame, this.pending_frame_metadata.delay / this.speed);
     }
 
     get_frame_duration()

@@ -9,14 +9,6 @@
 // filesystem (only TamperMonkey does this, and only in Chrome), it needs to be
 // updated manually if files are added to the build, and it can't update SCSS.
 
-let _load_source_file = function(__pixiv, __source) {
-    const ppixiv = __pixiv;
-    with(ppixiv)
-    {
-        return eval(__source);
-    }
-};
-
 (async() =>
 {
     // If this is an iframe, don't do anything, so if we're a debug environment for Pixiv we don't
@@ -27,48 +19,45 @@ let _load_source_file = function(__pixiv, __source) {
 
     console.log("ppixiv native bootstrap");
 
+    // If we're running natively, we're just a regular site and window is window.  If we're
+    // running in a user script sandbox, window is unsafeWindow if we're sandboxed.
+    let global = window;
+    try {
+        global = unsafeWindow;
+    } catch(e) {
+    }
+
     // In a development build, our source and binary assets are in @resources, and we need
     // to pull them out into an environment manually.
     let env = {};
+    global.ppixiv = env;
 
     // If we're not running on Pixiv, set env.native to indicate that we're in our native
     // environment.
-    env.native = window.location.hostname != "pixiv.net" && window.location.hostname != "www.pixiv.net";
+    env.native = global.location.hostname != "pixiv.net" && global.location.hostname != "www.pixiv.net";
     env.ios = navigator.platform.indexOf('iPhone') != -1 || navigator.platform.indexOf('iPad') != -1;
     env.android = navigator.userAgent.indexOf('Android') != -1;
     env.mobile = env.ios || env.android;
     env.version = 'native';
     env.resources = {};
 
-    // If we're running in an environment that doesn't set unsafeWindow, just set it to window.
-    try {
-        unsafeWindow.x;
-    } catch(e) {
-        window.unsafeWindow = window;
-    }
-
     // Make sure that we're not loaded more than once.  This can happen if we're installed in
     // multiple script managers, or if the release and debug versions are enabled simultaneously.
-    if(unsafeWindow.loaded_ppixiv)
+    if(window.loaded_ppixiv)
     {
         console.error("ppixiv has been loaded twice.  Is it loaded in multiple script managers?");
         return;
     }
 
-    unsafeWindow.loaded_ppixiv = true;
-
-    // This is just for development, so we can access ourself in the console.
-    unsafeWindow.ppixiv = env;
+    global.loaded_ppixiv = true;
 
     // Figure out our native server URL.
     //
     // If window.vviewURL is set, use it.  Otherwise, if we're running natively then the
     // server is the current URL.  Otherwise, fall back on localhost, which is used for
     // development when running on Pixiv.
-    let root_url =
-        window.vviewURL ?? 
-        (env.native && window.location) ??
-        "http://127.0.0.1:8235";
+    let root_url = global.vviewURL;
+    root_url ??= env.native? window.location:"http://127.0.0.1:8235";
 
     // When we load into Pixiv with the regular loader (bootstrap.js), we're always loading
     // synchronously, since everything is packaged into the user script.  Here we're loading
@@ -212,10 +201,16 @@ let _load_source_file = function(__pixiv, __source) {
             continue;
         }
 
-        _load_source_file(env, source);
+        // Create a script node to load the file.
+        let script = document.createElement("script");
+        script.id = path.replace(/\?.*/, '');
+    
+        script.textContent = `with(ppixiv) {
+${source}
+}`;
+        global.document.head.appendChild(script);
+    
     }
-
-    window.ppixiv = env;
 
     // Create the main controller.
     env.main_controller = new ppixiv.MainController();

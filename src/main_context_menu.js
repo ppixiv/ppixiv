@@ -1283,7 +1283,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
     hide()
     {
         // For debugging, this can be set to temporarily force the context menu to stay open.
-        if(unsafeWindow.keep_context_menu_open)
+        if(window.keep_context_menu_open)
             return;
 
         this._clicked_user_id = null;

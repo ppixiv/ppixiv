@@ -973,7 +973,7 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         if(this.save_to_history_id)
             return;
 
-        this.save_to_history_id = setTimeout(() => {
+        this.save_to_history_id = helpers.setTimeout(() => {
             this.save_to_history_id = null;
 
             // Work around a Chrome bug: updating history causes the mouse cursor to become visible
@@ -994,7 +994,7 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
     {
         if(this.save_to_history_id != null)
         {
-            clearTimeout(this.save_to_history_id);
+            helpers.clearTimeout(this.save_to_history_id);
             this.save_to_history_id = null;
         }
     }

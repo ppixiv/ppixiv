@@ -257,7 +257,7 @@ ppixiv.InpaintEditor = class extends ppixiv.widget
             // time it's fetched, which can take a little while.  Fetch it before updating image
             // data, so it's already generated when viewer_images updates with the new URL.
             // Otherwise, we'll be stuck looking at the low-res preview while it generates.
-            let img = new Image();
+            let img = new helpers.Image();
             img.src = media_info.urls.inpaint;
             await helpers.wait_for_image_load(img);
         }

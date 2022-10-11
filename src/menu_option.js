@@ -467,7 +467,7 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
 
         // Chrome supports showOpenFilePicker, but Firefox doesn't.  That API has been around in
         // Chrome for a year and a half, so I haven't implemented an alternative for Firefox.
-        if(!ppixiv.native && unsafeWindow.showOpenFilePicker != null)
+        if(!ppixiv.native && window.showOpenFilePicker != null)
             settings_widgets.import_extra_data();
 
         settings_widgets.stage_slideshow();

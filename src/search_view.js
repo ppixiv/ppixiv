@@ -413,11 +413,11 @@ ppixiv.search_view = class extends ppixiv.widget
     {
         if(this.scroll_position_timer != -1)
         {
-            clearTimeout(this.scroll_position_timer);
+            helpers.clearTimeout(this.scroll_position_timer);
             this.scroll_position_timer = -1;
         }
 
-        this.scroll_position_timer = setTimeout(() => {
+        this.scroll_position_timer = helpers.setTimeout(() => {
             this.store_scroll_position();
         }, 100);
     }

@@ -1549,7 +1549,7 @@ class data_source_from_page extends data_source
         // https://www.pixiv.net/bookmark.php?p=2
         //
         // possibly with other search options.  Request the current URL page data.
-        var url = new unsafeWindow.URL(this.url);
+        var url = new URL(this.url);
 
         // Update the URL with the current page.
         url.searchParams.set("p", page);

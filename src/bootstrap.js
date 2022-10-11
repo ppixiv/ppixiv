@@ -20,16 +20,15 @@
     // we don't have many locals being exposed as globals during the eval.  We also need to
     // do this out here in order ot use with.
     let _load_source_file = function(__pixiv, __source) {
-        const ppixiv = __pixiv;
-        with(ppixiv)
-        {
-            return eval(__source);
-        }
+        let script = document.createElement("script");
+        script.id = path;
+        script.textContent = __source;
+        window.document.head.appendChild(script);
     };
 
     new class
     {
-        constructor(env)
+        constructor()
         {
             // If this is an iframe, don't do anything.
             if(window.top != window.self)
@@ -39,30 +38,46 @@
             if(window.location.hostname != "www.pixiv.net")
                 return;
 
-            // Work around quoid/userscripts not defining unsafeWindow.
+            // GM_info isn't a property on window in all script managers, so we can't check it
+            // safely with window.GM_info?.scriptHandler.  Instead, try to check it and catch
+            // the exception if GM_info isn't there for some reason.
             try {
-                unsafeWindow.x;
+                if(GM_info?.scriptHandler == "Greasemonkey")
+                {
+                    console.info("ppixiv doesn't work with GreaseMonkey.  GreaseMonkey hasn't been updated in a long time, try TamperMonkey instead.");
+                    return;
+                }
+
+                console.log("ppixiv is running in", GM_info?.scriptHandler, GM_info?.version);
             } catch(e) {
-                window.unsafeWindow = window;
+                console.error(e);
             }
+    
+            // Set global to unsafeWindow if we're sandboxed, otherwise window.
+            let global = window;
+            try {
+                global = unsafeWindow;
+            } catch(e) {
+            }
+
+            let env = global;
 
             // Make sure that we're not loaded more than once.  This can happen if we're installed in
             // multiple script managers, or if the release and debug versions are enabled simultaneously.
-            if(unsafeWindow.loaded_ppixiv)
+            if(global.loaded_ppixiv)
             {
                 console.error("ppixiv has been loaded twice.  Is it loaded in multiple script managers?");
                 return;
             }
 
-            unsafeWindow.loaded_ppixiv = true;
+            global.loaded_ppixiv = true;
 
             console.log(`ppixiv r${env.version} bootstrap`);
 
             let setup = env.resources["setup.js"];
             let source_list = setup.source_files;
 
-            // This is just for development, so we can access ourself in the console.
-            unsafeWindow.ppixiv = env;
+            global.ppixiv = env;
             env.native = false;
             env.ios = navigator.platform.indexOf('iPhone') != -1 || navigator.platform.indexOf('iPad') != -1;
             env.android = navigator.userAgent.indexOf('Android') != -1;
@@ -78,7 +93,7 @@
                     continue;
                 }
 
-                _load_source_file(env, source);
+                _load_source_file(env, path, source);
             }
 
             // Load the stylesheet into a URL.  This is just so we behave the same

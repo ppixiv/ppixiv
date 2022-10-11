@@ -207,7 +207,7 @@ ppixiv.extra_image_data = class
         // like the user cancelling a file dialog.
         let files;
         try {
-            files = await unsafeWindow.showOpenFilePicker({
+            files = await window.showOpenFilePicker({
                 multiple: false,
                 types: [{
                     description: 'Exported image edits',

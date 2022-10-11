@@ -92,7 +92,7 @@ ppixiv.MediaCache = class extends EventTarget
         {
             this._media_ids_loaded = new Set();
 
-            setTimeout(() => {
+            helpers.setTimeout(() => {
                 let e = new Event("infoloaded");
                 e.mediaIds = Array.from(this._media_ids_loaded);
                 this._media_ids_loaded = null;
