@@ -20,47 +20,6 @@ ppixiv.install_polyfills = function()
     if(script_global_exists("GM") && GM.xmlHttpRequest && !script_global_exists("GM_xmlhttpRequest"))
         window.GM_xmlhttpRequest = GM.xmlHttpRequest;
 
-    // padStart polyfill:
-    // https://github.com/uxitten/polyfill/blob/master/string.polyfill.js
-    // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/padStart
-    if(!String.prototype.padStart) {
-        String.prototype.padStart = function padStart(targetLength,padString) {
-            targetLength = targetLength>>0; //truncate if number or convert non-number to 0;
-            padString = String((typeof padString !== 'undefined' ? padString : ' '));
-            if (this.length > targetLength) {
-                return String(this);
-            }
-            else {
-                targetLength = targetLength-this.length;
-                if (targetLength > padString.length) {
-                    padString += padString.repeat(targetLength/padString.length); //append to original to ensure we are longer than needed
-                }
-                return padString.slice(0,targetLength) + String(this);
-            }
-        };
-    }
-
-    if(!("requestFullscreen" in Element.prototype))
-    {
-        // Web API prefixing needs to be shot into the sun.
-        if("webkitRequestFullScreen" in Element.prototype)
-        {
-            Element.prototype.requestFullscreen = Element.prototype.webkitRequestFullScreen;
-            HTMLDocument.prototype.exitFullscreen = HTMLDocument.prototype.webkitCancelFullScreen;
-            Object.defineProperty(HTMLDocument.prototype, "fullscreenElement", {
-                get: function() { return this.webkitFullscreenElement; }
-            });
-        }
-        else if("mozRequestFullScreen" in Element.prototype)
-        {
-            Element.prototype.requestFullscreen = Element.prototype.mozRequestFullScreen;
-            HTMLDocument.prototype.exitFullscreen = HTMLDocument.prototype.mozCancelFullScreen;
-            Object.defineProperty(HTMLDocument.prototype, "fullscreenElement", {
-                get: function() { return this.mozFullScreenElement; }
-            });
-        }
-    }
-
     // Make IDBRequest an async generator.
     //
     // Note that this will clobber onsuccess and onerror on the IDBRequest.
