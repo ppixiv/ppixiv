@@ -14,50 +14,34 @@
     // If this is an iframe, don't do anything, so if we're a debug environment for Pixiv we don't
     // try to load in Pixiv iframes.  Do run if we're in an iframe on another site, to allow
     // similar image iframes.
-    if(window.location.host == "www.pixiv.net" && window.top != window.self)
+    if(window.location.hostname == "www.pixiv.net" && window.top != window.self)
         return;
-
-    console.log("ppixiv native bootstrap");
-
-    // If we're running natively, we're just a regular site and window is window.  If we're
-    // running in a user script sandbox, window is unsafeWindow if we're sandboxed.
-    let global = window;
-    try {
-        global = unsafeWindow;
-    } catch(e) {
-    }
-
-    // In a development build, our source and binary assets are in @resources, and we need
-    // to pull them out into an environment manually.
-    let env = {};
-    global.ppixiv = env;
-
-    // If we're not running on Pixiv, set env.native to indicate that we're in our native
-    // environment.
-    env.native = global.location.hostname != "pixiv.net" && global.location.hostname != "www.pixiv.net";
-    env.ios = navigator.platform.indexOf('iPhone') != -1 || navigator.platform.indexOf('iPad') != -1;
-    env.android = navigator.userAgent.indexOf('Android') != -1;
-    env.mobile = env.ios || env.android;
-    env.version = 'native';
-    env.resources = {};
 
     // Make sure that we're not loaded more than once.  This can happen if we're installed in
     // multiple script managers, or if the release and debug versions are enabled simultaneously.
-    if(window.loaded_ppixiv)
+    if(document.documentElement.dataset.ppixivLoaded)
     {
         console.error("ppixiv has been loaded twice.  Is it loaded in multiple script managers?");
         return;
     }
 
-    global.loaded_ppixiv = true;
+    document.documentElement.dataset.ppixivLoaded = "1";
+
+    console.log("ppixiv native bootstrap");
+
+    // native is true if we're running in our native environment, or false if we're running on
+    // Pixiv.
+    let native = location.hostname != "pixiv.net" && location.hostname != "www.pixiv.net";
+    let ios = navigator.platform.indexOf('iPhone') != -1 || navigator.platform.indexOf('iPad') != -1;
+    let android = navigator.userAgent.indexOf('Android') != -1;
 
     // Figure out our native server URL.
     //
     // If window.vviewURL is set, use it.  Otherwise, if we're running natively then the
     // server is the current URL.  Otherwise, fall back on localhost, which is used for
     // development when running on Pixiv.
-    let root_url = global.vviewURL;
-    root_url ??= env.native? window.location:"http://127.0.0.1:8235";
+    let root_url = window.vviewURL;
+    root_url ??= native? window.location:"http://127.0.0.1:8235";
 
     // When we load into Pixiv with the regular loader (bootstrap.js), we're always loading
     // synchronously, since everything is packaged into the user script.  Here we're loading
@@ -81,7 +65,7 @@
     // do all the weird stuff the desktop site does, it's not as important.
     async function get(url, { as_url=false }={})
     {
-        if(env.native || env.ios)
+        if(native || ios)
         {
             let result = await fetch(new URL(url, root_url));
             if(as_url)
@@ -118,6 +102,7 @@
     // Fetch each source file.  Do this in parallel.
     let source_fetches = {};
 
+    let resources = {};
     async function fetch_source(path)
     {
         // Load the source file.
@@ -132,7 +117,7 @@
         data += "\n";
         data += `//` + `# sourceURL=${source_url}\n`; // split so browsers don't interpret this line as a sourceURL
 
-        env.resources[path] = data;
+        resources[path] = data;
     }
 
     async function load_resource(path, url)
@@ -148,9 +133,9 @@
         // (Why is it warning about insecure connections to localhost?)
         let filename = (new URL(path, root_url)).pathname;
         let binary = filename.endsWith(".png") || filename.endsWith(".woff");
-        if((env.native && binary) || filename.endsWith(".scss"))
+        if((native && binary) || filename.endsWith(".scss"))
         {
-            env.resources[path] = url;
+            resources[path] = url;
             return;
         }
 
@@ -164,7 +149,7 @@
         if(binary)
         {
             // Load any binary resources into object URLs.
-            env.resources[path] = data;
+            resources[path] = data;
             return;
         }
 
@@ -178,7 +163,7 @@
             data += `//# sourceURL=${source_url}\n`; // split so browsers don't interpret this line as a sourceURL
         }
 
-        env.resources[path] = data;
+        resources[path] = data;
     }
 
     // Fetch each source file.  Do this in parallel.
@@ -191,6 +176,31 @@
     // Wait for all fetches to complete.
     await Promise.all(Object.values(source_fetches));
 
+    // Create the environment.  This is the same object we start with in bootstrap.js when we're
+    // running in a packaged user script.
+    let env = {
+        resources,
+        version: 'native',
+        native,
+        ios,
+        android,
+        mobile: ios || android,
+    };
+
+    // If we're running natively or unsandboxed we can just set properties on window, but we do the
+    // rest of setup the same way bootstrap.js does, so when this is used for userscript development
+    // things work as similarly as possible to a release package.
+    function run_script(source)
+    {
+        let script = document.createElement("script");
+        script.textContent = source;
+        document.documentElement.appendChild(script);
+        script.remove();
+    }
+
+    // The environment becomes window.ppixiv.
+    run_script(`window.ppixiv = ${JSON.stringify(env)}`);
+
     // Load each source file.
     for(let path of init.source_files)
     {
@@ -201,17 +211,9 @@
             continue;
         }
 
-        // Create a script node to load the file.
-        let script = document.createElement("script");
-        script.id = path.replace(/\?.*/, '');
-    
-        script.textContent = `with(ppixiv) {
-${source}
-}`;
-        global.document.head.appendChild(script);
-    
+        run_script(`with(ppixiv) { ${source} }`);
     }
 
     // Create the main controller.
-    env.main_controller = new ppixiv.MainController();
+    run_script(`ppixiv.main_controller = new ppixiv.MainController();`);
 })();

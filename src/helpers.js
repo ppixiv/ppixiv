@@ -795,13 +795,12 @@ ppixiv.helpers = {
             delete_overrides(window.history);
             delete_overrides(window.document);
 
-            // Remove Pixiv's wrappers from console.log, etc., and then apply our own to console.error
-            // to silence its error spam.  This will cause all error messages out of console.error
-            // to come from this line, which is usually terrible, but our logs come from window.console
-            // and not unsafeWindow.console, so this doesn't affect us.
+            // Pixiv wraps console.log, etc., which breaks all logging since it causes them to all
+            // appear to come from the wrapper.  Remove these if they're present and try to prevent
+            // it from happening later.
             for(let name of Object.keys(window.console))
                 unwrap_func(console, name, { ignore_missing: true });
-            Object.freeze(unsafeWindow.console);
+            Object.freeze(window.console);
 
             // Some Pixiv pages load jQuery and spam a bunch of error due to us stopping
             // their scripts.  Try to replace jQuery's exception hook with an empty one to
@@ -1332,14 +1331,14 @@ ppixiv.helpers = {
 
         let result = await helpers.async_gm_xhr({
             url,
-            "method": "GET",
-            "url": url,
-            "responseType": "arraybuffer",
+            method: "GET",
+            url: url,
+            responseType: "arraybuffer",
 
-            "headers": {
+            headers: {
                 "Cache-Control": "max-age=360000",
-                "Referer": "https://www.pixiv.net/",
-                "Origin": "https://www.pixiv.net/",
+                Referer: "https://www.pixiv.net/",
+                Origin: "https://www.pixiv.net/",
             },
         });
         return result.response;

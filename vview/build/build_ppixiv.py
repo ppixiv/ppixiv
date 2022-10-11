@@ -351,11 +351,10 @@ class Build(object):
 
         # Encapsulate the script.
         result.append('(function() {\n')
-        result.append('const ppixiv = this;\n')
 
-        result.append('with(this) {\n')
-        result.append(f'ppixiv.version = "{self.get_release_version()}";')
-        result.append('ppixiv.resources = {};\n')
+        result.append('let env = {};')
+        result.append(f'env.version = "{self.get_release_version()}";')
+        result.append('env.resources = {};\n')
 
         output_resources = collections.OrderedDict()
 
@@ -376,21 +375,20 @@ class Build(object):
                 output_resources[fn] = script
 
         # Add the list of source files to resources, so bootstrap.js knows what to load.
-        setup = {
+        init = {
             'source_files': source_files,
         }
-        output_resources['setup.js'] = json.dumps(setup, indent=4) + '\n'
+        output_resources['init.js'] = json.dumps(init, indent=4) + '\n'
 
         for fn, data in output_resources.items():
-            data = '''ppixiv.resources["%s"] = %s;''' % (fn, data)
+            data = '''env.resources["%s"] = %s;''' % (fn, data)
             result.append(data)
 
         # Add the bootstrap code directly.
         bootstrap = open('src/bootstrap.js', 'rt', encoding='utf-8').read()
         result.append(bootstrap)
 
-        result.append('}\n')
-        result.append('}).call({});\n')
+        result.append('})();\n')
 
         return '\n'.join(result) + '\n'
 

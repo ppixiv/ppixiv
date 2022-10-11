@@ -774,6 +774,22 @@ ppixiv.MainController = class
     // place they're used.
     async load_resource_blobs()
     {
+        // If we're native, stylesheets are already URLs.  If we're running as a user script, they're
+        // text, so stuff them into a blob URL to make this consistent.
+        for(let [name, data] of Object.entries(ppixiv.resources))
+        {
+            if(!name.endsWith(".scss"))
+                continue;
+
+            // Skip this if it's already a URL.
+            if(data.startsWith("http:") || data.startsWith("https:") || data.startsWith("blob:"))
+                continue;
+
+            let blob = new Blob([data]);
+            let blobURL = URL.createObjectURL(blob);
+            ppixiv.resources[name] = blobURL;
+        }
+
         for(let [name, dataURL] of Object.entries(ppixiv.resources))
         {
             if(!dataURL.startsWith || !dataURL.startsWith("data:"))
