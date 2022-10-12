@@ -1061,6 +1061,11 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
         }
         .displaying .word {
             padding: 0px 5px;
+            vertical-align: middle;
+
+            // Fix the line height so lines with CJK text aren't different from ones that don't, but enough
+            // so lines aren't too close together.
+            line-height: 1.5em;
 
             // Parentheses:
             &.paren { font-weight: 400; }
@@ -1071,7 +1076,7 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
         }
 
         .displaying .word.or {
-            font-size: 12px;
+            font-size: 60%;
             padding: 0;
             color: #bbb;
         }
@@ -1790,11 +1795,12 @@ a.box-link, span.box-link
                 align-items: center;
                 height: 100%;
                 padding: 0px 5px;
+                line-height: 1em;
     
                 &.or {
                     font-size: 12px;
                     padding: 0;
-                    color: #333;
+                    color: #aaa;
                 }
             }
             .suggestion-icon {
@@ -1854,6 +1860,7 @@ a.box-link, span.box-link
 
         > .entry {
             padding: 4px 10px;
+            line-height: 1em;
 
             &.highlight { background-color: var(--box-link-selected-color); }
             @media(hover: hover) {
