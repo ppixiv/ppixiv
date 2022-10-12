@@ -558,7 +558,7 @@ ppixiv.helpers = {
             if(signal != null)
                 signal.addEventListener("abort", abort, { once: true });
 
-            timeout = setTimeout(() => {
+            timeout = helpers.setTimeout(() => {
                 if(signal)
                     signal.removeEventListener("abort", abort, { once: true });
                 accept();
