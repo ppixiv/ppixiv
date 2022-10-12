@@ -1810,12 +1810,13 @@ a.box-link, span.box-link
             }
         }
 
-        .remove-history-entry {
+        .right-side-button
+        {
             height: 30px;
             width: 30px;
 
             /* Set an arbitrarily low negative margin.  This makes it so the button extends into the
-             * into the surrounding row's padding instead of pushing the whole row out.  See
+             * surrounding row's padding instead of pushing the whole row out.  See
              * .input-dropdown-list > .entry padding. */
             margin: -6px 0;
 
@@ -1828,15 +1829,15 @@ a.box-link, span.box-link
         }
 
         /* Hide the button to remove history entries from non-history entries. */
-        & > .entry:not(.history) .remove-history-entry {
+        & > .entry:not(.history) .right-side-button {
             display: none;
         }
 
         @media(hover: hover) {
-            & > .entry:hover .remove-history-entry {
+            & > .entry:hover .right-side-button {
                 visibility: visible;
             }
-            .remove-history-entry:hover {
+            .right-side-button:hover {
                 color: #000;
                 background-color: #c0c0c0;
             }

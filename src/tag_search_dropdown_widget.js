@@ -156,14 +156,17 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
 
     dropdown_onclick = (e) =>
     {
-        var remove_entry = e.target.closest(".remove-history-entry");
-        if(remove_entry != null)
+        let remove_entry = e.target.closest(".remove-history-entry");
+        let move_to_bottom = e.target.closest(".move-to-bottom");
+        if(remove_entry != null || move_to_bottom != null)
         {
             // Clicked X to remove a tag from history.
             e.stopPropagation();
             e.preventDefault();
             var tag = e.target.closest(".entry").dataset.tag;
-            helpers.remove_recent_search_tag(tag);
+
+            let action = move_to_bottom? "bottom":"remove";
+            helpers.edit_recent_search_tag(tag, { action });
 
             // Hack: the input focus will have been on the tag entry we just removed.  Focus
             // the nearest focusable item (probably the tag_search_box_widget container), so
@@ -334,7 +337,8 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
                 </div>
                 
                 <span class=search></span>
-                <span class=remove-history-entry>X</span>
+                <span class="move-to-bottom right-side-button keep-menu-open">${ helpers.create_icon("mat:south") }</span>
+                <span class="remove-history-entry right-side-button">X</span>
             </a>
         `});
         entry.dataset.tag = tag_search;

@@ -1548,10 +1548,10 @@ ppixiv.helpers = {
         this._disable_adding_search_tags = value;
     },
 
-    remove_recent_search_tag(tag)
+    edit_recent_search_tag(tag, { action="remove" }={})
     {
         // Remove tag from the list.  There should normally only be one.
-        var recent_tags = settings.get("recent-tag-searches") || [];
+        let recent_tags = settings.get("recent-tag-searches") || [];
         while(1)
         {
             var idx = recent_tags.indexOf(tag);
@@ -1559,6 +1559,11 @@ ppixiv.helpers = {
                 break;
             recent_tags.splice(idx, 1);
         }
+
+        // If action is bottom, add it to the end instead of removing it.
+        if(action == "bottom")
+            recent_tags.push(tag);
+
         settings.set("recent-tag-searches", recent_tags);
         
         window.dispatchEvent(new Event("recent-tag-searches-changed"));
