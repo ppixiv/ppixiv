@@ -117,6 +117,10 @@ html {
     --button-color: #888;
     --button-highlight-color: #eee;
 
+    // Outlines around text inputs:
+    --input-outline: #444;
+    --input-outline-focused: #888;
+
     /* Colors for major UI boxes */
     --ui-bg-color: #222;
     --ui-fg-color: #fff;
@@ -210,10 +214,12 @@ html[data-theme="light"] {
 input {
     // Make this consistent, since user agent styles vary.
     padding: 1px 2px;
-}
 
-textarea:focus, input:focus, a:focus {
-    outline: none;
+    background-color: var(--frame-bg-color);
+    color: var(--frame-fg-color);
+    border: none;
+    outline: 1px solid var(--input-outline);
+    &:focus-within { outline: 1px solid var(--input-outline-focused); }
 }
 
 /* Pixiv sometimes displays a random Recaptcha icon in the corner.  It's hard to prevent this since it
@@ -1627,8 +1633,11 @@ a.box-link, span.box-link
 }
 
 .input-field-container {
-    background-color: white;
+    background-color: var(--frame-bg-color);
     padding: 6px 10px;
+
+    outline: 1px solid var(--input-outline);
+    &:focus-within { outline: 1px solid var(--input-outline-focused); }
 
     // Let the input box flex to fill our width, so the box stays the same size
     // and doesn't change if right-side-buttons are shown or hidden.
@@ -1641,8 +1650,7 @@ a.box-link, span.box-link
     width: calc(min(300px, 100%));
 
     > input {
-        background: none;
-        border: none;
+        outline: none;
         font-size: 1.2em;
         vertical-align: middle;
         flex: 1;
@@ -1769,7 +1777,7 @@ a.box-link, span.box-link
     overflow-y: scroll;
     resize: horizontal;
     position: absolute;
-    background-color: #fff;
+    background-color: var(--box-link-bg-color);
 
     .search-history > & > .input-dropdown-list {
         display: flex;
@@ -1780,14 +1788,13 @@ a.box-link, span.box-link
     .input-dropdown-list > .entry {
         display: flex;
         flex-direction: row;
-        color: #000;
+        color: var(--box-link-fg-color);
         align-items: center;
 
         /* This 6px vertical padding should match the remove-history-entry padding. */
         padding: 6px 0;
 
         .search {
-            color: #000;
             flex: 1;
             padding-left: 7px;
             height: 100%;
@@ -1817,12 +1824,12 @@ a.box-link, span.box-link
         }
 
         & > .entry.selected {
-            background-color: #ffa;
+            background-color: var(--box-link-selected-color);
         }
 
         @media(hover: hover) {
             & > .entry:hover {
-                background-color: #ddd;
+                background-color: var(--box-link-hover-color);
             }
         }
 
