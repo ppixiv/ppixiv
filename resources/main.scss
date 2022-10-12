@@ -89,7 +89,6 @@ body {
 
 a {
     text-decoration: none;
-    /*color: #fff;*/
     color: inherit;
 }
 
@@ -563,15 +562,6 @@ input {
  * We also disable pointer-events on the UI until it's visible, so it doesn't receive
  * clicks until it's visible.
  */
-.hover-box {
-    width: 400px;
-    height: 200px;
-    position: absolute;
-    top: 0;
-    left: 0;
-    pointer-events: auto; /* reenable pointer events that are disabled on .ui */
-}
-
 .hover-sphere {
     width: 500px;
     height: 500px;
@@ -1625,14 +1615,22 @@ a.box-link, span.box-link
     max-width: 100%;
 }
 
-/* The block around the input box and submit button.  A history dropdown widget will
- * be placed in here. */
+// This holds the search box, and positions the search dropdowns beneath it.
 .tag-search-box {
-    display: inline-block;
+    display: flex;
+    align-items: center;
     position: relative;
+
+    > .search-history,
+    > .edit-search {
+        position: absolute;
+        left: 0;
+        bottom: 0;
+    }
 }
 
 .input-field-container {
+    flex: 1;
     background-color: var(--frame-bg-color);
     padding: 6px 10px;
 
@@ -1644,11 +1642,7 @@ a.box-link, span.box-link
     display: inline-flex;
     gap: 0.5em;
     align-items: center;
-
-    // Set a default width, so input has something to stretch to and stay a consistent
-    // size if buttons are hidden.  Allow this to be smaller to fit.
-    width: 100%;
-    max-width: 300px;
+    max-width: 400px;
 
     > input {
         outline: none;
@@ -1858,8 +1852,7 @@ a.box-link, span.box-link
         flex-wrap: wrap;
 
         > .entry {
-            padding: 4px 7px;
-            display: block;
+            padding: 4px 10px;
 
             &.highlight { background-color: var(--box-link-selected-color); }
             @media(hover: hover) {

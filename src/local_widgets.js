@@ -971,11 +971,6 @@ ppixiv.local_search_dropdown_widget = class extends ppixiv.widget
     {
         super({...options, template: `
             <div class=search-history>
-                <!-- This is to make sure there isn't a gap between the input and the dropdown,
-                    so we don't consider the mouse out of the box when it moves from the input
-                    to the autocomplete box. -->
-                <div class=hover-box style="top: -10px; width: 100%; z-index: -1;"></div>
-                    
                 <div class=input-dropdown>
                     <div class=input-dropdown-list>
                         <!-- template-tag-dropdown-entry instances will be added here. -->
@@ -1085,7 +1080,7 @@ ppixiv.local_search_dropdown_widget = class extends ppixiv.widget
         let entry = this.create_template({name: "tag-dropdown-entry", html: `
             <a class=entry href=#>
                 <span class=search></span>
-                <span class="remove-history-entry keep-menu-open">X</span>
+                <span class="remove-history-entry right-side-button keep-menu-open">X</span>
             </a>
         `});
         entry.dataset.tag = search;

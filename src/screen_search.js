@@ -186,11 +186,10 @@ let thumbnail_ui = class extends ppixiv.widget
                  
                 <div class="data-source-specific" data-datasource=search>
                     <div>
-                        <!-- The whole input widget is marked as a tabindex, to make it easier to tell
-                                when the user clicks out of any of its widgets. -->
-                        <div class="search-box tag-search-box" tabindex=1>
-                            <div class="input-field-container hover-menu-box">
+                        <div class="search-box tag-search-box">
+                            <div class="input-field-container hover-menu-box" tabindex=1>
                                 <input placeholder=Tags>
+
                                 <span class="edit-search-button right-side-button">
                                     ${ helpers.create_icon("mat:edit") }
                                 </span>
@@ -199,11 +198,11 @@ let thumbnail_ui = class extends ppixiv.widget
                                     ${ helpers.create_icon("search") }
                                 </span>
                             </div>
-                        </div>
 
-                        <div class="search-tags-box box-button-row" style="display: inline-block;">
-                            ${ helpers.create_box_link({label: "Related tags",    icon: "bookmark", classes: ["popup-menu-box-button"] }) }
-                            <div class="popup-menu-box related-tag-list vertical-list"></div>
+                            <div class="search-tags-box box-button-row" style="display: inline-block;">
+                                ${ helpers.create_box_link({label: "Related tags",    icon: "bookmark", classes: ["popup-menu-box-button"] }) }
+                                <div class="popup-menu-box related-tag-list vertical-list"></div>
+                            </div>
                         </div>
                     </div>
 

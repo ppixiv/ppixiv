@@ -105,11 +105,6 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
     {
         super({...options, visible: false, template: `
             <div class=search-history>
-                <!-- This is to make sure there isn't a gap between the input and the dropdown,
-                    so we don't consider the mouse out of the box when it moves from the input
-                    to the autocomplete box. -->
-                <div class=hover-box style="top: -10px; width: 100%; z-index: -1;"></div>
-                    
                 <div class=input-dropdown>
                     <div class=input-dropdown-list>
                         <!-- template-tag-dropdown-entry instances will be added here. -->
@@ -585,9 +580,6 @@ ppixiv.tag_search_edit_widget = class extends ppixiv.widget
 
         // If populate_dropdown is still running, cancel it.
         this.cancel_populate_dropdown();
-
-        // Make sure the input isn't focused.
-        this.input_element.blur();
     }
 
     visibility_changed()
