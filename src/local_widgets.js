@@ -1074,7 +1074,7 @@ ppixiv.local_search_dropdown_widget = class extends ppixiv.widget
         this.shown = false;
 
         this.container.hidden = true;
-        window.addEventListener("click", this.window_onclick, true);
+        window.removeEventListener("click", this.window_onclick, true);
 
         // Make sure the input isn't focused.
         this.input_element.blur();
@@ -1086,7 +1086,7 @@ ppixiv.local_search_dropdown_widget = class extends ppixiv.widget
             <a class=entry href=#>
                 <span class=search></span>
                 <span class="remove-history-entry keep-menu-open">X</span>
-            </div>
+            </a>
         `});
         entry.dataset.tag = search;
 
