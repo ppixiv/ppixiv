@@ -26,13 +26,13 @@ ppixiv.tag_search_box_widget = class extends ppixiv.widget
         {
             edit_button.addEventListener("click", (e) => {
                 // Toggle the edit widget, hiding the search history dropdown if it's visible.
-                if(this.dropdown_widget.visible)
+                if(this.edit_widget.visible)
                 {
+                    this.edit_widget.hide();
+                    this.dropdown_widget.show();
+                } else {
                     this.dropdown_widget.hide();
                     this.edit_widget.show();
-                } else {
-                    this.dropdown_widget.show();
-                    this.edit_widget.hide();
                 }
             });
         }
@@ -57,22 +57,13 @@ ppixiv.tag_search_box_widget = class extends ppixiv.widget
     // unfocused and this.container isn't being hovered.  This way, the input focus
     // can leave the input box to manipulate the dropdown without it being hidden,
     // but we don't rely on hovering to keep the dropdown open.
-    input_onfocus = (e) =>
-    {
-    }
-
     focus_changed = (e) =>
     {
-        if(e.type == "focus")
-        {
-            this.focused = true;
-        }
-        else // blur
-        {
-            // On blur, relatedTarget is the new focus.  If the focus is moving to another
-            // element inside the widget, we're still focused.
-            this.focused = helpers.is_above(this.container, e.relatedTarget);
-        }
+        this.focused = this.container.matches(":focus-within");
+
+        // If anything inside the container is focused, make sure it's the input field.
+        if(this.focused && !this.input_element.matches(":focus"))
+            this.input_element.focus();
 
         // If we're focused and nothing was visible, show the tag dropdown.  If we're not
         // focused, hide both.
@@ -248,9 +239,6 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         this.cancel_populate_dropdown();
 
         this.container.hidden = true;
-
-        // Make sure the input isn't focused.
-        this.input_element.blur();
     }
 
     async run_autocomplete()
