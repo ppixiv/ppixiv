@@ -445,7 +445,8 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         let abort_controller = this.populate_dropdown_abort = new AbortController();        
         let abort_signal = abort_controller.signal;
 
-        var tag_searches = settings.get("recent-tag-searches") || [];
+        let tag_searches = settings.get("recent-tag-searches") || [];
+        let autocompleted_tags = this.current_autocomplete_results;
 
         // Separate tags in each search, so we can look up translations.
         //
@@ -458,6 +459,10 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
                 all_tags[tag] = true;
             }
         }
+
+        for(let tag of autocompleted_tags)
+            all_tags[tag.tag_name] = true;
+
         all_tags = Object.keys(all_tags);
         
         let translated_tags = await tag_translations.get().get_translations(all_tags, "en");
@@ -473,7 +478,6 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         helpers.remove_elements(list);
         this.selected_idx = null;
 
-        var autocompleted_tags = this.current_autocomplete_results;
         for(var tag of autocompleted_tags)
         {
             var entry = this.create_entry(tag.tag_name, translated_tags);
