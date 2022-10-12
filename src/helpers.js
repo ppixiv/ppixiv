@@ -2708,7 +2708,7 @@ ppixiv.helpers = {
             delay: direction == "horizontal"? -800:0,
         }));
 
-        animation.id = "horizontal-pan";
+        animation.id = direction == "horizontal"? "horizontal-pan":"vertical-pan";
         thumb.panAnimation = animation;
 
         return animation;

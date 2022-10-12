@@ -1444,7 +1444,7 @@ ppixiv.search_view = class extends ppixiv.widget
                 this.stop_animation = null;
             }
 
-            this.stop_animation = new helpers.stop_animation_after(anim, 6, 1, anim.animationName == "pan-thumbnail-vertically");
+            this.stop_animation = new helpers.stop_animation_after(anim, 6, 1, anim.id == "vertical-pan");
 
             // Remove it when the mouse leaves the thumb.  We'll actually respond to mouseover/mouseout
             // for elements inside the thumb too, but it doesn't cause problems here.
