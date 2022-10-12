@@ -192,7 +192,7 @@ let thumbnail_ui = class extends ppixiv.widget
                             <div class="input-field-container hover-menu-box">
                                 <input placeholder=Tags>
                                 <span class="edit-search-button right-side-button">
-                                    <ppixiv-inline src="resources/edit-icon.svg"></ppixiv-inline>
+                                    ${ helpers.create_icon("mat:edit") }
                                 </span>
 
                                 <span class="search-submit-button right-side-button">

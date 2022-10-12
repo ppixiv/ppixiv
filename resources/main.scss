@@ -1642,12 +1642,13 @@ a.box-link, span.box-link
     // Let the input box flex to fill our width, so the box stays the same size
     // and doesn't change if right-side-buttons are shown or hidden.
     display: inline-flex;
-    gap: 0.25em;
+    gap: 0.5em;
     align-items: center;
 
     // Set a default width, so input has something to stretch to and stay a consistent
     // size if buttons are hidden.  Allow this to be smaller to fit.
-    width: calc(min(300px, 100%));
+    width: 100%;
+    max-width: 300px;
 
     > input {
         outline: none;
@@ -1661,24 +1662,14 @@ a.box-link, span.box-link
 
     // Buttons to the right of the input box:
     > .right-side-button {
-        display: inline-block;
+        
+        display: flex;//inline-block;
+        font-size: 150%;
         vertical-align: middle;
         cursor: pointer;
         user-select: none;
         -webkit-user-select: none;
-        color: black;
-
-        & > svg
-        {
-            vertical-align: middle;
-        }
     }
-}
-
-.search-submit-button {
-    /* Work around HTML's stupid whitespace handling */
-    font-size: 0;
-    display: inline-block;
 }
 
 /* Search box in the menu: */
@@ -1762,7 +1753,7 @@ a.box-link, span.box-link
     }
 }
 
-/* These affect both the search edit and search history boxes. */
+// The search edit and search history boxes:
 .input-dropdown {
     width: 500px; /* overridden by script */
     max-width: 800px;
@@ -1778,58 +1769,50 @@ a.box-link, span.box-link
     resize: horizontal;
     position: absolute;
     background-color: var(--box-link-bg-color);
-
-    .search-history > & > .input-dropdown-list {
+    
+    // The search history dropdown:
+    > .input-dropdown-list {
         display: flex;
         flex-direction: column;
         white-space: normal;
-    }
-
-    .input-dropdown-list > .entry {
-        display: flex;
-        flex-direction: row;
-        color: var(--box-link-fg-color);
-        align-items: center;
-
-        /* This 6px vertical padding should match the remove-history-entry padding. */
-        padding: 6px 0;
-
-        .search {
-            flex: 1;
-            padding-left: 7px;
-            height: 100%;
-        }
-
-        .search .word {
-            display: inline-flex;
+    
+        > .entry {
+            display: flex;
+            flex-direction: row;
+            color: var(--box-link-fg-color);
             align-items: center;
-            height: 100%;
-            padding: 0px 5px;
-
-            &.or {
-                font-size: 12px;
-                padding: 0;
-                color: #333;
+    
+            /* This 6px vertical padding should match the remove-history-entry padding. */
+            padding: 6px 0;
+        
+            .search {
+                flex: 1;
+                padding-left: 7px;
+                height: 100%;
             }
-        }
-    }
+    
+            .search .word {
+                display: inline-flex;
+                align-items: center;
+                height: 100%;
+                padding: 0px 5px;
+    
+                &.or {
+                    font-size: 12px;
+                    padding: 0;
+                    color: #333;
+                }
+            }
+            .suggestion-icon {
+                margin: 2px -2px 0 2px;    
+            }
+            &:not(.autocomplete) .suggestion-icon {
+                display: none;
+            }
 
-    /* Styles specific to the search history version of the dropdown: */
-    .search-history > & > .input-dropdown-list {
-        & > .entry .suggestion-icon {
-            margin: 2px -2px 0 2px;    
-        }
-        & > .entry:not(.autocomplete) .suggestion-icon {
-            display: none;
-        }
-
-        & > .entry.selected {
-            background-color: var(--box-link-selected-color);
-        }
-
-        @media(hover: hover) {
-            & > .entry:hover {
-                background-color: var(--box-link-hover-color);
+            &.selected { background-color: var(--box-link-selected-color); }
+            @media(hover: hover) {
+                &:hover { background-color: var(--box-link-hover-color); }
             }
         }
 
@@ -1866,24 +1849,22 @@ a.box-link, span.box-link
         }
     }
 
-    /* Styles specific to the edit search version of the dropdown. */
-    .edit-search > & {
+    // The edit search list is shown as a wrapped list.
+    > .edit-tags-list {
         padding: 4px 0;
+        white-space: normal;
+        max-width: 100%;
+        display: flex;
+        flex-wrap: wrap;
 
-        /* The edit search list is shown as a wrapped list, so enable wrapping and switch items from flex to inline-flex. */
-        & > .input-dropdown-list {
-            white-space: normal;
-            max-width: 100%;
+        > .entry {
+            padding: 4px 7px;
+            display: block;
 
-            & > .entry {
-                display: inline-flex;
-                & > A.search {
-                    .tag.highlight { background-color: #eeee00; }
-                    @media(hover: hover) {
-                        .tag:hover { background-color: #0099FF; }
-                        .tag.highlight:hover { background-color: #00CCFF; }
-                    }
-                }
+            &.highlight { background-color: var(--box-link-selected-color); }
+            @media(hover: hover) {
+                &:hover { background-color: var(--box-link-hover-color); }
+                &.highlight:hover { background-color: var(--box-link-selected-hover-color); }
             }
         }
     }

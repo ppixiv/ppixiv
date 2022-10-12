@@ -526,7 +526,7 @@ ppixiv.tag_search_edit_widget = class extends ppixiv.widget
         super({...options, visible: false, template: `
             <div class=edit-search>
                 <div class=input-dropdown>
-                    <div class=input-dropdown-list>
+                    <div class="edit-tags-list">
                         <!-- template-edit-search-dropdown-entry instances will be added here. -->
                     </div>
                 </div>
@@ -562,11 +562,11 @@ ppixiv.tag_search_edit_widget = class extends ppixiv.widget
         e.stopImmediatePropagation();
 
         // Clicking tags toggles the tag in the search box.
-        let tag = e.target.closest(".tag");
-        if(tag == null)
+        let entry = e.target.closest(".entry");
+        if(entry == null)
             return;
 
-        this.toggle_tag(tag.dataset.tag);
+        this.toggle_tag(entry.dataset.tag);
 
         // Control-clicking the tag probably caused its enclosing search link to be focused, which will
         // cause it to activate when enter is pressed.  Switch focus to the input box, so pressing enter
@@ -613,46 +613,20 @@ ppixiv.tag_search_edit_widget = class extends ppixiv.widget
     }
 
     // tag_search is a search, like "tag -tag2".  translated_tags is a dictionary of known translations.
-    create_entry(tag_search, translated_tags)
+    create_entry(tag, translated_tags)
     {
         let entry = this.create_template({name: "dropdown-entry", html: `
-            <div class=entry>
-                <a class=search></a>
-            </div>
+            <a class=entry>
+            </a>
         `});
-        entry.dataset.tag = tag_search;
+        entry.dataset.tag = tag;
 
-        let translated_tag = translated_tags[tag_search];
+        let translated_tag = translated_tags[tag];
         if(translated_tag)
             entry.dataset.translated_tag = translated_tag;
 
-        let tag_container = entry.querySelector(".search");
-        for(let tag of helpers.split_search_tags(tag_search))
-        {
-            if(tag == "")
-                continue;
-
-            let span = document.createElement("span");
-            span.dataset.tag = tag;
-            span.classList.add("word");
-            if(tag != "or")
-                span.classList.add("tag");
-
-            // Split off - prefixes to look up the translation, then add it back.
-            let prefix_and_tag = helpers.split_tag_prefixes(tag);
-            let translated_tag = translated_tags[prefix_and_tag[1]];
-            if(translated_tag)
-                translated_tag = prefix_and_tag[0] + translated_tag;
-
-            span.innerText = translated_tag || tag;
-            if(translated_tag)
-                span.dataset.translated_tag = translated_tag;
-
-            tag_container.appendChild(span);
-        }
-
-        var url = ppixiv.helpers.get_args_for_tag_search(tag_search, ppixiv.plocation);
-        entry.querySelector("A.search").href = url;
+        entry.innerText = translated_tag || tag;
+        entry.href = ppixiv.helpers.get_args_for_tag_search(tag, ppixiv.plocation);
         return entry;
     }
 
@@ -706,7 +680,7 @@ ppixiv.tag_search_edit_widget = class extends ppixiv.widget
             return false;
         }
         
-        var list = this.container.querySelector(".input-dropdown-list");
+        let list = this.container.querySelector(".edit-tags-list");
         helpers.remove_elements(list);
 
         for(var tag of all_tags)
@@ -732,7 +706,7 @@ ppixiv.tag_search_edit_widget = class extends ppixiv.widget
     {
         let tags = helpers.split_search_tags(this.input_element.value);
         
-        var list = this.container.querySelector(".input-dropdown-list");
+        let list = this.container.querySelector(".edit-tags-list");
         for(let tag_entry of list.querySelectorAll("[data-tag]"))
         {
             let tag = tag_entry.dataset.tag;
