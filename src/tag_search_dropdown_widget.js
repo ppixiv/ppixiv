@@ -266,7 +266,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         if(this.most_recent_search == tags)
             return;
 
-        if(this.autocomplete_request != null)
+        if(this.abort_autocomplete != null)
         {
             // If an autocomplete request is already running, let it finish before we
             // start another.  This matches the behavior of Pixiv's input forms.
@@ -274,10 +274,13 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
             return;
         }
 
-        if(tags == "")
+        this.most_recent_search = tags;
+
+        // Don't send requests with an empty string.  Just finish the search synchronously,
+        // so we clear the autocomplete immediately.  Also, don't send requests if the search
+        // string contains spaces, since the autocomplete API is only for single words.
+        if(tags == "" || tags.indexOf(" ") != -1)
         {
-            // Don't send requests with an empty string.  Just finish the search synchronously,
-            // so we clear the autocomplete immediately.
             if(this.abort_autocomplete != null)
                 this.abort_autocomplete.abort();
             this.autocomplete_request_finished("", { candidates: [] });
@@ -285,31 +288,43 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         }
 
         // Run the search.
+        let result = null;
         try {
             this.abort_autocomplete = new AbortController();
-            var result = await helpers.rpc_get_request("/rpc/cps.php", {
+            result = await helpers.rpc_get_request("/rpc/cps.php", {
                 keyword: tags,
             }, {
                 signal: this.abort_autocomplete.signal,
             });
-
-            // If result is null, we were probably aborted.
-            if(result == null)
-                return;
-
-            this.autocomplete_request_finished(tags, result);
         } catch(e) {
-            console.info("Tag autocomplete aborted:", e);
+            console.info("Tag autocomplete error:", e);
+            return;
         } finally {
             this.abort_autocomplete = null;
         }
+
+        // If result is null, we were probably aborted.
+        if(result == null)
+            return;
+
+        this.autocomplete_request_finished(tags, result);
     }
     
     // A tag autocomplete request finished.
     autocomplete_request_finished(tags, result)
     {
-        this.most_recent_search = tags;
         this.abort_autocomplete = null;
+
+        // We don't register translations from this API, since it only seems to return
+        // romaji and not actual translations.
+        let translations = { };
+        for(let tag of result.candidates)
+        {
+            translations[tag.tag_name] = {
+                en: tag.tag_translation
+            };
+        }
+        // tag_translations.get().add_translations_dict(translations);
 
         // Store the new results.
         this.current_autocomplete_results = result.candidates || [];
@@ -387,8 +402,8 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         // it shouldn't run an autocomplete request for this value change.
         this.navigating = true;
         try {
-            // If there's an autocomplete request in the air, cancel it.
-            if(this.abort_autocomplete != null)
+            // If there's an autocomplete request in the air and we're selecting a value, cancel it.
+            if(idx != null && this.abort_autocomplete != null)
                 this.abort_autocomplete.abort();
 
             // Clear any old selection.
