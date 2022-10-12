@@ -566,23 +566,6 @@ ppixiv.helpers = {
         });
     },
 
-    // setTimeout using an AbortSignal to remove the timer.
-    timeout(callback, ms, signal)
-    {
-        if(signal && signal.aborted)
-            return;
-
-        let id = setTimeout(callback, ms);
-
-        if(signal)
-        {
-            // Clear the interval when the signal is aborted.
-            signal.addEventListener("abort", () => {
-                clearTimeout(id);
-            }, { once: true });
-        }
-    },
-
     // Like Promise.all, but takes a dictionary of {key: promise}, returning a
     // dictionary of {key: result}.
     async await_map(map)
