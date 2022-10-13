@@ -736,7 +736,7 @@ ppixiv.data_source = class
     // the thumbnail-ui-box container to refresh.
     refresh_thumbnail_ui(container, view) { }
 
-    // A helper for setting up UI links.  Find the link with the given data-type,
+    // A helper for setting up UI links.  Find the link with the given type,
     // set all {key: value} entries as query parameters, and remove any query parameters
     // where value is null.  Set .selected if the resulting URL matches the current one.
     //
@@ -746,12 +746,7 @@ ppixiv.data_source = class
     // need to know this to figure out whether an item is selected or not.
     //
     // If a key begins with #, it's placed in the hash rather than the query.
-    set_item(container, type, fields, default_values, { current_url=null }={})
-    {
-        this.set_item2(container, {type: type, fields: fields, default_values: default_values, current_url: current_url });
-    }
-
-    set_item2(container, { type=null, fields=null, default_values=null, current_url=null, toggle=false,
+    set_item(container, { type=null, fields=null, default_values=null, current_url=null, toggle=false,
         // If provided, this allows modifying URLs that put parameters in URL segments instead
         // of the query where they belong.  If url_format is "abc/def/ghi", a key of "/abc" will modify
         // the first segment, and so on.
@@ -1433,22 +1428,20 @@ ppixiv.data_sources.rankings = class extends data_source
 
     refresh_thumbnail_ui(container)
     {
-        var query_args = this.url.searchParams;
-        
-        this.set_item(container, "content-all", {content: null});
-        this.set_item(container, "content-illust", {content: "illust"});
-        this.set_item(container, "content-ugoira", {content: "ugoira"});
-        this.set_item(container, "content-manga", {content: "manga"});
+        this.set_item(container, { type: "content-all", fields: {content: null} });
+        this.set_item(container, { type: "content-illust", fields: {content: "illust"} });
+        this.set_item(container, { type: "content-ugoira", fields: {content: "ugoira"} });
+        this.set_item(container, { type: "content-manga", fields: {content: "manga"} });
 
-        this.set_item(container, "mode-daily", {mode: null}, {mode: "daily"});
-        this.set_item(container, "mode-daily-r18", {mode: "daily_r18"});
-        this.set_item(container, "mode-r18g", {mode: "r18g"});
-        this.set_item(container, "mode-weekly", {mode: "weekly"});
-        this.set_item(container, "mode-monthly", {mode: "monthly"});
-        this.set_item(container, "mode-rookie", {mode: "rookie"});
-        this.set_item(container, "mode-original", {mode: "original"});
-        this.set_item(container, "mode-male", {mode: "male"});
-        this.set_item(container, "mode-female", {mode: "female"});
+        this.set_item(container, { type: "mode-daily", fields: {mode: null}, default_values: {mode: "daily"} });
+        this.set_item(container, { type: "mode-daily-r18", fields: {mode: "daily_r18"} });
+        this.set_item(container, { type: "mode-r18g", fields: {mode: "r18g"} });
+        this.set_item(container, { type: "mode-weekly", fields: {mode: "weekly"} });
+        this.set_item(container, { type: "mode-monthly", fields: {mode: "monthly"} });
+        this.set_item(container, { type: "mode-rookie", fields: {mode: "rookie"} });
+        this.set_item(container, { type: "mode-original", fields: {mode: "original"} });
+        this.set_item(container, { type: "mode-male", fields: {mode: "male"} });
+        this.set_item(container, { type: "mode-female", fields: {mode: "female"} });
 
         if(this.today_text)
             container.querySelector(".nav-today").innerText = this.today_text;
@@ -2460,9 +2453,9 @@ class data_source_bookmarks_base extends data_source
 
         // Set up the public and private buttons.  The "all" button also removes shuffle, since it's not
         // supported there.
-        this.set_item(public_private_button_container, "all", {"#show-all": 1, "#shuffle": null}, {"#show-all": 1});
-        this.set_item(container, "public", {rest: null, "#show-all": 0}, {"#show-all": 1});
-        this.set_item(container, "private", {rest: "hide", "#show-all": 0}, {"#show-all": 1});
+        this.set_item(public_private_button_container, { type: "all", fields: {"#show-all": 1, "#shuffle": null}, default_values: {"#show-all": 1} });
+        this.set_item(container, { type: "public", fields: {rest: null, "#show-all": 0}, default_values: {"#show-all": 1} });
+        this.set_item(container, { type: "private", fields: {rest: "hide", "#show-all": 0}, default_values: {"#show-all": 1} });
 
         // Shuffle isn't supported for merged bookmarks.  If we're on #show-all, make the shuffle button
         // also switch to public bookmarks.  This is easier than graying it out and trying to explain it
@@ -2470,7 +2463,7 @@ class data_source_bookmarks_base extends data_source
         let args = new helpers.args(this.url);
         let show_all = args.hash.get("show-all") != "0";
         let set_public = show_all? { rest: null, "#show-all": 0 }:{};
-        this.set_item2(container, {type: "order-shuffle", fields: {"#shuffle": 1, ...set_public}, toggle: true, default_values: {"#shuffle": null, "#show-all": 1}});
+        this.set_item(container, {type: "order-shuffle", fields: {"#shuffle": 1, ...set_public}, toggle: true, default_values: {"#shuffle": null, "#show-all": 1}});
 
         // Refresh the bookmark tag list.  Remove the page number from these buttons.
         let current_url = new URL(this.url);
@@ -2822,8 +2815,8 @@ ppixiv.data_sources.new_illust = class extends data_source
     
     refresh_thumbnail_ui(container)
     {
-        this.set_item(container, "new-illust-type-illust", {type: null});
-        this.set_item(container, "new-illust-type-manga", {type: "manga"});
+        this.set_item(container, { type: "new-illust-type-illust", fields: {type: null} });
+        this.set_item(container, { type: "new-illust-type-manga", fields: {type: "manga"} });
 
         // These links are different from anything else on the site: they switch between
         // two top-level pages, even though they're just flags and everything else is the
@@ -3259,15 +3252,15 @@ ppixiv.data_sources.search = class extends data_source
         if(this.related_tags)
             thumbnail_view.tag_widget.set(this.related_tags);
 
-        this.set_item(container, "ages-all", {mode: null});
-        this.set_item(container, "ages-safe", {mode: "safe"});
-        this.set_item(container, "ages-r18", {mode: "r18"});
+        this.set_item(container, { type: "ages-all", fields: {mode: null} });
+        this.set_item(container, { type: "ages-safe", fields: {mode: "safe"} });
+        this.set_item(container, { type: "ages-r18", fields: {mode: "r18"} });
 
-        this.set_item(container, "order-newest", {order: null}, {order: "date_d"});
-        this.set_item(container, "order-oldest", {order: "date"});
-        this.set_item(container, "order-all", {order: "popular_d"});
-        this.set_item(container, "order-male", {order: "popular_male_d"});
-        this.set_item(container, "order-female", {order: "popular_female_d"});
+        this.set_item(container, { type: "order-newest", fields: {order: null}, default_values: {order: "date_d"} });
+        this.set_item(container, { type: "order-oldest", fields: {order: "date"} });
+        this.set_item(container, { type: "order-all", fields: {order: "popular_d"} });
+        this.set_item(container, { type: "order-male", fields: {order: "popular_male_d"} });
+        this.set_item(container, { type: "order-female", fields: {order: "popular_female_d"} });
 
         let set_search_mode = (container, type, mode) =>
         {
@@ -3292,27 +3285,27 @@ ppixiv.data_sources.search = class extends data_source
         set_search_mode(container, "search-type-manga", "manga");
         set_search_mode(container, "search-type-ugoira", "ugoira");
 
-        this.set_item(container, "search-all", {s_mode: null}, {s_mode: "s_tag"});
-        this.set_item(container, "search-exact", {s_mode: "s_tag_full"});
-        this.set_item(container, "search-text", {s_mode: "s_tc"});
+        this.set_item(container, { type: "search-all", fields: {s_mode: null}, default_values: {s_mode: "s_tag"} });
+        this.set_item(container, { type: "search-exact", fields: {s_mode: "s_tag_full"} });
+        this.set_item(container, { type: "search-text", fields: {s_mode: "s_tc"} });
 
-        this.set_item(container, "res-all", {wlt: null, hlt: null, wgt: null, hgt: null});
-        this.set_item(container, "res-high", {wlt: 3000, hlt: 3000, wgt: null, hgt: null});
-        this.set_item(container, "res-medium", {wlt: 1000, hlt: 1000, wgt: 2999, hgt: 2999});
-        this.set_item(container, "res-low", {wlt: null, hlt: null, wgt: 999, hgt: 999});
+        this.set_item(container, { type: "res-all", fields: {wlt: null, hlt: null, wgt: null, hgt: null} });
+        this.set_item(container, { type: "res-high", fields: {wlt: 3000, hlt: 3000, wgt: null, hgt: null} });
+        this.set_item(container, { type: "res-medium", fields: {wlt: 1000, hlt: 1000, wgt: 2999, hgt: 2999} });
+        this.set_item(container, { type: "res-low", fields: {wlt: null, hlt: null, wgt: 999, hgt: 999} });
 
-        this.set_item(container, "aspect-ratio-all", {ratio: null});
-        this.set_item(container, "aspect-ratio-landscape", {ratio: "0.5"});
-        this.set_item(container, "aspect-ratio-portrait", {ratio: "-0.5"});
-        this.set_item(container, "aspect-ratio-square", {ratio: "0"});
+        this.set_item(container, { type: "aspect-ratio-all", fields: {ratio: null} });
+        this.set_item(container, { type: "aspect-ratio-landscape", fields: {ratio: "0.5"} });
+        this.set_item(container, { type: "aspect-ratio-portrait", fields: {ratio: "-0.5"} });
+        this.set_item(container, { type: "aspect-ratio-square", fields: {ratio: "0"} });
        
-        this.set_item(container, "bookmarks-all", {blt: null, bgt: null});
-        this.set_item(container, "bookmarks-5000", {blt: 5000, bgt: null});
-        this.set_item(container, "bookmarks-2500", {blt: 2500, bgt: null});
-        this.set_item(container, "bookmarks-1000", {blt: 1000, bgt: null});
-        this.set_item(container, "bookmarks-500", {blt: 500, bgt: null});
-        this.set_item(container, "bookmarks-250", {blt: 250, bgt: null});
-        this.set_item(container, "bookmarks-100", {blt: 100, bgt: null});
+        this.set_item(container, { type: "bookmarks-all", fields: {blt: null, bgt: null} });
+        this.set_item(container, { type: "bookmarks-5000", fields: {blt: 5000, bgt: null} });
+        this.set_item(container, { type: "bookmarks-2500", fields: {blt: 2500, bgt: null} });
+        this.set_item(container, { type: "bookmarks-1000", fields: {blt: 1000, bgt: null} });
+        this.set_item(container, { type: "bookmarks-500", fields: {blt: 500, bgt: null} });
+        this.set_item(container, { type: "bookmarks-250", fields: {blt: 250, bgt: null} });
+        this.set_item(container, { type: "bookmarks-100", fields: {blt: 100, bgt: null} });
 
         // The time filter is a range, but I'm not sure what time zone it filters in
         // (presumably either JST or UTC).  There's also only a date and not a time,
@@ -3321,7 +3314,7 @@ ppixiv.data_sources.search = class extends data_source
         // and you can just use the default date sort if you want to see new posts.
         // For "this week", we set the end date a day in the future to make sure we
         // don't filter out posts today.
-        this.set_item2(container, { type: "time-all", fields: {scd: null, ecd: null} });
+        this.set_item(container, { type: "time-all", fields: {scd: null, ecd: null} });
 
         var format_date = (date) =>
         {
@@ -3335,7 +3328,7 @@ ppixiv.data_sources.search = class extends data_source
         {
             var start_date = format_date(start);
             var end_date = format_date(end);
-            this.set_item2(container, { type: name, fields: {scd: start_date, ecd: end_date} });
+            this.set_item(container, { type: name, fields: {scd: start_date, ecd: end_date} });
         };
 
         var tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
@@ -3476,9 +3469,9 @@ ppixiv.data_sources.follows = class extends data_source
         var public_private_button_container = container.querySelector(".follows-public-private");
         public_private_button_container.hidden = !this.viewing_self;
 
-        this.set_item(container, "public-follows", {rest: "show"}, {rest: "show"});
-        this.set_item(container, "private-follows", {rest: "hide"}, {rest: "show"});
-        this.set_item2(container, { type: "accepting-requests", toggle: true, fields: {acceptingRequests: "1"}, default_values: {acceptingRequests: "0"}});
+        this.set_item(container, { type: "public-follows", fields: {rest: "show"}, default_values: {rest: "show"} });
+        this.set_item(container, { type: "private-follows", fields: {rest: "hide"}, default_values: {rest: "show"} });
+        this.set_item(container, { type: "accepting-requests", toggle: true, fields: {acceptingRequests: "1"}, default_values: {acceptingRequests: "0"}});
 
         let tag_list = container.querySelector(".followed-users-follow-tags .vertical-list");
         for(let tag of tag_list.querySelectorAll(".tag-entry"))
@@ -3763,17 +3756,17 @@ ppixiv.data_sources.completed_requests = class extends data_source
 
     refresh_thumbnail_ui(container, thumbnail_view)
     {
-        this.set_item2(container, { type: "completed-requests-latest", fields: {type: "latest"}, default_values: {type: "latest"}});
-        this.set_item2(container, { type: "completed-requests-recommended", fields: {type: "recommended"}, default_values: {type: "latest"}});
+        this.set_item(container, { type: "completed-requests-latest", fields: {type: "latest"}, default_values: {type: "latest"}});
+        this.set_item(container, { type: "completed-requests-recommended", fields: {type: "recommended"}, default_values: {type: "latest"}});
 
-        this.set_item2(container, { type: "completed-requests-all", fields: {mode: "all"}, default_values: {mode: "all"}});
-        this.set_item2(container, { type: "completed-requests-safe", fields: {mode: "safe"}, default_values: {mode: "all"}});
-        this.set_item2(container, { type: "completed-requests-r18", fields: {mode: "r18"}, default_values: {mode: "all"}});
+        this.set_item(container, { type: "completed-requests-all", fields: {mode: "all"}, default_values: {mode: "all"}});
+        this.set_item(container, { type: "completed-requests-safe", fields: {mode: "safe"}, default_values: {mode: "all"}});
+        this.set_item(container, { type: "completed-requests-r18", fields: {mode: "r18"}, default_values: {mode: "all"}});
 
         let url_format = "request/complete/type";
-        this.set_item2(container, { url_format: url_format, type: "completed-requests-illust", fields: {"/type": "illust"} });
-        this.set_item2(container, { url_format: url_format, type: "completed-requests-ugoira", fields: {"/type": "ugoira"} });
-        this.set_item2(container, { url_format: url_format, type: "completed-requests-manga", fields: {"/type": "manga"} });
+        this.set_item(container, { url_format: url_format, type: "completed-requests-illust", fields: {"/type": "illust"} });
+        this.set_item(container, { url_format: url_format, type: "completed-requests-ugoira", fields: {"/type": "ugoira"} });
+        this.set_item(container, { url_format: url_format, type: "completed-requests-manga", fields: {"/type": "manga"} });
     }
 
     get page_title() { return "Completed requests"; };
@@ -4071,7 +4064,7 @@ ppixiv.data_sources.vview = class extends data_source
         // Hide the "copy local path" button if we don't have one.
         container.querySelector(".copy-local-path").hidden = this.local_path == null;
 
-        this.set_item2(container, { type: "local-bookmarks-only", fields: {"#bookmarks": "1"}, toggle: true, current_url: current_args.url,
+        this.set_item(container, { type: "local-bookmarks-only", fields: {"#bookmarks": "1"}, toggle: true, current_url: current_args.url,
             adjust_url: (args) => {
                 // If the button is exiting bookmarks, remove bookmark-tag too.
                 if(!args.hash.has("bookmarks"))
@@ -4086,30 +4079,30 @@ ppixiv.data_sources.vview = class extends data_source
         // If we're only allowed to do bookmark searches, hide the bookmark search button.
         container.querySelector('[data-type="local-bookmarks-only"]').hidden = local_api.local_info.bookmark_tag_searches_only;
 
-        this.set_item2(container, { type: "local-type-all", fields: {"#type": null}, current_url: current_args.url });
-        this.set_item2(container, { type: "local-type-videos", fields: {"#type": "videos"}, current_url: current_args.url });
-        this.set_item2(container, { type: "local-type-images", fields: {"#type": "images"}, current_url: current_args.url });
+        this.set_item(container, { type: "local-type-all", fields: {"#type": null}, current_url: current_args.url });
+        this.set_item(container, { type: "local-type-videos", fields: {"#type": "videos"}, current_url: current_args.url });
+        this.set_item(container, { type: "local-type-images", fields: {"#type": "images"}, current_url: current_args.url });
 
-        this.set_item2(container, { type: "local-aspect-ratio-all", fields: {"#aspect-ratio": null}, current_url: current_args.url });
-        this.set_item2(container, { type: "local-aspect-ratio-landscape", fields: {"#aspect-ratio": `3:2...`}, current_url: current_args.url });
-        this.set_item2(container, { type: "local-aspect-ratio-portrait", fields: {"#aspect-ratio": `...2:3`}, current_url: current_args.url });
+        this.set_item(container, { type: "local-aspect-ratio-all", fields: {"#aspect-ratio": null}, current_url: current_args.url });
+        this.set_item(container, { type: "local-aspect-ratio-landscape", fields: {"#aspect-ratio": `3:2...`}, current_url: current_args.url });
+        this.set_item(container, { type: "local-aspect-ratio-portrait", fields: {"#aspect-ratio": `...2:3`}, current_url: current_args.url });
 
-        this.set_item2(container, { type: "local-res-all", fields: {"#pixels": null}, current_url: current_args.url });
-        this.set_item2(container, { type: "local-res-high", fields: {"#pixels": "4000000..."}, current_url: current_args.url });
-        this.set_item2(container, { type: "local-res-medium", fields: {"#pixels": "1000000...3999999"}, current_url: current_args.url });
-        this.set_item2(container, { type: "local-res-low", fields: {"#pixels": "...999999"}, current_url: current_args.url });
+        this.set_item(container, { type: "local-res-all", fields: {"#pixels": null}, current_url: current_args.url });
+        this.set_item(container, { type: "local-res-high", fields: {"#pixels": "4000000..."}, current_url: current_args.url });
+        this.set_item(container, { type: "local-res-medium", fields: {"#pixels": "1000000...3999999"}, current_url: current_args.url });
+        this.set_item(container, { type: "local-res-low", fields: {"#pixels": "...999999"}, current_url: current_args.url });
 
-        this.set_item2(container, {type: "local-sort-normal", fields: {"#order": null}, current_url: current_args.url });
-        this.set_item2(container, {type: "local-sort-invert", fields: {"#order": "-normal"}, current_url: current_args.url });
-        this.set_item2(container, {type: "local-sort-newest", fields: {"#order": "-ctime"}, current_url: current_args.url });
-        this.set_item2(container, {type: "local-sort-oldest", fields: {"#order": "ctime"}, current_url: current_args.url });
-        this.set_item2(container, {type: "local-sort-shuffle", fields: {"#order": "shuffle"}, toggle: true, current_url: current_args.url });
+        this.set_item(container, {type: "local-sort-normal", fields: {"#order": null}, current_url: current_args.url });
+        this.set_item(container, {type: "local-sort-invert", fields: {"#order": "-normal"}, current_url: current_args.url });
+        this.set_item(container, {type: "local-sort-newest", fields: {"#order": "-ctime"}, current_url: current_args.url });
+        this.set_item(container, {type: "local-sort-oldest", fields: {"#order": "ctime"}, current_url: current_args.url });
+        this.set_item(container, {type: "local-sort-shuffle", fields: {"#order": "shuffle"}, toggle: true, current_url: current_args.url });
 
-        this.set_item2(container, {type: "local-sort-bookmark-created-at-desc", fields: {"#order": "bookmarked-at"}, current_url: current_args.url,
+        this.set_item(container, {type: "local-sort-bookmark-created-at-desc", fields: {"#order": "bookmarked-at"}, current_url: current_args.url,
             // If a bookmark sort is selected, also enable viewing bookmarks.
             adjust_url: (args) => args.hash.set("bookmarks", 1),
         });
-        this.set_item2(container, {type: "local-sort-bookmark-created-at-asc", fields: {"#order": "-bookmarked-at"}, current_url: current_args.url,
+        this.set_item(container, {type: "local-sort-bookmark-created-at-asc", fields: {"#order": "-bookmarked-at"}, current_url: current_args.url,
             adjust_url: (args) => args.hash.set("bookmarks", 1),
         });
         
