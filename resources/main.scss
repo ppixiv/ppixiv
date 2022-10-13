@@ -2378,14 +2378,10 @@ a.box-link, span.box-link
                 gap: 10px;
 
                 // Grey out the button and label if this item isn't enabled.
-                &:not(.enabled)
-                {
-                    cursor: inherit;
-                    color: #aaa;
-                    > .button {
-                        color: #aaa;
-                    }
-                }
+                --foreground-color: #aaa;
+                color: var(--foreground-color);
+                &.enabled { --foreground-color: #fff; }
+                &.selected { --foreground-color: #ff8; }
 
                 > .button {
                     border-radius: 15px;
@@ -2394,7 +2390,7 @@ a.box-link, span.box-link
                     flex-direction: row;
                     justify-content: center;
                     background-color: rgba(0,0,0,.5);
-                    color: #fff;
+                    color: var(--foreground-color);
 
                     & > svg {
                         width: 2em;

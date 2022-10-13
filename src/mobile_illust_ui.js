@@ -383,6 +383,8 @@ let mobile_illust_ui_top_page = class extends mobile_illust_ui_page
         // Enable the zoom button if we're in the image view and we have an on_click_viewer.
         helpers.set_class(this.toggle_zoom_button, "enabled", this._is_zoom_ui_enabled);
 
+        helpers.set_class(this.toggle_slideshow_button, "selected", main_controller.slideshow_mode == "1");
+        helpers.set_class(this.toggle_loop_button, "selected", main_controller.slideshow_mode == "loop");
         helpers.set_class(this.container.querySelector(".button-bookmark-tags"), "enabled", true);
 
         // If we're visible, tell widgets what we're viewing.  Don't do this if we're not visible, so
