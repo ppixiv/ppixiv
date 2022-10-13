@@ -153,7 +153,7 @@ ppixiv.image_ui = class extends ppixiv.widget
         this.toggle_tag_widget = new toggle_dropdown_menu_widget({
             parent: this,
             contents: this.container.querySelector(".button-bookmark-tags"),
-            bookmark_tag_widget: this.bookmark_tag_widget,
+            widget: this.bookmark_tag_widget,
             require_image: true,
         });
         this.like_button = new like_button_widget({

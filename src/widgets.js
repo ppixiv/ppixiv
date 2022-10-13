@@ -1980,11 +1980,11 @@ ppixiv.toggle_dropdown_menu_widget = class extends ppixiv.illust_widget
     // We only need an illust ID and no info.
     get needed_data() { return "media_id"; }
 
-    constructor({bookmark_tag_widget, require_image=false, ...options})
+    constructor({widget, require_image=false, ...options})
     {
         super(options);
 
-        this.bookmark_tag_widget = bookmark_tag_widget;
+        this.widget = widget;
         this.require_image = require_image;
 
         this.container.addEventListener("click", (e) => {
@@ -1995,7 +1995,7 @@ ppixiv.toggle_dropdown_menu_widget = class extends ppixiv.illust_widget
             if(this.require_image && !this.container.classList.contains("enabled"))
                 return;
             
-            this.bookmark_tag_widget.visible = !this.bookmark_tag_widget.visible;
+            this.widget.visible = !this.widget.visible;
         });
     }
 

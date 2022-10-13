@@ -757,13 +757,13 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
             new toggle_dropdown_menu_widget({
                 contents: this.container.querySelector(".button-bookmark-tags"),
                 parent: this,
-                bookmark_tag_widget: bookmark_tag_widget,
+                widget: bookmark_tag_widget,
                 require_image: true,
             }),
             new toggle_dropdown_menu_widget({
                 contents: this.container.querySelector(".button-more"),
                 parent: this,
-                bookmark_tag_widget: more_options_widget,
+                widget: more_options_widget,
             }),
             new like_button_widget({
                 parent: this,
