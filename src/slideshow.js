@@ -45,9 +45,36 @@ ppixiv.slideshow = class
         if(this.mode == "slideshow" && slideshow_default == "contain")
             return this.get_animation(ppixiv.slideshow.pans.stationary);
 
+        if(this.mode == "slideshow-hold")
+        {
+            // Choose whether to use the horizontal or vertical depending on how the image fits the screen.
+            // pan_ratio is < 1 if the image can pan vertically and > 1 if it can pan horizontally.
+            let image_aspect_ratio = this.width / this.height;
+            let container_aspect_ratio = this.container_width / this.container_height;
+            let pan_ratio = image_aspect_ratio / container_aspect_ratio;
+
+            // If the image can move horizontally in the display, use the horizontal pan.  Don't use it
+            // if pan_ratio is too close to 1 (the image fits the screen), since it doesn't zoom and will
+            // be stationary.
+            let horizontal = pan_ratio > 1.1;
+            if(container_aspect_ratio < 1)
+            {
+                // If the monitor and image are both portrait, the portrait animation usually looks better,
+                // even if the image is less portrait than the monitor and pan_ratio is > 1.  Use a higher
+                // threshold for portrait monitors so we prefer the portrait animation, even if it cuts off
+                // some of the image.
+                horizontal = pan_ratio > 1.5;
+            }
+
+            let template = horizontal? 
+                ppixiv.slideshow.pans.default_slideshow_hold_landscape:
+                ppixiv.slideshow.pans.default_slideshow_hold_portrait;
+
+            return this.get_animation(template);
+        }
+
         // Choose which default to use.
         let template = this.mode == "slideshow"? ppixiv.slideshow.pans.default_slideshow:
-            this.mode == "slideshow-hold"? ppixiv.slideshow.pans.default_slideshow_hold:
             ppixiv.slideshow.pans.default_pan;
 
         // If the default animation doesn't go anywhere, the visible area's aspect ratio very
@@ -91,15 +118,18 @@ ppixiv.slideshow = class
             x2: 1,    y2: 0.1,
         }),
 
-        // The default animation for slideshow-hold mode.  This is a vertical pan with a slight
-        // zoom.  default_slideshow doesn't always look good when looped: it starts in a bottom
-        // corner, which makes sense as a starting point since it's usually not a focal point of
-        // the image but often doesn't make sense when looping.
-        default_slideshow_hold: Object.freeze({
-            start_zoom: 1,
-            end_zoom: 1.10,
-            x1: 0.5,    y1: 1.0,
-            x2: 0.5,    y2: 0.1,
+        // The default animations for slideshow-hold mode.  If the image can move vertically,
+        // use a vertical pan with a slight zoom.  Otherwise, use a horizontal pan with no zoom.
+        default_slideshow_hold_portrait: Object.freeze({
+            start_zoom: 1.10,
+            end_zoom: 1.00,
+            x1: 0.5,    y1: 0.1,
+            x2: 0.5,    y2: 1.0,
+        }),
+
+        default_slideshow_hold_landscape: Object.freeze({
+            x1: 0,     y1: 0.5,
+            x2: 1,     y2: 0.5,
         }),
 
         // Display the image statically without panning.
