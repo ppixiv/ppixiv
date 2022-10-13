@@ -55,11 +55,13 @@ ppixiv.slideshow = class
         // instead.  We don't currently use this in pan mode, because zooming the image when
         // in pan mode and controlling multiple tabs can be annoying.
         let animation = this.get_animation(template);
-        if(animation.total_travel > 0.05 || this.mode == "auto-pan")
-            return animation;
-
-        console.log(`Slideshow: pan animation had nowhere to move, using a pull-in instead (total_travel ${animation.total_travel})`);
-        return this.get_animation(ppixiv.slideshow.pan.pull_in);
+        if(this.mode == "slideshow" && animation.total_travel < 0.05)
+        {
+            console.log(`Slideshow: pan animation had nowhere to move, using a pull-in instead (total_travel ${animation.total_travel})`);
+            return this.get_animation(ppixiv.slideshow.pan.pull_in);
+        }
+       
+        return animation;
     }
 
     static pans =
