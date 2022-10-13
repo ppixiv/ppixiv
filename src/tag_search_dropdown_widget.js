@@ -167,11 +167,6 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
 
             let action = move_to_bottom? "bottom":"remove";
             helpers.edit_recent_search_tag(tag, { action });
-
-            // Hack: the input focus will have been on the tag entry we just removed.  Focus
-            // the nearest focusable item (probably the tag_search_box_widget container), so
-            // the dropdown isn't closed due to losing focus.
-            this.container.closest("[tabindex]").focus();
             return;
         }
 
