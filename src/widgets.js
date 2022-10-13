@@ -1684,6 +1684,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                     ...shared_options,
                     label: "Index similarity",
                     icon: "ppixiv:suggestions",
+                    hide_if_unavailable: true,
                     requires: ({media_id}) => {
                         if(media_id == null)
                             return false;
