@@ -157,45 +157,43 @@ let mobile_illust_ui_top_page = class extends mobile_illust_ui_page
                         <div class="item button-toggle-slideshow enabled">
                             <div class=button>
                                 ${ helpers.create_icon("mat:wallpaper") }
+                                <span class=label>Slideshow</span>
                             </div>
-                            <span class=label>Slideshow</span>
                         </div>
 
                         <div class="item button-toggle-loop enabled">
                             <div class=button>
                                 ${ helpers.create_icon("mat:replay_circle_filled") }
+                                <span class=label>Loop</span>
                             </div>
-                            <span class=label>Hold slideshow</span>
                         </div>
 
                         <div class="item button-toggle-zoom">
                             <div class=button>
                                 <ppixiv-inline src="resources/zoom-full.svg"></ppixiv-inline>
+                                <span class=label>Toggle zoom</span>
                             </div>
-                            <span class=label>Toggle zoom</span>
                         </div>
 
                         <div class="item button-bookmark public" data-bookmark-type=public>
                             <div class=button>
                                 <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
+                                <span class=label>Bookmark</span>
                             </div>
-
-                            <span class=label>Bookmark</span>
                         </div>
 
                         <div class="item button-bookmark private button-container" data-bookmark-type=private>
                             <div class=button>
                                 <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
+                                <span class=label>Bookmark privately</span>
                             </div>
-
-                            <span class=label>Bookmark privately</span>
                         </div>
                         
                         <div class="item button-bookmark-tags">
                             <div class=button>
                                 ${ helpers.create_icon("ppixiv:tag") }
+                                <span class=label>Bookmark tags</span>
                             </div>
-                            <span class=label>Bookmark tags</span>
                         </div>
                     </div>
 
@@ -203,45 +201,43 @@ let mobile_illust_ui_top_page = class extends mobile_illust_ui_page
                         <div class="item button-browser-back">
                             <div class=button>
                                 <ppixiv-inline src="resources/exit-icon.svg" style="transform: scaleX(-1);"></ppixiv-inline>
+                                <span class=label>Back</span>
                             </div>
-                            <span class=label>Back</span>
                         </div>
 
                         <div class="item button-more enabled">
                             <div class="button">
                                 ${ helpers.create_icon("settings") }
+                                <span class=label>More...</span>
                             </div>
-                            <span class=label>More...</span>
                         </div>
 
                         <div class="item button-like enabled button-container">
                             <div class=button>
                                 <ppixiv-inline src="resources/like-button.svg"></ppixiv-inline>
+                                <span class=label>Like</span>
                             </div>
-                            <span class=label>Like</span>
                         </div>
 
                         <div class="item button-view-manga">
                             <div class=button>
                                 ${ helpers.create_icon("ppixiv:thumbnails") }
+                                <span class=label>View manga pages</span>
                             </div>
-                            <span class=label>View manga pages</span>
                         </div>
 
                         <div class="item button-parent-folder" hidden>
                             <div class="button enabled">
                                 ${ helpers.create_icon("folder") }
+                                <span class=label>View folder</span>
                             </div>
-
-                            <span class=label>View folder</span>
                         </div>
 
                         <div class="item help enabled">
                             <div class=button>
                                 ${ helpers.create_icon("help_outline") }
+                                <span class=label>Help</span>
                             </div>
-
-                            <span class=label>Help</span>
                         </div>
                     </div>
                 </div>

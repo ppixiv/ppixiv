@@ -2165,6 +2165,14 @@ a.box-link, span.box-link
         left: 10px;
     }
 
+    &[data-side="right"] .top-page-button-row .item {
+        // When on the right, right-align buttons and swap the help text to the left.
+        align-self: end;
+        .button {
+            flex-direction: row-reverse !important;
+        }
+    }
+
     // The image info in the top-right is a separate element from the UI pages.
     .context-menu-image-info-container {
         position: fixed;
@@ -2379,7 +2387,6 @@ a.box-link, span.box-link
 
                 // Grey out the button and label if this item isn't enabled.
                 --foreground-color: #aaa;
-                color: var(--foreground-color);
                 &.enabled { --foreground-color: #fff; }
                 &.selected { --foreground-color: #ff8; }
 
@@ -2387,6 +2394,8 @@ a.box-link, span.box-link
                     border-radius: 15px;
                     padding: 6px;
                     display: flex;
+                    gap: 0.5em;
+                    align-items: center;
                     flex-direction: row;
                     justify-content: center;
                     background-color: rgba(0,0,0,.5);
@@ -2444,8 +2453,16 @@ a.box-link, span.box-link
                     // while we're visible.  Do that on the individual button rows instead.
                     pointer-events: var(--pointer-events);
                 }
-                &:not(.display-labels) .item > .label {
-                    display: none;
+                &.display-labels {
+                    // Hide the border around the buttons when help is displayed.  Do this by making it
+                    // transparent, so this doesn't cause buttons to move slightly.
+                    .top-page-button-row { border-color: rgba(0,0,0,0); }
+                }
+
+                &:not(.display-labels) {
+                    .item .label {
+                        display: none;
+                    }
                 }
             }
         }
