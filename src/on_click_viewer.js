@@ -163,7 +163,7 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         ondisplayed,
 
         // If set, we're in slideshow mode.  We'll always start an animation, and image
-        // navigation will be disabled.  This can be null, "slideshow", or "slideshow-hold".
+        // navigation will be disabled.  This can be null, "slideshow", or "loop".
         slideshow=null,
 
         // If we're animating, this will be called when the animation finishes.
@@ -1009,8 +1009,8 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
     {
         // Decide which animation mode to use.
         let animation_mode;
-        if(this.slideshow_mode == "hold")
-            animation_mode = "slideshow-hold";
+        if(this.slideshow_mode == "loop")
+            animation_mode = "loop";
         else if(this.slideshow_mode != null)
             animation_mode = "slideshow";
         else if(ppixiv.settings.get("auto_pan"))
@@ -1056,7 +1056,7 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         // We have to add it as an offset at both ends of the animation, and then increase the duration
         // to compensate.
         let iteration_start = 0;
-        if(animation_mode == "slideshow-hold")
+        if(animation_mode == "loop")
         {
             // To add a 1 second delay to both ends of the alternation, add 0.5 seconds of delay
             // to both ends (the delay will be doubled by the alternation), and increase the
@@ -1115,8 +1115,8 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
                 // The actual duration is set by updatePlaybackRate.
                 duration: 1000,
                 fill: 'forwards',
-                direction: animation_mode == "slideshow-hold"? "alternate":"normal",
-                iterations: animation_mode == "slideshow-hold"? Infinity:1,
+                direction: animation_mode == "loop"? "alternate":"normal",
+                iterations: animation_mode == "loop"? Infinity:1,
                 iterationStart: iteration_start,
             }
         ));

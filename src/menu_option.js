@@ -662,7 +662,6 @@ ppixiv.menu_option_button = class extends ppixiv.menu_option
         super({...options, template: `
             ${helpers.create_box_link({
                 label,
-                // If a font icon was specified, use it.  Otherwise, if an image
                 icon: options.icon,
                 link: url,
                 popup,
@@ -670,11 +669,6 @@ ppixiv.menu_option_button = class extends ppixiv.menu_option
                 explanation: "", // create the explanation field
             })}
         `});
-
-        // Add a flex block to the right of the label, to push buttons to the right:
-        //let flex = document.createElement("div");
-        //flex.style.flex = 1;
-        //this.container.appendChild(flex);
 
         // Set the box-link label to flex, to push buttons to the right:
         this.container.querySelector(".label-box").style.flex = "1";

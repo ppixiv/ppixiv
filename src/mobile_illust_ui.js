@@ -161,7 +161,7 @@ let mobile_illust_ui_top_page = class extends mobile_illust_ui_page
                             <span class=label>Slideshow</span>
                         </div>
 
-                        <div class="item button-toggle-hold-slideshow enabled">
+                        <div class="item button-toggle-loop enabled">
                             <div class=button>
                                 ${ helpers.create_icon("mat:replay_circle_filled") }
                             </div>
@@ -284,9 +284,9 @@ let mobile_illust_ui_top_page = class extends mobile_illust_ui_page
             this.refresh();
         });
 
-        this.toggle_hold_slideshow_button = this.container.querySelector(".button-toggle-hold-slideshow");
-        this.toggle_hold_slideshow_button.addEventListener("click", (e) => {
-            main_controller.hold_slideshow();
+        this.toggle_loop_button = this.container.querySelector(".button-toggle-loop");
+        this.toggle_loop_button.addEventListener("click", (e) => {
+            main_controller.loop_slideshow();
             this.parent.hide();
             this.refresh();
         });

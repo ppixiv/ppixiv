@@ -424,10 +424,6 @@ ppixiv.MainController = class
             args.hash.delete("temp-view");
         }
 
-        // If we're navigating while holding a slideshow, go back to regular slideshow mode.
-        if(args.hash.get("slideshow") == "hold")
-            args.hash.set("slideshow", "1");
-
         // If we were viewing a muted image and we're navigating away from it, remove view-muted so
         // we're muting images again.  Don't do this if we're navigating between pages of the same post.
         if(illust_id != old_illust_id)
@@ -896,7 +892,7 @@ ppixiv.MainController = class
         else
             args = this.get_media_url(this.media_id);
 
-        let enabled = args.hash.get("slideshow") != null; // on or hold
+        let enabled = args.hash.get("slideshow") == "1"; // not hold
         if(enabled)
             args.hash.delete("slideshow");
         else
@@ -912,19 +908,19 @@ ppixiv.MainController = class
         return helpers.args.location.hash.get("slideshow");
     }
 
-    hold_slideshow()
+    loop_slideshow()
     {
         if(this.current_screen_name != "illust")
             return;
 
         let args = helpers.args.location;
-        let enabled = args.hash.get("slideshow") == "hold";
+        let enabled = args.hash.get("slideshow") == "loop";
         if(enabled)
-            args.hash.set("slideshow", "1");
+            args.hash.delete("slideshow");
         else
-            args.hash.set("slideshow", "hold");
+            args.hash.set("slideshow", "loop");
     
-        helpers.navigate(args, { add_to_history: false, cause: "hold slideshow" });
+        helpers.navigate(args, { add_to_history: false, cause: "loop" });
     }
 
     // Return the URL args to display a slideshow from the current page.

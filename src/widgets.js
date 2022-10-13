@@ -1801,31 +1801,25 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                     label: "Slideshow",
                     icon: "mat:wallpaper",
                     requires_image: true,
-                    checked: helpers.args.location.hash.get("slideshow") != null,
+                    checked: helpers.args.location.hash.get("slideshow") == "1",
                     onclick: () => {
                         main_controller.toggle_slideshow();
                         this.refresh();
-                    }
+                    },
                 });
             },
 
-            hold_slideshow: () => {
+            toggle_loop: () => {
                 return new menu_option_toggle({
                     ...shared_options,
-                    label: "Hold slideshow",
-                    checked: helpers.args.location.hash.get("slideshow") == "hold",
+                    label: "Loop",
+                    checked: helpers.args.location.hash.get("slideshow") == "loop",
                     icon: "mat:replay_circle_filled",
                     requires_image: true,
-                    available: () => { return main_controller.slideshow_mode != null; },
                     hide_if_unavailable: true,
                     onclick: () => {
-                        main_controller.hold_slideshow();
+                        main_controller.loop_slideshow();
                         this.refresh();
-
-                        // This option isn't very obvious, but showing a message is a little annoying.  Is there
-                        // a better way to explain this?
-                        if(helpers.args.location.hash.get("slideshow") == "hold")
-                            message_widget.singleton.show("Change images to continue slideshow");
                     },
                 });
             },
@@ -1920,7 +1914,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
         if(!ppixiv.mobile)
         {
             this.menu_options.push(menu_options.toggle_slideshow());
-            this.menu_options.push(menu_options.hold_slideshow());
+            this.menu_options.push(menu_options.toggle_loop());
         }
         this.menu_options.push(menu_options.image_editing());
         if(ppixiv.native)

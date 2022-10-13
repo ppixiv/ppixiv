@@ -19,7 +19,7 @@ ppixiv.slideshow = class
         // The minimum zoom level to allow:
         minimum_zoom,
 
-        // One of "slideshow", "slideshow-hold" or "auto-pan".
+        // One of "slideshow", "loop" or "auto-pan".
         mode,
 
         // The slideshow is normally clamped to the window.  This can be disabled by the
@@ -126,7 +126,7 @@ ppixiv.slideshow = class
 
         // The target duration of the animation:
         let duration = 
-            (this.mode == "slideshow" || this.mode == "slideshow-hold")? ppixiv.settings.get("slideshow_duration"):
+            (this.mode == "slideshow" || this.mode == "loop")? ppixiv.settings.get("slideshow_duration"):
             ppixiv.settings.get("auto_pan_duration");
 
         // If we're viewing a very wide or tall image, such as a 1:20 manga strip, it's useful
@@ -179,7 +179,7 @@ ppixiv.slideshow = class
             let factor = helpers.scale_clamp(animation.duration, 5, 15, 0.58, 1);
             animation.ease = `cubic-bezier(0.0, 0.0, ${factor}, 1.0)`;
         }
-        else if(this.mode == "slideshow-hold")
+        else if(this.mode == "loop")
         {
             // Similar to auto-pan, but using an ease-in-out transition instead, and we always keep
             // some easing around even for very long animations.
@@ -188,7 +188,7 @@ ppixiv.slideshow = class
         }        
 
         // Choose a fade duration.  This needs to be quicker if the slideshow is very brief.
-        animation.fade_in = this.mode == "slideshow-hold" || this.mode == "slideshow"? Math.min(duration * 0.1, 2.5):0;
+        animation.fade_in = this.mode == "loop" || this.mode == "slideshow"? Math.min(duration * 0.1, 2.5):0;
         animation.fade_out = this.mode == "slideshow"? Math.min(duration * 0.1, 2.5):0;
         
         // If the animation is shorter than the total fade, remove the fade.
