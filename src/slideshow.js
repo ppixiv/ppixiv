@@ -189,7 +189,7 @@ ppixiv.slideshow = class
         }        
 
         // Choose a fade duration.  This needs to be quicker if the slideshow is very brief.
-        animation.fade_in = this.mode == "slideshow-hold"? 0: this.mode == "slideshow"? Math.min(duration * 0.1, 2.5):0;
+        animation.fade_in = this.mode == "slideshow-hold" || this.mode == "slideshow"? Math.min(duration * 0.1, 2.5):0;
         animation.fade_out = this.mode == "slideshow"? Math.min(duration * 0.1, 2.5):0;
         
         // If the animation is shorter than the total fade, remove the fade.
