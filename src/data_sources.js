@@ -901,6 +901,21 @@ ppixiv.data_source = class
             // Find the selected item in the dropdown, if any.
             let selected_item = box.querySelector(".selected");
             let selected_default = selected_item == null || selected_item.dataset["default"];
+
+            // If an explicit default button exists, there's usually always something selected in the
+            // list: either a filter is selected or the default is.  If a list has a default button
+            // but nothing is selected at all, that means we're not on any of the available selections
+            // (we don't even match the default).  For example, this can happen if "This Week" is selected,
+            // but some time has passed, so the time range the "This Week" menu item points to doesn't match
+            // the search.  (That means we're viewing "some week in the past", but we don't have a menu item
+            // for it.)
+            //
+            // If this happens, show the dropdown as selected, even though none of its items are active, to
+            // indicate that a filter really is active and the user can reset it.
+            let item_has_default = box.querySelector("[data-default]") != null;
+            if(item_has_default && selected_item == null)
+                selected_default = false;
+
             helpers.set_class(button, "selected", !selected_default);
             helpers.set_class(box, "selected", !selected_default);
 
@@ -921,9 +936,11 @@ ppixiv.data_source = class
                 // The short label is used to try to keep these labels from causing the menu buttons to
                 // overflow the container, and for labels like "2 years ago" where the menu text doesn't
                 // make sense.
-                let text = selected_item.dataset.shortLabel;
-                let selected_label = selected_item.querySelector(".label");
-                label.innerText = text? text:selected_label.innerText;
+                //
+                // If we don't have a selected item, we're in the item_has_default case (see above).
+                let text = selected_item?.dataset?.shortLabel;
+                let selected_label = selected_item?.querySelector(".label")?.innerText;
+                label.innerText = text ?? selected_label ?? "Other";
             }
         }
     }
@@ -3304,7 +3321,7 @@ ppixiv.data_sources.search = class extends data_source
         // and you can just use the default date sort if you want to see new posts.
         // For "this week", we set the end date a day in the future to make sure we
         // don't filter out posts today.
-        this.set_item(container, "time-all", {scd: null, ecd: null});
+        this.set_item2(container, { type: "time-all", fields: {scd: null, ecd: null} });
 
         var format_date = (date) =>
         {
@@ -3318,7 +3335,7 @@ ppixiv.data_sources.search = class extends data_source
         {
             var start_date = format_date(start);
             var end_date = format_date(end);
-            this.set_item(container, name, {scd: start_date, ecd: end_date});
+            this.set_item2(container, { type: name, fields: {scd: start_date, ecd: end_date} });
         };
 
         var tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
