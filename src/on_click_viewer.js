@@ -1041,29 +1041,73 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         if(animation == null)
         {
             this.stop_animation();
+            this.slideshow_reversing = false;
             return;
         }
 
+        // Clear slideshow_reversing if the animation mode changed.
+        if(this.current_animation_mode != animation_mode)
+            this.slideshow_reversing = false;
+
         // If the mode isn't changing, just update the existing animation in place, so we
-        // update the animation if the window is resized.
+        // update the animation if the window is resized.  Don't do this if we're changing
+        // directions in slideshow-hold.
         //
         // Modifying animations while they're running is broken on iOS and just cause the animation
         // to freeze, so on iOS we just restart the animation.
-        if(this.current_animation_mode == animation_mode && !ppixiv.ios)
+        if(this.current_animation_mode == animation_mode &&
+            this.current_animation_is_reversed == this.slideshow_reversing &&
+            !ppixiv.ios)
         {
             this.animations.main.effect.setKeyframes(animation.keyframes);
             this.animations.main.updatePlaybackRate(1 / animation.duration);
             return;
         }
 
-        // If the previous animation had a fade-in running, remove it from the list and hold onto
-        // it, so it doesn't get cancelled by stop_animation.  We'll reuse it so it can complete.
-        let keep_animations = animation_mode == "slideshow-hold"? ["fade_in"]:[];
+        let previous_animation_progress = null;
+        if(this.animations.main)
+        {
+            let timing = this.animations.main.effect.getComputedTiming();
+            previous_animation_progress = timing.progress;
+        }
 
-        // Stop the previous animations.
+        let previous_animation_mode = this.current_animation_mode;
+
+        // Stop the previous animations.  If the previous animation had a fade-in running, leave it
+        // running when we're in slideshow-hold, so we let it complete.
+        // this.custom_animation
+        let keep_animations = animation_mode == "slideshow-hold"? ["fade_in"]:[];
         this.stop_animation({ keep_animations });
     
+        // If we're switching from another animation (usually slideshow) into slideshow-hold, adjust
+        // the start point of the animation so it starts in the current position, so we transition from
+        // where the previous animation left off.
+        // XXX: is this actually better than just fading out and back in
+        if(previous_animation_mode && previous_animation_mode != "slideshow-hold" && animation_mode == "slideshow-hold")
+        {
+            animation.keyframes[0] = {
+                transform: getComputedStyle(this.image_box).transform,
+
+                // Slideshow-hold normally uses ease-in-out, but we're already moving from the
+                // previous animation, so just ease-out instead.
+                easing: "ease-out",
+            };
+
+            // If the previous animation was 80% finished, skip to 80% through the hold animation.  This
+            // prevents situations where we switch 99.5% of the way through an animation and then spend
+            // our entire duration going the remaining .5%.
+            animation.duration *= 1 - previous_animation_progress;
+
+            // Make sure this isn't zero so we don't divide by zero later.
+            animation.duration = Math.max(animation.duration, 0.001);
+        }
+
         this.current_animation_mode = animation_mode;
+        this.current_animation_is_reversed = this.slideshow_reversing;
+        
+        // In slideshow-hold, delay for a second between each alternation to let the animation
+        // settle visually.
+        let end_delay =  animation_mode == "slideshow-hold"? (1000 / animation.duration):0;
 
         // Create the main animation.
         this.animations.main = new Animation(new KeyframeEffect(
@@ -1073,10 +1117,9 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
                 // The actual duration is set by updatePlaybackRate.
                 duration: 1000,
                 fill: 'forwards',
-
-                // In slideshow-hold mode, alternate the animation forever.  Other animations just run once.
-                direction: animation_mode == "slideshow-hold"? "alternate":"normal",
-                iterations: animation_mode == "slideshow-hold"? Infinity:1,
+                direction: this.slideshow_reversing? "reverse":"normal",
+                iterations: 1,
+                endDelay: end_delay,
             }
         ));
 
@@ -1085,14 +1128,8 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         this.animations.main.updatePlaybackRate(1 / animation.duration);
         this.animations.main.onfinish = this.check_animation_finished;
 
-        // If we're starting slideshow-hold, try to find a matching position.  Slideshow and slideshow-hold
-        // have the same paths and we often change from slideshow into slideshow-hold, so this tries to continue
-        // at an equivalent point in the new animation.
-        if(animation_mode == "slideshow-hold")
-            this.animations.main.currentTime = helpers.binary_search_animation(this.animations.main);
-
-        // Create the fade-in if this animation has one and we didn't keep one from the previous animation.
-        if(this.animations.fade_in == null && animation.fade_in > 0)
+        // If this animation wants a fade-in and a previous one isn't still playing, start it.
+        if(this.animations.fade_in?.playState != "playing" && animation.fade_in > 0)
             this.animations.fade_in = ppixiv.slideshow.make_fade_in(this.image_box, { duration: animation.fade_in * 1000 });
 
         // Create the fade-out.
@@ -1117,6 +1154,16 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
     {
         if(this.animations.main?.playState != "finished")
             return;
+
+        // Loop the animation when slideshow-hold ends.
+        if(this.current_animation_mode == "slideshow-hold")
+        {
+            console.log("Looping slideshow-hold");
+
+            this.slideshow_reversing =  !this.slideshow_reversing;
+            this.refresh_animation();
+            return;
+        }
 
         // If we're not in slideshow mode, just clean up the animation and stop.  We should
         // never get here in slideshow-hold.

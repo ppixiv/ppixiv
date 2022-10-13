@@ -46,8 +46,8 @@ ppixiv.slideshow = class
             return this.get_animation(ppixiv.slideshow.pans.stationary);
 
         // Choose which default to use.
-        let template = this.mode == "slideshow" || this.mode == "slideshow-hold"?
-            ppixiv.slideshow.pans.default_slideshow:
+        let template = this.mode == "slideshow"? ppixiv.slideshow.pans.default_slideshow:
+            this.mode == "slideshow-hold"? ppixiv.slideshow.pans.default_slideshow_hold:
             ppixiv.slideshow.pans.default_pan;
 
         // If the default animation doesn't go anywhere, the visible area's aspect ratio very
@@ -87,6 +87,17 @@ ppixiv.slideshow = class
             end_zoom: 1,
             x1: 0,    y1: 1,
             x2: 1,    y2: 0.1,
+        }),
+
+        // The default animation for slideshow-hold mode.  This is a vertical pan with a slight
+        // zoom.  default_slideshow doesn't always look good when looped: it starts in a bottom
+        // corner, which makes sense as a starting point since it's usually not a focal point of
+        // the image but often doesn't make sense when looping.
+        default_slideshow_hold: Object.freeze({
+            start_zoom: 1,
+            end_zoom: 1.10,
+            x1: 0.5,    y1: 1.0,
+            x2: 0.5,    y2: 0.1,
         }),
 
         // Display the image statically without panning.
@@ -178,7 +189,7 @@ ppixiv.slideshow = class
         }        
 
         // Choose a fade duration.  This needs to be quicker if the slideshow is very brief.
-        animation.fade_in = this.mode == "slideshow" || this.mode == "slideshow-hold"? Math.min(duration * 0.1, 2.5):0;
+        animation.fade_in = this.mode == "slideshow-hold"? 0: this.mode == "slideshow"? Math.min(duration * 0.1, 2.5):0;
         animation.fade_out = this.mode == "slideshow"? Math.min(duration * 0.1, 2.5):0;
         
         // If the animation is shorter than the total fade, remove the fade.

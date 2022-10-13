@@ -486,55 +486,6 @@ ppixiv.helpers = {
         }          
     },
 
-    // Try to find the time in animation which matches the current position of its target.
-    binary_search_animation(animation)
-    {
-        // Store the previous transform matrix before we change the animation time, which
-        // will clobber it.
-        let old_matrix = new DOMMatrix(getComputedStyle(animation.effect.target).transform);
-
-        let start = 0, end = animation.effect.getTiming().duration;
-        let transform_from_matrix = (matrix) => {
-            return { zoom_factor: matrix.a, x: matrix.e, y: matrix.f };
-        };
-        let transform_at_time = (time) => {
-            animation.currentTime = time;
-            let matrix = new DOMMatrix(getComputedStyle(animation.effect.target).transform);
-            return transform_from_matrix(matrix);
-        };
-
-        // The animation might be changing the x position, y position and/or the zoom.  We
-        // can use any of them to search for the position as long as we don't pick one that's
-        // not moving in this animation.  Choose the axis with the most motion, or the zoom
-        // level if it's not translating.
-        let start_transform = transform_at_time(start);
-        let end_transform = transform_at_time(end);
-        let x_movement = Math.abs(start_transform.x - end_transform.x);
-        let y_movement = Math.abs(start_transform.y - end_transform.y);
-
-        let field;
-        if(x_movement > 0.01 && y_movement > 0.01) field = x_movement > y_movement? "x":"y";
-        else if(x_movement > 0.01) field = "x";
-        else if(y_movement > 0.01) field = "y";
-        else if(Math.abs(start_transform.zoom_factor - end_transform.zoom_factor) > 0.01) field = "zoom_factor";
-        else
-        {
-            console.warn("Slideshow wasn't moving or zooming");
-            field = "x";
-        }
-
-        // The position of the old animation, on the field we chose:
-        let old_position = transform_from_matrix(old_matrix)[field];
-
-        // Binary search over the animation's duration for the time corresponding to where we
-        // were in the previous animation.
-        let time = helpers.binary_search(start, end, old_position, (time) => {
-            return transform_at_time(time)[field];
-        });
-
-        return time;
-    },
-
     // Run func from the event loop.
     //
     // This is like setTimeout(func, 0), but avoids problems with setTimeout
