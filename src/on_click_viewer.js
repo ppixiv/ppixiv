@@ -211,6 +211,12 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         if(media_id == this.media_id)
             restore_position = null;
 
+        if(media_id != this.media_id)
+        {
+            // Allow the pan animation to run again when the media ID changes.
+            this.ran_pan_animation = false;
+        }
+
         // Create a ViewerImages, which holds the actual images.  Don't give this a container,
         // since we don't want to add it to the tree just yet.
         let viewer_images = new ViewerImages({});
@@ -1086,11 +1092,14 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
             return;
         }
 
-        let previous_animation_progress = null;
-        if(this.animations.main)
+        // If we're in pan mode and we've already run the pan animation for this image, don't
+        // start it again.
+        if(animation_mode == "auto-pan")
         {
-            let timing = this.animations.main.effect.getComputedTiming();
-            previous_animation_progress = timing.progress;
+            if(this.ran_pan_animation)
+                return;
+
+            this.ran_pan_animation = true;
         }
 
         // Stop the previous animations.
