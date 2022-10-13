@@ -39,68 +39,43 @@ ppixiv.slideshow = class
     // Create the default animation.
     get_default_animation()
     {
-        // If we're in slideshow mode, see if we have a different default animation.  Panning
-        // mode always pans.
-        let slideshow_default = ppixiv.settings.get("slideshow_default", "pan");
-        if(this.mode == "slideshow" && slideshow_default == "contain")
-            return this.get_animation(ppixiv.slideshow.pans.stationary);
-
-        if(this.mode == "slideshow-hold")
+        if(this.mode == "slideshow")
         {
-            // Choose whether to use the horizontal or vertical depending on how the image fits the screen.
-            // pan_ratio is < 1 if the image can pan vertically and > 1 if it can pan horizontally.
-            let image_aspect_ratio = this.width / this.height;
-            let container_aspect_ratio = this.container_width / this.container_height;
-            let pan_ratio = image_aspect_ratio / container_aspect_ratio;
-
-            // If the image can move horizontally in the display, use the horizontal pan.  Don't use it
-            // if pan_ratio is too close to 1 (the image fits the screen), since it doesn't zoom and will
-            // be stationary.
-            let horizontal = pan_ratio > 1.1;
-            if(container_aspect_ratio < 1)
-            {
-                // If the monitor and image are both portrait, the portrait animation usually looks better,
-                // even if the image is less portrait than the monitor and pan_ratio is > 1.  Use a higher
-                // threshold for portrait monitors so we prefer the portrait animation, even if it cuts off
-                // some of the image.
-                horizontal = pan_ratio > 1.5;
-            }
-
-            let template = horizontal? 
-                ppixiv.slideshow.pans.default_slideshow_hold_landscape:
-                ppixiv.slideshow.pans.default_slideshow_hold_portrait;
-
-            return this.get_animation(template);
+            let slideshow_default = ppixiv.settings.get("slideshow_default", "pan");
+            if(slideshow_default == "contain")
+                return this.get_animation(ppixiv.slideshow.pans.stationary);
+            else    
+                return this.get_animation(ppixiv.slideshow.pans.default_slideshow);
         }
 
-        // Choose which default to use.
-        let template = this.mode == "slideshow"? ppixiv.slideshow.pans.default_slideshow:
-            ppixiv.slideshow.pans.default_pan;
+        // Choose whether to use the horizontal or vertical depending on how the image fits the screen.
+        // pan_ratio is < 1 if the image can pan vertically and > 1 if it can pan horizontally.
+        let image_aspect_ratio = this.width / this.height;
+        let container_aspect_ratio = this.container_width / this.container_height;
+        let pan_ratio = image_aspect_ratio / container_aspect_ratio;
 
-        // If the default animation doesn't go anywhere, the visible area's aspect ratio very
-        // closely matches the screen's, so there's nowhere to pan.  Use a pull-in animation
-        // instead.  We don't currently use this in pan mode, because zooming the image when
-        // in pan mode and controlling multiple tabs can be annoying.
-        let animation = this.get_animation(template);
-        if(this.mode == "slideshow" && animation.total_travel < 0.05)
+        // If the image can move horizontally in the display, use the horizontal pan.  Don't use it
+        // if pan_ratio is too close to 1 (the image fits the screen), since it doesn't zoom and will
+        // be stationary.
+        let horizontal = pan_ratio > 1.1;
+        if(container_aspect_ratio < 1)
         {
-            console.log(`Slideshow: pan animation had nowhere to move, using a pull-in instead (total_travel ${animation.total_travel})`);
-            return this.get_animation(ppixiv.slideshow.pan.pull_in);
+            // If the monitor and image are both portrait, the portrait animation usually looks better,
+            // even if the image is less portrait than the monitor and pan_ratio is > 1.  Use a higher
+            // threshold for portrait monitors so we prefer the portrait animation, even if it cuts off
+            // some of the image.
+            horizontal = pan_ratio > 1.5;
         }
-       
-        return animation;
+
+        let template = horizontal? 
+            ppixiv.slideshow.pans.default_slideshow_hold_landscape:
+            ppixiv.slideshow.pans.default_slideshow_hold_portrait;
+
+        return this.get_animation(template);
     }
 
     static pans =
     {
-        // This is like the thumbnail animation.
-        default_pan: Object.freeze({
-            start_zoom: 1,
-            end_zoom: 1,
-            x1: 0, y1: 0,
-            x2: 1, y2: 1,
-        }),
-
         // Zoom from the bottom-left to the top-right, with a slight zoom-in at the beginning.
         // For most images, either the horizontal or vertical part of the pan is usually dominant
         // and the other goes away, depending on the aspect ratio.  The zoom keeps the animation
@@ -136,14 +111,6 @@ ppixiv.slideshow = class
         stationary: Object.freeze({
             start_zoom: 0,
             end_zoom: 0,
-            x1: 0.5, y1: 0,
-            x2: 0.5, y2: 0,
-        }),
-
-        // This zooms from "contain" to a slight zoom over "cover".
-        pull_in: Object.freeze({
-            start_zoom: 0,
-            end_zoom: 1.2,
             x1: 0.5, y1: 0,
             x2: 0.5, y2: 0,
         }),
@@ -341,12 +308,8 @@ ppixiv.slideshow = class
                 duration = 0.1;
         }
 
-        // For convenience, calculate total distance the animation travelled.
-        let total_travel =  distance_in_pixels / screen_size;
-
         return {
             pan,
-            total_travel,
             duration,
         };
     }
