@@ -332,8 +332,10 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
                 </div>
                 
                 <span class=search></span>
-                <span class="move-to-bottom right-side-button keep-menu-open">${ helpers.create_icon("mat:south") }</span>
-                <span class="remove-history-entry right-side-button">X</span>
+                <span class="right-side-buttons">
+                    <span class="move-to-bottom right-side-button keep-menu-open">${ helpers.create_icon("mat:south") }</span>
+                    <span class="remove-history-entry right-side-button">X</span>
+                </span>
             </a>
         `});
         entry.dataset.tag = tag_search;

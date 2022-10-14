@@ -1816,21 +1816,32 @@ a.box-link, span.box-link
             }
         }
 
-        .right-side-button
-        {
-            height: 30px;
-            width: 30px;
-
-            /* Set an arbitrarily low negative margin.  This makes it so the button extends into the
-             * surrounding row's padding instead of pushing the whole row out.  See
-             * .input-dropdown-list > .entry padding. */
-            margin: -6px 0;
-
-            display: inline-flex;
+        .right-side-buttons {
+            position: absolute;
+            right: 0;
+            display: flex;
+            flex-direction: row;
             align-items: center;
-            justify-content: center;
-            @media(hover: hover) {
-                visibility: hidden;
+            gap: 0.25em;
+            margin-right: 0.5em;
+
+            .right-side-button
+            {
+                height: 30px;
+                width: 30px;
+                background-color: rgba(0,0,0,0.75);
+
+                // Set an arbitrarily low negative margin.  This makes it so the button extends into the
+                // surrounding row's padding instead of pushing the whole row out.  See
+                // .input-dropdown-list > .entry padding.
+                margin: -6px 0;
+
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                @media(hover: hover) {
+                    visibility: hidden;
+                }
             }
         }
 

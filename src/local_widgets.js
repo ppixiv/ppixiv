@@ -1080,7 +1080,9 @@ ppixiv.local_search_dropdown_widget = class extends ppixiv.widget
         let entry = this.create_template({name: "tag-dropdown-entry", html: `
             <a class=entry href=#>
                 <span class=search></span>
-                <span class="remove-history-entry right-side-button keep-menu-open">X</span>
+                <span class="right-side-buttons">
+                    <span class="remove-history-entry right-side-button keep-menu-open">X</span>
+                </span>
             </a>
         `});
         entry.dataset.tag = search;
