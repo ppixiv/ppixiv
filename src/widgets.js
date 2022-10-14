@@ -1602,6 +1602,13 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
         this.menu_options = [];
     }
 
+    // This is called before we become visible if alt is held while our button is pressed.
+    // We use this to hide some rarely-used options.
+    set_alt_pressed(pressed)
+    {
+        this.show_extra = pressed;
+    }
+
     create_menu_options()
     {
         let option_box = this.container.querySelector(".options");
@@ -1895,7 +1902,8 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
         {
             this.menu_options.push(menu_options.similar_illustrations());
             this.menu_options.push(menu_options.similar_artists());
-            this.menu_options.push(menu_options.similar_bookmarks());
+            if(this.show_extra)
+                this.menu_options.push(menu_options.similar_bookmarks());
             
             this.menu_options.push(menu_options.download_image());
             this.menu_options.push(menu_options.download_manga());
@@ -1919,7 +1927,8 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
         this.menu_options.push(menu_options.image_editing());
         if(ppixiv.native)
             this.menu_options.push(menu_options.index_folder());
-        this.menu_options.push(menu_options.refresh_image());
+        if(this.show_extra || ppixiv.native)
+            this.menu_options.push(menu_options.refresh_image());
 
         // Add settings for mobile.  On desktop, this is available in a bunch of other
         // higher-profile places.
@@ -1995,6 +2004,11 @@ ppixiv.toggle_dropdown_menu_widget = class extends ppixiv.illust_widget
             if(this.require_image && !this.container.classList.contains("enabled"))
                 return;
             
+            // If the widget supports set_alt_pressed, tell it whether shift was held
+            // while it was opened.
+            if(this.widget.set_alt_pressed)
+                this.widget.set_alt_pressed(e.altKey);
+
             this.widget.visible = !this.widget.visible;
         });
     }
