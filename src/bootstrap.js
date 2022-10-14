@@ -60,12 +60,28 @@ async function Bootstrap(env)
         mobile: ios || android,
     };
 
-    function run_script(source)
+    let showed_error = false;
+    function run_script(source, { path }={})
     {
         let script = document.createElement("script");
+
+        // For some reason script.onerror isn't called, and we have to do this on window.onerror.
+        let success = true;
+        let onerror = (e) => {
+            success = false;
+            if(showed_error)
+                return;
+            showed_error = true;
+            if(path) path = ' ' + path;
+            alert(`Error loading ppixiv${path ?? ''}:\n\n${e.message}`);
+        };
+        window.addEventListener("error", onerror);
         script.textContent = source;
         document.documentElement.appendChild(script);
+        window.removeEventListener("error", onerror);
         script.remove();
+
+        return success;
     }
 
     // Create window.ppixiv.
@@ -81,7 +97,9 @@ async function Bootstrap(env)
             continue;
         }
 
-        run_script(`with(ppixiv) { ${source} }`);
+        // Stop loading if a file fails to load.
+        if(!run_script(`with(ppixiv) { ${source} }`, { path }))
+            return;
     }
 
     // If we're running in a user script and we have access to GM.xmlHttpRequest, give access to
