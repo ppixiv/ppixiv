@@ -422,7 +422,7 @@ ppixiv.helpers = {
         //
         // If we revoke the URL now, or with a small timeout, Firefox sometimes just doesn't show
         // the save dialog, and there's no way to know when we can, so just use a large timeout.
-        setTimeout(() => {
+        helpers.setTimeout(() => {
             window.URL.revokeObjectURL(blobUrl);
             a.remove();
         }, 1000);
@@ -502,7 +502,7 @@ ppixiv.helpers = {
         return new Promise((accept, reject) => {
             let timeout = null;
             let abort = () => {
-                clearTimeout(timeout);
+                helpers.clearTimeout(timeout);
                 reject("aborted");
             };
     
@@ -592,14 +592,14 @@ ppixiv.helpers = {
             if(this.id == null)
                 return;
     
-            clearTimeout(this.id);
+            helpers.clearTimeout(this.id);
             this.id = null;
         }
     
         set(ms)
         {
             this.clear();
-            this.id = setTimeout(this.run_func, ms);
+            this.id = helpers.setTimeout(this.run_func, ms);
         }
     },
     
@@ -2322,7 +2322,7 @@ ppixiv.helpers = {
     async await_with_timeout(promise, ms)
     {
         let sleep = new Promise((accept, reject) => {
-            setTimeout(() => {
+            helpers.setTimeout(() => {
                 accept("timed-out");
             }, ms);
         });
@@ -3173,7 +3173,7 @@ ppixiv.helpers = {
             // timer will activate after the pointerup and before the click.  This happens even
             // though touch-action is set to prevent delayed clicks.  Using a slightly longer timeout
             // seems to avoid this.
-            setTimeout(() => abort.abort(), 50);
+            helpers.setTimeout(() => abort.abort(), 50);
         };
 
         window.addEventListener("click", click, { capture: true, signal: abort.signal });
@@ -3333,20 +3333,18 @@ ppixiv.hover_with_delay = class
         // If the opposite event is pending, cancel it.
         if(this.hover_timeout != null)
         {
-            clearTimeout(this.hover_timeout);
+            helpers.clearTimeout(this.hover_timeout);
             this.hover_timeout = null;
         }
 
         this.real_hover_state = hovering;
         this.pending_hover = hovering;
         let delay = hovering? this.delay_enter:this.delay_exit;
-        this.hover_timeout = setTimeout(() => {
+        this.hover_timeout = helpers.setTimeout(() => {
             this.pending_hover = null;
             this.hover_timeout = null;
             helpers.set_class(this.element, "hover", this.real_hover_state);
         }, delay);
-
-
     }
 }
 
@@ -3832,7 +3830,7 @@ ppixiv.pointer_listener = class
             options.signal.addEventListener("abort", (e) => {
                 // If we have a block_contextmenu_timer timer running when we're cancelled, remove it.
                 if(this.block_contextmenu_timer != null)
-                    clearTimeout(this.block_contextmenu_timer);
+                    helpers.clearTimeout(this.block_contextmenu_timer);
             });
         }
         
@@ -3958,11 +3956,11 @@ ppixiv.pointer_listener = class
         this.blocking_context_menu_until_timer = true;
         if(this.block_contextmenu_timer != null)
         {
-            clearTimeout(this.block_contextmenu_timer);
+            helpers.clearTimeout(this.block_contextmenu_timer);
             this.block_contextmenu_timer = null;
         }
 
-        this.block_contextmenu_timer = setTimeout(() => {
+        this.block_contextmenu_timer = helpers.setTimeout(() => {
             this.block_contextmenu_timer = null;
 
             // console.log("Releasing context menu after timer");
@@ -4099,7 +4097,7 @@ ppixiv.global_key_listener = class
         
         // If key is already pressed, run the callback.  Defer this so we don't call
         // it while the caller is still registering.
-        setTimeout(() => {
+        helpers.setTimeout(() => {
             // Stop if the listener was unregistered before we got here.
             if(!this.get_listeners_for_key(key).has(listener))
                 return;
@@ -5337,7 +5335,7 @@ ppixiv.MobileIsolatedTapHandler = class
             return;
 
         // Wait a while to see if any other pointer event happens.
-        let id = this.waiting_for_other_events = setTimeout(() => {
+        let id = this.waiting_for_other_events = helpers.setTimeout(() => {
             if(id != this.waiting_for_other_events)
                 return;
 
@@ -5351,7 +5349,7 @@ ppixiv.MobileIsolatedTapHandler = class
         if(this.waiting_for_other_events == null)
             return;
 
-        clearTimeout(this.waiting_for_other_events);
+        helpers.clearTimeout(this.waiting_for_other_events);
         this.waiting_for_other_events = null
     }
 };
