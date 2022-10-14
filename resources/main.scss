@@ -32,11 +32,58 @@ html {
 
     background-color: var(--main-background-color);
     background-image: var(--background-noise);
+}
+
+// Scrollbar styling.
+//
+// This is a pain:
+// - -webkit-scrollbar isn't a parent of -webkit-scrollbar-thumb, so you can't do
+// ::-webkit-scrollbar:hover ::-webkit-scrollbar-thumb to hide the thumb until the
+// scrollbar is hidden.
+// - The scrollbar doesn't update responsively when we update the thumbnail view when
+// this is used.
+//
+// But, default OS scrollbars are really ugly in a dark theme.  Instead of hiding them entirely,
+// we style the thumb to be dark so it mostly blends into the background when it's not in use,
+// then set the scrollbar itself to a lighter color on hover, which makes the thumb visible.
+// This keeps the scrollbar available, but keeps the slow updates from being visible during normal
+// use.  It also keeps the weirdness of the scrollbar updating as we add thumbs from being visible
+// (scrollbars as a concept don't mix well with dynamic content).
+html {
+    --scrollbar-width: 18px;
+    --scrollbar-thumb-width: 4px;
+    --scrollbar-color: rgba(0,0,0,0);
+    --scrollbar-hover-color: #888;
+
+    // Make scrollbars other than the top-level document one narrower and not hidden.
+    > body > * {
+        --scrollbar-width: 10px;
+        --scrollbar-thumb-width: 1px;
+        --scrollbar-color: var(--scrollbar-hover-color);
+    }
+
+    ::-webkit-scrollbar {
+        width: var(--scrollbar-width);
+        background-color: var(--scrollbar-color);
+        &:hover { background-color: var(--scrollbar-hover-color); }
+    }
+
+    ::-webkit-scrollbar-thumb {
+        transition: background-color .25s;
+        background-color: rgba(30,30,30,1); // mostly blends in with the dark noise background
+        &:hover { background-color: #008; }
+
+        border: var(--scrollbar-thumb-width) solid rgba(0, 0, 0, 0);
+        background-clip: padding-box;
+    }
+
+    ::-webkit-resizer { background-color: #222; }
 
     // If we're on the search view, always show the scrollbar, so it doesn't disappear and
     // reappear as we load searches, causing the UI to shift back and forth slightly.
     &[data-current-view="search"] {
         overflow-y: scroll;
+        overflow-y: overlay;
     }
 }
  
@@ -1813,6 +1860,7 @@ a.box-link, span.box-link
             &.selected { background-color: var(--box-link-selected-color); }
             @media(hover: hover) {
                 &:hover { background-color: var(--box-link-hover-color); }
+                &.selected { background-color: var(--box-link-selected-hover-color); }
             }
         }
 
