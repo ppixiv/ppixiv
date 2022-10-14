@@ -710,12 +710,32 @@ input {
     }
 }
 
-/* The row with the search title, with buttons aligned to the right.  The buttons
- * are always aligned to the top if the title is long. */
-.title-with-button-row {
-    display: flex;
-    flex-direction: row;
-    align-items: start;
+.title-with-button-row-container {
+    /* The row with the search title, with buttons aligned to the right.  The buttons
+     * are always aligned to the top if the title is long. */
+    .title-with-button-row {
+        display: flex;
+        flex-direction: row;
+        align-items: start;
+    }
+    * {
+        text-overflow: ellipsis;
+    }
+
+    @media(hover: hover) {
+        // Limit the title row to one line, and show the full text as an overlay on hover.
+        height: 2em;
+        overflow: hidden;
+
+        &:hover {
+            overflow: visible;
+            .title-with-button-row {
+                background-color: var(--ui-bg-color);
+                position: relative;
+                z-index: 1;
+            }
+        }
+    }
 }
 
 .icon-button {
@@ -1821,91 +1841,107 @@ a.box-link, span.box-link
         display: flex;
         flex-direction: column;
         white-space: normal;
-    
+
+        &.editing .tag-dropdown-separator .toggle-edit-button {
+            background-color: #088;
+        }
+
+        // Hide edit buttons when editing is disabled.
+        &:not(.editing) > .entry .edit-button {
+            display: none !important;
+        }
+
+        .tag-dropdown-separator
+        {
+            position: sticky;
+            top: 0;
+            width: 100%;
+            display: flex;
+            gap: .5em;
+            align-items: center;
+            background-color: #001a44;
+            padding: .5em 1em;
+            border-bottom: 5px solid #000;
+
+            .toggle-edit-button {
+                display: flex;
+                padding: 4px;
+                border: 1px solid white;
+                background-color: #004;
+                cursor: pointer;
+            }
+        }
+
         > .entry {
             display: flex;
             flex-direction: row;
             color: var(--box-link-fg-color);
             align-items: center;
-    
-            /* This 6px vertical padding should match the remove-history-entry padding. */
-            padding: 6px 0;
-        
+            gap: .5em;
+            padding: 0.5em;
+
+            // Show edit buttons in the modes specified in data-shown-in.
+            &.recent .edit-button[data-shown-in ~= "recent"] { display: flex; }
+            &.saved .edit-button[data-shown-in ~= "saved"] { display: flex; }
+            &.autocomplete .edit-button[data-shown-in ~= "autocomplete"] { display: flex; }
+
+            .edit-button {
+                display: none;
+                align-items: center;
+                justify-content: center;
+                border: 1px solid #aaa;
+                height: 1.5em;
+                width: 1.5em;
+                cursor: pointer;
+
+                @media(hover: hover) {
+                    &:hover {
+                        color: #000;
+                        background-color: #ccc;
+                    }
+                }
+            }
+   
             .search {
                 flex: 1;
-                padding-left: 7px;
                 height: 100%;
+                display: inline-flex;
+                flex-direction: row;
+                flex-wrap: wrap;
+                align-items: center;
+                gap: .5em;
+                .space {
+                    // padding: 0px 6px;
+                }
             }
     
             .search .word {
                 display: inline-flex;
                 align-items: center;
                 height: 100%;
-                padding: 0px 5px;
                 line-height: 1em;
     
                 &.or {
                     font-size: 12px;
-                    padding: 0;
                     color: #aaa;
                 }
             }
-            .suggestion-icon {
-                margin: 2px -2px 0 2px;    
-            }
-            &:not(.autocomplete) .suggestion-icon {
-                display: none;
-            }
 
             &.selected { background-color: var(--box-link-selected-color); }
+        }
+        
+        // Only highlight on hover when editing is disabled, since activating entries is disabled
+        // during editing.
+        &:not(.editing) > .entry {
             @media(hover: hover) {
                 &:hover { background-color: var(--box-link-hover-color); }
-                &.selected { background-color: var(--box-link-selected-hover-color); }
+                &:hover.selected { background-color: var(--box-link-selected-hover-color); }
             }
         }
 
-        .right-side-buttons {
-            position: absolute;
-            right: 0;
-            display: flex;
-            flex-direction: row;
-            align-items: center;
-            gap: 0.25em;
-            margin-right: 0.5em;
-
-            .right-side-button
-            {
-                height: 30px;
-                width: 30px;
-                background-color: rgba(0,0,0,0.75);
-
-                // Set an arbitrarily low negative margin.  This makes it so the button extends into the
-                // surrounding row's padding instead of pushing the whole row out.  See
-                // .input-dropdown-list > .entry padding.
-                margin: -6px 0;
-
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-                @media(hover: hover) {
-                    visibility: hidden;
-                }
-            }
-        }
-
-        /* Hide the button to remove history entries from non-history entries. */
-        & > .entry:not(.history) .right-side-button {
-            display: none;
-        }
-
-        @media(hover: hover) {
-            & > .entry:hover .right-side-button {
-                visibility: visible;
-            }
-            .right-side-button:hover {
-                color: #000;
-                background-color: #c0c0c0;
-            }
+        // Disable the pointer cursor on the search links while editing.
+        &.editing .entry {
+            cursor: default;
         }
     }
 

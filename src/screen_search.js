@@ -14,11 +14,13 @@ let thumbnail_ui = class extends ppixiv.widget
                     <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==">
                 </a>
 
-                <div class=title-with-button-row>
-                    <div class="displaying title-font"></div>
-                    <div style="flex: 1;"></div>
-                    <!-- Links at the top left when viewing a user will be inserted here. -->
-                    <div class="button-row user-links">
+                <div class=title-with-button-row-container>
+                    <div class=title-with-button-row>
+                        <div class="displaying title-font"></div>
+                        <div style="flex: 1;"></div>
+                        <!-- Links at the top left when viewing a user will be inserted here. -->
+                        <div class="button-row user-links">
+                        </div>
                     </div>
                 </div>
 
@@ -187,7 +189,7 @@ let thumbnail_ui = class extends ppixiv.widget
                 <div class="data-source-specific" data-datasource=search>
                     <div>
                         <div class="search-box tag-search-box">
-                            <div class="input-field-container hover-menu-box" tabindex=1>
+                            <div class="input-field-container hover-menu-box">
                                 <input placeholder=Tags>
 
                                 <span class="edit-search-button right-side-button">

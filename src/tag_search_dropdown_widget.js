@@ -103,8 +103,10 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
 {
     constructor({input_element, ...options})
     {
+        // This is a tabindex so there's a place for focus to go for all clicks inside it, so
+        // clicks inside it don't cause us to lose focus and hide.        
         super({...options, visible: false, template: `
-            <div class=search-history>
+            <div class=search-history tabindex="1">
                 <div class=input-dropdown>
                     <div class=input-dropdown-list>
                         <!-- template-tag-dropdown-entry instances will be added here. -->
@@ -140,40 +142,170 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
 
         this.container.hidden = true;
 
-        // Sometimes the popup closes when searches are clicked and sometimes they're not.  Make sure
-        // we always close on navigation.
-        this.container.addEventListener("click", (e) => {
-            if(e.defaultPrevented)
-                return;
-            let a = e.target.closest("A");
-            if(a == null)
+        this.pointer_listener = new ppixiv.pointer_listener({
+            element: this.container,
+            callback: this.pointerevent,
+        });
+
+        this.set_editing(false);
+    }
+    
+    set_editing(value)
+    {
+        if(this.editing == value)
+            return;
+
+        this.editing = value;
+        helpers.set_class(this.container.querySelector(".input-dropdown-list"), "editing", this.editing);
+    }
+
+    pointerevent = (e) =>
+    {
+        if(e.pressed)
+        {
+            // See if this is a click on a drag handle.
+            let drag_handle = e.target.closest(".drag-handle");
+            if(drag_handle == null)
                 return;
 
-            this.input_element.blur();
-            this.hide();
-        });
+            e.preventDefault();
+            e.stopPropagation();
+
+            // Start dragging.  We remember the tag we're dragging rather than the element so this
+            // stays valid as the list is refreshed.
+            let entry = drag_handle.closest(".entry");
+            this.dragging_tag = entry.dataset.tag;
+
+            window.addEventListener("pointermove", this.pointermove_drag_handle);
+        }
+        else if(this.dragging_tag)
+        {
+            this.stop_dragging();
+        }
+    }
+
+    find_tag_entry(tag)
+    {
+        for(let entry of this.container.querySelectorAll(".entry[data-tag]"))
+        {
+            if(entry.dataset.tag == tag)
+                return entry;
+        }
+        return entry;
+    }
+
+    pointermove_drag_handle = (e) =>
+    {
+        let entry = this.find_tag_entry(this.dragging_tag);
+        let next_entry = entry?.nextElementSibling;
+        let previous_entry = entry?.previousElementSibling;
+
+        // To see if we should move up, compare the Y position to the center of the combination
+        // of the element and the element above it.  Only drag around other saved entries, not
+        // to recent entries.
+        let entry_rect = entry.getBoundingClientRect();
+        if(next_entry && next_entry.classList.contains("saved"))
+        {
+            let next_rect = next_entry.getBoundingClientRect();
+            let y = (entry_rect.top + next_rect.bottom) / 2;
+            if(e.clientY > y)
+            {
+                helpers.edit_recent_search_tag(this.dragging_tag, { action: "down" });
+                return;
+            }
+        }
+
+        // To see if we should move down, compare the Y position to the center of the combination
+        // of the element and the element below it.
+        if(previous_entry && previous_entry.classList.contains("saved"))
+        {
+            let previous_rect = previous_entry.getBoundingClientRect();
+            let y = (previous_rect.top + entry_rect.bottom) / 2;
+            if(e.clientY < y)
+            {
+                helpers.edit_recent_search_tag(this.dragging_tag, { action: "up" });
+                return;
+            }
+        }
+    };
+
+    stop_dragging()
+    {
+        this.dragging_tag = null;
+        window.removeEventListener("pointermove", this.pointermove_drag_handle);
     }
 
     dropdown_onclick = (e) =>
     {
-        let remove_entry = e.target.closest(".remove-history-entry");
-        let move_to_bottom = e.target.closest(".move-to-bottom");
-        if(remove_entry != null || move_to_bottom != null)
+        let entry = e.target.closest(".entry");
+
+        // Toggle editing:
+        let toggle_edit_button = e.target.closest(".toggle-edit-button");
+        if(toggle_edit_button)
         {
-            // Clicked X to remove a tag from history.
             e.stopPropagation();
             e.preventDefault();
-            var tag = e.target.closest(".entry").dataset.tag;
 
-            let action = move_to_bottom? "bottom":"remove";
-            helpers.edit_recent_search_tag(tag, { action });
+            let old_top = toggle_edit_button.getBoundingClientRect().top;
+
+            this.set_editing(!this.editing);
+
+            // Toggling editing will change layout.  Try to scroll the list so the editing button
+            // that was just clicked stays in the same place.
+            let new_top = toggle_edit_button.getBoundingClientRect().top;
+            let move_by = new_top - old_top;
+            this.input_dropdown.scrollTop += move_by;
             return;
         }
 
-        // Close the dropdown if the user clicks a tag (but not when clicking
-        // remove-history-entry).
-        if(e.target.closest(".tag"))
-            this.hide();
+        let tag_button = e.target.closest("a[data-tag]");
+        if(tag_button)
+        {
+            if(this.editing)
+            {
+                // Don't navigate on click while we're editing tags.  Note that the anchor is around
+                // the buttons, so this may be a click on an editor button too.
+                e.stopPropagation();
+                e.preventDefault();
+            }
+            else
+            {
+                // When a tag link is clicked, hide and also unfocus the input box so clicking it will
+                // reopen us.
+                this.input_element.blur();
+                this.hide();
+                return;
+            }
+        }
+
+        if(this.editing)
+        {
+            let save_search = e.target.closest(".save-search");
+            if(save_search)
+            {
+                e.stopPropagation();
+                e.preventDefault();
+
+                // If we're moving a tag from recents to saved, put it at the end.  If we're saving
+                // from autocomplete put it at the beginning.  This just makes it more likely that
+                // the added tag will be visible, so the user can see what happened, without having
+                // to scroll the list (he might be adding several so that could be annoying).
+                let add_to_end = entry.classList.contains("recent");
+                helpers.add_recent_search_tag(entry.dataset.tag, {type: "saved", add_to_end});
+            }
+
+            let remove_entry = e.target.closest(".remove-history-entry");
+            if(remove_entry != null)
+            {
+                // Clicked X to remove a tag from history.
+                e.stopPropagation();
+                e.preventDefault();
+                let tag = entry.dataset.tag;
+
+                helpers.edit_recent_search_tag(tag, { action: "remove" });
+                return;
+            }
+        }
     }
 
     input_onkeydown = (e) =>
@@ -231,6 +363,8 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         // If populate_dropdown is still running, cancel it.
         this.cancel_populate_dropdown();
 
+        this.set_editing(false);
+        this.stop_dragging();
         this.container.hidden = true;
     }
 
@@ -327,15 +461,17 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
     {
         let entry = this.create_template({name: "tag-dropdown-entry", html: `
             <a class=entry href=#>
-                <div class=suggestion-icon>
-                    <ppixiv-inline src="resources/search-result-icon.svg"></ppixiv-inline>
+                <div class="edit-button drag-handle" data-shown-in="saved">
+                    ${ helpers.create_icon("mat:drag_handle") }
                 </div>
-                
+
+                <div class="edit-button save-search" data-shown-in="recent autocomplete">
+                    ${ helpers.create_icon("mat:push_pin") }
+                </div>
+
                 <span class=search></span>
-                <span class="right-side-buttons">
-                    <span class="move-to-bottom right-side-button keep-menu-open">${ helpers.create_icon("mat:south") }</span>
-                    <span class="remove-history-entry right-side-button">X</span>
-                </span>
+
+                <span class="edit-button remove-history-entry" data-shown-in="recent saved">X</span>
             </a>
         `});
         entry.dataset.tag = tag_search;
@@ -377,6 +513,13 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
 
         var url = ppixiv.helpers.get_args_for_tag_search(tag_search, ppixiv.plocation);
         entry.href = url;
+
+        // If making a URL for this search from the current URL doesn't change anything, it's the
+        // search we're currently on.  This always removes the language from the URL, so remove
+        // it to compare.
+        if(helpers.get_url_without_language(ppixiv.plocation).toString() == url.toString())
+            entry.classList.add("selected");
+
         return entry;
     }
 
@@ -444,13 +587,14 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         let abort_controller = this.populate_dropdown_abort = new AbortController();        
         let abort_signal = abort_controller.signal;
 
-        let tag_searches = settings.get("recent-tag-searches") || [];
         let autocompleted_tags = this.current_autocomplete_results;
 
+        let recent_tags = helpers.get_recent_tag_searches("recent");
+        let saved_tags = helpers.get_recent_tag_searches("saved");
+
         // Separate tags in each search, so we can look up translations.
-        //
         var all_tags = {};
-        for(let tag_search of tag_searches)
+        for(let tag_search of [...recent_tags, ...saved_tags])
         {
             for(let tag of helpers.split_search_tags(tag_search))
             {
@@ -463,8 +607,14 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
             all_tags[tag.tag_name] = true;
 
         all_tags = Object.keys(all_tags);
-        
-        let translated_tags = await tag_translations.get().get_translations(all_tags, "en");
+    
+        // Get tag translations.
+        //
+        // Don't do this if we're updating the list during a drag.  The translations will never change
+        // since we're just reordering the list, and we need to avoid going async to make sure we update
+        // the list immediately since the drag will get confused if it isn't.
+        if(this.dragging_tag == null)
+            this.translated_tags = await tag_translations.get().get_translations(all_tags, "en");
 
         // Check if we were aborted while we were loading tags.
         if(abort_signal && abort_signal.aborted)
@@ -477,21 +627,52 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         helpers.remove_elements(list);
         this.selected_idx = null;
 
+        if(autocompleted_tags.length)
+            list.appendChild(this.create_separator("Suggestions", "mat:assistant"));
+
         for(var tag of autocompleted_tags)
         {
-            var entry = this.create_entry(tag.tag_name, translated_tags);
+            var entry = this.create_entry(tag.tag_name, this.translated_tags);
             entry.classList.add("autocomplete"); 
             list.appendChild(entry);
         }
 
-        for(var tag of tag_searches)
+        if(saved_tags.length)
+            list.appendChild(this.create_separator("Saved tags", "mat:star"));
+
+        // Show saved tags above recent tags.
+        for(let tag of saved_tags)
         {
-            var entry = this.create_entry(tag, translated_tags);
+            var entry = this.create_entry(tag, this.translated_tags);
             entry.classList.add("history");
+            entry.classList.add("saved");
+            list.appendChild(entry);
+        }
+
+        if(recent_tags.length)
+            list.appendChild(this.create_separator("Recent tags", "mat:history"));
+
+        for(let tag of recent_tags)
+        {
+            var entry = this.create_entry(tag, this.translated_tags);
+            entry.classList.add("history");
+            entry.classList.add("recent");
             list.appendChild(entry);
         }
 
         return true;
+    }
+
+    create_separator(label, icon)
+    {
+        return this.create_template({html: `
+            <div class="tag-dropdown-separator">
+                ${ helpers.create_icon(icon) }
+                <span>${label}</span>
+                <span style="flex: 1;"></span>
+                <div class=toggle-edit-button>${ helpers.create_icon("mat:edit") }</div>
+            </div>
+        `});
     }
 
     cancel_populate_dropdown()
@@ -632,6 +813,10 @@ ppixiv.tag_search_edit_widget = class extends ppixiv.widget
         var all_tags = {};
         for(let tag_search of tag_searches)
         {
+            // Ignore the separator between recent and saved tags.
+            if(tag_search == null)
+                continue;
+
             for(let tag of helpers.split_search_tags(tag_search))
             {
                 tag = helpers.split_tag_prefixes(tag)[1];
