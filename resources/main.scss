@@ -257,10 +257,11 @@ html[data-theme="light"] {
     display: none !important;
 }
 
-input {
+input, textarea, [contenteditable] {
     // Make this consistent, since user agent styles vary.
     padding: 1px 2px;
-
+    font-family: unset;
+    font-size: unset;
     background-color: var(--frame-bg-color);
     color: var(--frame-fg-color);
     border: none;
@@ -1821,37 +1822,75 @@ a.box-link, span.box-link
 
 // The search edit and search history boxes:
 .input-dropdown {
-    width: 500px; /* overridden by script */
-    max-width: 800px;
-    margin: 1px;
     z-index: 1;
     user-select: none;
     -webkit-user-select: none;
-
-    /* Always show the vertical scrollbar.  Otherwise, the resize handle falls under the buttons
-     * when it's not shown. */
-    overflow-x: hidden;
-    overflow-y: scroll;
-    resize: horizontal;
     position: absolute;
     background-color: var(--box-link-bg-color);
-    
-    // The search history dropdown:
+
+    // Global editor buttons.  These sit on top of the scroller overlapping the sticky header
+    // area.
+    > .tag-dropdown-global-buttons {
+        font-size: 150%;
+        position: absolute;
+        top: 0;
+        left: calc(100% + 0em);
+        background-color: #004;
+        padding: 0.5em;
+
+        display: flex;
+        flex-direction: column;
+        gap: .5em;
+    }
+
+    // Hide all edit buttons except for the main enable editing button when not editing.
+    &:not(.editing) {
+        .edit-button:not(.toggle-edit-button) { display: none !important; }
+    }
+
+    .edit-button {
+        align-items: center;
+        justify-content: center;
+        border: 1px solid #bbb;
+        height: 1.5em;
+        width: 1.5em;
+        cursor: pointer;
+        display: flex;
+
+        &.selected {
+            color: #000;
+            background-color: #ccc;
+        }
+        
+        @media(hover: hover) {
+            &:hover {
+                border-color: #fff;
+            }
+        }
+    }
+
+    // The search history scroller:
     > .input-dropdown-list {
+        // Always show the vertical scrollbar.  Otherwise, the resize handle falls under the buttons
+        // when it's not shown.
+        overflow-x: hidden;
+        overflow-y: scroll;
+        resize: horizontal;
+        width: 500px; /* overridden by script */
+        max-width: 800px;
+        margin: 1px;
+
         display: flex;
         flex-direction: column;
         white-space: normal;
 
-        &.editing .tag-dropdown-separator .toggle-edit-button {
-            background-color: #088;
-        }
+        // Only show edit buttons like delete on user sections, not built-in ones.
+        .tag-section:not(.user-section) .user-section-edit-button { display: none !important; }
 
-        // Hide edit buttons when editing is disabled.
-        &:not(.editing) > .entry .edit-button {
-            display: none !important;
-        }
+        // Hide the delete button for autocomplete.
+        .tag-section.autocomplete .delete-entry { display: none !important; }
 
-        .tag-dropdown-separator
+        .tag-section
         {
             position: sticky;
             top: 0;
@@ -1862,14 +1901,17 @@ a.box-link, span.box-link
             background-color: #001a44;
             padding: .5em 1em;
             border-bottom: 5px solid #000;
+            cursor: pointer;
 
-            .toggle-edit-button {
-                display: flex;
-                padding: 4px;
-                border: 1px solid white;
-                background-color: #004;
-                cursor: pointer;
+            .label, .label-edit {
+                flex: 1;
             }
+        }
+
+        // When editing, reduce the padding on the section headers to match the other rows, so
+        // the buttons line up.
+        &.editing .tag-section {
+            padding: .5em;
         }
 
         > .entry {
@@ -1884,22 +1926,8 @@ a.box-link, span.box-link
             &.recent .edit-button[data-shown-in ~= "recent"] { display: flex; }
             &.saved .edit-button[data-shown-in ~= "saved"] { display: flex; }
             &.autocomplete .edit-button[data-shown-in ~= "autocomplete"] { display: flex; }
-
             .edit-button {
                 display: none;
-                align-items: center;
-                justify-content: center;
-                border: 1px solid #aaa;
-                height: 1.5em;
-                width: 1.5em;
-                cursor: pointer;
-
-                @media(hover: hover) {
-                    &:hover {
-                        color: #000;
-                        background-color: #ccc;
-                    }
-                }
             }
    
             .search {
@@ -2916,16 +2944,19 @@ svg.heart-image .delete {
         display: flex;
         align-items: center;
 
-        > input {
+        > .editor {
             flex: 1;
             padding: 4px;
+            min-width: 10em;
+            min-width: 25em;
+            white-space: pre-wrap; // don't cut off whitespace
         }
+
         > .submit-button {
             cursor: pointer;
-            display: inline-block;
-            width: 20px;
-            text-align: center;
+            display: flex;
             margin-left: 6px;
+            padding: .25em;
             border: 1px solid white;
             html[data-theme="light"] & { border-color: #444; }
         }

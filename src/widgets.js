@@ -1164,16 +1164,23 @@ ppixiv.tag_widget = class extends ppixiv.widget
 // This is currently special purpose for the add tag prompt.
 ppixiv.text_prompt = class extends ppixiv.dialog_widget
 {
+    static async prompt(options)
+    {
+        let prompt = new this(options);
+        return await prompt.result;
+    }
+
     constructor({
         title,
+        value="",
         ...options
     }={})
     {
         super({...options, classes: "text-entry-popup", dialog_type: "small", template: `
             <div class=header></div>
             <div class=input-box>
-                <input>
-                <span class=submit-button>+</span>
+                <div class=editor contenteditable></div>
+                <span class=submit-button>${ helpers.create_icon("mat:check") }</span>
             </div>
         `});
         
@@ -1181,8 +1188,10 @@ ppixiv.text_prompt = class extends ppixiv.dialog_widget
             this._completed = completed;
         });
 
-        this.input = this.container.querySelector("input");
-        this.input.value = "";
+        this.input = this.container.querySelector(".editor");
+
+        // Set text by creating a node manually, since textContent won't create a node if value is "".
+        this.input.appendChild(document.createTextNode(value));
 
         this.container.querySelector(".header").innerText = title;
         this.container.querySelector(".submit-button").addEventListener("click", this.submit);
@@ -1215,6 +1224,10 @@ ppixiv.text_prompt = class extends ppixiv.dialog_widget
 
             // Focus when we become visible.
             this.input.focus();
+
+            // Move the cursor to the end.
+            let size = this.input.firstChild.length;
+            window.getSelection().setBaseAndExtent(this.input.firstChild, size, this.input.firstChild, size);
         }
         else
         {
@@ -1226,7 +1239,7 @@ ppixiv.text_prompt = class extends ppixiv.dialog_widget
     // Close the popup and call the completion callback with the result.
     submit = () =>
     {
-        let result = this.input.value;
+        let result = this.input.textContent;
         this._completed(result);
 
         this.visible = false;
@@ -1235,6 +1248,12 @@ ppixiv.text_prompt = class extends ppixiv.dialog_widget
 
 ppixiv.confirm_prompt = class extends ppixiv.dialog_widget
 {
+    static async prompt(options)
+    {
+        let prompt = new this(options);
+        return await prompt.result;
+    }
+
     constructor({
         text,
         ...options
@@ -2003,7 +2022,7 @@ ppixiv.toggle_dropdown_menu_widget = class extends ppixiv.illust_widget
             // Ignore clicks if this button isn't enabled.
             if(this.require_image && !this.container.classList.contains("enabled"))
                 return;
-            
+
             // If the widget supports set_alt_pressed, tell it whether shift was held
             // while it was opened.
             if(this.widget.set_alt_pressed)

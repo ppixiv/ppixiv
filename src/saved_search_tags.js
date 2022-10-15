@@ -1,5 +1,21 @@
 // This handles the list of saved and recent search tags.  For backwards-compatibility
-// this is stored in the "recent-tag-searches" setting.
+// this is stored in the "recent-tag-searches" setting.  This has the format:
+//
+// [
+//     "tag1",
+//     "tag2",
+//     { "type": "section", "name: "Saved Tags" },
+//     "tag3",
+//     { "type": "section", "name: "Saved Tags 2" },
+//     "tag3",
+// ]
+//
+// Tags are simple strings.  All tags before the first section are recent tags, and all
+// saved tags are always in a section.  The order of tags and groups can be edited by the
+// user.
+//
+// Putting recent tags first allows the older simple tag list format to have the same
+// meaning, so no migrations are needed.
 
 ppixiv.saved_search_tags = class
 {
@@ -7,7 +23,6 @@ ppixiv.saved_search_tags = class
     {
         return settings.get("recent-tag-searches") || [];;
     }
-
 
     // Return a map of all recent and saved tags, mapping from group names to lists
     // of searches.  Recent searches are returned with a tag of "null".  The map is

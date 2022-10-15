@@ -86,7 +86,7 @@ ppixiv.tag_search_edit_widget = class extends ppixiv.widget
         // Disable adding searches to search history while the edit dropdown is open.  Otherwise,
         // every time a tag is toggled, that combination of tags is added to search history by
         // data_source_search, which makes a mess.
-        helpers.disable_adding_search_tags(this.visible);
+        saved_search_tags.disable_adding_search_tags(this.visible);
     }
 
     // tag_search is a search, like "tag -tag2".  translated_tags is a dictionary of known translations.
@@ -130,6 +130,10 @@ ppixiv.tag_search_edit_widget = class extends ppixiv.widget
         {
             // Ignore the separator between recent and saved tags.
             if(tag_search == null)
+                continue;
+
+            // Ignore sections.
+            if(tag_search instanceof Object)
                 continue;
 
             for(let tag of helpers.split_search_tags(tag_search))

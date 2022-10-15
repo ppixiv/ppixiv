@@ -11,10 +11,12 @@ ppixiv.tag_search_box_widget = class extends ppixiv.widget
 
         this.dropdown_widget = new tag_search_dropdown_widget({
             container: this.container,
+            parent: this,
             input_element: this.container,
         });
         this.edit_widget = new tag_search_edit_widget({
             container: this.container,
+            parent: this,
             input_element: this.container,
         });
 
@@ -61,8 +63,13 @@ ppixiv.tag_search_box_widget = class extends ppixiv.widget
     {
         this.focused = this.container.matches(":focus-within");
 
-        // If anything inside the container is focused, make sure it's the input field.
-        if(this.focused && !this.input_element.matches(":focus"))
+        // Stay visible if we're showing a dialog and the dialog takes focus.
+        if(this.showing_dialog)
+            this.focused = true;
+
+        // If anything inside the container is focused, make sure it's either an input
+        // (a rename editor) or the main input field.
+        if(this.focused && e.target?.nodeName != "INPUT" && !this.input_element.matches(":focus"))
             this.input_element.focus();
 
         // If we're focused and nothing was visible, show the tag dropdown.  If we're not
@@ -71,6 +78,31 @@ ppixiv.tag_search_box_widget = class extends ppixiv.widget
             this.dropdown_widget.show();
         else if(!this.focused && (this.dropdown_widget.visible || this.edit_widget.visible))
             this.hide();
+    }
+
+    // Run a text prompt.
+    //
+    // We need to keep ourself from closing when the prompt takes our focus temporarily, and restore
+    // our focus when it's finished.
+    async dialog(promise)
+    {
+        this.showing_dialog = true;
+        try {
+            return await promise;
+        } finally {
+            this.input_element.focus();
+            this.showing_dialog = false;
+        }
+    }
+
+    text_prompt(options)
+    {
+        return this.dialog(text_prompt.prompt(options));
+    }
+
+    confirm_prompt(options)
+    {
+        return this.dialog(confirm_prompt.prompt(options));
     }
 
     submit_search = (e) =>
@@ -83,7 +115,7 @@ ppixiv.tag_search_box_widget = class extends ppixiv.widget
             return;
 
         // Add this tag to the recent search list.
-        helpers.add_recent_search_tag(tags);
+        saved_search_tags.add(tags);
 
         // If we're submitting by pressing enter on an input element, unfocus it and
         // close any widgets inside it (tag dropdowns).
@@ -108,6 +140,11 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         super({...options, visible: false, template: `
             <div class=search-history tabindex="1">
                 <div class=input-dropdown>
+                    <div class=tag-dropdown-global-buttons>
+                        <div class="edit-button toggle-edit-button">${ helpers.create_icon("mat:edit") }</div>
+                        <div class="edit-button create-section-button">${ helpers.create_icon("mat:create_new_folder") }</div>
+                    </div>
+
                     <div class=input-dropdown-list>
                         <!-- template-tag-dropdown-entry instances will be added here. -->
                     </div>
@@ -129,7 +166,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         this.current_autocomplete_results = [];
 
         // input-dropdown is resizable.  Save the size when the user drags it.
-        this.input_dropdown = this.container.querySelector(".input-dropdown");
+        this.input_dropdown = this.container.querySelector(".input-dropdown-list");
         let observer = new MutationObserver((mutations) => {
             // resize sets the width.  Use this instead of offsetWidth, since offsetWidth sometimes reads
             // as 0 here.
@@ -156,7 +193,9 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
             return;
 
         this.editing = value;
+        helpers.set_class(this.container.querySelector(".input-dropdown"), "editing", this.editing);
         helpers.set_class(this.container.querySelector(".input-dropdown-list"), "editing", this.editing);
+        helpers.set_class(this.container.querySelector(".toggle-edit-button"), "selected", this.editing);        
     }
 
     pointerevent = (e) =>
@@ -191,39 +230,105 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
             if(entry.dataset.tag == tag)
                 return entry;
         }
-        return entry;
+        return null;
     }
 
     pointermove_drag_handle = (e) =>
     {
-        let entry = this.find_tag_entry(this.dragging_tag);
-        let next_entry = entry?.nextElementSibling;
-        let previous_entry = entry?.previousElementSibling;
-
-        // To see if we should move up, compare the Y position to the center of the combination
-        // of the element and the element above it.  Only drag around other saved entries, not
-        // to recent entries.
-        let entry_rect = entry.getBoundingClientRect();
-        if(next_entry && next_entry.classList.contains("saved"))
+        // Scan backwards or forwards to find the next valid place where entry can be placed
+        // after.
+        // Find the next and previous entry that we can drag to.
+        function find_sibling(entry, next)
         {
-            let next_rect = next_entry.getBoundingClientRect();
-            let y = (entry_rect.top + next_rect.bottom) / 2;
-            if(e.clientY > y)
+            let sibling = entry;
+            let skipped_first_header = false;
+            let first = true;
+            while(sibling)
             {
-                helpers.edit_recent_search_tag(this.dragging_tag, { action: "down" });
-                return;
+                if(next)
+                    sibling = sibling.nextElementSibling;
+                else
+                    sibling = sibling.previousElementSibling;
+
+                // The first is just moving off of the original entry.
+                /*if(first)
+                {
+                    first = false;
+                    continue;
+                }*/
+
+                if(sibling == null)
+                    return null;
+
+                // If we're searching backwards, skip the first group header we see.  This
+                // is the header the item is already in, and is ignored for dragging up.
+                if(!next && !skipped_first_header && sibling.group_name != null)
+                {
+                    // skipped_first_header = true;
+                    // continue;
+                }
+
+                // If this is an uncollapsed tag or group, return it.
+                if(!sibling.classList.contains("collapsed"))
+                    return sibling;
             }
+            return null;
         }
 
-        // To see if we should move down, compare the Y position to the center of the combination
-        // of the element and the element below it.
-        if(previous_entry && previous_entry.classList.contains("saved"))
+        let entry = this.find_tag_entry(this.dragging_tag);
+
+        // Check downwards first, then upwards.
+        let entry_rect = entry.getBoundingClientRect();
+        for(let down = 0; down <= 1; down++)
         {
-            let previous_rect = previous_entry.getBoundingClientRect();
-            let y = (previous_rect.top + entry_rect.bottom) / 2;
-            if(e.clientY < y)
+            let entry_to_check = find_sibling(entry, down == 1);
+            if(entry_to_check == null)
+                continue;
+
+            if(!entry_to_check.classList.contains("saved") && !entry_to_check.classList.contains("tag-section"))
+                continue;
+
+            // When moving up, find the next entry where the entry above it is uncollapsed.
+            // For tags this is always true (visible tags are always inside a visible group),
+            // but if we're dragging above a group header, this makes sure we drag into an
+            // uncollapsed group.
+
+            // To see if we should move up, compare the Y position to the center of the combination
+            // of the element and the element above it.
+            let neighbor_rect = entry_to_check.getBoundingClientRect();
+            if(down)
             {
-                helpers.edit_recent_search_tag(this.dragging_tag, { action: "up" });
+                let y = (neighbor_rect.top + entry_rect.bottom) / 2;
+                if(e.clientY < y)
+                    continue;
+            }
+            else
+            {
+                let y = (entry_rect.top + neighbor_rect.bottom) / 2;
+                if(e.clientY > y)
+                    continue;
+            }
+
+            // We want to drag in this direction.  If we're dragging downwards, we'll place the item
+            // after entry_to_check.  If we're dragging upwards, find the next uncollapsed entry before
+            // it to place it after.
+            let entry_to_place_after = entry_to_check;
+            if(!down)
+                entry_to_place_after = find_sibling(entry_to_check, false);
+            if(entry_to_place_after == null)
+                continue;
+
+            // Find its index in the list.
+            let move_after_idx = -1;
+            if(entry_to_place_after.group_name)
+                move_after_idx = saved_search_tags.find_index({group: entry_to_place_after.group_name});
+            else if(entry_to_place_after.dataset.tag)
+                move_after_idx = saved_search_tags.find_index({tag: entry_to_place_after.dataset.tag});
+
+            if(move_after_idx != -1)
+            {
+                // Move the tag after move_after_idx.
+                saved_search_tags.move(this.dragging_tag, move_after_idx+1);
                 return;
             }
         }
@@ -235,9 +340,34 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         window.removeEventListener("pointermove", this.pointermove_drag_handle);
     }
 
-    dropdown_onclick = (e) =>
+    // Return the tag-section for the given group.
+    //
+    // We could do this with querySelector, but we'd need to escape the string.
+    get_section_header_for_group(group)
+    {
+        for(let tag_section of this.container.querySelectorAll(".tag-section"))
+        {
+            if(tag_section.group_name == group)
+                return tag_section;
+        }
+        return null;
+    }
+
+    get_entry_for_tag(tag)
+    {
+        // Ignore autocomplete and only return real tags.
+        for(let entry of this.container.querySelectorAll(".entry:not(.autocomplete)"))
+        {
+            if(entry.dataset.tag == tag)
+                return entry;
+        }
+        return null;
+    }
+
+    dropdown_onclick = async(e) =>
     {
         let entry = e.target.closest(".entry");
+        let tag_section = e.target.closest(".tag-section");
 
         // Toggle editing:
         let toggle_edit_button = e.target.closest(".toggle-edit-button");
@@ -258,6 +388,36 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
             return;
         }
 
+        let create_section_button = e.target.closest(".create-section-button");
+        if(create_section_button)
+        {
+            e.stopPropagation();
+            e.preventDefault();
+
+            let label = await this.parent.text_prompt({ title: "Group name:" });
+            if(label == null)
+                return; // cancelled
+            
+            // Group names identify the group, so don't allow adding a group that already exists.
+            // saved_search_tags.add won't allow this, but check so we can tell the user.
+            let tag_groups = new Set(saved_search_tags.get_all_groups().keys());
+            if(tag_groups.has(label))
+            {
+                message_widget.singleton.show(`Group "${label}" already exists`);
+                return;
+            }
+
+            // Add the group.
+            saved_search_tags.add(null, { group: label });
+
+            // The edit will update automatically, but that happens async and may not have
+            // completed yet.  Force an update now so we can scroll the new group into view.
+            await this.populate_dropdown();
+            let new_section = this.get_section_header_for_group(label);
+            new_section.scrollIntoViewIfNeeded();
+            return;
+        }
+        
         let tag_button = e.target.closest("a[data-tag]");
         if(tag_button)
         {
@@ -265,7 +425,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
             {
                 // Don't navigate on click while we're editing tags.  Note that the anchor is around
                 // the buttons, so this may be a click on an editor button too.
-                e.stopPropagation();
+                // e.stopPropagation();
                 e.preventDefault();
             }
             else
@@ -280,31 +440,159 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
 
         if(this.editing)
         {
+            let move_group_up = e.target.closest(".move-group-up");
+            let move_group_down = e.target.closest(".move-group-down");
+            if(move_group_up || move_group_down)
+            {
+                e.stopPropagation();
+                e.preventDefault();
+                saved_search_tags.move_group(tag_section.group_name, { down: move_group_down != null });
+                return;
+            }
+
             let save_search = e.target.closest(".save-search");
             if(save_search)
             {
                 e.stopPropagation();
                 e.preventDefault();
 
-                // If we're moving a tag from recents to saved, put it at the end.  If we're saving
-                // from autocomplete put it at the beginning.  This just makes it more likely that
-                // the added tag will be visible, so the user can see what happened, without having
-                // to scroll the list (he might be adding several so that could be annoying).
-                let add_to_end = entry.classList.contains("recent");
-                helpers.add_recent_search_tag(entry.dataset.tag, {type: "saved", add_to_end});
+                // Figure out which group to put it in.  If there are no groups, this is the first
+                // saved search, so create "Saved tags" by default.  If there's just one group, use
+                // it.  Otherwise, ask the user.
+                //
+                // maybe only expand one group at a time
+                let tag_groups = new Set(saved_search_tags.get_all_groups().keys());
+                tag_groups.delete(null); // ignore the recents group
+                let add_to_group = "Saved tags";
+                if(tag_groups.size == 1)
+                    add_to_group = Array.from(tag_groups)[0];
+                else if(tag_groups.size > 1)
+                {
+                    // For now, add to the bottommost uncollapsed group.  This is a group which is
+                    // closest to recents, where the user should be able to see where the tag he
+                    // saved went.
+                    let all_groups = new Set(saved_search_tags.get_all_groups().keys());
+                    all_groups.delete(null);
+
+                    let collapsed_groups = saved_search_tags.get_collapsed_tag_groups();
+                    add_to_group = null;
+                    for(let group of all_groups)
+                    {
+                        if(collapsed_groups.has(group))
+                            continue;
+                        add_to_group = group;
+                    }
+
+                    if(add_to_group == null)
+                    {
+                        // If no groups are uncollapsed, use the last group.  It'll be uncollapsed
+                        // below.
+                        for(let group of all_groups)
+                            add_to_group = group;
+                    }
+                }
+
+                console.log(`Adding search "${entry.dataset.tag}" to group "${add_to_group}"`);
+
+                // If the group we're adding to is collapsed, uncollapse it.
+                if(saved_search_tags.get_collapsed_tag_groups().has(add_to_group))
+                {
+                    console.log(`Uncollapsing group ${add_to_group} because we're adding to it`);
+                    saved_search_tags.set_tag_group_collapsed(add_to_group, false);
+                }
+
+                // Add or change the tag to a saved tag.
+                saved_search_tags.add(entry.dataset.tag, {group: add_to_group, add_to_end: true});
+
+                // We tried to keep the new tag in view, but scroll it into view if it isn't, such as
+                // if we had to expand the group and the scroll position is in the wrong place now.
+                await this.populate_dropdown();
+                let new_entry = this.get_entry_for_tag(entry.dataset.tag);
+                console.log("got", new_entry);
+                new_entry.scrollIntoViewIfNeeded();
             }
 
-            let remove_entry = e.target.closest(".remove-history-entry");
-            if(remove_entry != null)
+            let edit_tags = e.target.closest(".edit-tags-button");
+            if(edit_tags != null)
             {
-                // Clicked X to remove a tag from history.
                 e.stopPropagation();
                 e.preventDefault();
-                let tag = entry.dataset.tag;
+                
+                // Add a space to the end for convenience with the common case of just wanting to add something
+                // to the end.
+                let new_tags = await this.parent.text_prompt({ title: "Edit search:", value: entry.dataset.tag + " " });
+                if(new_tags == null || new_tags == entry.dataset.tag)
+                    return; // cancelled
 
-                helpers.edit_recent_search_tag(tag, { action: "remove" });
+                new_tags = new_tags.trim();
+                saved_search_tags.modify_tag(entry.dataset.tag, new_tags);                
                 return;
             }
+
+            let remove_entry = e.target.closest(".delete-entry");
+            if(remove_entry != null)
+            {
+                // Clicked X to remove a tag or group.
+                e.stopPropagation();
+                e.preventDefault();
+
+                if(entry != null)
+                {
+                    saved_search_tags.remove(entry.dataset.tag);
+                    return;
+                }
+
+                // This isn't a tag, so it must be a group.  If the group has no items in it, just remove
+                // it.  If it does have items, confirm first.
+                let tags_in_group = saved_search_tags.get_all_groups().get(tag_section.group_name);
+                if(tags_in_group.length > 0)
+                {
+                    let text;
+                    if(tag_section.group_name == null)
+                        text = `Clear ${tags_in_group.length} recent ${tags_in_group.length == 1? "search":"searches"}?`;
+                    else
+                    {
+                        text = `This group contains ${tags_in_group.length} ${tags_in_group.length == 1? "tag":"tags"}.
+                            
+                        Delete this group and all tags inside it?  This can't be undone.`;
+                    }
+
+                    let result = await this.parent.confirm_prompt({ text });
+                    if(!result)
+                        return;
+                }
+
+                console.log("Deleting group:", tag_section.group_name);
+                console.log("Containing tags:", tags_in_group);
+                saved_search_tags.delete_group(tag_section.group_name);
+
+                return;
+            }
+
+            let rename_group = e.target.closest(".rename-group-button");
+            if(rename_group != null)
+            {
+                e.stopPropagation();
+                e.preventDefault();
+
+                // The recents group can't be renamed.
+                if(tag_section.group_name == null)
+                    return;
+
+                let new_group_name = await this.parent.text_prompt({ title: "Rename group:", value: tag_section.group_name });
+                if(new_group_name == null || new_group_name == tag_section.group_name)
+                    return; // cancelled
+
+                saved_search_tags.rename_group(tag_section.group_name, new_group_name);
+                return;
+            }
+        }
+
+        if(tag_section != null)
+        {
+            e.stopPropagation();
+            e.preventDefault();
+            saved_search_tags.set_tag_group_collapsed(tag_section.group_name, "toggle");
         }
     }
 
@@ -457,7 +745,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
     }
 
     // tag_search is a search, like "tag -tag2".  translated_tags is a dictionary of known translations.
-    create_entry(tag_search, translated_tags)
+    create_entry(tag_search, { classes })
     {
         let entry = this.create_template({name: "tag-dropdown-entry", html: `
             <a class=entry href=#>
@@ -471,12 +759,16 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
 
                 <span class=search></span>
 
-                <span class="edit-button remove-history-entry" data-shown-in="recent saved">X</span>
+                <span class="edit-button edit-tags-button" data-shown-in="saved">${ helpers.create_icon("mat:edit") }</span>
+                <span class="edit-button delete-entry" data-shown-in="recent saved">X</span>
             </a>
         `});
         entry.dataset.tag = tag_search;
 
-        let translated_tag = translated_tags[tag_search];
+        for(let name of classes)
+            entry.classList.add(name);
+
+        let translated_tag = this.translated_tags[tag_search];
         if(translated_tag)
             entry.dataset.translated_tag = translated_tag;
 
@@ -500,11 +792,11 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
 
             // Split off - prefixes to look up the translation, then add it back.
             let prefix_and_tag = helpers.split_tag_prefixes(tag);
-            let translated_tag = translated_tags[prefix_and_tag[1]];
+            let translated_tag = this.translated_tags[prefix_and_tag[1]];
             if(translated_tag)
                 translated_tag = prefix_and_tag[0] + translated_tag;
 
-            span.innerText = translated_tag || tag;
+            span.textContent = translated_tag || tag;
             if(translated_tag)
                 span.dataset.translated_tag = translated_tag;
 
@@ -521,6 +813,44 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
             entry.classList.add("selected");
 
         return entry;
+    }
+
+    create_separator(label, { icon, is_user_section, group_name=null, collapsed=false, classes=[] })
+    {
+        let section = this.create_template({html: `
+            <div class=tag-section>
+                <div class="edit-button user-section-edit-button move-group-up">
+                    ${ helpers.create_icon("mat:arrow_upward") }
+                </div>
+                <div class="edit-button user-section-edit-button move-group-down">
+                    ${ helpers.create_icon("mat:arrow_downward") }
+                </div>
+
+                ${ helpers.create_icon(icon, { classes: ['section-icon']}) }
+                <span class=label></span>
+
+                <span class="edit-button rename-group-button">${ helpers.create_icon("mat:edit") }</span>
+                <span class="edit-button delete-entry">X</span>
+            </div>
+        `});
+        section.querySelector(".label").textContent = label;
+
+        helpers.set_class(section, "user-section", is_user_section);
+        helpers.set_class(section, "collapsed", collapsed);
+        if(group_name != null)
+            section.dataset.group = group_name;
+        else
+            section.classList.add("recents");
+
+        section.group_name = group_name;
+
+        if(group_name == null)
+            section.querySelector(".rename-group-button").hidden = true;
+
+        for(let name of classes)
+            section.classList.add(name);
+
+        return section;
     }
 
     set_selection(idx)
@@ -589,12 +919,15 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
 
         let autocompleted_tags = this.current_autocomplete_results;
 
-        let recent_tags = helpers.get_recent_tag_searches("recent");
-        let saved_tags = helpers.get_recent_tag_searches("saved");
+        let tags_by_group = saved_search_tags.get_all_groups();
+
+        let all_saved_tags = [];
+        for(let saved_tag of tags_by_group.values())
+            all_saved_tags = [...all_saved_tags, ...saved_tag];
 
         // Separate tags in each search, so we can look up translations.
         var all_tags = {};
-        for(let tag_search of [...recent_tags, ...saved_tags])
+        for(let tag_search of all_saved_tags)
         {
             for(let tag of helpers.split_search_tags(tag_search))
             {
@@ -627,52 +960,52 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         helpers.remove_elements(list);
         this.selected_idx = null;
 
+        // Add autocompletes at the top.
         if(autocompleted_tags.length)
-            list.appendChild(this.create_separator("Suggestions", "mat:assistant"));
+            list.appendChild(this.create_separator("Suggestions", { icon: "mat:assistant", classes: ["autocomplete"] }));
 
         for(var tag of autocompleted_tags)
-        {
-            var entry = this.create_entry(tag.tag_name, this.translated_tags);
-            entry.classList.add("autocomplete"); 
-            list.appendChild(entry);
-        }
-
-        if(saved_tags.length)
-            list.appendChild(this.create_separator("Saved tags", "mat:star"));
+            list.appendChild(this.create_entry(tag.tag_name, { classes: ["autocomplete"] }));
 
         // Show saved tags above recent tags.
-        for(let tag of saved_tags)
+        for(let [group_name, tags_in_group] of tags_by_group.entries())
         {
-            var entry = this.create_entry(tag, this.translated_tags);
-            entry.classList.add("history");
-            entry.classList.add("saved");
-            list.appendChild(entry);
+            // Skip recents.
+            if(group_name == null)
+                continue;
+
+            let collapsed = saved_search_tags.get_collapsed_tag_groups().has(group_name);
+            list.appendChild(this.create_separator(group_name, {
+                icon: collapsed? "mat:folder":"mat:folder_open",
+                is_user_section: true,
+                group_name: group_name,
+                collapsed,
+            }));
+
+            // Add contents if this section isn't collapsed.
+            if(!collapsed)
+            {
+                for(let tag of tags_in_group)
+                    list.appendChild(this.create_entry(tag, { classes: ["history", "saved"] }));
+            }
         }
 
+        // Show recent searches.  This group always exists, but hide it if it's empty.
+        let recents_collapsed = saved_search_tags.get_collapsed_tag_groups().has(null);
+        let recent_tags = tags_by_group.get(null);
         if(recent_tags.length)
-            list.appendChild(this.create_separator("Recent tags", "mat:history"));
+            list.appendChild(this.create_separator("Recent tags", {
+                icon: "mat:history",
+                collapsed: recents_collapsed,
+            }));
 
-        for(let tag of recent_tags)
+        if(!recents_collapsed)
         {
-            var entry = this.create_entry(tag, this.translated_tags);
-            entry.classList.add("history");
-            entry.classList.add("recent");
-            list.appendChild(entry);
+            for(let tag of recent_tags)
+                list.appendChild(this.create_entry(tag, { classes: ["history", "recent"] }));
         }
 
         return true;
-    }
-
-    create_separator(label, icon)
-    {
-        return this.create_template({html: `
-            <div class="tag-dropdown-separator">
-                ${ helpers.create_icon(icon) }
-                <span>${label}</span>
-                <span style="flex: 1;"></span>
-                <div class=toggle-edit-button>${ helpers.create_icon("mat:edit") }</div>
-            </div>
-        `});
     }
 
     cancel_populate_dropdown()

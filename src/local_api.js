@@ -604,7 +604,7 @@ ppixiv.local_api = class
         document.location.reload();
     }
 
-    // This stores searches like helpers.add_recent_search_tag.  It's simpler, since this
+    // This stores searches like saved_search_tags.add.  It's simpler, since this
     // is the only place these searches are added.
     static add_recent_local_search(tag)
     {

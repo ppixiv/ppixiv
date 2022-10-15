@@ -3003,7 +3003,7 @@ ppixiv.data_sources.search = class extends data_source
         // data source is created, not every time we navigate back to the search.
         let tag = this._search_tags;
         if(tag)
-            helpers.add_recent_search_tag(tag);
+            saved_search_tags.add(tag);
 
         this.cache_search_title();
     }

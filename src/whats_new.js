@@ -3,6 +3,15 @@
 // This should be inside whats_new, but Firefox is in the dark ages and doesn't support class fields.
 let _update_history = [
     {
+        version: 162,
+        text: `
+            Search tags can now be saved in the search dropdown separately from recents and grouped
+            together.
+            <p>
+            Added "Loop" in the more options dropdown to loop the current image.
+        `,
+    },
+    {
         version: 153,
         boring: true,
         text: `

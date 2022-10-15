@@ -1476,130 +1476,6 @@ ppixiv.helpers = {
         helpers.set_recent_bookmark_tags(recent_bookmark_tags);
     },
 
-    // Add tag to the recent search list, or move it to the front.
-    add_recent_search_tag(tag, { type="recent", add_to_end=true }={})
-    {
-        if(this._disable_adding_search_tags || !tag)
-            return;
-
-        // If tag is a saved tag, don't change it.
-        if(this.recent_search_tag_type(tag) == "saved")
-            return;
-
-        var recent_tags = settings.get("recent-tag-searches") || [];
-        var idx = recent_tags.indexOf(tag);
-        if(idx != -1)
-            recent_tags.splice(idx, 1);
-        
-        // If we're adding it as a recent, add it to the beginning.  If we're adding it as
-        // a saved tag, create the null separating recents and saved tags if needed, and add
-        // the tag at the end.
-        if(type == "recent")
-            recent_tags.unshift(tag);
-        else
-        {
-            if(recent_tags.indexOf(null) == -1)
-                recent_tags.push(null);
-
-            idx = recent_tags.indexOf(null);
-            if(idx == -1)
-            {
-                console.log("created null separator");
-                idx = recent_tags.length;
-                recent_tags.push(null);
-            }
-    
-            if(add_to_end)
-                recent_tags.push(tag);
-            else
-                recent_tags.splice(idx+1, 0, tag);
-        }
-
-        settings.set("recent-tag-searches", recent_tags);
-
-        window.dispatchEvent(new Event("recent-tag-searches-changed"));
-    },
-
-    // This is a hack used by tag_search_box_widget to temporarily disable adding to history.
-    disable_adding_search_tags(value)
-    {
-        this._disable_adding_search_tags = value;
-    },
-
-    // recent-tag-searches contains both recent tags and saved tags.  Recent tags are listed
-    // first for compatibility, followed by a null, followed by saved tags.
-    //
-    // Return "saved" if tag is a saved tag, "recent" if tag is a recent tag, or null if tag
-    // isn't in the list.
-    recent_search_tag_type(tag)
-    {
-        let recent_tags = settings.get("recent-tag-searches") || [];
-
-        let in_recents = true;
-        for(let recent_tag of recent_tags)
-        {
-            // null separates recents and saved tags.
-            if(recent_tag == null)
-            {
-                in_recents = false;
-                continue;
-            }
-
-            if(recent_tag == tag)
-                return in_recents? "recent":"saved";
-        }
-
-        return null;
-    },
-
-    // Return recent tag searches.  Type is either "recent" or "saved".
-    get_recent_tag_searches(type="recent")
-    {
-        let recent_tags = settings.get("recent-tag-searches") || [];
-        let want_recents = type == "recent";
-        let results = [];
-        let in_recents = true;
-        for(let recent_tag of recent_tags)
-        {
-            if(recent_tag == null)
-            {
-                in_recents = false;
-                continue;
-            }
-            if(in_recents == want_recents)
-                results.push(recent_tag);
-        }
-        return results;
-    },
-
-    // Edit a tag in recent-tag-searches.
-    edit_recent_search_tag(tag, { action="remove" }={})
-    {
-        // Remove tag from the list.  There should normally only be one.
-        let recent_tags = settings.get("recent-tag-searches") || [];
-        let idx = recent_tags.indexOf(tag);
-        if(idx != -1)
-        {
-            if(action == "up" && idx == 0)
-                return;
-                
-            recent_tags.splice(idx, 1);
-
-            if(action == "up")
-                recent_tags.splice(idx-1, 0, tag);
-            if(action == "down")
-                recent_tags.splice(idx+1, 0, tag);
-        }
-
-        // If action is bottom, add it to the end instead of removing it.
-        if(action == "bottom")
-            recent_tags.push(tag);
-
-        settings.set("recent-tag-searches", recent_tags);
-        
-        window.dispatchEvent(new Event("recent-tag-searches-changed"));
-    },
-
     // Split a tag search into individual tags.
     split_search_tags(search)
     {
@@ -1826,7 +1702,7 @@ ppixiv.helpers = {
 
             let tag = helpers._get_search_tags_from_url(url);
             console.log("Adding to tag search history:", tag);
-            helpers.add_recent_search_tag(tag);
+            saved_search_tags.add(tag);
         });
     },
 
