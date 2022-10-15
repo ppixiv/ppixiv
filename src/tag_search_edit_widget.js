@@ -4,7 +4,7 @@ ppixiv.tag_search_edit_widget = class extends ppixiv.widget
     constructor({input_element, ...options})
     {
         super({...options, visible: false, template: `
-            <div class=edit-search>
+            <div class=edit-search tabindex=1>
                 <div class=input-dropdown>
                     <div class="edit-tags-list">
                         <!-- template-edit-search-dropdown-entry instances will be added here. -->

@@ -1884,6 +1884,9 @@ a.box-link, span.box-link
         flex-direction: column;
         white-space: normal;
 
+        // Add some padding on the on the right of the scrollbar for clarity.
+        margin-right: 3px;
+
         // Only show edit buttons like delete on user sections, not built-in ones.
         .tag-section:not(.user-section) .user-section-edit-button { display: none !important; }
 

@@ -5,7 +5,29 @@ ppixiv.tag_search_box_widget = class extends ppixiv.widget
 {
     constructor({...options})
     {
-        super(options);
+        super({...options, template: `
+            <div class="search-box tag-search-box">
+                <!-- This is a tabindex so there's a place for focus to go for all clicks inside it, so
+                     clicks inside it don't cause us to lose focus and hide.  This doesn't include the related
+                     tags button, so clicks on that do close the dropdown. -->
+                <div class="input-field-container hover-menu-box" tabindex=1>
+                    <input placeholder=Tags>
+
+                    <span class="edit-search-button right-side-button">
+                        ${ helpers.create_icon("mat:edit") }
+                    </span>
+
+                    <span class="search-submit-button right-side-button">
+                        ${ helpers.create_icon("search") }
+                    </span>
+                </div>
+
+                <div class="related-tags-box box-button-row" style="display: inline-block;" tabindex=1>
+                    ${ helpers.create_box_link({label: "Related tags",    icon: "bookmark", classes: ["popup-menu-box-button"] }) }
+                    <div class="popup-menu-box related-tag-list vertical-list"></div>
+                </div>
+            </div>
+        `});
 
         this.input_element = this.container.querySelector(".input-field-container > input");
 
@@ -19,9 +41,6 @@ ppixiv.tag_search_box_widget = class extends ppixiv.widget
             parent: this,
             input_element: this.container,
         });
-
-        this.container.addEventListener("focus", this.focus_changed, true);
-        this.container.addEventListener("blur", this.focus_changed, true);
 
         let edit_button = this.container.querySelector(".edit-search-button");
         if(edit_button)
@@ -39,9 +58,19 @@ ppixiv.tag_search_box_widget = class extends ppixiv.widget
             });
         }
         
+        this.container.addEventListener("focus", this.focus_changed, true);
+        this.container.addEventListener("blur", this.focus_changed, true);
+
         // Search submission:
         helpers.input_handler(this.input_element, this.submit_search);
         this.container.querySelector(".search-submit-button").addEventListener("click", this.submit_search);
+
+        // Create the tag widget used by the search data source.
+        this.related_tag_widget = new tag_widget({
+            contents: this.container.querySelector(".related-tag-list"),
+        });
+
+        dropdown_menu_opener.create_handlers(this.container);
 
         // Hide the dropdowns on navigation.
         new view_hidden_listener(this.input_element, (e) => {
@@ -55,13 +84,16 @@ ppixiv.tag_search_box_widget = class extends ppixiv.widget
         this.edit_widget.hide();
     }
 
-    // Show the dropdown when the input is focused.  Hide it when the input is both
-    // unfocused and this.container isn't being hovered.  This way, the input focus
-    // can leave the input box to manipulate the dropdown without it being hidden,
-    // but we don't rely on hovering to keep the dropdown open.
+    // Show the dropdown when an element inside our container has focus.  All elements
+    // that should keep the dropdowns open when clicked on should be inside tabindexes.
     focus_changed = (e) =>
     {
+        // See if focus is inside our container.
         this.focused = this.container.matches(":focus-within");
+
+        // Close if focus is inside the related tags box.
+        if(this.container.querySelector(".related-tags-box:focus-within"))
+            this.focused = false;
 
         // Stay visible if we're showing a dialog and the dialog takes focus.
         if(this.showing_dialog)
@@ -135,8 +167,6 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
 {
     constructor({input_element, ...options})
     {
-        // This is a tabindex so there's a place for focus to go for all clicks inside it, so
-        // clicks inside it don't cause us to lose focus and hide.        
         super({...options, visible: false, template: `
             <div class=search-history tabindex="1">
                 <div class=input-dropdown>
@@ -159,7 +189,10 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         this.input_element.addEventListener("input", this.input_oninput);
 
         // Refresh the dropdown when the tag search history changes.
-        window.addEventListener("recent-tag-searches-changed", this.populate_dropdown);
+        window.addEventListener("recent-tag-searches-changed", this.populate_dropdown, { signal: this.shutdown_signal.signal });
+
+        // Refresh on state change to update the highlight.
+        window.addEventListener("popstate", this.populate_dropdown, { signal: this.shutdown_signal.signal });
 
         this.container.addEventListener("click", this.dropdown_onclick);
 
@@ -242,7 +275,6 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         {
             let sibling = entry;
             let skipped_first_header = false;
-            let first = true;
             while(sibling)
             {
                 if(next)
@@ -250,23 +282,8 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
                 else
                     sibling = sibling.previousElementSibling;
 
-                // The first is just moving off of the original entry.
-                /*if(first)
-                {
-                    first = false;
-                    continue;
-                }*/
-
                 if(sibling == null)
                     return null;
-
-                // If we're searching backwards, skip the first group header we see.  This
-                // is the header the item is already in, and is ignored for dragging up.
-                if(!next && !skipped_first_header && sibling.group_name != null)
-                {
-                    // skipped_first_header = true;
-                    // continue;
-                }
 
                 // If this is an uncollapsed tag or group, return it.
                 if(!sibling.classList.contains("collapsed"))
@@ -588,7 +605,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
             }
         }
 
-        if(tag_section != null)
+        if(tag_section != null && !tag_section.classList.contains("autocomplete"))
         {
             e.stopPropagation();
             e.preventDefault();
@@ -640,6 +657,11 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         this.container.hidden = false;
 
         helpers.set_max_height(this.input_dropdown);
+
+        // Scroll the selected tag into view.
+        let selected_entry = this.container.querySelector(".entry.selected");
+        if(selected_entry)
+            selected_entry.scrollIntoViewIfNeeded();
     }
 
     hide()

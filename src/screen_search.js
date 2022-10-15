@@ -187,26 +187,7 @@ let thumbnail_ui = class extends ppixiv.widget
                 </div>
                  
                 <div class="data-source-specific" data-datasource=search>
-                    <div>
-                        <div class="search-box tag-search-box">
-                            <div class="input-field-container hover-menu-box">
-                                <input placeholder=Tags>
-
-                                <span class="edit-search-button right-side-button">
-                                    ${ helpers.create_icon("mat:edit") }
-                                </span>
-
-                                <span class="search-submit-button right-side-button">
-                                    ${ helpers.create_icon("search") }
-                                </span>
-                            </div>
-
-                            <div class="search-tags-box box-button-row" style="display: inline-block;">
-                                ${ helpers.create_box_link({label: "Related tags",    icon: "bookmark", classes: ["popup-menu-box-button"] }) }
-                                <div class="popup-menu-box related-tag-list vertical-list"></div>
-                            </div>
-                        </div>
-                    </div>
+                    <div class=tag-search-box-container></div>
 
                     <!-- We don't currently have popup text for these, since it's a little annoying to
                          have it pop over the menu. -->
@@ -437,16 +418,8 @@ ppixiv.screen_search = class extends ppixiv.screen
             mode: "dropdown",
         });
 
-        // Create the tag widget used by the search data source.
-        this.tag_widget = new tag_widget({
-            contents: this.container.querySelector(".related-tag-list"),
-        });
-
         // Don't scroll thumbnails when scrolling tag dropdowns.
-        // FIXME: This works on member-tags-box, but not reliably on search-tags-box, even though
-        // they seem like the same thing.
         this.container.querySelector(".member-tags-box .post-tag-list").addEventListener("scroll", function(e) { e.stopPropagation(); }, true);
-        this.container.querySelector(".search-tags-box .related-tag-list").addEventListener("scroll", function(e) { e.stopPropagation(); }, true);
         this.container.querySelector(".bookmark-tags-box .bookmark-tag-list").addEventListener("scroll", function(e) { e.stopPropagation(); }, true);
         this.container.querySelector(".local-bookmark-tags-box .local-bookmark-tag-list").addEventListener("scroll", function(e) { e.stopPropagation(); }, true);
 
@@ -518,7 +491,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         });
 
         // Create the tag dropdown for the search page input.
-        new tag_search_box_widget({ contents: this.container.querySelector(".tag-search-box") });
+        this.tag_search_box = new tag_search_box_widget({ container: this.container.querySelector(".tag-search-box-container") });
             
         // The search history dropdown for local searches.
         new local_search_box_widget({ contents: this.container.querySelector(".local-tag-search-box") });
@@ -779,6 +752,12 @@ ppixiv.screen_search = class extends ppixiv.screen
         // Only show the "refresh from page" button if the data source supports start
         // pages.  If it doesn't, the two refresh buttons are equivalent.
         this.container.querySelector(".refresh-search-from-page-button").hidden = !this.data_source.supports_start_page;
+    }
+
+    // Called by data_sources to fill in the related tags list.
+    set_related_tags(related_tags)
+    {
+        this.tag_search_box.related_tag_widget.set(related_tags);
     }
 
     refresh_ui = () =>

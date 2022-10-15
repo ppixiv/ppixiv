@@ -3247,11 +3247,8 @@ ppixiv.data_sources.search = class extends data_source
  
     refresh_thumbnail_ui(container, thumbnail_view)
     {
-        // Hide the Related Tags dropdown button until a search tag is entered.
-        container.querySelector(".search-tags-box").hidden = this._search_tags == "";
-
         if(this.related_tags)
-            thumbnail_view.tag_widget.set(this.related_tags);
+            thumbnail_view.set_related_tags(this.related_tags);
 
         this.set_item(container, { type: "ages-all", fields: {mode: null} });
         this.set_item(container, { type: "ages-safe", fields: {mode: "safe"} });
