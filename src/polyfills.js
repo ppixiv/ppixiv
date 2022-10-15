@@ -33,6 +33,10 @@ ppixiv.install_polyfills = function()
             };
         };
     }
+
+    // Firefox developers aren't really trying anymore, are they?
+    if(!Element.prototype.scrollIntoViewIfNeeded)
+        Element.prototype.scrollIntoViewIfNeeded = Element.prototype.scrollIntoView;
 };
 
 // Install early polyfills.  These can be needed before other scripts run, so they're installed
