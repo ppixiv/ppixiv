@@ -274,7 +274,6 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         function find_sibling(entry, next)
         {
             let sibling = entry;
-            let skipped_first_header = false;
             while(sibling)
             {
                 if(next)
@@ -296,6 +295,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
 
         // Check downwards first, then upwards.
         let entry_rect = entry.getBoundingClientRect();
+        console.log("moving", e.clientY, entry.dataset.tag);
         for(let down = 0; down <= 1; down++)
         {
             let entry_to_check = find_sibling(entry, down == 1);
@@ -309,20 +309,22 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
             // For tags this is always true (visible tags are always inside a visible group),
             // but if we're dragging above a group header, this makes sure we drag into an
             // uncollapsed group.
-
+            //
             // To see if we should move up, compare the Y position to the center of the combination
-            // of the element and the element above it.
+            // of the element and the element above it.  threshold is how far over the boundary
+            // we need to go before moving.
             let neighbor_rect = entry_to_check.getBoundingClientRect();
+            let threshold = 5;
             if(down)
             {
-                let y = (neighbor_rect.top + entry_rect.bottom) / 2;
-                if(e.clientY < y)
+                let y = (neighbor_rect.bottom + entry_rect.top) / 2;
+                if(e.clientY - threshold < y)
                     continue;
             }
             else
             {
-                let y = (entry_rect.top + neighbor_rect.bottom) / 2;
-                if(e.clientY > y)
+                let y = (entry_rect.bottom + neighbor_rect.top) / 2;
+                if(e.clientY + threshold > y)
                     continue;
             }
 
