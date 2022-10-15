@@ -441,14 +441,14 @@ ppixiv.MainController = class
         helpers.navigate(args, { add_to_history });
     }
 
-    // Return the displayed screen instance.
-    get displayed_screen()
+    // Return the displayed screen instance or name.
+    get_displayed_screen({name=false}={})
     {
         for(let screen_name in this.screens)
         {
             var screen = this.screens[screen_name];
             if(screen.active)
-                return screen;
+                return name? screen_name:screen;
         }        
 
         return null;
@@ -686,7 +686,7 @@ ppixiv.MainController = class
     // Redirect keyboard events that didn't go into the active screen.
     redirect_event_to_screen = (e) =>
     {
-        let screen = this.displayed_screen;
+        let screen = this.get_displayed_screen();
         if(screen == null)
             return;
 
@@ -712,7 +712,7 @@ ppixiv.MainController = class
     onkeydown = (e) =>
     {
         // Ignore keypresses if we haven't set up the screen yet.
-        let screen = this.displayed_screen;
+        let screen = this.get_displayed_screen();
         if(screen == null)
             return;
 

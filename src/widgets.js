@@ -1937,8 +1937,10 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
         this.menu_options.push(menu_options.send_to_tab());
         this.menu_options.push(menu_options.linked_tabs());
 
-        // These are in the top-level menu on mobile.
-        if(!ppixiv.mobile)
+        // These are in the top-level menu on mobile.  Don't show these if we're on the search
+        // view either, since they want to actually be on the illust view, not hovering a thumbnail.
+        let screen_name = main_controller.get_displayed_screen({ name: true })
+        if(!ppixiv.mobile && screen_name == "illust")
         {
             this.menu_options.push(menu_options.toggle_slideshow());
             this.menu_options.push(menu_options.toggle_loop());
