@@ -73,6 +73,20 @@ ppixiv.saved_search_tags = class
         window.dispatchEvent(new Event("recent-tag-searches-changed"));
     }
 
+    // Return all individual tags that the user has in recents and saved searches.
+    static get_all_used_tags()
+    {
+        let all_tags = new Set();
+        for(let group_tags of this.get_all_groups().values())
+        {
+            for(let tags of group_tags)
+                for(let tag of tags.split(" "))
+                    all_tags.add(tag);
+        }
+
+        return all_tags;
+    }
+
     // Add tag to the recent search list, or move it to the front.  If group is set, add
     // a saved search in the given group.  If group is null, add to the recent list.
     //

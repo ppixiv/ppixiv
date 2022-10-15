@@ -1956,16 +1956,9 @@ ppixiv.data_sources.artist = class extends data_source
         // Load this artist's common tags.
         this.post_tags = await this.get_user_tags(user_info);
 
-        // Make a set of tags the user has used in recent searches.
-        let user_tag_searches = new Set();
-        for(let tags of settings.get("recent-tag-searches") || [])
-        {
-            for(let tag of tags.split(" "))
-                user_tag_searches.add(tag);
-        }
-
         // Mark the tags in this.post_tags that the user has searched for recently, so they can be
         // marked in the UI.
+        let user_tag_searches = saved_search_tags.get_all_used_tags();
         for(let tag of this.post_tags)
             tag.recent = user_tag_searches.has(tag.tag);
 
