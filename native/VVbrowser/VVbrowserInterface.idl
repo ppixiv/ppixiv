@@ -1,0 +1,22 @@
+import "oaidl.idl";
+import "ocidl.idl";
+
+[uuid(2368e719-fe04-474e-9bfe-b77ff9b9d5c6), version(0.1)]
+library VVbrowserLibrary
+{
+    [uuid(e99df358-7f5f-40a1-b64c-f0ff3de5ab12), object, local]
+    interface IVVbrowserInterface : IUnknown
+    {
+        // Demonstrate basic method call with some parameters and a return value.
+        // HRESULT SetFullscreen([in] BSTR stringParameter, [in] INT integerParameter, [out, retval] BSTR* stringResult);
+        HRESULT SetFullscreen([in] BOOL value);
+        HRESULT GetFullscreen([out, retval] BOOL *value);
+    };
+
+    [uuid(e048bb1b-b1c1-459b-9005-d4d7baa91213)]
+    coclass VVbrowser
+    {
+        [default] interface IVVbrowserInterface;
+        interface IDispatch;
+    };
+}

@@ -525,6 +525,22 @@ HRESULT VVbrowserWindow::OnCreateCoreWebView2ControllerCompleted(HRESULT result,
     CHECK_FAILURE(webview->get_Profile(&profile));
     profile->put_PreferredColorScheme(COREWEBVIEW2_PREFERRED_COLOR_SCHEME_DARK);
 
+    // Create VVbrowserInterface to give to the page.
+    m_vvBrowserInterface = Microsoft::WRL::Make<VVbrowserInterface>(this);
+
+    CHECK_FAILURE(webview->add_NavigationStarting(Microsoft::WRL::Callback<ICoreWebView2NavigationStartingEventHandler>(
+        [this](ICoreWebView2* sender, ICoreWebView2NavigationStartingEventArgs* args) -> HRESULT
+    {
+        VARIANT remoteObjectAsVariant = {};
+        m_vvBrowserInterface.query_to<IDispatch>(&remoteObjectAsVariant.pdispVal);
+        remoteObjectAsVariant.vt = VT_DISPATCH;
+
+        CHECK_FAILURE(webview->AddHostObjectToScript(L"vvbrowser", &remoteObjectAsVariant));
+        remoteObjectAsVariant.pdispVal->Release();
+
+        return S_OK;
+    }).Get(), nullptr));
+
     // Load settings.
     {
         wil::com_ptr<ICoreWebView2Settings> settingsBase;
@@ -773,20 +789,6 @@ void VVbrowserWindow::AddCallbacks()
         return S_OK;
     }).Get(), nullptr));
 
-    // Handle requestFullscreen.  We don't distinguish between the page changing fullscreen
-    // and the user.
-    CHECK_FAILURE(webview->add_ContainsFullScreenElementChanged(Callback<ICoreWebView2ContainsFullScreenElementChangedEventHandler>(
-        [this](ICoreWebView2* sender, IUnknown* args) -> HRESULT
-    {
-        BOOL containsFullscreenElement = false;
-        CHECK_FAILURE(sender->get_ContainsFullScreenElement(&containsFullscreenElement));
-        if (containsFullscreenElement)
-            EnterFullScreen();
-        else
-            ExitFullScreen();
-        return S_OK;
-    }).Get(), nullptr));
-
     // window.open():
     CHECK_FAILURE(webview->add_NewWindowRequested(Callback<ICoreWebView2NewWindowRequestedEventHandler>(
         [this](ICoreWebView2* sender, ICoreWebView2NewWindowRequestedEventArgs* args)
@@ -975,10 +977,16 @@ void VVbrowserWindow::EnterFullScreen()
     ClearWindow(hwnd);
 
     SetWebViewSize();
+
+    if(webview)
+        webview->ExecuteScript(L"window.dispatchEvent(new Event('fullscreenchange'));", nullptr);
 }
 
 void VVbrowserWindow::ExitFullScreen()
 {
+    if(!IsFullscreen())
+        return;
+
     // Exit fullscreen, restoring the window size we had before enabling it.
     // If we clear WS_OVERLAPPEDWINDOW without resetting the window size first
     // the window can flicker in its fullscreen size before the resize takes effect,
@@ -994,6 +1002,9 @@ void VVbrowserWindow::ExitFullScreen()
         windowSizeToRestore.bottom - windowSizeToRestore.top,
         SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
     SetWindowLong(hwnd, GWL_STYLE, style);
+
+    if(webview)
+        webview->ExecuteScript(L"window.dispatchEvent(new Event('fullscreenchange'));", nullptr);
 }
 
 // XXX: move to Python
@@ -1072,5 +1083,4 @@ void VVbrowserWindow::OpenBrowserWindow(const Config &config)
  * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  */

@@ -4,17 +4,25 @@
     <ClCompile Include="VVbrowser.cpp" />
     <ClCompile Include="VVbrowserWindow.cpp" />
     <ClCompile Include="WebViewHelpers.cpp" />
+    <ClCompile Include="VVbrowserInterface.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="VVbrowserWindow.h" />
     <ClInclude Include="WebViewHelpers.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="..\shared\PythonHeader.h" />
+    <ClInclude Include="VVbrowserInterface.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Resource.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Natvis Include="$(MSBuildThisFileDirectory)..\..\natvis\wil.natvis" />
+  </ItemGroup>
+  <ItemGroup>
+    <Midl Include="VVbrowserInterface.idl" />
   </ItemGroup>
 </Project>

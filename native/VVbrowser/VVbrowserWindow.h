@@ -16,9 +16,12 @@
 
 #include "Webview2.h"
 #include "WebView2EnvironmentOptions.h"
+#include "VVbrowserInterface.h"
 
 class VVbrowserWindow
 {
+    friend class VVbrowserInterface;
+
 public:
     struct Config
     {
@@ -80,6 +83,7 @@ private:
     wil::com_ptr<ICoreWebView2_13> webview;
     wil::com_ptr<ICoreWebView2Controller2> controller;
     wil::com_ptr<ICoreWebView2Environment> webviewEnvironment;
+    wil::com_ptr<VVbrowserInterface> m_vvBrowserInterface;
 };
 
 #endif

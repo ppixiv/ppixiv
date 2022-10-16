@@ -6,7 +6,7 @@
 
 using namespace std;
 
-static HINSTANCE hinstance;
+HINSTANCE DLLInstance;
 
 BOOL WINAPI DllMain(HINSTANCE hinst, DWORD reason, LPVOID reserved)
 {
@@ -14,7 +14,7 @@ BOOL WINAPI DllMain(HINSTANCE hinst, DWORD reason, LPVOID reserved)
     { 
     case DLL_PROCESS_ATTACH:
         // Store the HINSTANCE to our DLL.
-        hinstance = hinst;
+        DLLInstance = hinst;
         break;
     }
 
@@ -77,7 +77,7 @@ static PyObject *VVbrowser_open(PyObject *self, PyObject *args, PyObject *kwargs
 
     // Load the icon from this DLL.  We do this here since AppWindow doesn't know
     // about the DLL it's in.
-    config.defaultIcon = LoadIcon(hinstance, MAKEINTRESOURCE(IDI_WINDOW_ICON));
+    config.defaultIcon = LoadIcon(DLLInstance, MAKEINTRESOURCE(IDI_WINDOW_ICON));
 
     Py_BEGIN_ALLOW_THREADS
     VVbrowserWindow::OpenBrowserWindow(config);
