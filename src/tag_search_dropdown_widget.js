@@ -530,7 +530,6 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
                 // if we had to expand the group and the scroll position is in the wrong place now.
                 await this.populate_dropdown();
                 let new_entry = this.get_entry_for_tag(entry.dataset.tag);
-                console.log("got", new_entry);
                 new_entry.scrollIntoViewIfNeeded(false);
             }
 
@@ -630,7 +629,9 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         case "ArrowDown":
             e.preventDefault();
             e.stopImmediatePropagation();
-            this.move(e.code == "ArrowDown");
+
+            // Disabled for now since keyboard navigation is currently broken.
+            // this.move(e.code == "ArrowDown");
             break;
         }
         
