@@ -1825,6 +1825,7 @@ a.box-link, span.box-link
     -webkit-user-select: none;
     position: absolute;
     background-color: var(--box-link-bg-color);
+    margin-top: 2px; // push slightly away from the input box
 
     // Global editor buttons.  These sit on top of the scroller overlapping the sticky header
     // area.
