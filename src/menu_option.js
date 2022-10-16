@@ -416,7 +416,8 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
             settings_widgets.ui_on_hover();
         }
         
-        settings_widgets.expand_manga_posts();
+        if(!ppixiv.native)
+            settings_widgets.expand_manga_posts();
 
         this.create_page("image", "Image viewing", global_options, { settings_list: true });
         settings_widgets.auto_pan();
