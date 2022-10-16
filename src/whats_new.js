@@ -1,7 +1,13 @@
 "use strict";
 
-// This should be inside whats_new, but Firefox is in the dark ages and doesn't support class fields.
 let _update_history = [
+    {
+        version: 164,
+        boring: true,
+        text: `
+            Search autocomplete now works for searches with multiple tags.
+        `,
+    },
     {
         version: 162,
         text: `
