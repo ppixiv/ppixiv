@@ -36,7 +36,53 @@ ppixiv.install_polyfills = function()
 
     // Firefox developers aren't really trying anymore, are they?
     if(!Element.prototype.scrollIntoViewIfNeeded)
-        Element.prototype.scrollIntoViewIfNeeded = Element.prototype.scrollIntoView;
+    {
+        // https://stackoverflow.com/a/42543908/136829 with fixed default:
+        function getScrollParent(element, includeHidden)
+        {
+            let style = getComputedStyle(element);
+            let excludeStaticParent = style.position === "absolute";
+            let overflowRegex = includeHidden ? /(auto|scroll|hidden)/ : /(auto|scroll)/;
+        
+            if(style.position === "fixed")
+                return document.body;
+            for (let parent = element; (parent = parent.parentElement);)
+            {
+                style = getComputedStyle(parent);
+                if(excludeStaticParent && style.position === "static")
+                    continue;
+
+                if(overflowRegex.test(style.overflow + style.overflowY + style.overflowX))
+                    return parent;
+            }
+        
+            return document.scrollingElement;
+        }
+        
+        // Cleaned up from https://gist.github.com/hsablonniere/2581101 and uses getScrollParent to
+        // get the scroll parent:
+        Element.prototype.scrollIntoViewIfNeeded = function (centerIfNeeded=true)
+        {
+            let parent = getScrollParent(this);
+            let parentComputedStyle = window.getComputedStyle(parent, null);
+            let parentBorderTopWidth = parseInt(parentComputedStyle.getPropertyValue('border-top-width'));
+            let parentBorderLeftWidth = parseInt(parentComputedStyle.getPropertyValue('border-left-width'));
+            let overTop = this.offsetTop - parent.offsetTop < parent.scrollTop;
+            let overBottom = (this.offsetTop - parent.offsetTop + this.clientHeight - parentBorderTopWidth) > (parent.scrollTop + parent.clientHeight);
+            let overLeft = this.offsetLeft - parent.offsetLeft < parent.scrollLeft;
+            let overRight = (this.offsetLeft - parent.offsetLeft + this.clientWidth - parentBorderLeftWidth) > (parent.scrollLeft + parent.clientWidth);
+            let alignWithTop = overTop && !overBottom;
+        
+            if ((overTop || overBottom) && centerIfNeeded)
+                parent.scrollTop = this.offsetTop - parent.offsetTop - parent.clientHeight / 2 - parentBorderTopWidth + this.clientHeight / 2;
+        
+            if ((overLeft || overRight) && centerIfNeeded)
+                parent.scrollLeft = this.offsetLeft - parent.offsetLeft - parent.clientWidth / 2 - parentBorderLeftWidth + this.clientWidth / 2;
+        
+            if ((overTop || overBottom || overLeft || overRight) && !centerIfNeeded)
+                this.scrollIntoView(alignWithTop);
+        };
+    }
 };
 
 // Install early polyfills.  These can be needed before other scripts run, so they're installed

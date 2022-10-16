@@ -436,7 +436,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
             // completed yet.  Force an update now so we can scroll the new group into view.
             await this.populate_dropdown();
             let new_section = this.get_section_header_for_group(label);
-            new_section.scrollIntoViewIfNeeded();
+            new_section.scrollIntoViewIfNeeded(false);
             return;
         }
         
@@ -531,7 +531,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
                 await this.populate_dropdown();
                 let new_entry = this.get_entry_for_tag(entry.dataset.tag);
                 console.log("got", new_entry);
-                new_entry.scrollIntoViewIfNeeded();
+                new_entry.scrollIntoViewIfNeeded(false);
             }
 
             let edit_tags = e.target.closest(".edit-tags-button");
@@ -671,7 +671,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         // Scroll the selected tag into view.
         let selected_entry = this.container.querySelector(".entry.selected");
         if(selected_entry)
-            selected_entry.scrollIntoViewIfNeeded();
+            selected_entry.scrollIntoViewIfNeeded(false);
     }
 
     hide()
@@ -952,7 +952,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
             {
                 var new_entry = all_entries[this.selected_idx];
                 new_entry.classList.add("selected");
-                new_entry.scrollIntoViewIfNeeded();
+                new_entry.scrollIntoViewIfNeeded(false);
                 this.input_element.value = new_entry.dataset.tag;
             }
         } finally {
@@ -1072,7 +1072,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
             if(focus_autocomplete)
             {
                 focus_autocomplete = false;
-                entry.scrollIntoViewIfNeeded();
+                entry.scrollIntoViewIfNeeded(false);
             }
         }
 
