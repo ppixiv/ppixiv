@@ -1305,7 +1305,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
 
         this.button_view_manga.dataset.popup = "View manga pages";
         helpers.set_class(this.button_view_manga, "enabled", info?.pageCount > 1);
-        helpers.set_class(this.button_fullscreen, "selected", document.fullscreenElement != null);
+        helpers.set_class(this.button_fullscreen, "selected", helpers.is_fullscreen());
 
         this.refresh_tooltip();
 

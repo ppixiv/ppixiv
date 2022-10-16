@@ -1372,14 +1372,6 @@ ppixiv.helpers = {
         });
     },
 
-    async toggle_fullscreen()
-    {
-        if(document.fullscreenElement)
-            await helpers.hide_body_during_request(async() => { document.exitFullscreen() });
-        else
-            await helpers.hide_body_during_request(async() => { document.documentElement.requestFullscreen() });
-    },
-
     async hide_body_during_request(func)
     {
         // This hack tries to prevent the browser from flickering content in the wrong
@@ -1415,6 +1407,11 @@ ppixiv.helpers = {
 
     is_fullscreen()
     {
+        // In VVbrowser, use our native interface.
+        let vvbrowser = this._vvbrowser();
+        if(vvbrowser)
+            return vvbrowser.getFullscreen();
+
         if(document.fullscreenElement != null)
             return true;
 
@@ -1443,6 +1440,35 @@ ppixiv.helpers = {
         return false;
     },
     
+    // If we're in VVbrowser, return the host object implemented in VVbrowserInterface.cpp.  Otherwise,
+    // return null.
+    _vvbrowser({sync=true}={})
+    {
+        if(sync)
+            return window.chrome?.webview?.hostObjects?.sync?.vvbrowser;
+        else
+            return window.chrome?.webview?.hostObjects?.vvbrowser;
+    },
+
+    async toggle_fullscreen()
+    {
+        await helpers.hide_body_during_request(async() => {
+            // If we're in VVbrowser:
+            let vvbrowser = this._vvbrowser();
+            if(vvbrowser)
+            {
+                vvbrowser.setFullscreen(!this.is_fullscreen());
+                return;
+            }
+
+            // Otherwise, use the regular fullscreen API.
+            if(this.is_fullscreen())
+                document.exitFullscreen();
+            else
+                document.documentElement.requestFullscreen();
+        });
+    },
+
     set_recent_bookmark_tags(tags)
     {
         settings.set("recent-bookmark-tags", JSON.stringify(tags));
