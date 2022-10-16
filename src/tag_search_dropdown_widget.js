@@ -697,7 +697,6 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         {
             // If an autocomplete request is already running, let it finish before we
             // start another.  This matches the behavior of Pixiv's input forms.
-            console.log("Delaying search for", tags);
             return;
         }
 
@@ -762,10 +761,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         // If the input element's value has changed since we started this search, we
         // stalled any other autocompletion.  Start it now.
         if(tags != this.input_element.value)
-        {
-            console.log("Run delayed autocomplete");
             this.run_autocomplete();
-        }
     }
 
     // tag_search is a search, like "tag -tag2".  translated_tags is a dictionary of known translations.
@@ -975,10 +971,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
 
         // Check if we were aborted while we were loading tags.
         if(abort_signal && abort_signal.aborted)
-        {
-            console.log("populate_dropdown_inner aborted");
             return false;
-        }
         
         var list = this.container.querySelector(".input-dropdown-list");
         helpers.remove_elements(list);

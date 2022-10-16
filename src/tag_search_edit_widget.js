@@ -160,10 +160,7 @@ ppixiv.tag_search_edit_widget = class extends ppixiv.widget
 
         // Check if we were aborted while we were loading tags.
         if(abort_signal && abort_signal.aborted)
-        {
-            console.log("populate_dropdown_inner aborted");
             return false;
-        }
         
         let list = this.container.querySelector(".edit-tags-list");
         helpers.remove_elements(list);
