@@ -980,13 +980,32 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         this.set_selection(idx);
     }
 
+    populate_dropdown = async(options) =>
+    {
+        // If this is called again before the first call completes, the original call will be
+        // aborted.  Keep waiting until one completes without being aborted (or we're hidden), so
+        // we don't return until our contents are actually filled in.
+        let promise = this._populate_dropdown_promise = this.populate_dropdown_inner(options);
+        this._populate_dropdown_promise.finally(() => {
+            if(promise === this._populate_dropdown_promise)
+                this._populate_dropdown_promise = null;
+        });
+
+        while(this.visible && this._populate_dropdown_promise != null)
+        {
+            if(await this._populate_dropdown_promise)
+                return true;
+        }
+        return false;
+    }
+
     // Populate the tag dropdown.
     //
     // This is async, since IndexedDB is async.  (It shouldn't be.  It's an overcorrection.
     // Network APIs should be async, but local I/O should not be forced async.)  If another
     // call to populate_dropdown() is made before this completes or cancel_populate_dropdown
     // cancels it, return false.  If it completes, return true.
-    populate_dropdown = async({ focus_autocomplete=false }={}) =>
+    populate_dropdown_inner = async({ focus_autocomplete=false }={}) =>
     {
         // If another populate_dropdown is already running, cancel it and restart.
         this.cancel_populate_dropdown();
@@ -1024,13 +1043,16 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         // Don't do this if we're updating the list during a drag.  The translations will never change
         // since we're just reordering the list, and we need to avoid going async to make sure we update
         // the list immediately since the drag will get confused if it isn't.
+        let translated_tags;
         if(this.dragging_tag == null)
-            this.translated_tags = await tag_translations.get().get_translations(all_tags, "en");
+            translated_tags = await tag_translations.get().get_translations(all_tags, "en");
 
         // Check if we were aborted while we were loading tags.
-        if(abort_signal && abort_signal.aborted)
+        if(abort_signal.aborted)
             return false;
         
+        this.translated_tags = translated_tags;
+            
         var list = this.container.querySelector(".input-dropdown-list");
         helpers.remove_elements(list);
         this.selected_idx = null;
