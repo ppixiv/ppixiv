@@ -244,6 +244,7 @@ class RunMainTask:
         self._task_finished = threading.Event()
         self._main_loop = None
         self._main_task = None
+        self._exit_exception = None
 
         self._thread = threading.Thread(target=self._run, name='main')
         self._thread.start()
@@ -267,6 +268,10 @@ class RunMainTask:
                     os._exit(0)
                 
                 self._cancel_main_task()
+
+        # If the thread exited with an exception, re-raise it here.
+        if self._exit_exception is not None:
+            raise self._exit_exception
 
     def _cancel_main_task(self):
         if self._main_task is None:
@@ -319,6 +324,10 @@ class RunMainTask:
         except asyncio.CancelledError as e:
             # XXX: signal the main thread that we've finished
             return
+        except BaseException as e:
+            # Save the exception that caused us to exit so we can re-raise it in the calling
+            # thread.  This may be something like SystemExit or KeyboardInterrupt.
+            self._exit_exception = e
         finally:
             self._task_finished.set()
 
