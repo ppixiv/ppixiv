@@ -182,11 +182,14 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
             </div>
         `});
 
+        this.autocomplete_cache = new Map();
+
         // Find the <input>.
         this.input_element = input_element.querySelector("input");
 
         this.input_element.addEventListener("keydown", this.input_onkeydown);
         this.input_element.addEventListener("input", this.input_oninput);
+        document.addEventListener("selectionchange", this.input_selectionchange, { signal: this.shutdown_signal.signal });
 
         // Refresh the dropdown when the tag search history changes.
         window.addEventListener("recent-tag-searches-changed", this.populate_dropdown, { signal: this.shutdown_signal.signal });
@@ -633,6 +636,11 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         
     }
 
+    input_selectionchange = (e) =>
+    {
+        this.run_autocomplete();
+    }
+    
     input_oninput = (e) =>
     {
         if(this.container.hidden)
@@ -689,8 +697,28 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         
         var tags = this.input_element.value.trim();
 
+        // Get the word under the cursor (we ignore UTF-16 surrogates here for now).
+        let text = this.input_element.value.trim();
+        let word_start = this.input_element.selectionStart;
+        while(word_start > 0 && text[word_start-1] != " ")
+            word_start--;
+
+        let word_end = word_start;
+        while(word_end+1 < text.length && text[word_end+1] != " ")
+            word_end++;
+        
+        let word = text.substr(word_start, word_end-word_start+1);
+
+        // Remove grouping parentheses.
+        word = word.replace(/^\(+/g, '');
+        word = word.replace(/\)+$/g, '');
+
+        // Don't autocomplete the search keyword "or".
+        if(word == "or")
+            return;
+
         // Stop if we're already up to date.
-        if(this.most_recent_search == tags)
+        if(this.most_recent_search == word)
             return;
 
         if(this.abort_autocomplete != null)
@@ -700,16 +728,24 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
             return;
         }
 
-        this.most_recent_search = tags;
+        this.most_recent_search = word;
+
+        // See if we have this search cached, so we don't spam requests if the user
+        // moves the cursor around a lot.
+        let cached_result = this.autocomplete_cache.get(word);
+        if(cached_result != null)
+        {
+            this.autocomplete_request_finished(tags, word, { candidates: cached_result, text, word_start, word_end });
+            return;
+        }
 
         // Don't send requests with an empty string.  Just finish the search synchronously,
-        // so we clear the autocomplete immediately.  Also, don't send requests if the search
-        // string contains spaces, since the autocomplete API is only for single words.
-        if(tags == "" || tags.indexOf(" ") != -1)
+        // so we clear the autocomplete immediately.
+        if(word == "")
         {
             if(this.abort_autocomplete != null)
                 this.abort_autocomplete.abort();
-            this.autocomplete_request_finished("", { candidates: [] });
+            this.autocomplete_request_finished(tags, word, { candidates: [] });
             return;
         }
 
@@ -718,7 +754,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         try {
             this.abort_autocomplete = new AbortController();
             result = await helpers.rpc_get_request("/rpc/cps.php", {
-                keyword: tags,
+                keyword: word,
             }, {
                 signal: this.abort_autocomplete.signal,
             });
@@ -733,30 +769,47 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         if(result == null)
             return;
 
-        this.autocomplete_request_finished(tags, result);
+        this.autocomplete_request_finished(tags, word, { candidates: result.candidates, text, word_start, word_end });
     }
     
     // A tag autocomplete request finished.
-    autocomplete_request_finished(tags, result)
+    autocomplete_request_finished(tags, word, { candidates, text, word_start, word_end }={})
     {
         this.abort_autocomplete = null;
 
-        // We don't register translations from this API, since it only seems to return
-        // romaji and not actual translations.
+        // Cache the result.
+        this.autocomplete_cache.set(word, candidates);
+
+        // Cache any translated tags the autocomplete gave us.
         let translations = { };
-        for(let tag of result.candidates)
+        for(let tag of candidates)
         {
+            // Only cache translations, not romanizations.
+            if(tag.type != "tag_translation")
+                continue;
+
             translations[tag.tag_name] = {
                 en: tag.tag_translation
             };
         }
-        // tag_translations.get().add_translations_dict(translations);
+        tag_translations.get().add_translations_dict(translations);
 
-        // Store the new results.
-        this.current_autocomplete_results = result.candidates || [];
+        // Store the results.
+        this.current_autocomplete_results = [];
+        for(let candidate of candidates || [])
+        {
+            // Skip the word we searched for, since it's the text we already have.
+            if(candidate.tag_name == word)
+                continue;
+
+            // If the input has multiple tags, we're searching the tag the cursor was on.  Replace just
+            // that word.
+            let search = text.slice(0, word_start) + candidate.tag_name + text.slice(word_end+1);
+            this.current_autocomplete_results.push({ tag: candidate.tag_name, search });
+        }
 
         // Refresh the dropdown with the new results.
-        this.populate_dropdown();
+        this.populate_dropdown({focus_autocomplete: true});
 
         // If the input element's value has changed since we started this search, we
         // stalled any other autocompletion.  Start it now.
@@ -764,8 +817,11 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
             this.run_autocomplete();
     }
 
-    // tag_search is a search, like "tag -tag2".  translated_tags is a dictionary of known translations.
-    create_entry(tag_search, { classes })
+    // tag_search is a search, like "tag -tag2".
+    //
+    // tags is the tag list to display.  The entry will link to target_tags, or tags
+    // if target_tags is null.
+    create_entry(tags, { classes, target_tags=null }={})
     {
         let entry = this.create_template({name: "tag-dropdown-entry", html: `
             <a class=entry href=#>
@@ -783,17 +839,19 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
                 <span class="edit-button delete-entry" data-shown-in="recent saved">X</span>
             </a>
         `});
-        entry.dataset.tag = tag_search;
+
+        target_tags ??= tags;
+        entry.dataset.tag = target_tags;
 
         for(let name of classes)
             entry.classList.add(name);
 
-        let translated_tag = this.translated_tags[tag_search];
+        let translated_tag = this.translated_tags[tags];
         if(translated_tag)
             entry.dataset.translated_tag = translated_tag;
 
         let tag_container = entry.querySelector(".search");
-        for(let tag of helpers.split_search_tags(tag_search))
+        for(let tag of helpers.split_search_tags(tags))
         {
             if(tag == "")
                 continue;
@@ -823,7 +881,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
             tag_container.appendChild(span);
         }
 
-        var url = ppixiv.helpers.get_args_for_tag_search(tag_search, ppixiv.plocation);
+        var url = ppixiv.helpers.get_args_for_tag_search(target_tags, ppixiv.plocation);
         entry.href = url;
 
         // If making a URL for this search from the current URL doesn't change anything, it's the
@@ -928,7 +986,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
     // Network APIs should be async, but local I/O should not be forced async.)  If another
     // call to populate_dropdown() is made before this completes or cancel_populate_dropdown
     // cancels it, return false.  If it completes, return true.
-    populate_dropdown = async() =>
+    populate_dropdown = async({ focus_autocomplete=false }={}) =>
     {
         // If another populate_dropdown is already running, cancel it and restart.
         this.cancel_populate_dropdown();
@@ -937,13 +995,16 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         let abort_controller = this.populate_dropdown_abort = new AbortController();        
         let abort_signal = abort_controller.signal;
 
-        let autocompleted_tags = this.current_autocomplete_results;
+        let autocompleted_tags = this.current_autocomplete_results || [];
 
         let tags_by_group = saved_search_tags.get_all_groups();
 
         let all_saved_tags = [];
         for(let saved_tag of tags_by_group.values())
             all_saved_tags = [...all_saved_tags, ...saved_tag];
+
+        for(let tag of autocompleted_tags)
+            all_saved_tags.push(tag.tag);
 
         // Separate tags in each search, so we can look up translations.
         var all_tags = {};
@@ -955,9 +1016,6 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
                 all_tags[tag] = true;
             }
         }
-
-        for(let tag of autocompleted_tags)
-            all_tags[tag.tag_name] = true;
 
         all_tags = Object.keys(all_tags);
     
@@ -982,7 +1040,19 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
             list.appendChild(this.create_separator("Suggestions", { icon: "mat:assistant", classes: ["autocomplete"] }));
 
         for(var tag of autocompleted_tags)
-            list.appendChild(this.create_entry(tag.tag_name, { classes: ["autocomplete"] }));
+        {
+            // Autocomplete entries link to the fully completed search, but only display the
+            // tag that was searched for.
+            let entry = this.create_entry(tag.tag, { classes: ["autocomplete"], target_tags: tag.search });
+            list.appendChild(entry);
+
+            // If focus_autocomplete is true, scroll the first autocomplete into view.
+            if(focus_autocomplete)
+            {
+                focus_autocomplete = false;
+                entry.scrollIntoViewIfNeeded();
+            }
+        }
 
         // Show saved tags above recent tags.
         for(let [group_name, tags_in_group] of tags_by_group.entries())
