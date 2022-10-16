@@ -1073,7 +1073,9 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
             if(focus_autocomplete)
             {
                 focus_autocomplete = false;
-                entry.scrollIntoViewIfNeeded(false);
+
+                // This conflicts with showing the current search on focus.
+                // entry.scrollIntoViewIfNeeded(false);
             }
         }
 
