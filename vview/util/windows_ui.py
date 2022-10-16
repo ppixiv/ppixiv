@@ -417,15 +417,16 @@ class _Terminal:
         if self.vvterm:
             self.vvterm.set_visible(value)
 
-    async def shutdown(self):
-        if self.vvterm is not None:
-            # Tell the terminal to exit.
-            self.vvterm.shutdown()
+    def shutdown(self):
+        if self.vvterm is None:
+            return
 
-            if self.event_task is not None:
-                # handle_events will receive VVtermEvent.Shutdown and return.
-                await self.event_task
-                self.event_task = None
+        # Tell the terminal to exit.
+        #
+        # handle_events is currently waiting on vvterm.wait_for_event, which will return
+        # and the next event will be VVtermEvent.Shutdown.  asyncio wants us to await self.event_task,
+        # but shutdown shouldn't be async and we just want to discard the result.
+        self.vvterm.shutdown()
 
     async def handle_events(self):
         """
