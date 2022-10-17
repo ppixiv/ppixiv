@@ -792,11 +792,8 @@ input, textarea, [contenteditable] {
     }
 }
 
-.whats-new-button.updates > svg {
+.whats-new-button.updates {
     color: #cc0;
-}
-html[data-theme="light"] .whats-new-button.updates > svg {
-    color: #0aa; /* yellow doesn't work in a light theme */
 }
 
 .menu-slider input {
@@ -1410,6 +1407,7 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
                 flex-shrink: 100000;
                 display: flex;
                 align-items: center;
+                gap: 0.25em;
             }
 
             .bottom-right-icon {
@@ -1442,16 +1440,12 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
                 
                 .ugoira-icon {
                     color: #fff;
-                    transition: opacity .5s;
                 }
             }
 
             .heart {
                 width: 32px;
                 height: 32px;
-                > svg {
-                    transition: opacity .5s;
-                }
             }
 
             .manga-info-box {
@@ -1461,7 +1455,6 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
                 padding: 0 4px;
                 background-color: rgba(0,0,0,.6);
                 border-radius: 6px;
-                transition: opacity .5s;
                 white-space: nowrap;
                 pointer-events: auto; // turn pointer events back on
                 border-radius: 6px;
@@ -1504,20 +1497,24 @@ body.ui-on-hover .top-ui-box + .top-ui-box-padding
                         margin-bottom: -4px; // hack to center correctly
                     }
                 }
-            }                
-        }
-
-        &.expanded-thumb .page-count {
-            // color: #0f0;
+            }
+            .ai-image {
+                height: 100%;
+                object-fit: contain;
+                padding: 4px;
+                image-rendering: pixelated;
+            }
         }
     }
 
     @media(hover: hover) {
-        .thumbnail-box:hover .heart > svg {
-            opacity: 0.5;
-        }
-        .thumbnail-box:hover .ugoira-icon {
-            opacity: 0.5;
+        .thumbnail-box:hover {
+            .heart > svg,
+            .ugoira-icon,
+            .ai-image
+            {
+                opacity: 0.5;
+            }
         }
     }
 

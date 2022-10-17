@@ -1494,6 +1494,24 @@ ppixiv.search_view = class extends ppixiv.widget
         if(media_info == null)
             return;
 
+        {
+            // Check for the "AI" tag.  Don't do a substring match on this, since it's too short and would have
+            // a lot of false positives.
+            let show_ai = false;
+            let exact_tags = ["AI"];
+            for(let tag of exact_tags)
+                if(media_info.tagList.indexOf(tag) != -1)
+                    show_ai = true;
+
+            // Look for these as substrings.
+            let tags = media_info.tagList.join(" ").toLowerCase();
+            for(let tag of ["diffusion", "novelai"])
+                if(tags.indexOf(tag) != -1)
+                    show_ai = true;
+
+            thumbnail_element.querySelector(".ai-image").hidden = !show_ai;
+        }
+
         var show_bookmark_heart = media_info.bookmarkData != null;
         if(this.data_source != null && !this.data_source.show_bookmark_icons)
             show_bookmark_heart = false;
@@ -1568,6 +1586,7 @@ ppixiv.search_view = class extends ppixiv.widget
                         <div class="heart button-bookmark private bookmarked" hidden>
                             <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
                         </div>
+                        <img class=ai-image src="ppixiv:resources/ai.png" hidden>
                     </div>
 
                     <div style="flex: 1;"></div>

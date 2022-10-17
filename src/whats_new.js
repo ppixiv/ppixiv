@@ -2,6 +2,13 @@
 
 let _update_history = [
     {
+        version: 168,
+        text: `
+            Images tagged as "AI" are now marked in search results.  There are too many of
+            these flooding the site, but this gives an alternative to muting them.
+        `,
+    },
+    {
         version: 164,
         boring: true,
         text: `
