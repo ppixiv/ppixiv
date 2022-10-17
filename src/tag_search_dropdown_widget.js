@@ -734,38 +734,41 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
 
         var tags = this.input_element.value.trim();
 
-        // Get the word under the cursor (we ignore UTF-16 surrogates here for now).
-        let text = this.input_element.value.trim();
+        // Get the word under the cursor (we ignore UTF-16 surrogates here for now).  This is
+        // the word we'll replace if the user selects a result.  If there's no selection this
+        // is also the word we'll search for.
+        let text = this.input_element.value;
         let word_start = this.input_element.selectionStart;
+        while(word_start > 0 && text[word_start-1] != " ")
+            word_start--;
+
         let word_end = this.input_element.selectionEnd;
+        while(word_end < text.length && text[word_end] != " ")
+            word_end++;
 
-        // If the selection is collapsed, expand the selection to include the word around
-        // the cursor.
-        if(this.input_element.selectionStart == this.input_element.selectionEnd)
-        {
-            while(word_start > 0 && text[word_start-1] != " ")
-                word_start--;
-
-            while(word_end < text.length && text[word_end] != " ")
-                word_end++;
-        }
-
-        let word = text.substr(word_start, word_end-word_start).trim();
+        // Get the text to search for.  if the selection is collapsed, use the whole word.
+        // If we have a selection, search for just the selected text.
+        let keyword;
+        if(this.input_element.selectionStart != this.input_element.selectionEnd)
+            keyword = text.substr(this.input_element.selectionStart, this.input_element.selectionEnd-this.input_element.selectionStart);
+        else
+            keyword = text.substr(word_start, word_end-word_start);
+        keyword = keyword.trim();
 
         // If the word contains a space because the user selected multiple words, delete
         // everything after the first space.
-        word = word.replace(/ .*/, "");
+        keyword = keyword.replace(/ .*/, "");
 
         // Remove grouping parentheses.
-        word = word.replace(/^\(+/g, '');
-        word = word.replace(/\)+$/g, '');
+        keyword = keyword.replace(/^\(+/g, '');
+        keyword = keyword.replace(/\)+$/g, '');
 
         // Don't autocomplete the search keyword "or".
-        if(word == "or")
+        if(keyword == "or")
             return;
 
         // Stop if we're already up to date.
-        if(this.most_recent_autocomplete == word)
+        if(this.most_recent_autocomplete == keyword)
             return;
 
         if(this.abort_autocomplete != null)
@@ -775,24 +778,24 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
             return;
         }
 
-        this.most_recent_autocomplete = word;
+        this.most_recent_autocomplete = keyword;
 
         // See if we have this search cached, so we don't spam requests if the user
         // moves the cursor around a lot.
-        let cached_result = this.autocomplete_cache.get(word);
+        let cached_result = this.autocomplete_cache.get(keyword);
         if(cached_result != null)
         {
-            this.autocomplete_request_finished(tags, word, { candidates: cached_result, text, word_start, word_end });
+            this.autocomplete_request_finished(tags, keyword, { candidates: cached_result, text, word_start, word_end });
             return;
         }
 
         // Don't send requests with an empty string.  Just finish the search synchronously,
         // so we clear the autocomplete immediately.
-        if(word == "")
+        if(keyword == "")
         {
             if(this.abort_autocomplete != null)
                 this.abort_autocomplete.abort();
-            this.autocomplete_request_finished(tags, word, { candidates: [] });
+            this.autocomplete_request_finished(tags, keyword, { candidates: [] });
             return;
         }
 
@@ -801,7 +804,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         try {
             this.abort_autocomplete = new AbortController();
             result = await helpers.rpc_get_request("/rpc/cps.php", {
-                keyword: word,
+                keyword,
             }, {
                 signal: this.abort_autocomplete.signal,
             });
@@ -816,7 +819,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         if(result == null)
             return;
 
-        this.autocomplete_request_finished(tags, word, { candidates: result.candidates, text, word_start, word_end });
+        this.autocomplete_request_finished(tags, keyword, { candidates: result.candidates, text, word_start, word_end });
     }
     
     // A tag autocomplete request finished.
