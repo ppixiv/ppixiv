@@ -1056,7 +1056,12 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         
         this.translated_tags = translated_tags;
             
-        var list = this.container.querySelector(".input-dropdown-list");
+        let list = this.input_dropdown;
+
+        // Save the scroll position so we can try to preserve it, especially when autocomplete is
+        // changing up above.
+        let saved_position = this.save_search_position();
+
         helpers.remove_elements(list);
         this.selected_idx = null;
 
@@ -1119,6 +1124,8 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
                 list.appendChild(this.create_entry(tag, { classes: ["history", "recent"] }));
         }
 
+        this.restore_search_position(saved_position);
+
         return true;
     }
 
@@ -1128,5 +1135,32 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
             return;
 
         this.populate_dropdown_abort.abort();
+    }
+
+    // Save the current search position, to be restored with restore_search_position.
+    save_search_position()
+    {
+        // Find the first visible entry.
+        for(let node of this.input_dropdown.querySelectorAll(".entry[data-tag]"))
+        {
+            if(node.offsetTop < this.input_dropdown.scrollTop)
+                continue;
+
+            let saved_position = helpers.save_scroll_position(this.input_dropdown, node);
+            let tag = node.dataset.tag;
+            return { saved_position, tag };
+        }
+
+        return { };
+    }
+
+    restore_search_position({ saved_position, tag })
+    {
+        if(saved_position == null)
+            return;
+
+        let restore_entry = this.get_entry_for_tag(tag);
+        if(restore_entry)
+            helpers.restore_scroll_position(this.input_dropdown, restore_entry, saved_position);
     }
 }
