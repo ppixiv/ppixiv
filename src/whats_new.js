@@ -6,6 +6,16 @@ let _update_history = [
         text: `
             Images tagged as "AI" are now marked in search results.  There are too many of
             these flooding the site, but this gives an alternative to muting them.
+            <p>
+            Slideshows are now limited to 60 FPS by default.  <span class=explanation-button data-explanation=chrome-fps>(Why?)</span>
+            This can be disabled in settings.
+
+            <div class="explanation-target chrome-fps" hidden>
+                Chrome has problems with high refresh rate monitors, and can cause other windows to
+                stutter when animations are running on another monitor.  Slideshows are usually
+                gradual pans anyway, so limiting the framerate avoids this problem without affecting
+                the result very much.
+            </div>
         `,
     },
     {
@@ -353,14 +363,28 @@ ppixiv.whats_new = class extends ppixiv.dialog_widget
             <div class="scroll items"></div>
         `});
 
+        this.container.addEventListener("click", this.onclick);
+
         this.refresh();
+    }
+
+    onclick = (e) =>
+    {
+        let explanation_button = e.target.closest(".explanation-button");
+        if(explanation_button)
+        {
+            e.preventDefault();
+            e.stopPropagation();
+            let name = e.target.dataset.explanation;
+            let target = this.container.querySelector(`.${name}`);
+            target.hidden = false;
+        }
     }
 
     refresh()
     {
         let items_box = this.container.querySelector(".items");
 
-        // Not really needed, since our contents never change
         helpers.remove_elements(items_box);
 
         let github_top_url = "https://github.com/ppixiv/ppixiv/";

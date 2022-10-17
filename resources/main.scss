@@ -2811,6 +2811,14 @@ svg.heart-image .delete {
         margin: 1em 0;
         padding: 0 20px; /* inset horizontally a bit */
     }
+
+    .explanation-button {
+        cursor: pointer;
+        text-decoration: underline;
+    }
+    .explanation-target {
+        margin: 0 1em;
+    }
 }
 
 .close-button {

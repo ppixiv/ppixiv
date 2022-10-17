@@ -40,6 +40,7 @@ ppixiv.Settings = class extends EventTarget
         this.configure("extra_mutes", { default_value: [] });
         this.configure("slideshow_skips_manga", { default_value: false });
         this.configure("expand_manga_thumbnails", { default_value: false });
+        this.configure("slideshow_framerate", { default_value: 60 });
     }
 
     // Configure settings.  This is used for properties of settings that we need to

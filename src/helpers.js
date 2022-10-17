@@ -5348,3 +5348,133 @@ ppixiv.MobileIsolatedTapHandler = class
         this.waiting_for_other_events = null
     }
 };
+
+// DirectAnimation is an Animation where we manually run its clock instead of letting it
+// happen async.
+//
+// This works around some problems with Chrome's implementation:
+//
+// - It always runs at the maximum possible refresh rate.  My main display is 280Hz freesync,
+// which is nice for scrolling and mouse cursors and games, but it's a waste of resources to
+// pan an image around at that speed.  Chrome doesn't give any way to control this.
+// - It runs all windows at the maximum refresh rate of any attached monitor.  My secondary
+// monitors are regular 60Hz, but Chrome runs animations on them at 280Hz too.  (This is a
+// strange bug: the entire point of requestAnimationFrame is to sync to vsync, not to just
+// wait for however long the browser thinks a frame is.)
+// - Running animations at this framerate causes other problems, like hitches in thumbnail
+// animations and videos in unrelated windows freezing.  (Is Chrome still only tested with
+// 60Hz monitors?)
+// 
+// Running the animation directly lets us control the framerate we actually update at.
+// 
+// Running the animation directly is OK for us since the animation is usually the only thing
+// going on, and we're not trying to use this to drive a bunch of random animations.  
+//
+// This only implements what we need to run slideshow animations and doesn't attempt to be a
+// general drop-in replacement for Animation.  It'll cause JS to be run periodically instead of
+// letting everything happen in the compositor, but that's much better than updating multiple
+// windows at several times their actual framerate.
+ppixiv.DirectAnimation = class
+{
+    constructor(effect)
+    {
+        // We should be able to just subclass Animation, and this works in Chrome, but iOS Safari
+        // is broken and doesn't call overridden functions.
+        this.animation = new Animation(effect);
+        this._playState = "idle";
+    }
+
+    get effect() { return this.animation.effect; }
+
+    play()
+    {
+        if(this._playState == "running")
+            return;
+
+        this._playState = "running";
+        this._playToken = new Object();
+        this._runner = this._run_animation();
+    }
+
+    pause()
+    {
+        if(this._playState == "paused")
+            return;
+
+        this._playState = "paused";
+        this._playToken = null;
+        this._runner = null;
+    }
+
+    cancel()
+    {
+        this.pause();
+        this.animation.cancel();
+    }
+
+    updatePlaybackRate(rate)
+    {
+        return this.animation.updatePlaybackRate(rate);
+    }
+
+    commitStyles()
+    {
+        this.animation.commitStyles();
+    }
+
+    get playState()
+    {
+        return this._playState;
+    }
+
+    async _run_animation()
+    {
+        let token = this._playToken;
+        let last_update = Date.now();
+        while(1)
+        {
+            await helpers.vsync();
+
+            // Stop if the animation state changed while we were async.
+            if(token !== this._playToken)
+                return;
+
+            let now = Date.now();
+            let delta = now - last_update;
+
+            // If we're running faster than we want, wait another frame, giving a small error margin.
+            // If targetFramerate is null, just run every frame.
+            let target_framerate = settings.get("slideshow_framerate");
+            if(target_framerate != null)
+            {
+                let target_delay = 1000/target_framerate;
+                if(delta*1.05 < target_delay)
+                    continue;
+            }
+
+            last_update = now;
+            delta *= this.animation.playbackRate;
+
+            let new_current_time = this.animation.currentTime + delta;
+
+            // Clamp the time to the end (this may be infinity).
+            let timing = this.animation.effect.getComputedTiming();
+            let max_time = timing.duration*timing.iterations;
+            let finished = new_current_time >= max_time;
+            if(finished)
+                new_current_time = max_time;
+
+            // Update the animation.
+            this.animation.currentTime = new_current_time;
+
+            // If we reached the end, run onfinish and stop.  This will never happen if max_time
+            // is infinity.
+            if(finished)
+            {
+                this._playState = "finished";
+                this.onfinish();
+                break;
+            }
+        }
+    }
+}

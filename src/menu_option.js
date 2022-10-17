@@ -198,6 +198,16 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
                 });
             },
 
+            limit_slideshow_framerate: () => {
+                return new menu_option_toggle_setting({
+                    ...global_options,
+                    label: "Limit slideshows to 60 FPS",
+                    setting: "slideshow_framerate",
+                    on_value: 60,
+                    off_value: null,
+                });
+            },
+
             import_extra_data: () => {
                 return new menu_option_row({
                     ...global_options,
@@ -465,6 +475,7 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
 
         // settings_widgets.theme();
         settings_widgets.bookmark_privately_by_default();
+        settings_widgets.limit_slideshow_framerate();
 
         // Chrome supports showOpenFilePicker, but Firefox doesn't.  That API has been around in
         // Chrome for a year and a half, so I haven't implemented an alternative for Firefox.

@@ -1107,7 +1107,7 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         this.current_animation_mode = animation_mode;
         
         // Create the main animation.
-        this.animations.main = new Animation(new KeyframeEffect(
+        this.animations.main = new ppixiv.DirectAnimation(new KeyframeEffect(
             this.image_box,
             animation.keyframes,
             {
@@ -1126,6 +1126,8 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         this.animations.main.onfinish = this.check_animation_finished;
 
         // If this animation wants a fade-in and a previous one isn't still playing, start it.
+        // Note that we use Animation and not DirectAnimation for fades, since DirectAnimation won't
+        // sleep during the long delay while they're not doing anything.
         if(animation.fade_in > 0)
             this.animations.fade_in = ppixiv.slideshow.make_fade_in(this.image_box, { duration: animation.fade_in * 1000 });
 
