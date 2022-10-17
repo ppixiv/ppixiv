@@ -183,6 +183,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         `});
 
         this.autocomplete_cache = new Map();
+        this.disable_autocomplete_until = 0;
 
         // Find the <input>.
         this.input_element = input_element.querySelector("input");
@@ -650,8 +651,9 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         // Clear the selection on input.
         this.set_selection(null);
 
-        // Update autocomplete when the text changes.
-        this.run_autocomplete();
+        // Update autocomplete when the text changes.  Tell it that this is for user input,
+        // so it knows to scroll to the results.
+        this.run_autocomplete({for_input: true});
     }
 
     async show()
@@ -691,13 +693,16 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         this.container.hidden = true;
     }
 
-    async run_autocomplete()
+    async run_autocomplete({for_input=false}={})
     {
         // If true, this is a value change caused by keyboard navigation.  Don't run autocomplete,
         // since we don't want to change the dropdown due to navigating in it.
         if(this.navigating)
             return;
         
+        if(this.disable_autocomplete_until > Date.now())
+            return;
+
         var tags = this.input_element.value.trim();
 
         // Get the word under the cursor (we ignore UTF-16 surrogates here for now).
@@ -782,11 +787,11 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         if(result == null)
             return;
 
-        this.autocomplete_request_finished(tags, word, { candidates: result.candidates, text, word_start, word_end });
+        this.autocomplete_request_finished(tags, word, { candidates: result.candidates, text, word_start, word_end, for_input });
     }
     
     // A tag autocomplete request finished.
-    autocomplete_request_finished(tags, word, { candidates, text, word_start, word_end }={})
+    autocomplete_request_finished(tags, word, { candidates, text, word_start, word_end, for_input }={})
     {
         this.abort_autocomplete = null;
 
@@ -821,8 +826,10 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
             this.current_autocomplete_results.push({ tag: candidate.tag_name, search });
         }
 
-        // Refresh the dropdown with the new results.
-        this.populate_dropdown({focus_autocomplete: true});
+        // Refresh the dropdown with the new results.  Scroll to autocomplete if we're filling it in
+        // because of the user typing a tag, but not for things like clicking on the input box, so
+        // we don't steal the scroll position.
+        this.populate_dropdown({scroll_to_top: for_input});
 
         // If the input element's value has changed since we started this search, we
         // stalled any other autocompletion.  Start it now.
@@ -966,6 +973,11 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
                 var new_entry = all_entries[this.selected_idx];
                 new_entry.classList.add("selected");
                 new_entry.scrollIntoViewIfNeeded(false);
+
+                // selectionchange is fired async.  This doesn't make sense, since it makes it
+                // impossible to tell what triggered it: this.navigating will be false by the time
+                // we see it.   Work around this with a timer to disable autocomplete briefly.
+                this.disable_autocomplete_until = Date.now() + 50;
                 this.input_element.value = new_entry.dataset.tag;
             }
         } finally {
@@ -1018,7 +1030,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
     // Network APIs should be async, but local I/O should not be forced async.)  If another
     // call to populate_dropdown() is made before this completes or cancel_populate_dropdown
     // cancels it, return false.  If it completes, return true.
-    populate_dropdown_inner = async({ focus_autocomplete=false }={}) =>
+    populate_dropdown_inner = async({ scroll_to_top=false }={}) =>
     {
         // If another populate_dropdown is already running, cancel it and restart.
         this.cancel_populate_dropdown();
@@ -1085,15 +1097,6 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
             // tag that was searched for.
             let entry = this.create_entry(tag.tag, { classes: ["autocomplete"], target_tags: tag.search });
             list.appendChild(entry);
-
-            // If focus_autocomplete is true, scroll the first autocomplete into view.
-            if(focus_autocomplete)
-            {
-                focus_autocomplete = false;
-
-                // This conflicts with showing the current search on focus.
-                // entry.scrollIntoViewIfNeeded(false);
-            }
         }
 
         // Show saved tags above recent tags.
@@ -1134,7 +1137,10 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
                 list.appendChild(this.create_entry(tag, { classes: ["history", "recent"] }));
         }
 
-        this.restore_search_position(saved_position);
+        if(scroll_to_top)
+            list.scrollTop = 0;
+        else
+            this.restore_search_position(saved_position);
 
         return true;
     }
