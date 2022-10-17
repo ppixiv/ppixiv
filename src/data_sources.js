@@ -3182,8 +3182,10 @@ ppixiv.data_sources.search = class extends data_source
         // Fill the search box with the current tag.
         //
         // Add a space to the end, so another tag can be typed immediately after focusing an existing search.
-        let tag = this._search_tags;
-        container.querySelector(".tag-search-box .input-field-container > input").value = tag + " ";
+        let search = this._search_tags;
+        if(search)
+            search += " ";
+        container.querySelector(".tag-search-box .input-field-container > input").value = search;
     }
 
     // Return the search mode, which is selected by the "Type" search option.  This generally
