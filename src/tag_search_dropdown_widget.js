@@ -1134,7 +1134,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
 
         // Add autocompletes at the top.
         if(autocompleted_tags.length)
-            list.appendChild(this.create_separator("Suggestions", { icon: "mat:assistant", classes: ["autocomplete"] }));
+            list.appendChild(this.create_separator(`Suggestions for ${this.most_recent_autocomplete}`, { icon: "mat:assistant", classes: ["autocomplete"] }));
 
         for(var tag of autocompleted_tags)
         {
