@@ -141,7 +141,6 @@ ppixiv.tag_search_box_widget = class extends ppixiv.widget
     {
         // This can be sent to either the search page search box or the one in the
         // navigation dropdown.  Figure out which one we're on.
-        var search_box = e.target.closest(".search-box");
         var tags = this.input_element.value.trim();
         if(tags.length == 0)
             return;
@@ -403,11 +402,13 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
 
     get_entry_for_tag(tag, { include_autocomplete=false }={})
     {
+        tag = tag.trim();
+        
         for(let entry of this.container.querySelectorAll(".entry"))
         {
             if(!include_autocomplete && entry.classList.contains("autocomplete"))
                 continue;
-            if(entry.dataset.tag == tag)
+            if(entry.dataset.tag.trim() == tag)
                 return entry;
         }
         return null;
@@ -1075,7 +1076,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
     // If the current search is in the list, select it.
     select_current_search = () =>
     {
-        let current_search_tags = helpers.get_tag_search_from_args(ppixiv.plocation);
+        let current_search_tags = this.input_element.value.trim();
         if(!current_search_tags)
             return;
 
