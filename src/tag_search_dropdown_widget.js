@@ -458,6 +458,12 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
                 // reopen us.
                 this.input_element.blur();
                 this.hide();
+
+                // If this is a navigation the input box will be filled automatically, but clicking an
+                // entry matching the current search won't navigate.  Fill in the input box with the search
+                // even if the click doesn't trigger navigation.
+                this.input_element.value = entry.dataset.tag;
+
                 return;
             }
         }
@@ -611,11 +617,13 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
             }
         }
 
+        // Toggling tag sections:
         if(tag_section != null && !tag_section.classList.contains("autocomplete"))
         {
             e.stopPropagation();
             e.preventDefault();
             saved_search_tags.set_tag_group_collapsed(tag_section.group_name, "toggle");
+            return;
         }
     }
 
