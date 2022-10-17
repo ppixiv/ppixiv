@@ -1505,7 +1505,7 @@ ppixiv.search_view = class extends ppixiv.widget
 
             // Look for these as substrings.
             let tags = media_info.tagList.join(" ").toLowerCase();
-            for(let tag of ["diffusion", "novelai"])
+            for(let tag of ["diffusion", "novelai", "aiイラスト"])
                 if(tags.indexOf(tag) != -1)
                     show_ai = true;
 
