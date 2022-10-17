@@ -438,7 +438,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
             // completed yet.  Force an update now so we can scroll the new group into view.
             await this.populate_dropdown();
             let new_section = this.get_section_header_for_group(label);
-            new_section.scrollIntoViewIfNeeded(false);
+            this.scroll_entry_into_view(new_section);
             return;
         }
         
@@ -538,7 +538,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
                 // if we had to expand the group and the scroll position is in the wrong place now.
                 await this.populate_dropdown();
                 let new_entry = this.get_entry_for_tag(entry.dataset.tag);
-                new_entry.scrollIntoViewIfNeeded(false);
+                this.scroll_entry_into_view(new_entry);
             }
 
             let edit_tags = e.target.closest(".edit-tags-button");
@@ -681,6 +681,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         helpers.set_max_height(this.input_dropdown);
 
         this.select_current_search();
+        this.run_autocomplete();
     }
 
     hide()
@@ -1025,7 +1026,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
                 if(entry)
                 {
                     entry.classList.add("selected");
-                    entry.scrollIntoViewIfNeeded(false);
+                    this.scroll_entry_into_view(entry);
                 }
             }
         } finally {
@@ -1045,7 +1046,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         // If that selected something, scroll it into view.
         let selected_entry = this.container.querySelector(".entry.selected");
         if(selected_entry)
-            selected_entry.scrollIntoViewIfNeeded(false);
+            this.scroll_entry_into_view(selected_entry);
     }
 
     populate_dropdown = async(options) =>
@@ -1227,5 +1228,36 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         let restore_entry = this.get_entry_for_tag(tag);
         if(restore_entry)
             helpers.restore_scroll_position(this.input_dropdown, restore_entry, saved_position);
+    }
+
+    // Scroll a row into view.  entry can be an entry or a section header.
+    scroll_entry_into_view(entry)
+    {
+        entry.scrollIntoView({ block: "nearest" });
+
+        if(!entry.classList.contains("entry"))
+            return;
+
+        // Work around a bug in most browsers: scrollIntoView will scroll an element underneath
+        // sticky headers, where it isn't in view at all.  This is a pain, because there's no direct
+        // way to find which element is actually the top sticky header.  We have to scan through the
+        // list and find it.  All nodes that are stickied will have the same offsetTop, so we need
+        // to find the last sticky node with the same offsetTop as the first one.
+        let sticky_top = null;
+        for(let node of this.input_dropdown.children)
+        {
+            if(!node.classList.contains("tag-section"))
+                continue;
+            if(sticky_top != null && node.offsetTop != sticky_top.offsetTop)
+                break;
+
+            sticky_top = node;
+        }
+
+        // If entry is underneath the header, scroll down to make it visible.
+        let sticky_padding = sticky_top.offsetHeight;
+        let offset_from_top = entry.offsetTop - this.input_dropdown.scrollTop;
+        if(offset_from_top < sticky_padding)
+            this.input_dropdown.scrollTop -= sticky_padding - offset_from_top;
     }
 }
