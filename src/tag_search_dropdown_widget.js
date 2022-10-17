@@ -684,6 +684,8 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         // If populate_dropdown is still running, cancel it.
         this.cancel_populate_dropdown();
 
+        this.current_autocomplete_results = [];
+        this.most_recent_autocomplete = null;
         this.set_editing(false);
         this.stop_dragging();
         this.container.hidden = true;
@@ -719,7 +721,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
             return;
 
         // Stop if we're already up to date.
-        if(this.most_recent_search == word)
+        if(this.most_recent_autocomplete == word)
             return;
 
         if(this.abort_autocomplete != null)
@@ -729,7 +731,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
             return;
         }
 
-        this.most_recent_search = word;
+        this.most_recent_autocomplete = word;
 
         // See if we have this search cached, so we don't spam requests if the user
         // moves the cursor around a lot.
