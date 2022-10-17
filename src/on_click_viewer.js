@@ -1028,9 +1028,8 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
             container_height: this.container_height,
             mode: animation_mode,
 
-            // Set the minimum zoom to 1, so we don't zoom below cover mode and leave blank space
-            // onscreen, which is ugly.
-            minimum_zoom: 1,
+            // Don't zoom below "contain".
+            minimum_zoom: this.zoom_level_to_zoom_factor(0),
         });
 
         // Create the animation.
