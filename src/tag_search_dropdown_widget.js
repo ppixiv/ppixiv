@@ -703,14 +703,24 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         // Get the word under the cursor (we ignore UTF-16 surrogates here for now).
         let text = this.input_element.value.trim();
         let word_start = this.input_element.selectionStart;
-        while(word_start > 0 && text[word_start-1] != " ")
-            word_start--;
+        let word_end = this.input_element.selectionEnd;
 
-        let word_end = word_start;
-        while(word_end+1 < text.length && text[word_end+1] != " ")
-            word_end++;
-        
-        let word = text.substr(word_start, word_end-word_start+1);
+        // If the selection is collapsed, expand the selection to include the word around
+        // the cursor.
+        if(this.input_element.selectionStart == this.input_element.selectionEnd)
+        {
+            while(word_start > 0 && text[word_start-1] != " ")
+                word_start--;
+
+            while(word_end < text.length && text[word_end] != " ")
+                word_end++;
+        }
+
+        let word = text.substr(word_start, word_end-word_start).trim();
+
+        // If the word contains a space because the user selected multiple words, delete
+        // everything after the first space.
+        word = word.replace(/ .*/, "");
 
         // Remove grouping parentheses.
         word = word.replace(/^\(+/g, '');
