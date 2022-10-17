@@ -175,8 +175,14 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
                         <div class="edit-button create-section-button">${ helpers.create_icon("mat:create_new_folder") }</div>
                     </div>
 
-                    <div class=input-dropdown-list>
-                        <!-- template-tag-dropdown-entry instances will be added here. -->
+                    <div class="all-results">
+                        <div class="input-dropdown-contents autocomplete-list">
+                            <!-- template-tag-dropdown-entry instances will be added here. -->
+                        </div>
+
+                        <div class="input-dropdown-contents input-dropdown-list">
+                            <!-- template-tag-dropdown-entry instances will be added here. -->
+                        </div>
                     </div>
                 </div>
             </div>
@@ -203,16 +209,35 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         this.current_autocomplete_results = [];
 
         // input-dropdown is resizable.  Save the size when the user drags it.
+        this.all_results = this.container.querySelector(".all-results");
+        this.autocomplete_list = this.container.querySelector(".autocomplete-list");
         this.input_dropdown = this.container.querySelector(".input-dropdown-list");
+        let refresh_dropdown_width = () => {
+            this.input_dropdown.style.width = settings.get("tag-dropdown-width", "400px");
+            this.autocomplete_list.style.width = settings.get("tag-dropdown-width", "400px");
+
+            // tag-dropdown-width may have "px" baked into it.  Use parseInt to remove it.
+            let width = settings.get("tag-dropdown-width", "400");
+            width = parseInt(width);
+            this.container.style.setProperty('--width', `${width}px`);
+        }
         let observer = new MutationObserver((mutations) => {
             // resize sets the width.  Use this instead of offsetWidth, since offsetWidth sometimes reads
             // as 0 here.
-            settings.set("tag-dropdown-width", this.input_dropdown.style.width);
+            let width = parseInt(this.input_dropdown.style.width);
+            if(isNaN(width))
+                width = 600;
+            settings.set("tag-dropdown-width", width);
+            //refresh_dropdown_width(); // XXX
         });
         observer.observe(this.input_dropdown, { attributes: true });
 
-        // Restore input-dropdown's width.  Force a minimum width, in case this setting is saved incorrectly.
-        this.input_dropdown.style.width = settings.get("tag-dropdown-width", "400px");
+        // Restore input-dropdown's width.
+        refresh_dropdown_width();
+
+        // Try to prevent scrolling the thumbnails underneath when over the unscrolling autocomplete
+        // container.  We can't block onscroll, so we can't prevent all unintended scrolling here.
+        this.autocomplete_list.addEventListener("wheel", (e) =>  { e.preventDefault(); });
 
         this.container.hidden = true;
 
@@ -660,9 +685,8 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         // Clear the selection on input.
         this.set_selection(null);
 
-        // Update autocomplete when the text changes.  Tell it that this is for user input,
-        // so it knows to scroll to the results.
-        this.run_autocomplete({for_input: true});
+        // Update autocomplete when the text changes.
+        this.run_autocomplete();
     }
 
     async show()
@@ -677,8 +701,6 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
             return;
 
         this.container.hidden = false;
-
-        helpers.set_max_height(this.input_dropdown);
 
         this.select_current_search();
         this.run_autocomplete();
@@ -700,7 +722,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         this.container.hidden = true;
     }
 
-    async run_autocomplete({for_input=false}={})
+    async run_autocomplete()
     {
         // If true, this is a value change caused by keyboard navigation.  Don't run autocomplete,
         // since we don't want to change the dropdown due to navigating in it.
@@ -760,7 +782,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         let cached_result = this.autocomplete_cache.get(word);
         if(cached_result != null)
         {
-            this.autocomplete_request_finished(tags, word, { candidates: cached_result, text, word_start, word_end, for_input });
+            this.autocomplete_request_finished(tags, word, { candidates: cached_result, text, word_start, word_end });
             return;
         }
 
@@ -794,11 +816,11 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         if(result == null)
             return;
 
-        this.autocomplete_request_finished(tags, word, { candidates: result.candidates, text, word_start, word_end, for_input });
+        this.autocomplete_request_finished(tags, word, { candidates: result.candidates, text, word_start, word_end });
     }
     
     // A tag autocomplete request finished.
-    autocomplete_request_finished(tags, word, { candidates, text, word_start, word_end, for_input }={})
+    autocomplete_request_finished(tags, word, { candidates, text, word_start, word_end }={})
     {
         this.abort_autocomplete = null;
 
@@ -836,7 +858,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         // Refresh the dropdown with the new results.  Scroll to autocomplete if we're filling it in
         // because of the user typing a tag, but not for things like clicking on the input box, so
         // we don't steal the scroll position.
-        this.populate_dropdown({scroll_to_top: for_input});
+        this.populate_dropdown();
 
         // If the input element's value has changed since we started this search, we
         // stalled any other autocompletion.  Start it now.
@@ -958,7 +980,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         // it shouldn't run an autocomplete request for this value change.
         this.navigating = true;
         try {
-            let all_entries = this.input_dropdown.querySelectorAll(".entry");
+            let all_entries = this.all_results.querySelectorAll(".entry");
 
             // Stop if there's nothing in the list.
             let total_entries = all_entries.length;
@@ -1003,7 +1025,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
 
     get_selection()
     {
-        let entry = this.input_dropdown.querySelector(".entry.selected");
+        let entry = this.all_results.querySelector(".entry.selected");
         return entry?.dataset?.tag;
     }
 
@@ -1015,7 +1037,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
 
         try {
             // Clear the old selection.
-            let old_selection = this.input_dropdown.querySelector(".entry.selected");
+            let old_selection = this.all_results.querySelector(".entry.selected");
             if(old_selection)
                 old_selection.classList.remove("selected");
 
@@ -1074,7 +1096,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
     // Network APIs should be async, but local I/O should not be forced async.)  If another
     // call to populate_dropdown() is made before this completes or cancel_populate_dropdown
     // cancels it, return false.  If it completes, return true.
-    populate_dropdown_inner = async({ scroll_to_top=false }={}) =>
+    populate_dropdown_inner = async() =>
     {
         // If another populate_dropdown is already running, cancel it and restart.
         this.cancel_populate_dropdown();
@@ -1122,8 +1144,6 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         
         this.translated_tags = translated_tags;
             
-        let list = this.input_dropdown;
-
         // Save the selection so we can restore it.
         let saved_selection = this.get_selection();
     
@@ -1131,18 +1151,21 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         // changing up above.
         let saved_position = this.save_search_position();
 
-        helpers.remove_elements(list);
+        helpers.remove_elements(this.autocomplete_list);
+        helpers.remove_elements(this.input_dropdown);
+
+        this.autocomplete_list.hidden = autocompleted_tags.length == 0;
 
         // Add autocompletes at the top.
         if(autocompleted_tags.length)
-            list.appendChild(this.create_separator(`Suggestions for ${this.most_recent_autocomplete}`, { icon: "mat:assistant", classes: ["autocomplete"] }));
+            this.autocomplete_list.appendChild(this.create_separator(`Suggestions for ${this.most_recent_autocomplete}`, { icon: "mat:assistant", classes: ["autocomplete"] }));
 
         for(var tag of autocompleted_tags)
         {
             // Autocomplete entries link to the fully completed search, but only display the
             // tag that was searched for.
             let entry = this.create_entry(tag.tag, { classes: ["autocomplete"], target_tags: tag.search });
-            list.appendChild(entry);
+            this.autocomplete_list.appendChild(entry);
         }
 
         // Show saved tags above recent tags.
@@ -1153,7 +1176,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
                 continue;
 
             let collapsed = saved_search_tags.get_collapsed_tag_groups().has(group_name);
-            list.appendChild(this.create_separator(group_name, {
+            this.input_dropdown.appendChild(this.create_separator(group_name, {
                 icon: collapsed? "mat:folder":"mat:folder_open",
                 is_user_section: true,
                 group_name: group_name,
@@ -1164,7 +1187,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
             if(!collapsed)
             {
                 for(let tag of tags_in_group)
-                    list.appendChild(this.create_entry(tag, { classes: ["history", "saved"] }));
+                    this.input_dropdown.appendChild(this.create_entry(tag, { classes: ["history", "saved"] }));
             }
         }
 
@@ -1172,7 +1195,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         let recents_collapsed = saved_search_tags.get_collapsed_tag_groups().has(null);
         let recent_tags = tags_by_group.get(null);
         if(recent_tags.length)
-            list.appendChild(this.create_separator("Recent tags", {
+            this.input_dropdown.appendChild(this.create_separator("Recent tags", {
                 icon: "mat:history",
                 collapsed: recents_collapsed,
             }));
@@ -1180,17 +1203,22 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         if(!recents_collapsed)
         {
             for(let tag of recent_tags)
-                list.appendChild(this.create_entry(tag, { classes: ["history", "recent"] }));
+                this.input_dropdown.appendChild(this.create_entry(tag, { classes: ["history", "recent"] }));
         }
+
+        // If we're being called during show(), we haven't been set visible yet so we don't flash
+        // the dropdown before it's populated.  Make it visible now, or helpers.set_max_height() won't
+        // be able to tell how tall the dropdown is.
+        if(this.visible)
+            this.container.hidden = false;
+
+        helpers.set_max_height(this.input_dropdown);
 
         // Restore the previous selection.
         if(saved_selection)
             this.set_selection(saved_selection);       
 
-        if(scroll_to_top)
-            list.scrollTop = 0;
-        else
-            this.restore_search_position(saved_position);
+        this.restore_search_position(saved_position);
 
         return true;
     }
@@ -1254,9 +1282,10 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
             sticky_top = node;
         }
 
-        // If entry is underneath the header, scroll down to make it visible.
+        // If entry is underneath the header, scroll down to make it visible.  The extra offsetTop
+        // adjustment is to adjust for the autocomplete box above the scroller.
         let sticky_padding = sticky_top.offsetHeight;
-        let offset_from_top = entry.offsetTop - this.input_dropdown.scrollTop;
+        let offset_from_top = entry.offsetTop - this.input_dropdown.offsetTop - this.input_dropdown.scrollTop;
         if(offset_from_top < sticky_padding)
             this.input_dropdown.scrollTop -= sticky_padding - offset_from_top;
     }

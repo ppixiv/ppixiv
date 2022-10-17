@@ -1868,14 +1868,8 @@ a.box-link, span.box-link
         }
     }
 
-    // The search history scroller:
-    > .input-dropdown-list {
-        // Always show the vertical scrollbar.  Otherwise, the resize handle falls under the buttons
-        // when it's not shown.
-        overflow-x: hidden;
-        overflow-y: scroll;
-        resize: horizontal;
-        width: 500px; /* overridden by script */
+    .input-dropdown-contents {
+        width: var(--width); // set by script
         max-width: 800px;
         margin: 1px;
 
@@ -1973,7 +1967,21 @@ a.box-link, span.box-link
         // Disable the pointer cursor on the search links while editing.
         &.editing .entry {
             cursor: default;
-        }
+        }        
+    }
+
+    .autocomplete-list {
+        // Add a slight visual division between the autocomplete list and the saved tags scroller.
+        border-bottom: 1px solid #aaa;
+    }
+
+    // The search history scroller.  If there are autocompletes, this sits underneath it.
+    .input-dropdown-list {
+        // Always show the vertical scrollbar.  Otherwise, the resize handle falls under the buttons
+        // when it's not shown.
+        overflow-x: hidden;
+        overflow-y: scroll;
+        resize: horizontal;
     }
 
     // The edit search list is shown as a wrapped list.
