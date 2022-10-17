@@ -462,8 +462,9 @@ void VVbrowserWindow::InitializeWebView()
     auto options = Microsoft::WRL::Make<CoreWebView2EnvironmentOptions>();
 
     // Disable requiring user interaction for autoplay.  This should go through
-    // add_PermissionRequested, but it doesn't.
-    options->put_AdditionalBrowserArguments(L"--autoplay-policy=no-user-gesture-required");
+    // add_PermissionRequested, but it doesn't.  Also disable spellcheck, which quietly
+    // sends user input to Microsoft without permission.
+    options->put_AdditionalBrowserArguments(L"--autoplay-policy=no-user-gesture-required --disable-features=msUseSpellCheckCorrectionsCard");
 
     // If we've been given a profilePath, set it.
     const wchar_t *profilePathPtr = config.profilePath.empty()? nullptr:config.profilePath.c_str();
