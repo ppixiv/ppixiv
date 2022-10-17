@@ -195,8 +195,8 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         // Refresh the dropdown when the tag search history changes.
         window.addEventListener("recent-tag-searches-changed", this.populate_dropdown, { signal: this.shutdown_signal.signal });
 
-        // Refresh on state change to update the highlight.
-        window.addEventListener("popstate", this.populate_dropdown, { signal: this.shutdown_signal.signal });
+        // Update the selection if the page is navigated while we're open.
+        window.addEventListener("popstate", this.select_current_search, { signal: this.shutdown_signal.signal });
 
         this.container.addEventListener("click", this.dropdown_onclick);
 
@@ -376,11 +376,12 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         return null;
     }
 
-    get_entry_for_tag(tag)
+    get_entry_for_tag(tag, { include_autocomplete=false }={})
     {
-        // Ignore autocomplete and only return real tags.
-        for(let entry of this.container.querySelectorAll(".entry:not(.autocomplete)"))
+        for(let entry of this.container.querySelectorAll(".entry"))
         {
+            if(!include_autocomplete && entry.classList.contains("autocomplete"))
+                continue;
             if(entry.dataset.tag == tag)
                 return entry;
         }
@@ -632,7 +633,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
             e.stopImmediatePropagation();
 
             // Disabled for now since keyboard navigation is currently broken.
-            // this.move(e.code == "ArrowDown");
+            this.move(e.code == "ArrowDown");
             break;
         }
         
@@ -671,10 +672,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
 
         helpers.set_max_height(this.input_dropdown);
 
-        // Scroll the selected tag into view.
-        let selected_entry = this.container.querySelector(".entry.selected");
-        if(selected_entry)
-            selected_entry.scrollIntoViewIfNeeded(false);
+        this.select_current_search();
     }
 
     hide()
@@ -753,7 +751,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         let cached_result = this.autocomplete_cache.get(word);
         if(cached_result != null)
         {
-            this.autocomplete_request_finished(tags, word, { candidates: cached_result, text, word_start, word_end });
+            this.autocomplete_request_finished(tags, word, { candidates: cached_result, text, word_start, word_end, for_input });
             return;
         }
 
@@ -822,7 +820,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
 
             // If the input has multiple tags, we're searching the tag the cursor was on.  Replace just
             // that word.
-            let search = text.slice(0, word_start) + candidate.tag_name + text.slice(word_end+1);
+            let search = text.slice(0, word_start) + candidate.tag_name + text.slice(word_end);
             this.current_autocomplete_results.push({ tag: candidate.tag_name, search });
         }
 
@@ -903,13 +901,6 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
 
         var url = ppixiv.helpers.get_args_for_tag_search(target_tags, ppixiv.plocation);
         entry.href = url;
-
-        // If making a URL for this search from the current URL doesn't change anything, it's the
-        // search we're currently on.  This always removes the language from the URL, so remove
-        // it to compare.
-        if(helpers.get_url_without_language(ppixiv.plocation).toString() == url.toString())
-            entry.classList.add("selected");
-
         return entry;
     }
 
@@ -951,58 +942,102 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         return section;
     }
 
-    set_selection(idx)
+    // Select the next or previous entry in the dropdown.
+    move(down)
     {
         // Temporarily set this.navigating to true.  This lets run_autocomplete know that
         // it shouldn't run an autocomplete request for this value change.
         this.navigating = true;
         try {
-            // If there's an autocomplete request in the air and we're selecting a value, cancel it.
-            if(idx != null && this.abort_autocomplete != null)
+            let all_entries = this.input_dropdown.querySelectorAll(".entry");
+
+            // Stop if there's nothing in the list.
+            let total_entries = all_entries.length;
+            if(total_entries == 0)
+                return;
+
+            // Find the index of the previous selection, if any.
+            let selected_idx = null;
+            for(let idx = 0; idx < all_entries.length; ++idx)
+            {
+                if(all_entries[idx].classList.contains("selected"))
+                {
+                    selected_idx = idx;
+                    break;
+                }
+            }
+            
+            if(selected_idx == null)
+                selected_idx = down? 0:(total_entries-1);
+            else
+                selected_idx += down? +1:-1;
+
+            selected_idx = (selected_idx + total_entries) % total_entries;
+
+            // If there's an autocomplete request in the air, cancel it.
+            if(this.abort_autocomplete != null)
                 this.abort_autocomplete.abort();
 
-            // Clear any old selection.
-            var all_entries = this.container.querySelectorAll(".input-dropdown-list .entry");
-            if(this.selected_idx != null)
-                all_entries[this.selected_idx].classList.remove("selected");
-
             // Set the new selection.
-            this.selected_idx = idx;
-            if(this.selected_idx != null)
-            {
-                var new_entry = all_entries[this.selected_idx];
-                new_entry.classList.add("selected");
-                new_entry.scrollIntoViewIfNeeded(false);
+            let new_entry = all_entries[selected_idx];
+            this.set_selection(new_entry.dataset.tag);
 
-                // selectionchange is fired async.  This doesn't make sense, since it makes it
-                // impossible to tell what triggered it: this.navigating will be false by the time
-                // we see it.   Work around this with a timer to disable autocomplete briefly.
-                this.disable_autocomplete_until = Date.now() + 50;
-                this.input_element.value = new_entry.dataset.tag;
+            // selectionchange is fired async.  This doesn't make sense, since it makes it
+            // impossible to tell what triggered it: this.navigating will be false by the time
+            // we see it.   Work around this with a timer to disable autocomplete briefly.
+            this.disable_autocomplete_until = Date.now() + 50;
+            this.input_element.value = new_entry.dataset.tag;
+        } finally {
+            this.navigating = false;
+        }
+    }
+
+    get_selection()
+    {
+        let entry = this.input_dropdown.querySelector(".entry.selected");
+        return entry?.dataset?.tag;
+    }
+
+    set_selection(tags)
+    {
+        // Temporarily set this.navigating to true.  This lets run_autocomplete know that
+        // it shouldn't run an autocomplete request for this value change.
+        this.navigating = true;
+
+        try {
+            // Clear the old selection.
+            let old_selection = this.input_dropdown.querySelector(".entry.selected");
+            if(old_selection)
+                old_selection.classList.remove("selected");
+
+            // Find the entry for the given search.
+            if(tags != null)
+            {
+                let entry = this.get_entry_for_tag(tags, { include_autocomplete: true });
+                if(entry)
+                {
+                    entry.classList.add("selected");
+                    entry.scrollIntoViewIfNeeded(false);
+                }
             }
         } finally {
             this.navigating = false;
         }
     }
 
-    // Select the next or previous entry in the dropdown.
-    move(down)
+    // If the current search is in the list, select it.
+    select_current_search = () =>
     {
-        var all_entries = this.container.querySelectorAll(".input-dropdown-list .entry");
-
-        // Stop if there's nothing in the list.
-        var total_entries = all_entries.length;
-        if(total_entries == 0)
+        let current_search_tags = helpers.get_tag_search_from_args(ppixiv.plocation);
+        if(!current_search_tags)
             return;
 
-        var idx = this.selected_idx;
-        if(idx == null)
-            idx = down? 0:(total_entries-1);
-        else
-            idx += down? +1:-1;
-        idx = (idx + total_entries) % total_entries;
+        this.set_selection(current_search_tags);
 
-        this.set_selection(idx);
+        // If that selected something, scroll it into view.
+        let selected_entry = this.container.querySelector(".entry.selected");
+        if(selected_entry)
+            selected_entry.scrollIntoViewIfNeeded(false);
     }
 
     populate_dropdown = async(options) =>
@@ -1080,12 +1115,14 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
             
         let list = this.input_dropdown;
 
+        // Save the selection so we can restore it.
+        let saved_selection = this.get_selection();
+    
         // Save the scroll position so we can try to preserve it, especially when autocomplete is
         // changing up above.
         let saved_position = this.save_search_position();
 
         helpers.remove_elements(list);
-        this.selected_idx = null;
 
         // Add autocompletes at the top.
         if(autocompleted_tags.length)
@@ -1136,6 +1173,10 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
             for(let tag of recent_tags)
                 list.appendChild(this.create_entry(tag, { classes: ["history", "recent"] }));
         }
+
+        // Restore the previous selection.
+        if(saved_selection)
+            this.set_selection(saved_selection);       
 
         if(scroll_to_top)
             list.scrollTop = 0;

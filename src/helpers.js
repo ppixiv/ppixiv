@@ -1707,6 +1707,18 @@ ppixiv.helpers = {
         return args;
     },
     
+    // The inverse of get_args_for_tag_search:
+    get_tag_search_from_args(url)
+    {
+        url = helpers.get_url_without_language(url);
+        let type = helpers.get_page_type_from_url(url);
+        if(type != "tags")
+            return null;
+
+        let parts = url.pathname.split("/");
+        return decodeURIComponent(parts[2]);
+    },
+
     // Watch for clicks on links inside node.  If a search link is clicked, add it to the
     // recent search list.
     add_clicks_to_search_history: function(node)
