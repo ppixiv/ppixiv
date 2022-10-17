@@ -1158,6 +1158,12 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         if(abort_signal.aborted)
             return false;
         
+        // If we're being called during show(), we haven't been set visible yet so we don't flash
+        // the dropdown before it's populated.  Make it visible now that we're done being async and
+        // we can finish updating before it's displayed.  If we don't do this, helpers.set_max_height()
+        // and save_search_position() won't be able to tell where we're scrolled to.
+        this._apply_visibility();
+
         this.translated_tags = translated_tags;
             
         // Save the selection so we can restore it.
@@ -1221,11 +1227,6 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
             for(let tag of recent_tags)
                 this.input_dropdown.appendChild(this.create_entry(tag, { classes: ["history", "recent"] }));
         }
-
-        // If we're being called during show(), we haven't been set visible yet so we don't flash
-        // the dropdown before it's populated.  Make it visible now, or helpers.set_max_height() won't
-        // be able to tell how tall the dropdown is.
-        this._apply_visibility();
 
         helpers.set_max_height(this.input_dropdown);
 
