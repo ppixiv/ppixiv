@@ -700,10 +700,23 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         if(!await this.populate_dropdown())
             return;
 
-        this.container.hidden = false;
+        this._apply_visibility();
 
         this.select_current_search();
         this.run_autocomplete();
+    }
+
+    _apply_visibility()
+    {
+        let visible = this.visible;
+
+        // If there's nothing in the dropdown, keep it hidden.  This prevents the edit button
+        // from appearing floating in the middle of nowhere for new users.
+        let all_entries = Array.from(this.all_results.querySelectorAll(".entry"));
+        if(all_entries.length == 0)
+            visible = false;
+
+        this.container.hidden = !visible;
     }
 
     hide()
@@ -1212,8 +1225,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         // If we're being called during show(), we haven't been set visible yet so we don't flash
         // the dropdown before it's populated.  Make it visible now, or helpers.set_max_height() won't
         // be able to tell how tall the dropdown is.
-        if(this.visible)
-            this.container.hidden = false;
+        this._apply_visibility();
 
         helpers.set_max_height(this.input_dropdown);
 
