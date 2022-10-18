@@ -3,7 +3,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 log = logging.getLogger(__name__)
 
-class AsyncTaskQueue:
+class AsyncTask:
     """
     An important use case with asyncs is mixing async and sync code.
     
@@ -15,81 +15,99 @@ class AsyncTaskQueue:
     code can call sync code directly without blocking the main event loop.  The sync code
     can periodically check for cancellation if wanted.
     """
+    tasks = set()
+    task_executor = ThreadPoolExecutor(max_workers=4)
 
-    def __init__(self):
-        self.running_background_tasks = {}
-        self.task_executor = ThreadPoolExecutor(max_workers=1)
-        self.next_background_task_id = 0
-
-    def run_task(self, task, *, name=None):
+    @classmethod
+    def run(cls, task, *, name):
         """
-        Register a background task.
+        Run a background task.
         """
-        task_id = self.next_background_task_id
-        self.next_background_task_id += 1
+        result = cls()
+        result.ran_task = False
 
+        # Start _run_main_loop_task as a task in the caller's loop.  This can be awaited or cancelled
+        # by the caller to await or cancel the threaded task.
+        main_loop_task = result._run_main_loop_task(task, name=name)
+        main_loop_task = asyncio.get_running_loop().create_task(main_loop_task, name=name)
+
+        # Put the task on the task list to prevent it from being GC'd.
+        cls.tasks.add(main_loop_task)
+        def remove_when_done(_):
+            cls.tasks.remove(main_loop_task)
+
+            # If main_loop_task is cancelled before it starts, it'll never be run at all.  This is a design
+            # bug in asyncio: it lets you catch CancelledError, but there's no way to handle cancellation
+            # if it happens before the task is first called.  (It should always run the task until the first
+            # time it awaits.)  This results in a spurious "was never awaited" warning.
+            #
+            # To work around this, manually cancel the coroutine by throwing CancelledError into it.  There's
+            # also no way to tell if a coroutine has run: coroutines have three states (initial, running and
+            # finished), but all that's exposed to the language is co_running, so "initial" and
+            # "finished" look the same.  We track this ourself with result.ran_task.
+            if not result.ran_task:
+                try:
+                    task.throw(asyncio.CancelledError())
+                except asyncio.CancelledError as e:
+                    # Discard the exception when it's propagated up to us.
+                    pass
+
+        main_loop_task.add_done_callback(remove_when_done)
+
+        return main_loop_task
+
+    async def _run_main_loop_task(self, task, *, name):
         log.info(f'Running task: {name}')
 
-        def oncomplete():
-            del self.running_background_tasks[task_id]
-
-        queued_task = _QueuedTask(name, task, oncomplete)
-        self.running_background_tasks[task_id] = queued_task
-        
-        queued_task.run(self.task_executor)
-        return task_id
-
-    async def shutdown(self):
-        await self.cancel_tasks()
-
-    async def cancel_tasks(self):
-        """
-        Cancel all running and pending tasks, and wait for them to stop.
-        """
-        if not self.running_background_tasks:
-            return
-
-        # Make a copy of running_background_tasks, so we don't get confused if new tasks
-        # are queued while we're doing this.
-        tasks = dict(self.running_background_tasks)
-
-        for task_id, queued_task in tasks.items():
-            log.info(f'Cancelling background task {task_id}: {queued_task.task.get_name()}')
-            queued_task.cancel()
-
-        # Wait for the tasks to finish cancelling.
-        for task_id, queued_task in tasks.items():
-            log.info(f'Waiting for task {queued_task} to complete')
-            await queued_task.wait()
-
-class _QueuedTask:
-    def __init__(self, name, task, oncomplete):
-        self.finished = asyncio.Event()
-        self.oncomplete = oncomplete
+        self.ran_task = True
+        self.was_cancelled = False
+        self.name = name
 
         # Create our task loop.  This will run on a separate thread.  it's safe to do this here,
         # since the thread it'll run on isn't running yet.
         self.task_loop = asyncio.new_event_loop()
         self.task_loop.set_task_factory(_SyncCancellableTask)
 
-        # Create a task for the queued function.  The task will run in the task thread.  It's
-        # safe to do this now in a different thread, since the task thread isn't running yet.
+        # Create a SyncCancellableTask task for the queued function.  The task will run in the task thread.
         self.task = self.task_loop.create_task(task, name=name)
 
+        # Start the task.
+        task_loop_task = asyncio.get_running_loop().run_in_executor(self.task_executor, self._run_task)
+
+        # Create a future in the main loop, and finish it when task_loop_task is finished.
+        future = asyncio.get_running_loop().create_future()
+        def _cleanup_task(_):
+            future.set_result(None)
+        task_loop_task.add_done_callback(_cleanup_task)
+
+        # Keep waiting until the task is actually cleaned up.  If we're cancelled, we'll cancel the
+        # task then keep waiting until it's finished.
+        while True:
+            try:
+                # Wait for the task to complete.  Shield this, so if we're cancelled it doesn't cause
+                # the future to be cancelled.
+                await asyncio.shield(future)
+                break
+            except asyncio.CancelledError as e:
+                # If we're cancelled, cancel the task instead.
+                self._cancel()
+
+        # Clean up the task.
+        log.info(f'Task {"cancelled" if self.was_cancelled else "finished"}: {self}')
+
+        self.task_loop.close()
+        self.task_loop = None
+
     def __str__(self):
-        return f'QueuedTask({self.task.get_name()})'
+        return f'QueuedTask({self.name})'
 
-    def run(self, executor):
-        """
-        Start the task using the given executor.
-        """
-        self.task_loop_task = asyncio.get_running_loop().run_in_executor(executor, self._run_task)
-        self.task_loop_task.add_done_callback(self._cleanup_task)
-
-    def cancel(self):
+    def _cancel(self):
         """
         Ask the task to cancel.
         """
+        # This is just for logging.
+        self.was_cancelled = True
+
         # cancel_sync marks the task as synchronously cancelled.  This allows sync code
         # checking for cancellation to tell it's been cancelled.  If we use Task.cancelled
         # for this , it won't see the cancellation since the cancel() call below won't actually
@@ -103,20 +121,6 @@ class _QueuedTask:
         # Now ask the tasks to cancel normally.  This needs to be scheduled into the task
         # loop running this task.
         self.task_loop.call_soon_threadsafe(self.task.cancel)
-
-    async def wait(self):
-        """
-        Wait until the task completes or finishes cancelling.
-        """
-        # If the task hasn't been completed yet, wait for it.
-        if self.task_loop_task is not None:
-            await self.task_loop_task
-
-        # Wait for _cleanup_task to finish.
-        await self.finished.wait()
-
-        # cleanup_task should have cleaned up current_task_loop_task.
-        assert self.task_loop_task is None
 
     def _run_task(self):
         if self.task.cancelled():
@@ -134,19 +138,6 @@ class _QueuedTask:
             log.exception(f'Task {self} raised exception')
         finally:
             asyncio.set_event_loop(None)
-
-    def _cleanup_task(self, _):
-        # This will be called in the main loop when the task completes.  Shut down and clean
-        # up.
-        log.info(f'Task finished: {self}')
-        self.task_loop_task = None
-
-        self.task_loop.close()
-        self.task_loop = None
-
-        self.finished.set()
-
-        self.oncomplete()
 
 class _SyncCancellableTask(asyncio.tasks.Task):
     def __init__(self, loop, coro):

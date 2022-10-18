@@ -1,13 +1,12 @@
-import asyncio, logging, traceback, os, sys
+import asyncio, logging, traceback, os, sys, signal
 from pprint import pprint
 from pathlib import Path, PurePosixPath
 from collections import OrderedDict, namedtuple
 
-from . import api, thumbs, ui
 from .auth import Auth
 from ..util import misc, win32, windows_ui
 from ..util.paths import open_path, PathBase
-from ..util.threaded_tasks import AsyncTaskQueue
+from ..util.threaded_tasks import AsyncTask
 from ..database.signature_db import SignatureDB
 from .library import Library
 from .api_server import APIServer
@@ -24,8 +23,7 @@ class Server:
     """
     The main top-level class for the background server application.
     """
-    @classmethod
-    def run(cls):
+    def main(self):
         """
         Run the application.  Return true if the application ran (and exited), or false if
         another instance of the application was already running.
@@ -36,24 +34,28 @@ class Server:
             log.info('The server is already running')
             return False
 
-        # This will run _run_inner in a thread to work around KeyboardInterrupt weirdness.
-        misc.RunMainTask(cls._run_inner)
-
-        return True
-
-    @classmethod
-    def _run_inner(cls, set_main_task):
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
 
-        manager = cls(loop, set_main_task)
+        self._main_task = self._main()
+        self._main_task = loop.create_task(self._main_task)
+        self._main_task.set_name('Server')
+
+        # KeyboardInterrupt has a lot of problems (bad interactions with asyncio, breaks
+        # thread.wait() in weird ways, etc.), so catch SIGINT and cancel cleanly.  
+        def sigint(sig, sig_info):
+            log.info('^C received')
+            self.exit('^C')
+        signal.signal(signal.SIGINT, sigint)
 
         try:
-            # manager._main will run until the application is ready to exit.
-            loop.run_until_complete(manager._main_task)
+            # self._main will run until the application is ready to exit.
+            loop.run_until_complete(self._main_task)
+        except asyncio.CancelledError as e:
+            # We're cancelled when self.exit() is called.  Don't propagate this to the caller.
+            pass
         finally:
             # Shut down all tasks.
-            # XXX: add a timeout and just exit if something gets stuck
             while True:
                 tasks = asyncio.all_tasks(loop)
                 if not tasks:
@@ -75,18 +77,13 @@ class Server:
             loop.run_until_complete(loop.shutdown_asyncgens())
             loop.close()
 
-    def __init__(self, loop, set_main_task):
-        self._main_task = self._main(set_main_task=set_main_task)
-        self._main_task = loop.create_task(self._main_task)
-        self._main_task.set_name('Manager')
+        return True
 
-    async def _main(self, set_main_task):
+    async def _main(self):
         """
         The main task.  Initialize the manager, loop until this task is cancelled, then
         shut down.
         """
-        set_main_task()
-
         await self._init()
 
         try:
@@ -97,7 +94,6 @@ class Server:
 
     async def _init(self):
         self.api_list_results = OrderedDict()
-        self.task_queue = AsyncTaskQueue()
 
         # Set up the Windows tray icon and terminal window.
         windows_ui.WindowsUI.get.create(self.exit)
@@ -152,7 +148,6 @@ class Server:
         log.info('Shutting down manager')
 
         await self.api_server.shutdown()
-        await self.task_queue.shutdown()
 
         for name in list(self.library.mounts.keys()):
             await self.library.unmount(name)
@@ -200,7 +195,7 @@ class Server:
         """
         Run a background task.
         """
-        return self.task_queue.run_task(func, name=name)
+        AsyncTask.run(func, name=name)
 
     # Values of api_list_results can be a dictionary, in which case they're a result
     # cached from a previous call.  They can also be a function, which is called to
@@ -271,4 +266,4 @@ class Server:
 # Note that it's safer to start the server with vview.server.start_server, since it can
 # display fatal errors more reliably.
 if __name__ == '__main__':
-    Server.run()
+    Server().main()
