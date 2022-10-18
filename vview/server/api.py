@@ -367,6 +367,7 @@ async def api_similar_search(info):
             raise misc.Error('not-found', 'File not in library')
 
         absolute_path = entry['localPath']
+        absolute_path = open_path(absolute_path)
         search_image_url = entry['urls']['small']
 
         # Get the image's signature.  This will use the cached signature if it already
