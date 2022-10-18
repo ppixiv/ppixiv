@@ -1041,7 +1041,7 @@ class Library:
                     # The entry is stale or no longer exists, so refresh it.  If the file still
                     # exists we'll get the updated entry.
                     # The cached entry is out of date, so refresh or delete it.
-                    log.info('Refreshing stale entry:', entry['path'],)
+                    log.info('Refreshing stale entry: %s', entry['path'])
                     path = open_path(entry['path'])
                     entry = self._get_entry(path, force_refresh=True)
 
