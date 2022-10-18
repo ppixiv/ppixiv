@@ -88,7 +88,9 @@ class Server:
 
         try:
             while True:
-                await asyncio.sleep(1)
+                # ProactorEventLoop only checks for SIGINT when an event is handled, so if this
+                # is raised, ^C becomes unresponsive.
+                await asyncio.sleep(.1)
         finally:
             await self._shutdown()
 
