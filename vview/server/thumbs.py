@@ -30,7 +30,7 @@ def _check_access(request, absolute_path):
         # log.info('Skipping access check because there are no restrictions')
         return
 
-    entry = request.app['manager'].library.get(absolute_path)
+    entry = request.app['server'].library.get(absolute_path)
 
     # Check that the user has access to this file.
     user.check_image_access(entry, api=False)
@@ -40,7 +40,7 @@ async def handle_file(request):
     path = request.match_info['path']
     convert_images = request.query.get('convert_images', '1') != '0'
 
-    absolute_path = request.app['manager'].resolve_path(path)
+    absolute_path = request.app['server'].resolve_path(path)
     _check_access(request, absolute_path)
 
     if not absolute_path.is_file():
@@ -149,7 +149,7 @@ def threaded_create_thumb(request, path, *, inpaint_path=None):
 
     # Save this image's signature.  This will resize the image itself, so we do this
     # on the already resized image so it has less resizing to do.
-    request.app['manager'].sig_db.save_image_signature(path, image)
+    request.app['server'].sig_db.save_image_signature(path, image)
 
     # If the image is transparent, save it as PNG.  Otherwise, save it as JPEG.
     if _image_is_transparent(image):
@@ -279,9 +279,9 @@ async def handle_tree_thumb(request):
 
 async def handle_thumb(request, mode='thumb'):
     path = request.match_info['path']
-    absolute_path = request.app['manager'].resolve_path(path)
+    absolute_path = request.app['server'].resolve_path(path)
     _check_access(request, absolute_path)
-    if not request.app['manager'].check_path(absolute_path, request, throw=False):
+    if not request.app['server'].check_path(absolute_path, request, throw=False):
         raise aiohttp.web.HTTPNotFound()
     
     # If this is a directory, look for an image inside it to display.
@@ -317,9 +317,9 @@ async def handle_thumb(request, mode='thumb'):
     if misc.file_type(os.fspath(absolute_path)) is None:
         raise aiohttp.web.HTTPNotFound()
 
-    data_dir = request.app['manager'].library.data_dir
+    data_dir = request.app['server'].library.data_dir
 
-    entry = request.app['manager'].library.get(absolute_path)
+    entry = request.app['server'].library.get(absolute_path)
     if entry is None:
         raise aiohttp.web.HTTPNotFound()
 
@@ -335,7 +335,7 @@ async def handle_thumb(request, mode='thumb'):
             # Create the thumbnail in the same way we create image thumbs.
             thumbnail_file, mime_type = await create_thumb(request, thumb_path)
     else:
-        inpaint_path = inpainting.get_inpaint_path_for_entry(entry, request.app['manager'])
+        inpaint_path = inpainting.get_inpaint_path_for_entry(entry, request.app['server'])
         thumbnail_file, mime_type = await create_thumb(request, absolute_path, inpaint_path=inpaint_path)
 
     if thumbnail_file is None:
@@ -355,8 +355,8 @@ async def handle_mjpeg(request):
     Handle /mjpeg-zip requests.
     """
     path = request.match_info['path']
-    absolute_path = request.app['manager'].resolve_path(path)
-    if not request.app['manager'].check_path(absolute_path, request, throw=False):
+    absolute_path = request.app['server'].resolve_path(path)
+    if not request.app['server'].check_path(absolute_path, request, throw=False):
         raise aiohttp.web.HTTPNotFound()
 
     if not absolute_path.is_file():
@@ -408,20 +408,20 @@ async def handle_mjpeg(request):
 
 async def handle_inpaint(request):
     path = request.match_info['path']
-    absolute_path = request.app['manager'].resolve_path(path)
-    if not request.app['manager'].check_path(absolute_path, request, throw=False):
+    absolute_path = request.app['server'].resolve_path(path)
+    if not request.app['server'].check_path(absolute_path, request, throw=False):
         raise aiohttp.web.HTTPNotFound()
     if not absolute_path.is_file():
         raise aiohttp.web.HTTPNotFound()
 
-    entry = request.app['manager'].library.get(absolute_path)
+    entry = request.app['server'].library.get(absolute_path)
     if entry is None:
         raise aiohttp.web.HTTPNotFound()
 
     if not entry.get('inpaint'):
         raise aiohttp.web.HTTPNotFound()
 
-    inpaint_path, inpaint_image, mime_type = await inpainting.create_inpaint_for_entry(entry, request.app['manager'])
+    inpaint_path, inpaint_image, mime_type = await inpainting.create_inpaint_for_entry(entry, request.app['server'])
     if inpaint_path is None:
         # Generating the inpaint failed.
         raise aiohttp.web.HTTPInternalServerError()
@@ -442,7 +442,7 @@ async def handle_open(request):
         raise aiohttp.web.HTTPNotFound()
 
     # Get the illust ID for this file or directory.
-    path = PurePosixPath(request.app['manager'].library.get_public_path(absolute_path))
+    path = PurePosixPath(request.app['server'].library.get_public_path(absolute_path))
 
     # If the underlying path is a file, separate the filename.
     if absolute_path.is_file() and absolute_path.suffix != '.zip':
@@ -468,7 +468,7 @@ async def handle_open(request):
 
 async def _handle_browser_conversion(request):
     path = request.match_info['path']
-    absolute_path = request.app['manager'].resolve_path(path)
+    absolute_path = request.app['server'].resolve_path(path)
     
     if not absolute_path.is_file():
         raise aiohttp.web.HTTPNotFound()

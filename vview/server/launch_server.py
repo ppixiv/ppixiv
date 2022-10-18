@@ -20,4 +20,4 @@ def fork_server():
         return
 
     # Run the module in a new process.
-    process = subprocess.Popen([sys.executable, "-m", "vview.server.server"])
+    process = subprocess.Popen([sys.executable, "-m", "vview.server.start_server"])

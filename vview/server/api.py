@@ -43,7 +43,7 @@ class RequestInfo:
         self.request = request
         self.data = data
         self.base_url = base_url
-        self.manager = request.app['manager']
+        self.manager = request.app['server']
         self.user = request.get('user')
 
 def _get_id_for_entry(manager, entry):
@@ -304,7 +304,7 @@ async def api_similar_search(info):
             raise misc.Error('not-found', 'File not in library')
 
         # Check that the top path is in the library.  We don't check this for each result.
-        info.request.app['manager'].library.get_public_path(absolute_path)
+        info.request.app['server'].library.get_public_path(absolute_path)
 
     async def do_index():
         if path is not None:
@@ -410,7 +410,7 @@ async def api_similar_search(info):
         try:
             # The results are absolute paths.  Find them in the library.
             absolute_path = open_path(result['path'])
-            result_path = info.request.app['manager'].library.get_public_path(absolute_path)
+            result_path = info.request.app['server'].library.get_public_path(absolute_path)
             entry = await _get_api_illust_info(info, result_path)
         except misc.Error as e:
             log.warn('Skipping result:', e, result['path'])

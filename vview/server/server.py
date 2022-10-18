@@ -1,167 +1,18 @@
-#!/usr/bin/python
-import asyncio, json, logging, traceback, urllib, time, io
+import asyncio, logging, traceback, os, sys
 from pprint import pprint
-import urllib.parse
+from pathlib import Path, PurePosixPath
+from collections import OrderedDict, namedtuple
 
-import aiohttp
-from aiohttp import web
-from aiohttp.abc import AbstractAccessLogger
-from aiohttp.web_log import AccessLogger
-
-from . import api, thumbs, ui, websockets
-from ..util import misc, windows_ui, win32
-from .manager import Manager
+from . import api, thumbs, ui
+from .auth import Auth
+from ..util import misc, win32, windows_ui
+from ..util.paths import open_path, PathBase
+from ..util.threaded_tasks import AsyncTaskQueue
+from ..database.signature_db import SignatureDB
+from .library import Library
+from .api_server import APIServer
 
 log = logging.getLogger(__name__)
-
-@web.middleware
-async def auth_middleware(request, handler):
-    # auth/login is the only API call we allow without any authentication.
-    if request.path == '/api/auth/login':
-        return await handler(request)
-
-    # If true, this request is local, either coming from our local UI or from the user accessing
-    # us directly (no Origin header), so it's trusted and runs as admin.
-    request['is_local'] =  _is_trusted_local_request(request)
-
-    # Set request['user']:
-    _check_auth(request)
-
-    # Allow the main page to load without authentication, as well as our static scripts and
-    # resources.
-    requires_auth = request.path != '/' and not request.path.startswith('/client/')
-    if requires_auth and request['user'] is None:
-        if request.path.startswith('/api/'):
-            result = { 'success': False, 'code': 'access-denied', 'reason': 'Authentication required' }
-            raise aiohttp.web.HTTPUnauthorized(body=json.dumps(result))
-        else:
-            raise aiohttp.web.HTTPUnauthorized()
-
-    return await handler(request)
-
-def _is_trusted_local_request(request):
-    """
-    Return true if request is coming from localhost, and isn't coming from another site.
-    """
-    # Check if this request is from localhost.  Don't use request.host, since that comes
-    # from the Host header.  If we were running behind a front-end server like nginx over
-    # a local forwarding port, we'd need to check request.forwarded instead, since all
-    # requests would be connections from localhost.
-    sock = request.get_extra_info('socket')
-    remote_addr = sock.getpeername()[0] if sock else None
-    if remote_addr != '127.0.0.1':
-        return False
-
-    # Don't treat this as a local request if it's being made from another site the user
-    # is viewing.
-    origin = request.headers.get('Origin') or request.headers.get('Referer')
-    if origin:
-        origin = urllib.parse.urlparse(origin)
-        if origin.hostname != '127.0.0.1':
-            return False
-
-    return True
-
-def _check_auth(request):
-    auth = request.app['manager'].auth
-    request['user'] = auth.get_guest()
-
-    # Allow unauthenticated requests on localhost if the origin is localhost, so we
-    # always give access to the local UI.
-    if request['is_local']:
-        log.debug('Request to localhost is admin')
-        request['user'] = auth.get_local_user()
-        return
-
-    # Allow unauthenticated requests to the authentication interface.
-    if request.path == '/api/auth/login' or request.path == '/client/auth.html':
-        log.debug('Request to login API is guest')
-        request['user'] = auth.get_guest()
-        return
-
-    # Check if there's an authentication cookie.
-    auth_token = request.cookies.get('auth_token')
-    if auth_token is not None:
-        user = auth.check_token(auth_token)
-        if user is not None:
-            log.debug(f'Request with token authed as {user.username}')
-            request['user'] = user
-            request['user_token'] = auth_token
-            return
-
-    log.debug('Unauthenticated request')
-    request['user'] = auth.get_guest()
-
-async def check_origin(request, response):
-    """
-    Add CORS headers.
-    
-    This is called after auth_middleware, which checks the origin.  We can't do that
-    here, since we can't raise HTTP exceptions here.
-    """
-    origin = request.headers.get('Origin') or request.headers.get('Referer')
-    if origin:
-        response.headers['Access-Control-Allow-Origin'] = origin
-        response.headers['Access-Control-Allow-Methods'] = 'POST, GET, OPTIONS'
-        response.headers['Access-Control-Allow-Headers'] = 'Accept, Cache-Control, If-None-Match, If-Modified-Since, Origin, Range, X-Requested-With'
-        response.headers['Access-Control-Expose-Headers'] = '*'
-        response.headers['Access-Control-Max-Age'] = '1000000'
-        response.headers['Vary'] = 'Origin, Referer'
-
-def create_handler_for_command(handler):
-    async def handle(request):
-        if request.method == 'OPTIONS':
-            return web.Response(status=200)
-
-        if request.method != 'POST':
-            raise aiohttp.web.HTTPMethodNotAllowed(method=request.method, allowed_methods=('POST', 'OPTIONS'))
-
-        try:
-            data = await request.json()
-        except ValueError as e:
-            return web.Response(status=400, body=f'Couldn\'t decode JSON request: {str(e)}\n')
-
-        base_url = '%s://%s:%i' % (request.url.scheme, request.url.host, request.url.port)
-        info = api.RequestInfo(request, data, base_url)
-
-        try:
-            result = await handler(info)
-        except misc.Error as e:
-            result = e.data()
-        except Exception as e:
-            log.exception('Error handling request')
-            stack = traceback.format_exception(e)
-            result = { 'success': False, 'code': 'internal-error', 'reason': str(e), 'stack': stack }
-
-        # Don't use web.JsonResponse.  It doesn't let us control JSON formatting
-        # and gives really ugly JSON.
-        try:
-            data = json.dumps(result, indent=4, ensure_ascii=False) + '\n'
-        except TypeError as e:
-            # Something in the result isn't serializable.
-            log.warn('Invalid response data:', e)
-            pprint(result)
-
-            result = { 'success': False, 'code': 'internal-error', 'reason': str(e) }
-            data = json.dumps(result, indent=4, ensure_ascii=False) + '\n'
-
-        data = data.encode('utf-8')
-        data = io.BytesIO(data)
-
-        # If this is an error, return 500 with the message in the status line.  This isn't
-        # part of the API, it's just convenient for debugging.
-        status = 200
-        message = 'OK'
-        if not result.get('success'):
-            status = 401
-            message = result.get('reason', 'Error message missing')
-        return web.Response(body=data, status=status, reason=message, content_type='application/json')
-
-    return handle
-
-async def handle_unknown_api_call(info):
-    name = info.request.match_info['name']
-    return { 'success': False, 'code': 'invalid-request', 'reason': 'Invalid API: /api/%s' % name }
 
 misc.add_logging_record_factory()
 logging.basicConfig(level=logging.INFO, format='%(task_name)20s %(logTime)8.3f %(levelname)s:%(name)s:%(message)s')
@@ -169,128 +20,255 @@ logging.getLogger('vview').setLevel(logging.INFO)
 logging.captureWarnings(True)
 misc.fix_basic_logging()
 
-_running_requests = {}
-
-# Work around some aiohttp weirdness.  For some reason, although it runs handlers
-# in a task, it doesn't cancel the tasks on shutdown.  Apparently we're supposed
-# to keep track of requests and cancel them ourselves.  This seems like the framework's
-# job, I don't know why this is pushed onto the application.
-#
-# register_request_middleware registers running requests, and the shutdown_requests
-# shutdown handler cancels them.  Setting this up is a bit messy since on_shutdown
-# and middlewares are registered in completely different ways.
-@web.middleware
-async def register_request_middleware(request, handler):
-    try:
-        _running_requests[request.task] = request
-        return await handler(request)
-    finally:
-        del _running_requests[request.task]
-
-async def shutdown_requests(app):
-    for task, request in dict(_running_requests).items():
-        task.cancel()
-
-async def setup_inner(*, set_main_task=None):
-    # aiohttp doesn't set a name for the main task, so do it ourself.
-    asyncio.current_task().set_name('Webserver')
-
-    set_main_task()
-
-    app = web.Application(middlewares=[register_request_middleware, auth_middleware])
-
-    # Set up the Windows tray icon and terminal window.
-    windows_ui.WindowsUI.get.create()
-
-    app.on_response_prepare.append(check_origin)
-    app.on_shutdown.append(shutdown_requests)
-
-    # Set up routes.
-    app.router.add_get('/file/{type:[^:]+}:{path:.+}', thumbs.handle_file)
-    app.router.add_get('/thumb/{type:[^:]+}:{path:.+}', thumbs.handle_thumb)
-    app.router.add_get('/tree-thumb/{type:[^:]+}:{path:.+}', thumbs.handle_tree_thumb)
-    app.router.add_get('/poster/{type:[^:]+}:{path:.+}', thumbs.handle_poster)
-    app.router.add_get('/mjpeg-zip/{type:[^:]+}:{path:.+}', thumbs.handle_mjpeg)
-    app.router.add_get('/inpaint/{type:[^:]+}:{path:.+}', thumbs.handle_inpaint)
-    app.router.add_get('/open/{path:.+}', thumbs.handle_open)
-
-    # Set up WebSockets.
-    websockets.setup(app)
-
-    # Add UI routes.  Do this last, since it handles the fallback for top-level files.
-    ui.add_routes(app.router)
-
-    # Add a handler for each API call.
-    for command, func in api.handlers.items():
-        handler = create_handler_for_command(func)
-        app.router.add_view('/api' + command, handler)
-
-    # Add a fallback for invalid /api calls.
-    handler = create_handler_for_command(handle_unknown_api_call)
-    app.router.add_view('/api/{name:.*}', handler)
-
-    # Start our manager.
-    manager = Manager(app)
-    app['manager'] = manager
-    await manager.init()
-
-    return app
-
-async def setup(*args, **kwargs):
-    try:
-        return await setup_inner(*args, **kwargs)
-    except Exception as e:
-        # This is a fatal error during startup.  Errors later on can go to our custom
-        # logging terminal, but errors here are fatal and too early for that, so display
-        # the error in a dialog.  Note that earlier errors before asyncio is started are
-        # handled by vview.pyw at the top.
-        import traceback
-        error = traceback.format_exc()
-
-        from ..util import error_dialog
-        error_dialog.show_error_dialog_if_no_console('Error launching VView', 'An unexpected error occurred:\n\n' + error)
-        raise
-    
-class AccessLogger(AbstractAccessLogger):
+class Server:
     """
-    A more readable access log.
+    The main top-level class for the background server application.
     """
-    def __init__(self, *args):
-        self.logger = logging.getLogger('vview.request')
+    @classmethod
+    def run(cls):
+        """
+        Run the application.  Return true if the application ran (and exited), or false if
+        another instance of the application was already running.
+        """
+        # Take the server lock, so other instances of the server won't start and we can tell
+        # that we're running.
+        if not win32.take_server_lock():
+            log.info('The server is already running')
+            return False
 
-    def log(self, request, response, duration) -> None:
-        path = urllib.parse.unquote(request.path_qs)
-        start_time = time.time() - duration
-        message = '%f %i (%i): %s' % (start_time, response.status, response.body_length, path)
+        # This will run _run_inner in a thread to work around KeyboardInterrupt weirdness.
+        misc.RunMainTask(cls._run_inner)
 
-        # Log successful non-API requests at a lower level, so we don't spam for each
-        # thumbnail request.
-        if response.status == 200 and not path.startswith('/api/'):
-            self.logger.debug(message)
+        return True
+
+    @classmethod
+    def _run_inner(cls, set_main_task):
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+        manager = cls(loop, set_main_task)
+
+        try:
+            # manager._main will run until the application is ready to exit.
+            loop.run_until_complete(manager._main_task)
+        finally:
+            # Shut down all tasks.
+            # XXX: add a timeout and just exit if something gets stuck
+            while True:
+                tasks = asyncio.all_tasks(loop)
+                if not tasks:
+                    break
+
+                for task in tasks:
+                    task.cancel()
+
+                loop.run_until_complete(asyncio.gather(*tasks, return_exceptions=True))
+
+                for task in tasks:
+                    if not task.cancelled() and task.exception() is not None:
+                        loop.call_exception_handler({
+                            'message': 'unhandled exception during asyncio.run() shutdown',
+                            'exception': task.exception(),
+                            'task': task,
+                        })
+
+            loop.run_until_complete(loop.shutdown_asyncgens())
+            loop.close()
+
+    def __init__(self, loop, set_main_task):
+        self._main_task = self._main(set_main_task=set_main_task)
+        self._main_task = loop.create_task(self._main_task)
+        self._main_task.set_name('Manager')
+
+    async def _main(self, set_main_task):
+        """
+        The main task.  Initialize the manager, loop until this task is cancelled, then
+        shut down.
+        """
+        set_main_task()
+
+        await self._init()
+
+        try:
+            while True:
+                await asyncio.sleep(1)
+        finally:
+            await self._shutdown()
+
+    async def _init(self):
+        self.api_list_results = OrderedDict()
+        self.task_queue = AsyncTaskQueue()
+
+        # Set up the Windows tray icon and terminal window.
+        windows_ui.WindowsUI.get.create(self.exit)
+
+        # Figure out where to put our files.
+        local_data = Path(os.getenv('LOCALAPPDATA'))
+        data_dir = local_data / 'vview'
+        
+        data_dir = open_path(data_dir.resolve())
+        self.data_dir = data_dir
+        self.data_dir.mkdir()
+
+        self.auth = Auth(self.data_dir / 'settings.json')
+        self.library = Library(self.data_dir)
+        self.sig_db = SignatureDB(self.data_dir / 'signatures.sqlite')
+
+        # Start the API server.
+        self.api_server = APIServer()
+        await self.api_server.init(self)
+
+        # The remaining tasks can take some time, but we don't need to wait for them, so
+        # we run them asynchronously.
+        #
+        # Load the image signature database.
+        load_index_task = self.sig_db.load_image_index()
+        self.run_background_task(load_index_task, name=f'Signature db')
+
+        # Initialize libraries.
+        log.info('Initializing libraries...')
+        for folder in self.auth.data.get('folders', []):
+            name = folder.get('name')
+            path = folder.get('path')
+
+            path = Path(path)
+            path = path.resolve()
+            if not path.exists():
+                log.warn('Library path doesn\'t exist: %s', str(path))
+                continue
+
+            if not path.is_dir():
+                log.warn('Library path isn\'t a directory: %s', str(path))
+                continue
+
+            self.library.mount(path, name)
+
+            # Run a quick refresh at startup.  This can still take a few seconds for larger
+            # libraries, so run this in a task to allow requests to start being handled immediately.
+            refresh_task = self.library.quick_refresh()
+            self.run_background_task(refresh_task, name=f'Indexing {name}')
+
+    async def _shutdown(self):
+        log.info('Shutting down manager')
+
+        await self.api_server.shutdown()
+        await self.task_queue.shutdown()
+
+        for name in list(self.library.mounts.keys()):
+            await self.library.unmount(name)
+        
+    def exit(self, reason='not specified'):
+        """
+        Exit the application.
+        """
+        # Ending the main task will exit the application.
+        log.info(f'Manager exiting (reason: {reason})')
+        self._main_task.cancel(reason)
+
+    async def restart_webserver(self):
+        """
+        Restart the webserver to reload settings like the listening address and port.
+        """
+        # Shut down the webserver and create a new one.
+        await self.api_server.shutdown()
+        
+        self.api_server = Webserver()
+        await self.api_server.init(self)
+
+    def resolve_path(self, relative_path):
+        """
+        Given a folder: or file: ID, return the absolute path to the file or directory
+        and the library it's in.  If the path isn't in a library, raise Error.
+        """
+        relative_path = PurePosixPath(relative_path)
+        if '..' in relative_path.parts:
+            raise misc.Error('invalid-request', 'Invalid request')
+
+        library_name, path_inside_library = Library.split_library_name_and_path(relative_path)
+        if library_name == 'root':
+            path = Path(str(path_inside_library))
         else:
-            self.logger.info(message)
+            mount = self.library.mounts.get(library_name)
+            if mount is None:
+                raise misc.Error('not-found', 'Library %s doesn\'t exist' % library_name)
+            path = Path(mount) / path_inside_library
+        path = open_path(path)
 
-def run_server(*, set_main_task):
-    web.run_app(setup(set_main_task=set_main_task),
-        port=8235,
-        print=None,
-        access_log_format='%t "%r" %s %b',
-        access_log_class=AccessLogger)
+        return path
 
-def run():
-    """
-    Run the server, blocking until it's told to exit.  Return True when finished.
+    def run_background_task(self, func, *, name=None):
+        """
+        Run a background task.
+        """
+        return self.task_queue.run_task(func, name=name)
 
-    If the server is already running somewhere else, return False.
-    """
-    # Take the server lock, so other instances of the server won't start and we can tell
-    # that we're running.
-    if not win32.take_server_lock():
-        log.info('The server is already running')
-        return False
+    # Values of api_list_results can be a dictionary, in which case they're a result
+    # cached from a previous call.  They can also be a function, which is called to
+    # retrieve the next page, which is used to continue previous searches.
+    cached_result = namedtuple('cached_result', ('result', 'prev_uuid', 'next_offset'))
+    def cache_api_list_result(self, uuid, cached_result):
+        self.api_list_results[uuid] = cached_result
+        
+        # Delete old cached entries.
+        uuids = list(self.api_list_results.keys())
+        max_cache_entries = 25
+        uuids = uuids[:-max_cache_entries]
+        for erase_uuid in uuids:
+            assert erase_uuid != uuid
+            self.api_list_cache_erase(erase_uuid)
 
-    misc.RunMainTask(run_server)
-    return True
+    def get_api_list_result(self, uuid):
+        if uuid is None:
+            return None
 
+        return self.api_list_results.get(uuid, None)
+
+    def api_list_cache_erase(self, uuid):
+        """
+        Remove the given cache page from the cache.  If the cache entry is a generator
+        for continuing a search, it will be closed and GeneratorExit will be raised inside
+        it.
+        """
+        result = self.api_list_results.get(uuid, None)
+        if result is None:
+            return
+
+        del self.api_list_results[uuid]
+
+        if hasattr(result.result, 'send'):
+            result.result.close()
+
+    def clear_api_list_cache(self):
+        """
+        Clear the api/list cache.
+        """
+        # If any of these are generators, close them to shut them down cleanly.
+        uuids = self.api_list_results.keys()
+        for uuid in uuids:
+            self.api_list_cache_erase(uuid)
+
+        assert len(self.api_list_results) == 0
+
+    def check_path(self, path, request, throw=False):
+        """
+        Return true if path should be accessible to the current request.
+        If throw is true, raise an API exception.
+        """
+        # If path isn't in a mounted directory, only allow access for the local UI.
+        # Otherwise, we'd be giving Pixiv full access to the filesystem.
+        if self.library.get_mount_for_path(path):
+            return True
+
+        if not request['is_local']:
+            log.warn('Not allowing access for non-local request: %s', path)
+            if throw:
+                raise misc.Error('not-found', 'File not in library')
+            else:
+                return False
+
+        return True
+
+# Note that it's safer to start the server with vview.server.start_server, since it can
+# display fatal errors more reliably.
 if __name__ == '__main__':
-    run()
+    Server.run()

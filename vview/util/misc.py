@@ -3,8 +3,9 @@ import asyncio, concurrent, os, io, struct, logging, os, re, threading, time, tr
 from contextlib import contextmanager
 from PIL import Image, ImageFile, ExifTags
 from pprint import pprint
-from ..util.tiff import get_tiff_metadata
+import urllib.parse
 
+from ..util.tiff import get_tiff_metadata
 from .video_metadata import mp4, mkv, gif
 
 log = logging.getLogger(__name__)
@@ -688,3 +689,23 @@ def fix_basic_logging():
         if isinstance(handler, logging.StreamHandler) and handler.stream is None:
             logging.root.removeHandler(handler)
             return
+
+from aiohttp.abc import AbstractAccessLogger
+class AccessLogger(AbstractAccessLogger):
+    """
+    A more readable access log.
+    """
+    def __init__(self, *args):
+        self.logger = logging.getLogger('vview.request')
+
+    def log(self, request, response, duration) -> None:
+        path = urllib.parse.unquote(request.path_qs)
+        start_time = time.time() - duration
+        message = '%f %i (%i): %s' % (start_time, response.status, response.body_length, path)
+
+        # Log successful non-API requests at a lower level, so we don't spam for each
+        # thumbnail request.
+        if response.status == 200 and not path.startswith('/api/'):
+            self.logger.debug(message)
+        else:
+            self.logger.info(message)

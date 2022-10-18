@@ -23,7 +23,13 @@ class WindowsUI:
         self.terminal = None
         self.tray_icon = None
 
-    def create(self):
+    def create(self, shutdown):
+        """
+        Create the Windows UI.
+
+        shutdown is a function to call to exit the application cleanly.
+        """
+        self.shutdown = shutdown
         self.create_log_terminal()
         self.create_tray_icon()
 
@@ -85,9 +91,7 @@ class WindowsUI:
         subprocess.Popen([sys.executable, '-m', 'vview.shell.default'])
 
     async def exit(self):
-        # Ask aiohttp to shut down.
-        log.info('Shutting down on user request')
-        raise SystemExit('User requested shutdown')
+        self.shutdown('User request')
 
 # win32gui has Shell_NotifyIcon, but it's years out of date and doesn't support
 # NOTIFYICONDATA.guidItem, so we have to do this ourself.
