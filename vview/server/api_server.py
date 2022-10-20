@@ -21,9 +21,7 @@ class APIServer:
         app = await self._create_app()
 
         # Create the aiohttp runner.
-        self.runner = aiohttp.web_runner.AppRunner(app,
-            access_log_class=misc.AccessLogger, access_log_format='%t "%r" %s %b', access_log=aiohttp.log.access_logger,
-            keepalive_timeout=75)
+        self.runner = aiohttp.web_runner.AppRunner(app, access_log_class=misc.AccessLogger, keepalive_timeout=75)
 
         await self.runner.setup()
 

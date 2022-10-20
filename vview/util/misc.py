@@ -598,22 +598,34 @@ def log_filter(log_record):
 
     return True
 
-from aiohttp.abc import AbstractAccessLogger
-class AccessLogger(AbstractAccessLogger):
+import aiohttp
+class AccessLogger(aiohttp.abc.AbstractAccessLogger):
     """
     A more readable access log.
     """
-    def __init__(self, *args):
+    def __init__(self, level, fmt):
         self.logger = logging.getLogger('vview.request')
 
-    def log(self, request, response, duration) -> None:
-        path = urllib.parse.unquote(request.path_qs)
-        start_time = time.time() - duration
-        message = '%f %i (%i): %s' % (start_time, response.status, response.body_length, path)
+    def log(self, request, response, duration):
+        # Our APIs use POST for data, and the only thing that typically goes in the query is cache
+        # timestamps, which are just extra noise in logs, so we only log the path.
+        path = urllib.parse.unquote(request.path)
+        message = ''
+        level = self.logger.info
+        if isinstance(response, aiohttp.web.FileResponse) or request.path.startswith('/thumb/') or request.path.startswith('/client/resources/'):
+            # This is a file being served directly from disk.  This also includes thumbs and
+            # CSS, which don't come directly from disk but are logged like files.
+            message += 'File: '
+            if response.status == 200:
+                level = self.logger.debug
+        elif response.headers.get('Content-Type') == 'application/json':
+            message += 'API:  '
+            if response.status != 200:
+                message += '(%i): ' % response.status
+        else:
+            message += 'Other:  '
+        message += path
 
         # Log successful non-API requests at a lower level, so we don't spam for each
         # thumbnail request.
-        if response.status == 200 and not path.startswith('/api/'):
-            self.logger.debug(message)
-        else:
-            self.logger.info(message)
+        level(message)
