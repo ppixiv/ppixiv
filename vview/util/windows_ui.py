@@ -1,5 +1,6 @@
 import asyncio, ctypes, atexit, logging, sys, os, threading, time, msvcrt, subprocess
 import win32api, win32gui, win32con, win32gui_struct
+from . import misc
 from .vvterm import VVterm, VVtermEvent
 from pathlib import Path
 
@@ -386,8 +387,7 @@ class _Terminal:
 
         # Add a log handler that writes to the terminal.
         handler = logging.StreamHandler(stdout)
-        handler.setFormatter(logging.Formatter('%(task_name)20s %(logTime)8.3f %(levelname)s:%(name)s:%(message)s'))
-        logging.root.addHandler(handler)
+        misc.add_root_logging_handler(handler)
 
     def _create_system_console(self):
         """

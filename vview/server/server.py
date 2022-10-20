@@ -11,13 +11,8 @@ from ..database.signature_db import SignatureDB
 from .library import Library
 from .api_server import APIServer
 
+misc.config_logging()
 log = logging.getLogger(__name__)
-
-misc.add_logging_record_factory()
-logging.basicConfig(level=logging.INFO, format='%(task_name)20s %(logTime)8.3f %(levelname)s:%(name)s:%(message)s')
-logging.getLogger('vview').setLevel(logging.INFO)
-logging.captureWarnings(True)
-misc.fix_basic_logging()
 
 class Server:
     """

@@ -534,10 +534,8 @@ class reverse_order_str(str):
     def __lt__(self, rhs):
         return not super().__lt__(rhs)
 
-def add_logging_record_factory():
-    """
-    Add a logging factory to make some extra tags available for logging.
-    """
+def config_logging():
+    # Add a logging factory to make some extra tags available for logging.
     old_factory = logging.getLogRecordFactory()
 
     def record_factory(*args, **kwargs):
@@ -565,20 +563,40 @@ def add_logging_record_factory():
         
     logging.setLogRecordFactory(record_factory)
 
-def fix_basic_logging():
+    # basicConfig doesn't let us give it a log filter, and it also breaks if sys.stderr
+    # is None, which it is in windowed applications, so we just set up logging ourself.
+    logging.root.setLevel(logging.INFO)
+    logging.captureWarnings(True)
+
+    if sys.stderr is not None:
+        stdout_handler = logging.StreamHandler()
+        add_root_logging_handler(logging.StreamHandler())
+
+    logging.getLogger('vview').setLevel(logging.INFO)
+
+def add_root_logging_handler(handler):
     """
-    Work around a bug in Python's logging module: if there's no sys.stderr
-    when logging.basicConfig is called, it creates a StreamHandler with
-    a stream of None, and throws an exception every time something is logged.
-    That's easy to miss when logging isn't going anywhere, but we're setting
-    up an output window after the fact, so we get spammed with these.  It's
-    also probably slow, since it's formatting a backtrace for every log.
+    Add a logging handler to the root logger.
+
+    This is needed so we can add our formatter and filter in one place.  The logging module has
+    a hierarchy of loggers and handlers, but every handler has its own format and filters and
+    you can't simply set them once on the root logger.
     """
-    # Find the StreamHandler with no stream and remove it.
-    for handler in logging.root.handlers:
-        if isinstance(handler, logging.StreamHandler) and handler.stream is None:
-            logging.root.removeHandler(handler)
-            return
+    formatter = logging.Formatter('%(task_name)20s %(logTime)8.3f %(levelname)s:%(name)-30s: %(message)s')
+    handler.setFormatter(formatter)
+    handler.addFilter(log_filter)
+    logging.root.addHandler(handler)
+
+def log_filter(log_record):
+    # Ignore "Cannot write to closing transport" exceptions that asyncio floods our
+    # logs with.  https://github.com/aio-libs/aiohttp/issues/5182 https://github.com/aio-libs/aiohttp/issues/5766
+    if log_record.exc_info is not None:
+        exc_class, exc, exc_tb = log_record.exc_info
+        if isinstance(exc, ConnectionResetError) and \
+            exc.args == ('Cannot write to closing transport',):
+            return False
+
+    return True
 
 from aiohttp.abc import AbstractAccessLogger
 class AccessLogger(AbstractAccessLogger):
