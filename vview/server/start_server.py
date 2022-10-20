@@ -13,7 +13,7 @@ def run():
     from .server import Server
 
     try:
-        return Server.run()
+        return Server().main()
     except Exception as e:
         # Show fatal errors in a dialog if we don't have a console.
         error = traceback.format_exc()
