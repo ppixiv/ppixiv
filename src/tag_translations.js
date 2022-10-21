@@ -13,6 +13,12 @@ ppixiv.tag_translations = class
     constructor()
     {
         this.db = new key_storage("ppixiv-tag-translations");
+
+        // Firefox's private mode is broken: instead of making storage local to the session and
+        // not saved to disk, it just disables IndexedDB entirely, which is lazy and breaks pages.
+        // Keep a copy of tags we've seen in this session to work around this  This isn't a problem
+        // in other browsers.
+        this.cache = new Map();
     }
 
     // Store a list of tag translations.
@@ -90,6 +96,9 @@ ppixiv.tag_translations = class
             if(tag.romaji)
                 tag_info.romaji = tag.romaji;
             data[tag.tag] = tag_info;
+
+            if(translation.en)
+                this.cache.set(tag.tag, translation.en);
         }
 
         // Batch write:
@@ -129,6 +138,15 @@ ppixiv.tag_translations = class
 
             result[tag] = translation;
         }
+
+        // See if we have cached translations for tags not in the database.
+        for(let tag of tags)
+        {
+            if(result[tag])
+                continue;
+            result[tag] = this.cache.get(tag);
+        }
+
         return result;
     }
 
