@@ -709,12 +709,6 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         if(!await this.populate_dropdown())
             return;
 
-        // We're populated now, so we can actually show our contents.  Don't do this if we
-        // didn't actually fill any entries, since that means we just don't have any history yet.
-        let all_entries = Array.from(this.all_results.querySelectorAll(".entry"));
-        if(all_entries.length > 0)
-            this.container.querySelector(".input-dropdown").classList.remove("loading");
-
         this.select_current_search();
         this.run_autocomplete();
     }
@@ -1233,6 +1227,11 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
             this.set_selection(saved_selection);       
 
         this.restore_search_position(saved_position);
+
+        // We're populated now, so if we were hidden for initial loading, we can actually show
+        // our contents if we have any.
+        let empty = Array.from(this.all_results.querySelectorAll(".entry")).length == 0;
+        helpers.set_class(this.container.querySelector(".input-dropdown"), "loading", empty);
 
         return true;
     }
