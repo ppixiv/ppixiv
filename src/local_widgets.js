@@ -972,7 +972,7 @@ ppixiv.local_search_dropdown_widget = class extends ppixiv.widget
         super({...options, template: `
             <div class=search-history>
                 <div class=input-dropdown>
-                    <div class=input-dropdown-list>
+                    <div class="input-dropdown-contents input-dropdown-list">
                         <!-- template-tag-dropdown-entry instances will be added here. -->
                     </div>
                 </div>
@@ -990,7 +990,15 @@ ppixiv.local_search_dropdown_widget = class extends ppixiv.widget
         this.container.addEventListener("click", this.dropdown_onclick);
 
         // input-dropdown is resizable.  Save the size when the user drags it.
-        this.input_dropdown = this.container.querySelector(".input-dropdown");
+        this.input_dropdown = this.container.querySelector(".input-dropdown-list");
+
+        // Restore input-dropdown's width.
+        let refresh_dropdown_width = () => {
+            let width = settings.get("tag-dropdown-width", "400");
+            width = parseInt(width);
+            this.container.style.setProperty('--width', `${width}px`);
+        };
+
         let observer = new MutationObserver((mutations) => {
             // resize sets the width.  Use this instead of offsetWidth, since offsetWidth sometimes reads
             // as 0 here.
@@ -998,8 +1006,8 @@ ppixiv.local_search_dropdown_widget = class extends ppixiv.widget
         });
         observer.observe(this.input_dropdown, { attributes: true });
 
-        // Restore input-dropdown's width.  Force a minimum width, in case this setting is saved incorrectly.
-        this.input_dropdown.style.width = settings.get("tag-dropdown-width", "400px");
+        // Restore input-dropdown's width.
+        refresh_dropdown_width();
 
         this.shown = false;
         this.container.hidden = true;
