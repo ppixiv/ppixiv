@@ -227,7 +227,6 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
             if(isNaN(width))
                 width = 600;
             settings.set("tag-dropdown-width", width);
-            //refresh_dropdown_width(); // XXX
         });
         observer.observe(this.input_dropdown, { attributes: true });
 
@@ -696,28 +695,28 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
             return;
         this.visible = true;
 
-        // Fill in the dropdown before displaying it.  If hide() is called before this
-        // finishes this will return false, so stop.
+        // We need to go async to load translations, and if we become visible before then we'll flash
+        // an unfilled dialog (this is annoying since it's a local database and the load is always
+        // nearly instant).  But, if we're hidden then we have no layout, so things like restoring
+        // the scroll position and setting the max height don't work.  Work around this by making ourselves
+        // visible immediately, but staying transparent, so we have layout but aren't visible until we're
+        // ready.
+        this.container.querySelector(".input-dropdown").classList.add("loading");
+        this.container.hidden = false;
+
+        // Fill in the dropdown before displaying it.  This returns false if we were hidden before
+        // we finished loading.
         if(!await this.populate_dropdown())
             return;
 
-        this._apply_visibility();
+        // We're populated now, so we can actually show our contents.  Don't do this if we
+        // didn't actually fill any entries, since that means we just don't have any history yet.
+        let all_entries = Array.from(this.all_results.querySelectorAll(".entry"));
+        if(all_entries.length > 0)
+            this.container.querySelector(".input-dropdown").classList.remove("loading");
 
         this.select_current_search();
         this.run_autocomplete();
-    }
-
-    _apply_visibility()
-    {
-        let visible = this.visible;
-
-        // If there's nothing in the dropdown, keep it hidden.  This prevents the edit button
-        // from appearing floating in the middle of nowhere for new users.
-        let all_entries = Array.from(this.all_results.querySelectorAll(".entry"));
-        if(all_entries.length == 0)
-            visible = false;
-
-        this.container.hidden = !visible;
     }
 
     hide()
@@ -738,6 +737,10 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
 
     async run_autocomplete()
     {
+        // Don't refresh if we're not visible.
+        if(!this.visible)
+            return;
+
         // If true, this is a value change caused by keyboard navigation.  Don't run autocomplete,
         // since we don't want to change the dropdown due to navigating in it.
         if(this.navigating)
@@ -1159,12 +1162,6 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         if(abort_signal.aborted)
             return false;
         
-        // If we're being called during show(), we haven't been set visible yet so we don't flash
-        // the dropdown before it's populated.  Make it visible now that we're done being async and
-        // we can finish updating before it's displayed.  If we don't do this, helpers.set_max_height()
-        // and save_search_position() won't be able to tell where we're scrolled to.
-        this._apply_visibility();
-
         this.translated_tags = translated_tags;
             
         // Save the selection so we can restore it.

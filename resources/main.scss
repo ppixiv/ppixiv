@@ -1865,6 +1865,11 @@ a.box-link, span.box-link
         }
     }
 
+    &.loading {
+        pointer-events: none;
+        opacity: 0.5;
+    }
+
     .input-dropdown-contents {
         width: var(--width); // set by script
         max-width: 800px;
