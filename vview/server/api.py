@@ -81,36 +81,40 @@ def get_illust_info(info, entry, base_url):
         # with mjpeg-zip.
         remote_image_path = remote_poster_path
 
+    ctime = entry['ctime']
+    timestamp = datetime.fromtimestamp(ctime, tz=timezone.utc).isoformat()
+
+    # Shared data for files and directories:
+    image_info = {
+        'mediaId': media_id,
+        'localPath': str(entry['path']),
+        'illustTitle': entry['title'],
+        'createDate': timestamp,
+        'bookmarkData': _bookmark_data(entry, info.user),
+    }
+    
+    if entry.get('error') is not None:
+        image_info['error'] = entry['error']
+
     if entry['is_directory']:
         # Directories return a subset of file info.
         #
         # Use the directory's ctime as the post time.
-        ctime = entry['ctime']
-        timestamp = datetime.fromtimestamp(ctime, tz=timezone.utc).isoformat()
 
-        image_info = {
-            'mediaId': media_id,
-            'localPath': str(entry['path']),
-            'illustTitle': entry['title'],
-            'createDate': timestamp,
-            'bookmarkData': _bookmark_data(entry, info.user),
+        image_info.update({
             'previewUrls': [remote_thumb_path],
             'userId': -1,
             'tagList': [],
             'extraData': {
                 media_id: { },
             }
-        }
+        })
 
         return image_info
 
     filetype = misc.file_type_from_ext(entry['path'].suffix)
     if filetype is None:
         return None
-
-    # Get the image dimensions.
-    size = entry['width'], entry['height']
-    ctime = entry['ctime']
 
     urls = {
         'original': remote_image_path,
@@ -125,7 +129,6 @@ def get_illust_info(info, entry, base_url):
     if is_animation:
         urls['mjpeg_zip'] = remote_mjpeg_path
 
-    timestamp = datetime.fromtimestamp(ctime, tz=timezone.utc).isoformat()
     preview_urls = [urls['small']]
     tags = entry['tags'].split()
 
@@ -141,9 +144,7 @@ def get_illust_info(info, entry, base_url):
         extra_data['inpaint'] = json.loads(entry['inpaint'])
         urls['inpaint'] = f'{base_url}/inpaint/{urllib.parse.quote(media_id, safe="/:")}?{image_timestamp_with_inpaint}'
 
-    image_info = {
-        'mediaId': media_id,
-        'localPath': str(entry['path']),
+    image_info.update({
         'previewUrls': preview_urls,
 
         # Pixiv uses 0 for images, 1 for manga and 2 for their janky MJPEG format.
@@ -151,16 +152,13 @@ def get_illust_info(info, entry, base_url):
         # more meaningful, and we're unlikely to collide if they decide to add additional
         # illustTypes.
         'illustType': 2 if is_animation else 0 if filetype == 'image' else 'video',
-        'illustTitle': entry['title'],
 
         # We use -1 to indicate no user instead of null.  Pixiv user and illust IDs can
         # be treated as strings or ints, so using null is awkward.
         'userId': -1,
-        'bookmarkData': _bookmark_data(entry, info.user),
-        'createDate': timestamp,
         'urls': urls,
-        'width': size[0],
-        'height': size[1],
+        'width': entry['width'],
+        'height': entry['height'],
         'userName': entry['author'],
         'illustComment': entry['comment'],
         'tagList': tags,
@@ -168,7 +166,7 @@ def get_illust_info(info, entry, base_url):
         'extraData': {
             media_id: extra_data,
         },
-    }
+    })
 
     return image_info
 

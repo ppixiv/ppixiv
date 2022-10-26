@@ -496,30 +496,40 @@ class Library:
 
         return entry
 
-    def _cache_file(self, path: os.PathLike, *, populate=True, conn=None):
-        entry = self._get_entry_from_path(path)
-        if entry is None:
-            return None
-
-        self.db.add_record(entry, conn=conn)
-        return entry
-
     @classmethod
     def _create_file_record(cls, path: os.PathLike):
+        error = None
+
         mime_type = misc.mime_type(os.fspath(path))
-        assert mime_type is not None, ('File not supported: %s' % path)
+        if mime_type is None:
+            mime_type = 'application/octet-stream'
+            if error is None:
+                error = 'File type not supported'
         
         try:
             stat = path.stat()
+        except IOError as e:
+            log.error('Couldn\'t open %s: %s' % (path, e))
+            stat = os.stat_result((0, 0, 0, 1, 0, 0, 0, 0, 0, 0))
+            if error is None:
+                error = f'Error scanning file: {e}'
 
+        try:
             # Open the file with all share modes active, so we don't lock the file and interfere
             # with the user working with the file.
             with path.open('rb', shared=True) as f:
                 media_metadata = misc.read_metadata(f, mime_type)
+
+            # We should always get metadata for supported images.  If we didn't then something went wrong,
+            # and we should return an error rather than caching and returning invalid data.
+            if not media_metadata and error is None:
+                error = 'Error reading metadata'
         except IOError as e:
             log.error('Couldn\'t open %s: %s' % (path, e))
-            return None
-        
+            media_metadata = {}
+            if error is None:
+                error = f'Error scanning file info: {e}'
+
         width = media_metadata.get('width')
         height = media_metadata.get('height')
         title = media_metadata.get('title', '')
@@ -555,6 +565,11 @@ class Library:
             'animation': animation,
             'duration': duration,
         }
+
+        # If there was an error, most or all of the above data will be missing.  Record that there
+        # was an error.
+        if error:
+            data['error'] = error
 
         return data
 
@@ -844,7 +859,9 @@ class Library:
             self.db.delete_recursively([path], conn=conn)
             return None
 
-        self.db.add_record(entry, conn=conn)
+        # Don't cache entries if there was an error scanning the file.
+        if entry.get('error') is None:
+            self.db.add_record(entry, conn=conn)
 
         return entry
 
