@@ -95,6 +95,8 @@ class Server:
         # Set up the Windows tray icon and terminal window.
         windows_ui.WindowsUI.get.create(self.exit)
 
+        misc.fix_pil()
+
         # Figure out where to put our files.
         local_data = Path(os.getenv('LOCALAPPDATA'))
         data_dir = local_data / 'vview'

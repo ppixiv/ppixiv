@@ -629,3 +629,12 @@ class AccessLogger(aiohttp.abc.AbstractAccessLogger):
         # Log successful non-API requests at a lower level, so we don't spam for each
         # thumbnail request.
         level(message)
+
+def fix_pil():
+    """
+    Disable PIL's broken "could be decompression bomb" check.  It prevents opening files even
+    if you're just trying to get metadata and not decompressing anything, the limit is too
+    low and breaks real files, and there's no way to configure it when opening a file, you
+    can only change it globally by editing this constant.
+    """
+    Image.MAX_IMAGE_PIXELS = None
