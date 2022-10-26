@@ -281,8 +281,9 @@ async def api_bookmark_add(info):
 @reg('/illust/{type:[^:]+}:{path:.+}', allow_guest=True)
 async def api_illust(info):
     path = PurePosixPath(info.request.match_info['path'])
+    refresh_from_disk = info.data.get('refresh_from_disk', False)
     generate_inpaint = info.data.get('generate_inpaint', True)
-    illust_info = await _get_api_illust_info(info, path, generate_inpaint=generate_inpaint)
+    illust_info = await _get_api_illust_info(info, path, force_refresh=refresh_from_disk, generate_inpaint=generate_inpaint)
     return {
         'success': True,
         'illust': illust_info,
@@ -459,9 +460,9 @@ async def api_illust(info):
         'results': results,
     }
     
-async def _get_api_illust_info(info, media_id, *, generate_inpaint=False):
+async def _get_api_illust_info(info, media_id, *, generate_inpaint=False, force_refresh=False):
     absolute_path = info.manager.resolve_path(media_id)
-    entry = info.manager.library.get(absolute_path)
+    entry = info.manager.library.get(absolute_path, force_refresh=force_refresh)
     if entry is None:
         raise misc.Error('not-found', 'File not in library')
 

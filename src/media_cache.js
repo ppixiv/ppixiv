@@ -176,7 +176,7 @@ ppixiv.MediaCache = class extends EventTarget
     async refresh_media_info(media_id)
     {
         media_id = helpers.get_media_id_first_page(media_id);
-        await this._load_media_info(media_id, { force: true });
+        await this._load_media_info(media_id, { force: true, refresh_from_disk: true });
     }
 
     // Add media info to the cache that we received from other sources.  Note that if
@@ -234,7 +234,7 @@ ppixiv.MediaCache = class extends EventTarget
     //
     // If we already have the image data (not necessarily the rest, like ugoira_metadata),
     // it can be supplied with illust_data.
-    async _load_media_info(media_id, { illust_data=null }={})
+    async _load_media_info(media_id, { illust_data=null, refresh_from_disk=false }={})
     {
         media_id = helpers.get_media_id_first_page(media_id);
         let [illust_id] = helpers.media_id_to_illust_id_and_page(media_id);
@@ -243,7 +243,7 @@ ppixiv.MediaCache = class extends EventTarget
 
         // If this is a local image, use our API to retrieve it.
         if(helpers.is_media_id_local(media_id))
-            return await this._load_local_image_data(media_id);
+            return await this._load_local_image_data(media_id, { refresh_from_disk});
 
         console.log("Fetching", media_id);
 
@@ -511,9 +511,9 @@ ppixiv.MediaCache = class extends EventTarget
     }
 
     // Load image info from the local API.
-    async _load_local_image_data(media_id)
+    async _load_local_image_data(media_id, { refresh_from_disk }={})
     {
-        let illust_data = await local_api.load_media_info(media_id);
+        let illust_data = await local_api.load_media_info(media_id, { refresh_from_disk });
         if(!illust_data.success)
         {
             media_id = helpers.get_media_id_first_page(media_id);

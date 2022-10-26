@@ -57,9 +57,14 @@ ppixiv.local_api = class
     }
 
     // Load image info from the local API.
-    static async load_media_info(media_id)
+    //
+    // If refresh_from_disk and this is a local file, ask the server to ignore cache and
+    // refresh from disk, even if it thinks it's not necessary.
+    static async load_media_info(media_id, { refresh_from_disk=false }={})
     {
-        let illust_data = await local_api.local_post_request(`/api/illust/${media_id}`);
+        let illust_data = await local_api.local_post_request(`/api/illust/${media_id}`, {
+            refresh_from_disk,
+        });
         if(illust_data.success)
             local_api.adjust_illust_info(illust_data.illust);
 
