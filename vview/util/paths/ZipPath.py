@@ -365,6 +365,9 @@ class ZipPath(PathBase):
         if 'w' in mode:
             raise IOError('Writing not supported for ZIPs')
 
+        if self.is_dir():
+            raise IsADirectoryError('Is a directory: %s' % self._path)
+
         entry = self._get_our_entry(required=True)
         if entry is None:
             raise FileNotFoundError('File not found: %s' % self._path)
