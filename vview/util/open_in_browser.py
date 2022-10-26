@@ -63,7 +63,7 @@ def open_path_in_browser(path):
     if crop:
         width = crop[2] - crop[0]
         height = crop[3] - crop[1]
-    else:
+    elif not path.is_dir():
         # If the image wasn't cropped, just get the image dimensions.
         mime_type = misc.mime_type(path)
         try:
