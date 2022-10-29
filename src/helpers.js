@@ -3132,8 +3132,8 @@ ppixiv.helpers = {
         return args;
     },
 
-    // This is a workaround for a really strange bug that all mobile browsers seem to have
-    // adopted: you get clicks on events, even if they weren't clickable when the tap started.
+    // Work around a pointer bug on Android: it sends click and dblclick events on nodes that
+    // weren't clickable when the tap started.
     //
     // If an element has pointer-events: none, and it's removed between a touch down and touch
     // up, the element will get a click event even though it never got a touch down in the first
@@ -3143,6 +3143,9 @@ ppixiv.helpers = {
     // Work around this by cancelling clicks inside element until we see pointer_id released.
     prevent_clicks_until_pointer_released(element, pointer_id)
     {
+        if(!ppixiv.android)
+            return;
+
         let abort = new AbortController();
 
         let click = (e) => {
