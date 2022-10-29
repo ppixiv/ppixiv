@@ -1150,6 +1150,13 @@ ppixiv.data_sources.related_illusts = class extends data_source
      
     async load_page_internal(page)
     {
+        // Don't load more than one page.  Related illusts for the same post generally
+        // returns the same results, so if we load more pages we can end up making lots of
+        // requests that give only one or two new images each, and end up loading up to
+        // page 5 or 6 for just a few extra results.
+        if(page > 1)
+            return;
+
         // Get "mode" from the URL.  If it's not present, use "all".
         let mode = this.url.searchParams.get("mode") || "all";
         let result = await helpers.get_request("/ajax/discovery/artworks", {
