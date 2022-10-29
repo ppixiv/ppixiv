@@ -612,6 +612,11 @@ ppixiv.MediaCache = class extends EventTarget
 
         for(let [key, value] of Object.entries(keys))
         {
+            // If we have partial info and we're getting an update from a tab that has full info,
+            // don't change our full flag.
+            if(key == "full")
+                continue;
+
             // If we only have partial info, ignore data that shouldn't be included in
             // partial info.
             if(!image_data.full && partial_media_info_keys.indexOf(key) == -1)
