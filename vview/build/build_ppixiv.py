@@ -1,6 +1,5 @@
-import argparse, base64, collections, errno, glob, hashlib, json, io, os, re, sys, subprocess
+import argparse, base64, collections, errno, glob, hashlib, json, io, os, random, re, sys, string, subprocess, tempfile
 from pathlib import Path
-import sass
 from pprint import pprint
 
 # This builds a user script that imports each filename directly from the build
@@ -204,22 +203,17 @@ class Build(object):
         with open(output_file, 'w+t', encoding='utf-8', newline='\n') as f:
             f.write(lines)
 
+    @property
+    def root(self):
+        return Path(os.getcwd())
+
     def get_local_root_url(self):
         """
         Return the file:/// path containing local source.
 
         This is only used for development builds.
         """
-        # Handle Cygwin and Windows paths.
-        cwd = os.getcwd()
-        if cwd.startswith('/cygdrive/'): # /cygdrive/c/path
-            parts = cwd.split('/')
-            cwd = '%s:/%s' % (parts[2], '/'.join(parts[3:]))
-        elif cwd.startswith('/'): # /c/path
-            parts = cwd.split('/')
-            cwd = '%s:/%s' % (parts[1], '/'.join(parts[2:]))
-
-        return 'file:///%s' % cwd
+        return self.root.as_uri()
 
     def get_source_root_url(self, filetype='source'):
         """
@@ -245,29 +239,110 @@ class Build(object):
 
         return results
 
+    def _make_temp_path(self):
+        """
+        Create a reasonably unique filename for a temporary file.
+
+        tempfile insists on creating the file and doesn't give us a way to simply generate
+        a filename, which is what's needed when we're passing a filename to a subprocess.
+        """
+        fn = ''.join(random.choice(string.ascii_lowercase) for _ in range(10))
+        return Path(tempfile.gettempdir()) / ('vview-' + fn)
+
     def build_css(self, path, source_map_embed=False, embed_source_root=None):
-        # This API's a bit annoying: we have to omit these parameters entirely and not
-        # set them to None if we want an embedded source map.
-        kwargs = { }
+        if embed_source_root is None:
+            embed_source_root = self.get_source_root_url()
 
-        if not source_map_embed:
-            kwargs['source_map_root'] = self.get_source_root_url()
-            kwargs['source_map_filename'] = 'dummy' # or else it doesn't give us a source map
-            kwargs['omit_source_map_url'] = True
-        else:
-            kwargs['source_map_root'] = embed_source_root
+        path = path.resolve()
 
-        results = sass.compile(filename=str(path),
-                source_comments=False,
-                source_map_embed=source_map_embed,
-                **kwargs)
+        # The path to dart-sass:
+        dart_path = self.root / 'bin' / 'dart-sass'
+        dart_exe = dart_path / 'dart.exe'
+        sass = dart_path / 'sass.snapshot'
 
-        # Also, it has a variable number of results depending on whether it's returning
-        # a source map or not.
+        # If dart-sass doesn't exist in bin/dart-sass, it probably hasn't been downloaded.  Run
+        # vview.build.build_vview first at least once to download it.
+        if not dart_exe.exists():
+            raise Exception(f'dart-sass not found in {dart_path}')
+
+        output_css = self._make_temp_path().with_suffix('.css')
+        output_map = output_css.with_suffix('.css.map')
+
+        # Run dart-sass.  We have to output to temporary files instead of reading stdout,
+        # since it doesn't give any way to output the CSS and source map separately that way.
+        dart_args = [
+            dart_exe, sass,
+        ]
+
+        result = subprocess.run(dart_args + [
+            '--no-embed-source-map',
+            str(path),
+            str(output_css),
+        ], capture_output=True)
+
+        if result.returncode:
+            # Errors from dart are printed to stderr, but errors from SASS itself go to
+            # stdout.
+            output = result.stderr.decode("utf-8").strip()
+            if not output:
+                output=result.stdout.decode("utf-8").strip()
+
+            raise Exception(f'Error building {path}: {output}')
+
+        # Read the temporary files, then clean them up.
+        with open(output_css, 'rt', encoding='utf-8') as f:
+            data = f.read()
+
+        with open(output_map, 'rt', encoding='utf-8') as f:
+            source_map = f.read()
+
+        output_css.unlink()
+        output_map.unlink()
+
+        # dart-sass doesn't let us tell it the source root.  They expect us to decode it and
+        # fix it ourself.  It's pretty obnoxious to have to jump a bunch of hoops because they
+        # couldn't be bothered to just let us pass in a URL and tell it where the top path is.
+        #
+        # We expect all CSS files to be inside the top directory, eg:
+        #
+        # file:///c:/files/ppixiv/resources/main.scss
+        #
+        # Map these so they're relative to the root, and set sourceRoot to embed_source_root.
+        source_map = json.loads(source_map)
+        expected_wrong_url = self.get_local_root_url()
+        if not expected_wrong_url.endswith('/'):
+            expected_wrong_url += '/'
+
+        def fix_url(url):
+            if not url.startswith(expected_wrong_url):
+                raise Exception(f'Expected CSS source map path {url} to be inside {expected_wrong_url}')
+            return url[len(expected_wrong_url):]
+        
+        source_map['sources'] = [fix_url(url) for url in source_map['sources']]
+        source_map['sourceRoot'] = embed_source_root
+
+        # Fix the filename, so it doesn't contain the temporary filename.
+        source_map['file'] = Path(path).relative_to(self.root).as_posix()
+
+        # Reserialize the source map.
+        source_map = json.dumps(source_map, indent=0)
+
+        # Compounding the above problem: if you tell it not to embed the source map, it appends
+        # the sourceMappingURL, and there's no way to tell it not to, so we have to find it and
+        # strip it off.
+        lines = data.split('\n')
+        assert lines[-2].startswith('/*# sourceMappingURL')
+        assert lines[-1] == ''
+        lines[-2:-1] = []
+        data = '\n'.join(lines)
+
+        # Embed our fixed source map if wanted.
         if source_map_embed:
-            data, source_map = results, None
-        else:
-            data, source_map = results
+            encoded_source_map = base64.b64encode(source_map.encode('utf-8')).decode('ascii')
+            data += '/*# sourceMappingURL=data:application/json;base64,%s */' % encoded_source_map
+
+            source_map = None
+
         return data, source_map
 
     def build_resources(self):
