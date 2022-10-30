@@ -112,6 +112,9 @@ ppixiv.MainController = class
             window.addEventListener("dragstart", (e) => { e.preventDefault(); });
         }
 
+        if(ppixiv.mobile)
+            helpers.force_target_blank();
+
         // See if the page has preload data.  This sometimes contains illust and user info
         // that the page will display, which lets us avoid making a separate API call for it.
         let preload = document.querySelector("#meta-preload-data");
