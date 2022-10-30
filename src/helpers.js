@@ -5234,6 +5234,30 @@ ppixiv.MobileDoubleTapHandler = class
         this.pointerdown_position = { x: 0, y: 0 };
         this.watching_pointer_id = null;
 
+        if(ppixiv.ios)
+        {
+            // iOS Safari has a bizarre bug: pointerdown events that also cause a dblclick
+            // event sometimes don't trigger.  This only happens in iOS 16, only when running
+            // as a PWA (not when in the browser), and only happens on about 50% of launches.
+            // We have to use dblclick to get double-clicks.
+            this.container.addEventListener("dblclick", (e) => {
+                ondbltap(e);
+            }, { signal });
+
+            // Another bizarre bug: we also don't get these dblclick events unless at least
+            // one dblclick listener exists on the document.  (This workaround doesn't help
+            // pointer events.)  This doesn't make sense, since the existance of an event listener
+            // that doesn't do anything is supposed to be undetectable.  Add one of these the first
+            // time we're used, and don't use the AbortSignal since we don't want it to be removed.
+            if(!ppixiv.MobileDoubleTapHandler.added_dblclick_workaround)
+            {
+                ppixiv.MobileDoubleTapHandler.added_dblclick_workaround = true;
+                document.addEventListener("dblclick", (e) => { });
+            }
+
+            return;
+        }
+
         this.container.addEventListener("pointerdown", this.pointerevent, { signal });
         window.addEventListener("pointerup", this.pointerevent, { signal });
         window.addEventListener("pointercancel", this.pointerevent, { signal });
