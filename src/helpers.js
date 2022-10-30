@@ -4997,15 +4997,15 @@ ppixiv.TouchScroller = class
         if(ppixiv.ios && this.pointers.size == 0)
         {
             let width = 10;
-            if(e.pageX < width || e.pageX > window.innerWidth - width)
+            if(e.clientX < width || e.clientX > window.innerWidth - width)
                 return;
         }
 
         // Capture the pointer.
         this.container.setPointerCapture(e.pointerId);
         this.pointers.set(e.pointerId, {
-            x: e.pageX,
-            y: e.pageY,
+            x: e.clientX,
+            y: e.clientY,
         });
         
         // Kill any velocity when a new touch happens.
@@ -5073,8 +5073,8 @@ ppixiv.TouchScroller = class
         let old_average_distance_from_anchor = this.pointer_distance_from(old_center_pos);
 
         // Update this pointer.  This will update pointer_center_pos.
-        pointer_info.x = e.pageX;
-        pointer_info.y = e.pageY;
+        pointer_info.x = e.clientX;
+        pointer_info.y = e.clientY;
 
         // The center position and average distance at the end of the frame:
         let new_center_pos = this.pointer_center_pos;
