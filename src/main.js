@@ -101,9 +101,9 @@ ppixiv.MainController = class
         helpers.set_class(document.body, "hide-r18", !window.global_data.include_r18);
         helpers.set_class(document.body, "hide-r18g", !window.global_data.include_r18g);
 
-        helpers.set_class(document.documentElement, "mobile", ppixiv.mobile);
-        helpers.set_class(document.documentElement, "ios", ppixiv.ios);
-        helpers.set_class(document.documentElement, "android", ppixiv.android);
+        this.set_device_properties();
+        settings.addEventListener("avoid-statusbar", this.set_device_properties);
+        window.addEventListener("orientationchange", this.set_device_properties);
 
         // On mobile, disable long press opening the context menu and starting drags.
         if(ppixiv.mobile)
@@ -262,6 +262,35 @@ ppixiv.MainController = class
         helpers.navigate(args, { add_to_history: false, cause: "refresh-data-source", send_popstate: false });
 
         await this.set_current_data_source("refresh");
+    }
+
+    set_device_properties = () =>
+    {
+        helpers.set_class(document.documentElement, "mobile", ppixiv.mobile);
+        helpers.set_class(document.documentElement, "ios", ppixiv.ios);
+        helpers.set_class(document.documentElement, "android", ppixiv.android);
+        document.documentElement.dataset.orientation = window.orientation ?? "0";
+
+        // Set the fullscreen mode.  See the device styling rules in main.scss for more
+        // info.
+        //
+        // If we're on a device with a notch, we'd prefer to be in notch mode.  
+        // Try to figure out if we're on a device with a notch.  There's no way to query this,
+        // and if we're on an iPhone we can't even directly query which model it is, so we have
+        // to guess.  For iPhones, assume that we have a notch if we have a bottom inset, since
+        // all current iPhones with a notch also have a bottom inset for the ugly pointless white
+        // line at the bottom of the screen.
+        let notch = false;
+        if(ppixiv.ios && navigator.platform.indexOf('iPhone') != -1)
+            notch = helpers.safe_area_insets.bottom > 0;
+
+        // Set the fullscreen mode.
+        if(notch)
+            document.documentElement.dataset.fullscreenMode = "notch";
+        else if(settings.get("avoid-statusbar"))
+            document.documentElement.dataset.fullscreenMode = "safe-area";
+        else
+            document.documentElement.dataset.fullscreenMode = "none";
     }
 
     // Create a data source for the current URL and activate it.

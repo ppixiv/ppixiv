@@ -957,6 +957,88 @@ ppixiv.helpers = {
         }, { signal });
     },
 
+    // Force all external links to target=_blank.
+    //
+    // We do this on iOS to improve clicking links.  If we're running as a PWA on iOS, opening links will
+    // cause the Safari UI to appear.  Setting target=_blank looks the same to the user, except it opens
+    // it in a separate context, so closing the link will return to where we were.  If we don't do this,
+    // the link will replace us instead, so we'll be restarted when the user returns.
+    //
+    // We currently only look at links when they're first added to the document and don't listen for
+    // changes to href.
+    force_target_blank()
+    {
+        if(!ppixiv.ios)
+            return;
+
+        function update_node(node)
+        {
+            if(node.querySelectorAll == null)
+                return;
+
+            for(let a of node.querySelectorAll("A:not([target])"))
+            {
+                if(a.href == "" || a.hasAttribute("target"))
+                    continue;
+
+                let url = new URL(a.href);
+                if(url.origin == document.location.origin)
+                    continue;
+
+                a.setAttribute("target", "_blank");
+            }
+        }
+        update_node(document.documentElement);
+
+        let observer = new MutationObserver((mutations) => {
+            for(let mutation of mutations)
+            {
+                for(let node of mutation.addedNodes)
+                    update_node(node);
+            }
+        });
+        observer.observe(document.documentElement, { subtree: true, childList: true });
+    },
+
+    // Return the value of a list of CSS expressions.  For example:
+    //
+    // get_css_values({ value1: "calc(var(--value) * 2)" });
+    get_css_values(properties)
+    {
+        let div = document.createElement("div");
+
+        let style = [];
+        for(let [key, value] of Object.entries(properties))
+            style += `--${key}:${value};\n`;
+        div.style = style;
+
+        // The div needs to be in the document for this to work.
+        document.body.appendChild(div);
+        let computed = getComputedStyle(div);
+        let results = {};
+        for(let key of Object.keys(properties))
+            results[key] = computed.getPropertyValue(`--${key}`);
+
+        return results;
+    },
+
+    // Get the current safe area insets.
+    get safe_area_insets()
+    {
+        let { left, top, right, bottom } = helpers.get_css_values({
+            left: 'env(safe-area-inset-left)',
+            top: 'env(safe-area-inset-top)',
+            right: 'env(safe-area-inset-right)',
+            bottom: 'env(safe-area-inset-bottom)',
+        });
+
+        left = parseInt(left ?? 0);
+        top = parseInt(top ?? 0);
+        right = parseInt(right ?? 0);
+        bottom = parseInt(bottom ?? 0);
+        return { left, top, right, bottom };
+    },
+
     date_to_string: function(date)
     {
         var date = new Date(date);
