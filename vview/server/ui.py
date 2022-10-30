@@ -175,7 +175,7 @@ def handle_css(request):
     # loaded into the user script and a relative domain will resolve to that domain instead
     # of ours.
     base_url = '%s://%s:%i' % (request.url.scheme, request.url.host, request.url.port)
-    data, source_map = build.build_css(path, source_map_embed=True, embed_source_root=f'{base_url}/client')
+    data = build.build_css(path.path, embed_source_root=f'{base_url}/client')
 
     response = aiohttp.web.Response(body=data, headers={
         'Cache-Control': 'public, immutable',

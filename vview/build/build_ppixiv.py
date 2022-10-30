@@ -115,7 +115,7 @@ class Build(object):
 
         # Copy files for this version into https://ppixiv.org/builds/r1234.
         version = get_git_tag()
-        for filename in ('ppixiv.user.js', 'ppixiv-main.user.js', 'main.scss.map'):
+        for filename in ('ppixiv.user.js', 'ppixiv-main.user.js'):
             copy_file(f'output/{filename}', f'builds/{version}')
 
         # Update the beta to point to this build.  Since we've deployed a tag for this, we can
@@ -249,7 +249,7 @@ class Build(object):
         fn = ''.join(random.choice(string.ascii_lowercase) for _ in range(10))
         return Path(tempfile.gettempdir()) / ('vview-' + fn)
 
-    def build_css(self, path, source_map_embed=False, embed_source_root=None):
+    def build_css(self, path, embed_source_root=None):
         if embed_source_root is None:
             embed_source_root = self.get_source_root_url()
 
@@ -336,14 +336,11 @@ class Build(object):
         lines[-2:-1] = []
         data = '\n'.join(lines)
 
-        # Embed our fixed source map if wanted.
-        if source_map_embed:
-            encoded_source_map = base64.b64encode(source_map.encode('utf-8')).decode('ascii')
-            data += '/*# sourceMappingURL=data:application/json;base64,%s */' % encoded_source_map
+        # Embed our fixed source map.
+        encoded_source_map = base64.b64encode(source_map.encode('utf-8')).decode('ascii')
+        data += '/*# sourceMappingURL=data:application/json;base64,%s */' % encoded_source_map
 
-            source_map = None
-
-        return data, source_map
+        return data
 
     def build_resources(self):
         """
@@ -357,22 +354,7 @@ class Build(object):
             fn = fn.replace('\\', '/')
             ext = path.suffix
             if ext == '.scss':
-                data, source_map = self.build_css(path)
-
-                # Output the source map separately.
-                source_map_filename = f'{os.path.basename(fn)}.map'
-                source_map_path = f'output/{source_map_filename}'
-                with open(source_map_path, 'w+t', encoding='utf-8', newline='\n') as f:
-                    f.write(source_map)
-
-                # In release, point to the distribution path for the source map.  For development, just
-                # point to the source map on the local filesystem.
-                if self.is_release:
-                    url = f'{self.distribution_url}/{source_map_filename}'
-                else:
-                    url = f'{self.get_local_root_url()}/{source_map_path}'
-
-                data += "\n/*# sourceMappingURL=%s */" % url
+                data = self.build_css(path)
             elif ext in ('.png', '.woff'):
                 mime_types = {
                     '.png': 'image/png',
