@@ -219,6 +219,10 @@ ppixiv.MainController = class
          
         this.container = document.body;
 
+        // Handle enabling and disabling top-level scrolling.
+        this.refresh_main_scroll();
+        OpenWidgets.singleton.addEventListener("changed", this.refresh_main_scroll);
+
         // Create the popup menu handler.
         this.context_menu = new main_context_menu({container: document.body});
         this.link_this_tab_popup = new link_this_tab_popup();
@@ -364,6 +368,7 @@ ppixiv.MainController = class
         this.context_menu.set_media_id(media_id);
         
         this.current_screen_name = new_screen_name;
+        this.refresh_main_scroll();
 
         // If we're changing between screens, update the active screen.
         let screen_changing = new_screen != old_screen;
@@ -976,6 +981,33 @@ ppixiv.MainController = class
         args.hash.set("slideshow", "1");
         args.hash.set("view", "illust");
         return args;
+    }
+
+    // ENable or disable scrolling on the document.
+    //
+    // The image is overlaid on top of the search, and we need to explicitly disable scrolling while
+    // it's visible, or mousewheel scrolling, touch scrolling, etc. can cause the document to scroll
+    // while it's not visible.
+    //
+    // This also handles disabling scrolling while a dialog is open.
+    //
+    // See also Dialog._update_block_touch_scrolling for an extra special case needed to prevent
+    // scrolling on iOS.
+    refresh_main_scroll = () =>
+    {
+        let visible_widget = null;
+        for(let widget of OpenWidgets.singleton.get_all())
+        {
+            if(widget instanceof ppixiv.dialog_widget)
+            {
+                console.log("Disabling scrolling for dialog:", widget);
+                visible_widget = widget;
+            }
+        }
+
+        let enable_scrolling = this.current_screen_name == "search" && visible_widget == null;
+        // console.log("Scrolling enabled:", enable_scrolling);
+        helpers.set_class(document.documentElement, "disable-scrolling", !enable_scrolling);
     }
 };
 

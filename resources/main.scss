@@ -38,6 +38,15 @@ html {
     // positioned nodes too, such as the main screen-illust-container.
     position: relative;
 
+    &.disable-scrolling
+    {
+        touch-action: none;
+        body {
+            touch-action: none;
+        }
+        overflow: hidden !important;
+    }
+        
     // Device-specific styling
     //
     // We handle a few different types of displays, based on data-fullscreen-mode.

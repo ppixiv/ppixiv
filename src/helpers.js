@@ -4903,6 +4903,12 @@ ppixiv.OpenWidgets = class extends EventTarget
         while(!this.empty)
             await this.event.wait();
     }
+
+    // Return all open widgets.
+    get_all()
+    {
+        return this.open_widgets;
+    }
 }
 
 const FlingFriction = 10;
