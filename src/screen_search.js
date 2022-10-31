@@ -555,7 +555,8 @@ ppixiv.screen_search = class extends ppixiv.screen
          * of the window, without it disappearing as soon as the mouse leaves the window.  This doesn't
          * affect opening the UI.
          */
-        new hover_with_delay(this.container.querySelector(".top-ui-box"), 0, 0.25);
+        this.top_ui_box = this.container.querySelector(".top-ui-box");
+        new hover_with_delay(this.top_ui_box, 0, 0.25);
 
         this.search_view = new search_view({
             parent: this,
@@ -572,17 +573,14 @@ ppixiv.screen_search = class extends ppixiv.screen
     update_from_settings = () =>
     {
         document.documentElement.dataset.theme = "dark"; //settings.get("theme");
-        helpers.set_class(document.body, "ui-on-hover", settings.get("ui-on-hover") && !ppixiv.mobile);
+        helpers.set_class(this.top_ui_box, "ui-on-hover", settings.get("ui-on-hover") && !ppixiv.mobile);
         // helpers.set_class(this.container.querySelector(".recent-history-link"), "disabled", !ppixiv.recently_seen_illusts.get().enabled);
         this.refresh_expand_manga_posts_button();
 
         // Flush the top UI transition, so it doesn't animate weirdly when toggling ui-on-hover.
-        for(let box of document.querySelectorAll(".top-ui-box"))
-        {
-            box.classList.add("disable-transition");
-            box.offsetHeight;
-            box.classList.remove("disable-transition");
-        }
+        this.top_ui_box.classList.add("disable-transition");
+        this.top_ui_box.offsetHeight;
+        this.top_ui_box.classList.remove("disable-transition");
     }
 
     create_main_search_menu()
