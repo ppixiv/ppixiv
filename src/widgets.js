@@ -209,6 +209,8 @@ ppixiv.dialog_widget = class extends ppixiv.widget
         // while we're open.
         ppixiv.OpenWidgets.singleton.set(this, this.visible);
 
+        this._update_block_touch_scrolling();
+
         if(this.allow_close)
         {
             if(this.visible)
@@ -229,6 +231,48 @@ ppixiv.dialog_widget = class extends ppixiv.widget
         // Remove the widget when it's hidden.
         if(!this.visible && this.remove_on_exit)
             this.container.remove();
+    }
+
+    _update_block_touch_scrolling()
+    {
+        if(!ppixiv.ios)
+            return;
+
+        // This is really annoying.  No matter how much you shout at iOS to not scroll the document,
+        // whether with overflow: hidden, inert or pointer-events: none, it ignores you and scrolls
+        // the document underneath the dialog.  The only way I've found to prevent this is by cancelling
+        // touchmove (touchstart doesn't work).
+        //
+        // Note that even touch-action: none doesn't work.  It seems to interpret it as "don't let touches
+        // on this element scroll" instead of "this element shouldn't scroll with touch": touches on child
+        // elements will still propagate up and scroll the body, which is useless.
+        if(!this.visible)
+        {
+            this._stop_blocking_touch_scrolling();
+            return;
+        }
+
+        this._remove_touch_scroller_events = new AbortController();
+        let dialog = this.container.querySelector(".dialog");
+        window.addEventListener("touchmove", (e) => {
+            if(!helpers.is_above(dialog, e.target))
+                e.preventDefault();
+        }, { capture: true, passive: false, signal: this._remove_touch_scroller_events.signal });
+    }
+
+    _stop_blocking_touch_scrolling()
+    {
+        if(this._remove_touch_scroller_events != null)
+        {
+            this._remove_touch_scroller_events.abort();
+            this._remove_touch_scroller_events = null;
+        }
+    }
+
+    shutdown()
+    {
+        this._stop_blocking_touch_scrolling();
+        super.shutdown();
     }
 }
 
