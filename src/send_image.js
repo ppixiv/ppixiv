@@ -446,8 +446,7 @@ ppixiv.link_this_tab_popup = class extends ppixiv.dialog_widget
     constructor({...options}={})
     {
         super({...options,
-            classes: "link-this-tab-popup",
-            dialog_template: true,
+            dialog_class: "simple-button-dialog",
             remove_on_exit: false,
             dialog_type: "small",
 
@@ -512,8 +511,6 @@ ppixiv.send_image_popup = class extends ppixiv.dialog_widget
     constructor({...options}={})
     {
         super({...options,
-            dialog_template: true,
-            classes: "send-image-popup",
             remove_on_exit: false,
             show_close_button: false,
             dialog_type: "small",
@@ -574,11 +571,9 @@ ppixiv.send_here_popup = class extends ppixiv.dialog_widget
     constructor({...options}={})
     {
         super({...options,
-            classes: "send-image-here-popup",
-            dialog_template: true,
+            dialog_class: "simple-button-dialog",
             remove_on_exit: false,
             visible: false,
-            dialog_type: "small",
 
             // This dialog is closed when the sending tab closes the send image interface.
             allow_close: false,

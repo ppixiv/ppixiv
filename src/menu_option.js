@@ -5,7 +5,11 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
 {
     constructor({show_page="thumbnail", ...options}={})
     {
-        super({...options, classes: "settings-dialog", template: `
+        super({
+            ...options,
+            dialog_class: "settings-dialog",
+
+        template: `
             <div class=sections>
                 <div class=settings-header>Settings</div>
             </div>

@@ -136,6 +136,8 @@ ppixiv.dialog_widget = class extends ppixiv.widget
         // "small" is used for smaller popups like text entry.
         dialog_type="normal",
 
+        dialog_class=null,
+
         // Most dialogs have a close button and allow the user to navigate away.  To
         // disable this and control visibility directly, set this to false.
         allow_close=true,
@@ -159,11 +161,14 @@ ppixiv.dialog_widget = class extends ppixiv.widget
         
         console.assert(dialog_type == "normal" || dialog_type == "small");
 
+        if(dialog_class == null)
+            dialog_class = dialog_type == "normal"? "dialog-normal":"dialog-small";
+
         super({
             container,
             template: `
-                <div class="dialog">
-                    <div class="content ${classes ?? ""}" data-dialog-type="${dialog_type}">
+                <div class="${dialog_class}">
+                    <div class="dialog ${classes ?? ""}">
                         ${ template }
 
                         <div class="close-button icon-button">
@@ -1220,7 +1225,7 @@ ppixiv.text_prompt = class extends ppixiv.dialog_widget
         ...options
     }={})
     {
-        super({...options, classes: "text-entry-popup", dialog_type: "small", template: `
+        super({...options, dialog_class: "text-entry-popup", template: `
             <div class=header></div>
             <div class=input-box>
                 <div class=editor contenteditable></div>
@@ -1303,7 +1308,7 @@ ppixiv.confirm_prompt = class extends ppixiv.dialog_widget
         ...options
     }={})
     {
-        super({...options, classes: "confirm-popup", dialog_type: "small", allow_close: false, template: `
+        super({...options, dialog_class: "confirm-dialog", allow_close: false, template: `
             <div class=text></div>
             <div class=input-box>
                 ${helpers.create_box_link({

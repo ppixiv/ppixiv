@@ -464,7 +464,7 @@ ppixiv.muted_tags_for_post_popup = class extends ppixiv.dialog_widget
         user_id,
         ...options})
     {
-        super({...options, classes: "edit-post-mute-dialog muted-tags-popup", dialog_type: "small", template: `
+        super({...options, classes: "muted-tags-popup", dialog_type: "small", template: `
             <div style="display: flex; align-items: center;">
                 <span class=title style="font-size: 1.5em;">Edit mutes</span>
                 <span style="flex: 1;"></span>

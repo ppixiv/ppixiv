@@ -1,3 +1,22 @@
+// Helpers for rules we apply on devices small enough for us to treat them as phones.
+@mixin phone()
+{
+    @media (max-width: 30rem), (max-height: 30rem)
+    {
+        @content;
+    }
+}
+
+@mixin not_phone()
+{
+    // Is there really no better way to do this without MQ version 4, which isn't
+    // available everywhere yet?
+    @media (min-height: 29.99999rem) and (min-width: 29.99999rem)
+    {
+        @content;
+    }
+}
+
 * {
     box-sizing: border-box;
 
@@ -2833,98 +2852,285 @@ svg.heart-image .delete {
     stroke: #888;
 }
 
-.dialog {
+@mixin general-dialog(
+    // $type is either "normal" or "small".  A normal dialog is a large one, like the settings
+    // dialog.  A small one is something like a confirmation popup.  Small popups are always floating.
+    // Normal popups are floating except on a phone, where it fills the screen.  We know whether
+    // we're small or normal at compile time ($type), but we have to use a media query to see if
+    // we're treating the device as a phone.
+    $type: "normal",
+    $fixed-height: null
+)
+{
+    // The top-level container-container sits outside the dialog.  This fills the screen and handles dimming
+    // the background.
     position: fixed;
     z-index: 1000;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0,0,0,0.75);
+    inset: 0;
+    overscroll-behavior: contain;
+
+    // The minimum horizontal padding around the dialog content:
+    --edge-padding: 1em;
+    
+    // We've set padding for the absolute maximum dialog size.  If the dialog decides to be
+    // smaller, center it in both dimensions.
     display: flex;
     align-items: center;
     justify-content: center;
+    background-color: rgba(0,0,0,0.75);
 
-    .content {
+    // There are two places we can put padding: inside the dialog itself (--dialog-inner-padding),
+    // and outside the dialog (dialog-outer-padding).  We only have outer padding if we're floating.
+    //
+    // We have two types of padding: padding to make sure the contents aren't flush against the
+    // edge, and safe area padding.  Put these in CSS vars, so the dialog instance can put them
+    // somewhere else if wanted.  For example, if a dialog scrolls, we might want the inner padding
+    // inside the scroller.
+    padding: 
+        var(--dialog-outer-padding-top) var(--dialog-outer-padding-right)
+        var(--dialog-outer-padding-bottom) var(--dialog-outer-padding-left);
+
+    > .dialog {
+        padding:
+            var(--dialog-inner-padding-top) var(--dialog-inner-padding-right)
+            var(--dialog-inner-padding-bottom) var(--dialog-inner-padding-left);
+    }
+
+    // Most of the time, the safe area is in the outer padding.
+    --dialog-outer-padding-left: env(safe-area-inset-left);
+    --dialog-outer-padding-right: env(safe-area-inset-right);
+    --dialog-outer-padding-top: env(safe-area-inset-top);
+    --dialog-outer-padding-bottom: env(safe-area-inset-bottom);
+
+    // If this is a floating dialog, edge padding goes in the inner padding.
+    @include not_phone()
+    {
+        --dialog-inner-padding-left: var(--edge-padding);
+        --dialog-inner-padding-right: var(--edge-padding);
+        --dialog-inner-padding-top: var(--edge-padding);
+        --dialog-inner-padding-bottom: var(--edge-padding);
+    }
+
+    @if $type != "normal"
+    {
+        --dialog-inner-padding-left: var(--edge-padding);
+        --dialog-inner-padding-right: var(--edge-padding);
+        --dialog-inner-padding-top: var(--edge-padding);
+        --dialog-inner-padding-bottom: var(--edge-padding);
+    }        
+
+    @if $type == "normal"
+    {
+        @include phone()
+        {
+            // If this is a normal dialog and we're on mobile, we aren't styling this as a floating dialog,
+            // so set the whole background to --ui-bg-color.  Otherwise, this just dims the background.
+            background-color: var(--ui-bg-color);
+
+            // For fullscreen dialogs on phones, combine the safe area and edge padding and only use
+            // the maximum.
+            --dialog-inner-padding-left: calc(max(env(safe-area-inset-left), var(--edge-padding)));
+            --dialog-inner-padding-right: calc(max(env(safe-area-inset-right), var(--edge-padding)));
+            --dialog-inner-padding-top: calc(max(env(safe-area-inset-top), var(--edge-padding)));
+            --dialog-inner-padding-bottom: calc(max(env(safe-area-inset-bottom), var(--edge-padding)));
+            --dialog-outer-padding-left: 0;
+            --dialog-outer-padding-right: 0;
+            --dialog-outer-padding-top: 0;
+            --dialog-outer-padding-bottom: 0;
+        }
+    }
+
+    // .dialog is the actual dialog box.
+    > .dialog {
         font-size: 18px;
+        max-height: 100%;
 
-        &[data-dialog-type="normal"] {
-            // Normal dialogs can fill the screen, with a maximum width so they aren't too
-            // wide on wide screens and a minimum width so layout doesn't break if the window is
-            // tiny.  This allows dialogs to fill the screen on smaller windows.
+        @if $type == "normal"
+        {
+            // Normal dialogs can fill the available space.  If we're not on a phone, set a maximum
+            // width so they aren't too wide on wide screens, a minimum width so layout doesn't
+            // break if the window is tiny, and cap the size at 90% of the window.  On phones, normal
+            // dialogs always fill the screen.
             width: 100%;
-            min-width: 20em;
+            @include not_phone()
+            {
+                min-width: 20em;
+                max-width: min(45em, 90vw);
+
+                // The dialog scales vertically to fill its content, but on desktop, don't go beyond
+                // 90% of the window height so we leave some space on the top and bottom.
+                max-height: 90vh;
+            }
+        }
+        @else
+        {
+            // Small popups just size to fit their content.  
+            min-width: 10em;
             max-width: 45em;
         }
 
-        &[data-dialog-type="small"] {
-            // Small popups just size to fit their content.
-            max-width: 45em;
+        // If this is a fixed-height dialog, apply it if we're not on a phone.
+        @if $fixed_height
+        {
+            @include not_phone()
+            {
+                min-height: calc(min($fixed_height, 100%));
+            }
         }
 
         background-color: var(--ui-bg-color);
         color: var(--ui-fg-color);
         border-radius: 5px;
         position: relative;
-        padding: 1em;
         display: flex;
         flex-direction: column;
 
-        > .scroll {
-            //width: 100%;
-            //height: 100%;
-            flex: 1;
-            overflow-y: auto;
+        .header {
+            font-size: 200%;
+            margin-bottom: 20px;
         }
     }
+
+    .close-button {
+        position: absolute;
+        top: var(--dialog-inner-padding-top);
+        right: var(--dialog-inner-padding-right);
+    
+        color: var(--button-color);
+        cursor: pointer;
+        @media(hover: hover) {
+            &:hover {
+                color: var(--button-highlight-color);
+            }
+        }
+        & > svg {
+            display: block;
+        }
+    }
+}
+
+.dialog-normal {
+    @include general-dialog($type: "normal");
+}
+
+.dialog-small {
+    @include general-dialog($type: "small");
+}
+
+// A dialog that just contains a single button:
+.simple-button-dialog
+{
+    @include general-dialog($type: "small");
+    background: #0004;
+
+    .dialog {
+        padding: 0;
+        background: none;
+        --box-link-bg-color: #0004;
+        --box-link-hover-color: #0008;
+
+        .box-link {
+            padding: 1.5em 2em;
+            border-radius: .5em;
+        }
+    }
+}
+
+.whats-new-dialog
+{
+    @include general-dialog();
+
+    // Remove the inner padding from the dialog and put it on the scroller, so the scrollbar
+    // is flush against the edge.
+    > .dialog {
+        padding: 0;
+    }
+
+    .items {
+        overflow-x: hidden;
+        overflow-y: scroll;
+        
+        padding:
+            var(--dialog-inner-padding-top) var(--dialog-inner-padding-right)
+            var(--dialog-inner-padding-bottom) var(--dialog-inner-padding-left);
+
+        .font-icon {
+            vertical-align: bottom;
+        }
+
+        .rev {
+            display: inline-block;
+            color: var(--box-link-fg-color);
+            background-color: var(--box-link-bg-color);
+            padding: 5px 10px;
+        }
+        .text {
+            margin: 1em 0;
+            padding: 0 20px; /* inset horizontally a bit */
+        }
+
+        .explanation-button {
+            cursor: pointer;
+            text-decoration: underline;
+        }
+        .explanation-target {
+            margin: 0 1em;
+        }
+    }
+}
+
+.text-entry-popup
+{
+    @include general-dialog($type: "small");
 
     .header {
-        font-size: 40px;
-        margin-bottom: 20px;
-    }
-}
-
-.whats-new-box {
-    width: 80%;
-    height: 80%;
-
-    .font-icon {
-        vertical-align: bottom;
+        font-size: 20px;
     }
 
-    .rev {
-        display: inline-block;
-        color: var(--box-link-fg-color);
-        background-color: var(--box-link-bg-color);
-        padding: 5px 10px;
-    }
-    .text {
-        margin: 1em 0;
-        padding: 0 20px; /* inset horizontally a bit */
-    }
+    .input-box {
+        position: relative;
+        display: flex;
+        align-items: center;
 
-    .explanation-button {
-        cursor: pointer;
-        text-decoration: underline;
-    }
-    .explanation-target {
-        margin: 0 1em;
-    }
-}
+        > .editor {
+            flex: 1;
+            padding: 4px;
+            min-width: min(80vw, 25em);
+            white-space: pre-wrap; // don't cut off whitespace
+        }
 
-.close-button {
-    position: absolute;
-    top: 5px;
-    right: 5px;
-    color: var(--button-color);
-    cursor: pointer;
-    @media(hover: hover) {
-        &:hover {
-            color: var(--button-highlight-color);
+        > .submit-button {
+            cursor: pointer;
+            display: flex;
+            margin-left: 6px;
+            padding: .25em;
+            border: 1px solid white;
+            html[data-theme="light"] & { border-color: #444; }
+        }
+
+        @media(hover: hover) {
+            > .submit-button:hover {
+                background-color: #444;
+                html[data-theme="light"] & { background-color: #aaa; }
+            }
         }
     }
-    & > svg {
-        display: block;
+}
+
+.confirm-dialog
+{
+    @include general-dialog($type: "small");
+
+    .dialog {
+        display: flex;
+        align-items: center;
+        gap: 1em;
+
+        .input-box {
+            display: flex;
+            align-items: center;
+            gap: 2em;
+        }
     }
 }
 
@@ -3027,67 +3233,6 @@ svg.heart-image .delete {
                 60% { transform: rotate(0deg); }
             }
         }
-    }
-}
-
-.link-this-tab-popup, .send-image-here-popup
-{
-    > .box {
-        border: 1px solid black;
-        background-color: #000;
-        color: #fff;
-        padding: 1em;
-    }
-}
-
-.dialog .text-entry-popup
-{
-    .header {
-        font-size: 20px;
-    }
-
-    .input-box {
-        position: relative;
-        display: flex;
-        align-items: center;
-
-        > .editor {
-            flex: 1;
-            padding: 4px;
-            min-width: 10em;
-            min-width: 25em;
-            white-space: pre-wrap; // don't cut off whitespace
-        }
-
-        > .submit-button {
-            cursor: pointer;
-            display: flex;
-            margin-left: 6px;
-            padding: .25em;
-            border: 1px solid white;
-            html[data-theme="light"] & { border-color: #444; }
-        }
-
-        @media(hover: hover) {
-            > .submit-button:hover {
-                background-color: #444;
-                html[data-theme="light"] & { background-color: #aaa; }
-            }
-        }
-    }
-}
-
-.dialog .confirm-popup
-{
-    gap: 0.5em;
-    .title {
-        font-size: 20px;
-    }
-
-    .input-box {
-        display: flex;
-        align-items: center;
-        gap: 0.5em;
     }
 }
 
@@ -3288,12 +3433,16 @@ svg.heart-image .delete {
     }
 }
 
-.dialog .settings-dialog
+.settings-dialog
 {
-    // Try to set a fixed minimum height, so the dialog doesn't resize when the page is
-    // changed, but allow it to go lower if the screen is very small.
-    height: calc(min(30em, 100%));
+    @include general-dialog(
+        // Try to set a fixed minimum height, so the dialog doesn't resize when the page is
+        // changed, but allow it to go lower if the screen is very small.
+        $fixed-height: 30em
+    );
 
+> .dialog
+{
     display: flex;
     flex-direction: row;
 
@@ -3399,14 +3548,6 @@ svg.heart-image .delete {
         }
     }
 }
-
-.edit-post-mute-dialog {
-    & > .content {
-        width: 80%;
-        min-height: 10em;
-        min-width: 800px;
-        padding: 1em;
-    }
 }
 
 .muted-tags-popup {

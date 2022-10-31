@@ -364,9 +364,10 @@ ppixiv.whats_new = class extends ppixiv.dialog_widget
 
     constructor({...options}={}) 
     {
-        super({...options, classes: "whats-new-box", template: `
-            <div class=header>Updates</div>
-            <div class="scroll items"></div>
+        super({...options, dialog_class: "whats-new-dialog", template: `
+            <div class="items">
+                <div class=header>Updates</div>
+            </div>
         `});
 
         this.container.addEventListener("click", this.onclick);
@@ -390,8 +391,8 @@ ppixiv.whats_new = class extends ppixiv.dialog_widget
     refresh()
     {
         let items_box = this.container.querySelector(".items");
-
-        helpers.remove_elements(items_box);
+        for(let node of items_box.querySelectorAll(".item"))
+            node.remove();
 
         let github_top_url = "https://github.com/ppixiv/ppixiv/";
 
@@ -400,7 +401,7 @@ ppixiv.whats_new = class extends ppixiv.dialog_widget
             let update = _update_history[idx];
             let previous_update = _update_history[idx+1];
             let entry = this.create_template({name: "item", html: `
-                <div>
+                <div class=item>
                     <a class=rev href=#></a>
                     <div class=text></span>
                 </div>
