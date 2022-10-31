@@ -266,7 +266,7 @@ html {
         --icon-row-gap: 0.5em;
     }
 
-    --main-background-color: #000;
+    --main-background-color: #222;
     --background-noise: var(--dark-noise);
 
     --button-color: #888;
@@ -321,6 +321,7 @@ html[data-theme="dark"]
 {
     // Disable the lighter background noise when displaying an image.
     &[data-current-view="illust"] {
+        --main-background-color: #000;
         --background-noise: "";
     }
 }
