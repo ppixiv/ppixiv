@@ -1527,12 +1527,21 @@ ppixiv.image_viewer_desktop = class extends ppixiv.image_viewer_base
         // If we're animating, only start dragging after we pass a drag threshold, so we
         // don't cancel the animation in quick view.  These thresholds match Windows's
         // default SM_CXDRAG/SM_CYDRAG behavior.
-        this.drag_movement[0] += e.movementX;
-        this.drag_movement[1] += e.movementY;
+        let { movementX, movementY } = e;
+
+        // Unscale by devicePixelRatio, or movement will be faster if the browser is zoomed in.
+        if(devicePixelRatio != null)
+        {
+            movementX /= devicePixelRatio;
+            movementY /= devicePixelRatio;
+        }
+
+        this.drag_movement[0] += movementX;
+        this.drag_movement[1] += movementY;
         if(this.animations_running && this.drag_movement[0] < 4 && this.drag_movement[1] < 4)
             return;
 
-        this.apply_pointer_movement({movementX: e.movementX, movementY: e.movementY});
+        this.apply_pointer_movement({movementX, movementY});
     }
 }
 
