@@ -1433,7 +1433,7 @@ ppixiv.image_viewer_desktop = class extends ppixiv.image_viewer_base
                this.stop_animation();
 
            if(!this.get_locked_zoom())
-               var zoom_center_pos = this.get_image_position([e.pageX, e.pageY]);
+               var zoom_center_pos = this.get_image_position([e.screenX, e.screenY]);
 
            // If this is a simulated press event, the button was pressed on the previous page,
            // probably due to quick view.  Don't zoom from this press, but do listen to pointermove,
@@ -1454,7 +1454,7 @@ ppixiv.image_viewer_desktop = class extends ppixiv.image_viewer_base
            // If this is a click-zoom, align the zoom to the point on the image that
            // was clicked.
            if(!this.get_locked_zoom())
-               this.set_image_position([e.pageX, e.pageY], zoom_center_pos);
+               this.set_image_position([e.screenX, e.screenY], zoom_center_pos);
 
            this.reposition();
 
