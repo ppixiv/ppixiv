@@ -138,6 +138,9 @@ ppixiv.dialog_widget = class extends ppixiv.widget
 
         dialog_class=null,
 
+        // The header text:
+        header=null,
+
         // Most dialogs have a close button and allow the user to navigate away.  To
         // disable this and control visibility directly, set this to false.
         allow_close=true,
@@ -151,10 +154,19 @@ ppixiv.dialog_widget = class extends ppixiv.widget
         // user exits.  To disable this and allow a dialog to be reused, set this to false.
         remove_on_exit=true,
 
+        // If false, this dialog may be large, like settings, and we'll display it in fullscreen
+        // on small screens.  If true, weit's a small dialog like a confirmation prompt, and we'll
+        // always show it as a floating dialog.  The default is true if dialog_type == "small",
+        // otherwise false.
+        small=null,
+
         template,
         ...options
     })
     {
+        if(small == null)
+            small = dialog_type == "small";
+
         // Most dialogs are added to the body element.
         if(container == null)
             container = document.body;
@@ -169,10 +181,19 @@ ppixiv.dialog_widget = class extends ppixiv.widget
             template: `
                 <div class="${dialog_class}">
                     <div class="dialog ${classes ?? ""}">
-                        ${ template }
+                        <div class=header>
+                            <div class="close-button-container">
+                                <div class="close-button icon-button">
+                                    ${ helpers.create_icon("close") }
+                                </div>
+                            </div>
 
-                        <div class="close-button icon-button">
-                            ${ helpers.create_icon("close") }
+                            <span class=header-text></span>
+
+                            <div class=center-header-helper></div>
+                        </div>
+                        <div class=scroll>
+                            ${ template }
                         </div>
                     </div>
                 </div>
@@ -180,9 +201,17 @@ ppixiv.dialog_widget = class extends ppixiv.widget
             ...options,
         });
 
+        this.small = small;
+        helpers.set_class(this.container, "small", this.small);
+        helpers.set_class(this.container, "large", !this.small);
+
         this.allow_close = allow_close;
         this.remove_on_exit = remove_on_exit;
         this.container.querySelector(".close-button").hidden = !allow_close || !show_close_button;
+        this.header = header;
+
+        this.refresh_fullscreen();
+        window.addEventListener("resize", this.refresh_fullscreen, { signal: this.shutdown_signal.signal });
 
         if(this.allow_close)
         {
@@ -198,6 +227,16 @@ ppixiv.dialog_widget = class extends ppixiv.widget
             if(close_button)
                 close_button.addEventListener("click", (e) => { this.visible = false;; });
         }
+    }
+
+    set header(value)
+    {
+        this.container.querySelector(".header-text").textContent = value ?? "";
+    }
+
+    refresh_fullscreen = () =>
+    {
+        helpers.set_class(this.container, "fullscreen", helpers.is_phone && !this.small);
     }
 
     visibility_changed()
@@ -1225,8 +1264,7 @@ ppixiv.text_prompt = class extends ppixiv.dialog_widget
         ...options
     }={})
     {
-        super({...options, dialog_class: "text-entry-popup", template: `
-            <div class=header></div>
+        super({...options, dialog_class: "text-entry-popup", small: true, header: title, template: `
             <div class=input-box>
                 <div class=editor contenteditable></div>
                 <span class=submit-button>${ helpers.create_icon("mat:check") }</span>
@@ -1242,7 +1280,6 @@ ppixiv.text_prompt = class extends ppixiv.dialog_widget
         // Set text by creating a node manually, since textContent won't create a node if value is "".
         this.input.appendChild(document.createTextNode(value));
 
-        this.container.querySelector(".header").innerText = title;
         this.container.querySelector(".submit-button").addEventListener("click", this.submit);
     }
 
@@ -1308,7 +1345,7 @@ ppixiv.confirm_prompt = class extends ppixiv.dialog_widget
         ...options
     }={})
     {
-        super({...options, dialog_class: "confirm-dialog", allow_close: false, template: `
+        super({...options, dialog_class: "confirm-dialog", allow_close: false, small: true, template: `
             <div class=text></div>
             <div class=input-box>
                 ${helpers.create_box_link({

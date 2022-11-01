@@ -8,12 +8,10 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
         super({
             ...options,
             dialog_class: "settings-dialog",
+            header: "Settings",
 
         template: `
-            <div class=sections>
-                <div class=settings-header>Settings</div>
-            </div>
-
+            <div class=sections></div>
             <div class=items></div>
         `});
 
@@ -136,10 +134,8 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
     {
         let page = this.create_template({name: "settings-page", html: `
             <div class=settings-page>
-                <div class=settings-page-title></div>
             </div>
         `});
-        page.querySelector(".settings-page-title").innerText = title;
 
         // If settings_list is true, this page is a list of options, like the thumbnail options
         // page.  This class enables styling for these lists.  If it's another type of settings
@@ -164,8 +160,9 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
         this.container.querySelector(".sections").appendChild(page_button);
 
         this.pages[id] = {
-            page: page,
-            page_button: page_button,
+            page,
+            page_button,
+            title,
         };
         this.page_buttons.set(page, page_button);
         if(this.pages.length == 1)
@@ -186,6 +183,8 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
         this.visible_page.page.hidden = false;
         
         helpers.set_class(this.visible_page.page_button, "selected", true);
+        if(this.visible_page && !this.phone)
+            this.header = this.visible_page.title;
 
         this.refresh();
     }

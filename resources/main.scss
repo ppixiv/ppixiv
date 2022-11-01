@@ -2860,7 +2860,6 @@ svg.heart-image .delete {
     // we're small or normal at compile time ($type), but we have to use a media query to see if
     // we're treating the device as a phone.
     $type: "normal",
-    $fixed-height: null
 )
 {
     // The top-level container-container sits outside the dialog.  This fills the screen and handles dimming
@@ -2880,6 +2879,38 @@ svg.heart-image .delete {
     justify-content: center;
     background-color: rgba(0,0,0,0.75);
 
+    // Shortcuts:
+    --dialog-outer-padding: 
+        var(--dialog-outer-padding-top) var(--dialog-outer-padding-right)
+        var(--dialog-outer-padding-bottom) var(--dialog-outer-padding-left);
+    --dialog-inner-padding: 
+            var(--dialog-inner-padding-top) var(--dialog-inner-padding-right)
+            var(--dialog-inner-padding-bottom) var(--dialog-inner-padding-left);
+
+    // If this is a floating dialog, also apply edge padding inside the dialog.
+    &:not(.fullscreen)
+    {
+        // Most of the time, the safe area is in the outer padding.
+        --dialog-outer-padding-left: calc(max(env(safe-area-inset-left), var(--edge-padding)));
+        --dialog-outer-padding-right: calc(max(env(safe-area-inset-right), var(--edge-padding)));
+        --dialog-outer-padding-top: calc(max(env(safe-area-inset-top), var(--edge-padding)));
+        --dialog-outer-padding-bottom: calc(max(env(safe-area-inset-bottom), var(--edge-padding)));
+
+        --dialog-inner-padding-left: var(--edge-padding);
+        --dialog-inner-padding-right: var(--edge-padding);
+        --dialog-inner-padding-top: var(--edge-padding);
+        --dialog-inner-padding-bottom: var(--edge-padding);
+    }
+
+    &.fullscreen
+    {
+        // Fullscreen dialogs only have inner padding.
+        --dialog-inner-padding-left: calc(max(env(safe-area-inset-left), var(--edge-padding)));
+        --dialog-inner-padding-right: calc(max(env(safe-area-inset-right), var(--edge-padding)));
+        --dialog-inner-padding-top: calc(max(env(safe-area-inset-top), var(--edge-padding)));
+        --dialog-inner-padding-bottom: calc(max(env(safe-area-inset-bottom), var(--edge-padding)));
+    }
+
     // There are two places we can put padding: inside the dialog itself (--dialog-inner-padding),
     // and outside the dialog (dialog-outer-padding).  We only have outer padding if we're floating.
     //
@@ -2887,97 +2918,63 @@ svg.heart-image .delete {
     // edge, and safe area padding.  Put these in CSS vars, so the dialog instance can put them
     // somewhere else if wanted.  For example, if a dialog scrolls, we might want the inner padding
     // inside the scroller.
-    padding: 
-        var(--dialog-outer-padding-top) var(--dialog-outer-padding-right)
-        var(--dialog-outer-padding-bottom) var(--dialog-outer-padding-left);
+    padding: var(--dialog-outer-padding);
 
     > .dialog {
-        padding:
-            var(--dialog-inner-padding-top) var(--dialog-inner-padding-right)
-            var(--dialog-inner-padding-bottom) var(--dialog-inner-padding-left);
-    }
+        padding: var(--dialog-inner-padding);
 
-    // Most of the time, the safe area is in the outer padding.
-    --dialog-outer-padding-left: env(safe-area-inset-left);
-    --dialog-outer-padding-right: env(safe-area-inset-right);
-    --dialog-outer-padding-top: env(safe-area-inset-top);
-    --dialog-outer-padding-bottom: env(safe-area-inset-bottom);
-
-    // If this is a floating dialog, edge padding goes in the inner padding.
-    @include not_phone()
-    {
-        --dialog-inner-padding-left: var(--edge-padding);
-        --dialog-inner-padding-right: var(--edge-padding);
-        --dialog-inner-padding-top: var(--edge-padding);
-        --dialog-inner-padding-bottom: var(--edge-padding);
-    }
-
-    @if $type != "normal"
-    {
-        --dialog-inner-padding-left: var(--edge-padding);
-        --dialog-inner-padding-right: var(--edge-padding);
-        --dialog-inner-padding-top: var(--edge-padding);
-        --dialog-inner-padding-bottom: var(--edge-padding);
-    }        
-
-    @if $type == "normal"
-    {
-        @include phone()
+        // .dialog > .scroll is for optional scrolling content.  Dialogs with fixed content
+        // don't need to use this.
+        .scroll
         {
-            // If this is a normal dialog and we're on mobile, we aren't styling this as a floating dialog,
-            // so set the whole background to --ui-bg-color.  Otherwise, this just dims the background.
-            background-color: var(--ui-bg-color);
+            overflow-x: hidden;
+            overflow-y: auto;
 
-            // For fullscreen dialogs on phones, combine the safe area and edge padding and only use
-            // the maximum.
-            --dialog-inner-padding-left: calc(max(env(safe-area-inset-left), var(--edge-padding)));
-            --dialog-inner-padding-right: calc(max(env(safe-area-inset-right), var(--edge-padding)));
-            --dialog-inner-padding-top: calc(max(env(safe-area-inset-top), var(--edge-padding)));
-            --dialog-inner-padding-bottom: calc(max(env(safe-area-inset-bottom), var(--edge-padding)));
-            --dialog-outer-padding-left: 0;
-            --dialog-outer-padding-right: 0;
-            --dialog-outer-padding-top: 0;
-            --dialog-outer-padding-bottom: 0;
+            // .dialog has the inner padding for everything inside the dialog, but if we have
+            // a scroller, we want the scrollbar to be flush with the edge.  Do this by reversing
+            // the horizontal padding with a negative margin and then re-adding it with padding so
+            // the contents stay padded.  We also do this on the bottom, so text can flow all the
+            // way to the bottom and past any UI decorations and the padding is on the content.
+            // Don't do this on top, since it won't take the header into account.
+            margin-right: calc(var(--dialog-inner-padding-right) * -1);
+            padding-right: calc(var(--dialog-inner-padding-right));
+            margin-left: calc(var(--dialog-inner-padding-left) * -1);
+            padding-left: calc(var(--dialog-inner-padding-left));
+            margin-bottom: calc(var(--dialog-inner-padding-bottom) * -1);
+            padding-bottom: calc(var(--dialog-inner-padding-bottom));
+            // margin-top: calc(var(--dialog-inner-padding-top) * -1);
+            // padding-top: calc(var(--dialog-inner-padding-top));
         }
     }
 
-    // .dialog is the actual dialog box.
-    > .dialog {
-        font-size: 18px;
+    // .dialog is the content of the dialog box.
+
+    // For floating dialogs, set a maximum width so they aren't too wide on wide screens, a
+    // minimum width so layout doesn't break if the window is tiny, and cap the size at 90%
+    // of the window.
+    &:not(.fullscreen) .dialog {
+        min-width: 20em;
+        max-width: min(45em, 90vw);
+
+        // The dialog scales vertically to fill its content, but on desktop, don't go beyond
+        // 90% of the window height so we leave some space on the top and bottom.
+        max-height: 90vh;
+    }
+
+    &.small .dialog {
+        // Small popups just size to fit their content.  
+        min-width: 10em;
+        max-width: 45em;
+    }
+
+    // The dialog itself sizes to its content, but if it's fullscreen, clamp it to 100%.
+    &.fullscreen .dialog {
+        height: 100%;
+        width: 100%;
+    }
+
+    .dialog {
         max-height: 100%;
-
-        @if $type == "normal"
-        {
-            // Normal dialogs can fill the available space.  If we're not on a phone, set a maximum
-            // width so they aren't too wide on wide screens, a minimum width so layout doesn't
-            // break if the window is tiny, and cap the size at 90% of the window.  On phones, normal
-            // dialogs always fill the screen.
-            width: 100%;
-            @include not_phone()
-            {
-                min-width: 20em;
-                max-width: min(45em, 90vw);
-
-                // The dialog scales vertically to fill its content, but on desktop, don't go beyond
-                // 90% of the window height so we leave some space on the top and bottom.
-                max-height: 90vh;
-            }
-        }
-        @else
-        {
-            // Small popups just size to fit their content.  
-            min-width: 10em;
-            max-width: 45em;
-        }
-
-        // If this is a fixed-height dialog, apply it if we're not on a phone.
-        @if $fixed_height
-        {
-            @include not_phone()
-            {
-                min-height: calc(min($fixed_height, 100%));
-            }
-        }
 
         background-color: var(--ui-bg-color);
         color: var(--ui-fg-color);
@@ -2985,27 +2982,54 @@ svg.heart-image .delete {
         position: relative;
         display: flex;
         flex-direction: column;
-
-        .header {
-            font-size: 200%;
-            margin-bottom: 20px;
-        }
     }
 
-    .close-button {
-        position: absolute;
-        top: var(--dialog-inner-padding-top);
-        right: var(--dialog-inner-padding-right);
-    
-        color: var(--button-color);
-        cursor: pointer;
-        @media(hover: hover) {
-            &:hover {
-                color: var(--button-highlight-color);
+    .header {
+        // The header is inside the scroller, so it picks up the same padding of the content.
+        // Use position: sticky to keep it at the top.  If we don't want the content visible
+        // under the header, we can give the header a background.
+        //position: sticky;
+        //top: 0;
+        --icon-size: 2;
+
+        // background-color: var(--ui-bg-color);
+        display: flex;
+        align-items: center;
+
+        // This container flexes to center the title.  The button itself is separate, so the
+        // flex area isn't part of the close button.
+        .close-button-container {
+            flex: 1;
+
+            .close-button {
+                color: var(--button-color);
+                cursor: pointer;
+                justify-self: center;
+                @media(hover: hover) {
+                    &:hover {
+                        color: var(--button-highlight-color);
+                    }
+                }
+                & > svg {
+                    display: block;
+                }
             }
         }
-        & > svg {
-            display: block;
+
+        .header-text {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        // This has the same size as close-button to center header-text, but shrink if it needs
+        // more space.
+        .center-header-helper {
+            // --icon-size is 2em each, plus the 1em padding-right on the icon:
+            width: calc(1em * var(--icon-size) + 1em);
+            height: 1em;
+            flex: 1;
+            flex-shrink: 100000;
         }
     }
 }
@@ -3041,20 +3065,11 @@ svg.heart-image .delete {
 {
     @include general-dialog();
 
-    // Remove the inner padding from the dialog and put it on the scroller, so the scrollbar
-    // is flush against the edge.
-    > .dialog {
-        padding: 0;
-    }
+    // We use a bigger font size for the main UI.  Return to a regular size for this long
+    // list of text.
+    font-size: 85%;
 
-    .items {
-        overflow-x: hidden;
-        overflow-y: scroll;
-        
-        padding:
-            var(--dialog-inner-padding-top) var(--dialog-inner-padding-right)
-            var(--dialog-inner-padding-bottom) var(--dialog-inner-padding-left);
-
+    .dialog {
         .font-icon {
             vertical-align: bottom;
         }
@@ -3080,6 +3095,11 @@ svg.heart-image .delete {
     }
 }
 
+.mobile-tag-list
+{
+    @include general-dialog();
+}
+
 .text-entry-popup
 {
     @include general-dialog($type: "small");
@@ -3096,7 +3116,7 @@ svg.heart-image .delete {
         > .editor {
             flex: 1;
             padding: 4px;
-            min-width: min(80vw, 25em);
+            min-width: min(50vw, 25em);
             white-space: pre-wrap; // don't cut off whitespace
         }
 
@@ -3436,31 +3456,38 @@ svg.heart-image .delete {
 
 .settings-dialog
 {
-    @include general-dialog(
-        // Try to set a fixed minimum height, so the dialog doesn't resize when the page is
-        // changed, but allow it to go lower if the screen is very small.
-        $fixed-height: 30em
-    );
+    @include general-dialog();
 
-> .dialog
+    font-size: 115%;
+
+    // Try to set a fixed minimum size, so the dialog doesn't resize when the page is
+    // changed, but allow it to go lower if the screen is very small.  Don't do this
+    // if the dialog is fullscreen.
+    &:not(.fullscreen) .dialog {
+        min-height: calc(min(30em, 100%));
+        width: 100%; // use the maximum
+    }
+
+    &.phone
+    {
+        .scroll
+        {
+            justify-content: center;
+        }
+    }
+
+.scroll
 {
     display: flex;
     flex-direction: row;
 
     // The section selector on the left side of the settings dialog:
-    > .sections {
+    .sections {
         white-space: nowrap;
         display: flex;
         flex-direction: column;
         overflow-y: auto;
 
-        > .settings-header {
-            position: sticky;
-            top: 0;
-            font-size: 1.5em;
-            background-color: #222222C0;
-
-        }
         > .box-link {
             padding: 0.5em;
             cursor: pointer;
@@ -3486,11 +3513,6 @@ svg.heart-image .delete {
 
         // Scroller for the individual settings pages:
         overflow-y: auto;
-
-        .settings-page-title {
-            font-size: 1.5em;
-            padding: 0 0.5em;
-        }
     }
 
     .settings-list {
