@@ -2,6 +2,12 @@
 
 let _update_history = [
     {
+        version: 172,
+        text: `
+            Added support for AI rankings.
+        `,
+    },
+    {
         version: 168,
         text: `
             Images tagged as "AI" are now marked in search results.  There are too many of
