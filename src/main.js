@@ -225,9 +225,8 @@ ppixiv.MainController = class
 
         // Create the popup menu handler.
         this.context_menu = new main_context_menu({container: document.body});
-        this.link_this_tab_popup = new link_this_tab_popup();
-        this.send_here_popup = new send_here_popup();
-        this.send_image_popup = new send_image_popup();
+        link_this_tab_popup.setup();
+        send_here_popup.setup();
 
         // Create the main progress bar.
         this.progress_bar = new progress_bar({ container: this.container });

@@ -443,45 +443,63 @@ ppixiv.link_tabs_popup = class extends ppixiv.widget
 
 ppixiv.link_this_tab_popup = class extends ppixiv.dialog_widget
 {
+    static setup()
+    {
+        let hide_timer = new helpers.timer(() => {
+            this.visible = false;
+        });
+        
+        let dialog = null;
+        
+        // Show ourself when we see a show-link-tab message and hide if we see a
+        // hide-link-tab-message.
+        ppixiv.send_image.add_message_listener("show-link-tab", (message) => {
+            ppixiv.link_this_tab_popup.other_tab_id = message.from;
+            hide_timer.set(2000);
+
+            if(dialog == null)
+            {
+                dialog = new ppixiv.link_this_tab_popup();
+                dialog.shutdown_signal.signal.addEventListener("abort", () => {
+                    hide_timer.clear();
+                    dialog = null;
+                });
+            }
+
+            ppixiv.send_image.add_message_listener("hide-link-tab", (message) => {
+                // Close the dialog if it's running.
+                if(dialog)
+                    dialog.visible = false;
+            });
+        });
+
+    }
+
     constructor({...options}={})
     {
         super({...options,
             dialog_class: "simple-button-dialog",
-            remove_on_exit: false,
             dialog_type: "small",
 
             // This dialog is closed when the sending tab closes the link tab interface.
             allow_close: false,
 
-            visible: false,
             template: `
                 ${ helpers.create_box_link({ label: "Link this tab", classes: ["link-this-tab"]}) }
                 ${ helpers.create_box_link({ label: "Unlink this tab", classes: ["unlink-this-tab"]}) }
         `});
 
-        this.hide_timer = new helpers.timer(() => { this.visible = false; });
-
         // Show ourself when we see a show-link-tab message and hide if we see a
         // hide-link-tab-message.
         ppixiv.send_image.add_message_listener("show-link-tab", (message) => {
-            this.other_tab_id = message.from;
-            this.hide_timer.set(2000);
-
             let linked = message.linked_tabs.indexOf(ppixiv.send_image.tab_id) != -1;
             this.container.querySelector(".link-this-tab").hidden = linked;
             this.container.querySelector(".unlink-this-tab").hidden = !linked;
-
-            this.visible = true;
-        });
-
-        ppixiv.send_image.add_message_listener("hide-link-tab", (message) => {
-            this.hide_timer.clear();
-            this.visible = false;
         });
 
         // When "link this tab" is clicked, send a link-this-tab message.
         this.container.querySelector(".link-this-tab").addEventListener("click", (e) => {
-            ppixiv.send_image.send_message({ message: "link-this-tab", to: [this.other_tab_id] });
+            ppixiv.send_image.send_message({ message: "link-this-tab", to: [ppixiv.link_this_tab_popup.other_tab_id] });
 
             // If we're linked to another tab, clear our linked tab list, to try to make
             // sure we don't have weird chains of tabs linking each other.
@@ -489,29 +507,16 @@ ppixiv.link_this_tab_popup = class extends ppixiv.dialog_widget
         });
 
         this.container.querySelector(".unlink-this-tab").addEventListener("click", (e) => {
-            ppixiv.send_image.send_message({ message: "unlink-this-tab", to: [this.other_tab_id] });
+            ppixiv.send_image.send_message({ message: "unlink-this-tab", to: [ppixiv.link_this_tab_popup.other_tab_id] });
         });
-    }
-
-    visibility_changed()
-    {
-        super.visibility_changed();
-
-        this.hide_timer.clear();
-
-        // Hide if we don't see a show-link-tab message for a few seconds, as a
-        // safety in case the other tab dies.
-        if(this.visible)
-            this.hide_timer.set(2000);
     }
 }
 
 ppixiv.send_image_popup = class extends ppixiv.dialog_widget
 {
-    constructor({...options}={})
+    constructor({media_id, ...options}={})
     {
         super({...options,
-            remove_on_exit: false,
             show_close_button: false,
             dialog_type: "small",
 
@@ -531,49 +536,67 @@ ppixiv.send_image_popup = class extends ppixiv.dialog_widget
             this.visible = false;
         });
 
-        ppixiv.send_image.add_message_listener("take-image", (message) => {
-            let tab_id = message.from;
-            ppixiv.send_image.send_image(this.media_id, [tab_id], "display");
-
-            this.visible = false;
-        });
-
-        this.visible = false;
-    }
-
-    show_for_illust(media_id)
-    {
-        this.media_id = media_id;
-        this.visible = true;
-    }
-
-    visibility_changed()
-    {
-        super.visibility_changed();
-
-        if(!this.visible)
-        {
-            ppixiv.send_image.send_message({ message: "hide-send-image" });
-            return;
-        }
-
+        // Periodically send show-send-image to tell other tabs to show send_here_popup.
+        // If they're clicked, they'll send take-image.
         helpers.interval(() => {
             // We should always be visible when this is called.
             console.assert(this.visible);
 
             ppixiv.send_image.send_message({ message: "show-send-image" });
-        }, 1000, this.visibility_abort.signal);
+        }, 1000, this.shutdown_signal.signal);
+
+        ppixiv.send_image.add_message_listener("take-image", (message) => {
+            let tab_id = message.from;
+            ppixiv.send_image.send_image(media_id, [tab_id], "display");
+
+            this.visible = false;
+        });
+    }
+
+    shutdown()
+    {
+        super.shutdown();
+
+        ppixiv.send_image.send_message({ message: "hide-send-image" });
     }
 }
 
 ppixiv.send_here_popup = class extends ppixiv.dialog_widget
 {
+    static setup()
+    {
+        // Show ourself when we see a show-link-tab message and hide if we see a
+        // hide-link-tab-message.
+        let hide_timer = new helpers.timer(() => {
+            this.visible = false;
+        });
+
+        let dialog = null;
+        ppixiv.send_image.add_message_listener("show-send-image", (message) => {
+            ppixiv.send_here_popup.other_tab_id = message.from;
+            hide_timer.set(2000);
+
+            if(dialog == null)
+            {
+                dialog = new ppixiv.send_here_popup();
+                dialog.shutdown_signal.signal.addEventListener("abort", () => {
+                    hide_timer.clear();
+                    dialog = null;
+                });
+            }
+        });
+
+        ppixiv.send_image.add_message_listener("hide-send-image", (message) => {
+            // Close the dialog if it's running.
+            if(dialog)
+                dialog.visible = false;
+        });
+    }
+
     constructor({...options}={})
     {
         super({...options,
             dialog_class: "simple-button-dialog",
-            remove_on_exit: false,
-            visible: false,
 
             // This dialog is closed when the sending tab closes the send image interface.
             allow_close: false,
@@ -581,40 +604,12 @@ ppixiv.send_here_popup = class extends ppixiv.dialog_widget
                 ${ helpers.create_box_link({ label: "Click to send image here", classes: ["link-this-tab"]}) }
         `});
 
-        this.hide_timer = new helpers.timer(() => { this.visible = false; });
-
-        // Show ourself when we see a show-link-tab message and hide if we see a
-        // hide-link-tab-message.
-        ppixiv.send_image.add_message_listener("show-send-image", (message) => {
-            this.other_tab_id = message.from;
-            this.hide_timer.set(2000);
-            this.visible = true;
-        });
-
-        ppixiv.send_image.add_message_listener("hide-send-image", (message) => {
-            this.hide_timer.clear();
-            this.visible = false;
-        });
+        window.addEventListener("click", this.take_image, { signal: this.shutdown_signal.signal });
     }
 
     take_image = (e) =>
     {
         // Send take-image.  The sending tab will respond with a send-image message.
-        ppixiv.send_image.send_message({ message: "take-image", to: [this.other_tab_id] });
-    }
-
-    visibility_changed()
-    {
-        super.visibility_changed();
-
-        this.hide_timer.clear();
-
-        // Hide if we don't see a show-send-image message for a few seconds, as a
-        // safety in case the other tab dies.
-        if(this.visible)
-        {
-            window.addEventListener("click", this.take_image, { signal: this.visibility_abort.signal });
-            this.hide_timer.set(2000);
-        }
+        ppixiv.send_image.send_message({ message: "take-image", to: [ppixiv.send_here_popup.other_tab_id] });
     }
 }

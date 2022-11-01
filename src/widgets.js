@@ -150,10 +150,6 @@ ppixiv.dialog_widget = class extends ppixiv.widget
         // This is used for very simple dialogs.
         show_close_button=true,
 
-        // Most dialogs are created when they're needed, and removed and discarded when the
-        // user exits.  To disable this and allow a dialog to be reused, set this to false.
-        remove_on_exit=true,
-
         // If false, this dialog may be large, like settings, and we'll display it in fullscreen
         // on small screens.  If true, weit's a small dialog like a confirmation prompt, and we'll
         // always show it as a floating dialog.  The default is true if dialog_type == "small",
@@ -201,12 +197,15 @@ ppixiv.dialog_widget = class extends ppixiv.widget
             ...options,
         });
 
+        // Dialogs are always used once and not reused, so they should never be created invisible.
+        if(!this.visible)
+            throw new Error("Dialog shouldn't be hidden");
+
         this.small = small;
         helpers.set_class(this.container, "small", this.small);
         helpers.set_class(this.container, "large", !this.small);
 
         this.allow_close = allow_close;
-        this.remove_on_exit = remove_on_exit;
         this.container.querySelector(".close-button").hidden = !allow_close || !show_close_button;
         this.header = header;
 
@@ -225,7 +224,7 @@ ppixiv.dialog_widget = class extends ppixiv.widget
 
             let close_button = this.container.querySelector(".close-button");
             if(close_button)
-                close_button.addEventListener("click", (e) => { this.visible = false;; });
+                close_button.addEventListener("click", (e) => { this.visible = false; });
         }
     }
 
@@ -273,8 +272,11 @@ ppixiv.dialog_widget = class extends ppixiv.widget
         }
 
         // Remove the widget when it's hidden.
-        if(!this.visible && this.remove_on_exit)
+        if(!this.visible)
+        {
             this.container.remove();
+            this.shutdown();
+        }
     }
 
     _update_block_touch_scrolling()
@@ -1901,7 +1903,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                     icon: "mat:open_in_new",
                     requires_image: true,
                     onclick: () => {
-                        main_controller.send_image_popup.show_for_illust(this.media_id);
+                        new send_image_popup({ media_id: this.media_id });
                         this.parent.hide();
                     }
                 });
