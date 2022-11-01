@@ -3,6 +3,7 @@ source_files = [
     'src/actions.js',
     'src/helpers.js',
     'src/settings.js',
+    'src/settings_widgets.js',
     'src/fix_chrome_clicks.js',
     'src/widgets.js',
     'src/local_api.js',
