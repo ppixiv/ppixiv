@@ -112,6 +112,8 @@ let thumbnail_ui = class extends ppixiv.widget
                         ${ helpers.create_box_link({label: "Daily",         popup: "Daily rankings",           data_type: "mode-daily" }) }
                         ${ helpers.create_box_link({label: "R18",           popup: "Show R18 works (daily only)",     data_type: "mode-daily-r18", classes: ["r18"] }) }
                         ${ helpers.create_box_link({label: "R18G",          popup: "Show R18G works (weekly only)",   data_type: "mode-r18g", classes: ["r18g"] }) }
+                        ${ helpers.create_box_link({label: "AI",            popup: "Show AI works (daily only)",      data_type: "mode-ai" }) }
+                        ${ helpers.create_box_link({label: "AI R18",        popup: "Show R18 AI works (daily only)",  data_type: "mode-ai-r18", classes: ["r18"] }) }
                         ${ helpers.create_box_link({label: "Weekly",        popup: "Weekly rankings",          data_type: "mode-weekly" }) }
                         ${ helpers.create_box_link({label: "Monthly",       popup: "Monthly rankings",         data_type: "mode-monthly" }) }
                         ${ helpers.create_box_link({label: "Rookie",        popup: "Rookie rankings",          data_type: "mode-rookie" }) }

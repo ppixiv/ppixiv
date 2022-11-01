@@ -1422,6 +1422,12 @@ ppixiv.data_sources.rankings = class extends data_source
         for(var item of result.contents)
             media_ids.push(helpers.illust_id_to_media_id("" + item.illust_id));
 
+        // This API doesn't return aiType, but we can fill it in ourself since we know whether
+        // we're on an AI rankings page or not.
+        let is_ai = mode == "daily_ai" || mode == "daily_r18_ai";
+        for(let illust of result.contents)
+            illust.aiType = is_ai? 2:1;
+        
         // Register this as thumbnail data.
         await media_cache.add_media_infos_partial(result.contents, "rankings");
         
@@ -1444,6 +1450,8 @@ ppixiv.data_sources.rankings = class extends data_source
         this.set_item(container, { type: "mode-daily", fields: {mode: null}, default_values: {mode: "daily"} });
         this.set_item(container, { type: "mode-daily-r18", fields: {mode: "daily_r18"} });
         this.set_item(container, { type: "mode-r18g", fields: {mode: "r18g"} });
+        this.set_item(container, { type: "mode-ai", fields: {mode: "daily_ai"} });
+        this.set_item(container, { type: "mode-ai-r18", fields: {mode: "daily_r18_ai"} });
         this.set_item(container, { type: "mode-weekly", fields: {mode: "weekly"} });
         this.set_item(container, { type: "mode-monthly", fields: {mode: "monthly"} });
         this.set_item(container, { type: "mode-rookie", fields: {mode: "rookie"} });
@@ -1482,6 +1490,8 @@ ppixiv.data_sources.rankings = class extends data_source
         var available_combinations = [
             "all/daily",
             "all/daily_r18",
+            "all/daily_ai",
+            "all/daily_r18_ai",
             "all/r18g",
             "all/weekly",
             "all/monthly",

@@ -35,8 +35,8 @@ ppixiv.media_cache_mappings = class
         ["user_name", "userName"],
         ["illust_upload_timestamp", "createDate"],
 
-        // Rankings don't return aiType.
-        [null, "aiType"],
+        // Rankings don't return aiType, but we fill it in ourself in the data source.
+        ["aiType", "aiType"],
     ];
     
     // Partial media info comes from Pixiv search APIs.  They all have different formats
