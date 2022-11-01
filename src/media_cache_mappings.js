@@ -16,8 +16,9 @@ ppixiv.media_cache_mappings = class
         ["user_profile_img", "profileImageUrl"],
         ["user_name", "userName"],
 
-        // illust_list.php doesn't give the creation date.
+        // illust_list.php doesn't give the creation date, and it doesn't have the aiType field.
         [null, "createDate"],
+        [null, "aiType"],
     ];
 
     static thumbnail_info_map_ranking = [
@@ -33,6 +34,9 @@ ppixiv.media_cache_mappings = class
         ["profile_img", "profileImageUrl"],
         ["user_name", "userName"],
         ["illust_upload_timestamp", "createDate"],
+
+        // Rankings don't return aiType.
+        [null, "aiType"],
     ];
     
     // Partial media info comes from Pixiv search APIs.  They all have different formats

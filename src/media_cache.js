@@ -43,6 +43,7 @@ const partial_media_info_keys = Object.freeze([
     "bookmarkData",                     // null if not bookmarked, otherwise an object
     "createDate",
     "tagList",                          // a flat array of illust tags
+    "aiType",
     "extraData",                        // editor info
     "full",
 ]);

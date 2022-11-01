@@ -1494,23 +1494,8 @@ ppixiv.search_view = class extends ppixiv.widget
         if(media_info == null)
             return;
 
-        {
-            // Check for the "AI" tag.  Don't do a substring match on this, since it's too short and would have
-            // a lot of false positives.
-            let show_ai = false;
-            let exact_tags = ["AI"];
-            for(let tag of exact_tags)
-                if(media_info.tagList.indexOf(tag) != -1)
-                    show_ai = true;
-
-            // Look for these as substrings.
-            let tags = media_info.tagList.join(" ").toLowerCase();
-            for(let tag of ["diffusion", "novelai", "aiイラスト"])
-                if(tags.indexOf(tag) != -1)
-                    show_ai = true;
-
-            thumbnail_element.querySelector(".ai-image").hidden = !show_ai;
-        }
+        // aiType is 0 or 1 for false and 2 for true.
+        thumbnail_element.querySelector(".ai-image").hidden = media_info.aiType != 2;
 
         var show_bookmark_heart = media_info.bookmarkData != null;
         if(this.data_source != null && !this.data_source.show_bookmark_icons)

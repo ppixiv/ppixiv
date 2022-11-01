@@ -100,6 +100,9 @@ ppixiv.local_api = class
 
         // Local media info is always full.
         illust.full = true;
+
+        // Local images don't use aiType.
+        illust.aiType = 0;
     }
 
     // This is called early in initialization.  If we're running natively and
