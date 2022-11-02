@@ -129,6 +129,51 @@ ppixiv.widget = class
 
 ppixiv.dialog_widget = class extends ppixiv.widget
 {
+    // The stack of dialogs currently open:
+    static active_dialogs = [];
+
+    static get top_dialog()
+    {
+        return this.active_dialogs[this.active_dialogs.length-1];
+    }
+
+    static _update_block_touch_scrolling()
+    {
+        if(!ppixiv.ios)
+            return;
+
+        // This is really annoying.  No matter how much you shout at iOS to not scroll the document,
+        // whether with overflow: hidden, inert or pointer-events: none, it ignores you and scrolls
+        // the document underneath the dialog.  The only way I've found to prevent this is by cancelling
+        // touchmove (touchstart doesn't work).
+        //
+        // Note that even touch-action: none doesn't work.  It seems to interpret it as "don't let touches
+        // on this element scroll" instead of "this element shouldn't scroll with touch": touches on child
+        // elements will still propagate up and scroll the body, which is useless.
+        if(ppixiv.dialog_widget.active_dialogs.length == 0)
+        {
+            if(this._remove_touch_scroller_events != null)
+            {
+                this._remove_touch_scroller_events.abort();
+                this._remove_touch_scroller_events = null;
+            }
+            return;
+        }
+
+        // At least one dialog is open.  Start listening to touchmove if we're not already.
+        if(this._remove_touch_scroller_events)
+            return;
+
+        this._remove_touch_scroller_events = new AbortController();
+        window.addEventListener("touchmove", (e) => {
+            // Block this movement if it's not inside the topmost open dialog.
+            let top_dialog = ppixiv.dialog_widget.top_dialog;
+            let dialog = top_dialog.container.querySelector(".dialog");
+            if(!helpers.is_above(dialog, e.target))
+                e.preventDefault();
+        }, { capture: true, passive: false, signal: this._remove_touch_scroller_events.signal });
+    }
+
     constructor({
         classes=null,
         container=null,
@@ -201,9 +246,25 @@ ppixiv.dialog_widget = class extends ppixiv.widget
         if(!this.visible)
             throw new Error("Dialog shouldn't be hidden");
 
+        // If we're not the first dialog on the stack, make the previous dialog inert, so it'll ignore inputs.
+        let old_top_dialog = ppixiv.dialog_widget.top_dialog;
+        if(old_top_dialog)
+            old_top_dialog.container.inert = true;
+
+        // Add ourself to the stack.
+        ppixiv.dialog_widget.active_dialogs.push(this);
+        console.log("ppixiv.dialog_widget.active_dialogs", ppixiv.dialog_widget.active_dialogs);
+
+        // Register ourself as an important visible widget, so the slideshow won't move on
+        // while we're open.
+        ppixiv.OpenWidgets.singleton.set(this, true);
+
         this.small = small;
         helpers.set_class(this.container, "small", this.small);
         helpers.set_class(this.container, "large", !this.small);
+
+        if(!header && !show_close_button)
+            this.container.querySelector(".header").hidden = true;
 
         this.allow_close = allow_close;
         this.container.querySelector(".close-button").hidden = !allow_close || !show_close_button;
@@ -225,7 +286,20 @@ ppixiv.dialog_widget = class extends ppixiv.widget
             let close_button = this.container.querySelector(".close-button");
             if(close_button)
                 close_button.addEventListener("click", (e) => { this.visible = false; });
+
+            // Hide if the top-level screen changes, so we close if the user exits the screen with browser
+            // navigation but not if the viewed image is changing from something like the slideshow.
+            window.addEventListener("screenchanged", (e) => {
+                this.visible = false;
+            }, { signal: this.shutdown_signal.signal });
+
+            // Hide on any state change.
+            window.addEventListener("popstate", (e) => {
+                this.visible = false;
+            }, { signal: this.shutdown_signal.signal });
         }
+
+        ppixiv.dialog_widget._update_block_touch_scrolling();
     }
 
     set header(value)
@@ -242,82 +316,33 @@ ppixiv.dialog_widget = class extends ppixiv.widget
     {
         super.visibility_changed();
 
-        // This disables global key handling and hotkeys.
-        if(this.visible)
-            document.body.dataset.popupOpen = "1";
-        else
-            delete document.body.dataset.popupOpen;
-
-        // Register ourself as an important visible widget, so the slideshow won't move on
-        // while we're open.
-        ppixiv.OpenWidgets.singleton.set(this, this.visible);
-
-        this._update_block_touch_scrolling();
-
-        if(this.allow_close)
-        {
-            if(this.visible)
-            {
-                // Hide if the top-level screen changes, so we close if the user exits the screen with browser
-                // navigation but not if the viewed image is changing from something like the slideshow.
-                window.addEventListener("screenchanged", (e) => {
-                    this.visible = false;
-                }, { signal: this.visibility_abort.signal });
-
-                // Hide on any state change.
-                window.addEventListener("popstate", (e) => {
-                    this.visible = false;
-                }, { signal: this.visibility_abort.signal });
-            }
-        }
-
         // Remove the widget when it's hidden.
         if(!this.visible)
-        {
-            this.container.remove();
             this.shutdown();
-        }
-    }
-
-    _update_block_touch_scrolling()
-    {
-        if(!ppixiv.ios)
-            return;
-
-        // This is really annoying.  No matter how much you shout at iOS to not scroll the document,
-        // whether with overflow: hidden, inert or pointer-events: none, it ignores you and scrolls
-        // the document underneath the dialog.  The only way I've found to prevent this is by cancelling
-        // touchmove (touchstart doesn't work).
-        //
-        // Note that even touch-action: none doesn't work.  It seems to interpret it as "don't let touches
-        // on this element scroll" instead of "this element shouldn't scroll with touch": touches on child
-        // elements will still propagate up and scroll the body, which is useless.
-        if(!this.visible)
-        {
-            this._stop_blocking_touch_scrolling();
-            return;
-        }
-
-        this._remove_touch_scroller_events = new AbortController();
-        let dialog = this.container.querySelector(".dialog");
-        window.addEventListener("touchmove", (e) => {
-            if(!helpers.is_above(dialog, e.target))
-                e.preventDefault();
-        }, { capture: true, passive: false, signal: this._remove_touch_scroller_events.signal });
-    }
-
-    _stop_blocking_touch_scrolling()
-    {
-        if(this._remove_touch_scroller_events != null)
-        {
-            this._remove_touch_scroller_events.abort();
-            this._remove_touch_scroller_events = null;
-        }
     }
 
     shutdown()
     {
-        this._stop_blocking_touch_scrolling();
+        // Remove the dialog from the document.
+        this.container.remove();
+
+        // Remove ourself from active_dialogs.
+        let idx = ppixiv.dialog_widget.active_dialogs.indexOf(this);
+        if(idx == -1)
+            console.error("Widget isn't in active_dialogs when shutting down:", this);
+        else
+            ppixiv.dialog_widget.active_dialogs.splice(idx, 1);
+
+        // Tell OpenWidgets that we're no longer open.
+        ppixiv.OpenWidgets.singleton.set(this, false);
+
+        ppixiv.dialog_widget._update_block_touch_scrolling();
+
+        // If we were covering another dialog, unset inert on the previous dialog.
+        let new_top_dialog = ppixiv.dialog_widget.top_dialog;
+        if(new_top_dialog)
+            new_top_dialog.container.inert = false;
+
         super.shutdown();
     }
 }

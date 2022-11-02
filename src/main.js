@@ -404,6 +404,8 @@ ppixiv.MainController = class
                 restore_history: restore_history,
             });
         }
+
+        this.refresh_main_scroll();
     }
 
     show_data_source_specific_elements()
@@ -726,8 +728,8 @@ ppixiv.MainController = class
         if(screen == null)
             return;
 
-        // If a popup is open, leave inputs alone.
-        if(document.body.dataset.popupOpen)
+        // If a dialog is open, leave inputs alone.
+        if(ppixiv.dialog_widget.active_dialogs.length > 0)
             return;
 
         // If the event is going to an element inside the screen already, just let it continue.
@@ -752,8 +754,8 @@ ppixiv.MainController = class
         if(screen == null)
             return;
 
-        // If a popup is open, leave inputs alone and don't process hotkeys.
-        if(document.body.dataset.popupOpen)
+        // If a dialog is open, leave inputs alone and don't process hotkeys.
+        if(ppixiv.dialog_widget.active_dialogs.length > 0)
             return;
 
         if(e.key == "Escape")
@@ -994,17 +996,8 @@ ppixiv.MainController = class
     // scrolling on iOS.
     refresh_main_scroll = () =>
     {
-        let visible_widget = null;
-        for(let widget of OpenWidgets.singleton.get_all())
-        {
-            if(widget instanceof ppixiv.dialog_widget)
-            {
-                console.log("Disabling scrolling for dialog:", widget);
-                visible_widget = widget;
-            }
-        }
-
-        let enable_scrolling = this.current_screen_name == "search" && visible_widget == null;
+        let top_dialog = ppixiv.dialog_widget.top_dialog;
+        let enable_scrolling = this.current_screen_name == "search" && top_dialog == null;
         // console.log("Scrolling enabled:", enable_scrolling);
         helpers.set_class(document.documentElement, "disable-scrolling", !enable_scrolling);
     }
