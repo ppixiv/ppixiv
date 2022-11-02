@@ -68,84 +68,6 @@ let mobile_illust_ui_page = class extends ppixiv.widget
     }
 }
 
-let mobile_illust_ui_page_more  = class extends mobile_illust_ui_page
-{
-    constructor({template, ...options})
-    {
-        super({...options, visible: true, template: `
-            <div class=mobile-illust-ui-page>
-            </div>
-        `});
-
-        this.more_options_widget = new more_options_dropdown_widget({
-            parent: this,
-            container: this.container,
-            visible: true,
-        });
-    }
-
-    get content_node() { return this.more_options_widget.container; }
-
-    // more_options_widget items can call hide() on us when it's clicked.  Hide the top-level menu.
-    hide()
-    {
-        this.parent.hide();
-    }
-
-    set media_id(media_id)
-    {
-        super.media_id = media_id;
-        this.more_options_widget.set_media_id(media_id);
-    }
-}
-
-let mobile_illust_ui_page_bookmark_tags  = class extends mobile_illust_ui_page
-{
-    constructor({template, ...options})
-    {
-        super({...options, visible: true, template: `
-            <div class=mobile-illust-ui-page>
-            </div>
-        `});
-
-        this.bookmark_tag_widget = new bookmark_tag_list_widget({
-            parent: this,
-            container: this.container,
-        });
-    }
-    get content_node() { return this.bookmark_tag_widget.container; }
-
-    show_tab()
-    {
-        super.show_tab();
-        this.shown_changed();
-    }
-
-    hide_tab()
-    {
-        this.bookmark_tag_widget.save_current_tags();
-        super.hide_tab();
-        this.shown_changed();
-    }
-
-    shown_changed()
-    {
-        // Only tell bookmark_tag_widget the current media ID when we're visible, so it doesn't
-        // load Pixiv tags until it's actually used.  Tell it to save tags when we're not visible,
-        // since that normally happens when it's set to not visible, which we're not doing here.
-        this.bookmark_tag_widget.set_media_id(this._media_id);
-        if(!this.visible)
-            this.bookmark_tag_widget.save_current_tags();
-    }
-
-    set media_id(media_id)
-    {
-        super.media_id = media_id;
-        this.bookmark_tag_widget.set_media_id(media_id);
-    }
-}
-
-
 let mobile_illust_ui_top_page = class extends mobile_illust_ui_page
 {
     constructor({template, ...options})
@@ -246,7 +168,6 @@ let mobile_illust_ui_top_page = class extends mobile_illust_ui_page
 
         this._media_id = null;
         this._on_click_viewer = null;
-        this.submenu_open = false;
 
         this.container.querySelector(".button-view-manga").addEventListener("click", this.clicked_view_manga);
 
@@ -293,11 +214,20 @@ let mobile_illust_ui_top_page = class extends mobile_illust_ui_page
         });
 
         this.container.querySelector(".button-more").addEventListener("click", (e) => {
-            this.parent.toggle_page("more", e.target);
+
+            new mobile_illust_ui_more_options_dialog({
+                media_id: this._media_id
+            });
+
+            this.parent.hide();
         });
 
         this.container.querySelector(".button-bookmark-tags").addEventListener("click", (e) => {
-            this.parent.toggle_page("bookmark_tags", e.target);
+            new mobile_overlay_bookmark_tag_dialog({
+                media_id: this._media_id
+            });
+            
+            this.parent.hide();
         });
 
         this.illust_widgets = [
@@ -347,13 +277,6 @@ let mobile_illust_ui_top_page = class extends mobile_illust_ui_page
         this.refresh();
     }
 
-    // If a submenu is open, we'll hide our button labels.
-    set_submenu_open(value)
-    {
-        this.submenu_open = value;
-        this.refresh();
-    }
-
     refresh()
     {
         super.refresh();
@@ -365,7 +288,7 @@ let mobile_illust_ui_top_page = class extends mobile_illust_ui_page
         if(!this.visible && this._media_id != null)
             return
 
-        helpers.set_class(this.container.querySelector(".top-page-buttons"), "display-labels", this.display_labels && !this.submenu_open);
+        helpers.set_class(this.container.querySelector(".top-page-buttons"), "display-labels", this.display_labels);
 
         let button_view_manga = this.container.querySelector(".button-view-manga");
         button_view_manga.dataset.popup = "View manga pages";
@@ -470,6 +393,66 @@ let mobile_illust_ui_top_page = class extends mobile_illust_ui_page
     }
 }
 
+class mobile_overlay_bookmark_tag_dialog extends ppixiv.dialog_widget
+{
+    constructor({media_id, ...options})
+    {
+        super({...options, dialog_class: "mobile-tag-list", header: "Bookmark tags", template: `
+            <div class=scroll></div>
+        `});
+
+        this.tag_list_widget = new bookmark_tag_list_widget({
+            parent: this,
+            container: this.container.querySelector(".scroll"),
+        });
+
+        this.tag_list_widget.set_media_id(media_id);
+    }
+
+    set_data_source(data_source)
+    {
+        this.tag_list_widget.data_source = data_source;
+    }
+
+    visibility_changed()
+    {
+        super.visibility_changed();
+
+        // Let the tag list know when it's hidden, so it knows to save changes.
+        this.tag_list_widget.visible = this.visible;
+    }
+}
+
+class mobile_illust_ui_more_options_dialog extends dialog_widget
+{
+    constructor({template, ...options})
+    {
+        super({...options, dialog_type: "small", header: "More", classes: ['mobile-illust-ui-dialog'], template: `
+            <div class=box>
+            </div>
+        `});
+
+        this.more_options_widget = new more_options_dropdown_widget({
+            parent: this,
+            container: this.container.querySelector(".box"),
+            visible: true,
+        });
+    }
+
+    get content_node() { return this.more_options_widget.container; }
+
+    // more_options_widget items can call hide() on us when it's clicked.
+    hide()
+    {
+        this.visible = false;
+    }
+
+    set media_id(media_id)
+    {
+        super.media_id = media_id;
+        this.more_options_widget.set_media_id(media_id);
+    }
+}
 
 // We can only show tags when running natively, since bookmark tags aren't always loaded
 // on Pixiv.  This is only used for the mobile UI.
@@ -552,14 +535,6 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
             container: this.container,
             parent: this,
         });
-        this.pages.more = new mobile_illust_ui_page_more({
-            container: this.container,
-            parent: this,
-        });
-        this.pages.bookmark_tags = new mobile_illust_ui_page_bookmark_tags({
-            container: this.container,
-            parent: this,
-        });
         
         new view_hidden_listener(this.container, () => {
             this.hide();
@@ -571,10 +546,8 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
         }, { signal: this.shutdown_signal.signal });
 
         this._media_id = null;
-        this.displayed_page = null;
 
         this.set_bottom_reservation("0px");
-        this.show_page(null);
         
         this.refresh();
     }
@@ -672,51 +645,12 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
         }
 
         this.pages.top.hide_tab();
-        this.show_page(null);
 
         this.refresh();
 
         // Tell the caller that we're closing.
         if(this.onclose)
             this.onclose();
-    }
-
-    // If not null, button is the button that was used to show the page, to align the
-    // submenu near.
-    show_page(new_page_name, button)
-    {
-        let old_page_name = this.displayed_page;
-        if(new_page_name == old_page_name)
-            return;
-
-        let new_page = this.pages[new_page_name];
-        let old_page = this.pages[old_page_name];
-        this.displayed_page = new_page_name;
-        helpers.set_dataset(this.container.dataset, "displayedPage", this.displayed_page);
-        if(old_page)
-            old_page.hide_tab();
-        if(new_page)
-        {
-            // If we were given a button, try to position the tab to its center.
-            let pos = null;
-            if(button)
-            {
-                let {top, height} = button.getBoundingClientRect();
-                pos = top + height/2;
-            }
-
-            new_page.show_tab({pos});
-        }
-
-        this.pages.top.set_submenu_open(new_page_name != null);
-    }
-
-    toggle_page(page, button)
-    {
-        if(this.displayed_page == page)
-            this.show_page(null);
-        else
-            this.show_page(page, button);
     }
 
     // Set the amount of space reserved at the bottom for other UI.  This is used to prevent

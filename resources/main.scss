@@ -2386,6 +2386,12 @@ a.box-link, span.box-link
     }
 }
 
+.mobile-illust-ui-dialog
+{
+    --ui-bg-color: rgba(0,0,0,0.4);
+    --box-link-bg-color: none;
+}
+
 .mobile-illust-ui-container
 {
     position: absolute;
