@@ -248,6 +248,11 @@ a {
     color: inherit;
 }
 
+// Firefox only just added support for inert, so explicitly disable pointer events when inert too.
+[inert] {
+    pointer-events: none;
+}
+
 html.mobile {
     // Disable hover popups on mobile:
     .popup:after { display: none !important; }
