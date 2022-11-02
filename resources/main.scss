@@ -3173,10 +3173,14 @@ svg.heart-image .delete {
 {
     @include general-dialog($type: "small");
 
-    .dialog {
+    .scroll {
         display: flex;
+        flex-direction: column;
         align-items: center;
-        gap: 1em;
+        .text {
+            text-align: center;
+            padding: 1em 0;
+        }
 
         .input-box {
             display: flex;

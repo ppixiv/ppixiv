@@ -601,17 +601,19 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
                 let tags_in_group = saved_search_tags.get_all_groups().get(tag_section.group_name);
                 if(tags_in_group.length > 0)
                 {
-                    let text;
+                    let header, text = null;
                     if(tag_section.group_name == null)
-                        text = `Clear ${tags_in_group.length} recent ${tags_in_group.length == 1? "search":"searches"}?`;
+                        header = `Clear ${tags_in_group.length} recent ${tags_in_group.length == 1? "search":"searches"}?`;
                     else
                     {
+                        header = "Delete tag group";
+                        
                         text = `This group contains ${tags_in_group.length} ${tags_in_group.length == 1? "tag":"tags"}.
                             
                         Delete this group and all tags inside it?  This can't be undone.`;
                     }
 
-                    let result = await this.parent.confirm_prompt({ text });
+                    let result = await this.parent.confirm_prompt({ header, text });
                     if(!result)
                         return;
                 }

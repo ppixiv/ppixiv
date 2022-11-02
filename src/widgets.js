@@ -1428,12 +1428,14 @@ ppixiv.confirm_prompt = class extends ppixiv.dialog_widget
     }
 
     constructor({
+        header,
         text,
         ...options
     }={})
     {
-        super({...options, dialog_class: "confirm-dialog", allow_close: false, small: true, template: `
-            <div class=text></div>
+        super({...options, dialog_class: "confirm-dialog", allow_close: false, small: true, header,
+        template: `
+            <div class=text hidden></div>
             <div class=input-box>
                 ${helpers.create_box_link({
                     label: "Yes",
@@ -1449,11 +1451,17 @@ ppixiv.confirm_prompt = class extends ppixiv.dialog_widget
             </div>
         `});
         
+        if(text)
+        {
+            let text_node = this.container.querySelector(".text");
+            text_node.innerText = text;
+            text_node.hidden = false;
+        }
+
         this.result = new Promise((completed, cancelled) => {
             this._completed = completed;
         });
 
-        this.container.querySelector(".text").innerText = text;
         this.container.querySelector(".yes").addEventListener("click", () => this.submit(true), { signal: this.shutdown_signal.signal });
         this.container.querySelector(".no").addEventListener("click", () => this.submit(false), { signal: this.shutdown_signal.signal });
     }
@@ -2299,7 +2307,7 @@ ppixiv.bookmark_button_widget = class extends ppixiv.illust_widget
             // Confirm removing bookmarks when on mobile.
             if(ppixiv.mobile)
             {
-                let result = await (new ppixiv.confirm_prompt({ text: "Remove bookmark?" })).result;
+                let result = await (new ppixiv.confirm_prompt({ header: "Remove bookmark?" })).result;
                 if(!result)
                     return;
             }
