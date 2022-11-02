@@ -1152,13 +1152,15 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         // the list immediately since the drag will get confused if it isn't.
         let translated_tags;
         if(this.dragging_tag == null)
+        {
             translated_tags = await tag_translations.get().get_translations(all_tags, "en");
-
-        // Check if we were aborted while we were loading tags.
-        if(abort_signal.aborted)
-            return false;
         
-        this.translated_tags = translated_tags;
+            // Check if we were aborted while we were loading tags.
+            if(abort_signal.aborted)
+                return false;
+        
+            this.translated_tags = translated_tags;
+        }
             
         // Save the selection so we can restore it.
         let saved_selection = this.get_selection();
