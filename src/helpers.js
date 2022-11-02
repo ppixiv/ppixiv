@@ -5264,9 +5264,10 @@ ppixiv.TouchScroller = class
             ratio = 1/ratio;
 
         // The speed we'll actually apply the zoom ratio.  If this is 2, we'll adjust the ratio
-        // by 2x per second (or .5x when zooming down).  Clamp the ratio we'll apply based on
-        // the duration of this frame.
-        let zoom_ratio_per_second = 10;
+        // by 2x per second (or .5x when zooming down).  Scale this based on how far we have to
+        // zoom, so zoom bounce decelerates similarly to position bounce.  Clamp the ratio we'll
+        // apply based on the duration of this frame.
+        let zoom_ratio_per_second = Math.pow(ratio, 10);
         let max_ratio_this_frame = Math.pow(zoom_ratio_per_second, duration);
         ratio = Math.min(ratio, max_ratio_this_frame);
 
@@ -5284,11 +5285,13 @@ ppixiv.TouchScroller = class
     {
         let bounds = this.options.get_bounds();
 
+        let factor = 0.025;
+
         // Bounce right:
         if(position.x < bounds.left)
         {
             let bounce_velocity = bounds.left - position.x;
-            bounce_velocity *= 0.011;
+            bounce_velocity *= factor;
             position.x += bounce_velocity * duration * 300;
 
             if(position.x >= bounds.left - 1)
@@ -5299,7 +5302,7 @@ ppixiv.TouchScroller = class
         if(position.x > bounds.right)
         {
             let bounce_velocity = bounds.right - position.x;
-            bounce_velocity *= 0.011;
+            bounce_velocity *= factor;
             position.x += bounce_velocity * duration * 300;
 
             if(position.x <= bounds.right + 1)
@@ -5310,7 +5313,7 @@ ppixiv.TouchScroller = class
         if(position.y < bounds.top)
         {
             let bounce_velocity = bounds.top - position.y;
-            bounce_velocity *= 0.011;
+            bounce_velocity *= factor;
             position.y += bounce_velocity * duration * 300;
 
             if(position.y >= bounds.top - 1)
@@ -5321,7 +5324,7 @@ ppixiv.TouchScroller = class
         if(position.y > bounds.bottom)
         {
             let bounce_velocity = bounds.bottom - position.y;
-            bounce_velocity *= 0.011;
+            bounce_velocity *= factor;
             position.y += bounce_velocity * duration * 300;
 
             if(position.y <= bounds.bottom + 1)
