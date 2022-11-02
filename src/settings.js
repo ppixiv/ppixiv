@@ -95,6 +95,11 @@ ppixiv.Settings = class extends EventTarget
 
     _cache_value(key, value)
     {
+        // If we're being called by page_manager before we're actually active, don't cache
+        // settings.
+        if(helpers.setTimeout == null)
+            return;
+            
         this.cache[key] = value;
         this._queue_clear_cache();
     }
