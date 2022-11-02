@@ -257,7 +257,12 @@ html.mobile {
     // Disable hover popups on mobile:
     .popup:after { display: none !important; }
 
-    font-size: 150%;
+    // Increase the font size on mobile.  Put this on the body and not on the root,
+    // so 1rem is still the default font size without this increase.
+    > body
+    {
+        font-size: 150%;
+    }
 }
 
 /* Theme colors: */
@@ -2884,6 +2889,12 @@ svg.heart-image .delete {
     justify-content: center;
     background-color: rgba(0,0,0,0.75);
 
+    // We increase the global font size on mobile, but it's too much for dialogs.  Set it to
+    // a smaller multiplier.
+    html.mobile & {
+        font-size: 1.2rem;
+    }
+
     // Shortcuts:
     --dialog-outer-padding: 
         var(--dialog-outer-padding-top) var(--dialog-outer-padding-right)
@@ -3007,6 +3018,7 @@ svg.heart-image .delete {
             flex: 1;
 
             .close-button {
+                --icon-size: 1.5;
                 color: var(--button-color);
                 cursor: pointer;
                 justify-self: center;
@@ -3069,10 +3081,6 @@ svg.heart-image .delete {
 .whats-new-dialog
 {
     @include general-dialog();
-
-    // We use a bigger font size for the main UI.  Return to a regular size for this long
-    // list of text.
-    font-size: 85%;
 
     .dialog {
         .font-icon {
@@ -3463,7 +3471,10 @@ svg.heart-image .delete {
 {
     @include general-dialog();
 
-    font-size: 115%;
+    // Set the font size.  This ignores the font size multiplier we use for the rest
+    // of the UI on mobile, which is much too big for settings, and is slightly larger
+    // on desktop.
+    font-size: 1.15rem;
 
     // Try to set a fixed minimum size, so the dialog doesn't resize when the page is
     // changed, but allow it to go lower if the screen is very small.  Don't do this
@@ -3486,6 +3497,9 @@ svg.heart-image .delete {
         // Put the page buttons and the page side-by-side.
         display: flex;
         flex-direction: row;
+
+        // Spacing between the page buttons and the content on the right:
+        gap: 1em;
     }
 
     // The section selector on the left side of the settings dialog:
@@ -3515,10 +3529,14 @@ svg.heart-image .delete {
         }
     }
 
-    > .items {
+    // Note that this matches items in the side-by-side view, but not in the mobile
+    // fullscreen view.
+    > .dialog > .scroll > .items
+    {
         flex: 1;
 
-        // Scroller for the individual settings pages:
+        // Scroller for the individual settings pages.  This isn't needed if we're fullscreen in phone,
+        // since the scroller is on the dialog,
         overflow-y: auto;
     }
 
@@ -3527,7 +3545,7 @@ svg.heart-image .delete {
         flex-direction: column;
 
         .settings-row {
-            padding: 0.5em 1em;
+            padding: 0.5em 0em;
             gap: 1em;
         }
     

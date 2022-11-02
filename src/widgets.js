@@ -150,6 +150,11 @@ ppixiv.dialog_widget = class extends ppixiv.widget
         // Note that even touch-action: none doesn't work.  It seems to interpret it as "don't let touches
         // on this element scroll" instead of "this element shouldn't scroll with touch": touches on child
         // elements will still propagate up and scroll the body, which is useless.
+        //
+        // This hack partially works, but the body still scrolls when it shouldn't if an area is dragged
+        // which is set to overflow: auto or overflow: scroll but doesn't actually scroll.  We can't tell
+        // that it isn't scrolling, and iOS seems to blindly propagate any touch on a potentially-scrollable
+        // element up to the nearest scrollable one.
         if(ppixiv.dialog_widget.active_dialogs.length == 0)
         {
             if(this._remove_touch_scroller_events != null)
@@ -201,6 +206,9 @@ ppixiv.dialog_widget = class extends ppixiv.widget
         // otherwise false.
         small=null,
 
+        // If true, the close button shows a back icon instead of an X.
+        back_icon=false,
+
         template,
         ...options
     })
@@ -217,6 +225,8 @@ ppixiv.dialog_widget = class extends ppixiv.widget
         if(dialog_class == null)
             dialog_class = dialog_type == "normal"? "dialog-normal":"dialog-small";
 
+        let close_icon = back_icon? "arrow_back_ios_new":"close";
+        
         super({
             container,
             template: `
@@ -225,7 +235,7 @@ ppixiv.dialog_widget = class extends ppixiv.widget
                         <div class=header>
                             <div class="close-button-container">
                                 <div class="close-button icon-button">
-                                    ${ helpers.create_icon("close") }
+                                    ${ helpers.create_icon(close_icon) }
                                 </div>
                             </div>
 

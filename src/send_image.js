@@ -597,6 +597,7 @@ ppixiv.send_here_popup = class extends ppixiv.dialog_widget
     {
         super({...options,
             dialog_class: "simple-button-dialog",
+            small: true,
 
             // This dialog is closed when the sending tab closes the send image interface.
             allow_close: false,
