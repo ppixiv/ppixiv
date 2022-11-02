@@ -2417,6 +2417,36 @@ ppixiv.helpers = {
         return await Promise.any([promise, sleep]);
     },
 
+    wait_for_transitionend(node)
+    {
+        return new Promise((accept) => {
+            // CSS transition events are a headache: you have to listen to both transitionend
+            // and transitioncancel every time, and you always have to check if there's any
+            // transition to trigger the event, which requires looking at the animation list.
+            // They made this a lot more complicated than it needed to be.
+            let animations = node.getAnimations();
+            let transitions = animations.filter((anim) => anim instanceof CSSTransition);
+            if(transitions.length == 0)
+            {
+                accept();
+                return;
+            }
+
+            let abort = new AbortController();
+            let finished = (e) => {
+                // Ignore bubbling transition events.  There may be other nested things running
+                // their own transitions, and we need to wait for just the node we asked for.
+                if(e.target != node)
+                    return;
+
+                abort.abort();
+                accept();
+            };
+            node.addEventListener("transitionend", finished, { signal: abort.signal });
+            node.addEventListener("transitioncancel", finished, { signal: abort.signal });
+        });
+    },
+
     // Asynchronously wait for an animation frame.  Return true on success, or false if
     // aborted by signal.
     vsync({signal=null}={})

@@ -2887,7 +2887,17 @@ svg.heart-image .delete {
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: rgba(0,0,0,0.75);
+
+    // --dialog-backdrop-color is the color around the dialog to dim what's underneath it.
+    // --dialog-bg-color is the background of the dialog itself.  In fullscreen, put the dialog
+    // background on the container, so we can transition it separately from the dialog animation.
+    --dialog-backdrop-color: rgba(0,0,0,0.75);
+    --dialog-bg-color: var(--ui-bg-color);
+    &.fullscreen {
+        --dialog-backdrop-color: var(--ui-bg-color);
+        --dialog-bg-color: none;
+    }
+    background-color: var(--dialog-backdrop-color);
 
     // We increase the global font size on mobile, but it's too much for dialogs.  Set it to
     // a smaller multiplier.
@@ -2936,6 +2946,29 @@ svg.heart-image .delete {
     // inside the scroller.
     padding: var(--dialog-outer-padding);
 
+    // Transitions for mobile:
+    &.animated {
+        transition: background-color .15s, opacity .25s;
+        &[data-animate="fade"] {
+            opacity: 0;
+        }
+
+        > .dialog {
+            transition: transform .30s;
+            transform: translateY(0);
+        }
+
+        &[data-animate="horizontal"] {
+            background-color: rgba(0,0,0,0);
+            > .dialog { transform: translateX(100vw); }
+        }
+
+        &[data-animate="vertical"] {
+            background-color: rgba(0,0,0,0);
+            > .dialog { transform: translateY(100vh); }
+        }
+    }
+
     > .dialog {
         padding: var(--dialog-inner-padding);
 
@@ -2962,8 +2995,6 @@ svg.heart-image .delete {
             // padding-top: calc(var(--dialog-inner-padding-top));
         }
     }
-
-    // .dialog is the content of the dialog box.
 
     // For floating dialogs, set a maximum width so they aren't too wide on wide screens, a
     // minimum width so layout doesn't break if the window is tiny, and cap the size at 90%
@@ -2992,7 +3023,7 @@ svg.heart-image .delete {
     .dialog {
         max-height: 100%;
 
-        background-color: var(--ui-bg-color);
+        background-color: var(--dialog-bg-color);
         color: var(--ui-fg-color);
         border-radius: 5px;
         position: relative;
@@ -3001,14 +3032,8 @@ svg.heart-image .delete {
     }
 
     .header {
-        // The header is inside the scroller, so it picks up the same padding of the content.
-        // Use position: sticky to keep it at the top.  If we don't want the content visible
-        // under the header, we can give the header a background.
-        //position: sticky;
-        //top: 0;
         --icon-size: 2;
 
-        // background-color: var(--ui-bg-color);
         display: flex;
         align-items: center;
 

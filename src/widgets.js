@@ -209,6 +209,10 @@ ppixiv.dialog_widget = class extends ppixiv.widget
         // If true, the close button shows a back icon instead of an X.
         back_icon=false,
 
+        // This can be "fade", "vertical" or "horizontal" to change the transition.  Transitions
+        // are only used on mobile.
+        animation=null,
+
         template,
         ...options
     })
@@ -256,6 +260,40 @@ ppixiv.dialog_widget = class extends ppixiv.widget
         if(!this.visible)
             throw new Error("Dialog shouldn't be hidden");
 
+        // If the animation isn't set, choose a default, or none if it's explicitly "none".
+        if(animation == null)
+        {
+            if(small)
+                animation = "fade";
+            else
+                animation = "vertical";
+        }
+        if(animation == "none")
+            animation = none;
+
+        // Animations are only used on mobile.
+        if(!ppixiv.mobile)
+            animation = null;
+
+        this.small = small;
+        helpers.set_class(this.container, "small", this.small);
+        helpers.set_class(this.container, "large", !this.small);
+
+        this.refresh_fullscreen();
+        window.addEventListener("resize", this.refresh_fullscreen, { signal: this.shutdown_signal.signal });
+
+        // Start the transition, if any.  Do this after calling refresh_fullscreen, since .fullscreen
+        // can affect it.
+        this.animation = animation;
+        if(animation != null)
+        {
+            this.container.classList.add("animated");
+            this.container.dataset.animate = animation;
+            this.container.offsetHeight;
+            this.container.querySelector(".dialog").offsetHeight;
+            delete this.container.dataset.animate;
+        }
+
         // If we're not the first dialog on the stack, make the previous dialog inert, so it'll ignore inputs.
         let old_top_dialog = ppixiv.dialog_widget.top_dialog;
         if(old_top_dialog)
@@ -263,15 +301,10 @@ ppixiv.dialog_widget = class extends ppixiv.widget
 
         // Add ourself to the stack.
         ppixiv.dialog_widget.active_dialogs.push(this);
-        console.log("ppixiv.dialog_widget.active_dialogs", ppixiv.dialog_widget.active_dialogs);
 
         // Register ourself as an important visible widget, so the slideshow won't move on
         // while we're open.
         ppixiv.OpenWidgets.singleton.set(this, true);
-
-        this.small = small;
-        helpers.set_class(this.container, "small", this.small);
-        helpers.set_class(this.container, "large", !this.small);
 
         if(!header && !show_close_button)
             this.container.querySelector(".header").hidden = true;
@@ -279,9 +312,6 @@ ppixiv.dialog_widget = class extends ppixiv.widget
         this.allow_close = allow_close;
         this.container.querySelector(".close-button").hidden = !allow_close || !show_close_button;
         this.header = header;
-
-        this.refresh_fullscreen();
-        window.addEventListener("resize", this.refresh_fullscreen, { signal: this.shutdown_signal.signal });
 
         if(this.allow_close)
         {
@@ -298,14 +328,15 @@ ppixiv.dialog_widget = class extends ppixiv.widget
                 close_button.addEventListener("click", (e) => { this.visible = false; });
 
             // Hide if the top-level screen changes, so we close if the user exits the screen with browser
-            // navigation but not if the viewed image is changing from something like the slideshow.
+            // navigation but not if the viewed image is changing from something like the slideshow.  Call
+            // shutdown() directly instead of setting visible, since we don't want to trigger animations here.
             window.addEventListener("screenchanged", (e) => {
-                this.visible = false;
+                this.shutdown();
             }, { signal: this.shutdown_signal.signal });
 
             // Hide on any state change.
             window.addEventListener("popstate", (e) => {
-                this.visible = false;
+                this.shutdown();
             }, { signal: this.shutdown_signal.signal });
         }
 
@@ -326,11 +357,30 @@ ppixiv.dialog_widget = class extends ppixiv.widget
     {
         super.visibility_changed();
 
-        // Remove the widget when it's hidden.
-        if(!this.visible)
+        // Remove the widget when it's hidden.  If we're animating, we'll do this in transitionend.
+        if(!this.visible && this.animation == null)
             this.shutdown();
     }
 
+    async refresh_visibility()
+    {
+        if(this.animation == null || this._visible)
+        {
+            super.refresh_visibility();
+            return;
+        }
+
+        // We're being hidden and we have an animation.  Run the animation and wait for it
+        // to complete before shutting down.
+        this.container.dataset.animate = this.animation;
+        await helpers.wait_for_transitionend(this.container);
+
+        this.shutdown();
+    }
+
+    // Calling shutdown() directly will remove the dialog immediately.  To remove it and allow
+    // animations to run, set visible to false, and the dialog will shut down when the animation
+    // finishes.
     shutdown()
     {
         // Remove the dialog from the document.
