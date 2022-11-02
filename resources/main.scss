@@ -2402,11 +2402,11 @@ a.box-link, span.box-link
     &[data-side="right"] { --transform-direction: -1; --transform-side: 100%; --transform-align: flex-start; }
 
     &[data-side="left"] .context-menu-image-info-container {
-        right: 10px;
+        right: calc(max(5vw, env(safe-area-inset-right)));
     }
 
     &[data-side="right"] .context-menu-image-info-container {
-        left: 10px;
+        left: calc(max(5vw, env(safe-area-inset-left)));
     }
 
     &[data-side="right"] .top-page-button-row .item {
@@ -2420,7 +2420,7 @@ a.box-link, span.box-link
     // The image info in the top-right is a separate element from the UI pages.
     .context-menu-image-info-container {
         position: fixed;
-        top: 10px;
+        top: calc(max(5vh, env(safe-area-inset-top)));
         max-width: calc(100vw - 100px);
         display: flex;
         flex-direction: column;
