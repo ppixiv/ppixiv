@@ -2420,6 +2420,9 @@ a.box-link, span.box-link
     // The image info in the top-right is a separate element from the UI pages.
     .context-menu-image-info-container {
         position: fixed;
+        html.phone & {
+            display: none;
+        }
         top: calc(max(5vh, env(safe-area-inset-top)));
         max-width: calc(100vw - 100px);
         display: flex;

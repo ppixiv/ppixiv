@@ -275,6 +275,7 @@ ppixiv.MainController = class
         helpers.set_class(document.documentElement, "mobile", ppixiv.mobile);
         helpers.set_class(document.documentElement, "ios", ppixiv.ios);
         helpers.set_class(document.documentElement, "android", ppixiv.android);
+        helpers.set_class(document.documentElement, "phone", helpers.is_phone);
         document.documentElement.dataset.orientation = window.orientation ?? "0";
 
         // Set the fullscreen mode.  See the device styling rules in main.scss for more
