@@ -1,22 +1,3 @@
-// Helpers for rules we apply on devices small enough for us to treat them as phones.
-@mixin phone()
-{
-    @media (max-width: 30rem), (max-height: 30rem)
-    {
-        @content;
-    }
-}
-
-@mixin not_phone()
-{
-    // Is there really no better way to do this without MQ version 4, which isn't
-    // available everywhere yet?
-    @media (min-height: 29.99999rem) and (min-width: 29.99999rem)
-    {
-        @content;
-    }
-}
-
 * {
     box-sizing: border-box;
 
@@ -36,18 +17,16 @@ html {
     // For scrolling to work cleanly on iOS, we need the main scroller to be at the
     // top and not inside an absolute element, or else it gets confused and scrolling
     // randomly gets stuck.
-    --window-height: calc(100%);
+    height: calc(100%);
     &.ios {
         // This is a nasty one: when iOS's viewport-fit=cover is used to disable safe
         // zones, height: 100% on the window is wrong and doesn't include the top inset.
         // This isn't needed if we're in landscape, but we don't need to handle that
         // separately since safe-area-inset-top is 0 in landscape.
-        --window-height: calc(100% + env(safe-area-inset-top));
+        height: calc(100% + env(safe-area-inset-top));
     }
 
-    --window-width: calc(100%);
-    height: var(--window-height);
-    width: var(--window-width);
+    width: calc(100%);
 
     background-color: var(--main-background-color);
     background-image: var(--background-noise);

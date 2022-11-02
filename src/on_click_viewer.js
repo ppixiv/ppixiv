@@ -133,10 +133,10 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
             container: this.crop_box,
         });
 
-        // iOS 16 gives us a resize event with bogus dimensions, then orientationchange after the animation
-        // with the correct dimensions, so we have to listen to orientationchange too.  
-        window.addEventListener("resize", this.onresize, { signal: this.shutdown_signal.signal, capture: true });
-        window.addEventListener("orientationchange", this.onresize, { signal: this.shutdown_signal.signal, capture: true });
+        // Use a ResizeObserver to update our size and position if the window size changes.
+        this.resize_observer = new ResizeObserver(this.onresize);
+        this.resize_observer.observe(this.container);
+
         this.container.addEventListener("dragstart", this.block_event, { signal: this.shutdown_signal.signal });
         this.container.addEventListener("selectstart", this.block_event, { signal: this.shutdown_signal.signal });
 
@@ -410,6 +410,7 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         this.remove_images();
         
         this.set_new_image.abort();
+        this.resize_observer.disconnect();
 
         super.shutdown();
     }
