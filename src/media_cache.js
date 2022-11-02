@@ -439,6 +439,16 @@ ppixiv.MediaCache = class extends EventTarget
         if(media_ids.length == 0)
             return;
 
+        let illust_ids = [];
+        for(let media_id of media_ids)
+        {
+            if(helpers.parse_media_id(media_id).type != "illust")
+                continue;
+
+            let [illust_id] = helpers.media_id_to_illust_id_and_page(media_id);
+            illust_ids.push(illust_id);
+        }
+
         // There's also
         //
         // https://www.pixiv.net/ajax/user/user_id/profile/illusts?ids[]=1&ids[]=2&...
@@ -449,7 +459,7 @@ ppixiv.MediaCache = class extends EventTarget
         // have an updated generic illustration lookup call if they ever update the
         // regular search pages, and we can switch to it then.
         let result = await helpers.rpc_get_request("/rpc/illust_list.php", {
-            illust_ids: media_ids.join(","),
+            illust_ids: illust_ids.join(","),
 
             // Specifying this gives us 240x240 thumbs, which we want, rather than the 150x150
             // ones we'll get if we don't (though changing the URL is easy enough too).
