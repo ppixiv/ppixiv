@@ -3856,7 +3856,7 @@ ppixiv.pointer_listener = class
 
     // The latest mouse position seen by install_global_handler.
     static latest_mouse_page_position = [window.innerWidth/2, window.innerHeight/2];
-    static latest_mouse_screen_position = [window.innerWidth/2, window.innerHeight/2];
+    static latest_mouse_client_position = [window.innerWidth/2, window.innerHeight/2];
     static buttons = 0;
     static button_pointer_ids = new Map();
     static pointer_type = "mouse";
@@ -3864,7 +3864,7 @@ ppixiv.pointer_listener = class
     {
         window.addEventListener("pointermove", (e) => {
             pointer_listener.latest_mouse_page_position = [e.pageX, e.pageY];
-            pointer_listener.latest_mouse_screen_position = [e.clientX, e.clientY];
+            pointer_listener.latest_mouse_client_position = [e.clientX, e.clientY];
             this.pointer_type = e.pointerType;
         }, { passive: true, capture: true });
 
@@ -4061,7 +4061,7 @@ ppixiv.pointer_listener = class
             return;
 
         // See if the cursor is over our element.
-        let node_under_cursor = document.elementFromPoint(pointer_listener.latest_mouse_screen_position[0], pointer_listener.latest_mouse_screen_position[1]);
+        let node_under_cursor = document.elementFromPoint(pointer_listener.latest_mouse_client_position[0], pointer_listener.latest_mouse_client_position[1]);
         if(node_under_cursor == null || !helpers.is_above(this.element, node_under_cursor))
             return;
 

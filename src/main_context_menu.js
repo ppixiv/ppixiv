@@ -366,8 +366,8 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
 
     _get_hovered_element()
     {
-        let x = pointer_listener.latest_mouse_screen_position[0];
-        let y = pointer_listener.latest_mouse_screen_position[1];
+        let x = pointer_listener.latest_mouse_client_position[0];
+        let y = pointer_listener.latest_mouse_client_position[1];
         return document.elementFromPoint(x, y);
     }
 
@@ -380,8 +380,8 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
 
         if(down)
         {
-            let x = pointer_listener.latest_mouse_screen_position[0];
-            let y = pointer_listener.latest_mouse_screen_position[1];
+            let x = pointer_listener.latest_mouse_client_position[0];
+            let y = pointer_listener.latest_mouse_client_position[1];
             let node = this._get_hovered_element();
             this.show({x, y, target: node});
         } else {
@@ -1224,10 +1224,10 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
 
         // If e is a keyboard event, use null to use the center of the screen.
         var keyboard = e instanceof KeyboardEvent;
-        var pageX = keyboard? null:e.pageX;
-        var pageY = keyboard? null:e.pageY;
+        let x = keyboard? null:e.clientX;
+        let y = keyboard? null:e.clientY;
 
-        this._on_click_viewer.zoom_adjust(down, {x: pageX, y: pageY});
+        this._on_click_viewer.zoom_adjust(down, {x, y});
         
         this.refresh();
     }
@@ -1384,7 +1384,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         if(!this._is_zoom_ui_enabled)
             return;
         
-        this._on_click_viewer.zoom_toggle({x: e.pageX, y: e.pageY})
+        this._on_click_viewer.zoom_toggle({x: e.clientX, y: e.clientY})
         this.refresh();
     }
 
@@ -1396,7 +1396,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         if(!this._is_zoom_ui_enabled)
             return;
 
-        this._on_click_viewer.zoom_set_level(e.currentTarget.dataset.level, {x: e.pageX, y: e.pageY});
+        this._on_click_viewer.zoom_set_level(e.currentTarget.dataset.level, {x: e.clientX, y: e.clientY});
         this.refresh();
     }
 
