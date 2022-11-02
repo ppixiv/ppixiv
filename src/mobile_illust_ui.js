@@ -386,8 +386,8 @@ let mobile_illust_ui_top_page = class extends mobile_illust_ui_page
             return;
 
         // Toggle between covering the screen and fitting the image onscreen.
-        let old_level = this._on_click_viewer.zoom_level;
-        this._on_click_viewer.zoom_level = old_level == "cover"? 0:"cover";
+        let old_level = this._on_click_viewer.get_zoom_level();
+        this._on_click_viewer.set_zoom_level(old_level == "cover"? 0:"cover");
         
         this.refresh();
     }
