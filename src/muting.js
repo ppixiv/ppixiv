@@ -210,8 +210,6 @@ ppixiv.muted_tags_popup = class extends ppixiv.widget
 
         // Hide the warning for non-premium users if the user does have premium.
         this.container.querySelector(".non-premium-mute-warning").hidden = window.global_data.premium;
-
-        this.visible = false;
     }
 
     visibility_changed()
