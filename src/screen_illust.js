@@ -5,7 +5,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
 {
     constructor(options)
     {
-        super({...options, template: `
+        super({...options, visible: false, template: `
             <div class="screen screen-illust-container">
                 <!-- Mouse movement is detected inside mouse-hidden-box.  Anything outside of it will
                      be unaffected by mouse hiding. -->
@@ -168,6 +168,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
     {
         this._active = active;
         await super.set_active(active);
+        this.visible = active;
 
         // If we have a viewer, tell it if we're active.
         if(this.viewer != null)

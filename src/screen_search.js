@@ -663,6 +663,11 @@ ppixiv.screen_search = class extends ppixiv.screen
 
         await super.set_active(active);
         
+        // The search stays in the document while images are being viewed and we don't hide it,
+        // to allow transitions to happen over it.  Just set it inert, and screen_illust will
+        // cover us when it's active.
+        this.container.inert = !active;
+
         if(active)
         {
             console.log("Showing search, came from media ID:", old_media_id);

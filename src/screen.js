@@ -3,14 +3,6 @@
 // The base class for our main screens.
 ppixiv.screen = class extends ppixiv.widget
 {
-    constructor({...options})
-    {
-        super({
-            ...options,
-            visible: false,
-        });
-    }
-
     // Handle a key input.  This is only called while the screen is active.
     handle_onkeydown(e)
     {
@@ -22,10 +14,11 @@ ppixiv.screen = class extends ppixiv.widget
         return null;
     }
 
+    // The screen itself sets itself visible or not, since screen_search and screen_illust
+    // handle this differently.
     async set_active(active)
     {
-        // Show or hide the screen.
-        this.visible = active;
+        this.container.inert = !active;
 
         if(!active)
         {
