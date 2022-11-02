@@ -3481,10 +3481,12 @@ svg.heart-image .delete {
         }
     }
 
-.scroll
-{
-    display: flex;
-    flex-direction: row;
+    .scroll
+    {
+        // Put the page buttons and the page side-by-side.
+        display: flex;
+        flex-direction: row;
+    }
 
     // The section selector on the left side of the settings dialog:
     .sections {
@@ -3575,7 +3577,6 @@ svg.heart-image .delete {
             }
         }
     }
-}
 }
 
 .muted-tags-popup {

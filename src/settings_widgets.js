@@ -334,9 +334,13 @@ ppixiv.settings_widgets = {
                 });
             },
             link_tabs: () => {
-                return new link_tabs_popup({
+                let widget = new link_tabs_popup({
                     ...global_options,
                 });
+
+                // Tell the widget when it's no longer visible.
+                global_options.page_removed_signal.addEventListener("abort", () => { widget.visible = false; });
+                return widget;
             },
             enable_linked_tabs: () => {
                 return new menu_option_toggle_setting({
@@ -355,16 +359,26 @@ ppixiv.settings_widgets = {
                 });
             },
             muted_tags: () => {
-                return new muted_tags_popup({
+                let widget = new muted_tags_popup({
                     mute_type: "tag",
                     ...global_options,
                 });
+
+                // Tell the widget when it's no longer visible.
+                global_options.page_removed_signal.addEventListener("abort", () => { widget.visible = false; });
+
+                return widget;
             },
             muted_users: () => {
-                return new muted_tags_popup({
+                let widget = new muted_tags_popup({
                     mute_type: "user",
                     ...global_options,
                 });
+
+                // Tell the widget when it's no longer visible.
+                global_options.page_removed_signal.addEventListener("abort", () => { widget.visible = false; });
+
+                return widget;
             },
         };
     }
@@ -372,6 +386,15 @@ ppixiv.settings_widgets = {
 
 ppixiv.settings_dialog = class extends ppixiv.dialog_widget
 {
+    page_titles = {
+        thumbnail:  "Thumbnail options",
+        image:"Image viewing",
+        tag_muting: "Muted tags",
+        user_muting: "Muted users",
+        linked_tabs: "Linked tabs",
+        other: "Other",
+    }
+
     constructor({show_page="thumbnail", ...options}={})
     {
         super({
@@ -379,200 +402,256 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
             dialog_class: "settings-dialog",
             header: "Settings",
 
-        template: `
-            <div class=sections></div>
-            <div class=items></div>
-        `});
+            template: `
+                <div class=sections></div>
+                <div class=items></div>
+            `
+        });
 
-        this.pages = {};
-        this.page_buttons = new Map();
+        this.phone = helpers.is_phone;
+        helpers.set_class(this.container, "phone", this.phone);
+        this.page_buttons = {};
 
-        this.add_settings();
+        // If we're using a phone UI, we're showing items by opening a separate dialog.  The
+        // page contents block will be empty, so hide it to let the options center.
+        this.container.querySelector(".items").hidden = this.phone;
 
-        this.show_page(show_page);
+        this.add_pages();
+
+        // If we're not on the phone UI, show the default page.
+        show_page ??= "thumbnail";
+        if(!this.phone)
+            this.show_page(show_page);
     }
 
-    shutdown()
+    add_pages()
     {
-        super.shutdown();
+        this.create_page_button("thumbnail");
+        this.create_page_button("image");
 
-        this.visible = false;
-        this.container.remove();
+        if(!ppixiv.native)
+        {
+            this.create_page_button("tag_muting");
+            this.create_page_button("user_muting");
+        }
 
-        this.link_tabs.shutdown();
+        this.create_page_button("linked_tabs");
+        this.create_page_button("other");
     }
 
-    add_settings()
+    create_page_button(name)
     {
-        this.items = this.container.querySelector(".items");
+        let page_button = this.create_template({
+            html: helpers.create_box_link({
+                label: this.page_titles[name],
+                classes: ["settings-page-button"],
+            }),
+        });
+
+        page_button.addEventListener("click", (e) => {
+            this.show_page(name);
+        });
+        this.container.querySelector(".sections").appendChild(page_button);
+        this.page_buttons[name] = page_button;
+
+        return page_button;
+    }
+
+    show_page(name)
+    {
+        if(this.visible_page_name == name)
+            return;
+
+        // If we were showing another page, remove it.
+        if(this.visible_page != null)
+        {
+            // Tell widgets that they're being removed.
+            this.page_removed_signal.abort();
+            this.page_removed_signal = null;
+
+            helpers.set_class(this.page_buttons[this.visible_page_name], "selected", false);
+
+            this.visible_page.remove();
+            this.visible_page = null;
+        }
+
+        this.visible_page_name = name;
+
+        if(name != null)
+        {
+            this.visible_page = this.create_page(name);
+
+            helpers.set_class(this.page_buttons[this.visible_page_name], "selected", true);
+            if(this.visible_page && !this.phone)
+                this.header = this.page_titles[name];
+        }
+    }
+
+    create_page(name)
+    {
+        // If we're on a phone, create a dialog to show the page.  Otherwise, create the page in our
+        // items container.
+        let page_container;
+        if(this.phone)
+        {
+            let page_dialog = new settings_page_dialog({ header: this.page_titles[name] });
+            page_container = page_dialog.container.querySelector(".scroll");
+            page_container.classList.add("settings-page");
+
+            // Listen for the page dialog closing.
+            page_dialog.shutdown_signal.signal.addEventListener("abort", () => {
+                this.show_page(null);
+            });
+        } else {
+            page_container = this.create_template({name: "settings-page", html: `
+                <div class=settings-page></div>
+            `});
+
+            let items = this.container.querySelector(".items");
+            items.appendChild(page_container);
+        }
+
+        // Set settings-list if this page is a list of options, like the thumbnail options page.
+        // This class enables styling for these lists.  If it's another type of settings page
+        // with its own styling, this is disabled.
+        let is_settings_list = name != "tag_muting" && name != "user_muting";
+        if(is_settings_list)
+            page_container.classList.add("settings-list");
+
+        // This will be aborted when we remove the tab.
+        this.page_removed_signal = new AbortController();
 
         // Options that we pass to all menu_options:
         let global_options = {
-            container: this.items,
             parent: this,
             classes: ["settings-row"],
+            container: page_container,
+            page_removed_signal: this.page_removed_signal.signal,
 
             // Share our shutdown signal with the widgets, so their event listeners will be
             // shut down when we shut down.
             shutdown_signal: this.shutdown_signal,
         };
 
+        // This gives us a dictionary of functions we can use to create each settings widget.
         let settings_widgets = ppixiv.settings_widgets.create({ global_options });
 
-        this.create_page("thumbnail", "Thumbnail options", global_options, { settings_list: true });
+        let pages = {
+            thumbnail: () =>
+            {
+                settings_widgets.thumbnail_size();
+                if(!ppixiv.native)
+                    settings_widgets.manga_thumbnail_size();
+                if(!ppixiv.mobile)
+                {
+                    settings_widgets.disable_thumbnail_panning();
+                    settings_widgets.disable_thumbnail_zooming();
+                    settings_widgets.quick_view();
+                    settings_widgets.ui_on_hover();
+                }
+                
+                if(!ppixiv.native)
+                    settings_widgets.expand_manga_posts();
+            },
+            image: () => {
+                settings_widgets.auto_pan();
+                settings_widgets.auto_pan_speed();
+                settings_widgets.slideshow_speed();
+                settings_widgets.slideshow_default_animation();
+                if(!ppixiv.native) // native mode doesn't support manga pages
+                    settings_widgets.slideshow_skips_manga();
+                
+                settings_widgets.view_mode();
+                if(!ppixiv.mobile)
+                {
+                    settings_widgets.invert_scrolling();
+                    settings_widgets.no_hide_cursor();
+                }
+            },
 
-        settings_widgets.thumbnail_size();
-        if(!ppixiv.native)
-            settings_widgets.manga_thumbnail_size();
-        if(!ppixiv.mobile)
-        {
-            settings_widgets.disable_thumbnail_panning();
-            settings_widgets.disable_thumbnail_zooming();
-            settings_widgets.quick_view();
-            settings_widgets.ui_on_hover();
-        }
+            tag_muting: () => {
+                settings_widgets.muted_tags();
+            },
+
+            user_muting: () => {
+                settings_widgets.muted_users();
+            },
+
+            linked_tabs: () => {
+                settings_widgets.link_tabs({visible: false});
+                settings_widgets.enable_linked_tabs();
+                settings_widgets.unlink_all_tabs();
+            },
+
+            other: () => {
+                settings_widgets.disable_translations();
+
+                if(!ppixiv.native)
+                    settings_widgets.disabled_by_default();
+                    
+                if(!ppixiv.mobile)
+                {
+                    // Firefox's contextmenu behavior is broken, so hide this option.
+                    if(navigator.userAgent.indexOf("Firefox/") == -1)
+                        settings_widgets.invert_popup_hotkey();
         
-        if(!ppixiv.native)
-            settings_widgets.expand_manga_posts();
-
-        this.create_page("image", "Image viewing", global_options, { settings_list: true });
-        settings_widgets.auto_pan();
-        settings_widgets.auto_pan_speed();
-        settings_widgets.slideshow_speed();
-        settings_widgets.slideshow_default_animation();
-        if(!ppixiv.native) // native mode doesn't support manga pages
-            settings_widgets.slideshow_skips_manga();
+                    settings_widgets.ctrl_opens_popup();
+                }
         
-        settings_widgets.view_mode();
-        if(!ppixiv.mobile)
-        {
-            settings_widgets.invert_scrolling();
-            settings_widgets.no_hide_cursor();
-        }
+                // settings_widgets.theme();
+                settings_widgets.bookmark_privately_by_default();
+                settings_widgets.limit_slideshow_framerate();
         
-        if(!ppixiv.native)
-        {
-            this.create_page("tag_muting", "Muted tags", global_options);
-            this.muted_tags = settings_widgets.muted_tags();
+                // Chrome supports showOpenFilePicker, but Firefox doesn't.  That API has been around in
+                // Chrome for a year and a half, so I haven't implemented an alternative for Firefox.
+                if(!ppixiv.native && window.showOpenFilePicker != null)
+                    settings_widgets.import_extra_data();
+        
+                settings_widgets.stage_slideshow();
+        
+                // Hidden for now (not very useful)
+                // settings_widgets.no_recent_history();
+            },
+        };
 
-            this.create_page("user_muting", "Muted users", global_options);
-            this.muted_users = settings_widgets.muted_users();
+        let create_page = pages[name];
+        if(create_page == null)
+        {
+            console.error(`Invalid settings page name: ${name}`);
+            return;
         }
 
-        this.create_page("linked_tabs", "Linked tabs", global_options, { settings_list: true });
-        this.link_tabs = settings_widgets.link_tabs({visible: false});
-        settings_widgets.enable_linked_tabs();
-        settings_widgets.unlink_all_tabs();
-
-        this.create_page("other", "Other", global_options, { settings_list: true });
-        settings_widgets.disable_translations();
-
-        if(!ppixiv.native)
-            settings_widgets.disabled_by_default();
-            
-        if(!ppixiv.mobile)
-        {
-            // Firefox's contextmenu behavior is broken, so hide this option.
-            if(navigator.userAgent.indexOf("Firefox/") == -1)
-                settings_widgets.invert_popup_hotkey();
-
-            settings_widgets.ctrl_opens_popup();
-        }
-
-        // settings_widgets.theme();
-        settings_widgets.bookmark_privately_by_default();
-        settings_widgets.limit_slideshow_framerate();
-
-        // Chrome supports showOpenFilePicker, but Firefox doesn't.  That API has been around in
-        // Chrome for a year and a half, so I haven't implemented an alternative for Firefox.
-        if(!ppixiv.native && window.showOpenFilePicker != null)
-            settings_widgets.import_extra_data();
-
-        settings_widgets.stage_slideshow();
-
-        // Hidden for now (not very useful)
-        // settings_widgets.no_recent_history();
-
+        create_page();
+        
         // Add allow-wrap to all top-level box links that we just created, so the
         // settings menu scales better.  Don't recurse into nested buttons.
-        for(let box_link of this.items.querySelectorAll(".settings-page > .box-link"))
+        for(let box_link of page_container.querySelectorAll(".settings-page > .box-link"))
             box_link.classList.add("allow-wrap");
+
+        return page_container;
     }
 
-    create_page(id, title, global_options, {settings_list=false}={})
+    shutdown()
     {
-        let page = this.create_template({name: "settings-page", html: `
-            <div class=settings-page>
-            </div>
-        `});
+        super.shutdown();
 
-        // If settings_list is true, this page is a list of options, like the thumbnail options
-        // page.  This class enables styling for these lists.  If it's another type of settings
-        // page with its own styling, this is disabled.
-        if(settings_list)
-            page.classList.add("settings-list");
+        // Shut down the page that was visible when we were closed.
+        if(this.page_removed_signal)
+            this.page_removed_signal.abort();
+    }
+};
 
-        this.items.appendChild(page);
-        global_options.container = page;
-
-        let page_button = this.create_template({
-            html: helpers.create_box_link({
-                label: title,
-                classes: ["settings-page-button"],
-            }),
+// This is used when we're on the phone UI to show a single settings page.
+ppixiv.settings_page_dialog = class extends ppixiv.dialog_widget
+{
+    constructor({...options}={})
+    {
+        super({
+            ...options,
+            dialog_class: "settings-dialog",
+            classes: [],
+            template: `
+            `
         });
-
-        page.hidden = true;
-        page_button.addEventListener("click", (e) => {
-            this.show_page(id);
-        });
-        this.container.querySelector(".sections").appendChild(page_button);
-
-        this.pages[id] = {
-            page,
-            page_button,
-            title,
-        };
-        this.page_buttons.set(page, page_button);
-        if(this.pages.length == 1)
-            this.show_page(page);
-
-        return page;
-    }
-
-    show_page(id)
-    {
-        if(this.visible_page != null)
-        {
-            helpers.set_class(this.visible_page.page_button, "selected", false);
-            this.visible_page.page.hidden = true;
-        }
-
-        this.visible_page = this.pages[id];
-        this.visible_page.page.hidden = false;
-        
-        helpers.set_class(this.visible_page.page_button, "selected", true);
-        if(this.visible_page && !this.phone)
-            this.header = this.visible_page.title;
-
-        this.refresh();
-    }
-
-    refresh()
-    {
-        this.link_tabs.visible = this.visible && this.visible_page == this.pages.linked_tabs;
-        if(this.muted_tags)
-            this.muted_tags.visible = this.visible && this.visible_page == this.pages.tag_muting;
-        if(this.muted_users)
-            this.muted_users.visible = this.visible && this.visible_page == this.pages.user_muting;
-    }
-
-    visibility_changed()
-    {
-        super.visibility_changed();
-
-        // Note that we need to refresh even if we're not visible, since we need to tell things
-        // like this.link_tabs that they're no longer visible.
-        this.refresh();
     }
 };

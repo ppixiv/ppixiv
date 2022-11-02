@@ -1521,6 +1521,16 @@ ppixiv.helpers = {
 
         return false;
     },
+
+    // Return true if the screen is small enough for us to treat this as a phone.
+    //
+    // This is used for things like switching dialogs from a floating style to a fullscreen
+    // style.
+    get is_phone()
+    {
+        // For now we just use an arbitrary threshold.
+        return Math.min(window.innerWidth, window.innerHeight) < 500;
+    },
     
     // If we're in VVbrowser, return the host object implemented in VVbrowserInterface.cpp.  Otherwise,
     // return null.
