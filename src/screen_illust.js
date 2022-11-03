@@ -7,8 +7,8 @@ ppixiv.screen_illust = class extends ppixiv.screen
     {
         super({...options, visible: false, template: `
             <div class="screen screen-illust-container">
-                <!-- Mouse movement is detected inside mouse-hidden-box.  Anything outside of it will
-                     be unaffected by mouse hiding. -->
+                <!-- This holds our views: the current view, and the neighbor view if we're transitioning
+                     between them. -->
                 <div class="view-container mouse-hidden-box" data-context-menu-target></div>
 
                 <div class=page-change-indicator data-icon=last-image>
@@ -326,18 +326,44 @@ ppixiv.screen_illust = class extends ppixiv.screen
         else
             viewer_class = viewer_images;
 
-        // If we already have a viewer, only recreate it if we need a different type.
-        // Reusing the same viewer when switching images helps prevent flicker.
-        if(this.viewer && !(this.viewer instanceof viewer_class))
-            this.remove_viewer();
-
-        if(this.viewer == null)
+        // If we already have an old viewer, then we loaded an image, and then navigated again before
+        // the new image was displayed.  Discard the new image and keep the old one, since it's what's
+        // being displayed.
+        if(this.old_viewer && this.viewer)
         {
-            this.viewer = new viewer_class({
-                container: this.view_container,
-                manga_page_bar: this.ui.manga_page_bar,
-            });
+            this.viewer.shutdown();
+            this.viewer = null;
         }
+        else
+            this.old_viewer = this.viewer;
+
+        let new_viewer = this.viewer = new viewer_class({
+            container: this.view_container,
+
+            // Insert the new viewer at the beginning, underneath any existing view.
+            container_position: "afterbegin",
+            manga_page_bar: this.ui.manga_page_bar,
+            onready: async() => {
+                // Await once in case this is called synchronously.
+                await helpers.sleep(0);
+
+                // Allow this to be called multiple times.
+                if(this.old_viewer == null)
+                    return;
+
+                // The new viewer is displaying an image, so we can remove the old viewer now.
+                //
+                // If we're not the main viewer anymor, another one was created.  We'll do this when
+                // its onready is called.
+                if(this.viewer != new_viewer)
+                    return;
+
+                this.old_viewer.shutdown();
+                this.old_viewer = null;
+            },
+        });
+
+        this.viewer = new_viewer;
 
         let slideshow = helpers.args.location.hash.get("slideshow");
 
@@ -417,7 +443,6 @@ ppixiv.screen_illust = class extends ppixiv.screen
         if(this.viewer != null)
         {
             this.viewer.shutdown();
-            this.viewer.container.remove();
             this.viewer = null;
         }
     }

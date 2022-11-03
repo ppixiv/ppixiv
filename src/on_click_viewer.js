@@ -162,8 +162,8 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         // leave the position alone.
         restore_position,
 
-        // This callback will be run once an image has actually been displayed.
-        ondisplayed,
+        // This callback will be run once we've restored history.
+        onrestoredhistory,
 
         // If set, we're in slideshow mode.  We'll always start an animation, and image
         // navigation will be disabled.  This can be null, "slideshow", or "loop".
@@ -177,6 +177,10 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
 
         // If set, this is a pan created by PanEditor.
         pan=null,
+
+        // This will be called once we have somethign displayed, and any previous image
+        // can be removed without flicker.
+        onready=() => { },
     }={}) =>
     {
         // When quick view displays an image on mousedown, we want to see the mousedown too
@@ -190,6 +194,7 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         if(url == null && preview_url == null)
         {
             this.remove_images();
+            onready();
             return;
         }
 
@@ -301,6 +306,9 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         // If the main image is already ready, show it.  Otherwise, show the preview image.
         this.set_displayed_image(img_ready? "main":"preview");
 
+        // Let our caller know that we're showing something.
+        onready();
+
         // See if we have an animation to run.
         this.refresh_animation();
 
@@ -321,11 +329,9 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
 
         this.reposition();
 
-        // Let the caller know that we've displayed an image.  (We actually haven't since that
-        // happens just below, but this is only used to let viewer_images know that history
-        // has been restored.)
-        if(ondisplayed)
-            ondisplayed();
+        // Let the caller know that we've restored history.
+        if(onrestoredhistory)
+            onrestoredhistory();
 
         // If the main image is already being displayed, we're done.
         if(img_ready)

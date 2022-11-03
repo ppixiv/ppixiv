@@ -115,10 +115,9 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer_video_base
         this.refresh_focus();
     }
 
-    // Undo load().
-    unload()
+    shutdown()
     {
-        super.unload();
+        super.shutdown();
 
         // Cancel the player's download and remove event listeners.
         if(this.abort_controller)

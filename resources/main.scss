@@ -395,6 +395,11 @@ input, textarea, [contenteditable] {
         user-select: none;
         -webkit-user-select: none;
         cursor: pointer;
+
+        .viewer {
+            position: absolute;
+            inset: 0;
+        }
     }
 }
 

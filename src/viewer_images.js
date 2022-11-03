@@ -4,17 +4,16 @@
 // either a single image or navigate between an image sequence.
 ppixiv.viewer_images = class extends ppixiv.viewer
 {
-    constructor(options)
+    constructor({ onready, ...options })
     {
         super({...options, template: `
-            <div class=viewer-images>
+            <div class="viewer viewer-images">
             </div>
         `});
 
         this.manga_page_bar = options.manga_page_bar;
         this.restore_history = false;
-
-        this.load = new SentinelGuard(this.load, this);
+        this.onready = onready;
 
         let image_viewer_class = ppixiv.mobile? image_viewer_mobile:image_viewer_desktop;
 
@@ -48,7 +47,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
             return helpers.parse_media_id(this.media_id).page;
     }
 
-    async load(signal,
+    async load(
         media_id, {
             restore_history=false,
             slideshow=false,
@@ -65,68 +64,61 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         this.image_editor.set_media_id(this.media_id);
 
         // If full info is already loaded, use it.  We don't need to go async at all in this case.
-        let illust_data = ppixiv.media_cache.get_media_info_sync(this.media_id);
-        if(illust_data)
+        this.illust_data = ppixiv.media_cache.get_media_info_sync(this.media_id);
+        if(this.illust_data)
         {
-            this._update_from_illust_data(illust_data);
+            this.refresh_from_illust_data();
             return;
         }
 
         // We don't have full info yet.  See if we have partial info.  If we do, we can use it
         // to set up the viewer immediately while we wait for full info to load.  This lets us
         // display the preview image if possible and not flash a black screen.
-        illust_data = ppixiv.media_cache.get_media_info_sync(this.media_id, { full: false });
-        if(illust_data)
+        this.illust_data = ppixiv.media_cache.get_media_info_sync(this.media_id, { full: false });
+        if(this.illust_data && this._page == 0)
         {
-            this.illust_data = illust_data;
-
             // We got partial info, which only gives us the image dimensions for page 1.
-            let extra_data = ppixiv.media_cache.get_extra_data(illust_data, this.media_id);
-            this.images = [{
-                preview_url: illust_data.previewUrls[0],
-                width: illust_data.width,
-                height: illust_data.height,
+            let extra_data = ppixiv.media_cache.get_extra_data(this.illust_data, this.media_id);
+            this.image = {
+                preview_url: this.illust_data.previewUrls[0],
+                width: this.illust_data.width,
+                height: this.illust_data.height,
                 crop: extra_data?.crop,
                 pan: extra_data?.pan,
-            }];
+            };
 
             this.refresh();
         }
 
         // Load full info.
-        illust_data = await media_cache.get_media_info(this.media_id);
+        this.illust_data = await media_cache.get_media_info(this.media_id);
 
-        // Stop if we were called again while we were waiting.
-        signal.check();
+        // Stop if we were shutdown while we were async.
+        if(this.shutdown_signal.signal.aborted)
+            return;
 
-        this._update_from_illust_data(illust_data);
-    }
-
-    _update_from_illust_data(illust_data)
-    {
-        this.illust_data = illust_data;
         this.refresh_from_illust_data();
     }
 
+    // Update this.image with as much information as we have so far and refresh the image.
     refresh_from_illust_data()
     {
         if(this.illust_data == null)
             return;
 
-        this.images = [];
-        for(let [page, manga_page] of Object.entries(this.illust_data.mangaPages))
-        {
-            let extra_data = ppixiv.media_cache.get_extra_data(this.illust_data, this.media_id, page);
-            this.images.push({
-                url: manga_page.urls.original,
-                preview_url: manga_page.urls.small,
-                inpaint_url: manga_page.urls.inpaint,
-                width: manga_page.width,
-                height: manga_page.height,
-                crop: extra_data?.crop,
-                pan: extra_data?.pan,
-            });
-        }
+        let page = this._page;
+        let manga_page = this.illust_data.mangaPages[page];
+        let extra_data = ppixiv.media_cache.get_extra_data(this.illust_data, this.media_id, page);
+        
+        this.image = {
+            url: manga_page.urls.original,
+            preview_url: manga_page.urls.small,
+            inpaint_url: manga_page.urls.inpaint,
+            width: manga_page.width,
+            height: manga_page.height,
+            crop: extra_data?.crop,
+            pan: extra_data?.pan,
+        };
 
         this.refresh();
     }
@@ -139,15 +131,13 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         if(illust_data == null)
             return;
 
-        this._update_from_illust_data(illust_data);
+        this.illust_data = illust_data;
+        this.refresh_from_illust_data();
     }
 
     shutdown()
     {
         super.shutdown();
-
-        // If this.load() is running, cancel it.
-        this.load.abort();
 
         if(this.on_click_viewer)
         {
@@ -160,24 +150,18 @@ ppixiv.viewer_images = class extends ppixiv.viewer
             this.image_editor.shutdown();
             this.image_editor = null;
         }
+
+        this.image = null;
     }
 
     refresh()
     {
-        // If we don't have this.images, load() hasn't set it up yet.
-        if(this.images == null)
+        // If we don't have this.image, load() hasn't set it up yet.
+        if(this.image == null)
             return;
-
-        // We should always have an entry for each page.
-        let current_image = this.images[this._page];
-        if(current_image == null)
-        {
-            console.log(`No info for page ${this._page} yet`);
-            this.on_click_viewer.set_new_image();
-            return;
-        }
 
         // Create the new image and pass it to the viewer.
+        let current_image = this.image;
         this.on_click_viewer.set_new_image({
             media_id: this.media_id,
             url: current_image.url,
@@ -192,7 +176,11 @@ ppixiv.viewer_images = class extends ppixiv.viewer
             slideshow: this._slideshow,
             onnextimage: this._onnextimage,
 
-            ondisplayed: (e) => {
+            onready: () => {
+                this.onready();
+            },
+
+            onrestoredhistory: (e) => {
                 // Clear restore_history once the image is actually restored, since we
                 // only want to do this the first time.  We don't do this immediately
                 // so we don't skip it if a set_new_image call is interrupted when we
@@ -205,10 +193,10 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         // If we have a manga_page_bar, update to show the current page.
         if(this.manga_page_bar)
         {
-            if(this.images.length == 1)
+            if(this.illust_data.pageCount == 1)
                 this.manga_page_bar.set(null);
             else
-                this.manga_page_bar.set((this._page+1) / this.images.length);
+                this.manga_page_bar.set((this._page+1) / this.illust_data.pageCount);
         }
     }
 

@@ -3,10 +3,10 @@
 // This is used to display a muted image.
 ppixiv.viewer_muted = class extends ppixiv.viewer
 {
-    constructor(options)
+    constructor({onready, ...options})
     {
         super({...options, template: `
-            <div class=mute-display>
+            <div class="viewer mute-display">
                 <img class=muted-image>
                 <div class=muted-text>
                     <Span>Muted:</span>
@@ -17,6 +17,9 @@ ppixiv.viewer_muted = class extends ppixiv.viewer
                 </div>
             </div>
         `});
+
+        // Just fire onready immediately for this viewer.
+        onready();
     }
 
     async load(media_id, {

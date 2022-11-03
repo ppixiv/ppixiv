@@ -10,6 +10,7 @@ ppixiv.widget = class
         parent=null,
         visible=true,
         shutdown_signal=null,
+        container_position="beforeend",
         ...options}={})
     {
         this.options = options;
@@ -25,7 +26,7 @@ ppixiv.widget = class
             console.assert(contents == null);
             this.container = this.create_template({html: template});
             if(container != null)
-                container.appendChild(this.container);
+                container.insertAdjacentElement(container_position, this.container);
         }
         else
         {
@@ -93,10 +94,10 @@ ppixiv.widget = class
 
     shutdown()
     {
-        // Signal shutdown_signal to remove event listeners.
-        console.assert(this.shutdown_signal != null);
+        // Signal shutdown_signal to remove event listeners.  We should only be shut down
+        // once, so shutdown_signal shouldn't already be signalled.
+        console.assert(!this.shutdown_signal.signal.aborted);
         this.shutdown_signal.abort();
-        this.shutdown_signal = null;
 
         this.container.remove();
     }

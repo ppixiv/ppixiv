@@ -17,6 +17,8 @@ ppixiv.viewer = class extends widget
     {
         this.was_shutdown = true;
 
+        this.container.remove();
+
         super.shutdown();
     }
 

@@ -2,10 +2,10 @@
 
 ppixiv.viewer_video_base = class extends ppixiv.viewer
 {
-    constructor({...options})
+    constructor({onready, ...options})
     {
         super({...options, template: `
-            <div class=viewer-video>
+            <div class="viewer viewer-video">
                 <div class=video-container></div>
                 <div class=video-ui-container></div>
             </div>
@@ -23,7 +23,8 @@ ppixiv.viewer_video_base = class extends ppixiv.viewer
         this.seek_bar.set_current_time(0);
         this.seek_bar.set_callback(this.seek_callback.bind(this));
 
-
+        // XXX: fire this after previews if possible
+        onready();
     }
 
     async load(media_id, {
@@ -31,8 +32,6 @@ ppixiv.viewer_video_base = class extends ppixiv.viewer
         onnextimage=null,
     }={})
     {
-        this.unload();
-
         let load_sentinel = this._load_sentinel = new Object();
 
         this.illust_data = await ppixiv.media_cache.get_media_info(media_id);
@@ -40,15 +39,9 @@ ppixiv.viewer_video_base = class extends ppixiv.viewer
         return load_sentinel;
     }
 
-    // Undo load().  This doesn't shut down the viewer and load() can be called again.
-    unload()
-    {
-        this.illust_data = null;
-    }
-
     shutdown()
     {
-        this.unload();
+        this.illust_data = null;
 
         // If this.load() is running, cancel it.
         this._load_sentinel = null;
@@ -178,10 +171,9 @@ ppixiv.viewer_video = class extends ppixiv.viewer_video_base
         this.refresh_focus();
     }
 
-    // Undo load().
-    unload()
+    shutdown()
     {
-        super.unload();
+        super.shutdown();
 
         if(this.source)
         {
