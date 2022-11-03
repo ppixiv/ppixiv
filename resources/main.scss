@@ -1147,7 +1147,7 @@ body.hide-r18g .r18g { display: none; }
     display: flex;
     flex-direction: row;
     align-items: center;
-    padding-top: 1em;
+    padding-top: calc(max(1em, env(safe-area-inset-top)));
     padding-bottom: .5em;
     z-index: 1;
 
