@@ -648,7 +648,7 @@ input, textarea, [contenteditable] {
 .search-view > .no-results {
     width: 100%;
     position: fixed;
-    bottom: 0px;
+    bottom: env(safe-area-inset-bottom);
     display: flex;
     justify-content: center;    
 
