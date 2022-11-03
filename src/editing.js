@@ -7,10 +7,16 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
         // image box.
         overlay_container,
         onvisibilitychanged,
+        visible=null,
         ...options
     })
     {
+        // Set our default visibility to the image_editing setting.
+        if(visible == null)
+            visible = settings.get("image_editing");
+
         super({...options,
+            visible,
             template: `
             <div class=image-editor>
                 <div class="image-editor-buttons top">
