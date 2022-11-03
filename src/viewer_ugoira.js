@@ -1,42 +1,27 @@
 "use strict";
 
-ppixiv.viewer_ugoira = class extends ppixiv.viewer
+
+
+
+
+
+
+ppixiv.viewer_ugoira = class extends ppixiv.viewer_video_base
 {
     constructor({...options})
     {
-        super({...options, template: `
-            <div class=viewer-ugoira>
-                <div class=video-container></div>
-                <div class=video-ui-container></div>
-            </div>
-        `});
+        super({...options});
         
-        this.refresh_focus = this.refresh_focus.bind(this);
-
-        // Create the video UI.
-        this.video_ui = new ppixiv.video_ui({
-            container: this.container.querySelector(".video-ui-container"),
-            parent: this,
-        });
-
-        this.load = new SentinelGuard(this.load, this);
-
-        this.seek_bar = this.video_ui.seek_bar;
-        this.seek_bar.set_current_time(0);
-        this.seek_bar.set_callback(this.seek_callback);
-
-        this.video_container = this.container.querySelector(".video-container");
-
         // Create a canvas to render into.
-        this.canvas = document.createElement("canvas");
-        this.canvas.hidden = true;
-        this.canvas.className = "filtering";
-        this.canvas.style.width = "100%";
-        this.canvas.style.height = "100%";
-        this.canvas.style.objectFit = "contain";
-        this.video_container.appendChild(this.canvas);
+        this.video = document.createElement("canvas");
+        this.video.hidden = true;
+        this.video.className = "filtering";
+        this.video.style.width = "100%";
+        this.video.style.height = "100%";
+        this.video.style.objectFit = "contain";
+        this.video_container.appendChild(this.video);
 
-        this.canvas.addEventListener("click", this.clicked_canvas, false);
+        this.video.addEventListener("click", this.clicked_video.bind(this));
 
         // True if we want to play if the window has focus.  We always pause when backgrounded.
         let args = helpers.args.location;
@@ -46,17 +31,17 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
         // from this.want_playing so we stay paused after seeking if we were paused at the start.
         this.seeking = false;
 
-        window.addEventListener("visibilitychange", this.refresh_focus, { signal: this.shutdown_signal.signal });
+        window.addEventListener("visibilitychange", this.refresh_focus.bind(this), { signal: this.shutdown_signal.signal });
     }
 
     get bottom_reservation() { return "100px"; }
 
-    load = async(signal, media_id, {
+    async load(media_id, {
         slideshow=false,
         onnextimage=null,
-    }={}) =>
+    }={})
     {
-        this.unload();
+        let load_sentinel = await super.load(media_id, { slideshow, onnextimage });
         
         // Show a static image while we're waiting for the video to load, like viewer_images.
         //
@@ -77,13 +62,15 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
             // Load early data to show the low-res preview quickly.  This is a simpler version of
             // what viewer_images does.
             let early_illust_data = await media_cache.get_media_info(media_id, { full: false });
-            signal.check();
+            if(load_sentinel !== this._load_sentinel)
+                return;
             this.create_preview_images(early_illust_data.previewUrls[0], null);
         }
 
         // Load full data.
         this.illust_data = await ppixiv.media_cache.get_media_info(media_id);
-        signal.check();
+        if(load_sentinel !== this._load_sentinel)
+            return;
 
         // Now show the poster if we're local, or change to the original image on Pixiv.
         if(local)
@@ -115,7 +102,7 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
             mime_type: this.illust_data.ugoiraMetadata?.mime_type,
             signal: this.abort_controller.signal,
             autosize: true,
-            canvas: this.canvas,
+            canvas: this.video,
             loop: !slideshow,
             progress: this.progress,
             onfinished: onnextimage,
@@ -131,6 +118,8 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
     // Undo load().
     unload()
     {
+        super.unload();
+
         // Cancel the player's download and remove event listeners.
         if(this.abort_controller)
         {
@@ -141,7 +130,7 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
         // Send a finished progress callback if we were still loading.
         this.progress(null);
 
-        this.canvas.hidden = true;
+        this.video.hidden = true;
 
         if(this.player)
         {
@@ -159,31 +148,6 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
             this.preview_img2.remove();
             this.preview_img2 = null;
         }
-    }
-
-    // Undo load() and the constructor.
-    shutdown()
-    {
-        this.unload();
-
-        super.shutdown();
-
-        // If this.load() is running, cancel it.
-        this.load.abort();
-
-        if(this.video_ui)
-        {
-            this.video_ui.shutdown();
-            this.video_ui = null;
-        }
-
-        if(this.seek_bar)
-        {
-            this.seek_bar.set_callback(null);
-            this.seek_bar = null;
-        }
-
-        this.canvas.remove();
     }
 
     async create_preview_images(url1, url2)
@@ -218,7 +182,7 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
 
             // Allow clicking the previews too, so if you click to pause the video before it has enough
             // data to start playing, it'll still toggle to paused.
-            img1.addEventListener("click", this.clicked_canvas, false);
+            img1.addEventListener("click", this.clicked_video.bind(this));
         }
 
         if(url2)
@@ -231,7 +195,7 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
             img2.style.objectFit = "contain";
             img2.src = url2;
             this.video_container.appendChild(img2);
-            img2.addEventListener("click", this.clicked_canvas, false);
+            img2.addEventListener("click", this.clicked_video.bind(this));
             this.preview_img2 = img2;
 
             // Wait for the high-res image to finish loading.
@@ -273,7 +237,7 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
             this.preview_img1.hidden = true;
         if(this.preview_img2)
             this.preview_img2.hidden = true;
-        this.canvas.hidden = false;
+        this.video.hidden = false;
 
         if(this.seek_bar)
         {
@@ -385,6 +349,8 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
 
     refresh_focus()
     {
+        super.refresh_focus();
+
         if(this.player == null)
             return;
 
@@ -395,20 +361,11 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer
             this.player.pause(); 
     };
 
-    clicked_canvas = (e) =>
-    {
-        // Disable pause on click on mobile, since it conflicts with other UI.
-        if(ppixiv.mobile)
-            return;
-            
-        this.set_want_playing(!this.want_playing);
-        this.refresh_focus();
-    }
-
     // This is called when the user interacts with the seek bar.
-    seek_callback = (pause, seconds) =>
+    seek_callback(pause, seconds)
     {
-        this.seeking = pause;
+        super.seek_callback(pause, seconds);
+
         this.refresh_focus();
 
         if(seconds != null)

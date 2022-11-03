@@ -1,12 +1,6 @@
 "use strict";
 
-// A player for video files.
-//
-// This is only used for local files, since Pixiv doesn't have any video support.
-// See viewer_ugoira for Pixiv's jank animation format.
-//
-// We don't show buffering.  This is only used for viewing local files.
-ppixiv.viewer_video = class extends ppixiv.viewer
+ppixiv.viewer_video_base = class extends ppixiv.viewer
 {
     constructor({...options})
     {
@@ -16,7 +10,9 @@ ppixiv.viewer_video = class extends ppixiv.viewer
                 <div class=video-ui-container></div>
             </div>
         `});
-        
+
+        this.video_container = this.container.querySelector(".video-container");
+
         // Create the video UI.
         this.video_ui = new ppixiv.video_ui({
             container: this.container.querySelector(".video-ui-container"),
@@ -25,8 +21,88 @@ ppixiv.viewer_video = class extends ppixiv.viewer
 
         this.seek_bar = this.video_ui.seek_bar;
         this.seek_bar.set_current_time(0);
-        this.seek_bar.set_callback(this.seek_callback);
+        this.seek_bar.set_callback(this.seek_callback.bind(this));
 
+
+    }
+
+    async load(media_id, {
+        slideshow=false,
+        onnextimage=null,
+    }={})
+    {
+        this.unload();
+
+        let load_sentinel = this._load_sentinel = new Object();
+
+        this.illust_data = await ppixiv.media_cache.get_media_info(media_id);
+
+        return load_sentinel;
+    }
+
+    // Undo load().  This doesn't shut down the viewer and load() can be called again.
+    unload()
+    {
+        this.illust_data = null;
+    }
+
+    shutdown()
+    {
+        this.unload();
+
+        // If this.load() is running, cancel it.
+        this._load_sentinel = null;
+
+        this.video.remove();
+
+        if(this.video_ui)
+        {
+            this.video_ui.shutdown();
+            this.video_ui = null;
+        }
+
+        if(this.seek_bar)
+        {
+            this.seek_bar.set_callback(null);
+            this.seek_bar = null;
+        }
+
+        super.shutdown();
+    }
+
+    refresh_focus()
+    {
+    }
+
+    clicked_video(e)
+    {
+        // Disable pause on click on mobile, since it conflicts with other UI.
+        if(ppixiv.mobile)
+            return;
+
+        this.set_want_playing(!this.want_playing);
+        this.refresh_focus();
+    }
+
+    // This is called when the user interacts with the seek bar.
+    seek_callback(pause, seconds)
+    {
+        this.seeking = pause;
+    }
+}
+
+// A player for video files.
+//
+// This is only used for local files, since Pixiv doesn't have any video support.
+// See viewer_ugoira for Pixiv's jank animation format.
+//
+// We don't show buffering.  This is only used for viewing local files.
+ppixiv.viewer_video = class extends ppixiv.viewer_video_base
+{
+    constructor({...options})
+    {
+        super({...options});
+        
         // Create a canvas to render into.
         this.video = document.createElement("video");
         this.video.loop = true;
@@ -47,12 +123,11 @@ ppixiv.viewer_video = class extends ppixiv.viewer
         this.video.style.height = "100%";
         this.video.style.display = "block";
 
-        this.video_container = this.container.querySelector(".video-container");
         this.video_container.appendChild(this.video);
 
         this.video.addEventListener("timeupdate", this.update_seek_bar);
         this.video.addEventListener("progress", this.update_seek_bar);
-        this.video_container.addEventListener("click", this.clicked_video);
+        this.video_container.addEventListener("click", this.clicked_video.bind(this));
 
         // In case we start PIP without playing first, switch the poster when PIP starts.
         this.video.addEventListener("enterpictureinpicture", (e) => { this.switch_poster_to_thumb(); });
@@ -71,9 +146,7 @@ ppixiv.viewer_video = class extends ppixiv.viewer
         onnextimage=null,
     }={})
     {
-        this.unload();
-
-        this.illust_data = await ppixiv.media_cache.get_media_info(media_id);
+        await super.load(media_id, { slideshow, onnextimage });
 
         // Remove the old source, if any, and create a new one.
         if(this.source)
@@ -108,7 +181,7 @@ ppixiv.viewer_video = class extends ppixiv.viewer
     // Undo load().
     unload()
     {
-        this.illust_data = null;
+        super.unload();
 
         if(this.source)
         {
@@ -121,28 +194,6 @@ ppixiv.viewer_video = class extends ppixiv.viewer
             this.player.pause(); 
             this.player = null;
         }
-    }
-
-    // Undo load() and the constructor.
-    shutdown()
-    {
-        this.unload();
-
-        super.shutdown();
-
-        if(this.video_ui)
-        {
-            this.video_ui.shutdown();
-            this.video_ui = null;
-        }
-
-        if(this.seek_bar)
-        {
-            this.seek_bar.set_callback(null);
-            this.seek_bar = null;
-        }
-
-        this.video.remove();
     }
 
     set active(active)
@@ -283,6 +334,8 @@ ppixiv.viewer_video = class extends ppixiv.viewer
 
     refresh_focus()
     {
+        super.refresh_focus();
+
         if(this.source == null)
             return;
 
@@ -293,19 +346,11 @@ ppixiv.viewer_video = class extends ppixiv.viewer
             this.video.pause(); 
     };
 
-    clicked_video = async(e) =>
-    {
-        if(ppixiv.mobile)
-            return;
-
-        this.set_want_playing(!this.want_playing);
-        this.refresh_focus();
-    }
-
     // This is called when the user interacts with the seek bar.
-    seek_callback = (pause, seconds) =>
+    seek_callback(pause, seconds)
     {
-        this.seeking = pause;
+        super.seek_callback(pause, seconds);
+
         this.refresh_focus();
 
         if(seconds != null)
