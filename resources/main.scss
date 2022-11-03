@@ -2556,6 +2556,7 @@ a.box-link, span.box-link
         --opacity: 1;
 
         pointer-events: none;
+        font-size: 75%;
         
         // --pointer-events is "auto" if elements should receive pointer events, or "none" if
         // we're hidden.  This is applied with pointer-events: var(--pointer-events) to the correct
