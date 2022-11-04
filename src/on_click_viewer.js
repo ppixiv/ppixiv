@@ -796,8 +796,8 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
     get onscreen_height() { return this.height * this._zoom_factor_current; }
 
     // The dimensions of the image viewport.  This can be 0 if the view is hidden.
-    get container_width() { return this.container.offsetWidth || 0; }
-    get container_height() { return this.container.offsetHeight || 0; }
+    get container_width() { return this.container.offsetWidth || 1; }
+    get container_height() { return this.container.offsetHeight || 1; }
 
     get current_zoom_pos()
     {
@@ -1016,6 +1016,12 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
             animation_mode = "auto-pan";
         else
             return { };
+
+        // Sanity check: this.container should always have a size.  If this is 0, the container
+        // isn't visible and we don't know anything about how big we are, so we can't set up
+        // the slideshow.  This is this.container_width below.
+        if(this.container.offsetHeight == 0)
+            console.warn("Image container has no size");
 
         let slideshow = new ppixiv.slideshow({
             // this.width/this.height are the size of the image at 1x zoom, which is to fit
