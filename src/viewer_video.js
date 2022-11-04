@@ -24,17 +24,14 @@ ppixiv.viewer_video_base = class extends ppixiv.viewer
         this.seek_bar.set_callback(this.seek_callback.bind(this));
 
         // XXX: fire this after previews if possible
-        onready();
+        this.ready.accept(true);
     }
 
-    async load(media_id, {
-        slideshow=false,
-        onnextimage=null,
-    }={})
+    async load()
     {
         let load_sentinel = this._load_sentinel = new Object();
 
-        this.illust_data = await ppixiv.media_cache.get_media_info(media_id);
+        this.illust_data = await ppixiv.media_cache.get_media_info(this.media_id);
 
         return load_sentinel;
     }

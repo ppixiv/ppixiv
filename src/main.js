@@ -474,7 +474,7 @@ ppixiv.MainController = class
     // Show an illustration by ID.
     //
     // This actually just sets the history URL.  We'll do the rest of the work in popstate.
-    show_media(media_id, {add_to_history=false, source="", ...options}={})
+    show_media(media_id, {add_to_history=false, ...options}={})
     {
         let args = this.get_media_url(media_id, options);
         helpers.navigate(args, { add_to_history });

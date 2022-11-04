@@ -517,6 +517,22 @@ ppixiv.helpers = {
         });
     },
 
+    // Return a Promise with accept() and reject() available on the promise itself.
+    //
+    // This removes encapsulation, but is useful when using a promise like a one-shot
+    // event where that isn't important.
+    make_promise()
+    {
+        let accept, reject;
+        let promise = new Promise((a, r) => {
+            accept = a;
+            reject = r;
+        });
+        promise.accept = accept;
+        promise.reject = reject;
+        return promise;
+    },
+
     // Like Promise.all, but takes a dictionary of {key: promise}, returning a
     // dictionary of {key: result}.
     async await_map(map)
@@ -1654,9 +1670,12 @@ ppixiv.helpers = {
     },
 
     // Return true if the given illust_data.tags contains the pixel art (ドット絵) tag.
-    tags_contain_dot(illust_data)
+    tags_contain_dot(tag_list)
     {
-        for(let tag of illust_data.tagList)
+        if(tag_list == null)
+            return false;
+
+        for(let tag of tag_list)
             if(tag.indexOf("ドット") != -1)
                 return true;
 
@@ -5522,8 +5541,12 @@ ppixiv.MobileIsolatedTapHandler = class
 // - Running animations at this framerate causes other problems, like hitches in thumbnail
 // animations and videos in unrelated windows freezing.  (Is Chrome still only tested with
 // 60Hz monitors?)
-// 
+//
 // Running the animation directly lets us control the framerate we actually update at.
+//
+// It also works around problems with iOS's implementation: pausing animations causes the
+// playback time to jump backwards, instead of synchronizing with the async timer.  This
+// causes DragImageChanger to jump around when drags are interrupted.
 // 
 // Running the animation directly is OK for us since the animation is usually the only thing
 // going on, and we're not trying to use this to drive a bunch of random animations.  
@@ -5540,6 +5563,7 @@ ppixiv.DirectAnimation = class
         // is broken and doesn't call overridden functions.
         this.animation = new Animation(effect);
         this._playState = "idle";
+        this.finished = helpers.make_promise();
     }
 
     get effect() { return this.animation.effect; }
@@ -5580,37 +5604,64 @@ ppixiv.DirectAnimation = class
         this.animation.commitStyles();
     }
 
+    commitStylesIfPossible()
+    {
+        try {
+            this.commitStyles();
+            return true;
+        } catch(e) {
+            console.error(e);
+            return false;
+        }        
+    }
+
     get playState()
     {
         return this._playState;
     }
 
+    get currentTime() { return this.animation.currentTime; }
+
     async _run_animation()
     {
+        this.animation.currentTime = this.animation.currentTime;
+
         let token = this._playToken;
         let last_update = Date.now();
         while(1)
         {
-            await helpers.vsync();
-
-            // Stop if the animation state changed while we were async.
-            if(token !== this._playToken)
-                return;
-
-            let now = Date.now();
-            let delta = now - last_update;
-
-            // If we're running faster than we want, wait another frame, giving a small error margin.
-            // If targetFramerate is null, just run every frame.
-            let target_framerate = settings.get("slideshow_framerate");
-            if(target_framerate != null)
+            let delta;
+            while(1)
             {
-                let target_delay = 1000/target_framerate;
-                if(delta*1.05 < target_delay)
-                    continue;
+                await helpers.vsync();
+
+                // Stop if the animation state changed while we were async.
+                if(token !== this._playToken)
+                    return;
+
+                let now = Date.now();
+                delta = now - last_update;
+
+                // If we're running faster than we want, wait another frame, giving a small error margin.
+                // If targetFramerate is null, just run every frame.
+                //
+                // This is a workaround for Chrome.  Don't do this on mobile, since there's much more
+                // rendering time jitter on mobile and this causes skips.
+                if(!ppixiv.mobile)
+                {
+                    let target_framerate = settings.get("slideshow_framerate");
+                    if(target_framerate != null)
+                    {
+                        let target_delay = 1000/target_framerate;
+                        if(delta*1.05 < target_delay)
+                            continue;
+                    }
+                }
+                
+                last_update = now;
+                break;
             }
 
-            last_update = now;
             delta *= this.animation.playbackRate;
 
             let new_current_time = this.animation.currentTime + delta;
@@ -5630,7 +5681,9 @@ ppixiv.DirectAnimation = class
             if(finished)
             {
                 this._playState = "finished";
-                this.onfinish();
+                this.finished.accept();
+                if(this.onfinish)
+                    this.onfinish();
                 break;
             }
         }

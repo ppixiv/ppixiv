@@ -1319,7 +1319,7 @@ ppixiv.search_view = class extends ppixiv.widget
 
             element.querySelector(".ugoira-icon").hidden = info.illustType != 2 && info.illustType != "video";
 
-            helpers.set_class(element, "dot", helpers.tags_contain_dot(info));
+            helpers.set_class(element, "dot", helpers.tags_contain_dot(info.tagList));
 
             // Set expanded-thumb if this is an expanded manga post.  This is also updated in
             // set_media_id_expanded.  Set the border to a random-ish value to try to make it

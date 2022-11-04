@@ -33,6 +33,22 @@ ppixiv.install_polyfills = function()
             };
         };
     }
+
+    // Add commitStylesIfPossible to Animation.
+    //
+    // Animation.commitStyles throws an exception in some cases.  This is almost never useful and
+    // it's a pain to have to wrap every call in an exception handler, so this converts it to a
+    // return value.
+    Animation.prototype.commitStylesIfPossible = function()
+    {
+        try {
+            this.commitStyles();
+            return true;
+        } catch(e) {
+            console.error(e);
+            return false;
+        }
+    }
 };
 
 // Install early polyfills.  These can be needed before other scripts run, so they're installed

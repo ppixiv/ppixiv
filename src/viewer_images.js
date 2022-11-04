@@ -4,7 +4,7 @@
 // either a single image or navigate between an image sequence.
 ppixiv.viewer_images = class extends ppixiv.viewer
 {
-    constructor({ onready, ...options })
+    constructor({ ...options })
     {
         super({...options, template: `
             <div class="viewer viewer-images">
@@ -12,8 +12,6 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         `});
 
         this.manga_page_bar = options.manga_page_bar;
-        this.restore_history = false;
-        this.onready = onready;
 
         let image_viewer_class = ppixiv.mobile? image_viewer_mobile:image_viewer_desktop;
 
@@ -39,24 +37,12 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         });
     }
 
-    get _page()
+    async load()
     {
-        if(this.media_id == null)
-            return 0;
-        else
-            return helpers.parse_media_id(this.media_id).page;
-    }
+        let { restore_history=false, slideshow=false, onnextimage=null } = this.options;
 
-    async load(
-        media_id, {
-            restore_history=false,
-            slideshow=false,
-            onnextimage=null,
-        }={})
-    {
         this.restore_history = restore_history;
 
-        this.media_id = media_id;
         this._slideshow = slideshow;
         this._onnextimage = onnextimage;
 
@@ -98,6 +84,14 @@ ppixiv.viewer_images = class extends ppixiv.viewer
             return;
 
         this.refresh_from_illust_data();
+    }
+
+    get _page()
+    {
+        if(this.media_id == null)
+            return 0;
+        else
+            return helpers.parse_media_id(this.media_id).page;
     }
 
     // Update this.image with as much information as we have so far and refresh the image.
@@ -177,7 +171,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
             onnextimage: this._onnextimage,
 
             onready: () => {
-                this.onready();
+                this.ready.accept(true);
             },
 
             onrestoredhistory: (e) => {

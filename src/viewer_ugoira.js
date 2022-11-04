@@ -36,12 +36,11 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer_video_base
 
     get bottom_reservation() { return "100px"; }
 
-    async load(media_id, {
-        slideshow=false,
-        onnextimage=null,
-    }={})
+    async load()
     {
-        let load_sentinel = await super.load(media_id, { slideshow, onnextimage });
+        let { slideshow=false, onnextimage=null } = this.options;
+
+        let load_sentinel = await super.load(this.media_id, { slideshow, onnextimage });
         
         // Show a static image while we're waiting for the video to load, like viewer_images.
         //
@@ -56,19 +55,19 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer_video_base
         // of the video.
         //
         // First, show the thumbnail if we're on Pixiv:
-        let local = helpers.is_media_id_local(media_id);
+        let local = helpers.is_media_id_local(this.media_id);
         if(!local)
         {
             // Load early data to show the low-res preview quickly.  This is a simpler version of
             // what viewer_images does.
-            let early_illust_data = await media_cache.get_media_info(media_id, { full: false });
+            let early_illust_data = await media_cache.get_media_info(this.media_id, { full: false });
             if(load_sentinel !== this._load_sentinel)
                 return;
             this.create_preview_images(early_illust_data.previewUrls[0], null);
         }
 
         // Load full data.
-        this.illust_data = await ppixiv.media_cache.get_media_info(media_id);
+        this.illust_data = await ppixiv.media_cache.get_media_info(this.media_id);
         if(load_sentinel !== this._load_sentinel)
             return;
 

@@ -31,7 +31,7 @@ source_files = [
     'src/ugoira_downloader_mjpeg.js',
     'src/viewer.js',
     'src/viewer_images.js',
-    'src/viewer_muted.js',
+    'src/viewer_error.js',
     'src/viewer_video.js',
     'src/viewer_ugoira.js',
     'src/zip_image_player.js',

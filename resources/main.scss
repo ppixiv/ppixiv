@@ -377,6 +377,9 @@ input, textarea, [contenteditable] {
 // The top-level container for screen_illust.  This sits on top of the search view, fills
 // the screen and clears the background to hide the search view.
 .screen-illust-container {
+    // The top-level container fills the screen completely.  This needs to be fixed and not
+    // absolute, so it doesn't scroll with the body, which is still scrolled to the search
+    // view's position.
     position: fixed;
     inset: 0;
 
@@ -387,7 +390,8 @@ input, textarea, [contenteditable] {
     // above the illust view.
     z-index: 1;
 
-    // The view container holds the actual viewer.
+    // The view container holds the actual viewers, and applies safe zones and the rounded
+    // edge effect if they're being used.
     .view-container {
         @include fullscreen();
         @include rounded-fullscreen();
@@ -403,9 +407,6 @@ input, textarea, [contenteditable] {
     }
 }
 
-// Note that styles on the image itself need to be duplicated here on .low-res-preview
-// and in ImageEditingOverlayContainer.  For some reason, custom elements prevent CSS
-// styles from propagating into them, which is a real hassle.
 .viewer-images {
     width: 100%;
     height: 100%;
@@ -414,6 +415,9 @@ input, textarea, [contenteditable] {
 .image-viewer {
     width: 100%;
     height: 100%;
+
+    // This masks the portion of the image which is offscreen, for mobile transitions.
+    overflow: hidden;
 
     // Disable scrolling to prevent pointer events from being cancelled on mobile.
     touch-action: none;
@@ -1873,7 +1877,7 @@ a.box-link, span.box-link
     }
 }
 
-.mute-display {
+.viewer-error {
     .muted-image {
         position: absolute;
         top: 0;
@@ -1885,7 +1889,7 @@ a.box-link, span.box-link
         opacity: .75;
     }
 
-    .muted-text {
+    .error-text-container {
         position: absolute;
         width: 100%;
         top: 50%;
