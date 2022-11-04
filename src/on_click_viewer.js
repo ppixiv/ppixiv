@@ -256,16 +256,22 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         // flicker for one frame, which is ugly.  Work around this: if the image is fully downloaded,
         // call decode() and see if it finishes quickly.  If it does, we'll skip the preview and just
         // show the final image.
+        //
+        // On mobile we'd prefer to show the preview image than to delay the image at all, to minimize
+        // gaps in the scroller interface.
         let img_ready = false;
         let decode_promise = null;
-        if(url != null && img && img.complete)
+        if(!ppixiv.mobile)
         {
-            decode_promise = this.decode_img(img);
+            if(url != null && img && img.complete)
+            {
+                decode_promise = this.decode_img(img);
 
-            // See if it finishes quickly.
-            img_ready = await helpers.await_with_timeout(decode_promise, 50) != "timed-out";
+                // See if it finishes quickly.
+                img_ready = await helpers.await_with_timeout(decode_promise, 50) != "timed-out";
+            }
+            signal.check();
         }
-        signal.check();
 
         // We're ready to finalize the new URLs by removing the old images and adding the
         // new ones.
