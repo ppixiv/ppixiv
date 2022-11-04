@@ -229,8 +229,7 @@ ppixiv.UserCache = class extends EventTarget
             return this.user_follow_info[user_id];
         }
 
-        this.follow_info_loads[user_id] = helpers.rpc_get_request("/rpc/index.php", {
-            mode: "following_user_detail",
+        this.follow_info_loads[user_id] = helpers.get_request("/ajax/following/user/details", {
             user_id: user_id,
             lang: "en",
         });

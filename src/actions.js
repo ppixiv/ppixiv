@@ -398,7 +398,7 @@ ppixiv.actions = class
     // Change the privacy status of a user we're already following.
     static async change_follow_privacy(user_id, follow_privately)
     {
-        let data = await helpers.rpc_post_request("/rpc/index.php", {
+        let data = await helpers.post_request("/ajax/following/user/restrict_change", {
             mode: "following_user_restrict_change",
             user_id: user_id,
             restrict: follow_privately? 1:0,
@@ -428,8 +428,7 @@ ppixiv.actions = class
     // editing one tag per call.
     static async change_follow_tags(user_id, {tag, add})
     {
-        let data = await helpers.rpc_post_request("/rpc/index.php", {
-            mode: add? "following_user_tag_add":"following_user_tag_delete",
+        let data = await helpers.rpc_post_request(add? "/ajax/following/user/tag_add":"/ajax/following/user/tag_delete", {
             user_id: user_id,
             tag,
         });
