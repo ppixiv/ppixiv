@@ -237,27 +237,18 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         // is null, just use a blank image.
         viewer_images.preview_img.src = preview_url? preview_url:helpers.blank_image;
 
-        // Get the new image ready before removing the old one, to avoid flashing a black
-        // screen while the new image decodes.  This will finish quickly if the preview image
-        // is preloaded.
+        // Wait until the preview image (if we have one) is ready.  This will finish quickly
+        // if it's preloaded.
         //
         // We have to work around an API limitation: there's no way to abort decode().  If
         // a couple decode() calls from previous navigations are still running, this decode can
         // be queued, even though it's a tiny image and would finish instantly.  If a previous
         // decode is still running, skip this and prefer to just add the image.  It causes us
         // to flash a blank screen when navigating quickly, but image switching is more responsive.
-        //
-        // If width and height are null, always do this so we can get the image dimensions.
-        if(!this.decoding)
+        if(!ppixiv.image_viewer_base.decoding)
         {
             try {
                 await viewer_images.preview_img.decode();
-
-                if(width == null)
-                {
-                    width = viewer_images.preview_img.naturalWidth;
-                    height = viewer_images.preview_img.naturalHeight;
-                }
             } catch(e) {
                 // Ignore exceptions from aborts.
             }
@@ -381,13 +372,16 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
 
     async decode_img(img)
     {
-        this.decoding = true;
+        // This is used to prevent requesting multiple large image decodes if they're
+        // taking a while to finish.  This is stored on the class, so it's shared across
+        // viewers.
+        ppixiv.image_viewer_base.decoding = true;
         try {
             await img.decode();
         } catch(e) {
             // Ignore exceptions from aborts.
         } finally {
-            this.decoding = false;
+            ppixiv.image_viewer_base.decoding = false;
         }
     }
 
