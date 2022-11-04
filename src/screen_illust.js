@@ -36,6 +36,10 @@ ppixiv.screen_illust = class extends ppixiv.screen
             parent: this,
         });
         
+        // Make sure the hover UI isn't shown on mobile.
+        if(ppixiv.mobile)
+            ui_container.hidden = true;
+
         user_cache.addEventListener("usermodified", this.refresh_ui, { signal: this.shutdown_signal.signal });        
         media_cache.addEventListener("mediamodified", this.refresh_ui, { signal: this.shutdown_signal.signal });
         settings.addEventListener("recent-bookmark-tags", this.refresh_ui, { signal: this.shutdown_signal.signal });
