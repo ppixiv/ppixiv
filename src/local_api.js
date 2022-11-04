@@ -573,6 +573,41 @@ ppixiv.local_api = class
         return info.local;
     }
 
+    // Return true if we should load thumbnails for image viewing.
+    //
+    // We normally preload thumbnails for images, so we have something to display immediately
+    // when we view an image.  This is useful on Pixiv, since they have all of their thumbs
+    // cached and loading them is free.
+    //
+    // However, if we're local and running on desktop, the browser is usually running on the
+    // same PC as the server, and the server doesn't have thumbnails cached, so requesting it
+    // will cause the image to be decoded and resized in the server.  That means we'll just end
+    // up decoding every image twice if we do this.
+    //
+    // If we're local but running on mobile, do preload thumbs.  It's important to have images
+    // viewable at least in preview as quickly as possible to minimize gaps in the mobile UI,
+    // and the PC running the server is probably much faster than a tablet, which may take some
+    // time to decode larger images.
+    static should_preload_thumbs(media_id, url)
+    {
+        if(ppixiv.mobile)
+            return true;
+
+        if(!helpers.is_media_id_local(media_id))
+            return true;
+
+        // If we know the image was viewed in search results recently, it should be cached, so
+        // there's no harm in using it.  We could query whether the URL is cached with fetch's
+        // cache: only-if-cached argument, but that causes browsers to obnoxiously spam the console
+        // with errors every time it fails.  That doesn't make sense (errors are normal with
+        // only-if-cached) and the log spam is too annoying to use it here.
+        if(local_api.was_thumbnail_loaded_recently(url))
+            return true;
+
+        // We're on desktop, the image is local, and the thumbnail hasn't been loaded recently.
+        return false;
+    }
+
     // Return true if we're logged out and guest access is disabled, so we need to log
     // in to continue.
     static async login_required()

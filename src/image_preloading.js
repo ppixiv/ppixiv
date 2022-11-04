@@ -311,10 +311,13 @@ ppixiv.image_preloader = class
         // much faster.  Don't preload local thumbs, since they're generated on-demand
         // by the local server and are just as expensive to load as the full image.
         let results = [];
-        if(!helpers.is_media_id_local(media_id))
+
+        for(let url of illust_data.previewUrls)
         {
-            for(let url of illust_data.previewUrls)
-                results.push(new img_preloader(url));
+            if(!local_api.should_preload_thumbs(media_id, url))
+                continue;
+
+            results.push(new img_preloader(url));
         }
 
         // Preload the requested page.
