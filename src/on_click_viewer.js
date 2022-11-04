@@ -1654,6 +1654,13 @@ ppixiv.image_viewer_mobile = class extends ppixiv.image_viewer_base
         });
     }
 
+    mobile_toggle_zoom(e)
+    {
+        // Double-clicks on mobile toggle between fill and cover mode.
+        let level = this.get_zoom_level() == "cover"? 0:"cover";
+        this.zoom_set_level(level, {x: e.clientX, y: e.clientY});
+    }
+
     // The mobile UI is always in locked zoom mode.
     get_locked_zoom() { return true; }
     set_locked_zoom(enable) { }

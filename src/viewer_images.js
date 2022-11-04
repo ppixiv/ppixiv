@@ -212,4 +212,9 @@ ppixiv.viewer_images = class extends ppixiv.viewer
             return;
         }
     }
+
+    toggle_zoom(e)
+    {
+        this.on_click_viewer.mobile_toggle_zoom(e);
+    }
 }

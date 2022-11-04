@@ -34,5 +34,8 @@ ppixiv.viewer = class extends widget
 
     // Return the amount of space that should be reserved by the mobile UI for this view.
     get bottom_reservation() { return "0px"; }
+
+    // This is only called on mobile to handle double-tap to zoom.
+    toggle_zoom() { }
 }
 

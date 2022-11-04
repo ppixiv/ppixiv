@@ -103,10 +103,8 @@ ppixiv.screen_illust = class extends ppixiv.screen
                             helpers.prevent_clicks_until_pointer_released(this.mobile_illust_ui.container, e.pointerId);
                         }
                     } else {
-                        this.mobile_illust_ui.hide();
-
-                        let right = e.clientX > window.innerWidth/2;
-                        this.navigate_to_next(right);
+                        // Double-taps anywhere else in the window toggle image zooming.
+                        this.viewer.toggle_zoom(e);
                     }
                 },
             });
