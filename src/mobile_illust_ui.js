@@ -214,7 +214,6 @@ let mobile_illust_ui_top_page = class extends mobile_illust_ui_page
         });
 
         this.container.querySelector(".button-more").addEventListener("click", (e) => {
-
             new mobile_illust_ui_more_options_dialog({
                 media_id: this._media_id
             });
@@ -425,7 +424,7 @@ class mobile_overlay_bookmark_tag_dialog extends ppixiv.dialog_widget
 
 class mobile_illust_ui_more_options_dialog extends dialog_widget
 {
-    constructor({template, ...options})
+    constructor({template, media_id, ...options})
     {
         super({...options, dialog_type: "small", header: "More", classes: ['mobile-illust-ui-dialog'], template: `
             <div class=box>
@@ -437,6 +436,7 @@ class mobile_illust_ui_more_options_dialog extends dialog_widget
             container: this.container.querySelector(".box"),
             visible: true,
         });
+        this.more_options_widget.set_media_id(media_id);
     }
 
     get content_node() { return this.more_options_widget.container; }
@@ -445,12 +445,6 @@ class mobile_illust_ui_more_options_dialog extends dialog_widget
     hide()
     {
         this.visible = false;
-    }
-
-    set media_id(media_id)
-    {
-        super.media_id = media_id;
-        this.more_options_widget.set_media_id(media_id);
     }
 }
 
