@@ -2323,6 +2323,34 @@ ppixiv.helpers = {
         return crc ^ (-1); // >>> 0;
     },
     
+    // Return a promise that waits for the given event on node.
+    wait_for_event(node, name, { abort_signal=null }={})
+    {
+        return new Promise((resolve, reject) => {
+            if(abort_signal && abort_signal.aborted)
+            {
+                resolve(null);
+                return;
+            }
+
+            let remove_listeners_signal = new AbortController();
+
+            node.addEventListener(name, (e) => {
+                remove_listeners_signal.abort();
+                resolve(e);
+            }, { signal: remove_listeners_signal.signal });
+
+            if(abort_signal)
+            {
+                abort_signal.addEventListener("abort",(e) => {
+                    img.src = helpers.blank_image;
+                    remove_listeners_signal.abort();
+                    resolve("aborted");
+                }, { signal: remove_listeners_signal.signal });
+            }
+        });
+    },
+
     // Return a promise that waits for img to load.
     //
     // If img loads successfully, resolve with null.  If abort_signal is aborted,
@@ -2377,6 +2405,24 @@ ppixiv.helpers = {
                 }, { signal: remove_listeners_signal.signal });
             }
         });
+    },
+
+    // Wait for any image in images to finish loading.  If images is empty, return
+    // immediately.
+    async wait_for_any_image_load(images, abort_signal)
+    {
+        let promises = [];
+        for(let image of images)
+        {
+            if(image == null)
+                continue;
+            promises.push(helpers.wait_for_image_load(image, abort_signal));
+        }
+
+        if(promises.length == 0)
+            return null;
+
+        await Promise.race([...promises]);
     },
 
     // Wait until img.naturalWidth/naturalHeight are available.

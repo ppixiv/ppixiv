@@ -77,6 +77,11 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer_video_base
         else
             this.create_preview_images(this.illust_data.previewUrls[0], this.illust_data.urls.original);
 
+        // Fire this.ready when either preview finishes loading.
+        helpers.wait_for_any_image_load([this.preview_img1, this.preview_img2]).then(() => {
+            this.ready.accept(true);
+        });
+
         // This can be used to abort ZipImagePlayer's download.
         this.abort_controller = new AbortController;
 

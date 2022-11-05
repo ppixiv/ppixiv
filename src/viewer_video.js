@@ -22,9 +22,6 @@ ppixiv.viewer_video_base = class extends ppixiv.viewer
         this.seek_bar = this.video_ui.seek_bar;
         this.seek_bar.set_current_time(0);
         this.seek_bar.set_callback(this.seek_callback.bind(this));
-
-        // XXX: fire this after previews if possible
-        this.ready.accept(true);
     }
 
     async load()
@@ -164,6 +161,21 @@ ppixiv.viewer_video = class extends ppixiv.viewer_video_base
 
         // Tell the video UI about the video.
         this.video_ui.video_changed({player: this, video: this.video});
+        
+        // We want to wait until something is displayed before firing this.ready, but
+        // HTMLVideoElement doesn't give an event for that, and there's no event at
+        // all to tell when the poster is loaded.  Decode the poster separately and
+        // hope it completes at the same time as the video doing it, and also continue
+        // on canplay.
+        let img = document.createElement("img");
+        img.src = this.video.poster;
+        let decode = img.decode();
+        let canplay = helpers.wait_for_event(this.video, "loadeddata");
+
+        // Wait for at least one to complete.
+        await Promise.any([canplay, decode]);
+
+        this.ready.accept(true);
 
         this.refresh_focus();
     }
