@@ -1306,8 +1306,6 @@ ppixiv.search_view = class extends ppixiv.widget
                 let args = helpers.args.location;
                 local_api.get_args_for_id(media_id, args);
                 link.href = args.url;
-
-                element.querySelector(".manga-info-box").hidden = false;
             }
             else
             {

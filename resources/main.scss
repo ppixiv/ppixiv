@@ -1546,7 +1546,7 @@ body.hide-r18g .r18g { display: none; }
         .bottom-row {
             position: absolute;
             display: flex;
-            align-items: center;
+            align-items: end;
             justify-content: center;
 
             // Slight padding between the icons and the text.  Note that this is applied even
@@ -1555,9 +1555,10 @@ body.hide-r18g .r18g { display: none; }
             gap: 4px;
             pointer-events: none;
             width: 100%;
-            height: 32px;
+            max-height: 75%;
             bottom: 3px;
             padding: 0 4px;
+            overflow: hidden;
 
             // These are tricky.  We want the label to be centered, and if icons are shown in the
             // corners, the label stays centered as long as there's room.  It only shifts or shrinks
@@ -1578,16 +1579,19 @@ body.hide-r18g .r18g { display: none; }
 
             .bottom-right-icon {
                 justify-content: end;
+                align-self: end;
             }
 
             .thumbnail-label {
                 display: flex;
                 align-items: center;
+
+                // Align to the top, so if it's cropped to max-height we see the top of the text.
+                align-self: start;
+
                 gap: .5em;
                 flex-shrink: 1;
-                white-space: nowrap;
                 color: var(--frame-fg-color);
-//                background-color: var(--frame-bg-color);
                 background-color: rgba(0,0,0,.6);
                 padding: 4px 8px;
                 overflow: hidden;
