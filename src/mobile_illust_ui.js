@@ -134,7 +134,7 @@ let mobile_illust_ui_top_page = class extends mobile_illust_ui_page
                             </div>
                         </div>
 
-                        <div class="item button-view-manga">
+                        <div class="item button-view-manga enabled">
                             <div class=button>
                                 ${ helpers.create_icon("ppixiv:thumbnails") }
                                 <span class=label>View manga pages</span>
@@ -276,7 +276,7 @@ let mobile_illust_ui_top_page = class extends mobile_illust_ui_page
 
         let button_view_manga = this.container.querySelector(".button-view-manga");
         button_view_manga.dataset.popup = "View manga pages";
-        helpers.set_class(button_view_manga, "enabled", main_controller.navigate_out_enabled);
+        button_view_manga.hidden = !main_controller.navigate_out_enabled;
 
         // Enable the zoom button if we're in the image view and we have an on_click_viewer.
         helpers.set_class(this.toggle_zoom_button, "enabled", this._is_zoom_ui_enabled);
