@@ -304,6 +304,12 @@ html[data-theme="dark"]
     }
 }
 
+html.mobile {
+    // Always use a black background on mobile instead of grey, since it hides notches
+    // better.
+    --main-background-color: #000;
+    --background-noise: none;
+}
 
 html[data-theme="light"] {
     --main-background-color: #fff;
