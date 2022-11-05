@@ -722,20 +722,18 @@ class DragImageChanger
         this.parent = parent;
         this.shutdown_signal = new AbortController();
         this.captured_pointer_id = null;
+        this.recent_pointer_movement = new ppixiv.FlingVelocity({
+            sample_period: 0.150,
+        });
 
         // The amount we've dragged.  This is relative to the main image, so it doesn't need to
         // be adjusted when we add or remove viewers.
         this.drag_distance = null;
 
-        // The amount of actual drag since a drag started.  This can be reset separately from
-        // drag_distance.
-        this.relative_drag_distance = null;
-        
         // A list of viewers that we're dragging between.  This always includes the main viewer
         // which is owned by the screen.
         this.viewers = [];
         this.adding_viewer = false;
-        this.image_gap = 25;
         this.animations = null;
 
         this.pointer_listener = new ppixiv.pointer_listener({
@@ -745,6 +743,18 @@ class DragImageChanger
             callback: this.pointerevent,
             capture: true,
         });
+    }
+
+    // Get the distance between one viewer and the next.
+    get viewer_distance()
+    {
+        return this.parent.view_container.offsetHeight + this.image_gap;
+    }
+
+    // Return the additional space between viewers.
+    get image_gap()
+    {
+        return 25;
     }
 
     get container() { return this.parent.container; }
@@ -773,7 +783,7 @@ class DragImageChanger
         if(e.pressed && this.captured_pointer_id == null)
         {
             // Stop if this press isn't near the edge.
-            let edge_threshold = 50;
+            let edge_threshold = 30;
             let at_edge = e.clientX < edge_threshold || e.clientX > window.innerWidth - edge_threshold;
             if(!at_edge)
                 return;
@@ -794,12 +804,16 @@ class DragImageChanger
 
     async start_dragging(e)
     {
+        // Stop if there's no image, if the screen wasn't able to load one.
+        if(this.main_viewer == null)
+            return;
+
         this.captured_pointer_id = e.pointerId;
         this.container.setPointerCapture(this.captured_pointer_id);
         this.container.addEventListener("pointermove", this.pointermove);
         this.container.addEventListener("lostpointercapture", this.lost_pointer_capture);
         this.drag_distance = 0;
-        this.relative_drag_distance = 0;
+        this.recent_pointer_movement.reset();
 
         if(this.animations == null)
         {
@@ -855,8 +869,8 @@ class DragImageChanger
         if(e.pointerId != this.captured_pointer_id)
             return;
 
+        this.recent_pointer_movement.add_sample({ x: 0, y: e.movementY });
         this.drag_distance += e.movementY;
-        this.relative_drag_distance += e.movementY;
         this.add_viewers_if_needed();
         this.refresh_drag_position();
     }
@@ -867,7 +881,7 @@ class DragImageChanger
         // are positive.
         let relative_idx = viewer_index - this.main_viewer_index;
 
-        let y = (window.innerHeight + this.image_gap) * relative_idx;
+        let y = this.viewer_distance * relative_idx;
         y += this.drag_distance;
         return y;
     }
@@ -913,13 +927,13 @@ class DragImageChanger
         //
         // The bottom edge of the topmost viewer, including the gap between images.  If this is
         // 0, it's just above the screen.
-        let top_viewer_bottom = this.get_viewer_y(-1) + window.innerHeight + this.image_gap;
+        let top_viewer_bottom = this.get_viewer_y(-1) + this.viewer_distance;
         let down = null;
         if(top_viewer_bottom > drag_threshold)
             down = false;
 
         // The top edge of the bottommost viewer.
-        let bottom_viewer_top = this.get_viewer_y(this.viewers.length) - + this.image_gap;
+        let bottom_viewer_top = this.get_viewer_y(this.viewers.length) - this.image_gap;
         if(bottom_viewer_top < window.innerHeight - drag_threshold)
             down = true;
 
@@ -1001,13 +1015,34 @@ class DragImageChanger
     // This may be past the end of the current viewer list.
     current_drag_target()
     {
-        let target_viewer_index = this.main_viewer_index;
+        // If the user has flung up or down, move relative to the main viewer.
+        let recent_movement = this.recent_pointer_movement.current_distance.y;
         let threshold = 50;
-        if(this.relative_drag_distance > threshold)
-            target_viewer_index--;
-        else if(this.relative_drag_distance < -threshold)
-            target_viewer_index++;
-        return target_viewer_index;
+        if(recent_movement > threshold)
+            return this.main_viewer_index - 1;
+        else if(recent_movement < -threshold)
+            return this.main_viewer_index + 1;
+
+        // There hasn't been a fling recently, so land on the viewer which is closest to
+        // the middle of the screen.  If the screen is dragged down several times quickly
+        // and we're animating to an offscreen main viewer, and the user stops the
+        // animation in the middle, this stops us on a nearby image instead of continuing
+        // to where we were going before.
+        let closest_viewer_index = 0;
+        let closest_viewer_distance = 999999;
+        for(let idx = 0; idx < this.viewers.length; ++idx)
+        {
+            let y = this.get_viewer_y(idx);
+            let center = y + window.innerHeight/2;
+            let distance = Math.abs((window.innerHeight / 2) - center);
+            if(distance < closest_viewer_distance)
+            {
+                closest_viewer_distance = distance;
+                closest_viewer_index = idx;
+            }
+        }
+
+        return closest_viewer_index;
     }
 
     // A drag finished.  interactive is true if this is the user releasing it, or false
@@ -1029,12 +1064,10 @@ class DragImageChanger
             let target_viewer_index = this.current_drag_target();
             if(target_viewer_index >= 0 && target_viewer_index < this.viewers.length)
                 dragged_to_viewer = this.viewers[target_viewer_index];
-            else
-                console.log("beyond end");
         }
 
         this.drag_distance = 0;
-        this.relative_drag_distance = 0;
+        this.recent_pointer_movement.reset();
 
         // If this isn't interactive, we're just shutting down, so remove viewers without
         // animating.
@@ -1075,7 +1108,7 @@ class DragImageChanger
             let this_idx = idx - main_viewer_index;
 
             // Animate everything to their default positions relative to the main image.
-            let y = (window.innerHeight + this.image_gap) * this_idx;
+            let y = this.viewer_distance * this_idx;
 
             let animation = new ppixiv.DirectAnimation(new KeyframeEffect(viewer.container, [
                 { transform: viewer.container.style.transform },

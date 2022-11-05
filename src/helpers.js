@@ -4758,15 +4758,15 @@ ppixiv.IncrementalTimer = class
 };
 
 // This calculates the current velocity from recent motion.
-class FlingVelocity
+ppixiv.FlingVelocity = class
 {
-    constructor( sample_period=0.1 )
+    constructor({ sample_period=0.1 }={})
     {
         this.sample_period = sample_period;
-        this.samples = [];
+        this.reset();
     }
 
-    AddSample( {x,y} )
+    add_sample( {x,y} )
     {
         this.samples.push({
             delta: { x, y },
@@ -4790,8 +4790,8 @@ class FlingVelocity
         this.samples = [];
     }
 
-    // Get the average velocity.
-    get current_velocity()
+    // Get the distance travelled within the sample period.
+    get current_distance()
     {
         this.purge();
 
@@ -4805,13 +4805,27 @@ class FlingVelocity
             total[1] += sample.delta.y;
         }
 
+        return { x: total[0], y: total[1] };
+    }
+
+    // Get the average velocity.
+    get current_velocity()
+    {
+        let { x, y } = this.current_distance;
+
+        if(this.samples.length == 0)
+            return { x: 0, y: 0 };
+
         let duration = Date.now()/1000 - this.samples[0].time;
         if( duration < 0.001 )
         {
             console.log("no sample duration");
             return { x: 0, y: 0 };
         }
-        return { x: total[0] / duration, y: total[1] / duration };
+
+        x /= duration;
+        y /= duration;
+        return { x, y };
     }
 }
 
@@ -5216,7 +5230,7 @@ ppixiv.TouchScroller = class
 
         // Store this motion sample, so we can estimate fling velocity later.  This should be
         // affected by axis locking above.
-        this.fling_velocity.AddSample({ x: -movementX, y: -movementY });
+        this.fling_velocity.add_sample({ x: -movementX, y: -movementY });
 
         // If we zoomed in and now have room to move on an axis that was locked before,
         // unlock it.  We won't lock it again until a new drag is started.
