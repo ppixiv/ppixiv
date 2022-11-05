@@ -655,6 +655,8 @@ input, textarea, [contenteditable] {
     bottom: env(safe-area-inset-bottom);
     display: flex;
     justify-content: center;    
+    user-select: none;
+    -webkit-user-select: none;
 
     & > .message {
         background-color: var(--frame-bg-color);
