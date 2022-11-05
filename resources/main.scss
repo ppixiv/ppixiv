@@ -111,17 +111,6 @@ html {
     inset: var(--fullscreen-top) var(--fullscreen-right) var(--fullscreen-bottom) var(--fullscreen-left);
 }
 
-// If enabled, round the top edge of the element to match the screen dimensions.
-@mixin rounded-fullscreen()
-{
-    border-radius: var(--device-radius);
-    overflow: hidden;
-
-    // Work around border-radius not clipping contents when transform is animated on iOS:
-    // This makes the browser create a composite layer for this container.
-    will-change: transform;
-}
-
 // Scrollbar styling.
 //
 // This is a pain:
@@ -394,15 +383,72 @@ input, textarea, [contenteditable] {
     // edge effect if they're being used.
     .view-container {
         @include fullscreen();
-        @include rounded-fullscreen();
 
         user-select: none;
         -webkit-user-select: none;
         cursor: pointer;
 
+        // The individual image viewers.  There's usually just one of these, but we can have
+        // multiple for transitions.
         .viewer {
             position: absolute;
             inset: 0;
+        }
+    }
+}
+
+// There are three places we can apply rounding:
+//
+// - Around the container (view-container).  This rounds the overall display, as
+// if we're inside a rounded screen even if we're actually cropping away a notch.
+// - Around the viewer (viewer).  This rounds the image while dragging/flinging to
+// another image.  This gives the appearance of the whole rounded display moving around,
+// instead of the image moving within the display.
+// - Inside the viewer, as a crop (image-box).  This makes the image itself appear
+// rounded, so if the image is at the edge, dragging in appears to move the display inwards.
+//
+// These are additive, and it's useful to use them in combination.
+//
+// The crop rounding is probably the most controversial, since it actually crops off
+// the corner of images and gives no way to view it, and the edge radius needs to be
+// set correctly for the effect to work.  However, it gives a very clean view that
+// works really well on current phones.
+html.mobile .screen-illust-container {
+    // If enabled, round the top edge of the element to match the screen dimensions.
+    //
+    // If $all is true, round on all edges.  Otherwise, round just on the edges we think are
+    // on the notch side where we're cropping.
+    //
+    // Rounding on all edges can make mobile views on round screens look a lot cleaner, but
+    // we need to know the screen radius for it to look correct.
+    @mixin rounded-fullscreen($all: false)
+    {
+        overflow: hidden;
+
+        @if $all
+        {
+            border-radius: var(--device-edge-radius);
+        }
+        @else
+        {
+            border-radius: var(--device-radius);
+        }
+
+        // Work around border-radius not clipping contents when transform is animated on iOS.
+        // This makes the browser create a composite layer for this container.
+        will-change: transform;
+    }
+
+    .view-container {
+        @include rounded-fullscreen();
+
+        .viewer {
+            @include rounded-fullscreen($all: true);
+
+            .image-viewer .image-box {
+                overflow: hidden;
+                @include rounded-fullscreen($all: true);
+            }
         }
     }
 }
