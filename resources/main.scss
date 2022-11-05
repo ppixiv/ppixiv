@@ -1644,8 +1644,10 @@ body.hide-r18g .r18g { display: none; }
                     .page-icon {
                         width: 16px;
                         height: 16px;
-                        display: inline-block;
+                        display: inline-flex;
                         vertical-align: middle;
+                        align-items: center;
+                        justify-content: center;
                     }
                     &:hover {
                         background-color: rgba(0,20,120,.8);
