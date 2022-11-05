@@ -90,13 +90,6 @@ let mobile_illust_ui_top_page = class extends mobile_illust_ui_page
                             </div>
                         </div>
 
-                        <div class="item button-toggle-zoom">
-                            <div class=button>
-                                <ppixiv-inline src="resources/zoom-full.svg"></ppixiv-inline>
-                                <span class=label>Toggle zoom</span>
-                            </div>
-                        </div>
-
                         <div class="item button-bookmark public" data-bookmark-type=public>
                             <div class=button>
                                 <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
@@ -176,8 +169,6 @@ let mobile_illust_ui_top_page = class extends mobile_illust_ui_page
         });
 
         this.container.querySelector(".button-back").addEventListener("click", () => main_controller.navigate_to_search());
-        this.toggle_zoom_button = this.container.querySelector(".button-toggle-zoom");
-        this.toggle_zoom_button.addEventListener("click", this.clicked_toggle_zoom);
 
         this.toggle_slideshow_button = this.container.querySelector(".button-toggle-slideshow");
         this.toggle_slideshow_button.addEventListener("click", (e) => {
@@ -278,9 +269,6 @@ let mobile_illust_ui_top_page = class extends mobile_illust_ui_page
         button_view_manga.dataset.popup = "View manga pages";
         button_view_manga.hidden = !main_controller.navigate_out_enabled;
 
-        // Enable the zoom button if we're in the image view and we have an on_click_viewer.
-        helpers.set_class(this.toggle_zoom_button, "enabled", this._is_zoom_ui_enabled);
-
         helpers.set_class(this.toggle_slideshow_button, "selected", main_controller.slideshow_mode == "1");
         helpers.set_class(this.toggle_loop_button, "selected", main_controller.slideshow_mode == "loop");
         helpers.set_class(this.container.querySelector(".button-bookmark-tags"), "enabled", true);
@@ -341,21 +329,6 @@ let mobile_illust_ui_top_page = class extends mobile_illust_ui_page
     clicked_view_manga = (e) =>
     {
         main_controller.navigate_out();
-    }
-
-    clicked_toggle_zoom = (e) =>
-    {
-        e.preventDefault();
-        e.stopPropagation();
-
-        if(!this._is_zoom_ui_enabled)
-            return;
-
-        // Toggle between covering the screen and fitting the image onscreen.
-        let old_level = this._on_click_viewer.get_zoom_level();
-        this._on_click_viewer.set_zoom_level(old_level == "cover"? 0:"cover");
-        
-        this.refresh();
     }
 }
 
