@@ -543,6 +543,23 @@ ppixiv.MainController = class
         helpers.navigate(args);
     }
 
+    // When viewing an image, navigate to the corresponding search.
+    navigate_to_search()
+    {
+        // If the user clicks "return to search" while on data_sources.current_illust, go somewhere
+        // else instead, since that viewer never has any search results.
+        if(this.data_source instanceof data_sources.current_illust)
+        {
+            let args = new helpers.args("/bookmark_new_illust.php#ppixiv", ppixiv.location);
+            helpers.set_page_url(args, true /* add_to_history */, "out");
+            return;
+        }
+
+        let args = new helpers.args(this.data_source.url.toString());
+        this._set_active_screen_in_url(args, "search");
+        helpers.navigate(args);
+    }
+
     // This captures clicks at the window level, allowing us to override them.
     //
     // When the user left clicks on a link that also goes into one of our screens,

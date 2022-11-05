@@ -484,7 +484,7 @@ ppixiv.local_api = class
     // Given a folder ID, return its parent.  If folder_id is the root, return null.
     static get_parent_folder(media_id)
     {
-        if(media_id == "folder:/")
+        if(media_id == null || media_id == "folder:/")
             return null;
 
         // media_id can be a file or a folder.  We always return a folder.

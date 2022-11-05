@@ -120,13 +120,6 @@ let mobile_illust_ui_top_page = class extends mobile_illust_ui_page
                     </div>
 
                     <div class="top-page-button-row bottom">
-                        <div class="item button-browser-back">
-                            <div class=button>
-                                <ppixiv-inline src="resources/exit-icon.svg" style="transform: scaleX(-1);"></ppixiv-inline>
-                                <span class=label>Back</span>
-                            </div>
-                        </div>
-
                         <div class="item button-more enabled">
                             <div class="button">
                                 ${ helpers.create_icon("settings") }
@@ -148,7 +141,7 @@ let mobile_illust_ui_top_page = class extends mobile_illust_ui_page
                             </div>
                         </div>
 
-                        <div class="item button-parent-folder" hidden>
+                        <div class="item button-back" hidden>
                             <div class="button enabled">
                                 ${ helpers.create_icon("folder") }
                                 <span class=label>View folder</span>
@@ -182,15 +175,7 @@ let mobile_illust_ui_top_page = class extends mobile_illust_ui_page
             this.refresh();
         });
 
-        this.browser_back_button = this.container.querySelector(".button-browser-back");
-        this.browser_back_button.addEventListener("click", (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-
-            history.back();
-        });
-
-        this.container.querySelector(".button-parent-folder").addEventListener("click", this.clicked_go_to_parent);
+        this.container.querySelector(".button-back").addEventListener("click", () => main_controller.navigate_to_search());
         this.toggle_zoom_button = this.container.querySelector(".button-toggle-zoom");
         this.toggle_zoom_button.addEventListener("click", this.clicked_toggle_zoom);
 
@@ -293,11 +278,6 @@ let mobile_illust_ui_top_page = class extends mobile_illust_ui_page
         button_view_manga.dataset.popup = "View manga pages";
         helpers.set_class(button_view_manga, "enabled", main_controller.navigate_out_enabled);
 
-        // This isn't quite right since we might be the first history state, but it's tricky
-        // to figure out if we can actually go back.  This at least greys out the button most
-        // of the time for slideshow bookmarks.
-        helpers.set_class(this.browser_back_button, "enabled", window.history.length > 1);
-
         // Enable the zoom button if we're in the image view and we have an on_click_viewer.
         helpers.set_class(this.toggle_zoom_button, "enabled", this._is_zoom_ui_enabled);
 
@@ -320,10 +300,10 @@ let mobile_illust_ui_top_page = class extends mobile_illust_ui_page
             }
 
             // If we're on a local ID, show the parent folder button.
-            let folder_button = this.container.querySelector(".button-parent-folder");
+            let back_button = this.container.querySelector(".button-back");
             let is_local = helpers.is_media_id_local(this.folder_id_for_parent);
-            folder_button.hidden = !is_local;
-            helpers.set_class(folder_button, "enabled", this.parent_folder_id != null);
+            back_button.hidden = !is_local;
+            helpers.set_class(back_button, "enabled", this.parent_folder_id != null);
         }
     }
 
@@ -361,19 +341,6 @@ let mobile_illust_ui_top_page = class extends mobile_illust_ui_page
     clicked_view_manga = (e) =>
     {
         main_controller.navigate_out();
-    }
-
-    clicked_go_to_parent = (e) =>
-    {
-        e.preventDefault();
-            
-        let parent_folder_id = this.parent_folder_id;
-        if(parent_folder_id == null)
-            return;
-
-        let args = new helpers.args("/", ppixiv.plocation);
-        local_api.get_args_for_id(parent_folder_id, args);
-        helpers.navigate(args);
     }
 
     clicked_toggle_zoom = (e) =>
