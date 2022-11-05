@@ -773,18 +773,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         var element_displaying = this.container.querySelector(".displaying");
         element_displaying.hidden = this.data_source.get_displaying_text == null;
         if(this.data_source.get_displaying_text != null)
-        {
-            // get_displaying_text can either be a string or an element.
-            let text = this.data_source.get_displaying_text();
-            helpers.remove_elements(element_displaying);
-            if(typeof text == "string")
-                element_displaying.innerText = text;
-            else if(text instanceof HTMLElement)
-            {
-                helpers.remove_elements(element_displaying);
-                element_displaying.appendChild(text);
-            }
-        }
+            element_displaying.replaceChildren(this.data_source.get_displaying_text());
 
         this.data_source.set_page_icon();
         helpers.set_page_title(this.data_source.page_title || "Loading...");
