@@ -1301,15 +1301,29 @@ body.hide-r18g .r18g { display: none; }
         --header-height: calc(2em + env(safe-area-inset-top));;
     }
 
+    // Work around an iOS compositing bug: when the document is scrolled, the body sometimes bleeds one
+    // pixel out of the actual client area.  This can be seen by setting mobile-header's top to 0px instead
+    // of 1px: a one pixel row will be visible above the header.  This causes problems when we switch to
+    // the illust view, since it doesn't get covered by the background and remains visible at the top of
+    // the screen.  To avoid this, we need to actually hide the search when it's not visible.
+    html:not([data-current-view="search"]) & {
+        opacity: 0;
+    }
+
     .mobile-header {
         position: fixed;
-        top: 0;
+
+        // The header should be right at the top, but move it up by one pixel to avoid the same compositing
+        // problems on iOS.
+        top: -1px;
         left: 0;
         width: 100%;
 
         .header-strip {
             display: flex;
-            height: var(--header-height);
+
+            // Add 1px to compensate for top: -1px above.
+            height: calc(var(--header-height) + 1px);
             align-items: center;
             padding-top: env(safe-area-inset-top);
             backdrop-filter: blur(10px) brightness(0.6);
