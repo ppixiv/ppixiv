@@ -63,10 +63,6 @@ ppixiv.viewer_video_base = class extends ppixiv.viewer
 
     clicked_video(e)
     {
-        // Disable pause on click on mobile, since it conflicts with other UI.
-        if(ppixiv.mobile)
-            return;
-
         this.set_want_playing(!this.want_playing);
         this.refresh_focus();
     }
@@ -512,8 +508,6 @@ ppixiv.video_ui = class extends ppixiv.widget
         this.video_changed();
     }
 
-    get bottom_reservation() { return "100px"; }
-
     refresh_show_ui()
     {
         let show_ui = ClassFlags.get.get("mobile-ui-visible");
@@ -524,7 +518,7 @@ ppixiv.video_ui = class extends ppixiv.widget
     set_seek_bar_pos()
     {
         // Insert the seek bar into the correct container.
-        let top = !helpers.is_fullscreen();
+        let top = ppixiv.mobile || !helpers.is_fullscreen();
         this.seek_bar.container.remove();
         let seek_bar_container = top? ".seek-bar-container-top":".seek-bar-container-bottom";
         this.container.querySelector(seek_bar_container).appendChild(this.seek_bar.container);

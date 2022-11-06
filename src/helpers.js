@@ -3318,53 +3318,6 @@ ppixiv.helpers = {
 
         return args;
     },
-
-    // Work around a pointer bug on Android: it sends click and dblclick events on nodes that
-    // weren't clickable when the tap started.
-    //
-    // If an element has pointer-events: none, and it's removed between a touch down and touch
-    // up, the element will get a click event even though it never got a touch down in the first
-    // place.  That doesn't make sense: it's getting clicks on interactions when it wasn't even
-    // there when the interaction began.
-    //
-    // Work around this by cancelling clicks inside element until we see pointer_id released.
-    prevent_clicks_until_pointer_released(element, pointer_id)
-    {
-        if(!ppixiv.android)
-            return;
-
-        let abort = new AbortController();
-
-        let click = (e) => {
-            // Eat this click if it's inside element.
-            if(helpers.is_above(element, e.target))
-            {
-                e.preventDefault();
-                e.stopImmediatePropagation();
-            }
-        };
-
-        let pointerup = (e) => {
-            // Ignore other pointers.
-            if(e.pointerId != pointer_id)
-                return;
-
-            // We've seen our pointer release, so remove event listeners.  Do this after the current
-            // event dispatch is complete, so any click happening as a result of this pointer release
-            // itself will also be prevented.
-            //
-            // Even more fun: the click event doesn't happen immediately after this task completes.
-            // The event loop runs for a few milliseconds, so if we setTimeout with a 0ms delay, our
-            // timer will activate after the pointerup and before the click.  This happens even
-            // though touch-action is set to prevent delayed clicks.  Using a slightly longer timeout
-            // seems to avoid this.
-            helpers.setTimeout(() => abort.abort(), 50);
-        };
-
-        window.addEventListener("click", click, { capture: true, signal: abort.signal });
-        window.addEventListener("pointerup", pointerup, { capture: true, signal: abort.signal });
-        window.addEventListener("pointercancel", pointerup, { capture: true, signal: abort.signal });
-    },
 };
 
 // Listen to viewhidden on element and each of element's parents.

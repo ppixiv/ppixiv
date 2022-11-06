@@ -88,20 +88,12 @@ ppixiv.screen_illust = class extends ppixiv.screen
                 container: this.view_container,
                 signal: this.shutdown_signal.signal,
                 ondbltap: (e) => {
-                    let left = e.clientX < 100;
-                    let right = e.clientX > this.container.offsetWidth - 100;
-                    if(left || right)
+                    if(e.clientY > this.container.offsetHeight - 100)
                     {
                         if(this.mobile_illust_ui.shown)
                             this.mobile_illust_ui.hide();
                         else
-                        {
-                            this.mobile_illust_ui.show({side: left? "left":"right"});
-
-                            // See the comments on this function for an explanation of this.  This is necessary
-                            // so the tap that displays the menu doesn't also activate whatever becomes visible.
-                            helpers.prevent_clicks_until_pointer_released(this.mobile_illust_ui.container, e.pointerId);
-                        }
+                            this.mobile_illust_ui.show();
                     } else {
                         // Double-taps anywhere else in the window toggle image zooming.
                         this.viewer.toggle_zoom(e);
@@ -541,8 +533,6 @@ ppixiv.screen_illust = class extends ppixiv.screen
             this.mobile_illust_ui.user_id = this.current_user_id;
             this.mobile_illust_ui.media_id = this.current_media_id;
             this.mobile_illust_ui.set_data_source(this.data_source);
-            if(this.viewer)
-                this.mobile_illust_ui.set_bottom_reservation(this.viewer.bottom_reservation);
         }
 
         // Update the disable UI button to point at the current image's illustration page.

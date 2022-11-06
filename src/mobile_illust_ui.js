@@ -24,11 +24,6 @@ let mobile_illust_ui_page = class extends ppixiv.widget
 
     refresh() { }
     
-    get tab_shown()
-    {
-        return this.container.classList.contains("active-tab");
-    }
-
     show_tab({pos}={})
     {
         helpers.set_class(this.container, "active-tab", true);
@@ -73,81 +68,50 @@ let mobile_illust_ui_top_page = class extends mobile_illust_ui_page
     constructor({template, ...options})
     {
         super({...options, visible: true, template: `
-            <div class="mobile-illust-ui-page top-page">
-                <div class=top-page-buttons>
-                    <div class="top-page-button-row top">
-                        <div class="item button-toggle-slideshow enabled">
-                            <div class=button>
-                                ${ helpers.create_icon("mat:wallpaper") }
-                                <span class=label>Slideshow</span>
-                            </div>
-                        </div>
+            <div class=mobile-illust-ui-page>
+                <div class="item button-toggle-slideshow enabled">
+                    ${ helpers.create_icon("mat:wallpaper") }
+                    <span class=label>Slideshow</span>
+                </div>
 
-                        <div class="item button-toggle-loop enabled">
-                            <div class=button>
-                                ${ helpers.create_icon("mat:replay_circle_filled") }
-                                <span class=label>Loop</span>
-                            </div>
-                        </div>
+                <div class="item button-toggle-loop enabled">
+                    ${ helpers.create_icon("mat:replay_circle_filled") }
+                    <span class=label>Loop</span>
+                </div>
 
-                        <div class="item button-bookmark public" data-bookmark-type=public>
-                            <div class=button>
-                                <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
-                                <span class=label>Bookmark</span>
-                            </div>
-                        </div>
+                <div class="item button-bookmark public" data-bookmark-type=public>
+                    <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
+                    <span class=label>Bookmark</span>
+                </div>
 
-                        <div class="item button-bookmark private button-container" data-bookmark-type=private>
-                            <div class=button>
-                                <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
-                                <span class=label>Bookmark privately</span>
-                            </div>
-                        </div>
-                        
-                        <div class="item button-bookmark-tags">
-                            <div class=button>
-                                ${ helpers.create_icon("ppixiv:tag") }
-                                <span class=label>Bookmark tags</span>
-                            </div>
-                        </div>
-                    </div>
+                <div class="item button-bookmark private button-container" data-bookmark-type=private>
+                    <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
+                    <span class=label>Bookmark privately</span>
+                </div>
+                
+                <div class="item button-bookmark-tags">
+                    ${ helpers.create_icon("ppixiv:tag") }
+                    <span class=label>Tags</span>
+                </div>
 
-                    <div class="top-page-button-row bottom">
-                        <div class="item button-more enabled">
-                            <div class="button">
-                                ${ helpers.create_icon("settings") }
-                                <span class=label>More...</span>
-                            </div>
-                        </div>
+                <div class="item button-more enabled">
+                    ${ helpers.create_icon("settings") }
+                    <span class=label>More...</span>
+                </div>
 
-                        <div class="item button-like enabled button-container">
-                            <div class=button>
-                                <ppixiv-inline src="resources/like-button.svg"></ppixiv-inline>
-                                <span class=label>Like</span>
-                            </div>
-                        </div>
+                <div class="item button-like enabled button-container">
+                    <ppixiv-inline src="resources/like-button.svg"></ppixiv-inline>
+                    <span class=label>Like</span>
+                </div>
 
-                        <div class="item button-view-manga enabled">
-                            <div class=button>
-                                ${ helpers.create_icon("ppixiv:thumbnails") }
-                                <span class=label>View manga pages</span>
-                            </div>
-                        </div>
+                <div class="item button-view-manga enabled">
+                    ${ helpers.create_icon("ppixiv:thumbnails") }
+                    <span class=label>View manga pages</span>
+                </div>
 
-                        <div class="item button-back" hidden>
-                            <div class="button enabled">
-                                ${ helpers.create_icon("folder") }
-                                <span class=label>View folder</span>
-                            </div>
-                        </div>
-
-                        <div class="item help enabled">
-                            <div class=button>
-                                ${ helpers.create_icon("help_outline") }
-                                <span class=label>Help</span>
-                            </div>
-                        </div>
-                    </div>
+                <div class="item button-back" hidden>
+                    ${ helpers.create_icon("folder") }
+                    <span class=label>View folder</span>
                 </div>
             </div>
         `});
@@ -156,17 +120,6 @@ let mobile_illust_ui_top_page = class extends mobile_illust_ui_page
         this._on_click_viewer = null;
 
         this.container.querySelector(".button-view-manga").addEventListener("click", this.clicked_view_manga);
-
-        this.display_labels = settings.get("mobile_display_ui_labels", false);
-        this.help_button = this.container.querySelector(".help");
-        this.help_button.addEventListener("click", (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-
-            this.display_labels = !this.display_labels;
-            settings.set("mobile_display_ui_labels", this.display_labels);
-            this.refresh();
-        });
 
         this.container.querySelector(".button-back").addEventListener("click", () => main_controller.navigate_to_search());
 
@@ -222,6 +175,12 @@ let mobile_illust_ui_top_page = class extends mobile_illust_ui_page
                 bookmark_type: a.dataset.bookmarkType,
             }));
         }
+
+        // This tells widgets that want to be above us how tall we are.
+        this.refresh_video_height();
+        this.resize_observer = new ResizeObserver(() => this.refresh_video_height());
+        this.resize_observer.observe(this.container);
+        this.shutdown_signal.signal.addEventListener("abort", () => this.resize_observer.disconnect());
     }
 
     get _is_zoom_ui_enabled()
@@ -263,8 +222,6 @@ let mobile_illust_ui_top_page = class extends mobile_illust_ui_page
         if(!this.visible && this._media_id != null)
             return
 
-        helpers.set_class(this.container.querySelector(".top-page-buttons"), "display-labels", this.display_labels);
-
         let button_view_manga = this.container.querySelector(".button-view-manga");
         button_view_manga.dataset.popup = "View manga pages";
         button_view_manga.hidden = !main_controller.navigate_out_enabled;
@@ -293,6 +250,12 @@ let mobile_illust_ui_top_page = class extends mobile_illust_ui_page
             back_button.hidden = !is_local;
             helpers.set_class(back_button, "enabled", this.parent_folder_id != null);
         }
+    }
+
+    refresh_video_height()
+    {
+        console.log(this.container.offsetHeight);
+        document.documentElement.style.setProperty("--menu-bar-height", `${this.container.offsetHeight}px`);
     }
 
     // Return the illust ID whose parent the parent button will go to.
@@ -481,8 +444,6 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
 
         this._media_id = null;
 
-        this.set_bottom_reservation("0px");
-        
         this.refresh();
     }
 
@@ -519,8 +480,7 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
             page.set_data_source(data_source);
     }
 
-    // side is "left" or "right".
-    show({side})
+    show()
     {
         if(this.shown)
             return;
@@ -537,21 +497,6 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
                 this.hide();
             });
         }            
-
-        let old_side = this.container.dataset.side;
-        this.container.dataset.side = side;
-
-        // Changing the side while we're not shown will trigger animations, as the invisible
-        // elements shift from one side to the other.  These become visible when we actually
-        // show the elements, so cancel them.
-        if(side != old_side)
-        {
-            for(let element of this.container.querySelectorAll("*"))
-            {
-                for(let animation of element.getAnimations())
-                    animation.cancel();
-            }
-        }
 
         this.pages.top.show_tab();
 
@@ -587,13 +532,6 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
             this.onclose();
     }
 
-    // Set the amount of space reserved at the bottom for other UI.  This is used to prevent
-    // overlapping the video UI.
-    set_bottom_reservation(value)
-    {
-        this.container.style.setProperty("--video-ui-height", value);
-    }
-    
     refresh()
     {
         // Set data-mobile-ui-visible so other UIs can tell if this UI is open.

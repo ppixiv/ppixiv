@@ -34,8 +34,6 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer_video_base
         window.addEventListener("visibilitychange", this.refresh_focus.bind(this), { signal: this.shutdown_signal.signal });
     }
 
-    get bottom_reservation() { return "100px"; }
-
     async load()
     {
         let { slideshow=false, onnextimage=null } = this.options;

@@ -102,6 +102,9 @@ html {
     &[data-orientation="90"] { --device-radius: var(--device-edge-radius) 0 0 var(--device-edge-radius); }
     &[data-orientation="-90"] { --device-radius: 0 var(--device-edge-radius) var(--device-edge-radius) 0; }
     &[data-orientation="180"] { --device-radius: 0 0 var(--device-edge-radius) var(--device-edge-radius); }
+
+    // On mobile, this is overridden to the height of the bottom menu bar.
+    --menu-bar-height: 0px;
 }
 
 // Make an element fullscreen.
@@ -558,7 +561,8 @@ html.mobile .screen-illust-container {
 .video-ui
 {
     position: absolute;
-    bottom: 0px;
+    // On desktop this is 0.  On mobile, this is set to the height of the bottom menu.
+    bottom: var(--menu-bar-height);
     left: 0px;
     width: 100%;
     user-select: none;
@@ -568,19 +572,38 @@ html.mobile .screen-illust-container {
     transition: transform .25s, opacity .25s;
     opacity: 0;
 
-    // Visibility:
-    // Stay visible if the mouse has moved recently, we're dragging, and while hovering
-    // over the UI.
-    .mouse-hidden-box.cursor-active &,      // Visible if the mouse has moved recently
-    &.dragging,                             // Visible if we're dragging something in the UI
-    &:hover,                                // Visible if we're hovering over the UI (XXX: not on mobile)
-    &.show-ui                                // Visible if ppixiv.video_ui says so
+    @mixin show-ui()
     {
         opacity: 1;
 
         .seek-bar[data-position="top"] > .seek-parts
         {
             transform: scale(100%, 50%);
+        }
+    }
+
+    html:not(.mobile) & {
+        // Visibility:
+        // Stay visible if the mouse has moved recently, we're dragging, and while hovering
+        // over the UI.
+        .mouse-hidden-box.cursor-active &,      // Visible if the mouse has moved recently
+        &.dragging,                             // Visible if we're dragging something in the UI
+        &:hover,                                // Visible if we're hovering over the UI
+        &.show-ui                               // Visible if ppixiv.video_ui says so
+        {
+            @include show-ui();
+        }
+    }
+
+    // On mobile, we're displayed when the menu is visible and .show-ui is set.  Disable
+    // pointer-events if we're not visible.
+    html.mobile & {
+        &.show-ui {
+            @include show-ui();
+        }
+
+        &:not(.show-ui) {
+            pointer-events: none;
         }
     }
 
@@ -2524,11 +2547,9 @@ a.box-link, span.box-link
     top: 0px;
     left: 0px;
     width: 100%;
-    height: calc(100% - var(--video-ui-height));
+    height: calc(100%);
     display: flex;
-
-    &[data-side="left"] { justify-content: flex-start; }
-    &[data-side="right"] { justify-content: flex-end; }
+    justify-content: flex-end;
 
     // This node is for positioning and covers the whole screen, so don't eat pointer events.
     pointer-events: none;
@@ -2539,32 +2560,6 @@ a.box-link, span.box-link
     --frame-bg-color: rgba(0,0,0,.65);
     --box-link-bg-color: none;
 
-    // Handle opening from the left or right side.  --page-left and --page-right position
-    // the top-level menu.  --transform-direction allows flipping transitions horizontally
-    // for the right side, and --transform-side allows changing the transform-origin if needed.
-    &[data-side="left"] { --page-left: 80px; }
-    &[data-side="right"] { --page-right: 80px; }
-    --transform-direction: 1;
-    --transform-side: 0%;
-    --transform-align: flex-end;
-    &[data-side="right"] { --transform-direction: -1; --transform-side: 100%; --transform-align: flex-start; }
-
-    &[data-side="left"] .context-menu-image-info-container {
-        right: calc(max(5vw, env(safe-area-inset-right)));
-    }
-
-    &[data-side="right"] .context-menu-image-info-container {
-        left: calc(max(5vw, env(safe-area-inset-left)));
-    }
-
-    &[data-side="right"] .top-page-button-row .item {
-        // When on the right, right-align buttons and swap the help text to the left.
-        align-self: end;
-        .button {
-            flex-direction: row-reverse !important;
-        }
-    }
-
     // The image info in the top-right is a separate element from the UI pages.
     .context-menu-image-info-container {
         position: fixed;
@@ -2572,6 +2567,7 @@ a.box-link, span.box-link
             display: none;
         }
         top: calc(max(5vh, env(safe-area-inset-top)));
+        right: calc(max(5vw, env(safe-area-inset-right)));
         max-width: calc(100vw - 100px);
         display: flex;
         flex-direction: column;
@@ -2616,7 +2612,7 @@ a.box-link, span.box-link
                 flex-wrap: wrap;
                 flex-direction: column;
                 gap: 0.5em 0.5em;
-                align-items: var(--transform-align);
+                align-items: flex-start;
 
                 .mobile-ui-tag-entry {
                     // Only wrap between tags, not in the middle.
@@ -2643,223 +2639,80 @@ a.box-link, span.box-link
         }
     }
 
-    // Hide the image info box if the UI is hidden or if we're showing a submenu.
-    &:not(.shown),
-    &[data-displayed-page] {
-        .context-menu-image-info-container {
-            opacity: 0;
-            transform: translateX(calc(20px*var(--transform-direction)));
-        }
-    }
-
-    // Subpages are absolutely positioned to the right of the top menu.
-    .mobile-illust-ui-page:not(.top-page)
-    {
-        position: absolute;
-        top: 0;
-        left: var(--page-left);
-        right: var(--page-right);
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-    }
-
-    // For popup menus in the mobile UI like the bookmark tag list, transition
-    // opacity and transform together.  Note that we don't use a blur background
-    // for the larger dialogs.  They need a large blur radius to not cause eyestrain,
-    // which is too slow on Android.
-    .mobile-illust-ui-page:not(.top-page)
-    {
-        transition:
-            transform ease 0.2s,
-            opacity ease 0.2s;
-        opacity: var(--opacity);
-    }
-
-    // For the top-level menu, move the opacity into top-page-button-row.  This
-    // works around a compositing bug on mobile Chrome: it doesn't composite
-    // backdrop-filter layers correctly when a parent is transitioning opacity,
-    // and the opacity transition needs to happen on the same node.  iOS doesn't
-    // have this problem.
-    .mobile-illust-ui-page.top-page
-    {
-        transition: transform ease 0.2s;
-
-        .top-page-button-row {
-            transition: opacity ease 0.2s;
-            opacity: var(--opacity);
-        }
+    // Hide the image info box if the UI is hidden.
+    &:not(.shown) .context-menu-image-info-container {
+        opacity: 0;
+        transform: translateX(20px);
     }
 
     // One UI page is shown at a time.
     .mobile-illust-ui-page
     {
-        padding: 10px;
-        overflow-y: auto;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding-top: 0.25em;
+        padding-bottom: calc(max(0.25em, env(safe-area-inset-bottom)));
+        padding-left: env(safe-area-inset-left);
+        padding-right: env(safe-area-inset-right);
+
+        display: flex;
+        flex-direction: row;
+        justify-content: space-evenly;
+
+        background-color: rgba(0,0,0,.5);
 
         user-select: none;
         -webkit-user-select: none;
 
-        transform-origin: calc(var(--transform-side)) 50%;
-        --opacity: 1;
+        // This controls the icon size.
+        font-size: 65%;
 
+        transition: transform ease 0.2s;
         pointer-events: none;
-        font-size: 75%;
-        
-        // --pointer-events is "auto" if elements should receive pointer events, or "none" if
-        // we're hidden.  This is applied with pointer-events: var(--pointer-events) to the correct
-        // element.  We don't just do it here since we don't want the gap between the top menu to
-        // block pointer events.
-        --pointer-events: auto;
-        &:not(.active-tab) { --pointer-events: none; }
-
-        // By default, apply pointer-events on immediate children of the page.
-        > * { pointer-events: var(--pointer-events); }
-
-        &:not(.active-tab) {
-            --opacity: 0;
-            transform: translateX(calc(-20px*var(--transform-direction))) scale(0.75);
-
-            // Disable pointer events while we're not visible.
-            --pointer-events: none;
+        transform: translateY(100%);
+        &.active-tab {
+            pointer-events: auto;
+            transform: translateY(0px);
         }
 
-        // Adjust these widgets so they look better in this view.
-        .bookmark-tag-list {
-            max-height: 100%;
-            overflow-y: scroll;
-            background-color: var(--frame-bg-color);
-            padding: 10px;
-            border-radius: 8px;
-
-            .popup-bookmark-tag-entry {
-                font-size: 200%;
-            }
-
-            .tag-right-button-strip {
-                top: 10px;
-            }
-        }
-
-        .more-options-dropdown {
-            font-size: 150%;
-            border-radius: 8px;
-            background-color: var(--frame-bg-color);
-            overflow-x: hidden;
-            overflow-y: auto;
-        }
-
-        // The top menu:
-        .top-page-button-row {
-            background-color: var(--frame-bg-color);
-            padding: 10px;
+        .item {
             display: flex;
             flex-direction: column;
-            gap: 10px;
-            border-radius: 15px;
-            background-color: rgba(0,0,0,0);
+            align-items: center;
+            gap: 0.25em;
+            padding: 0 0.25em;
+            justify-content: center;
 
-            border-left: 1px solid rgba(255,255,255,0.5);
-            &.top {
-                border-bottom: 1px solid rgba(255,255,255,0.5);
+            // Grey out the button and label if this item isn't enabled.
+            --foreground-color: #aaa;
+            &.enabled { --foreground-color: #fff; }
+            &.selected { --foreground-color: #ff8; }
+            color: var(--foreground-color);
+
+            & > svg {
+                width: 2em;
+                height: 2em;
             }
-            
-            &.bottom {
-                border-top: 1px solid rgba(255,255,255,0.5);
+
+            .label {
+                text-align: center;
+
+                // This font size is extremely small, but matches the styling used for iOS tabs.
+                font-size: .7rem;
             }
 
-            // A backdrop filter looks interesting, but it triggers compositing bugs on iOS: if
-            // the window loses focus while a CSS slideshow animation is running, the contents of
-            // the menu sometimes stop rendering if they have a backdrop-filter.  They're also
-            // fairly slow on Android.
-            //backdrop-filter: contrast(1.5) blur(20px);
-            //-webkit-backdrop-filter: contrast(1.5) blur(20px);
-
-            .item {
-                display: flex;
-                flex-direction: row;
-                align-items: center;
-                gap: 10px;
-
-                // Grey out the button and label if this item isn't enabled.
-                --foreground-color: #aaa;
-                &.enabled { --foreground-color: #fff; }
-                &.selected { --foreground-color: #ff8; }
-
-                > .button {
-                    border-radius: 15px;
-                    padding: 6px;
-                    display: flex;
-                    gap: 0.5em;
-                    align-items: center;
-                    flex-direction: row;
-                    justify-content: center;
-                    background-color: rgba(0,0,0,.5);
-                    color: var(--foreground-color);
-
-                    & > svg {
-                        width: 2em;
-                        height: 2em;
-                    }
-
-                    /* We don't have a way to add classes to inlined SVGs yet, so for now just use nth-child.
-                    The first child is the + icon and the second child is -. */
-                    &.button-zoom:not(.selected) > :nth-child(1) { display: none; }
-                    &.button-zoom.selected > :nth-child(2) { display: none; }
-
-                    /* Popup menu bookmarking */
-                    .tag-dropdown-arrow {
-                        width: 0; 
-                        height: 0; 
-                        border-top: 10px solid #222;
-                        border-left: 10px solid transparent;
-                        border-right: 10px solid transparent;
-                    }
-                    .font-icon {
-                        font-size: 200%;
-                    }
-                }
+            /* Popup menu bookmarking */
+            .tag-dropdown-arrow {
+                width: 0; 
+                height: 0; 
+                border-top: 10px solid #222;
+                border-left: 10px solid transparent;
+                border-right: 10px solid transparent;
             }
-        }
-
-        &.top-page
-        {
-            height: 100%;
-
-            // The top-page-buttons container holds the button blocks.  We have two of these,
-            // which are intended to separate in the middle to give a place where the user can
-            // tap the image to hide the menu.
-            .top-page-buttons {
-                height: 100%;
-                display: flex;
-                flex-direction: column;
-                justify-content: space-around;
-
-                // This sets the minimum space between the UI sections, so there's always some
-                // empty space to close the menu.
-                gap: 50px;
-
-                // Ignore pointer events in this container, so the space between the items can be
-                // used to close the menu.
-                pointer-events: none;
-
-                > .top-page-button-row
-                {
-                    // Since we overrode pointer-events above, it won't reenable pointer events
-                    // while we're visible.  Do that on the individual button rows instead.
-                    pointer-events: var(--pointer-events);
-                }
-                &.display-labels {
-                    // Hide the border around the buttons when help is displayed.  Do this by making it
-                    // transparent, so this doesn't cause buttons to move slightly.
-                    .top-page-button-row { border-color: rgba(0,0,0,0); }
-                }
-
-                &:not(.display-labels) {
-                    .item .label {
-                        display: none;
-                    }
-                }
+            .font-icon {
+                font-size: 200%;
             }
         }
     }
