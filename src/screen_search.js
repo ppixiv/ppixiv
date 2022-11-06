@@ -14,7 +14,7 @@ let thumbnail_ui = class extends ppixiv.widget
                     <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==">
                 </a>
 
-                <div class=title-with-button-row-container>
+                <div class=title-with-button-row-container data-hidden-on="mobile">
                     <div class=title-with-button-row>
                         <div class="displaying title-font"></div>
                         <div style="flex: 1;"></div>
@@ -387,8 +387,7 @@ ppixiv.screen_search = class extends ppixiv.screen
                 <!-- The tree widget for local navigation: -->
                 <div class=local-navigation-box></div>
 
-                <div class="search-results">
-
+                <div class=search-results>
                     <div class="thumbnail-ui top-ui-box">
                         <div style="flex: 1;"></div>
                         <div class=thumbnail-ui-box-container></div>
@@ -399,14 +398,49 @@ ppixiv.screen_search = class extends ppixiv.screen
 
                     <div class=thumbnail-container-box></div>
                 </div>
+
+                <div class=mobile-ui-box-container></div>
+
+                <!-- The UI header for the mobile layout. -->
+                <div class=mobile-header hidden>
+                    <div class=header-strip>
+                        <div class=back-button>
+                            ${ helpers.create_icon("mat:arrow_back_ios_new") }
+                        </div>
+
+                        <div class=title></div>
+
+                        <div class=menu-button>
+                            ${ helpers.create_icon("mat:menu") }
+                        </div>
+                    </div>
+                </div>
             </div>
         `});
 
         user_cache.addEventListener("usermodified", this.refresh_ui, { signal: this.shutdown_signal.signal });        
 
+        this.container.querySelector(".mobile-header").hidden = !ppixiv.mobile;
+        this.container.querySelector(".mobile-header .back-button").addEventListener("click", () => {
+            let parent_folder_id = local_api.get_parent_folder(this.displayed_media_id);
+
+            let args = helpers.args.location;
+            local_api.get_args_for_id(parent_folder_id, args);
+            helpers.navigate(args);
+        });
+        this.container.querySelector(".mobile-header .menu-button").addEventListener("click", () => {
+            let ui = this.container.querySelector(".mobile-ui-box-container");
+            let visible = !ui.classList.contains("ui-visible");
+            helpers.set_class(ui, "ui-visible", visible);
+            helpers.set_class(this.container.querySelector(".mobile-header .header-strip"), "ui-visible", visible);
+        });
+
+        // The search UI normally goes in thumbnail-ui-box-container.  On mobile, put
+        // it in the header instead.
+        let thumbnail_ui_container = this.container.querySelector(ppixiv.mobile? ".mobile-ui-box-container":".thumbnail-ui-box-container");
         new thumbnail_ui({
             parent: this,
-            container: this.container.querySelector(".thumbnail-ui-box-container"),
+            container: thumbnail_ui_container,
         });
 
         this.create_main_search_menu();
@@ -556,6 +590,7 @@ ppixiv.screen_search = class extends ppixiv.screen
          * affect opening the UI.
          */
         this.top_ui_box = this.container.querySelector(".top-ui-box");
+        this.top_ui_box.hidden = ppixiv.mobile;
         new hover_with_delay(this.top_ui_box, 0, 0.25);
 
         this.search_view = new search_view({
@@ -770,10 +805,19 @@ ppixiv.screen_search = class extends ppixiv.screen
         if(!this.active)
             return;
 
-        var element_displaying = this.container.querySelector(".displaying");
-        element_displaying.hidden = this.data_source.get_displaying_text == null;
+        let element_displaying = this.container.querySelector(".displaying");
+        let title_displaying = this.container.querySelector(".mobile-header .title");
+        element_displaying.hidden = title_displaying.hidden = this.data_source.get_displaying_text == null;
         if(this.data_source.get_displaying_text != null)
-            element_displaying.replaceChildren(this.data_source.get_displaying_text());
+        {
+            let text = this.data_source.get_displaying_text();
+            element_displaying.replaceChildren(text);
+            title_displaying.replaceChildren(text);
+        }
+
+        let back_button = this.container.querySelector(".mobile-header .back-button");
+        let show_back_button = local_api.get_parent_folder(this.displayed_media_id) != null;
+        back_button.hidden = !show_back_button;
 
         this.data_source.set_page_icon();
         helpers.set_page_title(this.data_source.page_title || "Loading...");

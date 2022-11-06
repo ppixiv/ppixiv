@@ -231,6 +231,8 @@ html.mobile {
     {
         font-size: 150%;
     }
+
+    [data-hidden-on ~= "mobile"] { display: none !important; }
 }
 
 /* Theme colors: */
@@ -734,11 +736,6 @@ html.mobile .screen-illust-container {
     }
 }
 
-/* The version in the search container is always centered. */
-.search-results > .no-results {
-    bottom: 50%;
-}
-
 .screen-illust-container {
     .ui {
         position: absolute;
@@ -1214,8 +1211,15 @@ body.hide-r18g .r18g { display: none; }
     padding-bottom: .5em;
     z-index: 1;
 
-    /* Prevent the empty space around the UI for centering from eating button presses. */
-    pointer-events: none;
+    html:not(.mobile) & {
+        // Prevent the empty space around the UI for centering from eating button presses.
+        pointer-events: none;
+
+        // Reenable it in its children.
+        > * {
+            pointer-events: auto;
+        }
+    }
 
     /* If .ui-on-hover is set, switch to showing the top UI when it's hovered instead of sticky. */
     &.ui-on-hover
@@ -1230,7 +1234,9 @@ body.hide-r18g .r18g { display: none; }
          * However, that also makes the hover not include the top padding above the UI, causing it
          * to flicker on and off when the mouse is in that area.  This is tricky to fix nicely, so just
          * stop disabling pointer-events when ui-on-hover is enabled. */
-        pointer-events: auto;
+        html:not(.mobile) & {
+            pointer-events: auto;
+        }
 
         // .force-open is set to lock the UI in place when a menu is open.  It has the same
         // effect as a hover.
@@ -1264,9 +1270,81 @@ body.hide-r18g .r18g { display: none; }
 }
 
 .screen-search-container {
+    // The header is given a static height, and the results are pushed down to make space.
+    // We can't use position: sticky since it's buggy on iOS, and we can't nest the scroller
+    // since that's also buggy on iOS.
+    --header-height: 0em;
+    html.mobile & {
+        --header-height: calc(2em + env(safe-area-inset-top));;
+    }
+
+    .mobile-header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+
+        .header-strip {
+            display: flex;
+            height: var(--header-height);
+            align-items: center;
+            padding-top: env(safe-area-inset-top);
+            backdrop-filter: blur(10px) brightness(0.6);
+            -webkit-backdrop-filter: blur(10px) brightness(0.6);
+
+            // Dim underneath the header while the search UI is open, so the header matches
+            // it.  Use background-color for this, since Android can't handle backdrop-filter
+            // being animated.
+            transition: background-color .25s;
+            background-color: rgba(0,0,0,0);
+            &.ui-visible {
+                background-color: rgba(0,0,0,1);
+            }
+
+            .back-button, .menu-button {
+                display: flex;
+                padding: 0 0.5em;
+                align-self: stretch;
+                align-items: center;
+            }
+
+            .title {
+                flex: 1;
+                line-height: 1.5em;
+                text-align: center;
+                white-space: nowrap;
+                text-overflow: ellipsis;
+                overflow: hidden;
+            }
+        }
+    }
+
+    .mobile-ui-box-container {
+        position: fixed;
+        top: var(--header-height);
+        left: 0;
+        width: 100%;
+
+        transition: transform .25s, opacity .25s;
+        opacity: 1;
+        transform: translateY(0px);
+        --ui-bg-color: #111;
+
+        &:not(.ui-visible) {
+            pointer-events: none;
+            opacity: 0;
+            transform: translateY(-100px);
+        }
+    }
+
     .search-results {
         // If the nav box is open, shift the search results to make room for it.
         margin-left: var(--navigation-box-reserved-width);
+        margin-top: var(--header-height);
+
+        > .no-results {
+            bottom: 50%;
+        }
     }
 
     .thumbnail-ui-box-container {
@@ -1281,11 +1359,12 @@ body.hide-r18g .r18g { display: none; }
         width: 100%;
         background-color: var(--ui-bg-color);
         color: var(--ui-fg-color);
-        box-shadow: 0 0 15px 10px var(--ui-shadow-color);
         border-radius: 4px;
-
         padding: 10px;
-        pointer-events: auto;
+
+        html:not(.mobile) & {
+            box-shadow: 0 0 15px 10px var(--ui-shadow-color);
+        }
 
         .displaying {
             padding-bottom: 4px;
