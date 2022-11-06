@@ -721,7 +721,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
             e.preventDefault();
             e.stopPropagation();
 
-            history.back();
+            ppixiv.phistory.back();
         });
 
         this.container.addEventListener("click", this.handle_link_click);

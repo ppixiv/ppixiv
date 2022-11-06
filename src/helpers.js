@@ -3702,19 +3702,70 @@ ppixiv.key_storage = class
     }
 }
 
-// VirtualHistory is a wrapper for document.location and window.history to allow
-// setting a virtual, temporary document location.  These are ppixiv.plocationl and
-// ppixiv.phistory, and have roughly the same interface.
+// VirtualHistory is an implementation for document.location and window.history.  It
+// does a couple things:
 //
-// This can be used to preview another page without changing browser history, and
-// works around a really painful problem with the history API: while history.pushState
-// and replaceState are sync, history.back() is async.  That makes it very hard to
-// work with reliably.
+// It allows setting a temporary, virtual URL as the document location.  This is used
+// by linked tabs to preview a URL without affecting browser history.
+//
+// Optionally, it can also replace browser history and navigation entirely.  This is
+// used on mobile to work around some problems:
+//
+// - If there's any back or forwards history, it's impossible to disable the left and
+// right swipe gesture for browser back and forwards, even if you're running as a PWA,
+// and it's very easy to accidentally navigate back when you're trying to swipe up or
+// down at the edge of the screen.  This eliminates them entirely on iOS.  (Android
+// still has them, because Android's system gestures are broken.)
+// - iOS has a limit of 100 replaceState calls in 30 seconds.  That doesn't make much
+// sense, since it's trivial for a regular person navigating quickly to reach that in
+// normal usage, and replaceState doesn't navigate the page so it shouldn't be limited
+// at all.
+// 
+// We only enter this mode on mobile when we think we're running as a PWA without browser
+// UI.  The main controller will handle intercepting clicks on links and redirecting them
+// here.  If we're not doing this, this will only be used for virtual navigations.
 ppixiv.VirtualHistory = class
 {
+    // If true, we're using this for all navigation and never using browser navigation.
+    get permanent()
+    {
+        // We only want this if we're running as a PWA on mobile, so we don't interfere
+        // with browser UI if it exists.  iOS lets us detect this with navigator.standalone,
+        // but there doesn't seem to be any way to query this on Android.  For Android,
+        // testing if we're in fullscreen seems to be the best we can do (this will false
+        // positive if we're on a mobile browser that happens to be fullscreen--oh well).
+        if(!ppixiv.mobile)
+            return false;
+
+        if(ppixiv.ios)
+            return navigator.standalone;
+
+        // Our result should never change.  Cache this to make sure we don't change modes
+        // if this result changes, since this isn't an ideal way to detect if we're a PWA.
+        this._fullscreen ??= window.matchMedia('(display-mode: fullscreen)').matches;
+        return this._fullscreen;
+    }
+
     constructor()
     {
         this.virtual_url = null;
+
+        // If we're in permanent mode, copy the browser state to our first history state.
+        if(this.permanent)
+        {
+            this.history = [];
+            this.history.push({
+                url: new URL(window.location),
+                state: window.history.state
+            });
+
+            // If we're permanent, we never expect to see popstate events coming from the
+            // browser.  Listen for these and warn about them.
+            window.addEventListener("popstate", (e) => {
+                if(e.isTrusted)
+                    console.warn("Unexpected popstate:", e);
+            }, true);
+        }
 
         // ppixiv.plocation can be accessed like document.location.
         Object.defineProperty(ppixiv, "plocation", {
@@ -3723,10 +3774,13 @@ ppixiv.VirtualHistory = class
                 // Otherwise, return virtual_url.  Always return a copy of virtual_url,
                 // since the caller can modify it and it should only change through
                 // explicit history changes.
-                if(this.virtual_url == null)
-                    return new URL(document.location);
-                else
+                if(this.virtual_url != null)
                     return new URL(this.virtual_url);
+
+                if(!this.permanent)
+                    return new URL(document.location);
+
+                return new URL(this._latest_history.url);
             },
             set: (value) => {
                 // We could support assigning ppixiv.plocation, but we always explicitly
@@ -3734,15 +3788,23 @@ ppixiv.VirtualHistory = class
                 throw Error("Can't assign to ppixiv.plocation");
 
                 /*
-                if(!this.virtual)
+                if(this.virtual)
+                {
+                    // If we're virtual, replace the virtual URL.
+                    this.virtual_url = new URL(value, this.virtual_url);
+                    this.broadcast_popstate();
+                    return;
+                }
+
+                if(!this.permanent)
                 {
                     document.location = value;
                     return;
                 }
+                
+                this.replaceState(null, "", value);
+                this.broadcast_popstate();
 
-                // If we're virtual, replace the virtual URL.
-                this.virtual_url = new URL(value, this.virtual_url);
-                this.broadcastPopstate();
                 */
             },
         });
@@ -3753,6 +3815,11 @@ ppixiv.VirtualHistory = class
         return this.virtual_url != null;
     }
 
+    get _latest_history()
+    {
+        return this.history[this.history.length-1];
+    }
+
     url_is_virtual(url)
     {
         // Push a virtual URL by putting #virtual=1 in the hash.
@@ -3760,28 +3827,41 @@ ppixiv.VirtualHistory = class
         return args.hash.get("virtual");
     }
 
+    get length()
+    {
+        if(!this.permanent)
+            return window.history.length;
+        
+        return this.history.length;
+    }
+
     pushState(data, title, url)
     {
         url = new URL(url, document.location);
-        let virtual = this.url_is_virtual(url);
-        
-        // We don't support a history of virtual locations.  Once we're virtual, we
-        // can only replaceState or back out to the real location.
-        if(virtual && this.virtual_url)
-            throw Error("Can't push a second virtual location");
 
-        // If we're not pushing a virtual location, just use a real one.
-        if(!virtual)
+        let virtual = this.url_is_virtual(url);
+        if(virtual)
         {
-            this.virtual_url = null; // no longer virtual
-            return window.history.pushState(data, title, url);
+            // We don't support a history of virtual locations.  Once we're virtual, we
+            // can only replaceState or back out to the real location.
+            if(this.virtual_url)
+                throw Error("Can't push a second virtual location");
+
+            // Note that browsers don't dispatch popstate on pushState (which makes no sense at all),
+            // so we don't here either to match.
+            this.virtual_data = data;
+            this.virtual_title = title;
+            this.virtual_url = url;
+            return;
         }
-        
-        // Note that browsers don't dispatch popstate on pushState (which makes no sense at all),
-        // so we don't here either to match.
-        this.virtual_data = data;
-        this.virtual_title = title;
-        this.virtual_url = url;
+
+        // We're pushing a non-virtual location, so we're no longer virtual if we were before.
+        this.virtual_url = null; 
+
+        if(!this.permanent)
+            return window.history.pushState(data, title, url);
+
+        this.history.push({ data, url });
     }
 
     replaceState(data, title, url)
@@ -3789,28 +3869,31 @@ ppixiv.VirtualHistory = class
         url = new URL(url, document.location);
         let virtual = this.url_is_virtual(url);
         
-        if(!virtual)
+        if(virtual)
         {
-            // If we're replacing a virtual location with a real one, pop the virtual location
-            // and push the new state instead of replacing.  Otherwise, replace normally.
-            if(this.virtual_url != null)
-            {
-                this.virtual_url = null;
-                return window.history.pushState(data, title, url);
-            }
-            else
-            {
-                return window.history.replaceState(data, title, url);
-            }
+            // We can only replace a virtual location with a virtual location.  
+            // We can't replace a real one with a virtual one, since we can't edit
+            // history like that.
+            if(this.virtual_url == null)
+                throw Error("Can't replace a real history entry with a virtual one");
+
+            this.virtual_url = url;
+            return;
         }
 
-        // We can only replace a virtual location with a virtual location.  
-        // We can't replace a real one with a virtual one, since we can't edit
-        // history like that.
-        if(this.virtual_url == null)
-            throw Error("Can't replace a real history entry with a virtual one");
+        // If we're replacing a virtual location with a real one, pop the virtual location
+        // and push the new state instead of replacing.  Otherwise, replace normally.
+        if(this.virtual_url != null)
+        {
+            this.virtual_url = null;
+            return this.pushState(data, title, url);
+        }
 
-        this.virtual_url = url;
+        if(!this.permanent)
+            return window.history.replaceState(data, title, url);
+
+        this.history.pop();
+        this.history.push({ data, url });
     }
 
     get state()
@@ -3818,15 +3901,20 @@ ppixiv.VirtualHistory = class
         if(this.virtual)
             return this.virtual_data;
 
-        return window.history.state;
+        if(!this.permanent)
+            return window.history.state;
+        
+        return this._latest_history.state;
     }
 
     set state(value)
     {
         if(this.virtual)
             this.virtual_data = value;
-        else
+
+        if(!this.permanent)
             window.history.state = value;
+        this._latest_history.state = value;
     }
     
     back()
@@ -3835,18 +3923,29 @@ ppixiv.VirtualHistory = class
         if(this.virtual_url)
         {
             this.virtual_url = null;
-            this.broadcastPopstate();
+            this.broadcast_popstate({cause: "leaving-virtual"});
+            return;
         }
-        else
+
+        if(!this.permanent)
         {
             window.history.back();
+            return;
         }
+
+
+        if(this.history.length == 1)
+            return;
+
+        this.history.pop();
+        this.broadcast_popstate()
     }
 
-    broadcastPopstate()
+    broadcast_popstate({cause}={})
     {
         let e = new PopStateEvent("popstate");
-        e.navigationCause = "leaving-virtual";
+        if(cause)
+            e.navigationCause = cause;
         window.dispatchEvent(e);
     }
 };

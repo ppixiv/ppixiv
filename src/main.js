@@ -568,6 +568,8 @@ ppixiv.MainController = class
     //
     // This only affects left clicks (middle clicks into a new tab still behave
     // normally).
+    //
+    // This also handles redirecting navigation to ppixiv.VirtualHistory on iOS.
     window_onclick_capture = (e) =>
     {
         // Only intercept regular left clicks.

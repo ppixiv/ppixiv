@@ -1264,7 +1264,7 @@ ppixiv.slideshow_staging_dialog = class extends ppixiv.dialog_widget
             // URL.  This is needed if we're exiting from the user clicking out of the dialog,
             // but don't do it if we're exiting from browser back.
             if(helpers.args.location.toString() == this.url.toString())
-                history.back();
+                ppixiv.phistory.back();
         }
     }
 };
