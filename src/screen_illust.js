@@ -696,7 +696,6 @@ ppixiv.screen_illust = class extends ppixiv.screen
     }
 }
 
-
 // Handle mobile image switching.
 //
 // We switch images by dragging vertically across the edge of the screen.  This mimics
@@ -710,8 +709,6 @@ class DragImageChanger
     constructor({parent})
     {
         this.parent = parent;
-        this.shutdown_signal = new AbortController();
-        this.captured_pointer_id = null;
         this.recent_pointer_movement = new ppixiv.FlingVelocity({
             sample_period: 0.150,
         });
@@ -726,12 +723,25 @@ class DragImageChanger
         this.adding_viewer = false;
         this.animations = null;
 
-        this.pointer_listener = new ppixiv.pointer_listener({
+        // Once we reach the top and bottom edge, this is set to the minimum and maximum value
+        // of this.drag_distance.
+        this.bounds = [null, null];
+
+        this.dragger = new ppixiv.DragHandler({
             element: this.container,
-            button_mask: 1,
-            signal: this.shutdown_signal.signal,
-            callback: this.pointerevent,
-            capture: true,
+            onpointerdown: ({event}) => {
+                // Stop if there's no image, if the screen wasn't able to load one.
+                if(this.main_viewer == null)
+                    return false;
+
+                // Stop if this press isn't near the edge.
+                let edge_threshold = 30;
+                return event.clientX < edge_threshold || event.clientX > window.innerWidth - edge_threshold;
+            },
+
+            ondragstart: (args) => this.ondragstart(args),
+            ondrag: (args) => this.ondrag(args),
+            ondragend: (args) => this.ondragend(args),
         });
     }
 
@@ -753,57 +763,17 @@ class DragImageChanger
     // it, and it's always in this.viewers during drags.
     get main_viewer() { return this.parent.viewer; }
 
-    shutdown()
-    {
-        this.stop_dragging();
-        this.shutdown_signal.abort();
-    }
-
     // The image changed externally or the screen is becoming inactive, so stop any drags and animations.
     stop()
     {
-        this.stop_dragging();
+        this.dragger.cancel_drag();
     }
 
-    pointerevent = (e) =>
+    async ondragstart(e)
     {
-        if(e.mouseButton != 0)
-            return;
-
-        if(e.pressed && this.captured_pointer_id == null)
-        {
-            // Stop if this press isn't near the edge.
-            let edge_threshold = 30;
-            let at_edge = e.clientX < edge_threshold || e.clientX > window.innerWidth - edge_threshold;
-            if(!at_edge)
-                return;
-
-            // Claim the click, so it isn't handled by the viewer.
-            // guh: simulatedpointerdown
-            e.preventDefault();
-            e.stopPropagation();
-
-            this.start_dragging(e);
-        } else {
-            if(this.captured_pointer_id == null || e.pointerId != this.captured_pointer_id)
-                return;
-
-            this.stop_dragging({ interactive: true });
-        }
-    }
-
-    async start_dragging(e)
-    {
-        // Stop if there's no image, if the screen wasn't able to load one.
-        if(this.main_viewer == null)
-            return;
-
-        this.captured_pointer_id = e.pointerId;
-        this.container.setPointerCapture(this.captured_pointer_id);
-        this.container.addEventListener("pointermove", this.pointermove);
-        this.container.addEventListener("lostpointercapture", this.lost_pointer_capture);
         this.drag_distance = 0;
         this.recent_pointer_movement.reset();
+        this.bounds = [null, null];
 
         if(this.animations == null)
         {
@@ -845,22 +815,33 @@ class DragImageChanger
             animation.cancel();
     }
 
-    // Treat lost pointer capture as the pointer being released.
-    lost_pointer_capture = (e) =>
+    ondrag({event, first})
     {
-        if(e.pointerId != this.captured_pointer_id)
-            return;
+        let y = event.movementY;
+        this.recent_pointer_movement.add_sample({ x: 0, y: y });
 
-        this.stop_dragging({interactive: true});
-    }
+        // If we're past the end, apply friction to indicate it.  This uses stronger overscroll
+        // friction to make it distinct from regular image panning overscroll.
+        let overscroll = 1;
+        if(this.bounds[0] != null && this.drag_distance > this.bounds[0])
+        {
+            let distance = Math.abs(this.bounds[0] - this.drag_distance);
+            overscroll = Math.pow(0.97, distance);
+        }
 
-    pointermove = (e) =>
-    {
-        if(e.pointerId != this.captured_pointer_id)
-            return;
+        if(this.bounds[1] != null && this.drag_distance < this.bounds[1])
+        {
+            let distance = Math.abs(this.bounds[1] - this.drag_distance);
+            overscroll = Math.pow(0.97, distance);
+        }
+        y *= overscroll;
 
-        this.recent_pointer_movement.add_sample({ x: 0, y: e.movementY });
-        this.drag_distance += e.movementY;
+        // The first pointer input after a touch may be thresholded by the OS trying to filter
+        // out slight pointer movements that aren't meant to be drags.  This causes the very
+        // first movement to contain a big jump on iOS, causing drags to jump.  Count this movement
+        // towards fling sampling, but skip it for the visual drag.
+        if(!first)
+            this.drag_distance += y;
         this.add_viewers_if_needed();
         this.refresh_drag_position();
     }
@@ -900,6 +881,8 @@ class DragImageChanger
                 return index;
             index++;
         }
+
+        // The main viewer should always be in the list during drags.
         console.error("Main viewer is missing");
         return 0;
     }
@@ -965,8 +948,13 @@ class DragImageChanger
 
         if(media_id == null)
         {
-            console.log("No navigation in direction", down);
-            // XXX: feedback that there's nothing here
+            // There's nothing in this direction, so remember that this is the boundary.  Once we
+            // do this, overscroll will activate in this direction.
+            if(down)
+                this.bounds[1] = this.viewer_distance * (this.viewers.length - 1 - this.main_viewer_index);
+            else
+                this.bounds[0] = this.viewer_distance * (0 - this.main_viewer_index);
+
             return;
         }
 
@@ -1037,17 +1025,8 @@ class DragImageChanger
 
     // A drag finished.  interactive is true if this is the user releasing it, or false
     // if we're shutting down during a drag.  See if we should transition the image or undo.
-    async stop_dragging({interactive=false}={})
+    async ondragend({interactive=false}={})
     {
-        if(this.captured_pointer_id != null)
-        {
-            this.container.releasePointerCapture(this.captured_pointer_id);
-            this.captured_pointer_id = null;
-        }
-    
-        this.container.removeEventListener("pointermove", this.pointermove);
-        this.container.removeEventListener("lostpointercapture", this.lost_pointer_capture);
-
         let dragged_to_viewer = null;
         if(interactive)
         {
@@ -1079,7 +1058,7 @@ class DragImageChanger
             //
             // Take the main viewer to turn it into a preview.  It's in this.viewers, and this prevents
             // the screen from shutting it down when we activate the new viewer.
-            let viewer = this.parent.take_viewer();
+            this.parent.take_viewer();
 
             // Make our neighboring viewer primary.
             this.parent.show_image_viewer({ new_viewer: dragged_to_viewer });
@@ -1120,7 +1099,7 @@ class DragImageChanger
             // Wait for the animations to complete.
             await animations_finished;
         } catch(e) {
-            // If this fails, it should be from start_dragging cancelling the animations due to a
+            // If this fails, it should be from ondragstart cancelling the animations due to a
             // new touch.
             // console.error(e);
             return;

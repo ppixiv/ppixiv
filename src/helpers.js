@@ -5083,6 +5083,140 @@ ppixiv.OpenWidgets = class extends EventTarget
     }
 }
 
+// Basic low-level dragging.
+//
+// This currently handles simple single-touch drags.  It doesn't handle multitouch, so it's not
+// used by TouchScroller.
+ppixiv.DragHandler = class
+{
+    constructor({
+        element,
+        signal,
+
+        // Called on the initial press before starting the drag.  If set, returns true if the drag
+        // should begin or false if it should be 
+        onpointerdown,
+        ondragstart,
+
+        // ondrag({event, first})
+        // first is true if this is the first pointer movement since this drag started.
+        ondrag,
+        ondragend,
+    }={})
+    {
+        this.element = element;
+        this.captured_pointer_id = null;
+        this.onpointerdown = onpointerdown;
+        this.ondragstart = ondragstart;
+        this.ondrag = ondrag;
+        this.ondragend = ondragend;
+
+        signal ??= (new AbortController().signal);
+
+        this.pointer_listener = new ppixiv.pointer_listener({
+            element,
+            signal,
+            button_mask: 1,
+            callback: this._pointerevent,
+        });
+
+        signal.addEventListener("abort", () => {
+            this.cancel_drag();
+        });
+    }
+
+    // If a drag is active, cancel it.
+    cancel_drag()
+    {
+        this._stop_dragging({interactive: false});
+    }
+
+    _pointerevent = (e) =>
+    {
+        if(e.mouseButton != 0)
+            return;
+
+        if(e.pressed && this.captured_pointer_id == null)
+        {
+            if(this.onpointerdown)
+            {
+                if(!this.onpointerdown({event: e}))
+                    return false;
+            }
+
+            // Claim the click, so it isn't handled by the viewer.
+            e.preventDefault();
+            e.stopPropagation();
+
+            this._start_dragging(e);
+        } else {
+            if(this.captured_pointer_id == null || e.pointerId != this.captured_pointer_id)
+                return;
+
+            this._stop_dragging({ interactive: true });
+        }
+    }
+
+    async _start_dragging(event)
+    {
+        // We shouldn't be starting a drag while one is already in progress.
+        if(this.captured_pointer_id)
+        {
+            console.error("Unexpected start of drag");
+            return;
+        }
+
+        this.captured_pointer_id = event.pointerId;
+        this.element.setPointerCapture(this.captured_pointer_id);
+        this.element.addEventListener("pointermove", this._pointermove);
+        this.element.addEventListener("lostpointercapture", this._lost_pointer_capture);
+        this.first_pointer_movement = true;
+
+        if(this.ondragstart)
+            this.ondragstart({event});
+    }
+
+    // Treat lost pointer capture as the pointer being released.
+    _lost_pointer_capture = (e) =>
+    {
+        if(e.pointerId != this.captured_pointer_id)
+            return;
+
+        this._stop_dragging({interactive: true});
+    }
+
+    // A drag finished.  interactive is true if this is the user releasing it, or false
+    // if we're shutting down during a drag.  See if we should transition the image or undo.
+    _stop_dragging({interactive=false}={})
+    {
+        if(this.captured_pointer_id == null)
+            return;
+
+        if(this.captured_pointer_id != null)
+        {
+            this.element.releasePointerCapture(this.captured_pointer_id);
+            this.captured_pointer_id = null;
+        }
+
+        this.element.removeEventListener("pointermove", this._pointermove);
+        this.element.removeEventListener("lostpointercapture", this.lost_pointer_capture);
+
+        if(this.ondragstart)
+            this.ondragend({interactive});
+    }
+
+    _pointermove = (event) =>
+    {
+        if(event.pointerId != this.captured_pointer_id)
+            return;
+
+        let first = this.first_pointer_movement;
+        this.first_pointer_movement = false;
+        
+        this.ondrag({event, first});
+    }
+};
+
 const FlingFriction = 10;
 const FlingMinimumVelocity = 10;
 
@@ -5133,7 +5267,7 @@ ppixiv.TouchScroller = class
         this.mode = null;
 
         // Note that we don't use pointer_listener for this.  It's meant for mouse events
-        // and isn't optimized for touch.
+        // and isn't optimized for multitouch.
         this.container.addEventListener("pointerdown", this.pointerevent, { signal });
         this.container.addEventListener("pointermove", this.pointermove, { signal });        
         window.addEventListener("pointerup", this.pointerevent, { signal });
