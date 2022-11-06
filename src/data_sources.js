@@ -705,7 +705,7 @@ ppixiv.data_source = class
         let initial_media_id = this.get_current_media_id(helpers.args.location);
         if(page == this.initial_page &&
             initial_media_id != null &&
-            initial_media_id != "illust:*" && initial_media_id != "file:/*" && // not slideshow staging
+            initial_media_id != "illust:*" && !local_api.is_slideshow_staging(helpers.args.location) && // not slideshow staging
             this.id_list.get_page_for_illust(initial_media_id).page == null &&
             media_ids.indexOf(initial_media_id) == -1)
         {

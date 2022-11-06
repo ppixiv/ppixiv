@@ -498,6 +498,13 @@ ppixiv.local_api = class
         return "folder:" + parts.join("/");
     }
 
+    // Return true if this is a URL for slideshow staging.  See screen_illust.load_first_image.
+    static is_slideshow_staging(args)
+    {
+        // If file is "*", this is a "first image" placeholder.  Don't treat it as a local ID.
+        return args.hash.get("file") == "*";
+    }
+
     // Navigate to the top of local search.  This is the "Local Search" button in the
     // search menu.
     //
