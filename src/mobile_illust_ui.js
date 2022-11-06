@@ -425,9 +425,7 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
         });
 
         this.onclose = onclose;
-        this.pages = {};
-
-        this.pages.top = new mobile_illust_ui_top_page({
+        this.page = new mobile_illust_ui_top_page({
             container: this.container,
             parent: this,
         });
@@ -459,8 +457,7 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
         this._media_id = media_id;
         this.info_widget.set_media_id(media_id);
         this.bookmark_tag_list_widget.set_media_id(media_id);
-        for(let page of Object.values(this.pages))
-            page.media_id = media_id;
+        this.page.media_id = media_id;
 
         this.refresh();
     }
@@ -469,14 +466,12 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
     // Set the current viewer, or null if none.  If set, we'll activate zoom controls.
     set on_click_viewer(viewer)
     {
-        for(let page of Object.values(this.pages))
-            page.on_click_viewer = viewer;
+        this.page.on_click_viewer = viewer;
     }
 
     set_data_source(data_source)
     {
-        for(let page of Object.values(this.pages))
-            page.set_data_source(data_source);
+        this.page.set_data_source(data_source);
     }
 
     show()
@@ -497,7 +492,7 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
             });
         }            
 
-        this.pages.top.show_tab();
+        this.page.show_tab();
 
         // Make sure we're up to date if we deferred an update while hidden.
         this.refresh();
@@ -522,7 +517,7 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
             this.swipe_out_handler = null;
         }
 
-        this.pages.top.hide_tab();
+        this.page.hide_tab();
 
         this.refresh();
 
@@ -537,8 +532,7 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
         ClassFlags.get.set("mobile-ui-visible", this.shown);
         helpers.set_class(this.container, "shown", this.shown);
 
-        for(let page of Object.values(this.pages))
-            page.refresh();
+        this.page.refresh();
 
         ppixiv.OpenWidgets.singleton.set(this, this.shown);
     }
