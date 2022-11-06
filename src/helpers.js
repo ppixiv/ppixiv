@@ -1034,6 +1034,7 @@ ppixiv.helpers = {
         let results = {};
         for(let key of Object.keys(properties))
             results[key] = computed.getPropertyValue(`--${key}`);
+        div.remove();
 
         return results;
     },

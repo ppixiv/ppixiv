@@ -91,6 +91,7 @@ ppixiv.viewer_video = class extends ppixiv.viewer_video_base
         this.video.loop = true;
         this.video.controls = false;
         this.video.preload = "auto";
+        this.video.playsInline = true; // prevents iOS taking over the video on long press
         this.video.volume = settings.get("volume");
         this.video.muted = settings.get("mute");
 

@@ -254,7 +254,6 @@ let mobile_illust_ui_top_page = class extends mobile_illust_ui_page
 
     refresh_video_height()
     {
-        console.log(this.container.offsetHeight);
         document.documentElement.style.setProperty("--menu-bar-height", `${this.container.offsetHeight}px`);
     }
 
