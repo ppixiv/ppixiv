@@ -805,14 +805,12 @@ ppixiv.screen_search = class extends ppixiv.screen
         if(!this.active)
             return;
 
-        let element_displaying = this.container.querySelector(".displaying");
-        let title_displaying = this.container.querySelector(".mobile-header .title");
-        element_displaying.hidden = title_displaying.hidden = this.data_source.get_displaying_text == null;
+        let element_displaying = this.container.querySelector(ppixiv.mobile? ".mobile-header .title":".displaying");
+        element_displaying.hidden = this.data_source.get_displaying_text == null;
         if(this.data_source.get_displaying_text != null)
         {
             let text = this.data_source.get_displaying_text();
             element_displaying.replaceChildren(text);
-            title_displaying.replaceChildren(text);
         }
 
         let back_button = this.container.querySelector(".mobile-header .back-button");
