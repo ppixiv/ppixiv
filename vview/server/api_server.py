@@ -1,4 +1,4 @@
-import aiohttp, json, logging, traceback, urllib, time, io
+import asyncio, aiohttp, json, logging, ssl, traceback, urllib, time, io
 from aiohttp import web
 from pprint import pprint
 import urllib.parse
@@ -14,7 +14,7 @@ class APIServer:
     """
     async def init(self, server):
         self.server = server
-        self.site = None
+        self.sites = []
         self.runner = None
         self.running_requests = {}
 
@@ -22,20 +22,54 @@ class APIServer:
 
         # Create the aiohttp runner.
         self.runner = aiohttp.web_runner.AppRunner(app, access_log_class=misc.AccessLogger, keepalive_timeout=75)
-
         await self.runner.setup()
 
-        port = 8235
-        self.site = aiohttp.web_runner.TCPSite(self.runner, host=None, port=port, shutdown_timeout=1, backlog=128)
-        await self.site.start()
+        # Start an HTTP server, an HTTPS server, or both.
+        #
+        # We normally only run an HTTP server.  We're intended to be run by end-users ron localhost
+        # or on a local network, where it's not possible to get a valid cert and the server isn't
+        # exposed to the internet, and if we were running publically we should be behind something like
+        # nginx and should be running on a socket.
+        #
+        # HTTPS is supported for development, to allow using ppixiv-debug.user.js on iOS, where Safari
+        # won't connect to "insecure" endpoints.  (Even if you know what you're doing and it's perfectly
+        # safe, iOS thinks it knows better than you do.)  This requires setting up a real domain, getting
+        # a wildcard cert for it, and having a subdomain pointing to your local development server.
+        http_conf = self.server.auth.data.get('http', {
+            'enabled': True,
+        })
+        if http_conf.get('enabled'):
+            port = http_conf.get('port', 8235)
+
+            # By default, only run on localhost.  If local is false, run on the default interface.
+            host = http_conf.get('local', True) and '127.0.0.1' or None
+            log.info(f'Starting HTTP server on port {port}')
+            site = aiohttp.web_runner.TCPSite(self.runner, host=host, port=port, shutdown_timeout=1, backlog=128)
+            await site.start()
+            self.sites.append(site)
+
+        https_conf = self.server.auth.data.get('https', {})
+        if https_conf.get('enabled'):
+            ssl_cert_path = https_conf['certificate']
+            ssl_key_path = https_conf['key']
+            port = https_conf.get('port', 443)
+
+            log.info(f'Starting HTTPS server on port {port}')
+            ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+            ssl_context.load_cert_chain(ssl_cert_path, ssl_key_path)
+
+            site = aiohttp.web_runner.TCPSite(self.runner, port=port, shutdown_timeout=1, backlog=128, ssl_context=ssl_context)
+            await site.start()
+            self.sites.append(site)
 
     async def shutdown(self):
         """
         Stop the webserver.
         """
-        if self.site is not None:
-            await self.site.stop()
-            self.site = None
+        futures = [site.stop() for site in self.sites]
+        if futures:
+            await asyncio.wait(futures)
+        self.sites = []
 
         if self.runner is not None:
             await self.runner.cleanup()
