@@ -117,7 +117,6 @@ let mobile_illust_ui_top_page = class extends mobile_illust_ui_page
         `});
 
         this._media_id = null;
-        this._on_click_viewer = null;
 
         this.container.querySelector(".button-view-manga").addEventListener("click", this.clicked_view_manga);
 
@@ -183,11 +182,6 @@ let mobile_illust_ui_top_page = class extends mobile_illust_ui_page
         this.shutdown_signal.signal.addEventListener("abort", () => this.resize_observer.disconnect());
     }
 
-    get _is_zoom_ui_enabled()
-    {
-        return this._on_click_viewer != null;
-    }
-
     set_data_source(data_source)
     {
         if(this.data_source == data_source)
@@ -201,13 +195,6 @@ let mobile_illust_ui_top_page = class extends mobile_illust_ui_page
                 widget.set_data_source(data_source);
         }
 
-        this.refresh();
-    }
-
-    // Set the current viewer, or null if none.  If set, we'll activate zoom controls.
-    set on_click_viewer(viewer)
-    {
-        this._on_click_viewer = viewer;
         this.refresh();
     }
 
