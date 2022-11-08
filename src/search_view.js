@@ -546,7 +546,7 @@ ppixiv.search_view = class extends ppixiv.widget
         // the IDs that were nearby when it was saved.  For the initial refresh, load the same
         // range of nearby media IDs.
         let args = helpers.args.location;
-        if(first_nearby_media_id == null && args.state.scroll?.nearby_media_ids != null)
+        if(first_loaded_media_id == null && args.state.scroll?.nearby_media_ids != null)
         {
             // nearby_media_ids is all media IDs that were nearby.  Not all of them may be
             // in the list now, eg. if we're only loading page 2 but some images from page 1
@@ -555,6 +555,17 @@ ppixiv.search_view = class extends ppixiv.widget
             let last = helpers.find_last(args.state.scroll.nearby_media_ids, all_media_ids);
             if(first != null && last != null)
             {
+                // If the new results aren't similar to the search we're trying to restore, first
+                // and last might be very far apart.  This happens if we're on a shuffled search.
+                // Limit the distance these can be from each other so this doesn't explode if we're
+                // restoring a huge shuffled directory.
+                let distance = Math.abs(all_media_ids.indexOf(last) - all_media_ids.indexOf(first));
+                if(distance > 100)
+                {
+                    console.log("Clamping range for scroll restoration from", distance);
+                    last = all_media_ids[first+10];
+                }
+
                 first_nearby_media_id = first;
                 last_nearby_media_id = last;
             }
