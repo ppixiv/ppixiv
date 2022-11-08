@@ -823,7 +823,7 @@ ppixiv.LocalBroadcastChannelConnection = class extends EventTarget
         this.disconnect();
 
         let url = new URL("/ws", local_api.local_url);
-        url.protocol = "ws";
+        url.protocol = document.location.protocol == "https:"? "wss":"ws";
 
         this.ws = new WebSocket(url);
         this.ws.onopen = this.ws_opened;
