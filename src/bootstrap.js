@@ -85,7 +85,7 @@ async function Bootstrap(env)
     }
 
     // Create window.ppixiv.
-    run_script(`window.ppixiv = ${JSON.stringify(ppixiv)}`);
+    run_script(`window.ppixiv = ${JSON.stringify(ppixiv)}`, { path: "environment" });
 
     // Load each source file.
     for(let path of env.init.source_files)
@@ -152,5 +152,5 @@ async function Bootstrap(env)
     });
 
     // Create the main controller.
-    run_script(`ppixiv.main_controller = new ppixiv.MainController();`);
+    run_script(`ppixiv.main_controller = new ppixiv.MainController();`, { path: "controller" });
 }
