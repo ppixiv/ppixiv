@@ -27,6 +27,12 @@ def to_javascript_string(s):
     Return s as a JavaScript string.
     """
     escaped = re.sub(r'''([`$\\])''', r'\\\1', s)
+
+    # This is a hopefully temporary workaround for "Stay" to stop it from stripping our
+    # comments by replacing "//" in source code strings with "/\\x2f":
+    #
+    # https://github.com/shenruisi/Stay/issues/60
+    escaped = escaped.replace('//', '/\\x2f')
     return '`%s`' % escaped
 
 class Build(object):
