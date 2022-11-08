@@ -383,7 +383,7 @@ ppixiv.screen_search = class extends ppixiv.screen
     constructor(options)
     {
         super({...options, template: `
-            <div class="screen screen-search-container search-screen">
+            <div inert class="screen screen-search-container search-screen">
                 <!-- The tree widget for local navigation: -->
                 <div class=local-navigation-box></div>
 
@@ -689,10 +689,14 @@ ppixiv.screen_search = class extends ppixiv.screen
         return this._active;
     }
 
-    async set_active(active, { data_source, old_media_id })
+    async set_active(active, { old_media_id })
     {
-        if(this._active == active && this.data_source == data_source)
+        if(this._active == active)
+        {
+            // Just tell search_view about the new old_media_id if we were already active.
+            await this.search_view.set_active(active, { old_media_id });
             return;
+        }
 
         this._active = active;
 
@@ -706,7 +710,6 @@ ppixiv.screen_search = class extends ppixiv.screen
         if(active)
         {
             console.log("Showing search, came from media ID:", old_media_id);
-            this.set_data_source(data_source);
 
             this.initial_refresh_ui();
             this.refresh_ui();
@@ -716,9 +719,19 @@ ppixiv.screen_search = class extends ppixiv.screen
             main_context_menu.get.user_id = null;
         }
 
-        await this.search_view.set_active(active, { data_source, old_media_id });
+        await this.search_view.set_active(active, { old_media_id });
     }
 
+    scroll_to_media_id(media_id)
+    {
+        this.search_view.scroll_to_media_id(media_id);
+    }
+
+    get_rect_for_media_id(media_id)
+    {
+        return this.search_view.get_rect_for_media_id(media_id);
+    }
+    
     set_data_source(data_source)
     {
         if(this.data_source == data_source)
@@ -729,6 +742,8 @@ ppixiv.screen_search = class extends ppixiv.screen
             this.data_source.remove_update_listener(this.data_source_updated);
 
         this.data_source = data_source;
+
+        this.search_view.set_data_source(data_source);
 
         if(this.data_source == null)
         {
@@ -1240,8 +1255,8 @@ ppixiv.slideshow_staging_dialog = class extends ppixiv.dialog_widget
 
     constructor({...options}={})
     {
-        super({...options, template: `
-            <div class=header>Slideshow</div>
+        super({...options, header: "Slideshow",
+        template: `
             <div class=items>
                 This page can be bookmarked. or added to the home screen on iOS.<br>
                 <br>

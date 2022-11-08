@@ -13,6 +13,11 @@ ppixiv.MainController = class
         console.log(`${ppixiv.native? "vview":"ppixiv"} setup`);
         console.log("Browser:", navigator.userAgent);
 
+        // "Stay" for iOS leaves a <script> node containing ourself in the document.  Remove it for
+        // consistency with other script managers.
+        for(let node of document.querySelectorAll("script[id *= 'Stay']"))
+            node.remove();
+
         // If we're not active, just see if we need to add our button, and stop without messing
         // around with the page more than we need to.
         if(!page_manager.singleton().active)
@@ -388,6 +393,12 @@ ppixiv.MainController = class
             window.dispatchEvent(e);
         }
 
+        // Tell all screens the current data source, whether they're active or not.  The
+        // search screen may want to get ready for display even if we start on the illust
+        // screen.
+        for(let screen of Object.values(this.screens))
+            screen.set_data_source(data_source);
+
         if(new_screen != null)
         {
             // Restore state from history if this is an initial load (which may be
@@ -397,18 +408,28 @@ ppixiv.MainController = class
             let restore_history = cause == "initialization" || cause == "history" || cause == "leaving-virtual";
 
             await new_screen.set_active(true, {
-                data_source: data_source,
-                media_id: media_id,
-
-                // Let the screen know what ID we were previously viewing, if any.
-                old_media_id: old_media_id,
-                restore_history: restore_history,
+                media_id,
+                old_media_id,
+                restore_history,
             });
         }
 
         this.refresh_main_scroll();
     }
 
+    // This is called by screen_illust when it wants screen_search to try to scroll to
+    // an image, so it's ready if we start transitioning out.  We don't do this directly
+    // since this shouldn't happen during search->illust transitions.
+    scroll_to_media_id(media_id)
+    {
+        this.screen_search.scroll_to_media_id(media_id);
+    }
+
+    get_rect_for_media_id(media_id)
+    {
+        return this.screen_search.get_rect_for_media_id(media_id);
+    }
+    
     show_data_source_specific_elements()
     {
         // Show UI elements with this data source in their data-datasource attribute.

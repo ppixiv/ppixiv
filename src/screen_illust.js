@@ -5,8 +5,8 @@ ppixiv.screen_illust = class extends ppixiv.screen
 {
     constructor(options)
     {
-        super({...options, visible: false, template: `
-            <div class="screen screen-illust-container">
+        super({...options, template: `
+            <div inert class="screen screen-illust-container">
                 <!-- This holds our views: the current view, and the neighbor view if we're transitioning
                      between them. -->
                 <div class="view-container mouse-hidden-box" data-context-menu-target></div>
@@ -79,6 +79,10 @@ ppixiv.screen_illust = class extends ppixiv.screen
         // Mobile UI:
         if(ppixiv.mobile)
         {
+            // Create this before mobile_illust_ui so its drag handler is registered first.
+            // This makes image change drags take priority over opening the menu.
+            this.drag_image_changer = new DragImageChanger({ parent: this });
+
             this.mobile_illust_ui = new mobile_illust_ui({
                 container: this.container,
             });
@@ -87,22 +91,12 @@ ppixiv.screen_illust = class extends ppixiv.screen
             this.double_tap_handler = new ppixiv.MobileDoubleTapHandler({
                 container: this.view_container,
                 signal: this.shutdown_signal.signal,
-                ondbltap: (e) => {
-                    if(e.clientY > this.container.offsetHeight - 100)
-                    {
-                        if(this.mobile_illust_ui.shown)
-                            this.mobile_illust_ui.hide();
-                        else
-                            this.mobile_illust_ui.show();
-                    } else {
-                        // Double-taps anywhere else in the window toggle image zooming.
-                        this.viewer.toggle_zoom(e);
-                    }
-                },
+                ondbltap: (e) => this.viewer.toggle_zoom(e),
             });
-
-            this.drag_image_changer = new DragImageChanger({ parent: this });
         }
+
+        // This handles transitioning between this and the search view.
+        this.drag_to_exit = new ScreenIllustDragToExit({ parent: this });
 
         this.set_active(false, { });
     }
@@ -151,20 +145,13 @@ ppixiv.screen_illust = class extends ppixiv.screen
         }
     }
 
-    get _hide_image()
+    async set_active(active, { media_id, restore_history })
     {
-        return this.view_container.hidden;
-    }
-    set _hide_image(value)
-    {
-        this.view_container.hidden = value;
-    }
-    
-    async set_active(active, { media_id, data_source, restore_history })
-    {
+        let was_active = this._active;
         this._active = active;
         await super.set_active(active);
-        this.visible = active;
+
+        this.container.inert = !active;
 
         // If we have a viewer, tell it if we're active.
         if(this.viewer != null)
@@ -179,11 +166,6 @@ ppixiv.screen_illust = class extends ppixiv.screen
         {
             this.cancel_async_navigation();
 
-            // Remove any image we're displaying, so if we show another image later, we
-            // won't show the previous image while the new one's data loads.
-            if(this.viewer != null)
-                this._hide_image = true;
-
             // Stop showing the user in the context menu, and stop showing the current page.
             main_context_menu.get.set_media_id(null);
 
@@ -193,7 +175,11 @@ ppixiv.screen_illust = class extends ppixiv.screen
                 this.mobile_illust_ui.set_data_source(null);
             }
 
-            this.stop_displaying_image();
+            // Update drag_to_exit before removing the image, so it can tell which image we came from.
+            if(this.drag_to_exit)
+                this.drag_to_exit.set_active(this._active);
+
+            this.cleanup_image();
             
             // We leave editing on when navigating between images, but turn it off when we exit to
             // the search.
@@ -202,11 +188,26 @@ ppixiv.screen_illust = class extends ppixiv.screen
             return;
         }
 
-        this.set_data_source(data_source);
-        this.show_image(media_id, { restore_history });
-        
+        this.show_image(media_id, { restore_history, initial: !was_active });
+
+        if(this.drag_to_exit)
+            this.drag_to_exit.set_active(this.active);
+
         // Focus the container, so it receives keyboard events like home/end.
         this.container.focus();
+    }
+
+    // Remove the viewer if we no longer want to be displaying it.
+    cleanup_image()
+    {
+        if(this._active)
+            return;
+
+        // Don't remove the viewer if it's still being shown in the exit animation.
+        if(this.drag_to_exit?.is_animating)
+            return;
+
+        this.stop_displaying_image();
     }
 
     // Create a viewer for media_id and begin loading it asynchronously.
@@ -255,18 +256,19 @@ ppixiv.screen_illust = class extends ppixiv.screen
     }
 
     // Show a media ID.
-    async show_image(media_id, { restore_history=false }={})
+    async show_image(media_id, { restore_history=false, initial=false }={})
     {
         console.assert(media_id != null);
 
         // If we previously set a pending navigation, this navigation overrides it.
         this.cancel_async_navigation();
 
+        // Remember that this is the image we want to be displaying.  Do this before going
+        // async, so everything knows what we're trying to display immediately.
+        this.wanted_media_id = media_id;
+
         if(await this.load_first_image(media_id))
             return;
-
-        // Remember that this is the image we want to be displaying.
-        this.wanted_media_id = media_id;
 
         // Get very basic illust info.  This is enough to tell which viewer to use, how
         // many pages it has, and whether it's muted.  This will always complete immediately
@@ -288,11 +290,15 @@ ppixiv.screen_illust = class extends ppixiv.screen
             restore_history,
         });
 
-        this.show_image_viewer({ new_viewer });
+        this.show_image_viewer({ new_viewer, initial });
     }
 
     // Show a viewer.
-    show_image_viewer({ new_viewer=null }={})
+    //
+    // If initial is first, this is the first image we're displaying after becoming visible,
+    // usually from clicking a search result.  If it's false, we were already active and are
+    // just changing images.
+    show_image_viewer({ new_viewer=null, initial=false }={})
     {
         helpers.set_class(document.body,  "force-ui", window.debug_show_ui);
 
@@ -322,10 +328,6 @@ ppixiv.screen_illust = class extends ppixiv.screen
         // Tell the preloader about the current image.
         image_preloader.singleton.set_current_image(media_id);
 
-        // This is the first image we're displaying if we previously had no illust ID, or
-        // if we were hidden.
-        let is_first_image_displayed = this.current_media_id == null || this._hide_image;
-
         // Make sure the URL points to this image.
         let args = main_controller.get_media_url(media_id);
         helpers.navigate(args, { add_to_history: false, send_popstate: false });
@@ -336,7 +338,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
         // If we're not local, don't do this when showing the first image, since the most common
         // case is simply viewing a single image and then backing out to the search, so this avoids
         // doing extra loads every time you load a single illustration.
-        if(!is_first_image_displayed || helpers.is_media_id_local(media_id))
+        if(!initial || helpers.is_media_id_local(media_id))
         {
             // get_navigation may block to load more search results.  Run this async without
             // waiting for it.
@@ -351,6 +353,11 @@ ppixiv.screen_illust = class extends ppixiv.screen
 
         this.current_user_id = early_illust_data?.userId;
         this.refresh_ui();
+
+        // If we're not animating so we know the search page isn't visible, try to scroll the
+        // search page to the image we're viewing, so it's ready if we start a transition to it.
+        if(this.drag_to_exit)
+            this.drag_to_exit.showing_new_image();
 
         // If we already have an old viewer, then we loaded an image, and then navigated again before
         // the new image was displayed.  Discard the new image and keep the old one, since it's what's
@@ -384,9 +391,6 @@ ppixiv.screen_illust = class extends ppixiv.screen
             this.old_viewer.shutdown();
             this.old_viewer = null;
         });
-
-        // If the viewer was hidden, unhide it now that the new one is set up.
-        this._hide_image = false;
 
         this.viewer.active = this._active;
 
@@ -1117,3 +1121,141 @@ class DragImageChanger
         this.remove_viewers();
     }
 };
+
+// This handles dragging down from the top of the screen to return to the search on mobile.
+class ScreenIllustDragToExit
+{
+    constructor({parent})
+    {
+        this.parent = parent;
+
+        // this.parent.container.style.transformOrigin = "center top";
+        this.dragger = new WidgetDragger({
+            drag_node: document.documentElement,
+            size: () => this._drag_distance,
+
+            // We're hidden until set_active makes us visible.
+            visible: false,
+            nodes: [
+                this.parent.container,
+                this.parent.container,
+                main_controller.screen_search.container,
+            ],
+            animations: () => this._current_animation,
+            direction: "down", // up to make visible, down to hide
+            duration: () => {
+                return settings.get("animations_enabled")? 200:0;
+            },
+            size: 500,
+            onpointerdown: ({event}) => {
+                // Don't do anything if the screen isn't active.
+                if(!this.parent._active)
+                    return;
+
+                // This class can be used on desktop for animations, but dragging to navigate is only
+                // used on mobile.
+                if(!ppixiv.mobile)
+                    return;
+
+                // Stop if this press isn't near the bottom edge.
+                //
+                // This takes some tuning.  Most mobile devices have system UI at the
+                // top of the screen.  If this is too tight, it'll be hard to open
+                // the menu without hitting it instead.  If it's too loose, we'll open
+                // the menu when we're trying to pan the image.
+                return event.clientY / document.documentElement.clientHeight > 0.80;
+            },
+            onafterhidden: () => {
+                // The drag finished.  If the screen is still active, exit the illust screen and go
+                // back to the search screen.  If the screen is already inactive then we're animating
+                // a navigation that has already happened (browser back).
+                if(this.parent._active)
+                    main_controller.navigate_to_search();
+            },
+            onanimationfinished: () => {
+                // See if we want to remove the viewer now that the animation has finished.
+                this.parent.cleanup_image();
+
+                // Scroll the search view to the current image when we're not animating.
+                //
+                // We don't do this in onpointerdown, since that triggers a bug in iOS: movementY
+                // is affected by the scroll position.
+                this.showing_new_image();
+            },
+        });
+    }
+
+    get _drag_distance()
+    {
+        return document.documentElement.clientHeight * .25;
+    }
+
+    get _current_animation()
+    {
+        // Try to position the animation to move towards the search thumbnail.  If we don't know
+        // where it'll be, move towards the center.
+        let x = window.innerWidth/2, y = window.innerHeight/2;
+        let scale = 0.5;
+        if(this.parent.wanted_media_id != null)
+        {
+            let rect = main_controller.get_rect_for_media_id(this.parent.wanted_media_id);
+            if(rect)
+            {
+                x = rect.x + rect.width/2;
+                y = rect.y + rect.height/2;
+            
+                // Compare the screen size to the thumbnail size to figure out a rough scale, so if
+                // thumbnails are very big or small we'll generally scale to a similar size.
+                let width_ratio = rect.width / window.innerWidth;
+                let height_ratio = rect.height / window.innerHeight;
+                scale = (width_ratio + height_ratio) / 2;
+            }
+        }
+
+        return [[
+            // this.parent.container transform
+            {
+                offset: 0,
+                transform: `
+                    translate(-${this.parent.container.offsetWidth/2}px, -${this.parent.container.offsetHeight/2}px)
+                    translate(${x}px, ${y}px)
+                    scale(${scale})
+                `,
+            },
+            { offset: 1, transform: 'scale(1)' },
+        ], [
+            // this.parent.container opacity
+            // Start fading partway through.
+            { offset: 0,   opacity: 0 },
+            { offset: 0.7, opacity: 1 },
+            { offset: 1,   opacity: 1 },
+        ], [
+            // main_controller.screen_search.container
+            // Fade the search screen out as we fade in and vice versa.
+            { offset: 0,   opacity: 1 },
+            { offset: 1,   opacity: 0 },
+        ]];
+    }
+
+    // The screen was set active or inactive.
+    set_active(active)
+    {
+        if(active && !this.dragger.visible)
+            this.dragger.show();
+        else if(!active && this.dragger.visible)
+            this.dragger.hide();
+    }
+
+    get is_animating()
+    {
+        return this.dragger.animation_playing;
+    }
+
+    showing_new_image()
+    {
+        if(this.is_animating)
+            return;
+
+        main_controller.scroll_to_media_id(this.parent.current_media_id);
+    }
+}

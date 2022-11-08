@@ -102,9 +102,6 @@ html {
     &[data-orientation="90"] { --device-radius: var(--device-edge-radius) 0 0 var(--device-edge-radius); }
     &[data-orientation="-90"] { --device-radius: 0 var(--device-edge-radius) var(--device-edge-radius) 0; }
     &[data-orientation="180"] { --device-radius: 0 0 var(--device-edge-radius) var(--device-edge-radius); }
-
-    // On mobile, this is overridden to the height of the bottom menu bar.
-    --menu-bar-height: 0px;
 }
 
 // Make an element fullscreen.
@@ -383,8 +380,10 @@ input, textarea, [contenteditable] {
     position: fixed;
     inset: 0;
 
-    background-color: var(--main-background-color);
-    background-image: var(--background-noise);
+    // This screen doesn't have a background color, so we don't obscure the search view
+    // during transitions.  We just use the document's background.
+    //background-color: var(--main-background-color);
+    //background-image: var(--background-noise);
 
     // Make sure we're on top of the search view.  Without this, the sticky UI header will be
     // above the illust view.
@@ -562,7 +561,7 @@ html.mobile .screen-illust-container {
 {
     position: absolute;
     // On desktop this is 0.  On mobile, this is set to the height of the bottom menu.
-    bottom: var(--menu-bar-height);
+    bottom: 0;
     left: 0px;
     width: 100%;
     user-select: none;
@@ -2580,7 +2579,9 @@ a.box-link, span.box-link
         html.phone & {
             display: none;
         }
-        top: calc(max(5vh, env(safe-area-inset-top)));
+
+        // Make sure we give enough room for the menu bar.
+        top: calc(max(8vh, env(safe-area-inset-top)));
         right: calc(max(5vw, env(safe-area-inset-right)));
         max-width: calc(100vw - 100px);
         display: flex;
@@ -2589,11 +2590,6 @@ a.box-link, span.box-link
         overflow: hidden;
         font-size: .8em;
         font-weight: bold;
-
-        transition:
-            opacity ease 0.2s,
-            transform ease 0.2s;
-        opacity: 1;
 
         // The background and padding for the tag list goes on the individual tags.
         .context-menu-image-info
@@ -2653,42 +2649,39 @@ a.box-link, span.box-link
         }
     }
 
-    // Hide the image info box if the UI is hidden.
-    &:not(.shown) .context-menu-image-info-container {
-        opacity: 0;
-        transform: translateX(20px);
-    }
 
-    // One UI page is shown at a time.
-    .mobile-illust-ui-page
+    // The container for the menu bar is only here to crop it as it translates, so the menu
+    // bar doesn't make the iPhone notch visible as it translates underneath it.
+    .mobile-illust-ui-page-container
     {
         position: fixed;
-        bottom: 0;
+
+        // Put the safe area margin in the container so it doesn't affect the drag distance.
+        top: env(safe-area-inset-top);
+        width: 100%;
         left: 0;
         right: 0;
-        padding-top: 0.25em;
-        padding-bottom: calc(max(0.25em, env(safe-area-inset-bottom)));
-        padding-left: env(safe-area-inset-left);
-        padding-right: env(safe-area-inset-right);
+        bottom: 0;
+        overflow: hidden;
 
-        display: flex;
-        flex-direction: row;
-        justify-content: space-evenly;
+        > .mobile-illust-ui-page {
+            padding-top: 0.25em;
+            padding-bottom: 0.25em;
+            padding-left: env(safe-area-inset-left);
+            padding-right: env(safe-area-inset-right);
+    
+            display: flex;
+            flex-direction: row;
+            justify-content: space-evenly;
 
-        background-color: rgba(0,0,0,.5);
-
-        user-select: none;
-        -webkit-user-select: none;
-
-        // This controls the icon size.
-        font-size: 65%;
-
-        transition: transform ease 0.2s;
-        pointer-events: none;
-        transform: translateY(100%);
-        &.active-tab {
+            background-color: rgba(0,0,0,.5);
             pointer-events: auto;
-            transform: translateY(0px);
+    
+            user-select: none;
+            -webkit-user-select: none;
+    
+            // This controls the icon size.
+            font-size: 65%;
         }
 
         .item {

@@ -143,6 +143,14 @@ ppixiv.settings_widgets = {
                 });
             },
     
+            enable_transitions: () => {
+                return new menu_option_toggle_setting({
+                    ...global_options,
+                    label: "Use transitions",
+                    setting: "animations_enabled",
+                });
+            },
+
             bookmark_privately_by_default: () => {
                 return new menu_option_toggle_setting({
                     ...global_options,
@@ -601,6 +609,7 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
                         settings_widgets.invert_popup_hotkey();
         
                     settings_widgets.ctrl_opens_popup();
+                    settings_widgets.enable_transitions();
                 }
         
                 // settings_widgets.theme();

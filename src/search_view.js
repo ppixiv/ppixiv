@@ -273,7 +273,7 @@ ppixiv.search_view = class extends ppixiv.widget
         ppixiv.recently_seen_illusts.get().add_illusts(visible_media_ids);
     }
 
-    set_data_source(data_source)
+    async set_data_source(data_source)
     {
         if(this.data_source == data_source)
             return;
@@ -308,7 +308,7 @@ ppixiv.search_view = class extends ppixiv.widget
         this.data_source = data_source;
 
         // Cancel any async scroll restoration if the data source changes.
-        this.cancel_restore_scroll_pos();
+        this._cancel_load();
 
         if(this.data_source == null)
             return;
@@ -318,20 +318,7 @@ ppixiv.search_view = class extends ppixiv.widget
 
         // Listen to the data source loading new pages, so we can refresh the list.
         this.data_source.add_update_listener(this.data_source_updated);
-    }
 
-    async set_active(active, { data_source, old_media_id })
-    {
-        this._active = active;
-
-        if(!active)
-        {
-            this.stop_pulsing_thumbnail();
-            this.cancel_restore_scroll_pos();
-            return;
-        }
-
-        this.set_data_source(data_source);
         this.load_expanded_media_ids();
 
         // We might get data_source_updated callbacks during load_data_source_page.
@@ -344,10 +331,21 @@ ppixiv.search_view = class extends ppixiv.widget
         } finally {
             this.activating = false;
         }
+    }
 
-        // Show images.  If we were displaying an image before we came here, forced_media_id
-        // will force it to be included in the displayed results.
-        this.finish_load_and_restore_scroll_pos(old_media_id);
+    // Activate or deactivate the view.
+    //
+    // The data source must be set with set_data_source first.
+    async set_active(active, { old_media_id })
+    {
+        this._active = active;
+
+        if(!active)
+        {
+            this.stop_pulsing_thumbnail();
+            this._cancel_load();
+            return;
+        }
 
         // If nothing's focused, focus the search so keyboard navigation works.  Don't do this if
         // we already have focus, so we don't steal focus from things like the tag search dropdown
@@ -355,18 +353,14 @@ ppixiv.search_view = class extends ppixiv.widget
         let focus = document.querySelector(":focus");
         if(focus == null)
             this.scroll_container.focus();
-    }
 
-    // Wait for the initial page to finish loading, then restore the scroll position if possible.
-    async finish_load_and_restore_scroll_pos(old_media_id)
-    {
-        // Before we can set the scroll position, we need to wait for the initial page load to finish
-        // so we can create thumbnails to scroll to.
-        let restore_scroll_pos_id = this.restore_scroll_pos_id = new Object();
+        // Wait for the initial page to finish loading.  This load should already have been started
+        // by set_data_source, but this will wait for the same request.
+        let load_initial_page_id = this._load_initial_page_id = new Object();
         await this.data_source.load_page(this.data_source.initial_page, { cause: "initial scroll" });
 
-        // Stop if we were called again while we were waiting, or if we were cancelled.
-        if(restore_scroll_pos_id !== this.restore_scroll_pos_id || !this._active)
+        // Stop if we were called again while we were waiting.
+        if(load_initial_page_id !== this._load_initial_page_id)
             return;
 
         // If the media ID isn't in the list, this might be a manga page beyond the first that
@@ -390,9 +384,6 @@ ppixiv.search_view = class extends ppixiv.widget
         // If we have a previous media ID, try to scroll to it.
         if(old_media_id != null)
         {
-            // If we were displaying an image, pulse it to make it easier to find your place.
-            this.pulse_thumbnail(old_media_id);
-        
             // If we're navigating backwards or toggling, and we're switching from the image UI to thumbnails,
             // try to scroll the search screen to the image that was displayed.
             if(this.scroll_to_media_id(old_media_id))
@@ -434,9 +425,9 @@ ppixiv.search_view = class extends ppixiv.widget
     }
 
     // Cancel any call to restore_scroll_pos that's waiting for data.
-    cancel_restore_scroll_pos()
+    _cancel_load()
     {
-        this.restore_scroll_pos_id = null;
+        this._load_initial_page_id = null;
     }
 
     data_source_updated = () =>
@@ -1645,12 +1636,41 @@ ppixiv.search_view = class extends ppixiv.widget
         if(thumb == null)
             return false;
 
-        this.scroll_container.scrollTop = thumb.offsetTop + thumb.offsetHeight/2 - this.scroll_container.offsetHeight/2;
+        // If we were displaying an image, pulse it to make it easier to find your place.
+        this.pulse_thumbnail(media_id);
+
+        let y = thumb.offsetTop + thumb.offsetHeight/2 - this.scroll_container.offsetHeight/2;
+
+        // If we set y outside of the scroll range, iOS will incorrectly report scrollTop briefly.
+        // Clamp the position to avoid this.
+        y = helpers.clamp(y, 0, this.scroll_container.scrollHeight);
+
+        // Stop if the thumb is already fully visible.
+        if(y >= this.scroll_container.scrollTop &&
+            thumb.offsetTop + thumb.offsetHeight < this.scroll_container.scrollTop + this.scroll_container.offsetHeight)
+            return true;
+
+        this.scroll_container.scrollTop = y;
+
         return true;
     };
 
+    get_rect_for_media_id(media_id)
+    {
+        let thumb = this.get_thumbnail_for_media_id(media_id);
+        if(thumb == null)
+            return null;
+
+        return thumb.getBoundingClientRect();
+    }
+
     pulse_thumbnail(media_id)
     {
+        // On mobile, the image transitions indicate the last viewed image, so we don't
+        // need this.
+        if(ppixiv.mobile)
+            return;
+
         let thumb = this.get_thumbnail_for_media_id(media_id);
         if(thumb == null)
             return;

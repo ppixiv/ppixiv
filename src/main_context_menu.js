@@ -420,7 +420,7 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
 
         this.displayed_menu = this.container;
         this.visible = true;
-        this.refresh_visibility();
+        this.apply_visibility();
 
         // Disable popup UI while a context menu is open.
         document.body.classList.add("hide-ui");
@@ -604,7 +604,7 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
     set hide_temporarily(value)
     {
         this.hidden_temporarily = value;
-        this.refresh_visibility();
+        this.apply_visibility();
     }
 
     // True if the widget is active (eg. RMB is pressed) and we're not hidden
@@ -617,11 +617,11 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
     visibility_changed()
     {
         super.visibility_changed();
-        this.refresh_visibility();
+        this.apply_visibility();
         ppixiv.OpenWidgets.singleton.set(this, this.visible);
     }
 
-    refresh_visibility()
+    apply_visibility()
     {
         let visible = this.actually_visible;
         helpers.set_class(this.container, "visible-widget", visible);
@@ -635,7 +635,7 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
 
         this.visible = false;
         this.hidden_temporarily = false;
-        this.refresh_visibility();
+        this.apply_visibility();
 
         // Let menus inside the context menu know we're closing.
         view_hidden_listener.send_viewhidden(this.container);
