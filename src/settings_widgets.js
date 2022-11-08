@@ -531,6 +531,11 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
             // Share our shutdown signal with the widgets, so their event listeners will be
             // shut down when we shut down.
             shutdown_signal: this.shutdown_signal,
+
+            // Settings widgets can call this to close the window.
+            close_settings: () => {
+                this.visible = false;
+            },
         };
 
         // This gives us a dictionary of functions we can use to create each settings widget.
