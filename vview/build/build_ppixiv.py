@@ -46,8 +46,9 @@ class Build(object):
     @classmethod
     def build(cls):
         parser = argparse.ArgumentParser()
-        parser.add_argument('--deploy', '-d', action='store_true', default=False)
-        parser.add_argument('--latest', '-l', action='store_true', default=False)
+        parser.add_argument('--deploy', '-d', action='store_true', default=False, help='Deploy a release version')
+        parser.add_argument('--latest', '-l', action='store_true', default=False, help='Point latest at this version')
+        parser.add_argument('--url', '-u', action='store', default=None, help='Location of the debug server for ppixiv-debug')
         args = parser.parse_args()
 
         # This is a release if it has a tag and the working copy is clean.
@@ -58,6 +59,7 @@ class Build(object):
         is_clean = len(result.stdout) == 0
 
         is_release = is_tagged and is_clean
+        debug_server_url = None
 
         if len(sys.argv) > 1 and sys.argv[1] == '--release':
             is_release = True
@@ -85,16 +87,17 @@ class Build(object):
             if e.errno != errno.EEXIST:
                 raise
 
-        cls().build_with_settings(is_release=is_release, git_tag=git_tag, deploy=args.deploy, latest=args.latest)
+        cls().build_with_settings(is_release=is_release, git_tag=git_tag, deploy=args.deploy, latest=args.latest,
+            debug_server_url=args.url)
 
-    def build_with_settings(self, *, is_release=False, git_tag='devel', deploy=False, latest=False):
+    def build_with_settings(self, *, is_release=False, git_tag='devel', deploy=False, latest=False, debug_server_url='http://127.0.0.1:8235'):
         self.is_release = is_release
         self.git_tag = git_tag
         self.distribution_url = f'{self.distribution_root}/builds/{get_git_tag()}'
 
         self.resources = self.build_resources()
         self.build_release()
-        self.build_debug()
+        self.build_debug(debug_server_url)
         if deploy:
             self.deploy(latest=latest)
 
@@ -170,7 +173,7 @@ class Build(object):
         with open(output_loader_file, 'w+b') as output_file:
             output_file.write(data)
 
-    def build_debug(self):
+    def build_debug(self, debug_server_url):
         output_file = 'output/ppixiv-debug.user.js'
         print('Building: %s' % output_file)
 
@@ -187,7 +190,7 @@ class Build(object):
     if(window.top != window.self)
         return;
 
-    window.vviewURL = "http://127.0.0.1:8235";
+    window.vviewURL = %(url)s;
 
     // Load NativeLoader.
     let xhr = new XMLHttpRequest();
@@ -202,7 +205,7 @@ class Build(object):
 
     Bootstrap(null, NativeLoader);
 })();
-        ''')
+        ''' % { 'url': json.dumps(debug_server_url) })
 
         lines = '\n'.join(result) + '\n'
 
