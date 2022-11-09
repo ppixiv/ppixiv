@@ -126,8 +126,13 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         this.animations = { };
 
         // Restore the most recent zoom mode.  We assume that there's only one of these on screen.
-        this.set_locked_zoom(settings.get("zoom-mode") == "locked");
-        this._zoom_level = settings.get("zoom-level", "cover");
+        if(ppixiv.mobile)
+            this._zoom_level = 0;
+        else
+        {
+            this.set_locked_zoom(settings.get("zoom-mode") == "locked");
+            this._zoom_level = settings.get("zoom-level", "cover");
+        }
 
         this.editing_container = new ImageEditingOverlayContainer({
             container: this.crop_box,
@@ -493,6 +498,10 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
     // Select between click-pan zooming and sticky, filled-screen zooming.
     set_locked_zoom(enable, { stop_animation=true }={})
     {
+        // Zoom lock is always disabled on mobile.
+        if(ppixiv.mobile)
+            enable = false;
+
         if(stop_animation)
             this.stop_animation();
 
@@ -514,7 +523,9 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
             this.stop_animation();
 
         this._zoom_level = value;
-        settings.set("zoom-level", this._zoom_level);
+        if(!ppixiv.mobile)
+            settings.set("zoom-level", this._zoom_level);
+
         this.reposition();
     }
 
@@ -1619,6 +1630,12 @@ ppixiv.image_viewer_mobile = class extends ppixiv.image_viewer_base
                 this.reposition({clamp_position: false});
             },
 
+            onflingfinished: () => {
+                // We could do this to save the current zoom level, since we didn't use it during the
+                // fling, but for now we don't save the zoom level on mobile anyway.
+                // this.set_zoom_level(this._zoom_level);
+            },
+
             // Return the bounding box of where we want the position to stay.
             get_bounds: () =>
             {
@@ -1657,8 +1674,28 @@ ppixiv.image_viewer_mobile = class extends ppixiv.image_viewer_base
 
     mobile_toggle_zoom(e)
     {
-        // Double-clicks on mobile toggle between fill and cover mode.
-        let level = this.get_zoom_level() == "cover"? 0:"cover";
+        // Toggle between fit (zoom level 0) and cover.  If cover and fit are close together,
+        // zoom to a higher factor instead of cover.  This way we zoom to cover when it makes
+        // sense, since it's a nicer zoom level to pan around in, but we use a higher level
+        // if cover isn't enough of a zoom.
+        let level = this.get_zoom_level();
+        if(this.get_zoom_level() == 0)
+        {
+            let cover_zoom_ratio = 1 / this.zoom_level_to_zoom_factor(0);
+            if(cover_zoom_ratio > 1.5)
+                level = "cover";
+            else
+            {
+                let scaled_zoom_factor = this._zoom_factor_cover*2;
+                let scaled_zoom_level = this.zoom_factor_to_zoom_level(scaled_zoom_factor);
+                level = scaled_zoom_level;
+            }
+        }
+        else
+        {
+            level = 0;
+        }
+
         this.zoom_set_level(level, {x: e.clientX, y: e.clientY});
     }
 

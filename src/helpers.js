@@ -958,7 +958,8 @@ ppixiv.helpers = {
         // then you'll activate the menu when you wanted to zoom the image.
         //
         // Dragging at the left or right edge of the screen changes images.  This threshold can
-        // be fairly small, but check it first, so drags in the corner prefer to change images
+        // be fairly small, since this is a vertical drag designed to be distinct from gestures
+        // like browser back, but check it first, so drags in the corner prefer to change images
         // over opening the menu or exiting.
         let container = document.documentElement;
         let horiz = event.clientX / container.clientWidth;
@@ -972,11 +973,14 @@ ppixiv.helpers = {
 
         // Drags up from the bottom of the screen exit the image.
         //
-        // This can be lower if we're running as a regular browser page on iOS, but if we're fullscreen
-        // or if we're in landscape then we're overlapping the bottom navigation area, so this needs to
-        // be higher to avoid conflicting with it.
-        // XXX: the difference here matters a lot (0.85 is too low when in a browser), figure out how to
-        // do this better
+        // This threshold is kept fairly high, since the bottom of the screen is system navigation
+        // on most devices, and if our display is flush against the bottom of the screen we need 
+        // to give enough room to not hit a task swap gesture instead.
+        //
+        // This results in a threshold that can be excessively high in some cases.  For example,
+        // if we're in Safari (not running standalone) there may be browser UI underneath us that
+        // makes this high threshold unneeded.  However, there's no way to tell, since it appears
+        // and disappears whenever it feels like it and the user can remove it.
         if((event.clientY + insets.bottom) / container.clientHeight > 0.85)
             return "exit";
 
@@ -5457,6 +5461,9 @@ ppixiv.TouchScroller = class
         // current zoom to the wanted zoom.  This is applied along with rubber banding.
         get_wanted_zoom,
 
+        // Called when a drag finishes, after any fling animation completes.
+        onflingfinished,
+
         // An AbortSignal to shut down.
         signal,
     })
@@ -5468,6 +5475,7 @@ ppixiv.TouchScroller = class
             get_bounds,
             get_wanted_zoom,
             adjust_zoom,
+            onflingfinished,
         };
 
         this.velocity = {x: 0, y: 0};
@@ -5728,6 +5736,8 @@ ppixiv.TouchScroller = class
 
         this.abort_fling = null;
         this.mode = null;
+
+        this.options.onflingfinished();
     }
 
     apply_zoom_bounce(duration)
