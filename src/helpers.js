@@ -5317,9 +5317,7 @@ ppixiv.DragHandler = class
         this.element.addEventListener("pointermove", this._pointermove);
         this.element.addEventListener("lostpointercapture", this._lost_pointer_capture);
         this.first_pointer_movement = true;
-
-        if(this.ondragstart)
-            this.ondragstart({event});
+        this.sent_ondragstart = false;
     }
 
     // Treat lost pointer capture as the pointer being released.
@@ -5347,8 +5345,13 @@ ppixiv.DragHandler = class
         this.element.removeEventListener("pointermove", this._pointermove);
         this.element.removeEventListener("lostpointercapture", this.lost_pointer_capture);
 
-        if(this.ondragstart)
-            this.ondragend({interactive});
+        // Only send ondragend if we sent ondragstart.
+        if(this.sent_ondragstart)
+        {
+            this.sent_ondragstart = false;
+            if(this.ondragend)
+                this.ondragend({interactive});
+        }
     }
 
     _pointermove = (event) =>
@@ -5358,8 +5361,20 @@ ppixiv.DragHandler = class
 
         let first = this.first_pointer_movement;
         this.first_pointer_movement = false;
-        
-        this.ondrag({event, first});
+    
+        // Call ondragstart the first time we see pointer movement after we begin the drag.  This
+        // is when the drag actually starts.  We don't do movement thresholding here since iOS already
+        // does it (whether we want it to or not).
+        if(!this.sent_ondragstart)
+        {
+            this.sent_ondragstart = true;
+            if(this.ondragstart)
+                this.ondragstart({event});
+        }
+    
+        // Only handle this as a drag input if we've started treating this as a drag.
+        if(this.sent_ondragstart)
+            this.ondrag({event, first});
     }
 };
 
