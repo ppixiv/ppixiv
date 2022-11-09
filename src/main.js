@@ -108,7 +108,7 @@ ppixiv.MainController = class
 
         this.set_device_properties();
         settings.addEventListener("avoid-statusbar", this.set_device_properties);
-        window.addEventListener("orientationchange", this.set_device_properties);
+        new ResizeObserver(this.set_device_properties).observe(document.documentElement);
 
         // On mobile, disable long press opening the context menu and starting drags.
         if(ppixiv.mobile)
@@ -286,15 +286,31 @@ ppixiv.MainController = class
         // Set the fullscreen mode.  See the device styling rules in main.scss for more
         // info.
         //
-        // If we're on a device with a notch, we'd prefer to be in notch mode.  
         // Try to figure out if we're on a device with a notch.  There's no way to query this,
         // and if we're on an iPhone we can't even directly query which model it is, so we have
         // to guess.  For iPhones, assume that we have a notch if we have a bottom inset, since
         // all current iPhones with a notch also have a bottom inset for the ugly pointless white
         // line at the bottom of the screen.
+        //
+        // - When in Safari in top navigation bar mode, the bottom bar isn't reported as a safe area,
+        // even though content goes under it.  This is probably due to the UI that appears based on
+        // scrolling.  In this mode, we don't need to avoid a notch when in portrait since we're not
+        // overlapping it, but we won't enter rounded mode either, so we'll have a round bottom and
+        // square top.
         let notch = false;
+        let insets = helpers.safe_area_insets;
         if(ppixiv.ios && navigator.platform.indexOf('iPhone') != -1)
-            notch = helpers.safe_area_insets.bottom > 0;
+        {
+            notch = insets.bottom > 0;
+
+            // Work around an iOS bug: when running in Safari (not as a PWA) in landscape with the
+            // toolbar hidden, the content always overlaps the navigation line, but it doesn't report
+            // it in the safe area.  This causes us to not detect notch mode.  It does report the notch
+            // safe area on the left or right, and incorrectly reports a matching safe area on the right
+            // (there's nothing there to need a safe area), so check for this as a special case.
+            if(!navigator.standalone && (insets.left > 20 && insets.right == insets.left))
+                notch = true;
+        }
 
         // Set the fullscreen mode.
         if(notch)
