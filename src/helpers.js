@@ -5291,12 +5291,12 @@ ppixiv.DragHandler = class
             if(scrollable && (!excludeStaticParent || style.position != "static"))
                 return true;
 
-            // Stop if we've reached the document scroller.
-            if(element == document.scrollingElement)
-                break;
-
             element = element.parentElement;
             if(element == null)
+                break;
+
+            // Stop if we've reached the document scroller.
+            if(element == document.scrollingElement)
                 break;
         }
     
