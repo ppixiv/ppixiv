@@ -2674,9 +2674,7 @@ a.box-link, span.box-link
     .mobile-illust-ui-page-container
     {
         position: fixed;
-
-        // Put the safe area margin in the container so it doesn't affect the drag distance.
-        top: env(safe-area-inset-top);
+        top: 0;
         width: 100%;
         left: 0;
         right: 0;
@@ -2684,7 +2682,9 @@ a.box-link, span.box-link
         overflow: hidden;
 
         > .mobile-illust-ui-page {
-            padding-top: 0.25em;
+            // Note that the background color extends into the top safe area, so if we're overlapping
+            // a statusbar (avoid-statusbar mode), we'll dim under the statusbar so the menu isn't floating.
+            padding-top: calc(env(safe-area-inset-top) + 0.25em);
             padding-bottom: 0.25em;
             padding-left: env(safe-area-inset-left);
             padding-right: env(safe-area-inset-right);
