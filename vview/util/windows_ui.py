@@ -359,6 +359,8 @@ class _TrayIcon:
             # exit() will raise SystemExit to trigger a shutdown.  Don't raise that through here
             # to our threaded WndProc.
             pass
+        except BaseException as e:
+            log.exception('Error running menu option')
 
     def _threaded_on_tray_click(self):
         future = asyncio.run_coroutine_threadsafe(self.on_click(), self.main_loop)
