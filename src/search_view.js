@@ -206,9 +206,24 @@ ppixiv.search_view = class extends ppixiv.widget
         helpers.set_class(document.body, "disable-thumbnail-zooming", settings.get("disable_thumbnail_zooming") || ppixiv.mobile);
     }
 
-    get_thumbnail_for_media_id(media_id)
+    // Return the thumbnail
+    //
+    // If media_id is a manga page and fallback_on_p1 is true, return page 1 if the exact page
+    // doesn't exist.
+    get_thumbnail_for_media_id(media_id, { fallback_on_p1=false}={})
     {
-        return this.thumbs[media_id];
+        if(this.thumbs[media_id] != null)
+            return this.thumbs[media_id];
+
+        if(fallback_on_p1)
+        {
+            // See if page 1 is available instead.
+            let p1_media_id = helpers.get_media_id_first_page(media_id);
+            if(p1_media_id != media_id && this.thumbs[p1_media_id] != null)
+                return this.thumbs[p1_media_id];
+        }
+
+        return null;
     }
 
     get_first_visible_thumb()
@@ -1632,7 +1647,7 @@ ppixiv.search_view = class extends ppixiv.widget
     // after coming from an illustration.
     scroll_to_media_id(media_id)
     {
-        let thumb = this.get_thumbnail_for_media_id(media_id);
+        let thumb = this.get_thumbnail_for_media_id(media_id, { fallback_on_p1: true });
         if(thumb == null)
             return false;
 
@@ -1655,9 +1670,10 @@ ppixiv.search_view = class extends ppixiv.widget
         return true;
     };
 
+    // Return the bounding rectangle for the given media_id.
     get_rect_for_media_id(media_id)
     {
-        let thumb = this.get_thumbnail_for_media_id(media_id);
+        let thumb = this.get_thumbnail_for_media_id(media_id, { fallback_on_p1: true });
         if(thumb == null)
             return null;
 
