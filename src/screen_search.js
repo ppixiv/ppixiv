@@ -29,7 +29,7 @@ let thumbnail_ui = class extends ppixiv.widget
                         ${ helpers.create_icon("mat:keyboard_double_arrow_left") }
                     </div>
 
-                    <a class="icon-button disable-ui-button popup pixiv-only" data-popup="Return to Pixiv" href="#no-ppixiv">
+                    <a class="icon-button disable-ui-button popup pixiv-only" data-popup="Return to Pixiv" href="#no-ppixiv" data-hidden-on="mobile">
                         ${ helpers.create_icon("ppixiv:pixiv") }
                     </a>
 
