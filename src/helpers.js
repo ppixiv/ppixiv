@@ -970,7 +970,6 @@ ppixiv.helpers = {
         if((event.clientY - insets.top) / container.clientHeight < 0.10)
             return "menu";
 
-            console.log(insets.bottom);
         // Drags up from the bottom of the screen exit the image.
         //
         // This can be lower if we're running as a regular browser page on iOS, but if we're fullscreen
@@ -5823,327 +5822,19 @@ ppixiv.TouchScroller = class
     }
 }
 
-
-// An animation that can be controlled directly, and then played from the current
-// position.  This can be used for drag and fling animations, in order to allow a
-// drag to control the animation, and then run the animation from its current state
-// when the drag is released.
-//
-// Animations normally have offsets between 0 and 1, but we allow offsets to overlap
-// this range, so if drags go past their start or end point, the animation can continue
-// instead of stopping abruptly at their end point.  When play() is called, the animation
-// will play from the current position to offset 1, so if the drag was past the end it'll
-// animate back to its end point.  Keyframes must always exist at offsets 0 and 1.
-//
-// This isn't something KeyframeAnimation makes simple.  We need easing to be linear
-// while we're controlling the animation, so dragging a widget moves with the drag.
-// Once the drag is released, we want to complete the animation with easing, possibly
-// derived from the velocity we were moving at.  The APIs we need to do this exist, but
-// for something so common in mobile UIs it takes a lot of extra work.
-ppixiv.ControllableAnimation = class
-{
-    constructor(container, keyframes, {
-        easing="ease-in",
-
-        // The length of the animation, in milliseconds.  If this is a function, it'll
-        // be called when an animation starts.
-        duration=300,
-
-        // If play() is called, this is called after the animation completes.
-        onanimationfinished,
-    }={})
-    {
-        // The start and end keys must be specified explicitly.
-        if(keyframes.length < 2)
-            throw new Error("Must have at least two keyframes");
-
-        // Find the start and end offsets in the animation, which might be wider than 0-1.
-        let start_exists = false, end_exists = false;
-        let start_offset = Infinity;
-        let end_offset = -Infinity;
-
-        for(let keyframe of keyframes)
-        {
-            start_offset = Math.min(start_offset, keyframe.offset);
-            end_offset = Math.max(end_offset, keyframe.offset);
-            if(keyframe.offset == 0)
-                start_exists = true;
-            if(keyframe.offset == 1)
-                end_exists = true;
-
-            // We don't derive in-between offsets, so the keyframes we're given must all have
-            // explicit offsets.
-            if(!("offset" in keyframe))
-                throw new Error("All keyframes must specify an offset");
-        }
-
-        // Start and end keyframes must be specified explicitly.  We don't interpolate these.
-        if(!start_exists)
-            throw new Error("Keyframes must contain a key at offsets 0 and 1");
-        if(!end_exists)
-            throw new Error("Keyframes must contain a key at offsets 0 and 1");
-
-        this.container = container;
-        this.onanimationfinished = onanimationfinished;
-        this.original_keyframes = keyframes;
-        this.easing = easing;
-        this.state = "stopped";
-        this.state_wanted = null;
-        this.start_offset = start_offset;
-        this.end_offset = end_offset;
-        this.duration = duration;
-        if(!(this.duration instanceof Function))
-            this.duration = () => duration;
-
-        // Create the animation used while we're not animating and controlling the position
-        // directly.
-        //
-        // This animation is never actually played, so we don't need to use ppixiv.DirectAnimation here.
-        // We only set this animation's time directly.
-        let unit_keyframes = this._scale_animation_offsets(this.original_keyframes, this.start_offset, this.end_offset);
-        this.static_animation = new Animation(new KeyframeEffect(this.container, unit_keyframes, {
-            // We're controlling this directly by setting currentTime.  Use a duration of 1, so
-            // the animation is in the range 0-1.
-            duration: 1,
-
-            // We use the specified easing when we're animating, but when we're controlling the
-            // animation directly we're always linear.
-            easing: "linear",
-            fill: "forwards",
-        }));
-
-        this.static_animation.pause();
-    }
-
-    // Return what we implement of the effect interface.
-    get effect()
-    {
-        return {
-            // This only partially implements setKeyframes.  We'll update the static animation, but
-            // we don't currently try to update the real animation if this is called while animating.
-            // This is just enough to update drag animations.
-            setKeyframes: (keyframes) => {
-                this.original_keyframes = keyframes;
-                let unit_keyframes = this._scale_animation_offsets(this.original_keyframes, this.start_offset, this.end_offset);
-                this.static_animation.effect.setKeyframes(unit_keyframes);
-            },
-        };
-    }
-
-    // Shut down immediately, cancelling any animations synchronously.
-    shutdown()
-    {
-        if(this.state = "shutdown")
-            return;
-
-        if(this.real_animation)
-        {
-            this.real_animation.cancel();
-            this.real_animation = null;
-        }
-
-        this.state = "shutdown";
-    }
-
-    // When not animating, return the current offset.
-    //
-    // If an animation is running, this will return the static offset, ignoring the animation.
-    get position()
-    {
-        // static_animation is scaled to 0-1.  Scale it back to the caller's range.
-        return helpers.scale(this.static_animation.currentTime, 0, 1, this.start_offset, this.end_offset);
-    }
-
-    // When not animating, set the current position.
-    //
-    // This can be outside the initial range.
-    set position(offset)
-    {
-        console.assert(this.state == "stopped", this.state);
-        this._set_position(offset);
-    }
-
-    _set_position(offset)
-    {
-        this.static_animation.currentTime = helpers.scale(offset, this.start_offset, this.end_offset, 0, 1);
-    }
-
-    // Return true if an animation is active.
-    get playing()
-    {
-        return this.state == "playing-forwards" || this.state == "playing-backwards" || this.state == "stopping";
-    }
-
-    // Play the animation from the current position to the start or end.
-    //
-    // If easing is specified, it overrides the easing set at creation.  This is only used if the
-    // animation can start immediately.  If we have to defer it because we're already playing or
-    // stopping, the default will be used.
-    play({forwards=true, easing=null}={})
-    {
-        // Stop if we're already playing in this direction.
-        let new_state = forwards? "playing-forwards":"playing-backwards";
-        if(this.state == new_state)
-            return;
-
-        // If we're already playing in the opposite direction, queue a stop, and remember the new
-        // direction we want.  Calling play() before stop() finishes does the same thing as changing
-        // directions.
-        let other_direction_state = forwards? "playing-backwards":"playing-forwards";
-        if(this.state == other_direction_state)
-        {
-            this.stop();
-            this.state_wanted = new_state;
-            return;
-        }
-            
-        // If we're stopping, we need to wait for stop() to finish before we can start again.
-        if(this.state == "stopping")
-        {
-            console.log("Waiting for stop() to finish before starting again");
-            this.state_wanted = new_state;
-            return;
-        }
-
-        // Start from the current position, and end at 1.0 if we're animating to the end
-        // or 0.0 if we're animating to the beginning.  If we're past the end and we're
-        // animating to the end, this will animate backwards to the end position.
-        let start_offset = this.position;
-        let end_offset = forwards? 1:0;
-        if(Math.abs(start_offset - end_offset) < 0.000001)
-        {
-            // We're already at the target, so there's nothing to animate.  Go async and call
-            // onanimationfinished as long as we're not started again before that happens.
-            helpers.setTimeout(() => {
-                if(this.state == "stopped")
-                    this.onanimationfinished(this);
-            }, 0);
-            return;
-        }
-
-        // Get the subset of frames in this range.
-        let keyframes = this._scale_animation_offsets(this.original_keyframes, start_offset, end_offset);
-
-        // Set the animation keys to replace, so they override this.static_animation.
-        for(let keyframe of keyframes)
-            keyframe.composite = "replace";
-
-        easing ??= this.easing;
-        let animation = this.real_animation = new ppixiv.DirectAnimation(new KeyframeEffect(this.container, keyframes, {
-            duration: this.duration(),
-            easing,
-            fill: "forwards",
-        }), {
-            // Let these animations play at full framerate.
-            limit_framerate: false,
-        });
-
-        // Remember the offset of real_animation.
-        this.real_animation_start_offset = start_offset;
-        this.real_animation_end_offset = end_offset;
-
-        this.real_animation.play();
-        this.state = new_state;
-
-        this.real_animation.onfinish = () => {
-            if(animation !== this.real_animation)
-            {
-                console.log("animation changed, not calling onfinish");
-                return;
-            }
-
-            // static_animation will take over the position once we cancel real_animation, so
-            // commit it first.
-            this._commit_real_position_to_static();
-            this.real_animation.cancel();
-            this.real_animation = null;
-            this.state = "stopped";
-            this.onanimationfinished(this);
-        };
-    }
-
-    // Stop the animation if it's running.
-    async stop()
-    {
-        if(this.state == "stopping" || this.state == "stopped")
-            return;
-
-        this.state = "stopping";
-
-        // Pause the running animation.
-        this.real_animation.pause();
-        await this.real_animation.ready;
-
-        this._commit_real_position_to_static();
-
-        this.real_animation.cancel();
-
-        this.state = "stopped";
-
-        // If play() was called while we were waiting to stop, start up again.
-        if(this.state_wanted != null)
-        {
-            console.log("Playing animation because play() was called during stop(): ", this.state_wanted);
-            let forwards = this.state_wanted == "playing-forwards";
-            this.state_wanted = null;
-            this.play({forwards});
-            return;
-        }
-    }
-
-    // Set static_animation's position to match this.real_animation's.
-    _commit_real_position_to_static()
-    {
-        // The animation should always be paused or finished before we commit its position to
-        // the static animation.
-        console.assert(this.real_animation.playState == "paused" || this.real_animation.playState == "finished", this.real_animation.playState);
-
-        // Get the position we stopped at.  This is an offset within the keyframes, not a
-        // time, so it's correct if the animation has easing.
-        let final_offset = this.real_animation.effect.getComputedTiming().progress;
-
-        // Scale real_animation's offset from 0-1 back to an overall position.
-        let stopped_at_position = helpers.scale(final_offset, 0, 1, this.real_animation_start_offset, this.real_animation_end_offset);
-        // console.log("animation range:", this.real_animation_start_offset, this.real_animation_end_offset);
-        // console.log("stopped at", start_offset, stopped_at_position);
-        this._set_position(stopped_at_position);
-    }
-
-    // Given a list of keyframes, return a new list containing only keyframes within
-    // offsets start and end.  Scale keyframe offsets from [start,end] to [0,1].
-    _scale_animation_offsets(keyframes, start, end=1)
-    {
-        let result = new Array();
-        for(let keyframe of keyframes)
-        {
-            let offset = helpers.scale(keyframe.offset, start, end, 0, 1);
-            if(offset < 0 || offset > 1)
-                continue;
-
-            result.push({
-                ...keyframe,
-                offset,
-            });
-        }
-
-        // If the range was reversed, reverse the result.
-        if(start > end)
-            result.reverse();
-
-        return result;
-    }
-}
-
 // A simpler interface for allowing a widget to be dragged open or closed.
 ppixiv.WidgetDragger = class
 {
     constructor({
-        // The nodes that will be animated by the drag.
-        nodes,
+        // The node that will be animated by the drag.
+        node,
 
         // An animation for each node.  If this is a function, it will be called each time a
         // drag starts.
-        animations,
+        //
+        // If this is null, a default empty animation is used, and only animated_property will
+        // be animated.
+        animations=null,
 
         // The node to listen for drags on:
         drag_node,
@@ -6152,9 +5843,15 @@ ppixiv.WidgetDragger = class
         // open.  This can be a number, or a function that returns a number.
         size,
 
+        animated_property=null,
+        animated_property_inverted=false,
+
         // If set, this is an array of nodes inside the dragger, and clicks outside of this
         // list while visible will cause the dragger to hide.
         close_if_outside=null,
+
+        // This is called before a drag or animation starts.
+        onanimationstart = () => { },
 
         // A drag is about to cause the node to become at least partially visible (this.position > 0).
         onbeforeshown = () => { },
@@ -6174,27 +5871,33 @@ ppixiv.WidgetDragger = class
 
         // Animation properties.  These are the same for all animated nodes.
         duration=150,
-        easing="ease-in-out",
+
+        start_offset=0,
+        end_offset=1,
 
         // If set, return true to handle the drag or false to ignore it.
         onpointerdown = () => true,
     }={})
     {
         this._visible = visible;
-        this.nodes = nodes;
+        this.node = node;
         this.onbeforeshown = onbeforeshown;
         this.onafterhidden = onafterhidden;
+        this.onanimationstart = onanimationstart;
         this.onanimationfinished = onanimationfinished;
         this.animations = animations;
+        this.animated_property = animated_property;
+        this.animated_property_inverted = animated_property_inverted;
         this.close_if_outside = close_if_outside;
-        this.easing = easing;
         this.duration = duration;
+        this.start_offset = start_offset;
+        this.end_offset = end_offset;
+
+        if(!(this.duration instanceof Function))
+            this.duration = () => duration;
 
         if(direction != "up" && direction != "down" && direction != "left" && direction != "right")
             throw new Error(`Invalid drag direction: ${direction}`);
-
-        if(nodes.length == 0)
-            throw new Error("No nodes specified");
 
         let vertical = direction == "up" || direction == "down";
         let reversed = direction == "left" || direction == "up";
@@ -6204,58 +5907,42 @@ ppixiv.WidgetDragger = class
             sample_period: 0.150,
         });
 
-        // Create each animation.
-        this.drag_animations = [];
-        for(let [node, keyframes] of helpers.zip(this.nodes, this._current_animations))
-        {
-            let animation = new ppixiv.ControllableAnimation(node, keyframes, {
-                duration: this.duration,
-                easing: this.easing,
-                onanimationfinished: (anim) => {
-                    // We keep the animation times synchronized, so if one of them finishes, they all will.
-                    // Ignore this from all but the first animation.
-                    if(anim != this.drag_animations[0])
-                        return;
+        let property_start = animated_property_inverted? 1:0;
+        let property_end = animated_property_inverted? 0:1;
 
-                    // Call onafterhidden if the animation we finished put us at 0.
-                    //
-                    // This is called by each individual animation.
-                    let position = anim.position;
-                    if(position < 0.00001)
-                        this._set_visible(false);
+        // Create the animation.
+        let animation = new ppixiv.PropertyAnimation(this.node, {
+            property: this.animated_property,
+            property_start,
+            property_end,
 
-                    this.onanimationfinished(anim);
-                }
-            });
+            start_offset: this.start_offset,
+            end_offset: this.end_offset,
+    
+            onanimationfinished: (anim) => {
+                // Call onafterhidden if the animation we finished put us at 0.
+                let position = anim.position;
+                if(position < 0.00001)
+                    this._set_visible(false);
 
-            this.drag_animations.push(animation);
-        }
+                this.onanimationfinished(anim);
+            }
+        });
 
-        for(let animation of this.drag_animations)
-            animation.position = visible? 1:0;
+        this.drag_animation = animation;
 
-        // Find the minimum and maximum offset of the animations.  If one animation allows
-        // offsets 0-2 and another allows -0.5-1.0, we allow dragging between -0.5 and 2.0.
-        this.min_start_offset = +Infinity;
-        this.max_start_offset = -Infinity;
-        for(let animation of this.drag_animations)
-        {
-            this.min_start_offset = Math.min(this.min_start_offset, animation.start_offset);
-            this.max_start_offset = Math.max(this.max_start_offset, animation.end_offset);
-        }
+        this.drag_animation.position = visible? 1:0;
 
         this.dragger = new ppixiv.DragHandler({
             element: drag_node,
             onpointerdown,
 
             ondragstart: (args) => {
-                for(let animation of this.drag_animations)
-                    animation.stop();
+                this.drag_animation.stop();
 
                 this.recent_pointer_movement.reset();
 
-                // Before starting a drag, make sure the animation is current.
-                this._refresh_animation();
+                this.onanimationstart();
 
                 // A drag is starting.  Send onbeforeshown if we weren't visible, since we
                 // might be about to make the widget visible.
@@ -6264,7 +5951,7 @@ ppixiv.WidgetDragger = class
             ondrag: (args) => {
                 this.recent_pointer_movement.add_sample({ x: event.movementX, y: event.movementY });
 
-                let pos = this.drag_animations[0].position;
+                let pos = this.drag_animation.position;
                 let movement = vertical? args.event.movementY:args.event.movementX;
                 if(reversed)
                     movement *= -1;
@@ -6274,9 +5961,8 @@ ppixiv.WidgetDragger = class
                     actual_size = actual_size();
 
                 pos += movement / actual_size;
-                pos = helpers.clamp(pos, this.min_start_offset, this.max_start_offset);
-                for(let animation of this.drag_animations)
-                    animation.position = pos;
+                pos = helpers.clamp(pos, this.start_offset, this.end_offset);
+                this.drag_animation.position = pos;
             },
 
             ondragend: (args) => {
@@ -6290,31 +5976,22 @@ ppixiv.WidgetDragger = class
                     return this.hide({ velocity: -velocity });
 
                 // If there hasn't been a fling recently, open or close based on how far open we are.
-                let open = this.drag_animations[0].position > 0.5;
+                let open = this.drag_animation.position > 0.5;
                 if(open)
                     this.show({ velocity });
                 else
+                {
                     this.hide({ velocity: -velocity });
+
+                    // If an animation didn't start because we're already dragged all the way then
+                    // onanimationfinished won't be called, so set ourselves not visible now.
+                    if(!this.drag_animation.playing)
+                        this._set_visible(false);
+                }
             },
         });
-    }
 
-    // Refresh the animation from the current value of this.animations.
-    //
-    // This can be called if the animation depends on other things, like the size of the window.
-    // Note that the offsets of the animation shouldn't change.
-    _refresh_animation()
-    {
-        for(let [drag_animation, keyframes] of helpers.zip(this.drag_animations, this._current_animations))
-            drag_animation.effect.setKeyframes(keyframes);
-    }
-
-    get _current_animations()
-    {
-        if(this.animations instanceof Function)
-            return this.animations();
-        else
-            return this.animations;
+        this.onanimationstart();
     }
 
     // Return the easing to use for the given swipe velocity.  If we're animating from a
@@ -6333,7 +6010,7 @@ ppixiv.WidgetDragger = class
 
     get position()
     {
-        return this.drag_animations[0].position;
+        return this.drag_animation.position;
     }
 
     _set_visible(value)
@@ -6362,29 +6039,33 @@ ppixiv.WidgetDragger = class
         }
     }
 
-    // Animate to the shown state.  If given, velocity is the drag speed that caused this.
+    // Animate to the fully shown state.  If given, velocity is the drag speed that caused this.
     show({ velocity=0 }={})
     {
+        if(this.drag_animation.position == 1 && !this.drag_animation.playing)
+            return;
+
+        this.onanimationstart();
+
         // This makes us visible if we weren't already.
         this._set_visible(true);
-        
-        // Before starting an animation, make sure the animation is current.
-        this._refresh_animation();
 
+        let duration = this.duration();
         let easing = this._easing_for_velocity(velocity);
-        for(let animation of this.drag_animations)
-            animation.play({forwards: true, easing});
+        this.drag_animation.play({end_position: 1, easing, duration});
     }
 
-    // Animate to the hidden state.  If given, velocity is the drag speed that caused this.
+    // Animate to the completely hidden state.  If given, velocity is the drag speed that caused this.
     hide({ velocity=0 }={})
     {
-        // Before starting an animation, make sure the animation is current.
-        this._refresh_animation();
+        if(this.drag_animation.position == 0 && !this.drag_animation.playing)
+            return;
 
+        this.onanimationstart();
+
+        let duration = this.duration();
         let easing = this._easing_for_velocity(velocity);
-        for(let animation of this.drag_animations)
-            animation.play({forwards: false, easing});
+        this.drag_animation.play({end_position: 0, easing, duration});
     }
 
     toggle()
@@ -6398,13 +6079,202 @@ ppixiv.WidgetDragger = class
     // Return true if an animation (not a drag) is currently running.
     get animation_playing()
     {
-        return this.drag_animations[0].playing;
+        return this.drag_animation.playing;
     }
 
     shutdown()
     {
-        for(let animation of this.drag_animations)
-            animation.shutdown();
+        this.drag_animation.shutdown();
+    }
+}
+
+class Quadratic
+{
+    constructor(X1, X2, X3, X4)
+    {
+        this.D = X1;
+        this.C = 3.0 * (X2 - X1);
+        this.B = 3.0 * (X3 - X2) - this.C;
+        this.A = X4 - X1 - this.C - this.B;
+    }
+
+    evaluate(t)
+    {
+        // optimized (A * t*t*t) + (B * t*t) + (C * t) + D
+        return ((this.A*t + this.B)*t + this.C)*t + this.D;
+    }
+}
+
+// A simple bezier curve implementation matching cubic-bezier.
+ppixiv.Bezier2D = class
+{
+    // Return a standard curve by name.
+    static curve(name)
+    {
+        if(this._curves == null)
+        {
+            // Standard curves:
+            this._curves = {
+                "ease": new ppixiv.Bezier2D(0.25, 0.1, 0.25, 1.0),
+                "linear": new ppixiv.Bezier2D(0.0, 0.0, 1.0, 1.0),
+                "ease-in": new ppixiv.Bezier2D(0.42, 0, 1.0, 1.0),
+                "ease-out": new ppixiv.Bezier2D(0, 0, 0.58, 1.0),
+                "ease-in-out": new ppixiv.Bezier2D(0.42, 0, 0.58, 1.0),
+            }
+        }
+
+        return this._curves[name];
+    }
+
+    constructor(a, b, c, d)
+    {
+        this.X = new Quadratic(0, a, c, 1);
+        this.Y = new Quadratic(0, b, d, 1);
+    }
+
+    GetXSlope(t)
+    {
+        return 3*this.X.A*t*t + 2*this.X.B*t + this.X.C;
+    }
+
+    evaluate(x)
+    {
+        // The range to search:
+        let x_start = this.X.D;
+        let x_end = this.X.A + this.X.B + this.X.C + this.X.D;
+
+        // Search for the curve position of x on the X curve.
+        let t = helpers.scale(x, x_start, x_end, 0, 1);
+        for(let i = 0; i < 100; ++i)
+        {
+            let guess = this.X.evaluate(t);
+            let error = x-guess;
+            if(Math.abs(error) < 0.0001)
+                break;
+
+            // Improve our guess based on the curve slope.
+            let slope = this.GetXSlope(t);
+            t += error / slope;
+        }
+
+        return this.Y.evaluate(t);
+    }
+}
+
+// Animate a single property on a node.
+//
+// This allows setting a property (usually a CSS --var), and animating it towards a given
+// value.
+//
+// This doesn't use Animation.  They still don't work with CSS vars, and Animation has too
+// many quirks to bother with for this.
+ppixiv.PropertyAnimation = class
+{
+    constructor(container, {
+        property,
+
+        // The position of the animation is always 0-1.  The property value is scaled to
+        // this range:
+        property_start=0,
+        property_end=1,
+
+        // If play() is called, this is called after the animation completes.
+        onanimationfinished,
+    }={})
+    {
+        this.target = container;
+        this.onanimationfinished = onanimationfinished;
+        this.state = "stopped";
+        this.property = property;
+        this.property_start = property_start;
+        this.property_end = property_end;
+    }
+
+    shutdown()
+    {
+        this.stop();
+    }
+
+    // When not animating, return the current offset.
+    //
+    // If an animation is running, this will return the static offset, ignoring the animation.
+    get position()
+    {
+        // static_animation is scaled to 0-1.  Scale it back to the caller's range.
+        return this._position;
+    }
+
+    // Set the current position.  If this is called while animating, the animation will be
+    // stopped.
+    set position(offset)
+    {
+        // We don't currently set the position while animating, so flag it as a bug for now.
+        if(this.playing)
+            throw new Error("Animation is running");
+
+        this._set_position(offset);
+    }
+
+    _set_position(offset)
+    {
+        this._position = offset;
+
+        let value = helpers.scale(offset, 0, 1, this.property_start, this.property_end);
+        this.target.style.setProperty(this.property, value);
+    }
+
+    // Return true if an animation is active.
+    get playing()
+    {
+        return this._playToken != null;
+    }
+
+    // Play the animation from the current position to end_position, replacing any running animation.
+    async play({end_position=1, easing="ease-in-xout", duration=300}={})
+    {
+        // Create a new token.  If another play() call takes over the animation or we're stopped, this
+        // will change and we'll stop animating.
+        let token = this._playToken = new Object();
+
+        // Get the easing curve.
+        let curve = ppixiv.Bezier2D.curve(easing);
+        if(curve == null)
+            throw new Error(`Unknown easing curve: ${easing}`);
+
+        let start_position = this._position;
+        let start_time = Date.now();
+        while(1)
+        {
+            await helpers.vsync();
+
+            // Stop if the animation state changed while we were async.
+            if(token !== this._playToken)
+                return;
+
+            // The position through this animation, from 0 to 1:
+            let offset = (Date.now() - start_time) / duration;
+            offset = helpers.clamp(offset, 0, 1);
+
+            // Apply easing.
+            let offset_with_easing = curve.evaluate(offset);
+
+            // Update the animation.
+            let new_position = helpers.scale(offset_with_easing, 0, 1, start_position, end_position);
+            this._set_position(new_position);
+
+            if(offset == 1)
+                break;
+        }
+
+        this._playToken = null;
+        this.onanimationfinished(this);
+    }
+
+    // Stop the animation if it's running.
+    stop()
+    {
+        // Clearing _playToken will stop any running play() loop.
+        this._playToken = null;
     }
 }
 

@@ -1,3 +1,10 @@
+// This is the same as helpers.scale: scale $x from the range l1-h1 to the range
+// l2-h2.
+@function scale_value($x, $l1, $h1, $l2, $h2)
+{
+    @return calc(($x - $l1) * ($h2 - $l2) / ($h1 - $l1) + $l2)
+}
+  
 * {
     box-sizing: border-box;
 
@@ -222,6 +229,14 @@ a {
 }
 
 html.mobile {
+    // Disable all selection on mobile by default.  It's an endless game of whack-a-mole trying
+    // to disable it in the right places.  We can reenable it in specific places where it's wanted
+    // if needed.
+    * {
+        user-select: none;
+        -webkit-user-select: none;
+    }
+
     // Disable hover popups on mobile:
     .popup:after { display: none !important; }
 
@@ -245,6 +260,11 @@ html {
         --icon-size: 3;
         --icon-row-gap: 0.5em;
     }
+
+    // This is animated by screen_illust.  At 0, screen_illust is displayed, and at 1, screen_search
+    // is displayed.  Since it's owned by screen_illust, give it a default of hidden, so screen_search
+    // is visible if screen_illust hasn't made itself visible yet.
+    --illust-hidden: 1;
 
     --main-background-color: #222;
     --background-noise: var(--dark-noise);
@@ -1300,13 +1320,9 @@ body.hide-r18g .r18g { display: none; }
         --header-height: calc(2em + env(safe-area-inset-top));;
     }
 
-    // Work around an iOS compositing bug: when the document is scrolled, the body sometimes bleeds one
-    // pixel out of the actual client area.  This can be seen by setting mobile-header's top to 0px instead
-    // of 1px: a one pixel row will be visible above the header.  This causes problems when we switch to
-    // the illust view, since it doesn't get covered by the background and remains visible at the top of
-    // the screen.  To avoid this, we need to actually hide the search when it's not visible.
-    html:not([data-current-view="search"]) & {
-        opacity: 0;
+    html:not(.disable-expensive-transitions) & {
+        // Fade out when screen_illust is visible.
+        opacity: scale_value(var(--illust-hidden), 0.3, .7, 0, 1);
     }
 
     .mobile-ui-drag-container {
@@ -1324,6 +1340,11 @@ body.hide-r18g .r18g { display: none; }
         // Disable touch-action for the dragger.
         touch-action: none;
 
+        // Dim underneath the header while the search UI is open, so the header matches
+        // it.  Use background-color for this, since Android can't handle backdrop-filter
+        // being animated.
+        background-color: rgba(0,0,0, var(--header-pos));
+
         .header-strip {
             display: flex;
 
@@ -1333,11 +1354,6 @@ body.hide-r18g .r18g { display: none; }
             padding-top: env(safe-area-inset-top);
             backdrop-filter: blur(10px) brightness(0.6);
             -webkit-backdrop-filter: blur(10px) brightness(0.6);
-
-            // Dim underneath the header while the search UI is open, so the header matches
-            // it.  Use background-color for this, since Android can't handle backdrop-filter
-            // being animated.
-            transition: background-color .25s;
 
             .back-button, .menu-button {
                 display: flex;
@@ -1362,11 +1378,10 @@ body.hide-r18g .r18g { display: none; }
         top: var(--header-height);
         left: 0;
         width: 100%;
-
-        transition: transform .25s, opacity .25s;
-        opacity: 1;
-        transform: translateY(0px);
         --ui-bg-color: #111;
+
+        opacity: var(--header-pos);
+        transform: translateY(calc(-100% * (1 - var(--header-pos))));
 
         &:not(.ui-visible) {
             pointer-events: none;
@@ -1759,6 +1774,7 @@ body.hide-r18g .r18g { display: none; }
                 .expand-button {
                     display: inline-flex;
                     padding: 4px 0px;
+                    align-items: center;
 
                     .page-icon {
                         width: 16px;
@@ -2591,6 +2607,9 @@ a.box-link, span.box-link
         font-size: .8em;
         font-weight: bold;
 
+        opacity: var(--menu-bar-pos);
+        transform: translateX(calc(20px * (1 - var(--menu-bar-pos))));
+
         // The background and padding for the tag list goes on the individual tags.
         .context-menu-image-info
         {
@@ -2682,6 +2701,9 @@ a.box-link, span.box-link
     
             // This controls the icon size.
             font-size: 65%;
+
+            opacity: var(--menu-bar-pos);
+            transform: translateY(calc(-100% * (1 - var(--menu-bar-pos))));
         }
 
         .item {
@@ -2874,6 +2896,7 @@ svg.heart-image .delete {
     // we're small or normal at compile time ($type), but we have to use a media query to see if
     // we're treating the device as a phone.
     $type: "normal",
+    $animation: "vertical",
 )
 {
     // The top-level container-container sits outside the dialog.  This fills the screen and handles dimming
@@ -2882,6 +2905,10 @@ svg.heart-image .delete {
     z-index: 1000;
     inset: 0;
     overscroll-behavior: contain;
+    opacity: var(--dialog-visible);
+
+    // This is set by the dialog transition.
+    --dialog-visible: 1;
 
     // The minimum horizontal padding around the dialog content:
     --edge-padding: 1em;
@@ -2950,31 +2977,15 @@ svg.heart-image .delete {
     // inside the scroller.
     padding: var(--dialog-outer-padding);
 
-    // Transitions for mobile:
-    &.animated {
-        transition: background-color .15s, opacity .25s;
-        &[data-animate="fade"] {
-            opacity: 0;
-        }
-
-        > .dialog {
-            transition: transform .30s;
-            transform: translateY(0);
-        }
-
-        &[data-animate="horizontal"] {
-            background-color: rgba(0,0,0,0);
-            > .dialog { transform: translateX(100vw); }
-        }
-
-        &[data-animate="vertical"] {
-            background-color: rgba(0,0,0,0);
-            > .dialog { transform: translateY(100vh); }
-        }
-    }
-
     > .dialog {
         padding: var(--dialog-inner-padding);
+
+        @if $animation == "horizontal" {
+            transform: translateX(calc((1 - var(--dialog-visible)) * 100px));
+        }
+        @if $animation == "vertical" {
+            transform: translateY(calc((1 - var(--dialog-visible)) * 100px));
+        }
 
         // .dialog > .scroll is for optional scrolling content.  Dialogs with fixed content
         // don't need to use this.
@@ -3142,6 +3153,10 @@ svg.heart-image .delete {
     @include general-dialog();
     .popup-bookmark-tag-entry {
         font-size: 120%;
+
+        // Set a min width on the tag list, so it isn't very thin if the tags are all
+        // short.  The actual size will be capped by the dialog.
+        min-width: 50vw;
     }
 }
 
@@ -3205,6 +3220,18 @@ svg.heart-image .delete {
 }
 
 .screen-illust-container {
+    html:not(.disable-expensive-transitions) & {
+        transform: translateX(calc(var(--illust-hidden) * var(--animation-x)))               
+                translateY(calc(var(--illust-hidden) * var(--animation-y)))
+                scale(scale_value(var(--illust-hidden), 0, 1, 1, var(--animation-scale)));
+
+        // illust-hidden is 0 when we want to be visible and 1 when we want to be transparent.
+        // We actually stay fully visible until it reaches 0.7, so we only start fading out near
+        // the end of the animation.  This results in opacity values outside the 0-1 range, which
+        // will just be clipped.
+        opacity: scale_value(var(--illust-hidden), 0.5, 1, 1, 0);
+    }
+
     .page-change-indicator {
         position: absolute;
         height: 100%;
@@ -3506,7 +3533,15 @@ svg.heart-image .delete {
 .settings-dialog
 {
     @include general-dialog();
+}
 
+.settings-dialog-page
+{
+    @include general-dialog($animation: "horizontal");
+}
+
+.settings-window
+{
     // Set the font size.  This ignores the font size multiplier we use for the rest
     // of the UI on mobile, which is much too big for settings, and is slightly larger
     // on desktop.

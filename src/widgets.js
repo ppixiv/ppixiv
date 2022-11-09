@@ -218,10 +218,6 @@ ppixiv.dialog_widget = class extends ppixiv.widget
         // If true, the close button shows a back icon instead of an X.
         back_icon=false,
 
-        // This can be "fade", "vertical" or "horizontal" to change the transition.  Transitions
-        // are only used on mobile.
-        animation=null,
-
         template,
         ...options
     })
@@ -269,23 +265,6 @@ ppixiv.dialog_widget = class extends ppixiv.widget
         if(!this.visible)
             throw new Error("Dialog shouldn't be hidden");
 
-        // If the animation isn't set, choose a default, or none if it's explicitly "none".
-        if(animation == null)
-        {
-            if(small)
-                animation = "fade";
-            else
-                animation = "vertical";
-        }
-        if(animation == "none")
-            animation = none;
-
-        // Animations are only used on mobile.
-        if(!ppixiv.mobile)
-            animation = null;
-
-        this.animation = animation;
-
         this.small = small;
         helpers.set_class(this.container, "small", this.small);
         helpers.set_class(this.container, "large", !this.small);
@@ -293,29 +272,31 @@ ppixiv.dialog_widget = class extends ppixiv.widget
         this.refresh_fullscreen();
         window.addEventListener("resize", this.refresh_fullscreen, { signal: this.shutdown_signal.signal });
 
-        // If we have an animation, create the dragger that will control it.
-        let {nodes, animation: animation_keys} = this.create_animation() ?? {};
-        if(animation_keys != null)
+        // Create the dragger that will control animations.  Animations are only used on mobile.
+        if(ppixiv.mobile)
         {
-            this.dragger = new WidgetDragger({
+            this.dialog_dragger = new WidgetDragger({
+                node: this.container,
                 drag_node: this.container,
                 visible: false,
                 size: 100,
-                nodes,
+                animated_property: "--dialog-visible",
 
                 // Call create_animation again each time this is queried, so the animation can change to
                 // adjust to the screen size if needed.
                 animations: () => this.create_animation().animation,
                 direction: "up",
-                onafterhidden: () => {
-                    console.log("--- onafterhidden");
-                    this.visibility_changed();
-                },
+                onafterhidden: () => this.visibility_changed(),
                 onpointerdown: () => this.drag_to_exit,
             });
         
-            this.dragger.show();
+            this.dialog_dragger.show();
         }
+
+        // By default, dialogs with vertical or horizontal animations are also draggable.  Only
+        // animated dialogs can drag to exit.
+        // this.drag_to_exit = this.dialog_dragger != null && this.animation != "fade";
+        this.drag_to_exit = true;
 
         // If we're not the first dialog on the stack, make the previous dialog inert, so it'll ignore inputs.
         let old_top_dialog = ppixiv.dialog_widget.top_dialog;
@@ -366,58 +347,6 @@ ppixiv.dialog_widget = class extends ppixiv.widget
         ppixiv.dialog_widget._update_block_touch_scrolling();
     }
 
-    // Return true if the dialog can be exited by dragging.  By default, dialogs with
-    // vertical or horizontal animations are also draggable.  Only animated dialogs
-    // can drag to exit.
-    get drag_to_exit()
-    {
-        return this.animation != null && this.animation != "fade";
-    }
-
-    // Return the animation set to use for this dialog.  The subclass can override this.
-    create_animation()
-    {
-        // We really just want to animate --dialog-backdrop-color, but CSS animations don't
-        // seem to work on vars.  They don't interpolate and just switch back and forth.
-        let fade = [
-            { opacity: 0, offset: 0 },
-            { opacity: 1, offset: 1 },
-        ];
-        if(this.animation == null)
-            return null;
-
-        let nodes = [];
-        let animation = [];
-
-        nodes.push(this.container);
-        animation.push(fade);
-
-        if(this.animation == "fade")
-        {
-            // Nothing else
-        }
-        else if(this.animation == "vertical")
-        {
-            nodes.push(this.container.querySelector(".dialog"));
-            animation.push([
-                { transform: "translateY(100px)", offset: 0 },
-                { transform: "translateY(0)", offset: 1 },
-            ]);
-        }
-        else if(this.animation == "horizontal")
-        {
-            nodes.push(this.container.querySelector(".dialog"));
-            animation.push([
-                { transform: "translateY(100px)", offset: 0 },
-                { transform: "translateY(0)", offset: 1 },
-            ]);
-        }
-        else
-            throw new Error(`Unknown animation type ${this.animation}`);
-
-        return { nodes, animation };
-    }
-
     set header(value)
     {
         this.container.querySelector(".header-text").textContent = value ?? "";
@@ -440,15 +369,15 @@ ppixiv.dialog_widget = class extends ppixiv.widget
     get actually_visible()
     {
         // If we have an animator, it determines whether we're visible.
-        if(this.dragger)
-            return this.dragger.visible;
+        if(this.dialog_dragger)
+            return this.dialog_dragger.visible;
         else
             return super.visible;
     }
 
     async apply_visibility()
     {
-        if(this.dragger == null || this._visible)
+        if(this.dialog_dragger == null || this._visible)
         {
             super.apply_visibility();
             return;
@@ -456,7 +385,7 @@ ppixiv.dialog_widget = class extends ppixiv.widget
 
         // We're being hidden and we have an animation.  Tell the dragger to run our hide
         // animation.  We'll shut down when it finishes.
-        this.dragger.hide();
+        this.dialog_dragger.hide();
     }
 
     // Calling shutdown() directly will remove the dialog immediately.  To remove it and allow

@@ -1127,19 +1127,16 @@ class ScreenIllustDragToExit
     {
         this.parent = parent;
 
-        // this.parent.container.style.transformOrigin = "center top";
         this.dragger = new WidgetDragger({
+            node: document.documentElement,
             drag_node: document.documentElement,
             size: () => this._drag_distance,
 
+            animated_property: "--illust-hidden",
+            animated_property_inverted: true,
+
             // We're hidden until set_active makes us visible.
             visible: false,
-            nodes: [
-                this.parent.container,
-                this.parent.container,
-                main_controller.screen_search.container,
-            ],
-            animations: () => this._current_animation,
             direction: "down", // up to make visible, down to hide
             duration: () => {
                 return settings.get("animations_enabled")? 200:0;
@@ -1169,6 +1166,9 @@ class ScreenIllustDragToExit
                 // is affected by the scroll position.
                 this.showing_new_image();
             },
+            onanimationstart: () => {
+                this._config_animation();
+            },
         });
     }
 
@@ -1177,51 +1177,43 @@ class ScreenIllustDragToExit
         return document.documentElement.clientHeight * .25;
     }
 
-    get _current_animation()
+    _config_animation()
     {
-        // Try to position the animation to move towards the search thumbnail.  If we don't know
-        // where it'll be, move towards the center.
-        let x = window.innerWidth/2, y = window.innerHeight/2;
+        // Set properties for the animation.
+        let x = 0, y = 0;
+
+        // Try to position the animation to move towards the search thumbnail.
         let scale = 0.5;
-        if(this.parent.wanted_media_id != null)
+        let rect = this._animation_target_rect;
+        if(rect)
         {
-            let rect = main_controller.get_rect_for_media_id(this.parent.wanted_media_id);
-            if(rect)
-            {
-                x = rect.x + rect.width/2;
-                y = rect.y + rect.height/2;
-            
-                // Compare the screen size to the thumbnail size to figure out a rough scale, so if
-                // thumbnails are very big or small we'll generally scale to a similar size.
-                let width_ratio = rect.width / window.innerWidth;
-                let height_ratio = rect.height / window.innerHeight;
-                scale = (width_ratio + height_ratio) / 2;
-            }
+            // Shift up and left to put the center of the screen at 0x0:
+            x = -this.parent.container.offsetWidth/2;
+            y = -this.parent.container.offsetHeight/2;
+
+            // Then right and down to center it on the thumb:
+            x += rect.x + rect.width/2;
+            y += rect.y + rect.height/2;
+        
+            // Compare the screen size to the thumbnail size to figure out a rough scale, so if
+            // thumbnails are very big or small we'll generally scale to a similar size.
+            let width_ratio = rect.width / window.innerWidth;
+            let height_ratio = rect.height / window.innerHeight;
+            scale = (width_ratio + height_ratio) / 2;
         }
 
-        return [[
-            // this.parent.container transform
-            {
-                offset: 0,
-                transform: `
-                    translate(-${this.parent.container.offsetWidth/2}px, -${this.parent.container.offsetHeight/2}px)
-                    translate(${x}px, ${y}px)
-                    scale(${scale})
-                `,
-            },
-            { offset: 1, transform: 'scale(1)' },
-        ], [
-            // this.parent.container opacity
-            // Start fading partway through.
-            { offset: 0,   opacity: 0 },
-            { offset: 0.7, opacity: 1 },
-            { offset: 1,   opacity: 1 },
-        ], [
-            // main_controller.screen_search.container
-            // Fade the search screen out as we fade in and vice versa.
-            { offset: 0,   opacity: 1 },
-            { offset: 1,   opacity: 0 },
-        ]];
+        this.parent.container.style.setProperty("--animation-x", `${x}px`);
+        this.parent.container.style.setProperty("--animation-y", `${y}px`);
+        this.parent.container.style.setProperty("--animation-scale", scale);
+    }
+
+    // Return the rect we'll want to transition towards, if known.
+    get _animation_target_rect()
+    {
+        if(this.parent.wanted_media_id == null)
+            return null;
+
+        return main_controller.get_rect_for_media_id(this.parent.wanted_media_id);
     }
 
     // The screen was set active or inactive.

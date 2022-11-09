@@ -41,9 +41,9 @@ let mobile_illust_ui_top_page = class extends ppixiv.widget
                     <div class="item button-view-manga enabled">
                         ${ helpers.create_icon("ppixiv:thumbnails") }
                         <span class=label>Pages</span>
-                        </div>
                     </div>
                 </div>
+            </div>
         `});
 
         this._media_id = null;
@@ -206,7 +206,7 @@ class mobile_overlay_bookmark_tag_dialog extends ppixiv.dialog_widget
 {
     constructor({media_id, ...options})
     {
-        super({...options, dialog_class: "mobile-tag-list", small: true, animation: "vertical", header: "Bookmark tags", template: `
+        super({...options, dialog_class: "mobile-tag-list", small: true, header: "Bookmark tags", template: `
             <div class=scroll></div>
         `});
 
@@ -342,22 +342,12 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
             this.hide();
         }, { signal: this.shutdown_signal.signal });
 
-        //let menu_bar = this.page.container; //.querySelector(".mobile-illust-ui-page");
         let menu_bar = this.page.container.querySelector(".mobile-illust-ui-page");
-        let info_box = this.container.querySelector(".context-menu-image-info-container");
         this.dragger = new WidgetDragger({
+            node: this.container,
             drag_node: this.container.parentNode,
             size: () => menu_bar.offsetHeight,
-            nodes: [menu_bar, info_box],
-            animations: [[
-                // menu_bar
-                { offset: 0, opacity: 0, transform: "translateY(-100%)" },
-                { offset: 1, opacity: 1, transform: "translateY(0)" },
-            ], [
-                // info_box
-                { offset: 0, opacity: 0, transform: "translateX(20px)" },
-                { offset: 1, opacity: 1, transform: "translateX(0px)" },
-            ]],
+            animated_property: "--menu-bar-pos",
             direction: "down",
             onpointerdown: ({event}) => {
                 return helpers.get_image_drag_type(event) == "menu";

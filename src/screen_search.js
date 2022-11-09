@@ -490,6 +490,8 @@ ppixiv.screen_search = class extends ppixiv.screen
 
         this.container.querySelector(".preferences-button").addEventListener("click", (e) => {
             new ppixiv.settings_dialog();
+            if(this.mobile_header_dragger)
+                this.mobile_header_dragger.hide();
         });
 
         settings.addEventListener("theme", this.update_from_settings, { signal: this.shutdown_signal.signal });
@@ -593,25 +595,16 @@ ppixiv.screen_search = class extends ppixiv.screen
         if(ppixiv.mobile)
         {
             let drag_node = this.container.querySelector(".mobile-ui-drag-container");
-            let header = this.container.querySelector(".mobile-header");
             let ui_box = this.container.querySelector(".mobile-ui-box-container");
-            
+
             this.mobile_header_dragger = new ppixiv.WidgetDragger({
-                nodes: [header, ui_box],
+                node: this.container,
                 close_if_outside: [ui_box],
                 drag_node,
                 visible: false,
                 direction: "down",
-                animations: [[
-                    // header
-                    { offset: 0, backgroundColor: "rgba(0,0,0,0)" },
-                    { offset: 1, backgroundColor: "rgba(0,0,0,1)" },
-                ], [
-                    // ui_box
-                    { offset: 0, opacity: 0, transform: "translateY(-100px)" },
-                    { offset: 1, opacity: 1, transform: "translateY(0)" },
-                ]],
-                size: 100,
+                animated_property: "--header-pos",
+                size: 200,
 
                 onbeforeshown: () => helpers.set_class(ui_box, "ui-visible", true),
                 onafterhidden: () => helpers.set_class(ui_box, "ui-visible", false),
@@ -823,6 +816,8 @@ ppixiv.screen_search = class extends ppixiv.screen
         this.refresh_whats_new_button();
 
         new whats_new();
+        if(this.mobile_header_dragger)
+            this.mobile_header_dragger.hide();
     }
 
     initial_refresh_ui()
