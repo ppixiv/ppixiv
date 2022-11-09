@@ -38,11 +38,6 @@ let mobile_illust_ui_top_page = class extends ppixiv.widget
                         <span class=label>More...</span>
                     </div>
 
-                    <div class="item button-like enabled button-container">
-                        <ppixiv-inline src="resources/like-button.svg"></ppixiv-inline>
-                        <span class=label>Like</span>
-                    </div>
-
                     <div class="item button-view-manga enabled">
                         ${ helpers.create_icon("ppixiv:thumbnails") }
                         <span class=label>Pages</span>
@@ -69,11 +64,6 @@ let mobile_illust_ui_top_page = class extends ppixiv.widget
             this.refresh();
         });
         
-        this.avatar_widget = new avatar_widget({
-            container: this.container.querySelector(".avatar-widget-container"),
-            mode: "overlay",
-        });
-
         this.container.querySelector(".button-more").addEventListener("click", (e) => {
             new mobile_illust_ui_more_options_dialog({
                 media_id: this._media_id
@@ -91,11 +81,6 @@ let mobile_illust_ui_top_page = class extends ppixiv.widget
         });
 
         this.illust_widgets = [
-            this.avatar_widget,
-            new like_button_widget({
-                parent: this,
-                contents: this.container.querySelector(".button-like"),
-            }),
         ];
 
         // The bookmark buttons, and clicks in the tag dropdown:
