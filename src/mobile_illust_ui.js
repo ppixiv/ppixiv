@@ -375,14 +375,7 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
             ]],
             direction: "down",
             onpointerdown: ({event}) => {
-                // Stop if this press isn't near the bottom edge.
-                //
-                // This takes some tuning.  Most mobile devices have system UI at the
-                // bottom of the screen.  If this is too tight, it'll be hard to open
-                // the menu without hitting it instead.  If it's too loose, we'll open
-                // the menu when we're trying to pan the image.
-                let top = helpers.safe_area_insets.top;
-                return (event.clientY - top) / document.documentElement.clientHeight < 0.10;
+                return helpers.get_image_drag_type(event) == "menu";
             },
             onbeforeshown: () => this.visibility_changed(),
             onafterhidden: () => this.visibility_changed(),

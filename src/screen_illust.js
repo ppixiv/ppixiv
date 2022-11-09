@@ -87,7 +87,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
                 container: this.container,
             });
 
-            // Navigate to the next or previous image on double-tap.
+            // Toggle zoom on double-tap.
             this.double_tap_handler = new ppixiv.MobileDoubleTapHandler({
                 container: this.view_container,
                 signal: this.shutdown_signal.signal,
@@ -738,9 +738,7 @@ class DragImageChanger
                 if(this.main_viewer == null)
                     return false;
 
-                // Stop if this press isn't near the edge.
-                let edge_threshold = 30;
-                return event.clientX < edge_threshold || event.clientX > window.innerWidth - edge_threshold;
+                return helpers.get_image_drag_type(event) == "change-images";
             },
 
             ondragstart: (args) => this.ondragstart(args),
@@ -1152,18 +1150,7 @@ class ScreenIllustDragToExit
                 if(!this.parent._active)
                     return;
 
-                // This class can be used on desktop for animations, but dragging to navigate is only
-                // used on mobile.
-                if(!ppixiv.mobile)
-                    return;
-
-                // Stop if this press isn't near the bottom edge.
-                //
-                // This takes some tuning.  Most mobile devices have system UI at the
-                // top of the screen.  If this is too tight, it'll be hard to open
-                // the menu without hitting it instead.  If it's too loose, we'll open
-                // the menu when we're trying to pan the image.
-                return event.clientY / document.documentElement.clientHeight > 0.80;
+                return helpers.get_image_drag_type(event) == "exit";
             },
             onafterhidden: () => {
                 // The drag finished.  If the screen is still active, exit the illust screen and go

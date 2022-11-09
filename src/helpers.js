@@ -932,6 +932,58 @@ ppixiv.helpers = {
             delete dataset[name];
     },
 
+    // Given a drag event over the image viewer, return the type of drag it should be.
+    //
+    // This centralizes choosing which type of drag to do.  
+    // This is tricky to do with just event propagation, which is dependant on the order
+    // things are set up, so we centralize it here.
+    //
+    // Returns one of:
+    // "exit" - a drag at the bottom of the screen to exit the image
+    // "change-images" - a drag at the left or right edge to navigate between images
+    // "menu" - a drag at the top to open the menu
+    // "pan-zoom" - a drag anywhere else for image pan and zoom
+    //
+    // The priority of these is important.  For example, change-images is higher priority than
+    // exit, since it's annoying to try to change images and exit to the search instead.
+    get_image_drag_type(event)
+    {
+        // Drag UI navigation is only used on mobile.
+        if(!ppixiv.mobile)
+            return false;
+
+        // These thresholds take some tuning, since they're usually close to system gestures.
+        // If the threshold for a "down from the top" gesture is too small, it'll be hard to
+        // do without hitting the system swipe-down gesture instead, but if they're too big
+        // then you'll activate the menu when you wanted to zoom the image.
+        //
+        // Dragging at the left or right edge of the screen changes images.  This threshold can
+        // be fairly small, but check it first, so drags in the corner prefer to change images
+        // over opening the menu or exiting.
+        let container = document.documentElement;
+        let horiz = event.clientX / container.clientWidth;
+        if(horiz < 0.1 || horiz > 0.9)
+            return "change-images";
+
+        // Drags down from the top of the screen open the menu.
+        let insets = helpers.safe_area_insets;
+        if((event.clientY - insets.top) / container.clientHeight < 0.10)
+            return "menu";
+
+            console.log(insets.bottom);
+        // Drags up from the bottom of the screen exit the image.
+        //
+        // This can be lower if we're running as a regular browser page on iOS, but if we're fullscreen
+        // or if we're in landscape then we're overlapping the bottom navigation area, so this needs to
+        // be higher to avoid conflicting with it.
+        // XXX: the difference here matters a lot (0.85 is too low when in a browser), figure out how to
+        // do this better
+        if((event.clientY + insets.bottom) / container.clientHeight > 0.85)
+            return "exit";
+
+        return "pan-zoom";
+    },
+
     // Input elements have no way to tell when edits begin or end.  The input event tells
     // us when the user changes something, but it doesn't tell us when drags begin and end.
     // This is important for things like undo: you want to save undo the first time a slider
@@ -5456,6 +5508,9 @@ ppixiv.TouchScroller = class
 
     start_drag = (e) =>
     {
+        if(helpers.get_image_drag_type(event) != "pan-zoom")
+            return;
+
         // If we were flinging, the user grabbed the fling and interrupted it.
         if(this.mode == "fling")
             this.cancel_fling();
