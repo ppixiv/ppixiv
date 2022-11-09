@@ -83,20 +83,28 @@ public:
 
         // This event is used for HandleIO overlapped I/O in the window thread.  check_io
         // will be called when it's signalled to check for I/O.
-        auto overlapped_event = make_shared<HandleHolder>(CreateEvent(NULL, true, true, NULL));
-        overlapped_wait = HandleWait::create(overlapped_event->h, check_io_stub, this);
+        auto display_overlapped_event = make_shared<HandleHolder>(CreateEvent(NULL, true, true, NULL));
+        overlapped_wait = HandleWait::create(display_overlapped_event->h, check_display_io_stub, this);
+
+        auto display_control_event = make_shared<HandleHolder>(CreateEvent(NULL, true, true, NULL));
+        overlapped_wait = HandleWait::create(display_control_event->h, check_control_io_stub, this);
 
         // Create HandleIOs to handle reading and writing to the pipes.  Don't keep the
         // ClientPipesImpl around, since we want its handles to be released.
-        display_io = HandleIO::create(pipes->display_pipe, overlapped_event, on_display_read_stub, onwrite_stub, this);
-        control_io = HandleIO::create(pipes->control_pipe, overlapped_event, on_control_read_stub, onwrite_stub, this);
+        display_io = HandleIO::create(pipes->display_pipe, display_overlapped_event, on_display_read_stub, onwrite_stub, this);
+        control_io = HandleIO::create(pipes->control_pipe, display_control_event, on_control_read_stub, onwrite_stub, this);
 
     }
-    static void check_io_stub(void *ptr) { ((ClientImpl *)ptr)->check_io(); }
+    static void check_display_io_stub(void *ptr) { ((ClientImpl *)ptr)->check_display_io(); }
+    static void check_control_io_stub(void *ptr) { ((ClientImpl *)ptr)->check_control_io(); }
 
-    void check_io()
+    void check_display_io()
     {
         display_io->update();
+    }
+
+    void check_control_io()
+    {
         control_io->update();
     }
 

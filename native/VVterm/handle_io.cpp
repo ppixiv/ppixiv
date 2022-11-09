@@ -119,7 +119,7 @@ void HandleIOImpl::shutdown()
         did_wait = true;
     }
 
-    // If we waited on overlapped_event at all, then we just swalloed some events and
+    // If we waited on overlapped_event at all, then we just swallowed some events and
     // caused it to be unset.  We might not be the only thing using this event, so set
     // it to signalled so anything else using it will wake up.
     if(did_wait)
