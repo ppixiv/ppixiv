@@ -1309,7 +1309,8 @@ body.hide-r18g .r18g { display: none; }
         opacity: 0;
     }
 
-    .mobile-header {
+    .mobile-ui-drag-container {
+        touch-action: none;
         position: fixed;
 
         // The header should be right at the top, but move it up by one pixel to avoid the same compositing
@@ -1317,6 +1318,11 @@ body.hide-r18g .r18g { display: none; }
         top: -1px;
         left: 0;
         width: 100%;
+    }
+
+    .mobile-header {
+        // Disable touch-action for the dragger.
+        touch-action: none;
 
         .header-strip {
             display: flex;
@@ -1332,10 +1338,6 @@ body.hide-r18g .r18g { display: none; }
             // it.  Use background-color for this, since Android can't handle backdrop-filter
             // being animated.
             transition: background-color .25s;
-            background-color: rgba(0,0,0,0);
-            &.ui-visible {
-                background-color: rgba(0,0,0,1);
-            }
 
             .back-button, .menu-button {
                 display: flex;
@@ -1368,8 +1370,6 @@ body.hide-r18g .r18g { display: none; }
 
         &:not(.ui-visible) {
             pointer-events: none;
-            opacity: 0;
-            transform: translateY(-100px);
         }
     }
 

@@ -5904,7 +5904,7 @@ ppixiv.ControllableAnimation = class
     // This can be outside the initial range.
     set position(offset)
     {
-        console.assert(this.state == "stopped");
+        console.assert(this.state == "stopped", this.state);
         this._set_position(offset);
     }
 
@@ -6097,6 +6097,10 @@ ppixiv.WidgetDragger = class
         // open.  This can be a number, or a function that returns a number.
         size,
 
+        // If set, this is an array of nodes inside the dragger, and clicks outside of this
+        // list while visible will cause the dragger to hide.
+        close_if_outside=null,
+
         // A drag is about to cause the node to become at least partially visible (this.position > 0).
         onbeforeshown = () => { },
 
@@ -6127,6 +6131,7 @@ ppixiv.WidgetDragger = class
         this.onafterhidden = onafterhidden;
         this.onanimationfinished = onanimationfinished;
         this.animations = animations;
+        this.close_if_outside = close_if_outside;
         this.easing = easing;
         this.duration = duration;
 
@@ -6161,11 +6166,8 @@ ppixiv.WidgetDragger = class
                     //
                     // This is called by each individual animation.
                     let position = anim.position;
-                    if(position < 0.00001 && this._visible)
-                    {
-                        this._visible = false;
-                        this.onafterhidden();
-                    }
+                    if(position < 0.00001)
+                        this._set_visible(false);
 
                     this.onanimationfinished(anim);
                 }
@@ -6202,11 +6204,7 @@ ppixiv.WidgetDragger = class
 
                 // A drag is starting.  Send onbeforeshown if we weren't visible, since we
                 // might be about to make the widget visible.
-                if(!this._visible)
-                {
-                    this._visible = true;
-                    this.onbeforeshown();
-                }
+                this._set_visible(true);
             },
             ondrag: (args) => {
                 this.recent_pointer_movement.add_sample({ x: event.movementX, y: event.movementY });
@@ -6283,15 +6281,37 @@ ppixiv.WidgetDragger = class
         return this.drag_animations[0].position;
     }
 
+    _set_visible(value)
+    {
+        if(this._visible == value)
+            return;
+
+        this._visible = value;
+        if(this._visible)
+            this.onbeforeshown();
+        else
+            this.onafterhidden();
+
+        if(this.close_if_outside)
+        {
+            // Create or destroy the click_outside_listener.
+            if(this._visible && this.clicked_outside_ui_listener == null)
+            {
+                this.clicked_outside_ui_listener = new click_outside_listener(this.close_if_outside, () => this.hide());
+            }
+            else if(!this._visible && this.clicked_outside_ui_listener != null)
+            {
+                this.clicked_outside_ui_listener.shutdown();
+                this.clicked_outside_ui_listener = null;
+            }
+        }
+    }
+
     // Animate to the shown state.  If given, velocity is the drag speed that caused this.
     show({ velocity=0 }={})
     {
         // This makes us visible if we weren't already.
-        if(!this._visible)
-        {
-            this._visible = true;
-            this.onbeforeshown();
-        }
+        this._set_visible(true);
         
         // Before starting an animation, make sure the animation is current.
         this._refresh_animation();
@@ -6310,6 +6330,14 @@ ppixiv.WidgetDragger = class
         let easing = this._easing_for_velocity(velocity);
         for(let animation of this.drag_animations)
             animation.play({forwards: false, easing});
+    }
+
+    toggle()
+    {
+        if(this.visible)
+            this.hide();
+        else
+            this.show();
     }
 
     // Return true if an animation (not a drag) is currently running.

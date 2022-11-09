@@ -399,19 +399,22 @@ ppixiv.screen_search = class extends ppixiv.screen
                     <div class=thumbnail-container-box></div>
                 </div>
 
-                <div class=mobile-ui-box-container></div>
+                <!-- This groups the header and search UI into a single dragger. -->
+                <div class=mobile-ui-drag-container>
+                    <div class=mobile-ui-box-container></div>
 
-                <!-- The UI header for the mobile layout. -->
-                <div class=mobile-header hidden>
-                    <div class=header-strip>
-                        <div class=back-button>
-                            ${ helpers.create_icon("mat:arrow_back_ios_new") }
-                        </div>
+                    <!-- The UI header for the mobile layout. -->
+                    <div class=mobile-header hidden>
+                        <div class=header-strip>
+                            <div class=back-button>
+                                ${ helpers.create_icon("mat:arrow_back_ios_new") }
+                            </div>
 
-                        <div class=title></div>
+                            <div class=title></div>
 
-                        <div class=menu-button>
-                            ${ helpers.create_icon("mat:menu") }
+                            <div class=menu-button>
+                                ${ helpers.create_icon("mat:menu") }
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -427,12 +430,6 @@ ppixiv.screen_search = class extends ppixiv.screen
             let args = helpers.args.location;
             local_api.get_args_for_id(parent_folder_id, args);
             helpers.navigate(args);
-        });
-        this.container.querySelector(".mobile-header .menu-button").addEventListener("click", () => {
-            let ui = this.container.querySelector(".mobile-ui-box-container");
-            let visible = !ui.classList.contains("ui-visible");
-            helpers.set_class(ui, "ui-visible", visible);
-            helpers.set_class(this.container.querySelector(".mobile-header .header-strip"), "ui-visible", visible);
         });
 
         // The search UI normally goes in thumbnail-ui-box-container.  On mobile, put
@@ -592,6 +589,38 @@ ppixiv.screen_search = class extends ppixiv.screen
         this.top_ui_box = this.container.querySelector(".top-ui-box");
         this.top_ui_box.hidden = ppixiv.mobile;
         new hover_with_delay(this.top_ui_box, 0, 0.25);
+
+        if(ppixiv.mobile)
+        {
+            let drag_node = this.container.querySelector(".mobile-ui-drag-container");
+            let header = this.container.querySelector(".mobile-header");
+            let ui_box = this.container.querySelector(".mobile-ui-box-container");
+            
+            this.mobile_header_dragger = new ppixiv.WidgetDragger({
+                nodes: [header, ui_box],
+                close_if_outside: [ui_box],
+                drag_node,
+                visible: false,
+                direction: "down",
+                animations: [[
+                    // header
+                    { offset: 0, backgroundColor: "rgba(0,0,0,0)" },
+                    { offset: 1, backgroundColor: "rgba(0,0,0,1)" },
+                ], [
+                    // ui_box
+                    { offset: 0, opacity: 0, transform: "translateY(-100px)" },
+                    { offset: 1, opacity: 1, transform: "translateY(0)" },
+                ]],
+                size: 100,
+
+                onbeforeshown: () => helpers.set_class(ui_box, "ui-visible", true),
+                onafterhidden: () => helpers.set_class(ui_box, "ui-visible", false),
+            });
+
+            this.container.querySelector(".mobile-header .menu-button").addEventListener("click", (e) => {
+                this.mobile_header_dragger.toggle();
+            });
+        }
 
         this.search_view = new search_view({
             parent: this,
