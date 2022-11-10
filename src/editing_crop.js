@@ -28,7 +28,6 @@ ppixiv.CropEditor = class extends ppixiv.widget
             </div>
         `});
 
-        this.shutdown_signal = new AbortController();
         this.width = 1;
         this.height = 1;
 
@@ -223,14 +222,6 @@ ppixiv.CropEditor = class extends ppixiv.widget
         box.style.height = `${100 * crop.height / this.height}%`;
         box.style.left = `${100 * crop.left / this.width}%`;
         box.style.top = `${100 * crop.top / this.height}%`;
-    }
-
-    shutdown()
-    {
-        // Signal shutdown_signal to remove event listeners.
-        console.assert(this.shutdown_signal != null);
-        this.shutdown_signal.abort();
-        this.shutdown_signal = null;
     }
 
     set_illust_data({replace_editor_data, extra_data, width, height})

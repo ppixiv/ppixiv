@@ -169,7 +169,7 @@ ppixiv.MainController = class
                 newURL.hash = "#ppixiv";
             }
 
-            history.replaceState(null, "", newURL.toString());
+            phistory.replaceState(null, "", newURL.toString());
         }
         
         // Don't restore the scroll position.  We handle this ourself.
