@@ -99,7 +99,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
         // This handles transitioning between this and the search view.
         this.drag_to_exit = new ScreenIllustDragToExit({ parent: this });
 
-        this.set_active(false, { });
+        this.deactivate();
     }
 
     refresh_overlay_ui_visibility()
@@ -146,56 +146,66 @@ ppixiv.screen_illust = class extends ppixiv.screen
         }
     }
 
-    async set_active(active, { media_id, restore_history })
+    async activate({ media_id, restore_history })
     {
         let was_active = this._active;
-        this._active = active;
-        await super.set_active(active);
+        this._active = true;
 
-        this.container.inert = !active;
+        super.activate();
 
         // If we have a viewer, tell it if we're active.
         if(this.viewer != null)
-            this.viewer.active = this._active;
+            this.viewer.active = true;
 
         // If we have a drag handler for mobile, cancel any drag or animation in progress
         // if the image changes externally or if we're deactivated.
         if(this.drag_image_changer)
             this.drag_image_changer.stop();
 
-        if(!active)
-        {
-            this.cancel_async_navigation();
-
-            // Stop showing the user in the context menu, and stop showing the current page.
-            main_context_menu.get.set_media_id(null);
-
-            if(this.mobile_illust_ui)
-            {
-                this.mobile_illust_ui.media_id = null;
-                this.mobile_illust_ui.set_data_source(null);
-            }
-
-            // Update drag_to_exit before removing the image, so it can tell which image we came from.
-            if(this.drag_to_exit)
-                this.drag_to_exit.set_active(this._active);
-
-            this.cleanup_image();
-            
-            // We leave editing on when navigating between images, but turn it off when we exit to
-            // the search.
-            settings.set("image_editing_mode", null);
-
-            return;
-        }
-
         this.show_image(media_id, { restore_history, initial: !was_active });
 
+        // Tell the dragger to transition us in.
         if(this.drag_to_exit)
-            this.drag_to_exit.set_active(this.active);
+            this.drag_to_exit.activate();
 
         // Focus the container, so it receives keyboard events like home/end.
         this.container.focus();
+    }
+
+    deactivate()
+    {
+        super.deactivate();
+        this._active = false;
+
+        // If we have a viewer, tell it if we're active.
+        if(this.viewer != null)
+            this.viewer.active = false;
+
+        // If we have a drag handler for mobile, cancel any drag or animation in progress
+        // if the image changes externally or if we're deactivated.
+        if(this.drag_image_changer)
+            this.drag_image_changer.stop();
+
+        this.cancel_async_navigation();
+
+        // Stop showing the user in the context menu, and stop showing the current page.
+        main_context_menu.get.set_media_id(null);
+
+        if(this.mobile_illust_ui)
+        {
+            this.mobile_illust_ui.media_id = null;
+            this.mobile_illust_ui.set_data_source(null);
+        }
+
+        // Tell the dragger to transition us out.
+        if(this.drag_to_exit)
+            this.drag_to_exit.deactivate();
+
+        this.cleanup_image();
+        
+        // We leave editing on when navigating between images, but turn it off when we exit to
+        // the search.
+        settings.set("image_editing_mode", null);
     }
 
     // Remove the viewer if we no longer want to be displaying it.
@@ -1225,11 +1235,15 @@ class ScreenIllustDragToExit
     }
 
     // The screen was set active or inactive.
-    set_active(active)
+    activate()
     {
-        if(active && !this.dragger.visible)
+        if(!this.dragger.visible)
             this.dragger.show();
-        else if(!active && this.dragger.visible)
+    }
+
+    deactivate()
+    {
+        if(this.dragger.visible)
             this.dragger.hide();
     }
 

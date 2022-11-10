@@ -14,17 +14,20 @@ ppixiv.screen = class extends ppixiv.widget
         return null;
     }
 
-    // The screen itself sets itself visible or not, since screen_search and screen_illust
-    // handle this differently.
-    async set_active(active)
+    // The screen is becoming active.  This is async, since it may load data.
+    async activate()
     {
-        this.container.inert = !active;
+        this.container.inert = false;
+    }
 
-        if(!active)
-        {
-            // When the screen isn't active, send viewhidden to close all popup menus inside it.
-            view_hidden_listener.send_viewhidden(this.container);
-        }
+    // The screen is becoming inactive.  This is sync, since we never need to stop to
+    // load data in order to deactivate.
+    deactivate()
+    {
+        this.container.inert = true;
+
+        // When the screen isn't active, send viewhidden to close all popup menus inside it.
+        view_hidden_listener.send_viewhidden(this.container);
     }
 }
 

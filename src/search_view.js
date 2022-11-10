@@ -349,19 +349,13 @@ ppixiv.search_view = class extends ppixiv.widget
         }
     }
 
-    // Activate or deactivate the view.
-    //
     // The data source must be set with set_data_source first.
-    async set_active(active, { old_media_id })
+    async activate({ old_media_id })
     {
-        this._active = active;
-
-        if(!active)
-        {
-            this.stop_pulsing_thumbnail();
-            this._cancel_load();
+        if(this._active)
             return;
-        }
+
+        this._active = true;
 
         // If nothing's focused, focus the search so keyboard navigation works.  Don't do this if
         // we already have focus, so we don't steal focus from things like the tag search dropdown
@@ -413,6 +407,16 @@ ppixiv.search_view = class extends ppixiv.widget
 
         if(this.restore_scroll_position(args.state.scroll?.scroll_position))
             console.log("Restored scroll position from history");
+    }
+
+    deactivate()
+    {
+        if(!this._active)
+            return;
+
+        this._active = false;
+        this.stop_pulsing_thumbnail();
+        this._cancel_load();
     }
 
     // Schedule storing the scroll position, resetting the timer if it's already running.

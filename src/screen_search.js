@@ -708,37 +708,30 @@ ppixiv.screen_search = class extends ppixiv.screen
         return this._active;
     }
 
-    async set_active(active, { old_media_id })
+    deactivate()
     {
-        if(this._active == active)
-        {
-            // Just tell search_view about the new old_media_id if we were already active.
-            await this.search_view.set_active(active, { old_media_id });
+        super.deactivate();
+        if(!this._active)
             return;
-        }
+        this._active = false;
 
-        this._active = active;
+        this.search_view.deactivate();
+        main_context_menu.get.user_id = null;
+    }
 
-        await super.set_active(active);
-        
-        // The search stays in the document while images are being viewed and we don't hide it,
-        // to allow transitions to happen over it.  Just set it inert, and screen_illust will
-        // cover us when it's active.
-        this.container.inert = !active;
+    async activate({ old_media_id })
+    {
+        console.log("Showing search, came from media ID:", old_media_id);
 
-        if(active)
-        {
-            console.log("Showing search, came from media ID:", old_media_id);
+        super.activate();
+        if(this._active)
+            return;
 
-            this.initial_refresh_ui();
-            this.refresh_ui();
-        }
-        else
-        {
-            main_context_menu.get.user_id = null;
-        }
+        this._active = true;
+        this.initial_refresh_ui();
+        this.refresh_ui();
 
-        await this.search_view.set_active(active, { old_media_id });
+        await this.search_view.activate({ old_media_id });
     }
 
     scroll_to_media_id(media_id)

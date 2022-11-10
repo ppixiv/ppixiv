@@ -411,7 +411,7 @@ ppixiv.MainController = class
 
         // Make sure we deactivate the old screen before activating the new one.
         if(old_screen != null && old_screen != new_screen)
-            await old_screen.set_active(false, { });
+            old_screen.deactivate();
 
         if(old_screen != new_screen)
         {
@@ -434,7 +434,7 @@ ppixiv.MainController = class
             // to be restored.
             let restore_history = cause == "initialization" || cause == "history" || cause == "leaving-virtual";
 
-            await new_screen.set_active(true, {
+            await new_screen.activate({
                 media_id,
                 old_media_id,
                 restore_history,
