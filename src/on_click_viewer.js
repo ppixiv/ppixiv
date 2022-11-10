@@ -1677,25 +1677,30 @@ ppixiv.image_viewer_mobile = class extends ppixiv.image_viewer_base
         // Toggle between fit (zoom level 0) and cover.  If cover and fit are close together,
         // zoom to a higher factor instead of cover.  This way we zoom to cover when it makes
         // sense, since it's a nicer zoom level to pan around in, but we use a higher level
-        // if cover isn't enough of a zoom.
-        let level = this.get_zoom_level();
-        if(this.get_zoom_level() == 0)
-        {
-            let cover_zoom_ratio = 1 / this.zoom_level_to_zoom_factor(0);
-            if(cover_zoom_ratio > 1.5)
-                level = "cover";
-            else
-            {
-                let scaled_zoom_factor = this._zoom_factor_cover*2;
-                let scaled_zoom_level = this.zoom_factor_to_zoom_level(scaled_zoom_factor);
-                level = scaled_zoom_level;
-            }
-        }
+        // if cover isn't enough of a zoom.  First, figure out the zoom level we'll use if
+        // we zoom in.
+        let zoom_in_level;
+        let zoom_out_level = 0;
+        let cover_zoom_ratio = 1 / this.zoom_level_to_zoom_factor(0);
+        if(cover_zoom_ratio > 1.5)
+            zoom_in_level = this._zoom_level_cover;
         else
         {
-            level = 0;
+            let scaled_zoom_factor = this._zoom_factor_cover*2;
+            let scaled_zoom_level = this.zoom_factor_to_zoom_level(scaled_zoom_factor);
+            zoom_in_level = scaled_zoom_level;
         }
 
+        // Zoom to whichever one is further away from the current zoom.
+        let current_zoom_level = this.get_zoom_level();
+        let zoom_distance_in = Math.abs(current_zoom_level - zoom_in_level);
+        let zoom_distance_out = Math.abs(current_zoom_level - zoom_out_level);
+
+        // Switch zoom_in_level from the actual zoom level to "cover" if needed.
+        if(Math.abs(zoom_in_level - this._zoom_level_cover) < 0.001)
+            zoom_in_level = "cover";
+
+        let level = zoom_distance_in > zoom_distance_out? zoom_in_level:zoom_out_level;
         this.zoom_set_level(level, {x: e.clientX, y: e.clientY});
     }
 
