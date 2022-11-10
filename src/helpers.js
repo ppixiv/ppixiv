@@ -5931,7 +5931,7 @@ ppixiv.WidgetDragger = class
             end_offset: this.end_offset,
     
             onanimationfinished: (anim) => {
-                // Call onafterhidden if the animation we finished put us at 0.
+                // Call onanimationfinished if the animation we finished put us at 0.
                 let position = anim.position;
                 if(position < 0.00001)
                     this._set_visible(false);
@@ -5991,18 +5991,9 @@ ppixiv.WidgetDragger = class
                 if(open)
                     this.show({ velocity });
                 else
-                {
                     this.hide({ velocity: -velocity });
-
-                    // If an animation didn't start because we're already dragged all the way then
-                    // onanimationfinished won't be called, so set ourselves not visible now.
-                    if(!this.drag_animation.playing)
-                        this._set_visible(false);
-                }
             },
         });
-
-        this.onanimationstart();
     }
 
     // Return the easing to use for the given swipe velocity.  If we're animating from a
@@ -6070,7 +6061,12 @@ ppixiv.WidgetDragger = class
     hide({ velocity=0 }={})
     {
         if(this.drag_animation.position == 0 && !this.drag_animation.playing)
+        {
+            // We're already closed, so just make sure we're marked hidden, which would normally
+            // happen at the end of the animation.  This sends onafterhidden.
+            this._set_visible(false);
             return;
+        }
 
         this.onanimationstart();
 
