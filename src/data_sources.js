@@ -1351,76 +1351,94 @@ ppixiv.data_sources.rankings = class extends data_source
     
     get name() { return "rankings"; }
 
-    async load_page_internal(page)
+    // A Pixiv classic: two separate, vaguely-similar ways of doing the same thing on desktop
+    // and mobile (and a third, mobile apps).  It's like they use the same backend but are
+    // implemented by two people who never talk to each other.  The desktop version is
+    // preferred since it gives us thumbnail data, where the mobile version only gives
+    // thumbnail IDs that we have to look up, but the desktop version can't be accessed
+    // from mobile.
+    async load_data_mobile({ date, mode, content, page })
     {
-        // Stop if we already know this is past the end.
-        if(page > this.max_page)
-            return;
-
-        /*
-        "mode": "daily",
-        "content": "all",
-        "page": 1,
-        "prev": false,
-        "next": 2,
-        "date": "20180923",
-        "prev_date": "20180922",
-        "next_date": false,
-        "rank_total": 500        
-        */
-
-        // Get "mode" from the URL.  If it's not present, use "all".
-        var query_args = this.url.searchParams;
-        
-        var data = {
-            format: "json",
-            p: page,
+        let data = {
+            mode,
+            page,
+            type: content,
         };
 
-        var date = query_args.get("date");
         if(date)
             data.date = date;
 
-        var content = query_args.get("content");
-        if(content)
-            data.content = content;
+        let result = await helpers.get_request("/touch/ajax/ranking/illust", data);
+        let this_date = result.body.rankingDate;
 
-        var mode = query_args.get("mode");
-        if(mode)
-            data.mode = mode;
-
-        var result = await helpers.get_request("/ranking.php", data);
-
-        // If "next" is false, this is the last page.
-        if(!result.next)
-            this.max_page = Math.min(page, this.max_page);
-
-        // Fill in the next/prev dates for the navigation buttons, and the currently
-        // displayed date.
-        if(this.today_text == null)
+        function format_date(date)
         {
-            this.today_text = result.date;
-
-            // This is "YYYYMMDD".  Reformat it.
-            if(this.today_text.length == 8)
-            {
-                var year = this.today_text.slice(0,4);
-                var month = this.today_text.slice(4,6);
-                var day = this.today_text.slice(6,8);
-                this.today_text = year + "/" + month + "/" + day;
-            }
+            let year = date.getUTCFullYear();
+            let month = date.getUTCMonth() + 1;
+            let day = date.getUTCDate();
+            return year + "-" + 
+                month.toString().padStart(2, '0') + "-" +
+                day.toString().padStart(2, '0');
         }
 
-        if(this.prev_date == null && result.prev_date)
-            this.prev_date = result.prev_date;
-        if(this.next_date == null && result.next_date)
-            this.next_date = result.next_date;
-    
-        // This returns a struct of data that's like the thumbnails data response,
-        // but it's not quite the same.
-        var media_ids = [];
-        for(var item of result.contents)
-            media_ids.push(helpers.illust_id_to_media_id("" + item.illust_id));
+        // This API doesn't tell us the previous and next ranking dates, so we have to figure
+        // it out ourself.
+        let next_date = new Date(this_date);
+        let prev_date = new Date(this_date);
+        next_date.setDate(next_date.getDate() + 1);
+        prev_date.setDate(prev_date.getDate() - 1);
+
+        next_date = format_date(next_date);
+        prev_date = format_date(prev_date);
+
+        // This version doesn't indicate the last page, and just keeps loading until it gets
+        // an empty response.  It also doesn't indicate the first page where a ranking type
+        // starts.  For example, AI results begin on 2022-10-31.  I'm not sure how to guess
+        // the last page.  Are these dates UTC or JST?  Are new results available at exactly
+        // midnight?
+        let last_page = false;
+
+        let media_ids = [];
+        for(let item of result.body.ranking)
+            media_ids.push(helpers.illust_id_to_media_id("" + item.illustId));
+
+        return { media_ids, this_date, next_date, prev_date, last_page };
+    }
+
+    async load_data_desktop({ date, mode, content, page })
+    {
+        let data = {
+            content,
+            mode,
+            format:  "json",
+            p: page,
+        };
+
+        if(date)
+            data.date = date;
+
+        let result = await helpers.get_request("/ranking.php", data);
+        let this_date = result.date;
+
+        let next_date = result.next_date;
+        let prev_date = result.prev_date;
+        let last_page = !result.next;
+
+        // Fix next_date and prev_date being false instead of null if there's no previous
+        // or next date.
+        if(!next_date)
+            next_date = null;
+        if(!prev_date)
+            prev_date = null;
+
+        // This is "YYYYMMDD".  Reformat it to YYYY-MM-DD.
+        if(this_date.length == 8)
+        {
+            let year = this_date.slice(0,4);
+            let month = this_date.slice(4,6);
+            let day = this_date.slice(6,8);
+            this_date = year + "/" + month + "/" + day;
+        }
 
         // This API doesn't return aiType, but we can fill it in ourself since we know whether
         // we're on an AI rankings page or not.
@@ -1428,9 +1446,46 @@ ppixiv.data_sources.rankings = class extends data_source
         for(let illust of result.contents)
             illust.aiType = is_ai? 2:1;
         
+        // This returns a struct of data that's like the thumbnails data response,
+        // but it's not quite the same.
+        let media_ids = [];
+        for(var item of result.contents)
+            media_ids.push(helpers.illust_id_to_media_id("" + item.illust_id));
+
         // Register this as thumbnail data.
         await media_cache.add_media_infos_partial(result.contents, "rankings");
-        
+
+        return { media_ids, this_date, next_date, prev_date, last_page };
+    }
+
+    load_data_for_platform(options)
+    {
+        if(ppixiv.mobile)
+            return this.load_data_mobile(options);
+        else
+            return this.load_data_desktop(options);
+    }
+
+    async load_page_internal(page)
+    {
+        // Stop if we already know this is past the end.
+        if(page > this.max_page)
+            return;
+
+        let query_args = this.url.searchParams;
+        let date = query_args.get("date");
+        let mode = query_args.get("mode") ?? "daily";
+        let content = query_args.get("content") ?? "all";
+
+        let { media_ids, this_date, next_date, prev_date, last_page } = await this.load_data_for_platform({ date, mode, content, page });
+
+        if(last_page)
+            this.max_page = Math.min(page, this.max_page);
+
+        this.today_text ??= this_date;
+        this.prev_date = prev_date;
+        this.next_date = next_date;
+    
         // Register the new page of data.
         this.add_page(page, media_ids);
     };
