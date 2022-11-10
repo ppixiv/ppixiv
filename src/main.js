@@ -400,21 +400,12 @@ ppixiv.MainController = class
         this.context_menu.set_media_id(media_id);
         
         this.current_screen_name = new_screen_name;
-        this.refresh_main_scroll();
 
-        // If we're changing between screens, update the active screen.
-        let screen_changing = new_screen != old_screen;
-
-        // Dismiss any message when toggling between screens.
-        if(screen_changing)
+        if(new_screen != old_screen)
+        {
+            // Dismiss any message when changing screens.
             message_widget.singleton.hide();
 
-        // Make sure we deactivate the old screen before activating the new one.
-        if(old_screen != null && old_screen != new_screen)
-            old_screen.deactivate();
-
-        if(old_screen != new_screen)
-        {
             let e = new Event("screenchanged");
             e.newScreen = new_screen_name;
             window.dispatchEvent(e);
@@ -440,6 +431,10 @@ ppixiv.MainController = class
                 restore_history,
             });
         }
+
+        // Deactivate the old screen.
+        if(old_screen != null && old_screen != new_screen)
+            old_screen.deactivate();
 
         this.refresh_main_scroll();
     }
@@ -578,6 +573,7 @@ ppixiv.MainController = class
         return info.pageCount > 1;
     }
 
+    // Navigate from an illust view for a manga page to the manga view for that post.
     navigate_out()
     {
         if(!this.navigate_out_enabled)
@@ -588,24 +584,54 @@ ppixiv.MainController = class
             return;
 
         let args = helpers.get_url_for_id(media_id, { manga: true });
-        helpers.navigate(args);
+        this.navigate_from_image_to_to_search(args);
     }
 
     // When viewing an image, navigate to the corresponding search.
     navigate_to_search()
     {
+        let args = new helpers.args(this.data_source.url.toString());
+
         // If the user clicks "return to search" while on data_sources.current_illust, go somewhere
         // else instead, since that viewer never has any search results.
         if(this.data_source instanceof data_sources.current_illust)
+            args = new helpers.args("/bookmark_new_illust.php#ppixiv", ppixiv.location);
+
+        this.navigate_from_image_to_to_search(args);
+    }
+
+    // Navigate to args, handling some special cases for navigating from screen_illust to
+    // screen_search.
+    navigate_from_image_to_to_search(args)
+    {
+        // If phistory.permanent isn't active, just navigate normally.  This is only used
+        // on mobile.
+        if(!ppixiv.phistory.permanent)
         {
-            let args = new helpers.args("/bookmark_new_illust.php#ppixiv", ppixiv.location);
-            helpers.set_page_url(args, true /* add_to_history */, "out");
+            helpers.navigate(args);
             return;
         }
 
-        let args = new helpers.args(this.data_source.url.toString());
-        this._set_active_screen_in_url(args, "search");
-        helpers.navigate(args);
+        // On mobile, we don't want to push searches in front of illusts.  If we navigate from
+        // an illust to a search, we'll replace the illust instead, so we always have a history
+        // of searches followed by at most one image.  From the user's perspective, the image
+        // is a modal view on top of a list of searches.  This helps simplify the screen/illust
+        // transition, and simplifies navigation for the more limited mobile UI.
+        //
+        // If the previous URL in history is this search, just go back to it, otherwise replace
+        // the illust view state with the search.  We can do this in permanent mode, since we
+        // can access the URL for the previous state.
+        let previous_url = ppixiv.phistory.previous_state_url;
+        let same_url = helpers.are_urls_equivalent(previous_url, args.url);
+        if(same_url)
+        {
+            console.log("Navigated search is last in history, going there instead");
+            ppixiv.phistory.back();
+        }
+        else
+        {
+            helpers.navigate(args, { add_to_history: false });
+        }
     }
 
     // This captures clicks at the window level, allowing us to override them.

@@ -352,9 +352,6 @@ ppixiv.search_view = class extends ppixiv.widget
     // The data source must be set with set_data_source first.
     async activate({ old_media_id })
     {
-        if(this._active)
-            return;
-
         this._active = true;
 
         // If nothing's focused, focus the search so keyboard navigation works.  Don't do this if

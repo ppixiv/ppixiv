@@ -425,11 +425,18 @@ ppixiv.screen_search = class extends ppixiv.screen
 
         this.container.querySelector(".mobile-header").hidden = !ppixiv.mobile;
         this.container.querySelector(".mobile-header .back-button").addEventListener("click", () => {
-            let parent_folder_id = local_api.get_parent_folder(this.displayed_media_id);
+            if(ppixiv.native)
+            {
+                let parent_folder_id = local_api.get_parent_folder(this.displayed_media_id);
 
-            let args = helpers.args.location;
-            local_api.get_args_for_id(parent_folder_id, args);
-            helpers.navigate(args);
+                let args = helpers.args.location;
+                local_api.get_args_for_id(parent_folder_id, args);
+                helpers.navigate(args);
+            }
+            else if(ppixiv.phistory.permanent)
+            {
+                ppixiv.phistory.back();
+            }
         });
 
         // The search UI normally goes in thumbnail-ui-box-container.  On mobile, put
@@ -724,8 +731,6 @@ ppixiv.screen_search = class extends ppixiv.screen
         console.log("Showing search, came from media ID:", old_media_id);
 
         super.activate();
-        if(this._active)
-            return;
 
         this._active = true;
         this.initial_refresh_ui();
@@ -842,8 +847,14 @@ ppixiv.screen_search = class extends ppixiv.screen
             element_displaying.replaceChildren(text);
         }
 
+        // The back button navigate to parent locally, otherwise it's browser back if we're in
+        // permanent history mode.
         let back_button = this.container.querySelector(".mobile-header .back-button");
-        let show_back_button = local_api.get_parent_folder(this.displayed_media_id) != null;
+        let show_back_button;
+        if(ppixiv.native)
+            show_back_button = local_api.get_parent_folder(this.displayed_media_id) != null;
+        else if(ppixiv.phistory.permanent)
+            show_back_button = ppixiv.phistory.length > 1;
         back_button.hidden = !show_back_button;
 
         this.data_source.set_page_icon();

@@ -1829,6 +1829,14 @@ ppixiv.helpers = {
         return url;
     },
 
+    // Return true if url1 and url2 are the same, ignoring any language prefix on the URLs.
+    are_urls_equivalent(url1, url2)
+    {
+        url1 = helpers.get_url_without_language(url1);
+        url2 = helpers.get_url_without_language(url2);
+        return url1.toString() == url2.toString();
+    },
+
     // From a URL like "/en/tags/abcd", return "tags".
     get_page_type_from_url: function(url)
     {
@@ -2091,7 +2099,7 @@ ppixiv.helpers = {
 
             // Include history state as well.  Make a deep copy, so changing this doesn't
             // modify history.state.
-            result.state = JSON.parse(JSON.stringify(history.state)) || { };
+            result.state = JSON.parse(JSON.stringify(ppixiv.phistory.state)) || { };
 
             return result;
         }
@@ -3906,6 +3914,15 @@ ppixiv.VirtualHistory = class
         return args.hash.get("virtual");
     }
 
+    // Return the URL we'll go to if we go back.
+    get previous_state_url()
+    {
+        if(this.history.length < 2)
+            return null;
+
+        return this.history[this.history.length-2].url;
+    }
+
     get length()
     {
         if(!this.permanent)
@@ -3914,7 +3931,7 @@ ppixiv.VirtualHistory = class
         return this.history.length;
     }
 
-    pushState(data, title, url)
+    pushState(state, title, url)
     {
         url = new URL(url, document.location);
 
@@ -3928,7 +3945,7 @@ ppixiv.VirtualHistory = class
 
             // Note that browsers don't dispatch popstate on pushState (which makes no sense at all),
             // so we don't here either to match.
-            this.virtual_data = data;
+            this.virtual_state = state;
             this.virtual_title = title;
             this.virtual_url = url;
             return;
@@ -3938,12 +3955,12 @@ ppixiv.VirtualHistory = class
         this.virtual_url = null; 
 
         if(!this.permanent)
-            return window.history.pushState(data, title, url);
+            return window.history.pushState(state, title, url);
 
-        this.history.push({ data, url });
+        this.history.push({ state, url });
     }
 
-    replaceState(data, title, url)
+    replaceState(state, title, url)
     {
         url = new URL(url, document.location);
         let virtual = this.url_is_virtual(url);
@@ -3965,20 +3982,20 @@ ppixiv.VirtualHistory = class
         if(this.virtual_url != null)
         {
             this.virtual_url = null;
-            return this.pushState(data, title, url);
+            return this.pushState(state, title, url);
         }
 
         if(!this.permanent)
-            return window.history.replaceState(data, title, url);
+            return window.history.replaceState(state, title, url);
 
         this.history.pop();
-        this.history.push({ data, url });
+        this.history.push({ state, url });
     }
 
     get state()
     {
         if(this.virtual)
-            return this.virtual_data;
+            return this.virtual_state;
 
         if(!this.permanent)
             return window.history.state;
@@ -3989,7 +4006,7 @@ ppixiv.VirtualHistory = class
     set state(value)
     {
         if(this.virtual)
-            this.virtual_data = value;
+            this.virtual_state = value;
 
         if(!this.permanent)
             window.history.state = value;
