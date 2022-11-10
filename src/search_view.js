@@ -373,11 +373,6 @@ ppixiv.search_view = class extends ppixiv.widget
         if(load_initial_page_id !== this._load_initial_page_id)
             return;
 
-        // If the media ID isn't in the list, this might be a manga page beyond the first that
-        // isn't displayed, so try the first page instead.
-        if(old_media_id != null && this.get_thumbnail_for_media_id(old_media_id) == null)
-            old_media_id = helpers.get_media_id_first_page(old_media_id);
-
         // Create the initial thumbnails.  This will happen automatically, but we need to do it now so
         // we can scroll to them.
         this.refresh_images({ forced_media_id: old_media_id });
@@ -808,6 +803,11 @@ ppixiv.search_view = class extends ppixiv.widget
         // can cause infinite loops.  This is always a bug.
         if(all_media_ids.length != (new Set(all_media_ids)).size)
             throw Error("Duplicate media IDs");
+
+        // If forced_media_id isn't in the list, this might be a manga page beyond the first that
+        // isn't displayed, so try the first page instead.
+        if(forced_media_id != null && all_media_ids.indexOf(forced_media_id) == -1)
+            forced_media_id = helpers.get_media_id_first_page(forced_media_id);
 
         // When we remove thumbs, we'll cache them here, so if we end up reusing it we don't have
         // to recreate it.
