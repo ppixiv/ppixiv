@@ -5921,7 +5921,8 @@ ppixiv.WidgetDragger = class
         let property_end = animated_property_inverted? 0:1;
 
         // Create the animation.
-        let animation = new ppixiv.PropertyAnimation(this.node, {
+        let animation = new ppixiv.PropertyAnimation({
+            node: this.node,
             property: this.animated_property,
             property_start,
             property_end,
@@ -6180,7 +6181,10 @@ ppixiv.Bezier2D = class
 // many quirks to bother with for this.
 ppixiv.PropertyAnimation = class
 {
-    constructor(container, {
+    constructor({
+        // The node containing the property to animate.  This can be an array of multiple nodes,
+        // which will all be set.
+        node,
         property,
 
         // The position of the animation is always 0-1.  The property value is scaled to
@@ -6192,7 +6196,9 @@ ppixiv.PropertyAnimation = class
         onanimationfinished,
     }={})
     {
-        this.target = container;
+        if(!(node instanceof Array))
+            node = [node];
+        this.node = node;
         this.onanimationfinished = onanimationfinished;
         this.state = "stopped";
         this.property = property;
@@ -6230,7 +6236,8 @@ ppixiv.PropertyAnimation = class
         this._position = offset;
 
         let value = helpers.scale(offset, 0, 1, this.property_start, this.property_end);
-        this.target.style.setProperty(this.property, value);
+        for(let node of this.node)
+            node.style.setProperty(this.property, value);
     }
 
     // Return true if an animation is active.

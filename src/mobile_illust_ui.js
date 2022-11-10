@@ -312,6 +312,11 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
 {
     constructor({
         onclose,
+
+        // This node receives our drag animation property.  This goes on the screen instead of
+        // us, so the video UI can see it too.
+        transition_target,
+
         ...options
     })
     {
@@ -321,6 +326,8 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
             </div>
         `});
         
+        this.transition_target = transition_target;
+
         this.info_widget = new context_menu_image_info_widget({
             parent: this,
             container: this.container.querySelector(".context-menu-image-info-container"),
@@ -344,8 +351,8 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
 
         let menu_bar = this.page.container.querySelector(".mobile-illust-ui-page");
         this.dragger = new WidgetDragger({
-            // Put the --menu-bar-pos property up high, since the viewer UI also uses it.
-            node: document.documentElement,
+            // Put the --menu-bar-pos property up high, since the video UI also uses it.
+            node: [this.transition_target],
             drag_node: this.container.parentNode,
             size: () => menu_bar.offsetHeight,
             animated_property: "--menu-bar-pos",

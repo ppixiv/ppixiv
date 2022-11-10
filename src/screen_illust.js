@@ -85,6 +85,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
 
             this.mobile_illust_ui = new mobile_illust_ui({
                 container: this.container,
+                transition_target: this.container,
             });
 
             // Toggle zoom on double-tap.
