@@ -776,8 +776,11 @@ ppixiv.search_view = class extends ppixiv.widget
 
             // Limit the number of columns on most views, so we don't load too much data at once.
             // Allow more columns on the manga view, since that never loads more than one image.
-            // Allow unlimited columns for local images.
-            max_columns: manga_view? 15: 
+            // Allow unlimited columns for local images, and on mobile where we're usually limited
+            // by screen space and showing lots of columns (but few rows) can be useful.
+            max_columns: 
+                ppixiv.mobile? 30:
+                manga_view? 15: 
                 this.data_source?.is_vview? 100:5,
 
             // Pack images more tightly on mobile.
