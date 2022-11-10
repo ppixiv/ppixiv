@@ -1489,6 +1489,9 @@ body.hide-r18g .r18g { display: none; }
         // centers us within the window if our max width is smaller than the window.
         justify-content: center;
 
+        // Center thumbs if they don't fill the screen.
+        margin: 0 auto;
+
         // Add a small minimum horizontal margin on desktops.  On mobile, allow thumbs to
         // go to the edge of the screen.
         html:not(.mobile) & {
