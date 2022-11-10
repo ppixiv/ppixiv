@@ -744,35 +744,43 @@ html.mobile .screen-illust-container {
     font-size: 0.8em;
 }
 
-.hover-message,
-.search-view > .no-results {
-    width: 100%;
-    position: fixed;
-    bottom: env(safe-area-inset-bottom);
+// A text box inside a simple frame used for non-interactive messages.
+@mixin simple-text-box()
+{
     display: flex;
-    justify-content: center;    
+    justify-content: center;
+    align-items: center;
     user-select: none;
     -webkit-user-select: none;
+    margin: 0; //4px 0;
+    color: var(--frame-fg-color);
+    font-size: 1em;
+    pointer-events: none;
+    font-size: 1.5rem;
 
-    & > .message {
-        background-color: var(--frame-bg-color);
-        color: var(--frame-fg-color);
-        font-size: 1.4em;
-        padding: 6px 15px;
-        margin: 4px;
-        max-width: 600px;
-        text-align: center;
+    > .message {
+        background-color: rgba(0,0,0,0.5);
         border-radius: 5px;
-        box-shadow: 0 0 10px 5px #aaa;
-    }
+        overflow: hidden;
+        text-align: center;
+        max-width: 40em;
+        max-height: 50vh; // hard clamp on the height, not normally reached
+        padding: .25em .5em; // inner padding
+    }    
 }
 
+// ppixiv.message_widget
 .hover-message {
-    transition: opacity .25s;
-    opacity: 0;
-    pointer-events: none;
+    @include simple-text-box();
+
+    position: fixed;
+    left: max(env(safe-area-inset-left), 1rem);
+    right: max(env(safe-area-inset-right), 1rem);
+    bottom: calc(2vh + env(safe-area-inset-bottom));
     z-index: 100000; /* over everything */
 
+    transition: opacity .25s;
+    opacity: 0;
     &.show {
         opacity: 1;
     }
@@ -1392,10 +1400,6 @@ body.hide-r18g .r18g { display: none; }
         // If the nav box is open, shift the search results to make room for it.
         margin-left: var(--navigation-box-reserved-width);
         margin-top: var(--header-height);
-
-        > .no-results {
-            bottom: 50%;
-        }
     }
 
     .thumbnail-ui-box-container {
@@ -1508,6 +1512,14 @@ body.hide-r18g .r18g { display: none; }
     @keyframes flash-thumbnail {
         0% {
             filter: brightness(200%);
+        }
+    }
+
+    > .no-results {
+        @include simple-text-box();
+        margin-top: 2em;
+        > .message {
+            padding: .5em 1em; // inner padding
         }
     }
 
