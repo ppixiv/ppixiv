@@ -579,7 +579,7 @@ ppixiv.click_outside_listener = class
         if(this.is_node_in_list(e.target))
             return;
 
-        this.callback(e.target);
+        this.callback(e.target, {event: e});
     }
 
     shutdown()
