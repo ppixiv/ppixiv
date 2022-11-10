@@ -1329,11 +1329,6 @@ body.hide-r18g .r18g { display: none; }
         --header-height: calc(2em + env(safe-area-inset-top));;
     }
 
-    html:not(.disable-expensive-transitions) & {
-        // Fade out when screen_illust is visible.
-        opacity: scale_value(var(--illust-hidden), 0.3, .7, 0, 1);
-    }
-
     .mobile-ui-drag-container {
         touch-action: none;
         position: fixed;
@@ -3240,7 +3235,13 @@ svg.heart-image .delete {
 }
 
 .screen-illust-container {
-    html:not(.disable-expensive-transitions) & {
+    // Fade the background to black when we're active.
+    background-color: rgba(0, 0, 0,
+        scale_value(var(--illust-hidden), 0.7, .3, 0, 1));
+        
+    // Transitions for the viewer.  Don't move the container itself, since the background
+    // fade shouldn't move with the image.
+    .view-container {
         transform: translateX(calc(var(--illust-hidden) * var(--animation-x)))               
                 translateY(calc(var(--illust-hidden) * var(--animation-y)))
                 scale(scale_value(var(--illust-hidden), 0, 1, 1, var(--animation-scale)));

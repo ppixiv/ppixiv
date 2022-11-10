@@ -1128,7 +1128,7 @@ class ScreenIllustDragToExit
         this.parent = parent;
 
         this.dragger = new WidgetDragger({
-            node: document.documentElement,
+            node: this.parent.container,
             drag_node: document.documentElement,
             size: () => this._drag_distance,
 
