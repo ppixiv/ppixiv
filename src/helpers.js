@@ -4387,27 +4387,60 @@ ppixiv.touch_listener = class
         // the element to be hidden, we still get the pointerup.
         window.addEventListener("pointerup", this.onpointerevent, this.event_options);
         window.addEventListener("pointercancel", this.onpointerevent, this.event_options);
+        window.addEventListener("blur", this.onblur, this.event_options);
     }
 
     unregister_events_while_pressed()
     {
         window.removeEventListener("pointerup", this.onpointerevent, this.event_options);
         window.removeEventListener("pointercancel", this.onpointerevent, this.event_options);
+        window.removeEventListener("blur", this.onblur, this.event_options);
+    }
+
+    onblur = (event) =>
+    {
+        if(!this.pressed_pointer_id)
+            return;
+
+        // Work around an iOS Safari bug: horizontal navigation drags don't always cancel pointer
+        // events.  It sends pointerdown, but then never sends pointerup or pointercancel when it
+        // takes over the drag, so it looks like the touch stays pressed forever.  This seems
+        // to happen on forwards navigation but not back.
+        //
+        // If this happens, we get a blur event, so if we get a blur event and we were still pressed,
+        // send an emulated pointercancel event to end the drag.
+        console.warn("window.blur fired without a pointer event being cancelled, simulating it");
+        this.onpointerevent(new PointerEvent("pointercancel", {
+            pointerId: this.pressed_pointer_id,
+            button: 0,
+            buttons: 0,
+        }));
     }
 
     onpointerevent = (event) =>
     {
         let { buttons } = event;
         let is_pressed = buttons & 1;
+
+        // If we have a press already, ignore other inputs.
+        if(this.pressed_pointer_id != null && event.pointerId != this.pressed_pointer_id)
+            return;
+
         if(is_pressed == this.pressed)
             return;
         this.pressed = is_pressed;
 
         // We need to register pointermove to see presses past the first.
         if(is_pressed)
+        {
+            this.pressed_pointer_id = event.pointerId;
             this.register_events_while_pressed();
+        }
         else
+        {
+            this.pressed_pointer_id = null;
             this.unregister_events_while_pressed();
+        }
 
         // event.mouseButton is just for compatibility with pointer_listener.
         event.mouseButton = 0;
