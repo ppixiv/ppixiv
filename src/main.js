@@ -108,6 +108,7 @@ ppixiv.MainController = class
 
         this.set_device_properties();
         settings.addEventListener("avoid-statusbar", this.set_device_properties);
+        window.addEventListener("orientationchange", this.set_device_properties);
         new ResizeObserver(this.set_device_properties).observe(document.documentElement);
 
         // On mobile, disable long press opening the context menu and starting drags.
