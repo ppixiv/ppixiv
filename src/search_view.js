@@ -40,7 +40,7 @@ ppixiv.search_view = class extends ppixiv.widget
 
                 <div class=load-previous-page hidden>
                     <div class=load-previous-buttons>
-                        <a class="load-previous-button load-previous-page-link" href=#>
+                        <a class="load-previous-button load-previous-page-link" href=# hidden>
                             Load previous results
                         </a>
                     </div>
