@@ -148,16 +148,27 @@ ppixiv.MainController = class
 
         this.current_screen_name = null;
 
-        // If the URL hash doesn't start with #ppixiv, the page was loaded with the base Pixiv
-        // URL, and we're active by default.  Add #ppixiv to the URL.  If we don't do this, we'll
-        // still work, but none of the URLs we create will have #ppixiv, so we won't handle navigation
-        // directly and the page will reload on every click.  Do this before we create any of our
-        // UI, so our links inherit the hash.
-        if(!ppixiv.native && !helpers.is_ppixiv_url(ppixiv.plocation))
+        // Update the initial URL.
+        if(!ppixiv.native)
         {
-            // Don't create a new history state.
             let newURL = new URL(ppixiv.plocation);
-            newURL.hash = "#ppixiv";
+
+            // If we're on the top Pixiv page, we're active by default but this isn't actually a
+            // supported page.  Rewrite the path to point to our default view.
+            if(page_manager.singleton().is_top_url)
+                newURL = page_manager.singleton().fallback_url;
+
+            // If the URL hash doesn't start with #ppixiv, the page was loaded with the base Pixiv
+            // URL, and we're active by default.  Add #ppixiv to the URL.  If we don't do this, we'll
+            // still work, but none of the URLs we create will have #ppixiv, so we won't handle navigation
+            // directly and the page will reload on every click.  Do this before we create any of our
+            // UI, so our links inherit the hash.
+            if(!helpers.is_ppixiv_url(newURL))
+            {
+                // Don't create a new history state.
+                newURL.hash = "#ppixiv";
+            }
+
             history.replaceState(null, "", newURL.toString());
         }
         
@@ -972,7 +983,7 @@ ppixiv.MainController = class
             disabled_ui.querySelector("a").href = url;
         }
         else
-            disabled_ui.querySelector("a").href = "/ranking.php?mode=daily#ppixiv";
+            disabled_ui.querySelector("a").href = page_manager.singleton().fallback_url;
     }
 
     // When viewing an image, toggle the slideshow on or off.

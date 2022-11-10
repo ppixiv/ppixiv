@@ -280,6 +280,12 @@ ppixiv.page_manager = class
         if(window.sessionStorage.ppixiv_disabled)
             return false;
 
+        // Activate by default on the top page, even though it's not a real data source.  We'll
+        // redirect to fallback_url.
+        if(this.is_top_url)
+            return true;
+
+        // Activate by default if a data source is available for this page.
         return this.available_for_url(ppixiv.plocation);
     };
 
@@ -300,5 +306,18 @@ ppixiv.page_manager = class
         // or if we remove support for a page that people have in their browser session.
         return helpers.is_ppixiv_url(ppixiv.plocation) && this.available_for_url(ppixiv.plocation);
     };
+
+    // Return a URL we can use as a default if we activate on a page we don't support directly.
+    get fallback_url()
+    {
+        return new URL("/ranking.php?mode=daily#ppixiv", ppixiv.plocation);
+    }
+
+    // The top page is special, since we'll activate by default but redirect to fallback_url.
+    get is_top_url()
+    {
+        let url = helpers.get_url_without_language(new URL(ppixiv.plocation));
+        return url.pathname == "/";
+    }
 }
 
