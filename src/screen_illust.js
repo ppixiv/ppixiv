@@ -1179,6 +1179,11 @@ class ScreenIllustDragToExit
 
     _config_animation()
     {
+        // In case the image wasn't available when we tried to scroll to it, try again now.
+        // Either this will scroll to the image and we can use its position, or we know it
+        // isn't in the list.
+        main_controller.scroll_to_media_id(this.parent.wanted_media_id);
+
         // Set properties for the animation.
         let x = 0, y = 0;
 
@@ -1235,6 +1240,6 @@ class ScreenIllustDragToExit
         if(this.is_animating)
             return;
 
-        main_controller.scroll_to_media_id(this.parent.current_media_id);
+        main_controller.scroll_to_media_id(this.parent.wanted_media_id);
     }
 }
