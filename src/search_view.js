@@ -65,6 +65,7 @@ ppixiv.search_view = class extends ppixiv.widget
 
         media_cache.addEventListener("infoloaded", this.media_info_loaded);
         window.addEventListener("focus", this.visible_thumbs_changed);
+        new ResizeObserver(() => this.refresh_images()).observe(this.container);
 
         // When a bookmark is modified, refresh the heart icon.
         media_cache.addEventListener("mediamodified", this.refresh_thumbnail, { signal: this.shutdown_signal.signal });

@@ -562,9 +562,6 @@ ppixiv.screen_search = class extends ppixiv.screen
                 e.stopPropagation();
                 this.local_navigation_visible = !this.local_navigation_visible;
                 this.refresh_ui();
-                
-                // Refresh the search view, so it updates the columns to fill the extra space.
-                this.search_view.refresh_images();
             });        
         }
 
