@@ -75,6 +75,13 @@ async function Bootstrap(env)
             if(path) path = ' ' + path;
             alert(`Error loading ppixiv${path ?? ''}:\n\n${e.message}`);
         };
+
+        // For now, don't use this on iOS.  For some reason this sometimes picks up random errors
+        // from Pixiv that don't affect us and pops up an alert dialog.  It's not obvious why, since
+        // inserting a script node shouldn't be causing other script nodes to be run synchronously.
+        if(ios)
+            onerror = null;
+
         window.addEventListener("error", onerror);
         script.textContent = source;
         document.documentElement.appendChild(script);
