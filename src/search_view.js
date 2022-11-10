@@ -1606,7 +1606,7 @@ ppixiv.search_view = class extends ppixiv.widget
                         </div>
 
                         <div class=manga-info-box style="cursor: pointer;" hidden>
-                            <a class=show-manga-pages-button hidden>
+                            <a class=show-manga-pages-button hidden data-hidden-on=mobile>
                                 ${ helpers.create_icon("pages") }
                             </a>
 

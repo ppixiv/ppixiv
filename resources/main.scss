@@ -1771,7 +1771,12 @@ body.hide-r18g .r18g { display: none; }
                 background-color: rgba(0,0,0,.6);
                 border-radius: 6px;
                 white-space: nowrap;
-                pointer-events: auto; // turn pointer events back on
+
+                // Clicks inside here are too small and finicky for mobile and get in the way of trying
+                // to click the thumbnail itself.
+                html:not(.mobile) & {
+                    pointer-events: auto; // turn pointer events back on
+                }
                 border-radius: 6px;
                 overflow: hidden; // clip the hover background-color to our border radius
 
