@@ -1182,8 +1182,10 @@ class ScreenIllustDragToExit
     {
         // In case the image wasn't available when we tried to scroll to it, try again now.
         // Either this will scroll to the image and we can use its position, or we know it
-        // isn't in the list.
-        main_controller.scroll_to_media_id(this.parent.wanted_media_id);
+        // isn't in the list.  Only do this if we're completely visible (eg. we're hiding
+        // and not showing), not if the scroll would be visible.
+        if(this.dragger.position == 1)
+            main_controller.scroll_to_media_id(this.parent.wanted_media_id);
 
         // Set properties for the animation.
         let x = 0, y = 0;
