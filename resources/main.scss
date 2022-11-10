@@ -3559,18 +3559,10 @@ svg.heart-image .delete {
     }
 }
 
-.settings-dialog
+@mixin settings-dialog($animation: "vertical")
 {
-    @include general-dialog();
-}
+    @include general-dialog($animation: $animation);
 
-.settings-dialog-page
-{
-    @include general-dialog($animation: "horizontal");
-}
-
-.settings-window
-{
     // Set the font size.  This ignores the font size multiplier we use for the rest
     // of the UI on mobile, which is much too big for settings, and is slightly larger
     // on desktop.
@@ -3695,6 +3687,25 @@ svg.heart-image .delete {
             }
         }
     }
+}
+
+.settings-dialog
+{
+    @include settings-dialog();
+
+    html.mobile & {
+        // Space out the top-level page a bit more on mobile, and flex so the whole column
+        // is clickable and not just the text.
+        .sections {
+            gap: 0.5em;
+            flex: 1;
+        }
+    }
+}
+
+.settings-dialog-page
+{
+    @include settings-dialog($animation: "horizontal");
 }
 
 .muted-tags-popup {

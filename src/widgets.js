@@ -218,6 +218,9 @@ ppixiv.dialog_widget = class extends ppixiv.widget
         // If true, the close button shows a back icon instead of an X.
         back_icon=false,
 
+        // The drag direction to close the dialog if the dialog can be dragged to close.
+        drag_direction="up",
+
         template,
         ...options
     })
@@ -285,7 +288,7 @@ ppixiv.dialog_widget = class extends ppixiv.widget
                 // Call create_animation again each time this is queried, so the animation can change to
                 // adjust to the screen size if needed.
                 animations: () => this.create_animation().animation,
-                direction: "up",
+                direction: drag_direction,
                 onafterhidden: () => this.visibility_changed(),
                 onpointerdown: () => this.drag_to_exit,
             });

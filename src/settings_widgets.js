@@ -664,7 +664,7 @@ ppixiv.settings_page_dialog = class extends ppixiv.dialog_widget
         super({
             ...options,
             dialog_class: "settings-dialog-page",
-            classes: ["settings-window"],
+            drag_direction: "left",
 
             // This is a nested dialog and closing it goes back to settings, so show
             // a back button instead of a close button.
