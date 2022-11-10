@@ -344,7 +344,8 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
 
         let menu_bar = this.page.container.querySelector(".mobile-illust-ui-page");
         this.dragger = new WidgetDragger({
-            node: this.container,
+            // Put the --menu-bar-pos property up high, since the viewer UI also uses it.
+            node: document.documentElement,
             drag_node: this.container.parentNode,
             size: () => menu_bar.offsetHeight,
             animated_property: "--menu-bar-pos",

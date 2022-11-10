@@ -588,20 +588,11 @@ html.mobile .screen-illust-container {
     -webkit-user-select: none;
     touch-action: none;
 
-    transition: transform .25s, opacity .25s;
     opacity: 0;
 
-    @mixin show-ui()
-    {
-        opacity: 1;
-
-        .seek-bar[data-position="top"] > .seek-parts
-        {
-            transform: scale(100%, 50%);
-        }
-    }
-
     html:not(.mobile) & {
+        transition: transform .25s, opacity .25s;
+
         // Visibility:
         // Stay visible if the mouse has moved recently, we're dragging, and while hovering
         // over the UI.
@@ -610,15 +601,25 @@ html.mobile .screen-illust-container {
         &:hover,                                // Visible if we're hovering over the UI
         &.show-ui                               // Visible if ppixiv.video_ui says so
         {
-            @include show-ui();
+            opacity: 1;
+
+            .seek-bar[data-position="top"] > .seek-parts
+            {
+                transform: scale(100%, 50%);
+            }
         }
     }
 
     // On mobile, we're displayed when the menu is visible and .show-ui is set.  Disable
     // pointer-events if we're not visible.
     html.mobile & {
-        &.show-ui {
-            @include show-ui();
+        // On mobile, follow the menu bar dragger's position.
+        opacity: var(--menu-bar-pos);
+        transform: translateY(calc(25px * (1 - var(--menu-bar-pos))));
+        
+        .seek-bar[data-position="top"] > .seek-parts
+        {
+            transform: scale(100%, calc(50% * var(--menu-bar-pos)));
         }
 
         &:not(.show-ui) {
