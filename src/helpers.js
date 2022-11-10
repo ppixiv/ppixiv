@@ -1832,6 +1832,9 @@ ppixiv.helpers = {
     // Return true if url1 and url2 are the same, ignoring any language prefix on the URLs.
     are_urls_equivalent(url1, url2)
     {
+        if(url1 == null || url2 == null)
+            return false;
+
         url1 = helpers.get_url_without_language(url1);
         url2 = helpers.get_url_without_language(url2);
         return url1.toString() == url2.toString();
@@ -3816,21 +3819,7 @@ ppixiv.VirtualHistory = class
     // If true, we're using this for all navigation and never using browser navigation.
     get permanent()
     {
-        // We only want this if we're running as a PWA on mobile, so we don't interfere
-        // with browser UI if it exists.  iOS lets us detect this with navigator.standalone,
-        // but there doesn't seem to be any way to query this on Android.  For Android,
-        // testing if we're in fullscreen seems to be the best we can do (this will false
-        // positive if we're on a mobile browser that happens to be fullscreen--oh well).
-        if(!ppixiv.mobile)
-            return false;
-
-        if(ppixiv.ios)
-            return navigator.standalone;
-
-        // Our result should never change.  Cache this to make sure we don't change modes
-        // if this result changes, since this isn't an ideal way to detect if we're a PWA.
-        this._fullscreen ??= window.matchMedia('(display-mode: fullscreen)').matches;
-        return this._fullscreen;
+        return ppixiv.mobile;
     }
 
     constructor()
