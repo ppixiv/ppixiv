@@ -2743,20 +2743,20 @@ ppixiv.helpers = {
     // desired size.  Return the corresponding CSS style attributes.
     //
     // container is the containing block (eg. ul.thumbnails).
-    make_thumbnail_sizing_style(container, options)
+    make_thumbnail_sizing_style({
+        container,
+        min_padding,
+        desired_size=300,
+        ratio=null,
+        max_columns=5,
+    }={})
     {
         // The total pixel size we want each thumbnail to have:
-        var desired_size = options.size || 300;
-        var ratio = options.ratio || 1;
-        var max_columns = options.max_columns || 5;
+        ratio ??= 1;
 
         var desired_pixels = desired_size*desired_size / window.devicePixelRatio;
         var container_width = container.parentNode.clientWidth;
-        var padding = container_width / 100;
-        padding = Math.min(padding, 10);
-        padding = Math.round(padding);
-        if(options.min_padding)
-            padding = Math.max(padding, options.min_padding);
+        var padding = min_padding;
         
         var closest_error_to_desired_pixels = -1;
         var best_size = [0,0];
@@ -2764,8 +2764,9 @@ ppixiv.helpers = {
         for(var columns = max_columns; columns >= 1; --columns)
         {
             // The amount of space in the container remaining for images, after subtracting
-            // the padding around each image.
-            var remaining_width = container_width - padding*columns*2;
+            // the padding around each image.  Padding is the flex gap, so this doesn't include
+            // padding at the left and right edge.
+            var remaining_width = container_width - padding*(columns-1);
             var max_width = remaining_width / columns;
             var max_height = max_width;
             if(ratio < 1)
@@ -2804,8 +2805,7 @@ ppixiv.helpers = {
         }
 
         // Clamp the width of the container to the number of columns we expect.
-        var container_width = max_columns * (max_width+padding*2);
-
+        container_width = best_columns*max_width + (best_columns-1)*padding;
         return {columns: best_columns, padding, max_width, max_height, container_width};
     },
 

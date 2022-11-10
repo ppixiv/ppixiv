@@ -1493,7 +1493,12 @@ body.hide-r18g .r18g { display: none; }
         // Justify-content centers the thumbs within our max width, but margin: 0 auto
         // centers us within the window if our max width is smaller than the window.
         justify-content: center;
-        margin: 0 auto; /* center */
+
+        // Add a small minimum horizontal margin on desktops.  On mobile, allow thumbs to
+        // go to the edge of the screen.
+        html:not(.mobile) & {
+            margin: 0 1em;
+        }
 
         /* Add a stroke around the heart on thumbnails for visibility.  Don't
          * change the black lock. */
@@ -1615,7 +1620,9 @@ body.hide-r18g .r18g { display: none; }
             width: 100%;
             height: 100%;
 
-            border-radius: 4px;
+            html:not(.mobile) & {
+                border-radius: 4px;
+            }
             overflow: hidden;
             position: relative;
             text-decoration: none;

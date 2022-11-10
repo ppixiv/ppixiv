@@ -765,12 +765,12 @@ ppixiv.search_view = class extends ppixiv.widget
 
         // Update the thumbnail size style.  This also tells us the number of columns being
         // displayed.
-        let thumbnail_size = settings.get(manga_view? "manga-thumbnail-size":"thumbnail-size", 4);
-        thumbnail_size = thumbnail_size_slider_widget.thumbnail_size_for_value(thumbnail_size);
+        let desired_size = settings.get(manga_view? "manga-thumbnail-size":"thumbnail-size", 4);
+        desired_size = thumbnail_size_slider_widget.thumbnail_size_for_value(desired_size);
 
-        let {columns, padding, max_width, max_height, container_width} = helpers.make_thumbnail_sizing_style(this.thumbnail_box, {
-            wide: true,
-            size: thumbnail_size,
+        let {columns, padding, max_width, max_height, container_width} = helpers.make_thumbnail_sizing_style({
+            container: this.thumbnail_box,
+            desired_size,
             ratio: this.data_source.get_thumbnail_aspect_ratio(),
 
             // Limit the number of columns on most views, so we don't load too much data at once.
@@ -779,8 +779,8 @@ ppixiv.search_view = class extends ppixiv.widget
             max_columns: manga_view? 15: 
                 this.data_source?.is_vview? 100:5,
 
-            // Set a minimum padding to make sure there's room for the popup text to fit between images.
-            min_padding: 15,
+            // Pack images more tightly on mobile.
+            min_padding: ppixiv.mobile? 3:15,
         });
 
         this.container.style.setProperty('--thumb-width', `${max_width}px`);
