@@ -133,11 +133,13 @@ ppixiv.MediaCache = class extends EventTarget
         if(this.media_info[media_id] != null && (!full || this.media_info[media_id].full))
             return Promise.resolve(this.media_info[media_id]);
 
-        // If there's already a load in progress, return the running promise.
+        // If there's already a load in progress, wait for the running promise.  Note that this
+        // promise will add to this.media_info if it succeeds, but it won't necessarily return
+        // the data directly since it may be a batch load.
         if(this.media_info_loads_full[media_id] != null)
-            return this.media_info_loads_full[media_id];
+            return this.media_info_loads_full[media_id].then(() => this.media_info[media_id]);
         if(!full && this.media_info_loads_partial[media_id] != null)
-            return this.media_info_loads_partial[media_id];
+            return this.media_info_loads_partial[media_id].then(() => this.media_info[media_id]);
         
         // Start the load.  If something's requesting partial info for a single image
         // then we'll almost always need full info too, so we always just load full info
