@@ -5605,6 +5605,12 @@ ppixiv.TouchScroller = class
         // in the middle of dragging due to zooms.
         let bounds = this.options.get_bounds();
         this.drag_axes_locked = [bounds.width < 0.001, bounds.height < 0.001];
+
+        // Pointer movements are thresholded: we don't get pointer movements until the
+        // touch has moved some minimum amount, and all movement until then will be
+        // bundled into the first pointermove event.  Ignore that first event, since it
+        // makes drags look jerky.
+        this.ignore_next_pointermove = true;
     }
 
     end_drag = (e) =>
@@ -5666,6 +5672,13 @@ ppixiv.TouchScroller = class
         // Update this pointer.  This will update pointer_center_pos.
         pointer_info.x = e.clientX;
         pointer_info.y = e.clientY;
+
+        // Ignore the first pointer movement.
+        if(this.ignore_next_pointermove)
+        {
+            this.ignore_next_pointermove = false;
+            return;
+        }
 
         // The center position and average distance at the end of the frame:
         let new_center_pos = this.pointer_center_pos;
