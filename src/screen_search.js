@@ -418,6 +418,9 @@ ppixiv.screen_search = class extends ppixiv.screen
                         </div>
                     </div>
                 </div>
+
+                <!-- This is controlled by the illustration view to fade the search. -->
+                <div class=fade-search></div>
             </div>
         `});
 

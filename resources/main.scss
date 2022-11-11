@@ -1329,6 +1329,24 @@ body.hide-r18g .r18g { display: none; }
         --header-height: calc(2em + env(safe-area-inset-top));;
     }
 
+    // This block is used to fade the search when the illustration is shown.  This isn't done on
+    // the top container to avoid the fade animation causing style recalculations on the search
+    // results, which is slow when there are a lot of thumbs.
+    .fade-search {
+        background-color: #880;
+        position: fixed;
+        z-index: 1;
+
+        // Extend through any browser overlays, even if they're not included in safe zone offsets.
+        inset: -100vh;
+        pointer-events: none;
+        
+        // Fade the background to black when we're active.
+        // XXX: this should fade the whole page, including the safe zone
+        background-color: rgba(0, 0, 0,
+            scale_value(var(--illust-hidden), 0.7, .3, 0, 1));
+    }
+    
     .mobile-ui-drag-container {
         touch-action: none;
         position: fixed;
@@ -3243,10 +3261,6 @@ svg.heart-image .delete {
 }
 
 .screen-illust-container {
-    // Fade the background to black when we're active.
-    background-color: rgba(0, 0, 0,
-        scale_value(var(--illust-hidden), 0.7, .3, 0, 1));
-        
     // Transitions for the viewer.  Don't move the container itself, since the background
     // fade shouldn't move with the image.
     .view-container {

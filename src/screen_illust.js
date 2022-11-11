@@ -1142,7 +1142,10 @@ class ScreenIllustDragToExit
         this.parent = parent;
 
         this.dragger = new WidgetDragger({
-            node: this.parent.container,
+            node: [
+                this.parent.container,
+                main_controller.screen_search.container.querySelector(".fade-search"),
+            ],
             drag_node: document.documentElement,
             size: () => this._drag_distance,
 
