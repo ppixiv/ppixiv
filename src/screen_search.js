@@ -602,7 +602,7 @@ ppixiv.screen_search = class extends ppixiv.screen
             let ui_box = this.container.querySelector(".mobile-ui-box-container");
 
             this.mobile_header_dragger = new ppixiv.WidgetDragger({
-                node: this.container,
+                node: drag_node,
                 close_if_outside: [ui_box],
                 drag_node,
                 visible: false,
