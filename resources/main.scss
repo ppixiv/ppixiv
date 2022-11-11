@@ -42,15 +42,6 @@ html {
     // so absolute positioning is based on the document, so the above workaround affects absolutely
     // positioned nodes too, such as the main screen-illust-container.
     position: relative;
-
-    &.disable-scrolling
-    {
-        touch-action: none;
-        body {
-            touch-action: none;
-        }
-        overflow: hidden !important;
-    }
         
     // Device-specific styling
     //
@@ -165,9 +156,16 @@ html {
 
     // If we're on the search view, always show the scrollbar, so it doesn't disappear and
     // reappear as we load searches, causing the UI to shift back and forth slightly.
-    &[data-current-view="search"] {
-        overflow-y: scroll;
-        overflow-y: overlay;
+    overflow-y: scroll;
+    overflow-y: overlay;
+
+    &.disable-scrolling
+    {
+        touch-action: none;
+        body {
+            touch-action: none;
+        }
+        overflow: hidden !important;
     }
 }
  
@@ -1333,7 +1331,6 @@ body.hide-r18g .r18g { display: none; }
     // the top container to avoid the fade animation causing style recalculations on the search
     // results, which is slow when there are a lot of thumbs.
     .fade-search {
-        background-color: #880;
         position: fixed;
         z-index: 1;
 
