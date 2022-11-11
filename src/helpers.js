@@ -941,7 +941,6 @@ ppixiv.helpers = {
     // Returns one of:
     // "exit" - a drag at the bottom of the screen to exit the image
     // "change-images" - a drag at the left or right edge to navigate between images
-    // "menu" - a drag at the top to open the menu
     // "pan-zoom" - a drag anywhere else for image pan and zoom
     //
     // The priority of these is important.  For example, change-images is higher priority than
@@ -966,11 +965,6 @@ ppixiv.helpers = {
         if(horiz < 0.1 || horiz > 0.9)
             return "change-images";
 
-        // Drags down from the top of the screen open the menu.
-        let insets = helpers.safe_area_insets;
-        if((event.clientY - insets.top) / container.clientHeight < 0.10)
-            return "menu";
-
         // Drags up from the bottom of the screen exit the image.
         //
         // This threshold is kept fairly high, since the bottom of the screen is system navigation
@@ -981,6 +975,7 @@ ppixiv.helpers = {
         // if we're in Safari (not running standalone) there may be browser UI underneath us that
         // makes this high threshold unneeded.  However, there's no way to tell, since it appears
         // and disappears whenever it feels like it and the user can remove it.
+        let insets = helpers.safe_area_insets;
         if((event.clientY + insets.bottom) / container.clientHeight > 0.85)
             return "exit";
 

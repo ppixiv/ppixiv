@@ -61,7 +61,7 @@ ppixiv.viewer_video_base = class extends ppixiv.viewer
     {
     }
 
-    clicked_video(e)
+    toggle_pause = (e) =>
     {
         this.set_want_playing(!this.want_playing);
         this.refresh_focus();
@@ -111,7 +111,9 @@ ppixiv.viewer_video = class extends ppixiv.viewer_video_base
 
         this.video.addEventListener("timeupdate", this.update_seek_bar);
         this.video.addEventListener("progress", this.update_seek_bar);
-        this.video_container.addEventListener("click", this.clicked_video.bind(this));
+
+        // Clicking on mobile shows the menu, so use dblclick for pause.
+        this.video_container.addEventListener(ppixiv.mobile? "dblclick":"click", this.toggle_pause);
 
         // In case we start PIP without playing first, switch the poster when PIP starts.
         this.video.addEventListener("enterpictureinpicture", (e) => { this.switch_poster_to_thumb(); });

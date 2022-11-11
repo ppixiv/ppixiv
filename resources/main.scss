@@ -569,8 +569,14 @@ html.mobile .screen-illust-container {
 .video-ui
 {
     position: absolute;
-    // On desktop this is 0.  On mobile, this is set to the height of the bottom menu.
     bottom: 0;
+
+    // On mobile, move this above the image menu.  This UI needs a rework for mobile, this is
+    // just to make it usable for now.
+    html.mobile {
+        bottom: 100px;
+    }
+
     left: 0px;
     width: 100%;
     user-select: none;
@@ -2698,81 +2704,71 @@ a.box-link, span.box-link
         }
     }
 
-
-    // The container for the menu bar is only here to crop it as it translates, so the menu
-    // bar doesn't make the iPhone notch visible as it translates underneath it.
-    .mobile-illust-ui-page-container
-    {
+    .mobile-illust-ui-page {
         position: fixed;
-        top: 0;
         width: 100%;
-        left: 0;
-        right: 0;
         bottom: 0;
-        overflow: hidden;
 
-        > .mobile-illust-ui-page {
-            // Note that the background color extends into the top safe area, so if we're overlapping
-            // a statusbar (avoid-statusbar mode), we'll dim under the statusbar so the menu isn't floating.
-            padding-top: calc(env(safe-area-inset-top) + 0.25em);
-            padding-bottom: 0.25em;
-            padding-left: env(safe-area-inset-left);
-            padding-right: env(safe-area-inset-right);
-    
-            display: flex;
-            flex-direction: row;
-            justify-content: space-evenly;
+        // Note that the background color extends into the top safe area, so if we're overlapping
+        // a statusbar (avoid-statusbar mode), we'll dim under the statusbar so the menu isn't floating.
+        padding-top: 0.5em;
+        padding-bottom: calc(max(env(safe-area-inset-bottom), 0.5em));
+        padding-left: env(safe-area-inset-left);
+        padding-right: env(safe-area-inset-right);
 
-            background-color: rgba(0,0,0,.5);
-            pointer-events: auto;
-    
-            user-select: none;
-            -webkit-user-select: none;
-    
-            // This controls the icon size.
-            font-size: 65%;
+        display: flex;
+        flex-direction: row;
+        justify-content: space-evenly;
 
-            opacity: var(--menu-bar-pos);
-            transform: translateY(calc(-100% * (1 - var(--menu-bar-pos))));
+        background-color: rgba(0,0,0,.5);
+        pointer-events: auto;
+
+        user-select: none;
+        -webkit-user-select: none;
+
+        // This controls the icon size.
+        font-size: 65%;
+
+        opacity: var(--menu-bar-pos);
+        transform: translateY(calc(100% * (1 - var(--menu-bar-pos))));
+    }
+
+    .item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.25em;
+        padding: 0 0.25em;
+        justify-content: center;
+
+        // Grey out the button and label if this item isn't enabled.
+        --foreground-color: #aaa;
+        &.enabled { --foreground-color: #fff; }
+        &.selected { --foreground-color: #ff8; }
+        color: var(--foreground-color);
+
+        & > svg {
+            width: 2em;
+            height: 2em;
         }
 
-        .item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 0.25em;
-            padding: 0 0.25em;
-            justify-content: center;
+        .label {
+            text-align: center;
 
-            // Grey out the button and label if this item isn't enabled.
-            --foreground-color: #aaa;
-            &.enabled { --foreground-color: #fff; }
-            &.selected { --foreground-color: #ff8; }
-            color: var(--foreground-color);
+            // This font size is extremely small, but matches the styling used for iOS tabs.
+            font-size: .7rem;
+        }
 
-            & > svg {
-                width: 2em;
-                height: 2em;
-            }
-
-            .label {
-                text-align: center;
-
-                // This font size is extremely small, but matches the styling used for iOS tabs.
-                font-size: .7rem;
-            }
-
-            /* Popup menu bookmarking */
-            .tag-dropdown-arrow {
-                width: 0; 
-                height: 0; 
-                border-top: 10px solid #222;
-                border-left: 10px solid transparent;
-                border-right: 10px solid transparent;
-            }
-            .font-icon {
-                font-size: 200%;
-            }
+        /* Popup menu bookmarking */
+        .tag-dropdown-arrow {
+            width: 0; 
+            height: 0; 
+            border-top: 10px solid #222;
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+        }
+        .font-icon {
+            font-size: 200%;
         }
     }
 }

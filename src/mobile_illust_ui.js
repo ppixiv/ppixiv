@@ -6,7 +6,6 @@ let mobile_illust_ui_top_page = class extends ppixiv.widget
     constructor({template, ...options})
     {
         super({...options, visible: true, template: `
-            <div class=mobile-illust-ui-page-container>
                 <div class=mobile-illust-ui-page>
                     <div class="item button-toggle-slideshow enabled">
                         ${ helpers.create_icon("mat:wallpaper") }
@@ -43,7 +42,6 @@ let mobile_illust_ui_top_page = class extends ppixiv.widget
                         <span class=label>Pages</span>
                     </div>
                 </div>
-            </div>
         `});
 
         this._media_id = null;
@@ -358,7 +356,8 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
             animated_property: "--menu-bar-pos",
             direction: "down",
             onpointerdown: ({event}) => {
-                return helpers.get_image_drag_type(event) == "menu";
+                // This is just used for animations, not for dragging.
+                return false;
             },
             onbeforeshown: () => this.visibility_changed(),
             onafterhidden: () => this.visibility_changed(),

@@ -1232,7 +1232,7 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         // Only continue if we have a main animation.  If we don't have an animation, we don't
         // want to modify the zoom/pan position and there's nothing to stop.
         if(!this.animations.main)
-            return;
+            return false;
 
         // Commit the current state of the main animation so we can read where the image was.
         let applied_animations = true;
@@ -1267,7 +1267,7 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         {
             // For some reason, commitStyles throws an exception if we're not visible, which happens
             // if we're shutting down.  In this case, just cancel the animations.
-            return;
+            return true;
         }
 
         // Pull out the transform and scale we were left on when the animation stopped.
@@ -1291,6 +1291,7 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         this.set_image_position([left, top], [0,0]);
     
         this.reposition();
+        return true;
     }
 
     get animations_running()
@@ -1573,6 +1574,20 @@ ppixiv.image_viewer_mobile = class extends ppixiv.image_viewer_base
     constructor({...options})
     {
         super(options);
+
+        // Any touch on the image stops the animation, even if it doesn't cause
+        // TouchScroller to do anything.
+        this.container.addEventListener("pointerdown", (e) => {
+            if(this.slideshow_mode)
+                return;
+            
+            if(this.stop_animation())
+            {
+                // If this touch caused us to stop animations, mark it as partially handled so
+                // IsolatedTapHandler doesn't trigger and cause it to also open the menu.
+                e.partially_handled = true;
+            }
+        });
  
         this.touch_scroller = new ppixiv.TouchScroller({
             container: this.container,
@@ -1698,6 +1713,9 @@ ppixiv.image_viewer_mobile = class extends ppixiv.image_viewer_base
 
     mobile_toggle_zoom(e)
     {
+        if(this.slideshow_mode)
+            return;
+
         // Stop any animation first, so we adjust the zoom relative to the level we finalize
         // the animation to.
         this.stop_animation();

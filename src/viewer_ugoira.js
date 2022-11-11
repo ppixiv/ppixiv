@@ -21,7 +21,7 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer_video_base
         this.video.style.objectFit = "contain";
         this.video_container.appendChild(this.video);
 
-        this.video.addEventListener("click", this.clicked_video.bind(this));
+        this.video.addEventListener(ppixiv.mobile? "dblclick":"click", this.toggle_pause);
 
         // True if we want to play if the window has focus.  We always pause when backgrounded.
         let args = helpers.args.location;
@@ -183,7 +183,7 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer_video_base
 
             // Allow clicking the previews too, so if you click to pause the video before it has enough
             // data to start playing, it'll still toggle to paused.
-            img1.addEventListener("click", this.clicked_video.bind(this));
+            img1.addEventListener(ppixiv.mobile? "dblclick":"click", this.toggle_pause);
         }
 
         if(url2)
@@ -196,7 +196,7 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer_video_base
             img2.style.objectFit = "contain";
             img2.src = url2;
             this.video_container.appendChild(img2);
-            img2.addEventListener("click", this.clicked_video.bind(this));
+            img2.addEventListener(ppixiv.mobile? "dblclick":"click", this.toggle_pause);
             this.preview_img2 = img2;
 
             // Wait for the high-res image to finish loading.
