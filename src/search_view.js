@@ -1662,8 +1662,10 @@ ppixiv.search_view = class extends ppixiv.widget
         let y = thumb.offsetTop + thumb.offsetHeight/2 - this.scroll_container.offsetHeight/2;
 
         // If we set y outside of the scroll range, iOS will incorrectly report scrollTop briefly.
-        // Clamp the position to avoid this.
-        y = helpers.clamp(y, 0, this.scroll_container.scrollHeight);
+        // Clamp the position to avoid this.  Use window.innerHeight as the height, since
+        // scroll_container.offsetHeight is confused by padding and gives the wrong result when
+        // close to the bottom.
+        y = helpers.clamp(y, 0, this.scroll_container.scrollHeight - window.innerHeight);
 
         // Stop if the thumb is already fully visible.
         if(y >= this.scroll_container.scrollTop &&
