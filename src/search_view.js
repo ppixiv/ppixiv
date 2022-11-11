@@ -227,7 +227,7 @@ ppixiv.search_view = class extends ppixiv.widget
         return null;
     }
 
-    get_first_visible_thumb()
+    get_first_fully_onscreen_thumb()
     {
         // Find the first thumb that's fully onscreen.
         for(let element of Object.values(this.thumbs))
@@ -244,7 +244,7 @@ ppixiv.search_view = class extends ppixiv.widget
     first_visible_thumbs_changed()
     {
         // Find the first thumb that's fully onscreen.  Ignore elements not specific to a page (load previous results).
-        let first_thumb = this.get_first_visible_thumb();
+        let first_thumb = this.get_first_fully_onscreen_thumb();
         if(!first_thumb)
             return;
 
@@ -783,14 +783,14 @@ ppixiv.search_view = class extends ppixiv.widget
             min_padding: ppixiv.mobile? 3:15,
         });
 
+        // Save the scroll position relative to the first thumbnail.  Do this before making
+        // any changes.
+        let saved_scroll = this.save_scroll_position();
+
         this.container.style.setProperty('--thumb-width', `${max_width}px`);
         this.container.style.setProperty('--thumb-height', `${max_height}px`);
         this.container.style.setProperty('--thumb-padding', `${padding}px`);
         this.container.style.setProperty('--container-width', `${container_width}px`);
-
-        // Save the scroll position relative to the first thumbnail.  Do this before making
-        // any changes.
-        let saved_scroll = this.save_scroll_position();
 
         // Get all media IDs from the data source.
         let [all_media_ids, media_id_pages] = this.get_data_source_media_ids();
@@ -1028,7 +1028,7 @@ ppixiv.search_view = class extends ppixiv.widget
     // The result can be used with restore_scroll_position.
     save_scroll_position()
     {
-        let first_visible_thumb_node = this.get_first_visible_thumb();
+        let first_visible_thumb_node = this.get_first_fully_onscreen_thumb();
         if(first_visible_thumb_node == null)
             return null;
 
