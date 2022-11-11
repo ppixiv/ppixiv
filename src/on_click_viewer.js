@@ -1620,9 +1620,13 @@ ppixiv.image_viewer_mobile = class extends ppixiv.image_viewer_base
                 // Store the position of the anchor before zooming, so we can restore it below.
                 let center = this.get_image_position([centerX, centerY]);
 
-                // Apply the new zoom.
+                // Apply the new zoom.  Snap to 0 if we're very close, since it won't reach it exactly.
                 let new_factor = this._zoom_factor_current * ratio;
-                this._zoom_level = this.zoom_factor_to_zoom_level(new_factor);
+
+                let new_level = this.zoom_factor_to_zoom_level(new_factor);
+                if(Math.abs(new_level) < 0.005)
+                    new_level = 0;
+                this._zoom_level = new_level;
 
                 // Restore the center position.
                 this.set_image_position([centerX, centerY], center);
@@ -1630,7 +1634,7 @@ ppixiv.image_viewer_mobile = class extends ppixiv.image_viewer_base
                 this.reposition({clamp_position: false});
             },
 
-            onflingfinished: () => {
+            onanimationfinished: () => {
                 // We could do this to save the current zoom level, since we didn't use it during the
                 // fling, but for now we don't save the zoom level on mobile anyway.
                 // this.set_zoom_level(this._zoom_level);
@@ -1653,27 +1657,54 @@ ppixiv.image_viewer_mobile = class extends ppixiv.image_viewer_base
                 return new ppixiv.FixedDOMRect(top_left[0], top_left[1], bottom_right[0], bottom_right[1]);
             },
 
+            // Get the zoom level we'd want to bounce to if a fling was released.
+            get _target_zoom_level()
+            {
+                if(this._zoom_factor_current < this._zoom_factor_contain)
+                    return this._zoom_factor_contain;
+                else
+                    return this._zoom_factor_cover; //_zoom_factor_current;
+            },
+
+            // When a fling starts (this includes releasing drags, even without a fling), decide
+            // on the zoom factor we want to bounce to.
+            onanimationstarted: () =>
+            {
+                // Zoom up to contain if the current zoom is lower than contain.  Otherwise, zoom
+                // to cover if the zoom level is close to it.  By default, zoom to current, which
+                // means we won't do anything.
+                let zoom_factor_cover = this._zoom_factor_cover;
+                let zoom_factor_current = this._zoom_factor_current;
+                if(this._zoom_factor_current < this._zoom_factor_contain)
+                    this.target_zoom_factor = this._zoom_factor_contain;
+                else if(Math.abs(zoom_factor_cover - zoom_factor_current) < 0.15)
+                    this.target_zoom_factor = this._zoom_factor_cover;
+                else
+                    this.target_zoom_factor = this._zoom_factor_current;
+            },
+
             // We don't want to zoom under zoom factor 1x.  Return the zoom ratio needed to bring
             // the current zoom factor back up to 1x.  For example, if the zoom factor is currently
             // 0.5, return 2.
             get_wanted_zoom: () =>
             {
-                let zoom_factor = this._zoom_factor_current / this._zoom_factor_contain;
-                if(zoom_factor >= 1)
-                    return { ratio: 1, centerX: 0, centerY: 0 };
-
-                // TouchScroller will call adjust_zoom with the ratio we return to bounce us
-                // towards the ratio we want.  It uses the centerX and centerY we return here,
-                // which is the screen position the zoom will be around.  Use the screen position
-                // of the center of the image.
+                // ratio is the ratio we want to be applied relative to to the current zoom,
+                // centerX and centerY are the center of the zoom, which is the center of the image.
                 let [centerX, centerY] = this.get_screen_pos_from_image_pos([0.5, 0.5]);
-                return { ratio: 1 / zoom_factor, centerX, centerY };
+                return { ratio: this.target_zoom_factor / this._zoom_factor_current, centerX, centerY };
             },
         });
     }
 
     mobile_toggle_zoom(e)
     {
+        // Stop any animation first, so we adjust the zoom relative to the level we finalize
+        // the animation to.
+        this.stop_animation();
+
+        // Make sure touch_scroller isn't animating.
+        this.touch_scroller.cancel_fling();
+
         // Toggle between fit (zoom level 0) and cover.  If cover and fit are close together,
         // zoom to a higher factor instead of cover.  This way we zoom to cover when it makes
         // sense, since it's a nicer zoom level to pan around in, but we use a higher level

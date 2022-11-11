@@ -5513,8 +5513,11 @@ ppixiv.TouchScroller = class
         // current zoom to the wanted zoom.  This is applied along with rubber banding.
         get_wanted_zoom,
 
-        // Called when a drag finishes, after any fling animation completes.
-        onflingfinished,
+        // Called before a bounce or fling animation starts.
+        onanimationstarted,
+
+        // Called after a bounce or fling animation finishes.
+        onanimationfinished,
 
         // An AbortSignal to shut down.
         signal,
@@ -5527,7 +5530,8 @@ ppixiv.TouchScroller = class
             get_bounds,
             get_wanted_zoom,
             adjust_zoom,
-            onflingfinished,
+            onanimationstarted,
+            onanimationfinished,
         };
 
         this.velocity = {x: 0, y: 0};
@@ -5744,6 +5748,8 @@ ppixiv.TouchScroller = class
         // Set the initial velocity to the average recent speed of all touches.
         this.velocity = this.fling_velocity.current_velocity;
 
+        this.options.onanimationstarted();
+
         console.assert(this.abort_fling == null);
         this.abort_fling = new AbortController();
         this.run_fling(this.abort_fling.signal);
@@ -5806,7 +5812,7 @@ ppixiv.TouchScroller = class
         this.abort_fling = null;
         this.mode = null;
 
-        this.options.onflingfinished();
+        this.options.onanimationfinished();
     }
 
     apply_zoom_bounce(duration)
