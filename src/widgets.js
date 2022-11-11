@@ -579,6 +579,10 @@ ppixiv.click_outside_listener = class
         if(this.is_node_in_list(e.target))
             return;
 
+        // We don't cancel this event, but set a property on it to let IsolatedTapHandler
+        // know this press shouldn't be treated as an isolated tap.
+        e.partially_handled = true;
+
         this.callback(e.target, {event: e});
     }
 

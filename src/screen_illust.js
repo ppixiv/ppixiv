@@ -94,6 +94,13 @@ ppixiv.screen_illust = class extends ppixiv.screen
                 signal: this.shutdown_signal.signal,
                 ondbltap: (e) => this.viewer.toggle_zoom(e),
             });
+
+            new IsolatedTapHandler({
+                node: this.view_container,
+                callback: (e) => {
+                    this.mobile_illust_ui.show();
+                },
+            });
         }
 
         // This handles transitioning between this and the search view.
