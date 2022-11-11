@@ -387,6 +387,13 @@ ppixiv.screen_illust = class extends ppixiv.screen
         this.viewer = new_viewer;
 
         let old_viewer = this.old_viewer;
+
+        // If we already had a viewer, hide the new one until the new one is ready to be displayed.
+        // We'll make it visible below at the same time the old viewer is removed, so we don't show
+        // both at the same time.
+        if(this.old_viewer)
+            this.viewer.visible = false;
+
         this.viewer.ready.finally(async() => {
             // Await once in case this is called synchronously.
             await helpers.sleep(0);
@@ -402,6 +409,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
             if(this.viewer !== new_viewer || old_viewer !== this.old_viewer)
                 return;
 
+            this.viewer.visible = true;
             this.old_viewer.shutdown();
             this.old_viewer = null;
         });
