@@ -5302,19 +5302,28 @@ ppixiv.DragHandler = class
         signal,
 
         // Called on the initial press before starting the drag.  If set, returns true if the drag
-        // should begin or false if it should be 
+        // should begin or false if it should be ignored.
         onpointerdown,
+
+        // Called when the drag starts, which is the first pointer movement after onpointerdown.
         ondragstart,
 
         // ondrag({event, first})
         // first is true if this is the first pointer movement since this drag started.
         ondrag,
+
+        // Called when the drag is released.
         ondragend,
+
+        // Called when a touch that began a drag is released.  This is always called if
+        // onpointerdown returned true, even if the drag never actually began.
+        onpointerup,
     }={})
     {
         this.element = element;
         this.captured_pointer_id = null;
         this.onpointerdown = onpointerdown;
+        this.onpointerup = onpointerup;
         this.ondragstart = ondragstart;
         this.ondrag = ondrag;
         this.ondragend = ondragend;
@@ -5450,6 +5459,10 @@ ppixiv.DragHandler = class
             if(this.ondragend)
                 this.ondragend({interactive});
         }
+
+        // Always send onpointerup, even if there was no actual drag.
+        if(this.onpointerup)
+            this.onpointerup();
     }
 
     _pointermove = (event) =>
@@ -5957,6 +5970,7 @@ ppixiv.WidgetDragger = class
 
         // If set, return true to handle the drag or false to ignore it.
         onpointerdown = () => true,
+        onpointerup = () => null,
     }={})
     {
         this._visible = visible;
@@ -6017,6 +6031,7 @@ ppixiv.WidgetDragger = class
         this.dragger = new ppixiv.DragHandler({
             element: drag_node,
             onpointerdown,
+            onpointerup,
 
             ondragstart: (args) => {
                 this.drag_animation.stop();
