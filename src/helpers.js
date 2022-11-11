@@ -2820,6 +2820,10 @@ ppixiv.helpers = {
                 max_height /= ratio;
         }
 
+        // If we're only showing one column, snap the thumbnails to the container size.
+        if(best_columns == 1)
+            max_width = max_height = container_width;
+
         // Clamp the width of the container to the number of columns we expect.
         container_width = best_columns*max_width + (best_columns-1)*padding;
         return {columns: best_columns, padding, max_width, max_height, container_width};
