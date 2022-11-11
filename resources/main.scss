@@ -1488,6 +1488,13 @@ body.hide-r18g .r18g { display: none; }
 
 .search-view
 {
+    // Add a small minimum horizontal margin on desktops.  On mobile, allow thumbs to
+    // go to the edge of the screen.  Put this padding outside of .thumbnails so it
+    // doesn't confuse make_thumbnail_sizing_style.
+    html:not(.mobile) & {
+        margin: 0 1em;
+    }
+
     /* .thumbnails is the actual thumbnail list. */
     .thumbnails {
         user-select: none;
@@ -1509,12 +1516,6 @@ body.hide-r18g .r18g { display: none; }
 
         // Center thumbs if they don't fill the screen.
         margin: 0 auto;
-
-        // Add a small minimum horizontal margin on desktops.  On mobile, allow thumbs to
-        // go to the edge of the screen.
-        html:not(.mobile) & {
-            margin: 0 1em;
-        }
 
         /* Add a stroke around the heart on thumbnails for visibility.  Don't
          * change the black lock. */

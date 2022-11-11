@@ -2766,7 +2766,12 @@ ppixiv.helpers = {
         ratio ??= 1;
 
         var desired_pixels = desired_size*desired_size / window.devicePixelRatio;
-        var container_width = container.parentNode.clientWidth;
+
+        // The container might have a fractional size, and clientWidth will round it, which is
+        // wrong for us: if the container is 500.75 wide and we calculate a fit for 501, the result
+        // won't actually fit.  Get the bounding box instead, which isn't rounded.
+        // var container_width = container.parentNode.clientWidth;
+        let container_width = Math.floor(container.parentNode.getBoundingClientRect().width);
         var padding = min_padding;
         
         var closest_error_to_desired_pixels = -1;
