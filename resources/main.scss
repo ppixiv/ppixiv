@@ -315,15 +315,6 @@ html {
     --like-button-hover-color: #fff;
 }
 
-html[data-theme="dark"]
-{
-    // Disable the lighter background noise when displaying an image.
-    &[data-current-view="illust"] {
-        --main-background-color: #000;
-        --background-noise: "";
-    }
-}
-
 html.mobile {
     // Always use a black background on mobile instead of grey, since it hides notches
     // better.
