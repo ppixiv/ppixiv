@@ -1683,8 +1683,20 @@ ppixiv.image_viewer_mobile = class extends ppixiv.image_viewer_base
 
             // When a fling starts (this includes releasing drags, even without a fling), decide
             // on the zoom factor we want to bounce to.
-            onanimationstarted: () =>
+            onanimationstarted: ({target_factor=null, target_image_pos_x=null, target_image_pos_y=null}={}) =>
             {
+                // If we were given an explicit zoom factor to zoom to, use it.  This happens
+                // if we start the zoom in mobile_toggle_zoom.
+                if(target_factor != null)
+                {
+                    this.target_zoom_factor = target_factor;
+                    this.target_zoom_center = [target_image_pos_x, target_image_pos_y];
+                    return;
+                }
+
+                // Zoom relative to the center of the image.
+                this.target_zoom_center = [0.5, 0.5];
+
                 // Zoom up to contain if the current zoom is lower than contain.  Otherwise, zoom
                 // to cover if the zoom level is close to it.  By default, zoom to current, which
                 // means we won't do anything.
@@ -1703,10 +1715,15 @@ ppixiv.image_viewer_mobile = class extends ppixiv.image_viewer_base
             // 0.5, return 2.
             get_wanted_zoom: () =>
             {
-                // ratio is the ratio we want to be applied relative to to the current zoom,
-                // centerX and centerY are the center of the zoom, which is the center of the image.
-                let [centerX, centerY] = this.get_screen_pos_from_image_pos([0.5, 0.5]);
-                return { ratio: this.target_zoom_factor / this._zoom_factor_current, centerX, centerY };
+                // this.target_zoom_center is in image coordinates.  Return screen coordinates.
+                let [centerX, centerY] = this.get_screen_pos_from_image_pos(this.target_zoom_center);
+
+                // ratio is the ratio we want to be applied relative to to the current zoom.
+                return {
+                    ratio: this.target_zoom_factor / this._zoom_factor_current,
+                    centerX,
+                    centerY,
+                };
             },
         });
     }
@@ -1745,12 +1762,19 @@ ppixiv.image_viewer_mobile = class extends ppixiv.image_viewer_base
         let zoom_distance_in = Math.abs(current_zoom_level - zoom_in_level);
         let zoom_distance_out = Math.abs(current_zoom_level - zoom_out_level);
 
-        // Switch zoom_in_level from the actual zoom level to "cover" if needed.
-        if(Math.abs(zoom_in_level - this._zoom_level_cover) < 0.001)
-            zoom_in_level = "cover";
-
         let level = zoom_distance_in > zoom_distance_out? zoom_in_level:zoom_out_level;
-        this.zoom_set_level(level, {x: e.clientX, y: e.clientY});
+        let target_factor = this.zoom_level_to_zoom_factor(level);
+
+        let x = e.clientX, y = e.clientY;
+        let center = this.get_image_position([x, y]);
+
+        this.touch_scroller.start_fling({
+            onanimationstarted_options: {
+                target_factor,
+                target_image_pos_x: center[0],
+                target_image_pos_y: center[1],
+            }
+        });
     }
 
     // The mobile UI is always in locked zoom mode.

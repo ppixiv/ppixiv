@@ -5625,6 +5625,16 @@ ppixiv.TouchScroller = class
         this.ignore_next_pointermove = true;
     }
 
+    // Cancel any drag immediately without starting a fling.
+    cancel_drag()
+    {
+        // Release all pointer captures.
+        for(let id of this.pointers.keys())
+            this.container.releasePointerCapture(id);
+
+        this.pointers.clear();
+    }
+
     end_drag = (e) =>
     {
         // Ignore touches we don't know about.
@@ -5742,8 +5752,17 @@ ppixiv.TouchScroller = class
     get overscroll_strength() { return 0.994; }
 
     // Switch from dragging to flinging.
-    start_fling()
+    //
+    // This can be called by the user to force a fling to begin, allowing this to be used
+    // for smooth bouncing.  onanimationstarted_options will be passed to onanimationstarted
+    // for convenience.
+    start_fling({onanimationstarted_options=null}={})
     {
+        // If we're being called externally and not from a drag, a drag might be in progress.
+        // For regular flings after drags, we'll always have finished the drag, so this won't
+        // do anything.
+        this.cancel_drag();
+
         // We shouldn't already be flinging when this is called.
         if(this.mode == "fling")
         {
@@ -5756,7 +5775,7 @@ ppixiv.TouchScroller = class
         // Set the initial velocity to the average recent speed of all touches.
         this.velocity = this.fling_velocity.current_velocity;
 
-        this.options.onanimationstarted();
+        this.options.onanimationstarted({...onanimationstarted_options});
 
         console.assert(this.abort_fling == null);
         this.abort_fling = new AbortController();
