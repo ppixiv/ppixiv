@@ -2760,7 +2760,7 @@ ppixiv.helpers = {
         // The total pixel size we want each thumbnail to have:
         ratio ??= 1;
 
-        var desired_pixels = desired_size*desired_size / window.devicePixelRatio;
+        let desired_pixels = desired_size*desired_size;
 
         // The container might have a fractional size, and clientWidth will round it, which is
         // wrong for us: if the container is 500.75 wide and we calculate a fit for 501, the result
@@ -2772,6 +2772,8 @@ ppixiv.helpers = {
         let closest_error_to_desired_pixels = -1;
         let best_size = [0,0];
         let best_columns = 0;
+
+        // Find the greatest number of columns we can fit in the available width.
         for(let columns = max_columns; columns >= 1; --columns)
         {
             // The amount of space in the container remaining for images, after subtracting
