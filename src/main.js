@@ -412,14 +412,10 @@ ppixiv.MainController = class
             window.dispatchEvent(e);
         }
 
-        // Tell all screens the current data source, whether they're active or not.  The
-        // search screen may want to get ready for display even if we start on the illust
-        // screen.
-        for(let screen of Object.values(this.screens))
-            screen.set_data_source(data_source);
-
         if(new_screen != null)
         {
+            new_screen.set_data_source(data_source);
+
             // Restore state from history if this is an initial load (which may be
             // restoring a tab), for browser forward/back, or if we're exiting from
             // quick view (which is like browser back).  This causes the pan/zoom state
@@ -438,14 +434,6 @@ ppixiv.MainController = class
             old_screen.deactivate();
 
         this.refresh_main_scroll();
-    }
-
-    // This is called by screen_illust when it wants screen_search to try to scroll to
-    // an image, so it's ready if we start transitioning out.  We don't do this directly
-    // since this shouldn't happen during search->illust transitions.
-    scroll_to_media_id(media_id)
-    {
-        this.screen_search.scroll_to_media_id(media_id);
     }
 
     get_rect_for_media_id(media_id)
@@ -585,25 +573,29 @@ ppixiv.MainController = class
             return;
 
         let args = helpers.get_url_for_id(media_id, { manga: true });
-        this.navigate_from_image_to_to_search(args);
+        this.navigate_from_image_to_search(args);
     }
 
-    // When viewing an image, navigate to the corresponding search.
-    navigate_to_search()
+    // This is called by screen_illust when it wants screen_search to try to display a
+    // media ID in a data source, so it's ready for a transition to start.  This only
+    // has an effect if search isn't already active.
+    scroll_search_to_media_id(data_source, media_id)
     {
-        let args = new helpers.args(this.data_source.url.toString());
+        if(this.current_screen_name == "search")
+            return;
 
-        // If the user clicks "return to search" while on data_sources.current_illust, go somewhere
-        // else instead, since that viewer never has any search results.
-        if(this.data_source instanceof data_sources.current_illust)
-            args = new helpers.args("/bookmark_new_illust.php#ppixiv", ppixiv.location);
-
-        this.navigate_from_image_to_to_search(args);
+        this.screen_search.set_data_source(data_source);
+        this.screen_search.scroll_to_media_id(media_id);
     }
 
-    // Navigate to args, handling some special cases for navigating from screen_illust to
-    // screen_search.
-    navigate_from_image_to_to_search(args)
+    // Navigate to args.
+    //
+    // This is called when the illust view wants to pop itself and return to a search
+    // instead of pushing a search in front of it.  If args is the previous history state,
+    // we'll just go back to it, otherwise we'll replace the current state.  This is only
+    // used when permanent navigation is enabled, otherwise we can't see what the previous
+    // state was.
+    navigate_from_image_to_search(args)
     {
         // If phistory.permanent isn't active, just navigate normally.  This is only used
         // on mobile.
@@ -613,15 +605,6 @@ ppixiv.MainController = class
             return;
         }
 
-        // On mobile, we don't want to push searches in front of illusts.  If we navigate from
-        // an illust to a search, we'll replace the illust instead, so we always have a history
-        // of searches followed by at most one image.  From the user's perspective, the image
-        // is a modal view on top of a list of searches.  This helps simplify the screen/illust
-        // transition, and simplifies navigation for the more limited mobile UI.
-        //
-        // If the previous URL in history is this search, just go back to it, otherwise replace
-        // the illust view state with the search.  We can do this in permanent mode, since we
-        // can access the URL for the previous state.
         let previous_url = ppixiv.phistory.previous_state_url;
         let same_url = helpers.are_urls_equivalent(previous_url, args.url);
         if(same_url)

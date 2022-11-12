@@ -14,6 +14,8 @@ ppixiv.screen = class extends ppixiv.widget
         return null;
     }
 
+    get active() { return !this.container.inert; }
+
     // The screen is becoming active.  This is async, since it may load data.
     async activate()
     {

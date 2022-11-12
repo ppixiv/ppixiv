@@ -4,7 +4,12 @@
 {
     @return calc(($x - $l1) * ($h2 - $l2) / ($h1 - $l1) + $l2)
 }
-  
+
+@function scale_clamp_value($x, $l1, $h1, $l2, $h2)
+{
+    @return calc(min($h2, max($l2, scale_value($x, $l1, $h1, $l2, $h2))))
+}
+
 * {
     box-sizing: border-box;
 
@@ -1062,6 +1067,7 @@ html.mobile .screen-illust-container {
     .follow-box {
         position: absolute;
         top: 100%;
+        z-index: 1;
     }
 
     // When we're in the context menu, push the dropdown down a bit so it's aligned with the edge
@@ -2620,31 +2626,40 @@ a.box-link, span.box-link
     // The image info in the top-right is a separate element from the UI pages.
     .context-menu-image-info-container {
         position: fixed;
-        html.phone & {
-            display: none;
-        }
 
         // Make sure we give enough room for the menu bar.
-        top: calc(max(8vh, env(safe-area-inset-top)));
-        right: calc(max(5vw, env(safe-area-inset-right)));
-        max-width: calc(100vw - 100px);
+        top: calc(max(5vmin, env(safe-area-inset-top)));
+
+        // Center this on phones, and put it in the top-right otherwise.
+        html.phone & {
+            width: 100%;
+        }
+        html:not(.phone) & {
+            right: calc(max(5vmin, env(safe-area-inset-right)));
+            max-width: calc(100vw - 100px);
+        }
         display: flex;
         flex-direction: column;
         gap: 0.5em;
         overflow: hidden;
         font-size: .8em;
         font-weight: bold;
-
         opacity: var(--menu-bar-pos);
-        transform: translateX(calc(20px * (1 - var(--menu-bar-pos))));
+
+        .info-text {
+            max-width: 100%;
+            transform: scale(scale_clamp_value(var(--menu-bar-pos), .6, 1, 0.75, 1));
+            transform-origin: center top;
+        }
 
         // The background and padding for the tag list goes on the individual tags.
-        .context-menu-image-info
+        .image-info
         {
-            background-color: var(--frame-bg-color);
-            border-radius: .25em;
-            padding: 6px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
             text-align: center;
+            gap: 0.5em;
 
             .title-text-block {
                 overflow: hidden;
@@ -2658,10 +2673,37 @@ a.box-link, span.box-link
                     }
                 }
             }
+
+            > .avatar {
+                margin: .25em;
+                background-color: var(--frame-bg-color);
+                border-radius: 5px;
+                padding: 0.25em;
+                pointer-events: auto;
+
+                // Remove the shadow that's put around avatars by default.
+                .avatar-widget-follow-container .avatar {
+                    box-shadow: none;
+                    width: min(170px, 50vmin);
+                    height: min(170px, 50vmin);
+                }
+
+                transform: scale(scale_clamp_value(var(--menu-bar-pos), 0, .6, 0.75, 1));
+                transform-origin: center bottom;
+            }
+
+            .info-text {
+                background-color: var(--frame-bg-color);
+                padding: .5em;
+            }
         }
 
-        .mobile-bookmark-tag-overlay
+        .mobile-tag-overlay
         {
+            html.phone & {
+                display: none;
+            }
+    
             .bookmark-tags
             {
                 margin-top: 0.25em;

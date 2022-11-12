@@ -829,11 +829,15 @@ ppixiv.creepy_eye_widget = class
 
 ppixiv.avatar_widget = class extends widget
 {
-    // options:
-    // parent: node to add ourself to (required)
-    // changed_callback: called when a follow or unfollow completes
-    // big: if true, show the big avatar instead of the small one
-    constructor(options)
+    constructor({
+        // If true, show the big avatar instead of the small one.
+        big=false,
+
+        // If true, handle clicks and show the follow dropdown.  If false, this is just an
+        // avatar image.
+        interactive=true,
+        ...options
+    }={})
     {
         super({...options, template: `
             <div class=avatar-widget-follow-container>
@@ -853,7 +857,7 @@ ppixiv.avatar_widget = class extends widget
         if(this.options.mode != "dropdown" && this.options.mode != "overlay")
             throw "Invalid avatar widget mode";
 
-        helpers.set_class(this.container, "big", this.options.big);
+        helpers.set_class(this.container, "big", big);
 
         user_cache.addEventListener("usermodified", this.user_changed, { signal: this.shutdown_signal.signal });
 
@@ -867,25 +871,28 @@ ppixiv.avatar_widget = class extends widget
             open_button: avatar_link,
         });
 
-        avatar_link.addEventListener("click", (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            this.follow_widget.visible = !this.follow_widget.visible;
-        }, {
-            // Hack: capture this event so we get clicks even over the eye widget.  We can't
-            // set it to pointer-events: none since it reacts to mouse movement.
-            capture: true,
-        });
+        if(interactive)
+        {
+            avatar_link.addEventListener("click", (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.follow_widget.visible = !this.follow_widget.visible;
+            }, {
+                // Hack: capture this event so we get clicks even over the eye widget.  We can't
+                // set it to pointer-events: none since it reacts to mouse movement.
+                capture: true,
+            });
 
-        // Clicking the avatar used to go to the user page, but now it opens the follow dropdown.
-        // Allow doubleclicking it instead, to keep it quick to go to the user.
-        avatar_link.addEventListener("dblclick", (e) => {
-            e.preventDefault();
-            e.stopPropagation();
+            // Clicking the avatar used to go to the user page, but now it opens the follow dropdown.
+            // Allow doubleclicking it instead, to keep it quick to go to the user.
+            avatar_link.addEventListener("dblclick", (e) => {
+                e.preventDefault();
+                e.stopPropagation();
 
-            let args = new helpers.args(`/users/${this.user_id}/artworks#ppixiv`);
-            helpers.navigate(args);
-        });
+                let args = new helpers.args(`/users/${this.user_id}/artworks#ppixiv`);
+                helpers.navigate(args);
+            });
+        }
 
         // A canvas filter for the avatar.  This has no actual filters.  This is just to kill off any
         // annoying GIF animations in people's avatars.

@@ -76,7 +76,7 @@ let mobile_illust_ui_top_page = class extends ppixiv.widget
         this.button_similar.addEventListener("click", (e) => {
             let [illust_id] = helpers.media_id_to_illust_id_and_page(this._media_id);
             let args = new helpers.args(`/bookmark_detail.php?illust_id=${illust_id}#ppixiv?recommendations=1`);
-            main_controller.navigate_from_image_to_to_search(args);
+            helpers.navigate(args);
         });
 
         this.button_bookmark.addEventListener("click", (e) => {
@@ -260,54 +260,6 @@ class mobile_illust_ui_more_options_dialog extends dialog_widget
     }
 }
 
-// We can only show tags when running natively, since bookmark tags aren't always loaded
-// on Pixiv.  This is only used for the mobile UI.
-class mobile_overlay_bookmark_tag_widget extends ppixiv.illust_widget
-{
-    constructor({...options})
-    {
-        super({ ...options, template: `
-            <div class=mobile-bookmark-tag-overlay>
-                <div class=bookmark-tags></div>
-            </div>
-        `});
-    }
-
-    refresh_internal({ media_info })
-    {
-        this.container.hidden = media_info == null;
-        if(this.container.hidden)
-            return;
-
-        let tag_widget = this.container.querySelector(".bookmark-tags");
-        helpers.remove_elements(tag_widget);
-        if(!media_info.bookmarkData?.tags)
-            return;
-
-        for(let tag of media_info.bookmarkData.tags)
-        {
-            let entry = this.create_template({name: "tag-entry", html: `
-                <div class="mobile-ui-tag-entry">
-                    ${ helpers.create_icon("ppixiv:tag", { classes: ["bookmark-tag-icon"] }) }
-                    <span class=tag-name></span>
-                </div>
-            `});
-
-            entry.querySelector(".tag-name").innerText = tag;
-            tag_widget.appendChild(entry);
-        }
-    }
-
-    set_data_source(data_source)
-    {
-        if(this.data_source == data_source)
-            return;
-
-        this.data_source = data_source;
-        this.refresh();
-    }
-}
-
 // The container for the mobile image UI.  This just creates and handles displaying
 // the tabs.
 ppixiv.mobile_illust_ui = class extends ppixiv.widget
@@ -330,13 +282,7 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
         
         this.transition_target = transition_target;
 
-        this.info_widget = new context_menu_image_info_widget({
-            parent: this,
-            container: this.container.querySelector(".context-menu-image-info-container"),
-            show_title: true,
-        });
-
-        this.bookmark_tag_list_widget = new mobile_overlay_bookmark_tag_widget({
+        this.info_widget = new image_info_widget({
             parent: this,
             container: this.container.querySelector(".context-menu-image-info-container"),
         });
@@ -385,7 +331,6 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
 
         this._media_id = media_id;
         this.info_widget.set_media_id(media_id);
-        this.bookmark_tag_list_widget.set_media_id(media_id);
         this.page.media_id = media_id;
 
         this.refresh();
@@ -472,3 +417,149 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
     }
 }
 
+let image_info_widget = class extends ppixiv.illust_widget
+{
+    constructor({...options})
+    {
+        super({ ...options, template: `
+            <div class=image-info>
+                <div class=avatar></div>
+
+                <div class=info-text>
+                    <div class=title-text-block>
+                        <span class=folder-block hidden>
+                            <span class=folder-text></span>
+                            <span class=slash">/</span>
+                        </span>
+                        <span class=title hidden></span>
+                    </div>
+                    <div class=page-count hidden></div>
+                    <div class=image-info-text hidden></div>
+                    <div class="post-age popup" hidden></div>
+                    <div class=mobile-tag-overlay>
+                        <div class=bookmark-tags></div>
+                    </div>
+                </div>
+
+            </div>
+        `});
+
+        this.avatar_widget = new avatar_widget({
+            container: this.container.querySelector(".avatar"),
+            mode: "dropdown",
+            interactive: false,
+        });
+        this.container.querySelector(".avatar").hidden = ppixiv.native;
+    }
+
+    get needed_data()
+    {
+        // We need illust info if we're viewing a manga page beyond page 1, since
+        // early info doesn't have that.  Most of the time, we only need early info.
+        if(this._page == null || this._page == 0)
+            return "partial";
+        else
+            return "full";
+    }
+
+    set show_page_number(value)
+    {
+        this._show_page_number = value;
+        this.refresh();
+    }
+
+    refresh_internal({ media_id, media_info })
+    {
+        this.container.hidden = media_info == null;
+        if(this.container.hidden)
+            return;
+
+        this.avatar_widget.set_user_id(media_info?.userId);
+
+        let tag_widget = this.container.querySelector(".bookmark-tags");
+        helpers.remove_elements(tag_widget);
+        if(media_info.bookmarkData?.tags)
+        {
+            for(let tag of media_info.bookmarkData.tags)
+            {
+                let entry = this.create_template({name: "tag-entry", html: `
+                    <div class="mobile-ui-tag-entry">
+                        ${ helpers.create_icon("ppixiv:tag", { classes: ["bookmark-tag-icon"] }) }
+                        <span class=tag-name></span>
+                    </div>
+                `});
+
+                entry.querySelector(".tag-name").innerText = tag;
+                tag_widget.appendChild(entry);
+            }
+        }
+
+        let set_info = (query, text) =>
+        {
+            let node = this.container.querySelector(query);
+            node.innerText = text;
+            node.hidden = text == "";
+        };
+        
+        // Add the page count for manga.  If the data source is data_source.vview, show
+        // the index of the current file if it's loaded all results.
+        let current_page = this._page;
+        let page_count = media_info.pageCount;
+        let show_page_number = this._show_page_number;
+        if(this.data_source?.name == "vview" && this.data_source.all_pages_loaded)
+        {
+            let page = this.data_source.id_list.get_page_for_illust(media_id);
+            let ids = this.data_source.id_list.media_ids_by_page.get(page);
+            if(ids != null)
+            {
+                current_page = ids.indexOf(media_id);
+                page_count = ids.length;
+                show_page_number = true;
+            }
+        }
+
+        let page_text = "";
+        if(page_count > 1)
+        {
+            if(show_page_number || current_page > 0)
+                page_text = `Page ${current_page+1}/${page_count}`;
+            else
+                page_text = `${page_count} pages`;
+        }
+        set_info(".page-count", page_text);
+
+        set_info(".title", media_info.illustTitle);
+    
+        let show_folder = helpers.is_media_id_local(this._media_id);
+        this.container.querySelector(".folder-block").hidden = !show_folder;
+        if(show_folder)
+        {
+            let {id} = helpers.parse_media_id(this._media_id);
+            this.container.querySelector(".folder-text").innerText = helpers.get_path_suffix(id, 1, 1); // parent directory
+        }
+
+        // If we're on the first page then we only requested early info, and we can use the dimensions
+        // on it.  Otherwise, get dimensions from mangaPages from illust data.  If we're displaying a
+        // manga post and we don't have illust data yet, we don't have dimensions, so hide it until
+        // it's loaded.
+        var info = "";
+        let { width, height } = ppixiv.media_cache.get_dimensions(media_info, this._media_id);
+        if(width != null && height != null)
+            info += width + "x" + height;
+        set_info(".image-info-text", info);
+
+        let seconds_old = (new Date() - new Date(media_info.createDate)) / 1000;
+        let age = helpers.age_to_string(seconds_old);
+        this.container.querySelector(".post-age").dataset.popup = helpers.date_to_string(media_info.createDate);
+        set_info(".post-age", age);
+    }
+
+    set_data_source(data_source)
+    {
+        if(this.data_source == data_source)
+            return;
+
+        this.data_source = data_source;
+        this.refresh();
+    }
+}

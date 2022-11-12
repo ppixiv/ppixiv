@@ -1186,16 +1186,16 @@ class ScreenIllustDragToExit
                 // back to the search screen.  If the screen is already inactive then we're animating
                 // a navigation that has already happened (browser back).
                 if(this.parent._active)
-                    main_controller.navigate_to_search();
+                {
+                    let args = new helpers.args(this.parent.data_source.url.toString());
+                    main_controller.navigate_from_image_to_search(args);
+                }
             },
             onanimationfinished: () => {
                 // See if we want to remove the viewer now that the animation has finished.
                 this.parent.cleanup_image();
 
                 // Scroll the search view to the current image when we're not animating.
-                //
-                // We don't do this in onpointerdown, since that triggers a bug in iOS: movementY
-                // is affected by the scroll position.
                 this.showing_new_image();
             },
             onanimationstart: () => {
@@ -1215,8 +1215,8 @@ class ScreenIllustDragToExit
         // Either this will scroll to the image and we can use its position, or we know it
         // isn't in the list.  Only do this if we're completely visible (eg. we're hiding
         // and not showing), not if the scroll would be visible.
-        if(this.dragger.position == 1)
-            main_controller.scroll_to_media_id(this.parent.wanted_media_id);
+        if(this.dragger.position == 1 && this.parent.active)
+            main_controller.scroll_search_to_media_id(this.parent.data_source, this.parent.wanted_media_id);
 
         // Set properties for the animation.
         let x = 0, y = 0;
@@ -1275,9 +1275,15 @@ class ScreenIllustDragToExit
 
     showing_new_image()
     {
-        if(this.is_animating)
+        if(this.is_animating || !this.parent.active)
             return;
 
-        main_controller.scroll_to_media_id(this.parent.wanted_media_id);
+        // We finished animating and we're showing the image.  Set the search view to show
+        // where we'll be if we start transitioning back, so it's ready if the back transition
+        // starts.  We don't want to wait for the gesture to do this, since it's harder to get
+        // it set up in time.  We can do this safely since we're the active screen.
+        //
+        // Our data source should match where we'll navigate to in navigate_to_search
+        main_controller.scroll_search_to_media_id(this.parent.data_source, this.parent.wanted_media_id);
     }
 }

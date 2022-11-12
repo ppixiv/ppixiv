@@ -456,7 +456,6 @@ ppixiv.screen_search = class extends ppixiv.screen
         this.avatar_container = this.container.querySelector(".avatar-container");
         this.avatar_widget = new avatar_widget({
             container: this.avatar_container,
-            changed_callback: this.data_source_updated,
             big: true,
             mode: "dropdown",
         });
