@@ -772,7 +772,12 @@ html.mobile .screen-illust-container {
     position: fixed;
     left: max(env(safe-area-inset-left), 1rem);
     right: max(env(safe-area-inset-right), 1rem);
-    bottom: calc(2vh + env(safe-area-inset-bottom));
+
+    // On mobile, push notifications up a bit more so they don't overlap the illust
+    // view menu bar.
+    --extra-distance: 0px;
+    html.mobile & { --extra-distance: 3em; }
+    bottom: calc(2vh + env(safe-area-inset-bottom) + var(--extra-distance));
     z-index: 100000; /* over everything */
 
     transition: opacity .25s;
