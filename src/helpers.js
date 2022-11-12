@@ -2801,30 +2801,25 @@ ppixiv.helpers = {
             }
         }
 
-        let max_width = best_size[0];
-        let max_height = best_size[1];
+        let [thumb_width, thumb_height] = best_size;
 
         // If we want a smaller thumbnail size than we can reach within the max column
         // count, we won't have reached desired_pixels.  In this case, just clamp to it.
         // This will cause us to use too many columns, which we'll correct below with
         // container_width.
-        if(max_width * max_height > desired_pixels)
+        if(thumb_width * thumb_height > desired_pixels)
         {
-            max_height = max_width = Math.round(Math.sqrt(desired_pixels));
+            thumb_height = thumb_width = Math.round(Math.sqrt(desired_pixels));
 
             if(ratio < 1)
-                max_width *= ratio;
+                thumb_width *= ratio;
             else if(ratio > 1)
-                max_height /= ratio;
+                thumb_height /= ratio;
         }
 
-        // If we're only showing one column, snap the thumbnails to the container size.
-        if(best_columns == 1)
-            max_width = max_height = container_width;
-
         // Clamp the width of the container to the number of columns we expect.
-        container_width = best_columns*max_width + (best_columns-1)*padding;
-        return {columns: best_columns, padding, max_width, max_height, container_width};
+        container_width = best_columns*thumb_width + (best_columns-1)*padding;
+        return {columns: best_columns, padding, thumb_width, thumb_height, container_width};
     },
 
     // Given a list of manga info, return the aspect ratio to use to display them.

@@ -763,7 +763,7 @@ ppixiv.search_view = class extends ppixiv.widget
         let desired_size = settings.get(manga_view? "manga-thumbnail-size":"thumbnail-size", 4);
         desired_size = thumbnail_size_slider_widget.thumbnail_size_for_value(desired_size);
 
-        let {columns, padding, max_width, max_height, container_width} = helpers.make_thumbnail_sizing_style({
+        let {columns, padding, thumb_width, thumb_height, container_width} = helpers.make_thumbnail_sizing_style({
             container: this.thumbnail_box,
             desired_size,
             ratio: this.data_source.get_thumbnail_aspect_ratio(),
@@ -785,8 +785,8 @@ ppixiv.search_view = class extends ppixiv.widget
         // any changes.
         let saved_scroll = this.save_scroll_position();
 
-        this.container.style.setProperty('--thumb-width', `${max_width}px`);
-        this.container.style.setProperty('--thumb-height', `${max_height}px`);
+        this.container.style.setProperty('--thumb-width', `${thumb_width}px`);
+        this.container.style.setProperty('--thumb-height', `${thumb_height}px`);
         this.container.style.setProperty('--thumb-padding', `${padding}px`);
         this.container.style.setProperty('--container-width', `${container_width}px`);
 
