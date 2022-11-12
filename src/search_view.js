@@ -1184,7 +1184,7 @@ ppixiv.search_view = class extends ppixiv.widget
 
         // Show the page count if this is a multi-page post (unless we're on the
         // manga view itself).
-        if(info.pageCount > 1 && this.data_source?.name != "manga")
+        if(info && info.pageCount > 1 && this.data_source?.name != "manga")
         {
             let pageCountBox = thumb.querySelector(".manga-info-box");
             pageCountBox.hidden = false;
