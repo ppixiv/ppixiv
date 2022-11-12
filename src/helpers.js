@@ -2767,19 +2767,20 @@ ppixiv.helpers = {
         // won't actually fit.  Get the bounding box instead, which isn't rounded.
         // var container_width = container.parentNode.clientWidth;
         let container_width = Math.floor(container.parentNode.getBoundingClientRect().width);
-        var padding = min_padding;
+        let padding = min_padding;
         
-        var closest_error_to_desired_pixels = -1;
-        var best_size = [0,0];
-        var best_columns = 0;
-        for(var columns = max_columns; columns >= 1; --columns)
+        let closest_error_to_desired_pixels = -1;
+        let best_size = [0,0];
+        let best_columns = 0;
+        for(let columns = max_columns; columns >= 1; --columns)
         {
             // The amount of space in the container remaining for images, after subtracting
             // the padding around each image.  Padding is the flex gap, so this doesn't include
             // padding at the left and right edge.
-            var remaining_width = container_width - padding*(columns-1);
-            var max_width = remaining_width / columns;
-            var max_height = max_width;
+            let remaining_width = container_width - padding*(columns-1);
+            let max_width = remaining_width / columns;
+
+            let max_height = max_width;
             if(ratio < 1)
                 max_width *= ratio;
             else if(ratio > 1)
@@ -2788,8 +2789,8 @@ ppixiv.helpers = {
             max_width = Math.floor(max_width);
             max_height = Math.floor(max_height);
 
-            var pixels = max_width * max_height;
-            var error = Math.abs(pixels - desired_pixels);
+            let pixels = max_width * max_height;
+            let error = Math.abs(pixels - desired_pixels);
             if(closest_error_to_desired_pixels == -1 || error < closest_error_to_desired_pixels)
             {
                 closest_error_to_desired_pixels = error;
@@ -2798,8 +2799,8 @@ ppixiv.helpers = {
             }
         }
 
-        max_width = best_size[0];
-        max_height = best_size[1];
+        let max_width = best_size[0];
+        let max_height = best_size[1];
 
         // If we want a smaller thumbnail size than we can reach within the max column
         // count, we won't have reached desired_pixels.  In this case, just clamp to it.
