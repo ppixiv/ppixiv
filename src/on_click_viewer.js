@@ -1706,15 +1706,6 @@ ppixiv.image_viewer_mobile = class extends ppixiv.image_viewer_base
                 return new ppixiv.FixedDOMRect(top_left[0], top_left[1], bottom_right[0], bottom_right[1]);
             },
 
-            // Get the zoom level we'd want to bounce to if a fling was released.
-            get _target_zoom_level()
-            {
-                if(this._zoom_factor_current < this._zoom_factor_contain)
-                    return this._zoom_factor_contain;
-                else
-                    return this._zoom_factor_cover; //_zoom_factor_current;
-            },
-
             // When a fling starts (this includes releasing drags, even without a fling), decide
             // on the zoom factor we want to bounce to.
             onanimationstarted: ({target_factor=null, target_image_pos=null}={}) =>
@@ -1731,12 +1722,17 @@ ppixiv.image_viewer_mobile = class extends ppixiv.image_viewer_base
                 // Zoom relative to the center of the image.
                 this.target_zoom_center = [0.5, 0.5];
 
-                // Zoom up to contain if the current zoom is lower than contain.  Otherwise, zoom
-                // to cover if the zoom level is close to it.  By default, zoom to current, which
-                // means we won't do anything.
+                // If we're smaller than contain, always zoom up to contain.  Also snap to contain
+                // if we're slightly over, so we don't zoom to cover if cover and contain are nearby
+                // and we're very close to contain.  Don't give this much of a threshold, since it's
+                // always easy to zoom to contain (just zoom out a bunch).
+                //
+                // Snap to cover if we're close to it.
+                //
+                // Otherwise, zoom to current, which is a no-op and will leave the zoom alone.
                 let zoom_factor_cover = this._zoom_factor_cover;
                 let zoom_factor_current = this._zoom_factor_current;
-                if(this._zoom_factor_current < this._zoom_factor_contain)
+                if(this._zoom_factor_current < this._zoom_factor_contain + 0.01)
                     this.target_zoom_factor = this._zoom_factor_contain;
                 else if(Math.abs(zoom_factor_cover - zoom_factor_current) < 0.15)
                     this.target_zoom_factor = this._zoom_factor_cover;
