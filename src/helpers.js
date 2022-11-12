@@ -2807,7 +2807,10 @@ ppixiv.helpers = {
         // count, we won't have reached desired_pixels.  In this case, just clamp to it.
         // This will cause us to use too many columns, which we'll correct below with
         // container_width.
-        if(thumb_width * thumb_height > desired_pixels)
+        //
+        // On mobile, just allow the thumbnails to be bigger, so we prefer to fill the
+        // screen and not waste screen space.
+        if(!ppixiv.mobile && thumb_width * thumb_height > desired_pixels)
         {
             thumb_height = thumb_width = Math.round(Math.sqrt(desired_pixels));
 

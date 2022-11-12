@@ -491,15 +491,9 @@ ppixiv.thumbnail_size_slider_widget = class extends menu_option_slider_setting
             value = 4;
         return value;
     }
-    set value(value) { super.value = value; 
-    }
+    set value(value) { super.value = value;  }
     static thumbnail_size_for_value(value)
     {
         return 100 * Math.pow(1.3, value);
-    }
-
-    get thumbnail_size()
-    {
-        return thumbnail_size_slider_widget.thumbnail_size_for_value(this.slider.value);
     }
 };
