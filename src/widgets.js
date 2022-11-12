@@ -2352,6 +2352,22 @@ ppixiv.bookmark_button_widget = class extends ppixiv.illust_widget
     }
 }
 
+// A trivial version of bookmark_button_widget that just displays if the image is bookmarked.
+ppixiv.bookmark_button_display_widget = class extends ppixiv.illust_widget
+{
+    get needed_data() { return "partial"; }
+
+    refresh_internal({ media_info })
+    {
+        let bookmarked = media_info?.bookmarkData != null;
+        let private_bookmark = media_info?.bookmarkData?.private;
+
+        helpers.set_class(this.container,  "enabled",     media_info != null);
+        helpers.set_class(this.container,  "bookmarked",  bookmarked);
+        helpers.set_class(this.container,  "public",      !private_bookmark);
+    }
+}
+
 ppixiv.bookmark_count_widget = class extends ppixiv.illust_widget
 {
     refresh_internal({ media_info })

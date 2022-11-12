@@ -3187,7 +3187,24 @@ svg.heart-image .delete {
 
         // Set a min width on the tag list, so it isn't very thin if the tags are all
         // short.  The actual size will be capped by the dialog.
-        min-width: 50vw;
+        min-width: 20em;
+    }
+
+    .dialog .scroll {
+        // Remove the padding on the bottom, so the menu bar sits on the bottom and
+        // the text isn't visible underneath it in the padding.
+        margin-bottom: 0;
+        padding-bottom: 0;
+    }
+
+    .menu-bar {
+        position: sticky;
+        bottom: 0;
+        background-color: #000;
+        display: flex;
+        flex-direction: row;
+        justify-content: space-evenly;
+        padding: 0.5em 0;
     }
 }
 

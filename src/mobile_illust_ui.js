@@ -17,19 +17,9 @@ let mobile_illust_ui_top_page = class extends ppixiv.widget
                         <span class=label>Loop</span>
                     </div>
 
-                    <div class="item button-bookmark public" data-bookmark-type=public>
+                    <div class="item button-bookmark">
                         <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
                         <span class=label>Bookmark</span>
-                    </div>
-
-                    <div class="item button-bookmark private button-container" data-bookmark-type=private>
-                        <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
-                        <span class=label>Bookmark privately</span>
-                    </div>
-                    
-                    <div class="item button-bookmark-tags">
-                        ${ helpers.create_icon("ppixiv:tag") }
-                        <span class=label>Tags</span>
                     </div>
 
                     <div class="item button-more enabled">
@@ -70,26 +60,19 @@ let mobile_illust_ui_top_page = class extends ppixiv.widget
             this.parent.hide();
         });
 
-        this.container.querySelector(".button-bookmark-tags").addEventListener("click", (e) => {
+        this.button_bookmark = this.container.querySelector(".button-bookmark");
+        this.bookmark_button_widget = new bookmark_button_display_widget({
+            parent: this,
+            contents: this.button_bookmark,
+        });
+
+        this.button_bookmark.addEventListener("click", (e) => {
             new mobile_overlay_bookmark_tag_dialog({
                 media_id: this._media_id
             });
             
             this.parent.hide();
         });
-
-        this.illust_widgets = [
-        ];
-
-        // The bookmark buttons, and clicks in the tag dropdown:
-        for(let a of this.container.querySelectorAll("[data-bookmark-type]"))
-        {
-            this.illust_widgets.push(new bookmark_button_widget({
-                parent: this,
-                contents: a,
-                bookmark_type: a.dataset.bookmarkType,
-            }));
-        }
 
         // This tells widgets that want to be above us how tall we are.
         this.refresh_video_height();
@@ -104,12 +87,6 @@ let mobile_illust_ui_top_page = class extends ppixiv.widget
             return;
 
         this.data_source = data_source;
-
-        for(let widget of this.illust_widgets)
-        {
-            if(widget.set_data_source)
-                widget.set_data_source(data_source);
-        }
 
         this.refresh();
     }
@@ -140,7 +117,7 @@ let mobile_illust_ui_top_page = class extends ppixiv.widget
 
         helpers.set_class(this.toggle_slideshow_button, "selected", main_controller.slideshow_mode == "1");
         helpers.set_class(this.toggle_loop_button, "selected", main_controller.slideshow_mode == "loop");
-        helpers.set_class(this.container.querySelector(".button-bookmark-tags"), "enabled", true);
+        helpers.set_class(this.container.querySelector(".button-bookmark"), "enabled", true);
 
         // If we're visible, tell widgets what we're viewing.  Don't do this if we're not visible, so
         // they don't load data unnecessarily.  Don't set these back to null if we're hidden, so they
@@ -148,13 +125,7 @@ let mobile_illust_ui_top_page = class extends ppixiv.widget
         if(this.visible)
         {
             let media_id = this._media_id;
-            for(let widget of this.illust_widgets)
-            {
-                if(widget.set_media_id)
-                    widget.set_media_id(media_id);
-
-                widget.show_page_number = true;
-            }
+            this.bookmark_button_widget.set_media_id(media_id);
         }
     }
 
@@ -205,20 +176,40 @@ class mobile_overlay_bookmark_tag_dialog extends ppixiv.dialog_widget
     constructor({media_id, ...options})
     {
         super({...options, dialog_class: "mobile-tag-list", small: true, header: "Bookmark tags", template: `
-            <div class=scroll></div>
+            <div class=menu-bar>
+                <div class="item button-bookmark public">
+                    <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
+                </div>
+
+                <div class="item button-bookmark private button-container">
+                    <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
+                </div>
+            </div>
         `});
+
+        let public_bookmark = this.container.querySelector(".public");
+        this.public_bookmark = new bookmark_button_widget({
+            parent: this,
+            contents: public_bookmark,
+            bookmark_type: "public",
+        });
+        this.public_bookmark.set_media_id(media_id);
+
+        let private_bookmark = this.container.querySelector(".private");
+        this.private_bookmark = new bookmark_button_widget({
+            parent: this,
+            contents: private_bookmark,
+            bookmark_type: "private",
+        });
+        this.private_bookmark.set_media_id(media_id);
 
         this.tag_list_widget = new bookmark_tag_list_widget({
             parent: this,
             container: this.container.querySelector(".scroll"),
+            container_position: "afterbegin",
         });
 
         this.tag_list_widget.set_media_id(media_id);
-    }
-
-    set_data_source(data_source)
-    {
-        this.tag_list_widget.data_source = data_source;
     }
 
     visibility_changed()
