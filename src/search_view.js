@@ -995,7 +995,7 @@ ppixiv.search_view = class extends ppixiv.widget
 
     thumbnail_onclick = async(e) =>
     {
-        let page_count_box = e.target.closest(".expand-button");
+        let page_count_box = e.target.closest(".manga-info-box");
         if(page_count_box)
         {
             e.preventDefault();
@@ -1194,10 +1194,7 @@ ppixiv.search_view = class extends ppixiv.widget
             let text = show_expanded? `${illust_page+1}/${info.pageCount}`:info.pageCount;
             thumb.querySelector(".manga-info-box .page-count").textContent = text;
             thumb.querySelector(".manga-info-box .page-count").hidden = false;
-
-            let page_count_box2 = thumb.querySelector(".show-manga-pages-button");
-            page_count_box2.hidden = false;
-            page_count_box2.href = `/artworks/${illust_id}#ppixiv?manga=1`;
+            helpers.set_class(thumb.querySelector(".manga-info-box"), "show-expanded", show_expanded);
         }
     }
 
@@ -1614,18 +1611,10 @@ ppixiv.search_view = class extends ppixiv.widget
                             <ppixiv-inline src="resources/play-button.svg"></ppixiv-inline>
                         </div>
 
-                        <div class=manga-info-box style="cursor: pointer;" hidden>
-                            <a class=show-manga-pages-button hidden data-hidden-on=mobile>
-                                ${ helpers.create_icon("pages") }
-                            </a>
-
-                            <span class=expand-button>
-                                <span class=page-icon>
-                                    <img class=regular src="ppixiv:resources/page-icon.png">
-                                    <img class=hover src="ppixiv:resources/page-icon-hover.png">
-                                </span>
-                                <span class=page-count hidden>1234</span>
-                            </span>
+                        <div class=manga-info-box hidden>
+                            <img class="page-icon regular" src="ppixiv:resources/page-icon.png">
+                            <img class="page-icon hover" src="ppixiv:resources/page-icon-hover.png">
+                            <span class=page-count hidden>1234</span>
                         </div>
                     </div>
                 </div>

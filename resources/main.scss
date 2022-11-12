@@ -1700,15 +1700,6 @@ body.hide-r18g .r18g { display: none; }
             }
         }
 
-        .show-manga-pages-button {
-            font-size: 16px;            
-        }
-
-        // Hide the manga index button beyond the first page.
-        &:not(.first-manga-page) .show-manga-pages-button {
-            display: none !important;
-        }
-
         .bottom-row {
             position: absolute;
             display: flex;
@@ -1725,6 +1716,11 @@ body.hide-r18g .r18g { display: none; }
             bottom: 3px;
             padding: 0 4px;
             overflow: hidden;
+
+            // Reduce the font size to the default on mobile.
+            html.mobile & {
+                font-size: 1rem;
+            }
 
             // These are tricky.  We want the label to be centered, and if icons are shown in the
             // corners, the label stays centered as long as there's room.  It only shifts or shrinks
@@ -1744,6 +1740,8 @@ body.hide-r18g .r18g { display: none; }
             }
 
             .bottom-right-icon {
+                display: flex;
+
                 justify-content: end;
                 align-self: end;
             }
@@ -1787,58 +1785,47 @@ body.hide-r18g .r18g { display: none; }
             .manga-info-box {
                 display: inline-flex;
                 align-items: center;
-                gap: 4px;
-                padding: 0 4px;
+                justify-content: center;
+                vertical-align: middle;
+                padding: .25em .5em;
                 background-color: rgba(0,0,0,.6);
                 border-radius: 6px;
                 white-space: nowrap;
+                cursor: pointer;
+                border-radius: 6px;
+                overflow: hidden; // clip the hover background-color to our border radius
 
                 // Clicks inside here are too small and finicky for mobile and get in the way of trying
                 // to click the thumbnail itself.
                 html:not(.mobile) & {
                     pointer-events: auto; // turn pointer events back on
                 }
-                border-radius: 6px;
-                overflow: hidden; // clip the hover background-color to our border radius
 
-                .show-manga-pages-button {
-                    display: inline-flex;
-                    padding: 4px 0px;
+                &:hover {
+                    background-color: rgba(0,20,120,.8);
+                }
+                &:hover .regular {
+                    display: none;
+                }
+                &:not(:hover) .hover {
+                    display: none;
+                }
+        
+                .page-count {
+                    vertical-align: middle;
+                    padding-left: .15em;
 
-                    @media(hover: hover) {
-                        &:hover {
-                            background-color: rgba(0,20,120,.8);
-                        }
+                    // Chop off descenders.
+                    html:not(.ios) & {
+                        margin-bottom: -0.15em;
                     }
                 }
 
-                .expand-button {
-                    display: inline-flex;
-                    padding: 4px 0px;
-                    align-items: center;
-
-                    .page-icon {
-                        width: 16px;
-                        height: 16px;
-                        display: inline-flex;
-                        vertical-align: middle;
-                        align-items: center;
-                        justify-content: center;
-                    }
-                    &:hover {
-                        background-color: rgba(0,20,120,.8);
-                    }
-                    &:hover .regular {
-                        display: none;
-                    }
-                    &:not(:hover) .hover {
-                        display: none;
-                    }
-            
+                html.mobile &.show-expanded {
+                    .page-icon { display: none; }
                     .page-count {
-                        vertical-align: middle;
-                        padding-left: 2px;
-                        margin-bottom: -4px; // hack to center correctly
+                        padding-left: 0;
+                        margin-bottom: 0;
                     }
                 }
             }
