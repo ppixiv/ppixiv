@@ -39,11 +39,9 @@ ppixiv.search_view = class extends ppixiv.widget
                 </div>
 
                 <div class=load-previous-page hidden>
-                    <div class=load-previous-buttons>
-                        <a class="load-previous-button load-previous-page-link" href=# hidden>
-                            Load previous results
-                        </a>
-                    </div>
+                    <a class=load-previous-button href=#>
+                        Load previous results
+                    </a>
                 </div>
 
                 <div class=thumbnails data-context-menu-target></div>
@@ -106,7 +104,7 @@ ppixiv.search_view = class extends ppixiv.widget
 
         this.thumbnail_box.addEventListener("click", this.thumbnail_onclick);
 
-        this.container.querySelector(".load-previous-page-link").addEventListener("click", (e) =>
+        this.container.querySelector(".load-previous-button").addEventListener("click", (e) =>
         {
             e.preventDefault();
             e.stopImmediatePropagation();
@@ -1371,7 +1369,7 @@ ppixiv.search_view = class extends ppixiv.widget
             // Set the link for the first page and previous page buttons.  Most of the time this is handled
             // by our in-page click handler.
             let page = this.data_source.get_start_page(helpers.args.location);
-            let previous_page_link = this.load_previous_page_button.querySelector("a.load-previous-page-link");
+            let previous_page_link = this.load_previous_page_button.querySelector("a.load-previous-button");
             let args = helpers.args.location;
             this.data_source.set_start_page(args, page-1);
             previous_page_link.href = args.url;
