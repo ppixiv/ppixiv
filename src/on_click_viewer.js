@@ -421,13 +421,13 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         super.shutdown();
     }
 
-    // Return "portrait" if the image is taller than the screen, otherwise "landscape".
+    // Return "portrait" if the image is taller than the view, otherwise "landscape".
     get relative_aspect()
     {
-        // Figure out whether the image is relatively portrait or landscape compared to the screen.
-        let screen_width = Math.max(this.container_width, 1); // might be 0 if we're hidden
-        let screen_height = Math.max(this.container_height, 1);
-        return (screen_width/this.cropped_size.width) > (screen_height/this.cropped_size.height)? "portrait":"landscape";
+        // Figure out whether the image is relatively portrait or landscape compared to the view.
+        let view_width = Math.max(this.view_width, 1); // might be 0 if we're hidden
+        let view_height = Math.max(this.view_height, 1);
+        return (view_width/this.cropped_size.width) > (view_height/this.cropped_size.height)? "portrait":"landscape";
     }
 
     // Set the pan position to the default for this image, or start the selected animation.
@@ -533,17 +533,17 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
     //
     // The zoom factor is the actual amount we zoom the image by, relative to its
     // base size (this.width and this.height).  A zoom factor of 1 will fill the
-    // screen ("cover" mode).
+    // view ("cover" mode).
     //
     // The zoom level is the user-facing exponential zoom, with a level of 0 fitting
-    // the image on screen ("contain" mode).
+    // the image inside the view ("contain" mode).
     zoom_level_to_zoom_factor(level)
     {
         // Convert from an exponential zoom level to a linear zoom factor.
         let linear = Math.pow(1.5, level);
 
-        // If linear == 1 (level 0), we want the image to fit on the screen ("contain" mode),
-        // but the image is actually scaled to cover the screen.
+        // If linear == 1 (level 0), we want the image to fit inside the view ("contain" mode),
+        // but the image is actually scaled to cover the view.
         let factor = linear * this._image_to_contain_ratio / this._image_to_cover_ratio;
         return factor;
     }
@@ -585,9 +585,9 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
     // The zoom factor for cover mode.
     get _zoom_factor_cover()
     {
-        let result = Math.max(this.container_width/this.width, this.container_height/this.height) || 1;
+        let result = Math.max(this.view_width/this.width, this.view_height/this.height) || 1;
 
-        // If container_width/height is zero then we're hidden and have no size, so this zoom factor
+        // If view_width/height is zero then we're hidden and have no size, so this zoom factor
         // isn't meaningful.  Just make sure we don't return 0.
         return result == 0? 1:result;
     }
@@ -595,9 +595,9 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
 
     get _zoom_factor_contain()
     {
-        let result = Math.min(this.container_width/this.width, this.container_height/this.height) || 1;
+        let result = Math.min(this.view_width/this.width, this.view_height/this.height) || 1;
 
-        // If container_width/height is zero then we're hidden and have no size, so this zoom factor
+        // If view_width/height is zero then we're hidden and have no size, so this zoom factor
         // isn't meaningful.  Just make sure we don't return 0.
         return result == 0? 1:result;
     }
@@ -613,17 +613,17 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         if(stop_animation)
             this.stop_animation();
 
-        // zoom_level can be a number.  At 0 (default), we zoom to fit the image in the screen.
+        // zoom_level can be a number.  At 0 (default), we zoom to fit the image in the view.
         // Higher numbers zoom in, lower numbers zoom out.  Zoom levels are logarithmic.
         //
-        // zoom_level can be "cover", which zooms to fill the screen completely, so we only zoom on
+        // zoom_level can be "cover", which zooms to fill the view completely, so we only zoom on
         // one axis.
         //
         // zoom_level can also be "actual", which zooms the image to its natural size.
         //
         // These zoom levels have a natural ordering, which we use for incremental zooming.  Figure
         // out the zoom levels that correspond to "cover" and "actual".  This changes depending on the
-        // image and screen size.
+        // image and view size.
 
         let cover_zoom_level = this._zoom_level_cover;
         let actual_zoom_level = this._zoom_level_actual;
@@ -666,46 +666,46 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         this.set_zoom_level(new_level);
     }
 
-    // Return the image coordinate at a given screen coordinate.
-    get_image_position(screen_pos, {pos=null}={})
+    // Return the image coordinate at a given view coordinate.
+    get_image_position(view_pos, {pos=null}={})
     {
         if(pos == null)
             pos = this.current_zoom_pos;
 
         return [
-            pos[0] + (screen_pos[0] - this.container_width/2)  / this.onscreen_width,
-            pos[1] + (screen_pos[1] - this.container_height/2) / this.onscreen_height,
+            pos[0] + (view_pos[0] - this.view_width/2)  / this.current_width,
+            pos[1] + (view_pos[1] - this.view_height/2) / this.current_height,
         ];
     }
 
-    // Return the screen coordinate for the given image coordinate (the inverse of get_image_position).
-    get_screen_pos_from_image_pos(image_pos, {pos=null}={})
+    // Return the view coordinate for the given image coordinate (the inverse of get_image_position).
+    get_view_pos_from_image_pos(image_pos, {pos=null}={})
     {
         if(pos == null)
             pos = this.current_zoom_pos;
             
         return [
-            (image_pos[0] - pos[0]) * this.onscreen_width + this.container_width/2,
-            (image_pos[1] - pos[1]) * this.onscreen_height + this.container_height/2,
+            (image_pos[0] - pos[0]) * this.current_width + this.view_width/2,
+            (image_pos[1] - pos[1]) * this.current_height + this.view_height/2,
         ];
     }
 
-    // Given a screen position and a point on the image, return the center_pos needed
-    // to align the point to that screen position.
-    get_center_for_image_position(screen_pos, zoom_center)
+    // Given a view position and a point on the image, return the center_pos needed
+    // to align the point to that view position.
+    get_center_for_image_position(view_pos, zoom_center)
     {
         return [
-            -((screen_pos[0] - this.container_width/2)  / this.onscreen_width - zoom_center[0]),
-            -((screen_pos[1] - this.container_height/2) / this.onscreen_height - zoom_center[1]),
+            -((view_pos[0] - this.view_width/2)  / this.current_width - zoom_center[0]),
+            -((view_pos[1] - this.view_height/2) / this.current_height - zoom_center[1]),
         ];
     }
 
-    // Given a screen position and a point on the image, align the point to the screen
+    // Given a view position and a point on the image, align the point to the view
     // position.  This has no effect when we're not zoomed.  reposition() must be called
     // after changing this.
-    set_image_position(screen_pos, zoom_center)
+    set_image_position(view_pos, zoom_center)
     {
-        this.center_pos = this.get_center_for_image_position(screen_pos, zoom_center);
+        this.center_pos = this.get_center_for_image_position(view_pos, zoom_center);
     }
 
     quickviewpointermove = (e) =>
@@ -738,8 +738,8 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         }
 
         // This will make mouse dragging match the image exactly:
-        x_offset /= this.onscreen_width;
-        y_offset /= this.onscreen_height;
+        x_offset /= this.current_width;
+        y_offset /= this.current_height;
 
         // Scale movement by the zoom factor, so we move faster if we're zoomed
         // further in.
@@ -765,33 +765,31 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         return this._mouse_pressed || this.get_locked_zoom();
     }
 
-    // Return the ratio to scale from the image's natural dimensions to cover the screen,
-    // filling the screen on both dimensions and only overflowing on one axis.  We use this
+    // Return the ratio to scale from the image's natural dimensions to cover the view,
+    // filling it in both dimensions and only overflowing on one axis.  We use this
     // as the underlying image size.
     get _image_to_cover_ratio()
     {
-        let screen_width = this.container_width;
-        let screen_height = this.container_height;
+        let { view_width, view_height } = this;
 
         // In case we're hidden and have no width, make sure we don't return an invalid value.
-        if(screen_width == 0 || screen_height == 0)
+        if(view_width == 0 || view_height == 0)
             return 1;
 
-        return Math.max(screen_width/this.cropped_size.width, screen_height/this.cropped_size.height);
+        return Math.max(view_width/this.cropped_size.width, view_height/this.cropped_size.height);
     }
 
     // Return the ratio to scale from the image's natural dimensions to contain it to the
     // screen, filling the screen on one axis and not overflowing either axis.
     get _image_to_contain_ratio()
     {
-        let screen_width = this.container_width;
-        let screen_height = this.container_height;
+        let { view_width, view_height } = this;
 
         // In case we're hidden and have no width, make sure we don't return an invalid value.
-        if(screen_width == 0 || screen_height == 0)
+        if(view_width == 0 || view_height == 0)
             return 1;
 
-        return Math.min(screen_width/this.cropped_size.width, screen_height/this.cropped_size.height);
+        return Math.min(view_width/this.cropped_size.width, view_height/this.cropped_size.height);
     }
 
     // Return the DOMRect of the cropped size of the image.  If we're not cropping, this
@@ -809,12 +807,12 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
     get height() { return this.cropped_size.height * this._image_to_cover_ratio; }
 
     // The actual size of the image with its current zoom.
-    get onscreen_width() { return this.width * this._zoom_factor_current; }
-    get onscreen_height() { return this.height * this._zoom_factor_current; }
+    get current_width() { return this.width * this._zoom_factor_current; }
+    get current_height() { return this.height * this._zoom_factor_current; }
 
     // The dimensions of the image viewport.  This can be 0 if the view is hidden.
-    get container_width() { return this.container.offsetWidth || 1; }
-    get container_height() { return this.container.offsetHeight || 1; }
+    get view_width() { return this.container.offsetWidth || 1; }
+    get view_height() { return this.container.offsetHeight || 1; }
 
     get current_zoom_pos()
     {
@@ -831,7 +829,7 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
 
         // Stop if we're being called after being disabled, or if we have no container
         // (our parent has been removed and we're being shut down).
-        if(this.container == null || this.container_width == 0)
+        if(this.container == null || this.view_width == 0)
             return;
 
         // Stop if there's an animation active.
@@ -864,8 +862,8 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         // below doesn't break.
         var width = Math.max(this.width, 1);
         var height = Math.max(this.height, 1);
-        let screen_width = Math.max(this.container_width, 1);
-        let screen_height = Math.max(this.container_height, 1);
+        let view_width = Math.max(this.view_width, 1);
+        let view_height = Math.max(this.view_height, 1);
 
         let zoom_factor = this._zoom_factor_current;
         let zoomed_width = width * zoom_factor;
@@ -874,8 +872,8 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         if(zoom_pos == null)
             zoom_pos = this.current_zoom_pos;
 
-        // When we're zooming to fill the screen, clamp panning to the screen, so we always fill the
-        // screen and don't pan past the edge.
+        // When we're zooming to fill the view, clamp panning so we always fill the view
+        // and don't pan past the edge.
         if(clamp_position)
         {
             if(this.zoom_active && !settings.get("pan-past-edge"))
@@ -885,26 +883,26 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
                 top_left[1] = Math.max(top_left[1], 0);
                 zoom_pos = this.get_center_for_image_position([0,0], top_left);
 
-                let bottom_right = this.get_image_position([screen_width,screen_height], { pos: zoom_pos }); // maximum position
+                let bottom_right = this.get_image_position([view_width,view_height], { pos: zoom_pos }); // maximum position
                 bottom_right[0] = Math.min(bottom_right[0], 1);
                 bottom_right[1] = Math.min(bottom_right[1], 1);
-                zoom_pos = this.get_center_for_image_position([screen_width,screen_height], bottom_right);
+                zoom_pos = this.get_center_for_image_position([view_width,view_height], bottom_right);
             }
 
-            // If we're narrower than the screen, lock to the middle.
+            // If we're narrower than the view, lock to the middle.
             //
             // Take the floor of these, so if we're covering a 1500x1200 window with a 1500x1200.2 image we
             // won't wiggle back and forth by one pixel.
-            if(screen_width >= Math.floor(zoomed_width))
+            if(view_width >= Math.floor(zoomed_width))
                 zoom_pos[0] = 0.5; // center horizontally
-            if(screen_height >= Math.floor(zoomed_height))
+            if(view_height >= Math.floor(zoomed_height))
                 zoom_pos[1] = 0.5; // center vertically
         }
 
-        // current_zoom_pos is the position that should be centered on screen.  At
+        // current_zoom_pos is the position that should be centered in the view.  At
         // [0.5,0.5], the image is centered.
-        let x = screen_width/2 - zoom_pos[0]*zoomed_width;
-        let y = screen_height/2 - zoom_pos[1]*zoomed_height;
+        let x = view_width/2 - zoom_pos[0]*zoomed_width;
+        let y = view_height/2 - zoom_pos[1]*zoomed_height;
 
         // If the display is 1:1 to the image, make sure there's no subpixel offset.  Do this if
         // we're in "actual" zoom mode, or if we're in another zoom with the same effect, such as
@@ -973,7 +971,7 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
     // Save the pan and zoom state to history.
     save_to_history = () =>
     {
-        // Store the pan position at the center of the screen.
+        // Store the pan position at the center of the view.
         let args = helpers.args.location;
         args.state.zoom = {
             pos: this.center_pos,
@@ -1036,18 +1034,18 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
 
         // Sanity check: this.container should always have a size.  If this is 0, the container
         // isn't visible and we don't know anything about how big we are, so we can't set up
-        // the slideshow.  This is this.container_width below.
+        // the slideshow.  This is this.view_width below.
         if(this.container.offsetHeight == 0)
             console.warn("Image container has no size");
 
         let slideshow = new ppixiv.slideshow({
             // this.width/this.height are the size of the image at 1x zoom, which is to fit
-            // onto the screen.  Scale this up by zoom_factor_cover, so the slideshow's default
-            // zoom level is to cover the screen.
+            // onto the view.  Scale this up by zoom_factor_cover, so the slideshow's default
+            // zoom level is to cover the view.
             width: this.width,
             height: this.height,
-            container_width: this.container_width,
-            container_height: this.container_height,
+            container_width: this.view_width,
+            container_height: this.view_height,
             mode: animation_mode,
 
             // Don't zoom below "contain".
@@ -1332,15 +1330,15 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
     // These zoom helpers are mostly for the popup menu.
     //
     // Toggle zooming, centering around the given view position, or the center of the
-    // screen if x and y are null    
+    // view if x and y are null.
     zoom_toggle({x, y})
     {
         this.stop_animation();
 
         if(x == null || y == null)
         {
-            x = this.container_width / 2;
-            y = this.container_height / 2;
+            x = this.view_width / 2;
+            y = this.view_height / 2;
         }
 
         let center = this.get_image_position([x, y]);
@@ -1375,15 +1373,15 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
     }
 
     // Zoom in or out, keeping x,y centered if possible.  If x and y are null, center around
-    // the center of the screen.
+    // the center of the view.
     zoom_adjust(down, {x, y})
     {
         this.stop_animation();
 
         if(x == null || y == null)
         {
-            x = this.container_width / 2;
-            y = this.container_height / 2;
+            x = this.view_width / 2;
+            y = this.view_height / 2;
         }
         
         let center = this.get_image_position([x, y]);
@@ -1600,8 +1598,8 @@ ppixiv.image_viewer_mobile = class extends ppixiv.image_viewer_base
                     this.stop_animation();
 
                 return {
-                    x: this.center_pos[0] * this.onscreen_width,
-                    y: this.center_pos[1] * this.onscreen_height,
+                    x: this.center_pos[0] * this.current_width,
+                    y: this.center_pos[1] * this.current_height,
                 };
             },
 
@@ -1613,8 +1611,8 @@ ppixiv.image_viewer_mobile = class extends ppixiv.image_viewer_base
 
                 this.stop_animation();
 
-                x /= this.onscreen_width;
-                y /= this.onscreen_height;
+                x /= this.current_width;
+                y /= this.current_height;
 
                 this.center_pos[0] = x;
                 this.center_pos[1] = y;
@@ -1664,10 +1662,10 @@ ppixiv.image_viewer_mobile = class extends ppixiv.image_viewer_base
                 let bottom_right = this.get_current_actual_position({zoom_pos: [1,1]}).zoom_pos;
 
                 // Scale to screen coordinates.
-                top_left[0] *= this.onscreen_width;
-                top_left[1] *= this.onscreen_height;
-                bottom_right[0] *= this.onscreen_width;
-                bottom_right[1] *= this.onscreen_height;
+                top_left[0] *= this.current_width;
+                top_left[1] *= this.current_height;
+                bottom_right[0] *= this.current_width;
+                bottom_right[1] *= this.current_height;
 
                 return new ppixiv.FixedDOMRect(top_left[0], top_left[1], bottom_right[0], bottom_right[1]);
             },
@@ -1716,7 +1714,7 @@ ppixiv.image_viewer_mobile = class extends ppixiv.image_viewer_base
             get_wanted_zoom: () =>
             {
                 // this.target_zoom_center is in image coordinates.  Return screen coordinates.
-                let [centerX, centerY] = this.get_screen_pos_from_image_pos(this.target_zoom_center);
+                let [centerX, centerY] = this.get_view_pos_from_image_pos(this.target_zoom_center);
 
                 // ratio is the ratio we want to be applied relative to to the current zoom.
                 return {
