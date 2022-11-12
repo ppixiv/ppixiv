@@ -462,11 +462,8 @@ ppixiv.muted_tags_for_post_popup = class extends ppixiv.dialog_widget
         user_id,
         ...options})
     {
-        super({...options, classes: "muted-tags-popup", dialog_type: "small", template: `
+        super({...options, classes: "muted-tags-popup", header: "Edit mutes", dialog_type: "small", template: `
             <div style="display: flex; align-items: center;">
-                <span class=title style="font-size: 1.5em;">Edit mutes</span>
-                <span style="flex: 1;"></span>
-
                 <span class=non-premium-mute-warning>
                     ${ helpers.create_box_link({label: "Note",      icon: "warning",  classes: ["mute-warning-button", "clickable"] }) }
                 </span>
@@ -491,14 +488,6 @@ ppixiv.muted_tags_for_post_popup = class extends ppixiv.dialog_widget
         this.user_id = user_id;
 
         this.container.querySelector(".close-button").addEventListener("click", (e) => {
-            this.shutdown();
-        }, { signal: this.shutdown_signal.signal });
-
-        // Close if the container is clicked, but not if something inside the container is clicked.
-        this.container.addEventListener("click", (e) => {
-            if(e.target != this.container)
-                return;
-
             this.shutdown();
         }, { signal: this.shutdown_signal.signal });
 
