@@ -80,6 +80,13 @@ class ViewerImages extends ppixiv.widget
 // The base class for the main low-level image viewer.  This handles loading images,
 // and the mechanics for zoom and pan.  The actual zoom and pan UI is handled by the
 // desktop and mobile subclasses.
+//
+// We use two coordinate systems:
+//
+// - Image coordinates are unit coordinates, with 0x0 in the top-left and 1x1 in the bottom-right.
+// - View coordinates, with 0x0 in the top-left of the view.  On desktop, this is usually
+// the same as the window, but it doesn't have to be (on mobile it may be adjusted to avoid
+// the statusbar).
 ppixiv.image_viewer_base = class extends ppixiv.widget
 {
     // Our primary image viewer, if any.
@@ -820,6 +827,24 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
             return [this.center_pos[0], this.center_pos[1]];
         else
             return [0.5, 0.5];
+    }
+
+    // Convert [x,y] client coordinates to view coordinates.  This is for events, which
+    // give us client coordinates.
+    client_to_view_coords([x,y])
+    {
+        let { top, left } = this.container.getBoundingClientRect();
+        x -= left;
+        y -= top;
+        return [x,y];
+    }
+
+    view_to_client_coords([x,y])
+    {
+        let { top, left } = this.container.getBoundingClientRect();
+        x += left;
+        y += top;
+        return [x,y];
     }
 
     reposition({clamp_position=true}={})
@@ -1591,25 +1616,30 @@ ppixiv.image_viewer_mobile = class extends ppixiv.image_viewer_base
             container: this.container,
             signal: this.shutdown_signal.signal,
 
-            // Return the current position in screen coordinates.
+            // Return the current position in client coordinates.
             get_position: () => {
                 // We're about to start touch dragging, so stop any running pan.  Don't stop slideshows.
                 if(!this.slideshow_mode)
                     this.stop_animation();
 
-                return {
-                    x: this.center_pos[0] * this.current_width,
-                    y: this.center_pos[1] * this.current_height,
-                };
+                let x = this.center_pos[0] * this.current_width;
+                let y = this.center_pos[1] * this.current_height;
+
+                // Convert from view coordinates to screen coordinates.
+                [x,y] = this.view_to_client_coords([x,y]);
+
+                return { x, y };
             },
 
-            // Set the current position in screen coordinates.
+            // Set the current position in client coordinates.
             set_position: ({x, y}) =>
             {
                 if(this.slideshow_mode)
                     return;
 
                 this.stop_animation();
+
+                [x,y] = this.client_to_view_coords([x,y]);
 
                 x /= this.current_width;
                 y /= this.current_height;
@@ -1622,7 +1652,7 @@ ppixiv.image_viewer_mobile = class extends ppixiv.image_viewer_base
                 this.reposition({clamp_position: false});
             },
 
-            // Zoom by the given factor, centered around the given screen position.
+            // Zoom by the given factor, centered around the given client position.
             adjust_zoom: ({ratio, centerX, centerY}) =>
             {
                 if(this.slideshow_mode)
@@ -1630,8 +1660,10 @@ ppixiv.image_viewer_mobile = class extends ppixiv.image_viewer_base
 
                 this.stop_animation();
 
+                let [viewX,viewY] = this.client_to_view_coords([centerX,centerY]);
+
                 // Store the position of the anchor before zooming, so we can restore it below.
-                let center = this.get_image_position([centerX, centerY]);
+                let center = this.get_image_position([viewX, viewY]);
 
                 // Apply the new zoom.  Snap to 0 if we're very close, since it won't reach it exactly.
                 let new_factor = this._zoom_factor_current * ratio;
@@ -1642,7 +1674,7 @@ ppixiv.image_viewer_mobile = class extends ppixiv.image_viewer_base
                 this._zoom_level = new_level;
 
                 // Restore the center position.
-                this.set_image_position([centerX, centerY], center);
+                this.set_image_position([viewX, viewY], center);
 
                 this.reposition({clamp_position: false});
             },
@@ -1661,11 +1693,15 @@ ppixiv.image_viewer_mobile = class extends ppixiv.image_viewer_base
                 let top_left = this.get_current_actual_position({zoom_pos: [0,0]}).zoom_pos;
                 let bottom_right = this.get_current_actual_position({zoom_pos: [1,1]}).zoom_pos;
 
-                // Scale to screen coordinates.
+                // Scale to view coordinates.
                 top_left[0] *= this.current_width;
                 top_left[1] *= this.current_height;
                 bottom_right[0] *= this.current_width;
                 bottom_right[1] *= this.current_height;
+
+                // Convert to screen coords.
+                top_left = this.view_to_client_coords(top_left);
+                bottom_right = this.view_to_client_coords(bottom_right);
 
                 return new ppixiv.FixedDOMRect(top_left[0], top_left[1], bottom_right[0], bottom_right[1]);
             },
@@ -1681,14 +1717,14 @@ ppixiv.image_viewer_mobile = class extends ppixiv.image_viewer_base
 
             // When a fling starts (this includes releasing drags, even without a fling), decide
             // on the zoom factor we want to bounce to.
-            onanimationstarted: ({target_factor=null, target_image_pos_x=null, target_image_pos_y=null}={}) =>
+            onanimationstarted: ({target_factor=null, target_image_pos=null}={}) =>
             {
                 // If we were given an explicit zoom factor to zoom to, use it.  This happens
                 // if we start the zoom in mobile_toggle_zoom.
                 if(target_factor != null)
                 {
                     this.target_zoom_factor = target_factor;
-                    this.target_zoom_center = [target_image_pos_x, target_image_pos_y];
+                    this.target_zoom_center = target_image_pos;
                     return;
                 }
 
@@ -1714,7 +1750,8 @@ ppixiv.image_viewer_mobile = class extends ppixiv.image_viewer_base
             get_wanted_zoom: () =>
             {
                 // this.target_zoom_center is in image coordinates.  Return screen coordinates.
-                let [centerX, centerY] = this.get_view_pos_from_image_pos(this.target_zoom_center);
+                let [viewX, viewY] = this.get_view_pos_from_image_pos(this.target_zoom_center);
+                let [centerX, centerY] = this.view_to_client_coords([viewX, viewY]);
 
                 // ratio is the ratio we want to be applied relative to to the current zoom.
                 return {
@@ -1763,14 +1800,15 @@ ppixiv.image_viewer_mobile = class extends ppixiv.image_viewer_base
         let level = zoom_distance_in > zoom_distance_out? zoom_in_level:zoom_out_level;
         let target_factor = this.zoom_level_to_zoom_factor(level);
 
-        let x = e.clientX, y = e.clientY;
-        let center = this.get_image_position([x, y]);
+        // Our "screen" positions are relative to our container and not actually the
+        // screen, but mouse events are relative to the screen.
+        let view_pos = this.client_to_view_coords([e.clientX, e.clientY]);
+        let target_image_pos = this.get_image_position(view_pos);
 
         this.touch_scroller.start_fling({
             onanimationstarted_options: {
                 target_factor,
-                target_image_pos_x: center[0],
-                target_image_pos_y: center[1],
+                target_image_pos,
             }
         });
     }
