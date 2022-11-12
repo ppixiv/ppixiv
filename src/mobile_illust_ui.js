@@ -22,6 +22,11 @@ let mobile_illust_ui_top_page = class extends ppixiv.widget
                         <span class=label>Bookmark</span>
                     </div>
 
+                    <div class="item button-similar enabled">
+                        ${ helpers.create_icon("ppixiv:suggestions") }
+                        <span class=label>Similar</span>
+                    </div>
+
                     <div class="item button-more enabled">
                         ${ helpers.create_icon("settings") }
                         <span class=label>More...</span>
@@ -64,6 +69,14 @@ let mobile_illust_ui_top_page = class extends ppixiv.widget
         this.bookmark_button_widget = new bookmark_button_display_widget({
             parent: this,
             contents: this.button_bookmark,
+        });
+
+        this.button_similar = this.container.querySelector(".button-similar");
+        this.button_similar.hidden = ppixiv.native;
+        this.button_similar.addEventListener("click", (e) => {
+            let [illust_id] = helpers.media_id_to_illust_id_and_page(this._media_id);
+            let args = new helpers.args(`/bookmark_detail.php?illust_id=${illust_id}#ppixiv?recommendations=1`);
+            main_controller.navigate_from_image_to_to_search(args);
         });
 
         this.button_bookmark.addEventListener("click", (e) => {
