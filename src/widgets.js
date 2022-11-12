@@ -2143,7 +2143,8 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
             this.menu_options.push(menu_options.toggle_slideshow());
             this.menu_options.push(menu_options.toggle_loop());
         }
-        this.menu_options.push(menu_options.image_editing());
+        if(!ppixiv.mobile)
+            this.menu_options.push(menu_options.image_editing());
         if(ppixiv.native)
             this.menu_options.push(menu_options.index_folder());
         if(this.show_extra || ppixiv.native)
