@@ -1515,12 +1515,17 @@ ppixiv.search_view = class extends ppixiv.widget
             return;
 
         // aiType is 0 or 1 for false and 2 for true.
-        thumbnail_element.querySelector(".ai-image").hidden = media_info.aiType != 2;
+        let show_ai = media_info.aiType == 2;
 
         var show_bookmark_heart = media_info.bookmarkData != null;
         if(this.data_source != null && !this.data_source.show_bookmark_icons)
             show_bookmark_heart = false;
-        
+
+        // On mobile, don't show ai-image if we're showing a bookmark to reduce clutter.
+        if(ppixiv.mobile && show_ai && show_bookmark_heart)
+            show_ai = false;
+
+        thumbnail_element.querySelector(".ai-image").hidden = !show_ai;
         thumbnail_element.querySelector(".heart.public").hidden = !show_bookmark_heart || media_info.bookmarkData.private;
         thumbnail_element.querySelector(".heart.private").hidden = !show_bookmark_heart || !media_info.bookmarkData.private;
     }
