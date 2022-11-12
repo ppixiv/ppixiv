@@ -575,6 +575,9 @@ ppixiv.actions = class
 
     static is_download_type_available(download_type, illust_data)
     {
+        if(ppixiv.mobile)
+            return false;
+
         // Single image downloading works for single images and manga pages.
         if(download_type == "image")
             return illust_data.illustType != 2;
