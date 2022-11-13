@@ -951,6 +951,12 @@ ppixiv.helpers = {
         if(!ppixiv.mobile)
             return false;
 
+        // These are realtive to screen-illust.  We can't use documentElement for this, since
+        // its offsetHeight doesn't consistently update for the iOS navigation bar (it behaves
+        // differently when it's hidden from a scroll and when it's hidden explicitly by the
+        // user).
+        let container = document.querySelector(".screen-illust-container");
+
         // These thresholds take some tuning, since they're usually close to system gestures.
         // If the threshold for a "down from the top" gesture is too small, it'll be hard to
         // do without hitting the system swipe-down gesture instead, but if they're too big
@@ -960,7 +966,6 @@ ppixiv.helpers = {
         // be fairly small, since this is a vertical drag designed to be distinct from gestures
         // like browser back, but check it first, so drags in the corner prefer to change images
         // over opening the menu or exiting.
-        let container = document.documentElement;
         let horiz = event.clientX / container.clientWidth;
         if(horiz < 0.1 || horiz > 0.9)
             return "change-images";
