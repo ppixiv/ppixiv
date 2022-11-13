@@ -1770,30 +1770,13 @@ ppixiv.data_sources.artist = class extends data_source
                 this.pages = paginate_illust_ids(all_media_ids, this.estimated_items_per_page);
             }
 
+            // Tell media_cache to start loading these media IDs.  This will happen anyway if we don't
+            // do it here, but we know these posts are all from the same user ID, so kick it off here
+            // to hint batch_get_media_info_partial to use the user-specific API.  Don't wait for this
+            // to complete, since we don't need to and it'll cause the search view to take longer to
+            // appear.
             let media_ids = this.pages[page-1] || [];
-            if(media_ids.length)
-            {
-                let illust_ids = [];
-                for(let media_id of media_ids)
-                {
-                    let illust_id = helpers.media_id_to_illust_id_and_page(media_id)[0];
-                    illust_ids.push(illust_id);
-                }
-
-                // That only gives us a list of illust IDs, so we have to load them.  Annoyingly, this
-                // is the one single place it gives us illust info in bulk instead of thumbnail data.
-                // It would be really useful to be able to batch load like this in general, but this only
-                // works for a single user's posts.
-                let url = `/ajax/user/${this.viewing_user_id}/profile/illusts`;
-                let result = await helpers.get_request(url, {
-                    "ids[]": illust_ids,
-                    work_category: "illustManga",
-                    is_first_page: "0",
-                });
-                
-                let illusts = Object.values(result.body.works);
-                await media_cache.add_media_infos_partial(illusts, "normal");
-            }
+            media_cache.batch_get_media_info_partial(media_ids, { user_id: this.viewing_user_id });
 
             // Register this page.
             this.add_page(page, media_ids);

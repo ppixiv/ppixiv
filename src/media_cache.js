@@ -380,7 +380,10 @@ ppixiv.MediaCache = class extends EventTarget
     }
 
     // Load partial info for the given media IDs if they're not already loaded.
-    async batch_get_media_info_partial(media_ids, { force=false }={})
+    //
+    // If user_id is set, media_ids is known to be all posts from the same user.  This
+    // lets us use a better API.
+    async batch_get_media_info_partial(media_ids, { force=false, user_id=null }={})
     {
         let promises = [];
 
@@ -424,7 +427,7 @@ ppixiv.MediaCache = class extends EventTarget
 
         if(needed_media_ids.length)
         {
-            let load_promise = this._do_batch_get_media_info(needed_media_ids);
+            let load_promise = this._do_batch_get_media_info(needed_media_ids, { user_id });
             for(let media_id of media_ids)
                 this._started_loading_media_info_partial(media_id, load_promise);
             promises.push(load_promise);
@@ -436,7 +439,7 @@ ppixiv.MediaCache = class extends EventTarget
     }
 
     // Run the low-level API call to load partial media info, and register the result.
-    async _do_batch_get_media_info(media_ids)
+    async _do_batch_get_media_info(media_ids, { user_id=null }={})
     {
         if(media_ids.length == 0)
             return;
@@ -451,15 +454,33 @@ ppixiv.MediaCache = class extends EventTarget
             illust_ids.push(illust_id);
         }
 
-        // There's also
+        // If all of these IDs are from the same user, we can use this API instead.  It's
+        // more useful since it includes bookmarking info, which is missing in /rpc/illust_list,
+        // and it's in a much more consistent data format.  Unfortunately, it doesn't work
+        // with illusts from different users, which seems like an arbitrary restriction.
         //
-        // https://www.pixiv.net/ajax/user/user_id/profile/illusts?ids[]=1&ids[]=2&...
-        //
-        // which is used by newer pages.  That's useful since it tells us whether each
-        // image is bookmarked.  However, it doesn't tell us the user's name or profile image
-        // URL, and for some reason it's limited to a particular user.  Hopefully they'll
-        // have an updated generic illustration lookup call if they ever update the
-        // regular search pages, and we can switch to it then.
+        // (This actually doesn't restrict to the same user anymore.  It's not clear if this
+        // is a bug and you still have to specify an arbitrary user.  There's no particular place
+        // to take advantage of this right now, though.)
+        if(user_id != null)
+        {
+            let url = `/ajax/user/${user_id}/profile/illusts`;
+            let result = await helpers.get_request(url, {
+                "ids[]": illust_ids,
+                work_category: "illustManga",
+                is_first_page: "0",
+            });
+            
+            let illusts = Object.values(result.body.works);
+            await this.add_media_infos_partial(illusts, "normal");
+            return;
+        }
+
+        // This is a fallback if we're displaying search results we never received media
+        // info for.  It's a very old API and doesn't have all of the information newer ones
+        // do: it's missing the AI flag, and only has a boolean value for "bookmarked" and no
+        // bookmark data.  However, it seems to be the only API available that can batch
+        // load info for a list of unrelated illusts.
         let result = await helpers.rpc_get_request("/rpc/illust_list.php", {
             illust_ids: illust_ids.join(","),
 
