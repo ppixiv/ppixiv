@@ -119,7 +119,8 @@ class Build(object):
             # If we're deploying a dirty build, just copy the full build to https://ppixiv.org/beta
             # for quick testing.  Don't clutter the build directory with "r123-dirty" builds.
             print('Deploying beta only')
-            copy_file('output/ppixiv-main.user.js', 'beta', output_filename='ppixiv.user.js')
+            copy_file('output/ppixiv.user.js', 'beta')
+            copy_file('output/ppixiv-main.user.js', 'beta')
             return
 
         # Copy files for this version into https://ppixiv.org/builds/r1234.
@@ -127,8 +128,7 @@ class Build(object):
         for filename in ('ppixiv.user.js', 'ppixiv-main.user.js'):
             copy_file(f'output/{filename}', f'builds/{version}')
 
-        # Update the beta to point to this build.  Since we've deployed a tag for this, we can
-        # use the loader for this.
+        # Update the beta to point to this build.
         copy_file('output/ppixiv.user.js', 'beta')
 
         if latest:
@@ -158,8 +158,14 @@ class Build(object):
         print('Building: %s' % output_loader_file)
         result = self.build_header(for_debug=False)
 
-        # Add the URL where the above script will be available.
-        main_url = f'{self.distribution_url}/ppixiv-main.user.js'
+        # Add the URL where the above script will be available.  If this is a release, it'll be
+        # in the regular distribution directory with the release in the URL.  If this is a debug
+        # build, we only keep the latest version around in /beta.
+        if self.is_release:
+            main_url = f'{self.distribution_url}/ppixiv-main.user.js'
+        else:
+            main_url = f'{self.distribution_root}/beta/ppixiv-main.user.js'
+
         result.append(f'// @require     {main_url}#sha256={sha256}')
         result.append(f'// ==/UserScript==')
 
