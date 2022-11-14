@@ -6069,11 +6069,16 @@ ppixiv.WidgetDragger = class
                 // might be about to make the widget visible.
                 this._set_visible(true);
             },
-            ondrag: (args) => {
+            ondrag: ({event, first}) => {
                 this.recent_pointer_movement.add_sample({ x: event.movementX, y: event.movementY });
 
+                // The first movement is thresholded by the browser, and counts towards fling velocity
+                // but doesn't actually move the widget.
+                if(first)
+                    return;
+
                 let pos = this.drag_animation.position;
-                let movement = vertical? args.event.movementY:args.event.movementX;
+                let movement = vertical? event.movementY:event.movementX;
                 if(reversed)
                     movement *= -1;
 
