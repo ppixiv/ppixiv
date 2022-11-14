@@ -2961,11 +2961,6 @@ svg.heart-image .delete {
     // This is set by the dialog transition.
     --dialog-visible: 1;
 
-    // The minimum horizontal padding around non-fullscreen dialog content.  This is a common way
-    // to dismiss dialogs, so there should be enough padding to cleanly click the edge.
-    --edge-padding-horiz: 20px;
-    --edge-padding-vert: 20px;
-    
     // We've set padding for the absolute maximum dialog size.  If the dialog decides to be
     // smaller, center it in both dimensions.
     display: flex;
@@ -2989,36 +2984,38 @@ svg.heart-image .delete {
         font-size: 1.2rem;
     }
 
-    // Shortcuts:
-    --dialog-outer-padding: 
-        var(--dialog-outer-padding-top) var(--dialog-outer-padding-right)
-        var(--dialog-outer-padding-bottom) var(--dialog-outer-padding-left);
-    --dialog-inner-padding: 
-            var(--dialog-inner-padding-top) var(--dialog-inner-padding-right)
-            var(--dialog-inner-padding-bottom) var(--dialog-inner-padding-left);
+    // The minimum horizontal padding around non-fullscreen dialog content.  This is a common way
+    // to dismiss dialogs, so there should be enough padding to cleanly click the edge.
+    --edge-padding-inner-horiz: 10px;
+    --edge-padding-inner-vert: 10px;
+    --edge-padding-outer-horiz: 40px;
+    --edge-padding-outer-vert: 20px;
 
     // If this is a floating dialog, also apply edge padding inside the dialog.
     &:not(.fullscreen)
     {
         // Most of the time, the safe area is in the outer padding.
-        --dialog-outer-padding-left: calc(max(env(safe-area-inset-left), var(--edge-padding-horiz)));
-        --dialog-outer-padding-right: calc(max(env(safe-area-inset-right), var(--edge-padding-horiz)));
-        --dialog-outer-padding-top: calc(max(env(safe-area-inset-top), var(--edge-padding-vert)));
-        --dialog-outer-padding-bottom: calc(max(env(safe-area-inset-bottom), var(--edge-padding-vert)));
+        --dialog-outer-padding-left: calc(max(env(safe-area-inset-left), var(--edge-padding-outer-horiz)));
+        --dialog-outer-padding-right: calc(max(env(safe-area-inset-right), var(--edge-padding-outer-horiz)));
+        --dialog-outer-padding-top: calc(max(env(safe-area-inset-top), var(--edge-padding-outer-vert)));
+        --dialog-outer-padding-bottom: calc(max(env(safe-area-inset-bottom), var(--edge-padding-outer-vert)));
 
-        --dialog-inner-padding-left: var(--edge-padding-horiz);
-        --dialog-inner-padding-right: var(--edge-padding-horiz);
-        --dialog-inner-padding-top: var(--edge-padding-vert);
-        --dialog-inner-padding-bottom: var(--edge-padding-vert);
+        --dialog-inner-padding-left: var(--edge-padding-inner-horiz);
+        --dialog-inner-padding-right: var(--edge-padding-inner-horiz);
+        --dialog-inner-padding-top: var(--edge-padding-inner-vert);
+        --dialog-inner-padding-bottom: var(--edge-padding-inner-vert);
     }
 
     &.fullscreen
     {
+        --edge-padding-horiz: 20px;
+        --edge-padding-vert: 20px;
+
         // Fullscreen dialogs only have inner padding.
-        --dialog-inner-padding-left: calc(max(env(safe-area-inset-left), var(--edge-padding-horiz)));
-        --dialog-inner-padding-right: calc(max(env(safe-area-inset-right), var(--edge-padding-horiz)));
-        --dialog-inner-padding-top: calc(max(env(safe-area-inset-top), var(--edge-padding-vert)));
-        --dialog-inner-padding-bottom: calc(max(env(safe-area-inset-bottom), var(--edge-padding-vert)));
+        --dialog-inner-padding-left: calc(max(env(safe-area-inset-left), var(--edge-padding-inner-horiz)));
+        --dialog-inner-padding-right: calc(max(env(safe-area-inset-right), var(--edge-padding-inner-horiz)));
+        --dialog-inner-padding-top: calc(max(env(safe-area-inset-top), var(--edge-padding-inner-vert)));
+        --dialog-inner-padding-bottom: calc(max(env(safe-area-inset-bottom), var(--edge-padding-inner-vert)));
     }
 
     // There are two places we can put padding: inside the dialog itself (--dialog-inner-padding),
@@ -3028,10 +3025,10 @@ svg.heart-image .delete {
     // edge, and safe area padding.  Put these in CSS vars, so the dialog instance can put them
     // somewhere else if wanted.  For example, if a dialog scrolls, we might want the inner padding
     // inside the scroller.
-    padding: var(--dialog-outer-padding-left) var(--dialog-outer-padding-top) var(--dialog-outer-padding-right) var(--dialog-outer-padding-bottom);
+    padding: var(--dialog-outer-padding-top) var(--dialog-outer-padding-right) var(--dialog-outer-padding-bottom) var(--dialog-outer-padding-left);
 
     > .dialog {
-        padding: var(--dialog-inner-padding-left) var(--dialog-inner-padding-top) var(--dialog-inner-padding-right) var(--dialog-inner-padding-bottom);
+        padding: var(--dialog-inner-padding-top) var(--dialog-inner-padding-right) var(--dialog-inner-padding-bottom) var(--dialog-inner-padding-left);
 
         @if $animation == "horizontal" {
             transform: translateX(calc((1 - var(--dialog-visible)) * 100px));
