@@ -293,7 +293,7 @@ class Build(object):
             '--no-embed-source-map',
             str(path),
             str(output_css),
-        ], capture_output=True)
+        ], capture_output=True, shell=True)
 
         if result.returncode:
             # Errors from dart are printed to stderr, but errors from SASS itself go to
