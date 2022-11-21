@@ -1158,7 +1158,8 @@ ppixiv.search_view = class extends ppixiv.widget
                 return false;
         }
 
-        // Otherwise, it's expanded by default if it has more than one page.
+        // Otherwise, it's expanded by default if it has more than one page.  Note that if we don't
+        // have media info yet, media_info_loaded will refresh again once it becomes available.
         if(info == null || info.pageCount == 1)
             return false;
 
@@ -1638,6 +1639,13 @@ ppixiv.search_view = class extends ppixiv.widget
     media_info_loaded = (e) =>
     {
         this.set_visible_thumbs();
+
+        // If media info wasn't available when we refreshed a thumbnail and we're displaying
+        // manga pages, we weren't able to tell that the illust had manga pages and inserted
+        // a single page for it.  Refresh thumbnails when we get new media info so we'll correct
+        // this.  This only happens with data sources that don't provide media info along with
+        // results (currently this is only the artist view), 
+        this.data_source_updated();
     }
 
     // Scroll to media_id if it's available.  This is called when we display the thumbnail view
