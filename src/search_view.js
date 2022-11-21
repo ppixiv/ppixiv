@@ -62,7 +62,6 @@ ppixiv.search_view = class extends ppixiv.widget
         this.expanded_media_ids = new Map();
 
         media_cache.addEventListener("infoloaded", this.media_info_loaded);
-        window.addEventListener("focus", this.visible_thumbs_changed);
         new ResizeObserver(() => this.refresh_images()).observe(this.container);
 
         // When a bookmark is modified, refresh the heart icon.
@@ -175,16 +174,6 @@ ppixiv.search_view = class extends ppixiv.widget
             rootMargin: "150%",
         }));
 
-        this.intersection_observers.push(new IntersectionObserver((entries) => {
-            for(let entry of entries)
-                helpers.set_dataset(entry.target.dataset, "visible", entry.isIntersecting);
-            
-            this.visible_thumbs_changed();
-        }, {
-            root: document,
-            rootMargin: "0%",
-        }));
-
         settings.addEventListener("thumbnail-size", this.update_from_settings, { signal: this.shutdown_signal.signal });
         settings.addEventListener("manga-thumbnail-size", this.update_from_settings, { signal: this.shutdown_signal.signal });
         settings.addEventListener("disable_thumbnail_zooming", this.update_from_settings, { signal: this.shutdown_signal.signal });
@@ -258,33 +247,6 @@ ppixiv.search_view = class extends ppixiv.widget
         // Tell our parent that we changed the start page.
         if(this.onstartpagechanged)
             this.onstartpagechanged();
-    }
-
-    // The thumbs actually visible onscreen have changed, or the window has gained focus.
-    // Store recently viewed thumbs.
-    visible_thumbs_changed = () =>
-    {
-        if(!recently_seen_illusts.get().enabled)
-            return;
-
-        // Don't add recent illusts if we're viewing recent illusts.
-        if(this.data_source && this.data_source.name == "recent")
-            return;
-
-        let visible_media_ids = [];
-        for(let [media_id, element] of Object.entries(this.thumbs))
-        {
-            if(!element.dataset.visible)
-                continue;
-        
-            let { type, id } = helpers.parse_media_id(media_id);
-            if(type != "illust")
-                continue;
-
-            visible_media_ids.push(media_id);
-        }
-        
-        ppixiv.recently_seen_illusts.get().add_illusts(visible_media_ids);
     }
 
     async set_data_source(data_source)

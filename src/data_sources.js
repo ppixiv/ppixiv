@@ -3822,51 +3822,6 @@ ppixiv.data_sources.completed_requests = class extends data_source
     get_displaying_text() { return "Completed requests"; }
 }
 
-// /history.php - Recent history
-//
-// This uses our own history and not Pixiv's history.
-ppixiv.data_sources.recent = class extends data_source
-{
-    get name() { return "recent"; }
-    get includes_manga_pages() { return true; }
-
-    async load_page_internal(page)
-    {
-        // Read illust_ids once and paginate them so we don't return them all at once.
-        if(this.illust_ids == null)
-        {
-            let media_ids = await ppixiv.recently_seen_illusts.get().get_recent_media_ids();
-            this.pages = paginate_illust_ids(media_ids, this.estimated_items_per_page);
-        }
-
-        // Register this page.
-        let media_ids = this.pages[page-1] || [];
-
-        // Get thumbnail data for this page.  Some thumbnail data might be missing if it
-        // expired before this page was viewed.  Don't add illust IDs that we don't have
-        // thumbnail data for.
-        let thumbs = await ppixiv.recently_seen_illusts.get().get_thumbnail_info(media_ids);
-        await media_cache.add_media_infos_partial(thumbs, "internal");
-
-        let known_illust_ids = new Set();
-        for(let thumb of thumbs)
-            known_illust_ids.add(thumb.id);
-
-        let found_media_ids = media_ids.filter((media_id) => {
-            let [illust_id] = helpers.media_id_to_illust_id_and_page(media_id);
-            return known_illust_ids.has(illust_id);
-        });
-
-        this.add_page(page, found_media_ids);
-    };
-
-    get page_title() { return "Recent"; }
-    get_displaying_text() { return "Recent History"; }
-
-    // This data source is transient, so it's recreated each time the user navigates to it.
-    get transient() { return true; }
-}
-
 // https://www.pixiv.net/en/#ppixiv/edits
 // View images that have edits on them
 //

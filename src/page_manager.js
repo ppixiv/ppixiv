@@ -105,8 +105,6 @@ ppixiv.page_manager = class
             return data_sources.new_illust;
         else if(url.pathname == "/bookmark_new_illust.php" || url.pathname == "/bookmark_new_illust_r18.php")
             return data_sources.new_works_by_following;
-        else if(url.pathname == "/history.php")
-            return data_sources.recent;
         else if(first_part == "tags")
             return data_sources.search;
         else if(url.pathname == "/discovery")

@@ -123,10 +123,6 @@ let thumbnail_ui = class extends ppixiv.widget
                     </div>
                 </div>
                  
-                <div class="data-source-specific box-button-row" data-datasource=recent>
-                    ${ helpers.create_box_link({label: "Clear",        popup: "Clear recent history",       data_type: "clear-recents" }) }
-                </div>
-                
                 <div class="data-source-specific" data-datasource=bookmarks>
                     <div class=box-button-row>
                         <!-- These are hidden if you're viewing somebody else's bookmarks. -->
@@ -488,15 +484,6 @@ ppixiv.screen_search = class extends ppixiv.screen
             });
         }
 
-        // Clear recent illusts:
-        this.container.querySelector("[data-type='clear-recents']").addEventListener("click", async (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-
-            await ppixiv.recently_seen_illusts.get().clear();
-            this.refresh_search();
-        });
-
         this.container.querySelector(".preferences-button").addEventListener("click", (e) => {
             new ppixiv.settings_dialog();
             if(this.mobile_header_dragger)
@@ -637,7 +624,6 @@ ppixiv.screen_search = class extends ppixiv.screen
     {
         document.documentElement.dataset.theme = "dark"; //settings.get("theme");
         helpers.set_class(this.top_ui_box, "ui-on-hover", settings.get("ui-on-hover") && !ppixiv.mobile);
-        // helpers.set_class(this.container.querySelector(".recent-history-link"), "disabled", !ppixiv.recently_seen_illusts.get().enabled);
         this.refresh_expand_manga_posts_button();
 
         // Flush the top UI transition, so it doesn't animate weirdly when toggling ui-on-hover.
@@ -678,7 +664,6 @@ ppixiv.screen_search = class extends ppixiv.screen
             { label: "Recommended users",      icon: "ppixiv:suggestions", url: "/discovery/users#ppixiv" },
             { label: "Completed requests",     icon: "request_page", url: "/request/complete/illust#ppixiv" },
             { label: "Users",           icon: "search", url: "/search_user.php#ppixiv" },
-            // { label: "Recent history", icon: "", url: "/history.php#ppixiv", classes: ["recent-history-link"] },
         ];
 
 
