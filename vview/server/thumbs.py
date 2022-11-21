@@ -110,12 +110,17 @@ def threaded_create_thumb(request, path, *, inpaint_path=None):
         try:
             f = remove_photoshop_tiff_data(f)
             image = Image.open(f)
-            image.load()
 
             # Read EXIF data, so we can bake rotations into the final image.  This might
             # need to read the data from the file, so do it while we still have the file
             # open.
+            #
+            # Do this before calling load() to work around a PIL inconsistency.  Some loaders
+            # like JPEG load EXIF data on load() and getexif() can be called at any time, but
+            # ones that don't (like TIFF) will fail if getexif() is called after load().
             exif = image.getexif()
+
+            image.load()
         except Exception as e:
             log.warn('Couldn\'t read %s to create thumbnail: %s' % (path, e))
             return None, None
