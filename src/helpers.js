@@ -6204,6 +6204,17 @@ ppixiv.WidgetDragger = class
         return this.drag_animation.playing;
     }
 
+    // Return true if the current animation is towards being shown (show() was called),
+    // or false if the current animation is towards being hidden (hide() was called).
+    // If no animation is running, return false.
+    get animating_to_shown()
+    {
+        if(!this.drag_animation.playing)
+            return false;
+
+        return this.drag_animation.animating_towards == 1;
+    }
+
     shutdown()
     {
         this.drag_animation.shutdown();
@@ -6360,6 +6371,9 @@ ppixiv.PropertyAnimation = class
     // Play the animation from the current position to end_position, replacing any running animation.
     async play({end_position=1, easing="ease-in-xout", duration=300}={})
     {
+        // This is just for convenience, so the caller can tell which way an animation is going.
+        this.animating_towards = end_position;
+
         // Create a new token.  If another play() call takes over the animation or we're stopped, this
         // will change and we'll stop animating.
         let token = this._playToken = new Object();
@@ -6394,6 +6408,7 @@ ppixiv.PropertyAnimation = class
                 break;
         }
 
+        this.animating_towards = null;
         this._playToken = null;
         this.onanimationfinished(this);
     }

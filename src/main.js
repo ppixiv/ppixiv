@@ -338,6 +338,28 @@ ppixiv.MainController = class
     // This is called on startup, and in onpopstate where we might be changing data sources.
     async set_current_data_source(cause)
     {
+        // If we're called again before a previous call finishes, let the previous call
+        // finish first.
+        let token = this._set_current_data_source_token = new Object();
+
+        // Wait for any other running set_current_data_source calls to finish.
+        while(this._set_current_data_source_promise != null)
+            await this._set_current_data_source_promise;
+
+        // If token doesn't match anymore, another call was made, so ignore this call.
+        if(token !== this._set_current_data_source_token)
+            return;
+
+        let promise = this._set_current_data_source_promise = this._set_current_data_source(cause);
+        promise.finally(() => {
+            if(promise == this._set_current_data_source_promise)
+                this._set_current_data_source_promise = null;
+        });
+        return promise;
+    }
+
+    async _set_current_data_source(cause)
+    {
         // Remember what we were displaying before we start changing things.
         var old_screen = this.screens[this.current_screen_name];
         var old_media_id = old_screen? old_screen.displayed_media_id:null;

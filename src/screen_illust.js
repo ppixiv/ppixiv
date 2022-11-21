@@ -1258,7 +1258,8 @@ class ScreenIllustDragToExit
     // The screen was set active or inactive.
     activate()
     {
-        if(!this.dragger.visible)
+        // Run the show animation if we're not shown, or if we're currently hiding.
+        if(!this.dragger.visible || !this.dragger.animating_to_shown)
             this.dragger.show();
     }
 
