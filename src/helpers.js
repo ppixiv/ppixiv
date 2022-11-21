@@ -5611,6 +5611,12 @@ ppixiv.TouchScroller = class
         this.pointers.set(e.pointerId, {
             x: e.clientX,
             y: e.clientY,
+
+            // Pointer movements are thresholded: we don't get pointer movements until the
+            // touch has moved some minimum amount, and all movement until then will be
+            // bundled into the first pointermove event.  Ignore that first event, since it
+            // makes drags look jerky.
+            ignore_next_pointermove: true,
         });
         
         // Kill any velocity when a new touch happens.
@@ -5623,12 +5629,6 @@ ppixiv.TouchScroller = class
         // in the middle of dragging due to zooms.
         let bounds = this.options.get_bounds();
         this.drag_axes_locked = [bounds.width < 0.001, bounds.height < 0.001];
-
-        // Pointer movements are thresholded: we don't get pointer movements until the
-        // touch has moved some minimum amount, and all movement until then will be
-        // bundled into the first pointermove event.  Ignore that first event, since it
-        // makes drags look jerky.
-        this.ignore_next_pointermove = true;
     }
 
     // Cancel any drag immediately without starting a fling.
@@ -5702,9 +5702,9 @@ ppixiv.TouchScroller = class
         pointer_info.y = e.clientY;
 
         // Ignore the first pointer movement.
-        if(this.ignore_next_pointermove)
+        if(pointer_info.ignore_next_pointermove)
         {
-            this.ignore_next_pointermove = false;
+            pointer_info.ignore_next_pointermove = false;
             return;
         }
 
