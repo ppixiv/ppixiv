@@ -1347,7 +1347,6 @@ body.hide-r18g .r18g { display: none; }
         pointer-events: none;
         
         // Fade the background to black when we're active.
-        // XXX: this should fade the whole page, including the safe zone
         background-color: rgba(0, 0, 0,
             scale_value(var(--illust-hidden), 0.7, .3, 0, 1));
     }
