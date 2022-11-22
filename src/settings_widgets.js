@@ -610,7 +610,11 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
                         settings_widgets.invert_popup_hotkey();
         
                     settings_widgets.ctrl_opens_popup();
-                    settings_widgets.enable_transitions();
+
+                    // Firefox is missing overflow: overlay which prevents illust transitions from working
+                    // correctly.
+                    if(navigator.userAgent.indexOf("Firefox/") == -1)
+                        settings_widgets.enable_transitions();
                 }
         
                 // settings_widgets.theme();
