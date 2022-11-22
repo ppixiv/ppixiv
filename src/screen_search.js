@@ -379,7 +379,7 @@ ppixiv.screen_search = class extends ppixiv.screen
     constructor(options)
     {
         super({...options, template: `
-            <div inert class="screen screen-search-container search-screen">
+            <div inert class="screen screen-search-container">
                 <!-- The tree widget for local navigation: -->
                 <div class=local-navigation-box></div>
 
