@@ -220,7 +220,8 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
 
     visibility_changed()
     {
-        settings.set("image_editing", this.visible);
+        if(settings.get("image_editing") != this.visible)
+            settings.set("image_editing", this.visible);
 
         // Refresh to update editor visibility.
         this.refresh();
