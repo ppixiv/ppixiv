@@ -1574,6 +1574,10 @@ ppixiv.image_viewer_mobile = class extends ppixiv.image_viewer_base
         // Any touch on the image stops the animation, even if it doesn't cause
         // TouchScroller to do anything.
         this.container.addEventListener("pointerdown", (e) => {
+            // Ignore clicks on parts of the screen handled by other UI.
+            if(helpers.get_image_drag_type(event) != "pan-zoom")
+                return;
+
             if(this.slideshow_mode)
                 return;
             

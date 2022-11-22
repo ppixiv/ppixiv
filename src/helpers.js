@@ -949,7 +949,7 @@ ppixiv.helpers = {
     {
         // Drag UI navigation is only used on mobile.
         if(!ppixiv.mobile)
-            return false;
+            return "pan-zoom";
 
         // These are realtive to screen-illust.  We can't use documentElement for this, since
         // its offsetHeight doesn't consistently update for the iOS navigation bar (it behaves
