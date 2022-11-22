@@ -417,6 +417,15 @@ input, textarea, [contenteditable] {
         .viewer {
             position: absolute;
             inset: 0;
+
+            // Hide viewers by making them invisible instead of not displayed, so viewers have dimensions
+            // while they're setting up for setting things like the initial pan/zoom position.
+            &:not(.visible-widget)
+            {
+                display: unset;
+                visibility: none;
+                pointer-events: none;
+            }
         }
     }
 }

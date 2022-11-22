@@ -170,9 +170,9 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         url, preview_url, inpaint_url,
         width, height,
 
-        // "history" to restore from history, "auto" to set automatically, or null to
-        // leave the position alone.
-        restore_position,
+        // If true, restore the pan/zoom position from history.  If false, reset the position
+        // for a new image.
+        restore_history,
 
         // This callback will be run once we've restored history.
         onrestoredhistory,
@@ -221,12 +221,8 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         if(!local_api.should_preload_thumbs(media_id, preview_url))
             preview_url = null;
 
-        // Don't restore the position if we're displaying the same image, so we don't interrupt
-        // the user interacting with the image.
-        if(media_id == this.media_id)
-            restore_position = null;
-
-        if(media_id != this.media_id)
+        let image_changed = media_id != this.media_id;
+        if(image_changed)
         {
             // Allow the pan animation to run again when the media ID changes.
             this.ran_pan_animation = false;
@@ -317,14 +313,10 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         this.refresh_animation();
 
         // If we didn't start an animation, see if we need to set the initial image position.
-        // Do this atomically with updating the images.
-        if(!this.animations_running)
-        {
-            if(restore_position == "auto")
-                this.reset_position();
-            else if(restore_position == "history")
-                this.restore_from_history();
-        }
+        // Do this atomically with updating the images.  Don't restore the position if we're
+        // displaying the same image, so we don't interrupt the user interacting with the image.
+        if(image_changed && !this.animations_running)
+            this.set_initial_image_position(restore_history);
 
         // If we're in slideshow mode, we aren't using the preview image.  Pause the animation
         // until we actually display it so it doesn't run while there's nothing visible.
@@ -435,44 +427,6 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         let view_width = Math.max(this.view_width, 1); // might be 0 if we're hidden
         let view_height = Math.max(this.view_height, 1);
         return (view_width/this.cropped_size.width) > (view_height/this.cropped_size.height)? "portrait":"landscape";
-    }
-
-    // Set the pan position to the default for this image, or start the selected animation.
-    reset_position()
-    {
-        // Illustration viewing mode:
-        //
-        // If this.set_initial_image_position is true, then we're changing pages in the same illustration
-        // and already have a position.  If the images are similar, it's useful to keep the same position,
-        // so you can alternate between variants of an image and have them stay in place.  However, if
-        // they're very different, this just leaves the display in a weird place.
-        //
-        // Try to guess.  If we have a position already, only replace it if the aspect ratio mode is
-        // the same.  If we're going from portrait to portrait leave the position alone, but if we're
-        // going from portrait to landscape, reset it.
-        //
-        // Note that we'll come here twice when loading most images: once using the preview image and
-        // then again with the real image.  It's important that we not mess with the zoom position on
-        // the second call.
-        let aspect = this.relative_aspect;
-        if(this.set_initial_image_position && aspect != this.initial_image_position_aspect)
-            this.set_initial_image_position = false;
-
-        // If view_mode is "manga", always reset to the top.  It's better for reading top-to-bottom
-        // than preserving the pan position.
-        if(settings.get("view_mode") == "manga")
-            this.set_initial_image_position = false;
-            
-        if(this.set_initial_image_position)
-            return;
-
-        this.set_initial_image_position = true;
-        this.initial_image_position_aspect = aspect;
-    
-        // Similar to how we display thumbnails for portrait images starting at the top, default to the top
-        // if we'll be panning vertically when in cover mode.
-        let zoom_center = [0.5, aspect == "portrait"? 0:0.5];
-        this.center_pos = zoom_center;
     }
 
     block_event = (e) =>
@@ -972,24 +926,41 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
     }
 
     // Restore the pan and zoom state from history.
-    restore_from_history()
+    //
+    // restore_history is true if we're viewing an image that was in browser history and
+    // we want to restore the pan/zoom position from history.
+    //
+    // If it's false, we're viewing a new image.  We'll reset the image position, or restore
+    // it selectively if "return to top" is disabled (view_mode != "manga").
+    set_initial_image_position(restore_history)
     {
-        let args = helpers.args.location;
-        if(args.state.zoom == null)
-        {
-            this.reset_position();
-            return;
-        }
-
         // If we were animating, start animating again.
-        if(args.state.zoom.animating)
+        let args = helpers.args.location;
+        if(args.state.zoom?.animating)
             this.refresh_animation();
 
-        this.set_zoom_level(args.state.zoom?.zoom);
-        this.set_locked_zoom(args.state.zoom?.lock, { stop_animation: false });
-        this.center_pos = [...args.state.zoom?.pos];
-        this.set_initial_image_position = true;
-        this.initial_image_position_aspect = null;
+        if(restore_history && args.state.zoom?.zoom != null)
+            this.set_zoom_level(args.state.zoom?.zoom);
+        if(restore_history && args.state.zoom?.lock != null)
+            this.set_locked_zoom(args.state.zoom?.lock, { stop_animation: false });
+
+        // Similar to how we display thumbnails for portrait images starting at the top, default to the top
+        // if we'll be panning vertically when in cover mode.
+        let aspect = this.relative_aspect;
+        let center_pos = [0.5, aspect == "portrait"? 0:0.5];
+
+        // If history has a center position, restore it if we're restoring history.  Also, restore it
+        // if we're not in "return to top" mode as long as the aspect ratios of the images are similar,
+        // eg. we're going from a portait image to another portrait image.
+        if(args.state.zoom != null)
+        {
+            let old_aspect = args.state.zoom?.relative_aspect;
+            let return_to_top = settings.get("view_mode") == "manga";
+            if(restore_history || (!return_to_top && aspect == old_aspect))
+                center_pos = [...args.state.zoom?.pos];
+        }
+
+        this.center_pos = center_pos;
         this.reposition();
     }
 
@@ -1002,6 +973,7 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
             pos: this.center_pos,
             zoom: this.get_zoom_level(),
             lock: this.get_locked_zoom(),
+            relative_aspect: this.relative_aspect,
             animating: this.animations_running,
         };
 
@@ -1495,7 +1467,7 @@ ppixiv.image_viewer_desktop = class extends ppixiv.image_viewer_base
 
            this.captured_pointer_id = e.pointerId;
            this.container.setPointerCapture(this.captured_pointer_id);
-           this.container.addEventListener("lostpointercapture", this.lost_pointer_capture);
+           this.container.addEventListener("lostpointercapture", this.lost_pointer_capture, { signal: this.shutdown_signal.signal });
 
            // If this is a click-zoom, align the zoom to the point on the image that
            // was clicked.
@@ -1505,7 +1477,7 @@ ppixiv.image_viewer_desktop = class extends ppixiv.image_viewer_base
            this.reposition();
 
            // Only listen to pointermove while we're dragging.
-           this.container.addEventListener("pointermove", this.pointermove);
+           this.container.addEventListener("pointermove", this.pointermove, { signal: this.shutdown_signal.signal });
        } else {
            if(this.captured_pointer_id == null || e.pointerId != this.captured_pointer_id)
                return;
@@ -1521,7 +1493,8 @@ ppixiv.image_viewer_desktop = class extends ppixiv.image_viewer_base
 
    shutdown()
    {
-       this.stop_dragging();
+       // Note that we need to avoid writing to browser history once shutdown() is called.
+       document.body.classList.remove("hide-ui");
        super.shutdown();
    }
 

@@ -165,7 +165,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
             height: current_image.height,
             crop: this.image_editor.editing_crop? null:current_image.crop, // no cropping while editing cropping
             pan: current_image.pan,
-            restore_position: this.restore_history? "history":"auto",
+            restore_history: this.restore_history,
 
             slideshow: this._slideshow,
             onnextimage: this._onnextimage,
