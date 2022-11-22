@@ -49,6 +49,21 @@ ppixiv.install_polyfills = function()
             return false;
         }
     }
+
+    // Firefox still doesn't support inert.  We simulate it with a pointer-events: none style, so
+    // implement the attribute.
+    if(!("inert" in document.documentElement))
+    {
+        Object.defineProperty(HTMLElement.prototype, "inert", {
+            get: function() { return this.hasAttribute("inert"); },
+            set: function(value) {
+                if(value)
+                    this.setAttribute("inert", "inert");
+                else
+                    this.removeAttribute("inert", "inert");
+            },
+        });
+    }
 };
 
 // Install early polyfills.  These can be needed before other scripts run, so they're installed
