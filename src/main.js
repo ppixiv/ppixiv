@@ -237,10 +237,6 @@ ppixiv.MainController = class
          
         this.container = document.body;
 
-        // Handle enabling and disabling top-level scrolling.
-        this.refresh_main_scroll();
-        OpenWidgets.singleton.addEventListener("changed", this.refresh_main_scroll);
-
         // Create the popup menu handler.
         this.context_menu = new main_context_menu({container: document.body});
         link_this_tab_popup.setup();
@@ -474,8 +470,6 @@ ppixiv.MainController = class
         // Deactivate the old screen.
         if(old_screen != null && old_screen != new_screen)
             old_screen.deactivate();
-
-        this.refresh_main_scroll();
     }
 
     get_rect_for_media_id(media_id)
@@ -1121,24 +1115,6 @@ ppixiv.MainController = class
         args.hash.set("slideshow", "1");
         args.hash.set("view", "illust");
         return args;
-    }
-
-    // ENable or disable scrolling on the document.
-    //
-    // The image is overlaid on top of the search, and we need to explicitly disable scrolling while
-    // it's visible, or mousewheel scrolling, touch scrolling, etc. can cause the document to scroll
-    // while it's not visible.
-    //
-    // This also handles disabling scrolling while a dialog is open.
-    //
-    // See also Dialog._update_block_touch_scrolling for an extra special case needed to prevent
-    // scrolling on iOS.
-    refresh_main_scroll = () =>
-    {
-        let top_dialog = ppixiv.dialog_widget.top_dialog;
-        let enable_scrolling = this.current_screen_name == "search" && top_dialog == null;
-        // console.log("Scrolling enabled:", enable_scrolling);
-        helpers.set_class(document.documentElement, "disable-scrolling", !enable_scrolling);
     }
 };
 

@@ -377,7 +377,7 @@ ppixiv.screen_search = class extends ppixiv.screen
                 <!-- The tree widget for local navigation: -->
                 <div class=local-navigation-box></div>
 
-                <div class=search-results>
+                <div class="search-results scroll-container">
                     <div class="thumbnail-ui top-ui-box">
                         <div style="flex: 1;"></div>
                         <div class=thumbnail-ui-box-container></div>

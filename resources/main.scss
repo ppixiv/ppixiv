@@ -39,6 +39,7 @@ html {
     }
 
     width: calc(100%);
+    height: 100%;
 
     background-color: var(--main-background-color);
     background-image: var(--background-noise);
@@ -180,15 +181,7 @@ html {
     // reappear as we load searches, causing the UI to shift back and forth slightly.
     overflow-y: scroll;
     overflow-y: overlay;
-
-    &.disable-scrolling
-    {
-        touch-action: none;
-        body {
-            touch-action: none;
-        }
-        overflow: hidden !important;
-    }
+    overflow: hidden;
 }
  
 .ppixiv-icon {
@@ -236,6 +229,7 @@ body {
     font-family: "Helvetica Neue", arial, sans-serif;
     margin: 0;
     color: #fff;
+    height: 100%;
 }
 
 a {
@@ -1247,7 +1241,7 @@ body.hide-r18g .r18g { display: none; }
      * scrolled all the way up, and scroll underneath it. */
     position: sticky;
     top: 0;
-    width: calc(100% - var(--navigation-box-reserved-width));
+    width: 100%;
     display: flex;
     flex-direction: row;
     align-items: center;
@@ -1411,6 +1405,8 @@ body.hide-r18g .r18g { display: none; }
     .search-results {
         // If the nav box is open, shift the search results to make room for it.
         margin-left: var(--navigation-box-reserved-width);
+
+        height: 100%;
     }
 
     .thumbnail-ui-box-container {
@@ -1485,6 +1481,15 @@ body.hide-r18g .r18g { display: none; }
 
     .following-tag {
         text-decoration: none;
+    }
+}
+
+.search-results {
+    overflow-y: scroll;
+    overflow-y: overlay;
+
+    > .thumbnail-container-box {
+        display: contents;
     }
 }
 
@@ -3587,6 +3592,8 @@ svg.heart-image .delete {
     // If we're not showing navigation, don't reserve space for it.  Don't change the actual
     // nav box's size, so we can transition it in and out cleanly.
     &:not([data-show-navigation]) { --navigation-box-reserved-width: 0%; }
+
+    height: 100%;
 }
 
 .local-navigation-box {

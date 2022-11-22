@@ -51,7 +51,7 @@ ppixiv.search_view = class extends ppixiv.widget
         this.onstartpagechanged = onstartpagechanged;
 
         // The node that scrolls to show thumbs.  This is normally the document itself.
-        this.scroll_container = document.documentElement;
+        this.scroll_container = this.container.closest(".scroll-container");
         this.thumbnail_box = this.container.querySelector(".thumbnails");
         this.load_previous_page_button = this.container.querySelector(".load-previous-page");
 
@@ -64,6 +64,15 @@ ppixiv.search_view = class extends ppixiv.widget
         media_cache.addEventListener("infoloaded", this.media_info_loaded);
         new ResizeObserver(() => this.refresh_images()).observe(this.container);
 
+        // The scroll position may not make sense when if scroller changes size (eg. the window was resized
+        // or we changed orientations).  Override it and restore from the latest scroll position that we
+        // committed to history.
+        new ResizeObserver(() => {
+            let args = helpers.args.location;
+            if(args.state.scroll)
+                this.restore_scroll_position(args.state.scroll?.scroll_position);
+        }).observe(this.scroll_container);
+
         // When a bookmark is modified, refresh the heart icon.
         media_cache.addEventListener("mediamodified", this.refresh_thumbnail, { signal: this.shutdown_signal.signal });
 
@@ -74,7 +83,7 @@ ppixiv.search_view = class extends ppixiv.widget
 
         // Work around a browser bug: even though it's document.documentElement.scrollTop is
         // changing, it doesn't receive onscroll and we have to listen on window instead.
-        window.addEventListener("scroll", (e) => {
+        this.scroll_container.addEventListener("scroll", (e) => {
             this.schedule_store_scroll_position();
         }, {
             passive: true,
@@ -155,20 +164,22 @@ ppixiv.search_view = class extends ppixiv.widget
             this.load_data_source_page();
             this.first_visible_thumbs_changed();
         }, {
-            root: document,
+            root: this.scroll_container,
             threshold: 1,
         }));
         
         this.intersection_observers.push(new IntersectionObserver((entries) => {
             for(let entry of entries)
+            {
                 helpers.set_dataset(entry.target.dataset, "nearby", entry.isIntersecting);
+            }
 
             // Set up any thumbs that just came nearby, and see if we need to load more search results.
             this.refresh_images();
             this.set_visible_thumbs();
             this.load_data_source_page();
         }, {
-            root: document,
+            root: this.scroll_container,
 
             // This margin determines how far in advance we load the next page of results.
             rootMargin: "150%",
@@ -1644,10 +1655,8 @@ ppixiv.search_view = class extends ppixiv.widget
         let y = thumb.offsetTop + thumb.offsetHeight/2 - this.scroll_container.offsetHeight/2;
 
         // If we set y outside of the scroll range, iOS will incorrectly report scrollTop briefly.
-        // Clamp the position to avoid this.  Use window.innerHeight as the height, since
-        // scroll_container.offsetHeight is confused by padding and gives the wrong result when
-        // close to the bottom.
-        y = helpers.clamp(y, 0, this.scroll_container.scrollHeight - window.innerHeight);
+        // Clamp the position to avoid this.
+        y = helpers.clamp(y, 0, this.scroll_container.scrollHeight - this.scroll_container.offsetHeight);
 
         this.scroll_container.scrollTop = y;
 
