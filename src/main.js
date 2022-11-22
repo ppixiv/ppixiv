@@ -858,16 +858,6 @@ ppixiv.MainController = class
         if(ppixiv.dialog_widget.active_dialogs.length > 0)
             return;
 
-        if(e.key == "Escape")
-        {
-            e.preventDefault();
-            e.stopPropagation();
-
-            this.navigate_out();
-
-            return;
-        }
-       
         // Let the screen handle the input.
         screen.handle_onkeydown(e);
     }
