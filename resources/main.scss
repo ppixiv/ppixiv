@@ -1348,7 +1348,7 @@ body.hide-r18g .r18g { display: none; }
         
         // Fade the background to black when we're active.
         background-color: rgba(0, 0, 0,
-            scale_value(var(--illust-hidden), 0.7, .3, 0, 1));
+            scale_value(var(--illust-hidden), 0.2, 0.6, 1, 0));
     }
     
     .mobile-ui-drag-container {
@@ -3297,7 +3297,7 @@ svg.heart-image .delete {
         // We actually stay fully visible until it reaches 0.7, so we only start fading out near
         // the end of the animation.  This results in opacity values outside the 0-1 range, which
         // will just be clipped.
-        opacity: scale_value(var(--illust-hidden), 0.5, 1, 1, 0);
+        opacity: scale_value(var(--illust-hidden), 0.4, 1, 1, 0);
     }
 
     .page-change-indicator {
