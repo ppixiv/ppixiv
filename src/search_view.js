@@ -1651,9 +1651,8 @@ ppixiv.search_view = class extends ppixiv.widget
 
     pulse_thumbnail(media_id)
     {
-        // On mobile, the image transitions indicate the last viewed image, so we don't
-        // need this.
-        if(ppixiv.mobile)
+        // If animations are enabled, they indicate the last viewed image, so we don't need this.
+        if(settings.get("animations_enabled"))
             return;
 
         let thumb = this.get_thumbnail_for_media_id(media_id);
