@@ -320,6 +320,8 @@ ppixiv.dialog_widget = class extends ppixiv.widget
         this.container.querySelector(".close-button").hidden = !allow_close || !show_close_button;
         this.header = header;
 
+        window.addEventListener("keydown", this._onkeypress.bind(this), { signal: this.shutdown_signal.signal });
+
         if(this.allow_close)
         {
             // Close if the container is clicked, but not if something inside the container is clicked.
@@ -367,6 +369,38 @@ ppixiv.dialog_widget = class extends ppixiv.widget
         // Remove the widget when it's hidden.  If we're animating, we'll do this after transitionend.
         if(!this.actually_visible)
             this.shutdown();
+    }
+
+    _onkeypress(e)
+    {
+        let idx = ppixiv.dialog_widget.active_dialogs.indexOf(this);
+        if(idx == -1)
+        {
+            console.error("Widget isn't in active_dialogs during keypress:", this);
+            return;
+        }
+
+        // Ignore keypresses if we're not the topmost dialog.
+        if(idx != ppixiv.dialog_widget.active_dialogs.length-1)
+            return;
+
+        if(this.handle_keydown(e))
+        {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+    }
+
+    // This can be overridden by the implementation.
+    handle_keydown(e)
+    {
+        if(this.allow_close && e.key == "Escape")
+        {
+            this.visible = false;
+            return true;
+        }
+
+        return false;
     }
 
     get actually_visible()
@@ -1394,21 +1428,19 @@ ppixiv.text_prompt = class extends ppixiv.dialog_widget
         this.container.querySelector(".submit-button").addEventListener("click", this.submit);
     }
 
-    onkeydown = (e) =>
+    handle_keydown = (e) =>
     {
-        if(e.key == "Escape")
-        {
-            e.preventDefault();
-            e.stopPropagation();
-            this.visible = false;
-        }
+        if(super.handle_keydown(e))
+            return true;
 
+        // The escape key is handled by dialog_widget.
         if(e.key == "Enter")
         {
-            e.preventDefault();
-            e.stopPropagation();
             this.submit();
+            return true;
         }
+
+        return false;
     }
 
     visibility_changed()
