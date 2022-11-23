@@ -219,7 +219,7 @@ ppixiv.dialog_widget = class extends ppixiv.widget
         back_icon=false,
 
         // The drag direction to close the dialog if the dialog can be dragged to close.
-        drag_direction="up",
+        drag_direction="down",
 
         template,
         ...options
@@ -278,11 +278,17 @@ ppixiv.dialog_widget = class extends ppixiv.widget
         // Create the dragger that will control animations.  Animations are only used on mobile.
         if(ppixiv.mobile)
         {
+            // drag_direction is the direction to close.  We're giving it to WidgetDragger,
+            // which takes the direction ti open, so reverse it.
+            drag_direction = {
+                down: "up", up: "down", left: "right", right: "left",
+            }[drag_direction];
+
             this.dialog_dragger = new WidgetDragger({
                 node: this.container,
                 drag_node: this.container,
                 visible: false,
-                size: 100,
+                size: 150,
                 animated_property: "--dialog-visible",
 
                 // Call create_animation again each time this is queried, so the animation can change to

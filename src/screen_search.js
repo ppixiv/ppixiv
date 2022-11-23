@@ -1,5 +1,70 @@
 "use strict";
 
+function _create_main_search_menu(container)
+{
+    let options = [
+        { label: "Search works",           icon: "search",          url: `/tags#ppixiv` },
+        { label: "New works by following", icon: "photo_library",   url: "/bookmark_new_illust.php#ppixiv" },
+        { label: "New works by everyone",  icon: "groups",          url: "/new_illust.php#ppixiv" },
+
+        [
+            { label: "Bookmarks",          icon: "favorite",        url: `/users/${window.global_data.user_id}/bookmarks/artworks#ppixiv` },
+            
+            // This is just a visual cue for "all (combined) bookmarks" and is the same as the first item.
+            // Omit it on mobile to save space.
+            ppixiv.mobile? null:
+            { label: "all",                                         url: `/users/${window.global_data.user_id}/bookmarks/artworks#ppixiv` },
+
+            // Condense this on mobile by showing an icon instead of the label since there isn't enough space.
+            { label: ppixiv.mobile? "":"Public",        icon: ppixiv.mobile? "public":null,          url: `/users/${window.global_data.user_id}/bookmarks/artworks#ppixiv?show-all=0` },
+            { label: ppixiv.mobile? "":"Private",       icon: ppixiv.mobile? "lock":null,            url: `/users/${window.global_data.user_id}/bookmarks/artworks?rest=hide#ppixiv?show-all=0` },
+        ],
+
+        [
+            { label: "Followed users",     icon: "visibility",      url: `/users/${window.global_data.user_id}/following#ppixiv` },
+            { label: ppixiv.mobile? "":"Public",        icon: ppixiv.mobile?"public":null,          url: `/users/${window.global_data.user_id}/following#ppixiv` },
+            { label: ppixiv.mobile? "":"Private",       icon: ppixiv.mobile? "lock":null,           url: `/users/${window.global_data.user_id}/following?rest=hide#ppixiv` },
+        ],
+
+        { label: "Rankings",               icon: "auto_awesome"  /* who names this stuff? */, url: "/ranking.php#ppixiv" },
+        { label: "Recommended works",      icon: "ppixiv:suggestions", url: "/discovery#ppixiv" },
+        { label: "Recommended users",      icon: "ppixiv:suggestions", url: "/discovery/users#ppixiv" },
+        { label: "Completed requests",     icon: "request_page",    url: "/request/complete/illust#ppixiv" },
+        { label: "Users",                  icon: "search",          url: "/search_user.php#ppixiv" },
+    ];
+
+    let create_option = (option) => {
+        let button = new ppixiv.menu_option_button({
+            container,
+            classes: ["navigation-button"],
+            ...option
+        })
+
+        return button;
+    };
+
+    for(let option of options)
+    {
+        if(Array.isArray(option))
+        {
+            let items = [];
+            for(let suboption of option)
+            {
+                if(suboption == null)
+                    continue;
+                items.push(create_option(suboption));
+            }
+
+            new ppixiv.menu_option_row({
+                container,
+                items: items,
+            });
+        }
+        else
+            create_option(option);
+    }
+}
+
 class thumbnail_ui_desktop extends ppixiv.widget
 {
     constructor(options)
@@ -154,8 +219,8 @@ let thumbnail_ui_mobile = class extends ppixiv.widget
                             ${ helpers.create_icon("refresh") }
                         </div>
 
-                        <div class="icon-button pixiv-only">
-                            ${ helpers.create_icon("menu") }
+                        <div class="icon-button menu pixiv-only">
+                            ${ helpers.create_icon("search") }
                         </div>
 
                         <div class="icon-button slideshow">
@@ -192,13 +257,28 @@ let thumbnail_ui_mobile = class extends ppixiv.widget
             this.dragger.show();
         });
 
-        this.container.querySelector(".refresh-search-button").addEventListener("click", () => this.parent.refresh_search());
-        this.container.querySelector(".preferences-button").addEventListener("click", (e) => new ppixiv.settings_dialog());
+        this.container.querySelector(".refresh-search-button").addEventListener("click", () => {
+            this.parent.refresh_search();
+            this.dragger.hide();
+        });
+
+        this.container.querySelector(".preferences-button").addEventListener("click", (e) => {
+            new ppixiv.settings_dialog();
+            this.dragger.hide();
+        });
+
         this.container.querySelector(".slideshow").addEventListener("click", (e) => {
             helpers.navigate(main_controller.slideshow_url);
+            this.dragger.hide();
+        });
+        
+        this.container.querySelector(".menu").addEventListener("click", (e) => {
+            new change_search_dialog();
+            this.dragger.hide();
         });
 
         this.container.querySelector(".back-button").addEventListener("click", () => {
+            // This doesn't hide the dragger on click, in case the user wants to back out several times.
             if(ppixiv.native)
             {
                 let parent_folder_id = local_api.get_parent_folder(this.parent.displayed_media_id);
@@ -278,7 +358,8 @@ ppixiv.screen_search = class extends ppixiv.screen
             });
         }
 
-        this.create_main_search_menu();
+        let option_box = this.container.querySelector(".main-search-menu");
+        _create_main_search_menu(option_box);
 
         // Create the avatar widget shown on the artist data source.
         this.avatar_container = this.container.querySelector(".avatar-container");
@@ -375,62 +456,6 @@ ppixiv.screen_search = class extends ppixiv.screen
         this.top_ui_box.classList.add("disable-transition");
         this.top_ui_box.offsetHeight;
         this.top_ui_box.classList.remove("disable-transition");
-    }
-
-    create_main_search_menu()
-    {
-        let option_box = this.container.querySelector(".main-search-menu");
-        this.menu_options = [];
-        let options = [
-            { label: "Search works",           icon: "search",          url: `/tags#ppixiv` },
-            { label: "New works by following", icon: "photo_library",          url: "/bookmark_new_illust.php#ppixiv" },
-            { label: "New works by everyone",  icon: "groups",          url: "/new_illust.php#ppixiv" },
-            [
-                { label: "Bookmarks", icon: "favorite", url: `/users/${window.global_data.user_id}/bookmarks/artworks#ppixiv` },
-                { label: "all", url: `/users/${window.global_data.user_id}/bookmarks/artworks#ppixiv` },
-                { label: "public", url: `/users/${window.global_data.user_id}/bookmarks/artworks#ppixiv?show-all=0` },
-                { label: "private", url: `/users/${window.global_data.user_id}/bookmarks/artworks?rest=hide#ppixiv?show-all=0` },
-            ],
-            [
-                { label: "Followed users", icon: "visibility", url: `/users/${window.global_data.user_id}/following#ppixiv` },
-                { label: "public", url: `/users/${window.global_data.user_id}/following#ppixiv` },
-                { label: "private", url: `/users/${window.global_data.user_id}/following?rest=hide#ppixiv` },
-            ],
-
-            { label: "Rankings",               icon: "auto_awesome"  /* who names this stuff? */, url: "/ranking.php#ppixiv" },
-            { label: "Recommended works",      icon: "ppixiv:suggestions", url: "/discovery#ppixiv" },
-            { label: "Recommended users",      icon: "ppixiv:suggestions", url: "/discovery/users#ppixiv" },
-            { label: "Completed requests",     icon: "request_page", url: "/request/complete/illust#ppixiv" },
-            { label: "Users",           icon: "search", url: "/search_user.php#ppixiv" },
-        ];
-
-        let create_option = (option) => {
-            let button = new menu_option_button({
-                container: option_box,
-                parent: this,
-                ...option
-            })
-
-            return button;
-        };
-
-        for(let option of options)
-        {
-            if(Array.isArray(option))
-            {
-                let items = [];
-                for(let suboption of option)
-                    items.push(create_option(suboption));
-
-                new menu_option_row({
-                    container: option_box,
-                    parent: this,
-                    items: items,
-                });
-            }
-            else
-                this.menu_options.push(create_option(option));
-        }
     }
 
     get active()
@@ -980,3 +1005,40 @@ ppixiv.slideshow_staging_dialog = class extends ppixiv.dialog_widget
     }
 };
 
+class change_search_dialog extends ppixiv.dialog_widget
+{
+    constructor({...options}={})
+    {
+        super({...options,
+            dialog_class: "edit-search-dialog",
+            header: "Search",
+            drag_direction: "right",
+            small: true,
+            template: `
+                <div class=items>
+                </div>
+            `
+        });
+
+        // Create the menu items.  This is the same as the dropdown list for desktop.
+        let option_box = this.container.querySelector(".scroll");
+        _create_main_search_menu(option_box);
+
+        // Add vertical-list so this has the same alignment handling as the desktop version.
+        this.container.querySelector(".scroll").classList.add("vertical-list");
+
+        let current_path = helpers.get_url_without_language(ppixiv.plocation).pathname;
+        for(let button of this.container.querySelectorAll(".navigation-button"))
+        {
+            // XXX: this doesn't distinguish bookmark buttons
+            let url = new URL(button.href);
+            url = helpers.get_url_without_language(url);
+            helpers.set_class(button, "selected", url.pathname == current_path);
+        }
+    }
+
+    visibility_changed()
+    {
+        super.visibility_changed();
+    }
+};

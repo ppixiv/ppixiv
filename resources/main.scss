@@ -1407,7 +1407,7 @@ body.hide-r18g .r18g { display: none; }
         // We could animate this a bit when the bar is visible, but Android doesn't handle animating these
         // very well.
         backdrop-filter: blur(20px) contrast(40%) brightness(0.5);
-        -webkit-backdrop-filter: blur(20px) contrast(40%) brightness(0.5);
+        -webkit-backdrop-filter: blur(15px) contrast(60%) brightness(0.5);
 
         // Crop off the buttons when they pan outside of this container.
         overflow: hidden;
@@ -3773,7 +3773,7 @@ svg.heart-image .delete {
 
 .settings-dialog
 {
-    @include settings-dialog();
+    @include settings-dialog($animation: "horizontal");
 
     html.mobile & {
         // Space out the top-level page a bit more on mobile, and flex so the whole column
@@ -3798,6 +3798,21 @@ svg.heart-image .delete {
 .settings-dialog-page
 {
     @include settings-dialog($animation: "horizontal");
+}
+
+.edit-search-dialog
+{
+    @include general-dialog($animation: "horizontal");
+
+    .scroll {
+        display: flex;
+        flex-direction: column;
+
+        --box-link-bg-color: none;
+        .navigation-button
+        {
+        }
+    }
 }
 
 .muted-tags-popup {
