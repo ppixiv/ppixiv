@@ -76,293 +76,7 @@ let thumbnail_ui = class extends ppixiv.widget
                     </div>
                 </div>
 
-                <div class="data-source-specific box-button-row" data-datasource=discovery>
-                    ${ helpers.create_box_link({label: "All",      link: "?mode=all#ppixiv",     popup: "Show all works",    data_type: "all" }) }
-                    ${ helpers.create_box_link({label: "All ages", link: "?mode=safe#ppixiv",    popup: "All ages",          data_type: "safe" }) }
-                    ${ helpers.create_box_link({label: "R18",      link: "?mode=r18#ppixiv",     popup: "R18",               data_type: "r18", classes: ["r18"] }) }
-                </div>
-
-                <div class="data-source-specific box-button-row" data-datasource=new_illust>
-                    ${ helpers.create_box_link({label: "Illustrations", popup: "Show illustrations",     data_type: "new-illust-type-illust" }) }
-                    ${ helpers.create_box_link({label: "Manga",         popup: "Show manga only",        data_type: "new-illust-type-manga" }) }
-
-                    ${ helpers.create_box_link({label: "All ages",      popup: "Show all-ages works",    data_type: "new-illust-ages-all" }) }
-                    ${ helpers.create_box_link({label: "R18",           popup: "Show R18 works",         data_type: "new-illust-ages-r18" }) }
-                </div>
-                
-                <div class="data-source-specific" data-datasource=rankings>
-                    <div class=box-button-row>
-                        ${ helpers.create_box_link({label: "Next day", popup: "Show the next day",     data_type: "new-illust-type-illust", classes: ["nav-tomorrow"] }) }
-                        <span class=nav-today style="margin: 0 0.25em;"></span>
-                        ${ helpers.create_box_link({label: "Previous day", popup: "Show the previous day",     data_type: "new-illust-type-illust", classes: ["nav-yesterday"] }) }
-                    </div>
-
-                    <div class="checked-links box-button-row">
-                        ${ helpers.create_box_link({label: "All",           popup: "Show all works",           data_type: "content-all" }) }
-                        ${ helpers.create_box_link({label: "Illustrations", popup: "Show illustrations only",  data_type: "content-illust" }) }
-                        ${ helpers.create_box_link({label: "Animations",    popup: "Show animations only",     data_type: "content-ugoira" }) }
-                        ${ helpers.create_box_link({label: "Manga",         popup: "Show manga only",          data_type: "content-manga" }) }
-                    </div>
-
-                    <div class="checked-links box-button-row">
-                        ${ helpers.create_box_link({label: "Daily",         popup: "Daily rankings",           data_type: "mode-daily" }) }
-                        ${ helpers.create_box_link({label: "R18",           popup: "Show R18 works (daily only)",     data_type: "mode-daily-r18", classes: ["r18"] }) }
-                        ${ helpers.create_box_link({label: "R18G",          popup: "Show R18G works (weekly only)",   data_type: "mode-r18g", classes: ["r18g"] }) }
-                        ${ helpers.create_box_link({label: "AI",            popup: "Show AI works (daily only)",      data_type: "mode-ai" }) }
-                        ${ helpers.create_box_link({label: "AI R18",        popup: "Show R18 AI works (daily only)",  data_type: "mode-ai-r18", classes: ["r18"] }) }
-                        ${ helpers.create_box_link({label: "Weekly",        popup: "Weekly rankings",          data_type: "mode-weekly" }) }
-                        ${ helpers.create_box_link({label: "Monthly",       popup: "Monthly rankings",         data_type: "mode-monthly" }) }
-                        ${ helpers.create_box_link({label: "Rookie",        popup: "Rookie rankings",          data_type: "mode-rookie" }) }
-                        ${ helpers.create_box_link({label: "Original",      popup: "Original rankings",        data_type: "mode-original" }) }
-                        ${ helpers.create_box_link({label: "Male",          popup: "Popular with men",         data_type: "mode-male" }) }
-                        ${ helpers.create_box_link({label: "Female",        popup: "Popular with women",       data_type: "mode-female" }) }
-                    </div>
-                </div>
-                 
-                <div class="data-source-specific" data-datasource=bookmarks>
-                    <div class=box-button-row>
-                        <!-- These are hidden if you're viewing somebody else's bookmarks. -->
-                        <span class=bookmarks-public-private style="margin-right: 25px;">
-                            ${ helpers.create_box_link({label: "All",        popup: "Show all bookmarks",       data_type: "all" }) }
-                            ${ helpers.create_box_link({label: "Public",     popup: "Show public bookmarks",    data_type: "public" }) }
-                            ${ helpers.create_box_link({label: "Private",    popup: "Show private bookmarks",   data_type: "private" }) }
-                        </span>
-
-                        <div class=bookmark-tags-box>
-                            ${ helpers.create_box_link({label: "All bookmarks",    popup: "Bookmark tags",  icon: "ppixiv:tag", classes: ["popup-menu-box-button"] }) }
-                            <div class="popup-menu-box bookmark-tag-list vertical-list"></div>
-                        </div>
-
-                        ${ helpers.create_box_link({ popup: "Shuffle", icon: "shuffle",   data_type: "order-shuffle" }) }
-                    </div>
-                </div>                
-
-                <div class="data-source-specific" data-datasource=following>
-                    <div class=box-button-row>
-                        <span class=follows-public-private style="margin-right: 25px;">
-                            ${ helpers.create_box_link({label: "Public",    popup: "Show publically followed users",   data_type: "public-follows" }) }
-                            ${ helpers.create_box_link({label: "Private",    popup: "Show privately followed users",   data_type: "private-follows" }) }
-                        </span>
-
-                        <span class="followed-users-follow-tags premium-only">
-                            ${ helpers.create_box_link({label: "All tags",    popup: "Follow tags", icon: "bookmark", classes: ["popup-menu-box-button"] }) }
-                            <div class="popup-menu-box follow-tag-list vertical-list"></div>
-                        </span>
-
-                        ${ helpers.create_box_link({ popup: "Accepting requests", icon: "paid",   data_type: "accepting-requests" }) }
-                    </div>
-                </div>                
-
-                <div class=data-source-specific data-datasource="new_works_by_following">
-                    <div class=box-button-row>
-                        <span style="margin-right: 25px;">
-                            ${ helpers.create_box_link({label: "All",    popup: "Show all works",   data_type: "bookmarks-new-illust-all", classes: ["r18"] }) }
-                            ${ helpers.create_box_link({label: "R18",    popup: "Show R18 works",   data_type: "bookmarks-new-illust-ages-r18", classes: ["r18"] }) }
-                        </span>
-
-                        <span class="new-post-follow-tags premium-only">
-                            ${ helpers.create_box_link({label: "All tags",    popup: "Follow tags", icon: "bookmark", classes: ["popup-menu-box-button"] }) }
-                            <div class="popup-menu-box new-post-follow-tag-list vertical-list"></div>
-                        </span>
-                    </div>
-                </div>
-
-                <div class="data-source-specific" data-datasource=artist>
-                    <div class="box-button-row search-options-row">
-                        ${ helpers.create_box_link({label: "Works",    popup: "Show all works",            data_type: "artist-works" }) }
-                        ${ helpers.create_box_link({label: "Illusts",  popup: "Show illustrations only",   data_type: "artist-illust" }) }
-                        ${ helpers.create_box_link({label: "Manga",    popup: "Show manga only",           data_type: "artist-manga" }) }
-
-                        <div class=member-tags-box>
-                            ${ helpers.create_box_link({label: "Tags",    popup: "Tags", icon: "bookmark", classes: ["popup-menu-box-button"] }) }
-                            <div class="popup-menu-box post-tag-list vertical-list"></div>
-                        </div>
-                    </div>
-                </div>
-                 
-                <div class="data-source-specific" data-datasource=search>
-                    <div class=tag-search-box-container></div>
-
-                    <!-- We don't currently have popup text for these, since it's a little annoying to
-                         have it pop over the menu. -->
-                    <div class="box-button-row search-options-row">
-                        ${ helpers.create_box_link({label: "Ages",    classes: ["popup-menu-box-button"] }) }
-                        <div hidden class="popup-menu-box vertical-list">
-                            ${ helpers.create_box_link({label: "All",  data_type: "ages-all", dataset: { default: true } }) }
-                            ${ helpers.create_box_link({label: "All ages",  data_type: "ages-safe" }) }
-                            ${ helpers.create_box_link({label: "R18",  data_type: "ages-r18", classes: ["r18"] }) }
-                        </div>
-
-                        ${ helpers.create_box_link({label: "Sort",    classes: ["popup-menu-box-button"] }) }
-                        <div hidden class="popup-menu-box vertical-list">
-                            ${ helpers.create_box_link({label: "Newest",              data_type: "order-newest", dataset: { default: true } }) }
-                            ${ helpers.create_box_link({label: "Oldest",              data_type: "order-oldest" }) }
-                            ${ helpers.create_box_link({label: "Popularity",          data_type: "order-all",    classes: ["premium-only"] }) }
-                            ${ helpers.create_box_link({label: "Popular with men",    data_type: "order-male",   classes: ["premium-only"] }) }
-                            ${ helpers.create_box_link({label: "Popular with women",  data_type: "order-female", classes: ["premium-only"] }) }
-                        </div>
-
-                        ${ helpers.create_box_link({label: "Type",    classes: ["popup-menu-box-button"] }) }
-                        <div hidden class="popup-menu-box vertical-list">
-                            ${ helpers.create_box_link({label: "All",             data_type: "search-type-all",    dataset: { default: true } }) }
-                            ${ helpers.create_box_link({label: "Illustrations",   data_type: "search-type-illust" }) }
-                            ${ helpers.create_box_link({label: "Manga",           data_type: "search-type-manga" }) }
-                            ${ helpers.create_box_link({label: "Animations",      data_type: "search-type-ugoira" }) }
-                        </div>
-
-                        ${ helpers.create_box_link({label: "Search mode",    classes: ["popup-menu-box-button"] }) }
-                        <div hidden class="popup-menu-box vertical-list">
-                            ${ helpers.create_box_link({label: "Tag",               data_type: "search-all",    dataset: { default: true } }) }
-                            ${ helpers.create_box_link({label: "Exact tag match",   data_type: "search-exact" }) }
-                            ${ helpers.create_box_link({label: "Text search",       data_type: "search-text" }) }
-                        </div>
-
-                        ${ helpers.create_box_link({label: "Image size",    classes: ["popup-menu-box-button"] }) }
-                        <div hidden class="popup-menu-box vertical-list">
-                            ${ helpers.create_box_link({label: "All",               data_type: "res-all",    dataset: { default: true } }) }
-                            ${ helpers.create_box_link({label: "High-res",          data_type: "res-high" }) }
-                            ${ helpers.create_box_link({label: "Medium-res",        data_type: "res-medium" }) }
-                            ${ helpers.create_box_link({label: "Low-res",           data_type: "res-low" }) }
-                        </div>
-                        
-                        ${ helpers.create_box_link({label: "Aspect ratio",    classes: ["popup-menu-box-button"] }) }
-                        <div hidden class="popup-menu-box vertical-list">
-                            ${ helpers.create_box_link({label: "All",               data_type: "aspect-ratio-all",       icon: "", dataset: { default: true } }) }
-                            ${ helpers.create_box_link({label: "Landscape",         data_type: "aspect-ratio-landscape", icon: "panorama" }) }
-                            ${ helpers.create_box_link({label: "Portrait",          data_type: "aspect-ratio-portrait",  icon: "portrait" }) }
-                            ${ helpers.create_box_link({label: "Square",            data_type: "aspect-ratio-square",    icon: "crop_square" }) }
-                        </div>
-
-                        ${ helpers.create_box_link({label: "Bookmarks",    classes: ["popup-menu-box-button", "premium-only"] }) }
-                        <div hidden class="popup-menu-box vertical-list">
-                            <!-- The Pixiv search form shows 300-499, 500-999 and 1000-.  That's not
-                                 really useful and the query parameters let us filter differently, so we
-                                 replace it with a more useful "minimum bookmarks" filter. -->
-                            ${ helpers.create_box_link({label: "All",               data_type: "bookmarks-all",    dataset: { default: true } }) }
-                            ${ helpers.create_box_link({label: "100+",              data_type: "bookmarks-100" }) }
-                            ${ helpers.create_box_link({label: "250+",              data_type: "bookmarks-250" }) }
-                            ${ helpers.create_box_link({label: "500+",              data_type: "bookmarks-500" }) }
-                            ${ helpers.create_box_link({label: "1000+",             data_type: "bookmarks-1000" }) }
-                            ${ helpers.create_box_link({label: "2500+",             data_type: "bookmarks-2500" }) }
-                            ${ helpers.create_box_link({label: "5000+",             data_type: "bookmarks-5000" }) }
-                        </div>
-                       
-                        ${ helpers.create_box_link({label: "Time",    classes: ["popup-menu-box-button"] }) }
-                        <div hidden class="popup-menu-box vertical-list">
-                            ${ helpers.create_box_link({label: "All",               data_type: "time-all",  dataset: { default: true } }) }
-                            ${ helpers.create_box_link({label: "This week",         data_type: "time-week", dataset: { shortLabel: "Weekly" } }) }
-                            ${ helpers.create_box_link({label: "This month",        data_type: "time-month" }) }
-                            ${ helpers.create_box_link({label: "This year",         data_type: "time-year" }) }
-
-                            <div class=years-ago>
-                                ${ helpers.create_box_link({label: "1",             data_type: "time-years-ago-1", dataset: { shortLabel: "1 year" } }) }
-                                ${ helpers.create_box_link({label: "2",             data_type: "time-years-ago-2", dataset: { shortLabel: "2 years" } }) }
-                                ${ helpers.create_box_link({label: "3",             data_type: "time-years-ago-3", dataset: { shortLabel: "3 years" } }) }
-                                ${ helpers.create_box_link({label: "4",             data_type: "time-years-ago-4", dataset: { shortLabel: "4 years" } }) }
-                                ${ helpers.create_box_link({label: "5",             data_type: "time-years-ago-5", dataset: { shortLabel: "5 years" } }) }
-                                ${ helpers.create_box_link({label: "6",             data_type: "time-years-ago-6", dataset: { shortLabel: "6 years" } }) }
-                                ${ helpers.create_box_link({label: "7",             data_type: "time-years-ago-7", dataset: { shortLabel: "7 years" } }) }
-                                <span>years ago</span>
-                            </div>
-                        </div>
-                        
-                        ${ helpers.create_box_link({label: "Reset", popup: "Clear all search options", classes: ["reset-search"] }) }
-                    </div>
-                </div>
-
-                <div class="search-box data-source-specific" data-datasource=search-users>
-                    <div class="user-search-box input-field-container hover-menu-box">
-                        <input class=search-users placeholder="Search users">
-                        <span class="search-submit-button right-side-button">
-                            ${ helpers.create_icon("search") }
-                        </span>
-                    </div>
-                </div>
-
-                <div class="data-source-specific" data-datasource=completed-requests>
-                    <div class="box-button-row">
-                        <div style="margin-right: 25px;">
-                            ${ helpers.create_box_link({label: "Latest",        popup: "Show latest completed requests",       data_type: "completed-requests-latest" }) }
-                            ${ helpers.create_box_link({label: "Recommended",   popup: "Show recommmended completed requests", data_type: "completed-requests-recommended" }) }
-                        </div>
-
-                        <div style="margin-right: 25px;">
-                            ${ helpers.create_box_link({label: "Illustrations", popup: "Show latest completed requests",       data_type: "completed-requests-illust" }) }
-                            ${ helpers.create_box_link({label: "Animations",    popup: "Show animations only",                 data_type: "completed-requests-ugoira" }) }
-                            ${ helpers.create_box_link({label: "Manga",         popup: "Show manga only",                      data_type: "completed-requests-manga" }) }
-                        </div>
-
-                        <div>
-                            ${ helpers.create_box_link({label: "All",           popup: "Show all works",                       data_type: "completed-requests-all" }) }
-                            ${ helpers.create_box_link({label: "All ages",      popup: "Show all-ages works",                  data_type: "completed-requests-safe" }) }
-                            ${ helpers.create_box_link({label: "R18",           popup: "Show R18 works",                       data_type: "completed-requests-r18", classes: ["r18"] }) }
-                        </div>
-                    </div>
-                </div>
-
-                <div class="data-source-specific" data-datasource=vview>
-                    <div class="search-box local-tag-search-box">
-                        <div class="input-field-container hover-menu-box">
-                            <input placeholder="Search files">
-
-                            <span class="clear-local-search-button right-side-button">
-                                ${ helpers.create_icon("clear") }
-                            </span>
-
-                            <span class="submit-local-search-button right-side-button">
-                                ${ helpers.create_icon("search") }
-                            </span>
-                        </div>
-                    </div>
-
-                    <div class="box-button-row">
-                        <span class="popup icon-button copy-local-path" data-popup="Copy local path to clipboard">
-                            ${ helpers.create_icon("content_copy") }
-                        </span>
-
-                        ${ helpers.create_box_link({popup: "Close search", icon: "exit_to_app",  classes: ["clear-local-search"] }) }
-                        ${ helpers.create_box_link({label: "Bookmarks",           popup: "Show bookmarks",                       data_type: "local-bookmarks-only" }) }
-
-                        <div class=local-bookmark-tags-box>
-                            ${ helpers.create_box_link({label: "Tags",    icon: "ppixiv:tag", classes: ["popup-menu-box-button"] }) }
-                            <div class="popup-menu-box local-bookmark-tag-list vertical-list"></div>
-                        </div>
-
-                        ${ helpers.create_box_link({label: "Type",    classes: ["popup-menu-box-button"] }) }
-                        <div hidden class="popup-menu-box vertical-list">
-                            ${ helpers.create_box_link({label: "All",           data_type: "local-type-all", dataset: { default: "1"} }) }
-                            ${ helpers.create_box_link({label: "Videos",        data_type: "local-type-videos" }) }
-                            ${ helpers.create_box_link({label: "Images",        data_type: "local-type-images" }) }
-                        </div>
-                        
-                        ${ helpers.create_box_link({label: "Aspect ratio",    classes: ["popup-menu-box-button"] }) }
-                        <div hidden class="popup-menu-box vertical-list">
-                            ${ helpers.create_box_link({label: "All",           data_type: "local-aspect-ratio-all", dataset: { default: "1"} }) }
-                            ${ helpers.create_box_link({label: "Landscape",     data_type: "local-aspect-ratio-landscape" }) }
-                            ${ helpers.create_box_link({label: "Portrait",      data_type: "local-aspect-ratio-portrait" }) }
-                        </div>
-                        
-                        ${ helpers.create_box_link({label: "Image size",    classes: ["popup-menu-box-button"] }) }
-                        <div hidden class="popup-menu-box vertical-list">
-                            ${ helpers.create_box_link({label: "All",           data_type: "local-res-all", dataset: { default: "1"} }) }
-                            ${ helpers.create_box_link({label: "High-res",      data_type: "local-res-high" }) }
-                            ${ helpers.create_box_link({label: "Medium-res",    data_type: "local-res-medium" }) }
-                            ${ helpers.create_box_link({label: "Low-res",       data_type: "local-res-low" }) }
-                        </div>
-
-                        ${ helpers.create_box_link({label: "Order",    classes: ["popup-menu-box-button"] }) }
-                        <div hidden class="popup-menu-box vertical-list">
-                            ${ helpers.create_box_link({label: "Name",           data_type: "local-sort-normal", dataset: { default: "1"} }) }
-                            ${ helpers.create_box_link({label: "Name (inverse)", data_type: "local-sort-invert" }) }
-                            ${ helpers.create_box_link({label: "Newest",         data_type: "local-sort-newest" }) }
-                            ${ helpers.create_box_link({label: "Oldest",         data_type: "local-sort-oldest" }) }
-                            ${ helpers.create_box_link({label: "New bookmarks", data_type: "local-sort-bookmark-created-at-desc" }) }
-                            ${ helpers.create_box_link({label: "Old bookmarks", data_type: "local-sort-bookmark-created-at-asc" }) }
-                        </div>
-
-                        ${ helpers.create_box_link({ popup: "Shuffle", icon: "shuffle",   data_type: "local-sort-shuffle" }) }
-                    </div>
-                </div>                
+                <div class=data-source-ui></div>
             </div>
             `
         });
@@ -450,11 +164,6 @@ ppixiv.screen_search = class extends ppixiv.screen
             mode: "dropdown",
         });
 
-        // Don't scroll thumbnails when scrolling tag dropdowns.
-        this.container.querySelector(".member-tags-box .post-tag-list").addEventListener("scroll", function(e) { e.stopPropagation(); }, true);
-        this.container.querySelector(".bookmark-tags-box .bookmark-tag-list").addEventListener("scroll", function(e) { e.stopPropagation(); }, true);
-        this.container.querySelector(".local-bookmark-tags-box .local-bookmark-tag-list").addEventListener("scroll", function(e) { e.stopPropagation(); }, true);
-
         // Set up hover popups.
         dropdown_menu_opener.create_handlers(this.container);
  
@@ -514,25 +223,9 @@ ppixiv.screen_search = class extends ppixiv.screen
             }
         });
 
-        // Create the tag dropdown for the search page input.
-        this.tag_search_box = new tag_search_box_widget({ container: this.container.querySelector(".tag-search-box-container") });
-            
-        // The search history dropdown for local searches.
-        new local_search_box_widget({ contents: this.container.querySelector(".local-tag-search-box") });
-        
         // If the local API is enabled and tags aren't restricted, set up the directory tree sidebar.
         let local_navigation_box = this.container.querySelector(".local-navigation-box");
 
-        this.clear_local_search_button = this.container.querySelector(".clear-local-search");
-        this.clear_local_search_button.addEventListener("click", (e) => {
-            // Get the URL for the current folder and set it to a new URL, so it removes search
-            // parameters.
-            let media_id = local_api.get_local_id_from_args(helpers.args.location, { get_folder: true });
-            let args = new helpers.args("/", ppixiv.plocation);
-            local_api.get_args_for_id(media_id, args);
-            helpers.navigate(args);
-        });
-            
         if(ppixiv.local_api.is_enabled() && !local_api.local_info.bookmark_tag_searches_only)
         {
             // False if the user has hidden the navigation tree.  Default to false on mobile, since
@@ -560,14 +253,6 @@ ppixiv.screen_search = class extends ppixiv.screen
         // a Pixiv page, but this avoids the visual glitch for most users.  I'm not sure how to fix this
         // cleanly.
         local_navigation_box.hidden = !ppixiv.local_api.is_enabled();
-
-        this.container.querySelector(".copy-local-path").addEventListener("click", (e) => {
-            this.data_source.copy_link();
-        });
-
-        // Handle submitting searches on the user search page.
-        this.container.querySelector(".user-search-box .search-submit-button").addEventListener("click", this.submit_user_search);
-        helpers.input_handler(this.container.querySelector(".user-search-box input.search-users"), this.submit_user_search);
 
         /*
          * Add a slight delay before hiding the UI.  This allows opening the UI by swiping past the top
@@ -752,6 +437,17 @@ ppixiv.screen_search = class extends ppixiv.screen
             return;
         }
 
+        // Remove any previous data source's UI.
+        if(this.current_data_source_ui)
+        {
+            this.current_data_source_ui.shutdown();
+            this.current_data_source_ui = null;
+        }
+
+        // Create the new data source's UI.
+        let data_source_ui_container = this.container.querySelector(".data-source-ui");
+        this.current_data_source_ui = this.data_source.create_ui({ container: data_source_ui_container });
+
         // Disable the avatar widget unless the data source enables it.
         this.avatar_container.hidden = true;
         this.avatar_widget.set_user_id(null);
@@ -781,18 +477,9 @@ ppixiv.screen_search = class extends ppixiv.screen
         if(this.data_source == null)
             return;
 
-        let ui_box = this.container.querySelector(".thumbnail-ui-box");
-        this.data_source.initial_refresh_thumbnail_ui(ui_box, this);
-
         // Only show the "refresh from page" button if the data source supports start
         // pages.  If it doesn't, the two refresh buttons are equivalent.
         this.container.querySelector(".refresh-search-from-page-button").hidden = !this.data_source.supports_start_page;
-    }
-
-    // Called by data_sources to fill in the related tags list.
-    set_related_tags(related_tags)
-    {
-        this.tag_search_box.related_tag_widget.set(related_tags);
     }
 
     refresh_ui = () =>
@@ -822,7 +509,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         helpers.set_page_title(this.data_source.page_title || "Loading...");
         
         var ui_box = this.container.querySelector(".thumbnail-ui-box");
-        this.data_source.refresh_thumbnail_ui(ui_box, this);
+        this.data_source.refresh_thumbnail_ui({ container: ui_box, thumbnail_view: this });
 
         // Refresh whether we're showing the local navigation widget and toggle button.
         let local_search_active = this.data_source?.is_vview && !local_api?.local_info?.bookmark_tag_searches_only;
@@ -1152,16 +839,6 @@ ppixiv.screen_search = class extends ppixiv.screen
         return null;
     };
 
-    // Handle submitting searches on the user search page.
-    submit_user_search = (e) =>
-    {
-        let search = this.container.querySelector(".user-search-box input.search-users").value;
-        let url = new URL("/search_user.php#ppixiv", ppixiv.plocation);
-        url.searchParams.append("nick", search);
-        url.searchParams.append("s_mode", "s_usr");
-        helpers.navigate(url);
-    }
-    
     async handle_onkeydown(e)
     {
         if(e.repeat)
