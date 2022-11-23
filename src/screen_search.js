@@ -1,6 +1,6 @@
 "use strict";
 
-let thumbnail_ui = class extends ppixiv.widget
+class thumbnail_ui_desktop extends ppixiv.widget
 {
     constructor(options)
     {
@@ -8,10 +8,11 @@ let thumbnail_ui = class extends ppixiv.widget
             ...options,
             template: `
             <div class=thumbnail-ui-box data-context-menu-target=off>
-                <div class="data-source-specific avatar-container" data-datasource="artist illust bookmarks following"></div>
-                <a href=# class="data-source-specific image-for-suggestions" data-datasource=related-illusts>
+                <!-- The images for the artist view (avatar) and related images, which shows the starting image. -->
+                <div class="data-source-specific avatar-container" data-datasource="artist illust bookmarks following" data-hidden-on="mobile"></div>
+                <a href=# class="data-source-specific image-for-suggestions" data-datasource=related-illusts data-hidden-on="mobile">
                     <!-- A blank image, so we don't load anything: -->
-                    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==">
+                    <img src="${helpers.blank_image}">
                 </a>
 
                 <div class=title-with-button-row-container data-hidden-on="mobile">
@@ -80,6 +81,150 @@ let thumbnail_ui = class extends ppixiv.widget
             </div>
             `
         });
+
+        this.container.querySelector(".refresh-search-from-page-button").addEventListener("click", this.parent.refresh_search_from_page);
+        this.container.querySelector(".expand-manga-posts").addEventListener("click", (e) => {
+            this.parent.search_view.toggle_expanding_media_ids_by_default();
+        });
+
+        this.container.querySelector(".refresh-search-button").addEventListener("click", () => this.parent.refresh_search());
+
+        this.toggle_local_navigation_button = this.container.querySelector(".toggle-local-navigation-button");
+        this.toggle_local_navigation_button.addEventListener("click", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.parent.local_navigation_visible = !this.parent.local_navigation_visible;
+            this.parent.refresh_ui();
+        });        
+
+        this.container.querySelector(".preferences-button").addEventListener("click", (e) => new ppixiv.settings_dialog());
+
+        // Set up login/logout buttons for native.
+        if(ppixiv.native)
+        {
+            let { logged_in, local } = local_api.local_info;
+            this.container.querySelector(".login-button").hidden = local || logged_in;
+            this.container.querySelector(".logout-button").hidden = local || !logged_in;
+            this.container.querySelector(".login-button").addEventListener("click", () => { local_api.redirect_to_login(); });
+            this.container.querySelector(".logout-button").addEventListener("click", () => {
+                if(confirm("Log out?"))
+                    local_api.logout();
+            });
+        }
+    }
+
+    refresh_ui()
+    {
+        if(this.toggle_local_navigation_button)
+        {
+            this.toggle_local_navigation_button.hidden = this.local_nav_widget == null || !local_search_active;
+            this.toggle_local_navigation_button.querySelector(".font-icon").innerText = this.local_navigation_visible?
+                "keyboard_double_arrow_left":"keyboard_double_arrow_right";
+        }
+
+        this.refresh_slideshow_button();
+    }
+
+    // Refresh the slideshow button.
+    refresh_slideshow_button()
+    {
+        let node = this.container.querySelector("A.slideshow");
+        node.href = main_controller.slideshow_url.url;
+    }
+}
+
+// The bottom navigation bar for mobile, showing the current search and exposing a smaller
+// action bar when open.  This vaguely follows the design language of iOS Safari.
+let thumbnail_ui_mobile = class extends ppixiv.widget
+{
+    constructor(options)
+    {
+        super({
+            ...options,
+            template: `
+            <div class=mobile-header>
+                <div class=header-contents>
+                    <div class=title></div>
+                    <div class=button-row>
+                        <div class="icon-button back-button disabled">
+                            ${ helpers.create_icon("mat:arrow_back_ios_new") }
+                        </div>
+
+                        <div class="icon-button refresh-search-button">
+                            ${ helpers.create_icon("refresh") }
+                        </div>
+
+                        <div class="icon-button pixiv-only">
+                            ${ helpers.create_icon("menu") }
+                        </div>
+
+                        <div class="icon-button slideshow">
+                            ${ helpers.create_icon("wallpaper") }
+                        </div>
+
+                        <div class="icon-button preferences-button">
+                            ${ helpers.create_icon("settings") }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `});
+
+        this.dragger = new ppixiv.WidgetDragger({
+            node: this.container,
+            close_if_outside: [this.container],
+            drag_node: this.container,
+            visible: false,
+            direction: "up",
+            animated_property: "--header-pos",
+            size: 50,
+            onpointerdown: ({event}) => {
+                return true;
+
+                // This is very close to the bottom near system navigation, so we tap to open
+                // and only drag to close.
+                // return this.dragger.visible;
+            },
+        });
+
+        // Show the button row when the title is clicked.
+        this.container.querySelector(".title").addEventListener("click", (e) => {
+            this.dragger.show();
+        });
+
+        this.container.querySelector(".refresh-search-button").addEventListener("click", () => this.parent.refresh_search());
+        this.container.querySelector(".preferences-button").addEventListener("click", (e) => new ppixiv.settings_dialog());
+        this.container.querySelector(".slideshow").addEventListener("click", (e) => {
+            helpers.navigate(main_controller.slideshow_url);
+        });
+
+        this.container.querySelector(".back-button").addEventListener("click", () => {
+            if(ppixiv.native)
+            {
+                let parent_folder_id = local_api.get_parent_folder(this.parent.displayed_media_id);
+
+                let args = helpers.args.location;
+                local_api.get_args_for_id(parent_folder_id, args);
+                helpers.navigate(args);
+            }
+            else if(ppixiv.phistory.permanent)
+            {
+                ppixiv.phistory.back();
+            }
+        });
+    }
+
+    refresh_ui()
+    {
+        // The back button navigate to parent locally, otherwise it's browser back if we're in
+        // permanent history mode.
+        let back_button = this.container.querySelector(".back-button");
+        let show_back_button;
+        if(ppixiv.native)
+            show_back_button = local_api.get_parent_folder(this.parent.displayed_media_id) != null;
+        else if(ppixiv.phistory.permanent)
+            show_back_button = ppixiv.phistory.length > 1;
+        helpers.set_class(back_button, "disabled", !show_back_button);
     }
 }
 
@@ -106,22 +251,8 @@ ppixiv.screen_search = class extends ppixiv.screen
                 </div>
 
                 <!-- This groups the header and search UI into a single dragger. -->
-                <div class=mobile-ui-drag-container>
-                    <div class=mobile-ui-box-container></div>
-
-                    <!-- The UI header for the mobile layout. -->
-                    <div class=mobile-header hidden>
-                        <div class=header-strip>
-                            <div class=back-button>
-                                ${ helpers.create_icon("mat:arrow_back_ios_new") }
-                            </div>
-
-                            <div class=title></div>
-
-                            <div class=menu-button>&nbsp;</div>
-                        </div>
-                    </div>
-                </div>
+                <div class=mobile-ui-drag-container></div>
+                <div class=mobile-ui-box-container hidden></div>
 
                 <!-- This is controlled by the illustration view to fade the search. -->
                 <div class=fade-search></div>
@@ -130,29 +261,22 @@ ppixiv.screen_search = class extends ppixiv.screen
 
         user_cache.addEventListener("usermodified", this.refresh_ui, { signal: this.shutdown_signal.signal });        
 
-        this.container.querySelector(".mobile-header").hidden = !ppixiv.mobile;
-        this.container.querySelector(".mobile-header .back-button").addEventListener("click", () => {
-            if(ppixiv.native)
-            {
-                let parent_folder_id = local_api.get_parent_folder(this.displayed_media_id);
-
-                let args = helpers.args.location;
-                local_api.get_args_for_id(parent_folder_id, args);
-                helpers.navigate(args);
-            }
-            else if(ppixiv.phistory.permanent)
-            {
-                ppixiv.phistory.back();
-            }
-        });
-
         // The search UI normally goes in thumbnail-ui-box-container.  On mobile, put
         // it in the header instead.
         let thumbnail_ui_container = this.container.querySelector(ppixiv.mobile? ".mobile-ui-box-container":".thumbnail-ui-box-container");
-        new thumbnail_ui({
+
+        this.thumbnail_ui = new thumbnail_ui_desktop({
             parent: this,
             container: thumbnail_ui_container,
         });
+
+        if(ppixiv.mobile)
+        {
+            this.thumbnail_ui_mobile = new thumbnail_ui_mobile({
+                container: this.container.querySelector(".mobile-ui-drag-container"),
+                parent: this,
+            });
+        }
 
         this.create_main_search_menu();
 
@@ -167,31 +291,6 @@ ppixiv.screen_search = class extends ppixiv.screen
         // Set up hover popups.
         dropdown_menu_opener.create_handlers(this.container);
  
-        this.container.querySelector(".refresh-search-button").addEventListener("click", this.refresh_search);
-        this.container.querySelector(".refresh-search-from-page-button").addEventListener("click", this.refresh_search_from_page);
-        this.container.querySelector(".expand-manga-posts").addEventListener("click", (e) => {
-            this.search_view.toggle_expanding_media_ids_by_default();
-        });
-
-        // Set up login/logout buttons for native.
-        if(ppixiv.native)
-        {
-            let { logged_in, local } = local_api.local_info;
-            this.container.querySelector(".login-button").hidden = local || logged_in;
-            this.container.querySelector(".logout-button").hidden = local || !logged_in;
-            this.container.querySelector(".login-button").addEventListener("click", () => { local_api.redirect_to_login(); });
-            this.container.querySelector(".logout-button").addEventListener("click", () => {
-                if(confirm("Log out?"))
-                    local_api.logout();
-            });
-        }
-
-        this.container.querySelector(".preferences-button").addEventListener("click", (e) => {
-            new ppixiv.settings_dialog();
-            if(this.mobile_header_dragger)
-                this.mobile_header_dragger.hide();
-        });
-
         settings.addEventListener("theme", this.update_from_settings, { signal: this.shutdown_signal.signal });
         settings.addEventListener("ui-on-hover", this.update_from_settings, { signal: this.shutdown_signal.signal });
         settings.addEventListener("no-hide-cursor", this.update_from_settings, { signal: this.shutdown_signal.signal });
@@ -237,14 +336,6 @@ ppixiv.screen_search = class extends ppixiv.screen
                 parent: this,
                 container: local_navigation_box,
             });
-
-            this.toggle_local_navigation_button = this.container.querySelector(".toggle-local-navigation-button");
-            this.toggle_local_navigation_button.addEventListener("click", (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                this.local_navigation_visible = !this.local_navigation_visible;
-                this.refresh_ui();
-            });        
         }
 
         // Hack: if the local API isn't enabled, hide the local navigation box completely.  This shouldn't
@@ -262,34 +353,6 @@ ppixiv.screen_search = class extends ppixiv.screen
         this.top_ui_box = this.container.querySelector(".top-ui-box");
         this.top_ui_box.hidden = ppixiv.mobile;
         new hover_with_delay(this.top_ui_box, 0, 0.25);
-
-        if(ppixiv.mobile)
-        {
-            let drag_node = this.container.querySelector(".mobile-ui-drag-container");
-            let ui_box = this.container.querySelector(".mobile-ui-box-container");
-
-            this.mobile_header_dragger = new ppixiv.WidgetDragger({
-                node: drag_node,
-                close_if_outside: [ui_box],
-                drag_node,
-                visible: false,
-                direction: "up",
-                animated_property: "--header-pos",
-                size: 200,
-                onpointerdown: ({event}) => {
-                    // This is very close to the bottom near system navigation, so we tap to open
-                    // and only drag to close.
-                    return this.mobile_header_dragger.visible;
-                },
-    
-                onbeforeshown: () => helpers.set_class(ui_box, "ui-visible", true),
-                onafterhidden: () => helpers.set_class(ui_box, "ui-visible", false),
-            });
-
-            drag_node.addEventListener("click", (e) => {
-                this.mobile_header_dragger.toggle();
-            });
-        }
 
         this.search_view = new search_view({
             parent: this,
@@ -487,6 +550,11 @@ ppixiv.screen_search = class extends ppixiv.screen
         if(!this.active)
             return;
 
+        if(this.thumbnail_ui)
+            this.thumbnail_ui.refresh_ui();
+        if(this.thumbnail_ui_mobile)
+            this.thumbnail_ui_mobile.refresh_ui();
+
         let element_displaying = this.container.querySelector(ppixiv.mobile? ".mobile-header .title":".displaying");
         element_displaying.hidden = this.data_source.get_displaying_text == null;
         if(this.data_source.get_displaying_text != null)
@@ -494,16 +562,6 @@ ppixiv.screen_search = class extends ppixiv.screen
             let text = this.data_source.get_displaying_text();
             element_displaying.replaceChildren(text);
         }
-
-        // The back button navigate to parent locally, otherwise it's browser back if we're in
-        // permanent history mode.
-        let back_button = this.container.querySelector(".mobile-header .back-button");
-        let show_back_button;
-        if(ppixiv.native)
-            show_back_button = local_api.get_parent_folder(this.displayed_media_id) != null;
-        else if(ppixiv.phistory.permanent)
-            show_back_button = ppixiv.phistory.length > 1;
-        back_button.hidden = !show_back_button;
 
         this.data_source.set_page_icon();
         helpers.set_page_title(this.data_source.page_title || "Loading...");
@@ -514,14 +572,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         // Refresh whether we're showing the local navigation widget and toggle button.
         let local_search_active = this.data_source?.is_vview && !local_api?.local_info?.bookmark_tag_searches_only;
         helpers.set_dataset(this.container.dataset, "showNavigation", local_search_active && this.local_navigation_visible);
-        if(this.toggle_local_navigation_button)
-        {
-            this.toggle_local_navigation_button.hidden = this.local_nav_widget == null || !local_search_active;
-            this.toggle_local_navigation_button.querySelector(".font-icon").innerText = this.local_navigation_visible?
-                "keyboard_double_arrow_left":"keyboard_double_arrow_right";
-        }
 
-        this.refresh_slideshow_button();
         this.refresh_ui_for_user_id();
         this.refresh_expand_manga_posts_button();
         this.refresh_refresh_search_from_page();
@@ -783,13 +834,6 @@ ppixiv.screen_search = class extends ppixiv.screen
         // Tell the context menu which user is being viewed (if we're viewing a user-specific
         // search).
         main_context_menu.get.user_id = user_id;
-    }
-
-    // Refresh the slideshow button.
-    refresh_slideshow_button()
-    {
-        let node = this.container.querySelector("A.slideshow");
-        node.href = main_controller.slideshow_url.url;
     }
 
     // Use different icons for sites where you can give the artist money.  This helps make

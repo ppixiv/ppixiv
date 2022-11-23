@@ -274,6 +274,7 @@ html {
 
     --button-color: #888;
     --button-highlight-color: #eee;
+    --button-disabled-color: #444;
 
     // Outlines around text inputs:
     --input-outline: #444;
@@ -1012,6 +1013,10 @@ html.mobile .screen-illust-container {
     .popup-visible > & {
         color: var(--button-highlight-color);
     }
+
+    &.disabled {
+        color: var(--button-disabled-color);
+    }
 }
 
 @media(hover: hover) {
@@ -1332,31 +1337,6 @@ body.hide-r18g .r18g { display: none; }
 }
 
 .screen-search-container {
-    // The header is given a static height, and the results are pushed down to make space.
-    // We can't use position: sticky since it's buggy on iOS, and we can't nest the scroller
-    // since that's also buggy on iOS.
-    --header-height: 0em;
-    html.mobile & {
-        // This roughly matches Safari's minimized address bar.  We define this here so we can
-        // also use it to figure out --header-height.
-        --font-size: 1.2rem;
-        --header-bottom-padding: env(safe-area-inset-bottom);
-
-        // This is the derived height, which is used to position the options menu.
-        // XXX: this menu is big and should probably just fullscreen
-        --header-height: calc(var(--font-size) + env(safe-area-inset-bottom));
-    }
-    
-    // iOS's bottom inset is pessimistic and reserves a lot of space around the nav line.
-    // XXX: this should be thicker when we're in safari and have no bottom inset to give
-    // us a bigger click area
-    html.ios & {
-        --header-top-padding: 0.3rem;
-        --header-bottom-padding: calc(env(safe-area-inset-bottom) * 0.5);
-
-        --header-height: calc(var(--font-size) + env(safe-area-inset-bottom));
-    }
-
     // This block is used to fade the search when the illustration is shown.  This isn't done on
     // the top container to avoid the fade animation causing style recalculations on the search
     // results, which is slow when there are a lot of thumbs.
@@ -1377,44 +1357,74 @@ body.hide-r18g .r18g { display: none; }
         touch-action: none;
         position: fixed;
 
-        // The header should be right at the top, but move it up by one pixel to avoid the same compositing
-        // problems on iOS.
-        bottom: 0px;
+        // The menu bar should be right at the bottom, but move it down by one pixel to avoid a compositing
+        // bug on iOS: the body can render a subpixel outside of the main body of the window, and will bleed
+        // through outside of so boxes aligned to top: 0 or bottom: 0.  This will cause it to overlap the
+        // iOS blurred navigation bar a bit, but that's not visible since it blurs so much.
+        bottom: -1px;
         left: 0;
         width: 100%;
     }
 
     .mobile-header {
+        html.mobile & {
+            --mobile-nav-bar-bottom-padding: env(safe-area-inset-bottom);
+            --mobile-nav-bar-top-padding: 0px;
+        }
+        
+        // If we're on mobile and we have no bottom inset, add vertical padding to make the navigation
+        // bar easier to tap.  If we do have a bottom inset (eg. we're running standalone on iOS and
+        // have the pointless navigation line at the bottom) then the bottom safe area gives us our
+        // bottom padding.
+        html.mobile:not([data-has-bottom-inset]) & {
+            --mobile-nav-bar-top-padding: 0.5rem;
+            --mobile-nav-bar-bottom-padding: 0.5rem;
+        }
+
+        // If we're on mobile and we do have a bottom inset, use the inset as the bottom padding instead
+        // of adding our own.  iOS's bottom inset is much too big and leaves a ton of unused space, so
+        // reduce it (this is the only device with a bottom inset I'm currently testing on).
+        html.mobile[data-has-bottom-inset] & {
+            --mobile-nav-bar-top-padding: 0.3rem;
+            --mobile-nav-bar-bottom-padding: calc(env(safe-area-inset-bottom) * 0.5);
+        }
+
+        display: flex;
+        flex-direction: column;
+
         // Disable touch-action for the dragger.
         touch-action: none;
 
-        // Dim underneath the header while the search UI is open, so the header matches
-        // it.  Use background-color for this, since Android can't handle backdrop-filter
-        // being animated.
-        background-color: rgba(0,0,0, var(--header-pos));
+        --icon-size: 2;
+        --button-color: #5a91f7;
+        --button-disabled-color: #777;
 
-        .header-strip {
-            display: flex;
+        // This is a similar style to iOS Safari's bottom navigation bar.  It doesn't match entirely and
+        // it may be intentionally not possible to match (it seems to do filter math in linear space with
+        // browser filters blending in sRGB or vice versa), but it's useful to be a bit different anyway
+        // so the different bars are distinguishable.
+        //
+        // We could animate this a bit when the bar is visible, but Android doesn't handle animating these
+        // very well.
+        backdrop-filter: blur(20px) contrast(40%) brightness(0.5);
+        -webkit-backdrop-filter: blur(20px) contrast(40%) brightness(0.5);
 
-            // This roughly matches Safari's minimized address bar:
-            font-size: var(--font-size);
+        // Crop off the buttons when they pan outside of this container.
+        overflow: hidden;
 
-            padding-top: var(--header-top-padding);
-            padding-bottom: var(--header-bottom-padding);
-            padding-left: 10px;
-            padding-right: 10px;
+        // This roughly matches Safari's minimized address bar.
+        font-size: 1.2rem;
 
-            align-items: center;
-            backdrop-filter: blur(10px) brightness(0.6);
-            -webkit-backdrop-filter: blur(10px) brightness(0.6);
+        // line-height + padding
+        --icon-bar-height: 2em;
+        --height-closed: calc(1.5em + var(--mobile-nav-bar-top-padding) + var(--mobile-nav-bar-bottom-padding));
+        --height-open: calc(var(--height-closed) + var(--icon-bar-height));
+        height: scale_value(var(--header-pos), 0, 1, var(--height-closed), var(--height-open));
 
-            .back-button, .menu-button {
-                display: flex;
-                padding: 0 0.5em;
-                align-self: stretch;
-                align-items: center;
-            }
+        padding-top: var(--mobile-nav-bar-top-padding);
+        padding-bottom: var(--mobile-nav-bar-bottom-padding);
 
+        .header-contents {
             .title {
                 flex: 1;
                 line-height: 1.5em;
@@ -1422,13 +1432,22 @@ body.hide-r18g .r18g { display: none; }
                 white-space: nowrap;
                 text-overflow: ellipsis;
                 overflow: hidden;
+                padding-left: 10px;
+                padding-right: 10px;
+            }
+
+            .button-row {
+                opacity: var(--header-pos);
+                display: flex;
+                flex-direction: row;
+                justify-content: space-around;
             }
         }
     }
 
     .mobile-ui-box-container {
         position: fixed;
-        bottom: var(--header-height);
+        top: 0;
         left: 0;
         width: 100%;
         --ui-bg-color: #111;
@@ -1444,7 +1463,6 @@ body.hide-r18g .r18g { display: none; }
     .search-results {
         // If the nav box is open, shift the search results to make room for it.
         margin-left: var(--navigation-box-reserved-width);
-        //margin-top: var(--header-height);
     }
 
     .thumbnail-ui-box-container {

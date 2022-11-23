@@ -292,11 +292,14 @@ ppixiv.MainController = class
 
     set_device_properties = () =>
     {
+        let insets = helpers.safe_area_insets;
+
         helpers.set_class(document.documentElement, "mobile", ppixiv.mobile);
         helpers.set_class(document.documentElement, "ios", ppixiv.ios);
         helpers.set_class(document.documentElement, "android", ppixiv.android);
         helpers.set_class(document.documentElement, "phone", helpers.is_phone);
         document.documentElement.dataset.orientation = window.orientation ?? "0";
+        helpers.set_dataset(document.documentElement.dataset, "hasBottomInset", insets.bottom > 0);
 
         // Set the fullscreen mode.  See the device styling rules in main.scss for more
         // info.
@@ -313,7 +316,6 @@ ppixiv.MainController = class
         // overlapping it, but we won't enter rounded mode either, so we'll have a round bottom and
         // square top.
         let notch = false;
-        let insets = helpers.safe_area_insets;
         if(ppixiv.ios && navigator.platform.indexOf('iPhone') != -1)
         {
             notch = insets.bottom > 0;
