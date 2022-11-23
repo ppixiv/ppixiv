@@ -1337,7 +1337,24 @@ body.hide-r18g .r18g { display: none; }
     // since that's also buggy on iOS.
     --header-height: 0em;
     html.mobile & {
-        --header-height: calc(2em + env(safe-area-inset-top));;
+        // This roughly matches Safari's minimized address bar.  We define this here so we can
+        // also use it to figure out --header-height.
+        --font-size: 1.2rem;
+        --header-bottom-padding: env(safe-area-inset-bottom);
+
+        // This is the derived height, which is used to position the options menu.
+        // XXX: this menu is big and should probably just fullscreen
+        --header-height: calc(var(--font-size) + env(safe-area-inset-bottom));
+    }
+    
+    // iOS's bottom inset is pessimistic and reserves a lot of space around the nav line.
+    // XXX: this should be thicker when we're in safari and have no bottom inset to give
+    // us a bigger click area
+    html.ios & {
+        --header-top-padding: 0.3rem;
+        --header-bottom-padding: calc(env(safe-area-inset-bottom) * 0.5);
+
+        --header-height: calc(var(--font-size) + env(safe-area-inset-bottom));
     }
 
     // This block is used to fade the search when the illustration is shown.  This isn't done on
@@ -1362,7 +1379,7 @@ body.hide-r18g .r18g { display: none; }
 
         // The header should be right at the top, but move it up by one pixel to avoid the same compositing
         // problems on iOS.
-        top: -1px;
+        bottom: 0px;
         left: 0;
         width: 100%;
     }
@@ -1379,10 +1396,15 @@ body.hide-r18g .r18g { display: none; }
         .header-strip {
             display: flex;
 
-            // Add 1px to compensate for top: -1px above.
-            height: calc(var(--header-height) + 1px);
+            // This roughly matches Safari's minimized address bar:
+            font-size: var(--font-size);
+
+            padding-top: var(--header-top-padding);
+            padding-bottom: var(--header-bottom-padding);
+            padding-left: 10px;
+            padding-right: 10px;
+
             align-items: center;
-            padding-top: env(safe-area-inset-top);
             backdrop-filter: blur(10px) brightness(0.6);
             -webkit-backdrop-filter: blur(10px) brightness(0.6);
 
@@ -1406,13 +1428,13 @@ body.hide-r18g .r18g { display: none; }
 
     .mobile-ui-box-container {
         position: fixed;
-        top: var(--header-height);
+        bottom: var(--header-height);
         left: 0;
         width: 100%;
         --ui-bg-color: #111;
 
         opacity: var(--header-pos);
-        transform: translateY(calc(-100% * (1 - var(--header-pos))));
+        transform: translateY(calc(100% * (1 - var(--header-pos))));
 
         &:not(.ui-visible) {
             pointer-events: none;
@@ -1422,7 +1444,7 @@ body.hide-r18g .r18g { display: none; }
     .search-results {
         // If the nav box is open, shift the search results to make room for it.
         margin-left: var(--navigation-box-reserved-width);
-        margin-top: var(--header-height);
+        //margin-top: var(--header-height);
     }
 
     .thumbnail-ui-box-container {

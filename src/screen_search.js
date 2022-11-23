@@ -404,9 +404,7 @@ ppixiv.screen_search = class extends ppixiv.screen
 
                             <div class=title></div>
 
-                            <div class=menu-button>
-                                ${ helpers.create_icon("mat:menu") }
-                            </div>
+                            <div class=menu-button>&nbsp;</div>
                         </div>
                     </div>
                 </div>
@@ -590,15 +588,20 @@ ppixiv.screen_search = class extends ppixiv.screen
                 close_if_outside: [ui_box],
                 drag_node,
                 visible: false,
-                direction: "down",
+                direction: "up",
                 animated_property: "--header-pos",
                 size: 200,
-
+                onpointerdown: ({event}) => {
+                    // This is very close to the bottom near system navigation, so we tap to open
+                    // and only drag to close.
+                    return this.mobile_header_dragger.visible;
+                },
+    
                 onbeforeshown: () => helpers.set_class(ui_box, "ui-visible", true),
                 onafterhidden: () => helpers.set_class(ui_box, "ui-visible", false),
             });
 
-            this.container.querySelector(".mobile-header .menu-button").addEventListener("click", (e) => {
+            drag_node.addEventListener("click", (e) => {
                 this.mobile_header_dragger.toggle();
             });
         }
