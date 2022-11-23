@@ -25,7 +25,7 @@ let thumbnail_ui = class extends ppixiv.widget
                 </div>
 
                 <div class=button-row style="margin-bottom: 0.5em;">
-                    <div class="icon-button toggle-local-navigation-button popup" data-popup="Show navigation" hidden>
+                    <div class="icon-button toggle-local-navigation-button popup" data-popup="Show navigation" hidden data-hidden-on="mobile">
                         ${ helpers.create_icon("mat:keyboard_double_arrow_left") }
                     </div>
 
