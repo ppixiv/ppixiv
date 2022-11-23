@@ -63,10 +63,6 @@ let thumbnail_ui = class extends ppixiv.widget
                         ${ helpers.create_icon("") /* filled in by refresh_expand_manga_posts_button */ }
                     </div>
 
-                    <div class="icon-button whats-new-button popup" data-popup="What's New">
-                        ${ helpers.create_icon("ppixiv:whats_new") }
-                    </div>
-
                     <a class="slideshow icon-button popup" data-popup="Slideshow" href="#">
                         ${ helpers.create_icon("wallpaper") }
                     </a>
@@ -466,7 +462,6 @@ ppixiv.screen_search = class extends ppixiv.screen
  
         this.container.querySelector(".refresh-search-button").addEventListener("click", this.refresh_search);
         this.container.querySelector(".refresh-search-from-page-button").addEventListener("click", this.refresh_search_from_page);
-        this.container.querySelector(".whats-new-button").addEventListener("click", this.whats_new);
         this.container.querySelector(".expand-manga-posts").addEventListener("click", (e) => {
             this.search_view.toggle_expanding_media_ids_by_default();
         });
@@ -617,7 +612,6 @@ ppixiv.screen_search = class extends ppixiv.screen
         });
         
         this.update_from_settings();
-        this.refresh_whats_new_button();
     }
 
     update_from_settings = () =>
@@ -779,29 +773,6 @@ ppixiv.screen_search = class extends ppixiv.screen
         main_controller.refresh_current_data_source({remove_search_page: false});
     }
         
-    // Set or clear the updates class on the "what's new" button.
-    refresh_whats_new_button()
-    {
-        let last_viewed_version = settings.get("whats-new-last-viewed-version", 0);
-
-        // This was stored as a string before, since it came from GM_info.script.version.  Make
-        // sure it's an integer.
-        last_viewed_version = parseInt(last_viewed_version);
-
-        let new_updates = last_viewed_version < whats_new.latest_interesting_history_revision();
-        helpers.set_class(this.container.querySelector(".whats-new-button"), "updates", new_updates);
-    }
-
-    whats_new = () =>
-    {
-        settings.set("whats-new-last-viewed-version", whats_new.latest_history_revision());
-        this.refresh_whats_new_button();
-
-        new whats_new();
-        if(this.mobile_header_dragger)
-            this.mobile_header_dragger.hide();
-    }
-
     initial_refresh_ui()
     {
         if(this.data_source == null)

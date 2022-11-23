@@ -245,6 +245,9 @@ ppixiv.MainController = class
         link_this_tab_popup.setup();
         send_here_popup.setup();
 
+        // Set the whats-new-updated class.
+        ppixiv.whats_new.handle_last_viewed_version();
+
         // Create the main progress bar.
         this.progress_bar = new progress_bar({ container: this.container });
         

@@ -1020,10 +1020,6 @@ html.mobile .screen-illust-container {
     }
 }
 
-.whats-new-button.updates {
-    color: #cc0;
-}
-
 .menu-slider input {
     vertical-align: middle;
     width: 100%;
@@ -1491,6 +1487,10 @@ body.hide-r18g .r18g { display: none; }
                     fill: currentColor !important;
                 }
             }
+        }
+
+        html[data-whats-new-updated] & .settings-menu-box {
+            --button-color: #cc0;
         }
     }
 
@@ -3178,31 +3178,30 @@ svg.heart-image .delete {
 
 .whats-new-dialog
 {
-    @include general-dialog();
+    display: flex;
+    flex-direction: column;
 
-    .dialog {
-        .font-icon {
-            vertical-align: bottom;
-        }
+    .font-icon {
+        vertical-align: bottom;
+    }
 
-        .rev {
-            display: inline-block;
-            color: var(--box-link-fg-color);
-            background-color: var(--box-link-bg-color);
-            padding: 5px 10px;
-        }
-        .text {
-            margin: 1em 0;
-            padding: 0 20px; /* inset horizontally a bit */
-        }
+    .rev {
+        display: inline-block;
+        color: var(--box-link-fg-color);
+        background-color: var(--box-link-bg-color);
+        padding: 5px 10px;
+    }
+    .text {
+        margin: 1em 0;
+        padding: 0 20px; /* inset horizontally a bit */
+    }
 
-        .explanation-button {
-            cursor: pointer;
-            text-decoration: underline;
-        }
-        .explanation-target {
-            margin: 0 1em;
-        }
+    .explanation-button {
+        cursor: pointer;
+        text-decoration: underline;
+    }
+    .explanation-target {
+        margin: 0 1em;
     }
 }
 
@@ -3632,16 +3631,6 @@ svg.heart-image .delete {
         }
     }
 
-    .scroll
-    {
-        // Put the page buttons and the page side-by-side.
-        display: flex;
-        flex-direction: row;
-
-        // Spacing between the page buttons and the content on the right:
-        gap: 1em;
-    }
-
     // The section selector on the left side of the settings dialog:
     .sections {
         white-space: nowrap;
@@ -3667,6 +3656,10 @@ svg.heart-image .delete {
                 }
             }
         }
+
+        html[data-whats-new-updated] & .settings-page-button[data-page='whats_new'] {
+            color: #ff0;
+        }
     }
 
     // Note that this matches items in the side-by-side view, but not in the mobile
@@ -3683,6 +3676,7 @@ svg.heart-image .delete {
     .settings-list {
         display: flex;
         flex-direction: column;
+        height: 100%;
 
         .settings-row {
             padding: 0.5em 0em;
@@ -3748,6 +3742,16 @@ svg.heart-image .delete {
             gap: 0.5em;
             flex: 1;
         }
+    }
+
+    > .dialog > .scroll
+    {
+        // Put the page buttons and the page side-by-side.
+        display: flex;
+        flex-direction: row;
+
+        // Spacing between the page buttons and the content on the right:
+        gap: 1em;
     }
 }
 

@@ -336,7 +336,7 @@ This can be enabled in preferences, and may become the default in a future relea
     },
 ];
 
-ppixiv.whats_new = class extends ppixiv.dialog_widget
+ppixiv.whats_new = class extends ppixiv.widget
 {
     // Return the newest revision that exists in history.  This is always the first
     // history entry.
@@ -362,12 +362,37 @@ ppixiv.whats_new = class extends ppixiv.dialog_widget
         throw Error("Couldn't find anything interesting");
     }
 
+    // Set html[data-whats-new-updated] for highlights when there are What's New updates.
+    // This updates automatically if whats-new-last-viewed-version is updated.
+    static handle_last_viewed_version()
+    {
+        let refresh = () => {
+            //let whats_new_button = this.container.querySelector(".settings-page-button[data-page='whats_new']");
+            let last_viewed_version = settings.get("whats-new-last-viewed-version", 0);
+    
+            // This was stored as a string before, since it came from GM_info.script.version.  Make
+            // sure it's an integer.
+            last_viewed_version = parseInt(last_viewed_version);
+    
+            let new_updates = last_viewed_version < whats_new.latest_interesting_history_revision();
+            helpers.set_dataset(document.documentElement.dataset, "whatsNewUpdated", new_updates);
+        };
+        refresh();
+        settings.addEventListener("whats-new-last-viewed-version", refresh);
+    }
+
+
     constructor({...options}={}) 
     {
         super({...options, dialog_class: "whats-new-dialog", header: "Updates", template: `
+            <div class=whats-new-dialog>
+                <div class=contents>
+                </div>
+            </div>
         `});
 
         this.container.addEventListener("click", this.onclick);
+        settings.set("whats-new-last-viewed-version", whats_new.latest_history_revision());
 
         this.refresh();
     }
@@ -387,7 +412,7 @@ ppixiv.whats_new = class extends ppixiv.dialog_widget
 
     refresh()
     {
-        let items_box = this.container.querySelector(".scroll");
+        let items_box = this.container.querySelector(".contents");
         for(let node of items_box.querySelectorAll(".item"))
             node.remove();
 

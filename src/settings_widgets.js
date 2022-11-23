@@ -388,6 +388,15 @@ ppixiv.settings_widgets = {
 
                 return widget;
             },
+            whats_new: () => {
+                let widget = new whats_new({
+                    ...global_options,
+                });
+
+                global_options.page_removed_signal.addEventListener("abort", () => { widget.visible = false; });
+
+                return widget;
+            },
         };
     }
 }
@@ -401,6 +410,7 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
         user_muting: "Muted users",
         linked_tabs: "Linked tabs",
         other: "Other",
+        whats_new: "What's New",
     }
 
     constructor({show_page="thumbnail", ...options}={})
@@ -446,6 +456,7 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
 
         this.create_page_button("linked_tabs");
         this.create_page_button("other");
+        this.create_page_button("whats_new");
     }
 
     create_page_button(name)
@@ -456,6 +467,7 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
                 classes: ["settings-page-button"],
             }),
         });
+        page_button.dataset.page = name;
 
         page_button.addEventListener("click", (e) => {
             this.show_page(name);
@@ -630,6 +642,10 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
         
                 // Hidden for now (not very useful)
                 // settings_widgets.no_recent_history();
+            },
+
+            whats_new: () => {
+                settings_widgets.whats_new();
             },
         };
 
