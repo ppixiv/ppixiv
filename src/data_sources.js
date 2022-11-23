@@ -3537,7 +3537,19 @@ ppixiv.data_sources.search = class extends data_source
             search += " ";
         this.ui.container.querySelector(".tag-search-box .input-field-container > input").value = search;
 
+        if(search == "")
+            this.focus_search_box();
+
         return this.ui;
+    }
+
+    // If the input box is empty when we're created, focus it by default.
+    async focus_search_box()
+    {
+        // Go async, since we're not always immediately visible in the document when we're
+        // created so we can't focus right away.
+        await null;
+        this.ui.container.querySelector(".tag-search-box input").focus();
     }
 
     refresh_thumbnail_ui()

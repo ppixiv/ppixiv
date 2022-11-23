@@ -382,14 +382,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         let option_box = this.container.querySelector(".main-search-menu");
         this.menu_options = [];
         let options = [
-            { label: "Search works",           icon: "search", url: `/tags#ppixiv`,
-                onclick: async() => {
-                    // Focus the tag search box.  We need to go async to let the navigation happen
-                    // so the search box is visible first.
-                    await helpers.sleep(0);
-                    this.container.querySelector(".tag-search-box input").focus();
-                }
-            },
+            { label: "Search works",           icon: "search",          url: `/tags#ppixiv` },
             { label: "New works by following", icon: "photo_library",          url: "/bookmark_new_illust.php#ppixiv" },
             { label: "New works by everyone",  icon: "groups",          url: "/new_illust.php#ppixiv" },
             [
@@ -411,12 +404,10 @@ ppixiv.screen_search = class extends ppixiv.screen
             { label: "Users",           icon: "search", url: "/search_user.php#ppixiv" },
         ];
 
-
         let create_option = (option) => {
             let button = new menu_option_button({
                 container: option_box,
                 parent: this,
-                onclick: option.onclick,
                 ...option
             })
 
