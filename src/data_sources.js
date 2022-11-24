@@ -429,7 +429,7 @@ ppixiv.data_source = class
     }
 
     // The data source can create a widget containing its UI here.
-    create_ui({ container })
+    create_ui({ ...options })
     {
         return null;
     }
@@ -736,7 +736,7 @@ ppixiv.data_source = class
 
     // Each data source can have a different UI in the thumbnail view.  container is
     // the thumbnail-ui-box container to refresh.
-    refresh_thumbnail_ui({ container, view }) { }
+    refresh_thumbnail_ui({ container, view }={}) { }
 
     // A helper for setting up UI links.  Find the link with the given type,
     // set all {key: value} entries as query parameters, and remove any query parameters
@@ -1107,10 +1107,10 @@ ppixiv.data_sources.discovery = class extends data_source
     get page_title() { return "Discovery"; }
     get_displaying_text() { return "Recommended Works"; }
 
-    create_ui({ container })
+    create_ui({ ...options })
     {
         this.ui = new ppixiv.widget({
-            container,
+            ...options,
             template: `
             <div class=box-button-row>
                 ${ helpers.create_box_link({label: "All",      link: "?mode=all#ppixiv",     popup: "Show all works",    data_type: "all" }) }
@@ -1198,17 +1198,20 @@ ppixiv.data_sources.related_illusts = class extends data_source
     get page_title() { return "Similar Illusts"; }
     get_displaying_text() { return "Similar Illustrations"; }
 
-    refresh_thumbnail_ui({ container })
+    refresh_thumbnail_ui({ container }={})
     {
-        // Set the source image.
-        var source_link = container.querySelector(".image-for-suggestions");
-        source_link.hidden = this.illust_info == null;
-        if(this.illust_info)
+        if(container)
         {
-            source_link.href = `/artworks/${this.illust_info.illustId}#ppixiv`;
+            // Set the source image.
+            var source_link = container.querySelector(".image-for-suggestions");
+            source_link.hidden = this.illust_info == null;
+            if(this.illust_info)
+            {
+                source_link.href = `/artworks/${this.illust_info.illustId}#ppixiv`;
 
-            var img = source_link.querySelector(".image-for-suggestions > img");
-            img.src = this.illust_info.previewUrls[0];
+                var img = source_link.querySelector(".image-for-suggestions > img");
+                img.src = this.illust_info.previewUrls[0];
+            }
         }
     }
 }
@@ -1507,10 +1510,10 @@ ppixiv.data_sources.rankings = class extends data_source
     get page_title() { return "Rankings"; }
     get_displaying_text() { return "Rankings"; }
 
-    create_ui({ container })
+    create_ui({ ...options })
     {
         this.ui = new ppixiv.widget({
-            container,
+            ...options,
             template: `
             <div>
                 <div class=box-button-row>
@@ -1953,10 +1956,10 @@ ppixiv.data_sources.artist = class extends data_source
         return args.query.get("tag");
     }
 
-    create_ui({ container })
+    create_ui({ ...options })
     {
         this.ui = new ppixiv.widget({
-            container,
+            ...options,
             template: `
             <div>
                 <div class="box-button-row search-options-row">
@@ -1988,10 +1991,13 @@ ppixiv.data_sources.artist = class extends data_source
         return this.ui;
     }
 
-    refresh_thumbnail_ui({ thumbnail_view })
+    refresh_thumbnail_ui({ thumbnail_view }={})
     {
-        thumbnail_view.avatar_container.hidden = false;
-        thumbnail_view.avatar_widget.set_user_id(this.viewing_user_id);
+        if(thumbnail_view)
+        {
+            thumbnail_view.avatar_container.hidden = false;
+            thumbnail_view.avatar_widget.set_user_id(this.viewing_user_id);
+        }
 
         this.set_path_item(this.ui.container, "artist-works", 2, "artworks");
         this.set_path_item(this.ui.container, "artist-illust", 2, "illustrations");
@@ -2280,7 +2286,7 @@ ppixiv.data_sources.manga = class extends data_source
         return helpers.get_manga_aspect_ratio(this.illust_info.mangaPages);
     }
 
-    refresh_thumbnail_ui({ thumbnail_view })
+    refresh_thumbnail_ui({ thumbnail_view }={})
     {
         thumbnail_view.avatar_container.hidden = false;
         thumbnail_view.avatar_widget.set_user_id(this.media_info?.userId);
@@ -2565,10 +2571,10 @@ class data_source_bookmarks_base extends data_source
         return args.query.get("rest") == "hide";
     }
 
-    create_ui({ container })
+    create_ui({ ...options })
     {
         this.ui = new ppixiv.widget({
-            container,
+            ...options,
             template: `
             <div>
                 <div class=box-button-row>
@@ -2595,7 +2601,7 @@ class data_source_bookmarks_base extends data_source
         return this.ui;
     }
 
-    refresh_thumbnail_ui({ thumbnail_view })
+    refresh_thumbnail_ui({ thumbnail_view }={})
     {
         // The public/private button only makes sense when viewing your own bookmarks.
         var public_private_button_container = this.ui.container.querySelector(".bookmarks-public-private");
@@ -2692,8 +2698,11 @@ class data_source_bookmarks_base extends data_source
             add_tag_link(tag);
         }
 
-        thumbnail_view.avatar_container.hidden = this.viewing_own_bookmarks();
-        thumbnail_view.avatar_widget.set_user_id(this.viewing_user_id);
+        if(thumbnail_view)
+        {
+            thumbnail_view.avatar_container.hidden = this.viewing_own_bookmarks();
+            thumbnail_view.avatar_widget.set_user_id(this.viewing_user_id);
+        }
 
         // Set whether the tags menu item is highlighted.
         let box = this.ui.container.querySelector(".bookmark-tags-box .box-link");
@@ -2963,10 +2972,10 @@ ppixiv.data_sources.new_illust = class extends data_source
         this.add_page(page, media_ids);
     }
 
-    create_ui({ container })
+    create_ui({ ...options })
     {
         this.ui = new ppixiv.widget({
-            container,
+            ...options,
             template: `
             <div class=box-button-row>
                 ${ helpers.create_box_link({label: "Illustrations", popup: "Show illustrations",     data_type: "new-illust-type-illust" }) }
@@ -3061,10 +3070,10 @@ ppixiv.data_sources.new_works_by_following = class extends data_source
         return "Following";
     };
 
-    create_ui({ container })
+    create_ui({ ...options })
     {
         this.ui = new ppixiv.widget({
-            container,
+            ...options,
             template: `
             <div>
                 <div class=box-button-row>
@@ -3428,10 +3437,10 @@ ppixiv.data_sources.search = class extends data_source
         return url;
     }
 
-    create_ui({ container })
+    create_ui({ ...options })
     {
         this.ui = new ppixiv.widget({
-            container,
+            ...options,
             template: `
             <div>
                 <div class=tag-search-box-container></div>
@@ -3762,10 +3771,10 @@ ppixiv.data_sources.follows = class extends data_source
         this.add_page(page, media_ids);
     }
 
-    create_ui({ container })
+    create_ui({ ...options })
     {
         this.ui = new ppixiv.widget({
-            container,
+            ...options,
             template: `
             <div>
                 <div class=box-button-row>
@@ -3791,7 +3800,7 @@ ppixiv.data_sources.follows = class extends data_source
 
     refresh_thumbnail_ui({ thumbnail_view })
     {
-        if(!this.viewing_self)
+        if(!this.viewing_self && thumbnail_view)
         {
             thumbnail_view.avatar_container.hidden = false;
             thumbnail_view.avatar_widget.set_user_id(this.viewing_user_id);
@@ -3944,15 +3953,18 @@ ppixiv.data_sources.related_favorites = class extends data_source_from_page
     
     refresh_thumbnail_ui({ container })
     {
-        // Set the source image.
-        var source_link = container.querySelector(".image-for-suggestions");
-        source_link.hidden = this.illust_info == null;
-        if(this.illust_info)
+        if(container)
         {
-            source_link.href = `/artworks/${this.illust_info.id}#ppixiv`;
+            // Set the source image.
+            var source_link = container.querySelector(".image-for-suggestions");
+            source_link.hidden = this.illust_info == null;
+            if(this.illust_info)
+            {
+                source_link.href = `/artworks/${this.illust_info.id}#ppixiv`;
 
-            var img = source_link.querySelector(".image-for-suggestions > img");
-            img.src = this.illust_info.previewUrls[0];
+                var img = source_link.querySelector(".image-for-suggestions > img");
+                img.src = this.illust_info.previewUrls[0];
+            }
         }
     }
 
@@ -4000,10 +4012,10 @@ ppixiv.data_sources.search_users = class extends data_source_from_page
         return this.url.searchParams.get("nick");
     }
 
-    create_ui({ container })
+    create_ui({ ...options })
     {
         this.ui = new ppixiv.widget({
-            container,
+            ...options,
             template: `
             <div class="search-box">
                 <div class="user-search-box input-field-container hover-menu-box">
@@ -4113,10 +4125,10 @@ ppixiv.data_sources.completed_requests = class extends data_source
         this.add_page(page, media_ids);
     }
 
-    create_ui({ container })
+    create_ui({ ...options })
     {
         this.ui = new ppixiv.widget({
-            container,
+            ...options,
             template: `
             <div>
                 <div class="box-button-row">
@@ -4400,10 +4412,10 @@ ppixiv.data_sources.vview = class extends data_source
         return this.id_list.get_first_id();
     }
 
-    create_ui({ container })
+    create_ui({ ...options })
     {
         this.ui = new ppixiv.widget({
-            container,
+            ...options,
             template: `
             <div>
                 <div class="search-box local-tag-search-box">

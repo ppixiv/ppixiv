@@ -180,6 +180,14 @@ class thumbnail_ui_desktop extends ppixiv.widget
 
     refresh_ui()
     {
+        let element_displaying = this.container.querySelector(".displaying");
+        element_displaying.hidden = this.parent.data_source.get_displaying_text == null;
+        if(this.parent.data_source.get_displaying_text != null)
+        {
+            let text = this.parent.data_source.get_displaying_text();
+            element_displaying.replaceChildren(text);
+        }
+
         if(this.toggle_local_navigation_button)
         {
             this.toggle_local_navigation_button.hidden = this.local_nav_widget == null || !local_search_active;
@@ -219,7 +227,7 @@ let thumbnail_ui_mobile = class extends ppixiv.widget
                             ${ helpers.create_icon("refresh") }
                         </div>
 
-                        <div class="icon-button menu pixiv-only">
+                        <div class="icon-button menu">
                             ${ helpers.create_icon("search") }
                         </div>
 
@@ -244,11 +252,10 @@ let thumbnail_ui_mobile = class extends ppixiv.widget
             animated_property: "--header-pos",
             size: 50,
             onpointerdown: ({event}) => {
-                return true;
-
                 // This is very close to the bottom near system navigation, so we tap to open
-                // and only drag to close.
-                // return this.dragger.visible;
+                // and only drag to close, so people don't keep trying to drag to open and get
+                // frustrated when it keeps activating navigation.
+                return this.dragger.visible;
             },
         });
 
@@ -257,23 +264,38 @@ let thumbnail_ui_mobile = class extends ppixiv.widget
             this.dragger.show();
         });
 
+        // These need to check if the dragger is visible, since clicks are triggered when dragging the
+        // bar closed when the drag is released, which causes these to activate.
         this.container.querySelector(".refresh-search-button").addEventListener("click", () => {
+            if(!this.dragger.visible)
+                return;
+
             this.parent.refresh_search();
             this.dragger.hide();
         });
 
         this.container.querySelector(".preferences-button").addEventListener("click", (e) => {
+            if(!this.dragger.visible)
+                return;
+
             new ppixiv.settings_dialog();
             this.dragger.hide();
         });
 
         this.container.querySelector(".slideshow").addEventListener("click", (e) => {
+            if(!this.dragger.visible)
+                return;
+
             helpers.navigate(main_controller.slideshow_url);
             this.dragger.hide();
         });
         
         this.container.querySelector(".menu").addEventListener("click", (e) => {
-            new change_search_dialog();
+            new mobile_edit_search_dialog({
+                parent: this,
+                data_source: this.parent.data_source,
+            });
+
             this.dragger.hide();
         });
 
@@ -296,6 +318,14 @@ let thumbnail_ui_mobile = class extends ppixiv.widget
 
     refresh_ui()
     {
+        let element_displaying = this.container.querySelector(".title");
+        element_displaying.hidden = this.parent.data_source.get_displaying_text == null;
+        if(this.parent.data_source.get_displaying_text != null)
+        {
+            let text = this.parent.data_source.get_displaying_text();
+            element_displaying.replaceChildren(text);
+        }
+
         // The back button navigate to parent locally, otherwise it's browser back if we're in
         // permanent history mode.
         let back_button = this.container.querySelector(".back-button");
@@ -570,14 +600,6 @@ ppixiv.screen_search = class extends ppixiv.screen
             this.thumbnail_ui.refresh_ui();
         if(this.thumbnail_ui_mobile)
             this.thumbnail_ui_mobile.refresh_ui();
-
-        let element_displaying = this.container.querySelector(ppixiv.mobile? ".mobile-header .title":".displaying");
-        element_displaying.hidden = this.data_source.get_displaying_text == null;
-        if(this.data_source.get_displaying_text != null)
-        {
-            let text = this.data_source.get_displaying_text();
-            element_displaying.replaceChildren(text);
-        }
 
         this.data_source.set_page_icon();
         helpers.set_page_title(this.data_source.page_title || "Loading...");
@@ -1005,9 +1027,10 @@ ppixiv.slideshow_staging_dialog = class extends ppixiv.dialog_widget
     }
 };
 
-class change_search_dialog extends ppixiv.dialog_widget
+class mobile_select_search_dialog extends ppixiv.dialog_widget
 {
-    constructor({...options}={})
+    // This is only given the data source so we can open mobile_edit_search_dialog.
+    constructor({data_source, ...options}={})
     {
         super({...options,
             dialog_class: "edit-search-dialog",
@@ -1036,9 +1059,44 @@ class change_search_dialog extends ppixiv.dialog_widget
             helpers.set_class(button, "selected", url.pathname == current_path);
         }
     }
-
-    visibility_changed()
-    {
-        super.visibility_changed();
-    }
 };
+
+// This dialog shows the search filters that are in the header box on desktop.
+class mobile_edit_search_dialog extends ppixiv.dialog_widget
+{
+    constructor({data_source, ...options}={})
+    {
+        super({...options,
+            dialog_class: "edit-search-dialog",
+            header: "Search",
+            drag_direction: "right",
+            //small: true,
+            template: `
+                <div class=data-source-ui-box></div>
+                
+                <div class=change-mode hidden>
+                    ${ helpers.create_icon("mat:arrow_back_ios_new") }
+                    <span class=text style="vertical-align: middle;">Other searches</span>
+                </div>
+            `
+        });
+
+        let change_mode_box = this.container.querySelector(".change-mode");
+        change_mode_box.hidden = ppixiv.native;
+        change_mode_box.addEventListener("click", () => {
+            this.visible = false;
+
+            new mobile_select_search_dialog({
+                parent: this.parent,
+                data_source,
+            });
+        });
+
+        // Create the UI.  This becomes our child, but we don't need to hang onto it.
+        /*let data_source_ui =*/ data_source.create_ui({
+            container: this.container.querySelector(".scroll .data-source-ui-box"),
+            parent: this,
+        });
+        data_source.refresh_thumbnail_ui();
+    }
+}

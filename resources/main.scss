@@ -1337,6 +1337,10 @@ body.hide-r18g .r18g { display: none; }
 }
 
 .screen-search-container {
+    // The amount of padding at the bottom of the thumbnail scroller to make room for the
+    // navigation bar.
+    --nav-bar-reserved-height: 1em;
+
     // This block is used to fade the search when the illustration is shown.  This isn't done on
     // the top container to avoid the fade animation causing style recalculations on the search
     // results, which is slow when there are a lot of thumbs.
@@ -1385,7 +1389,7 @@ body.hide-r18g .r18g { display: none; }
         // of adding our own.  iOS's bottom inset is much too big and leaves a ton of unused space, so
         // reduce it (this is the only device with a bottom inset I'm currently testing on).
         html.mobile[data-has-bottom-inset] & {
-            --mobile-nav-bar-top-padding: 0.3rem;
+            --mobile-nav-bar-top-padding: 0.5rem;
             --mobile-nav-bar-bottom-padding: calc(env(safe-area-inset-bottom) * 0.5);
         }
 
@@ -1416,7 +1420,7 @@ body.hide-r18g .r18g { display: none; }
         font-size: 1.2rem;
 
         // line-height + padding
-        --icon-bar-height: 2em;
+        --icon-bar-height: 2.5em;
         --height-closed: calc(1.5em + var(--mobile-nav-bar-top-padding) + var(--mobile-nav-bar-bottom-padding));
         --height-open: calc(var(--height-closed) + var(--icon-bar-height));
         height: scale_value(var(--header-pos), 0, 1, var(--height-closed), var(--height-open));
@@ -1438,6 +1442,7 @@ body.hide-r18g .r18g { display: none; }
 
             .button-row {
                 opacity: var(--header-pos);
+                height: var(--icon-bar-height);
                 display: flex;
                 flex-direction: row;
                 justify-content: space-around;
@@ -1557,8 +1562,9 @@ body.hide-r18g .r18g { display: none; }
         gap: var(--thumb-padding);
         max-width: var(--container-width);
 
-        // Make room for Chrome's (ugly, annoying, distracting and pointless) status bar.
-        padding-bottom: 2em;
+        // Make room for system UI, plus our navigation bar overlay at the bottom.
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: calc(env(safe-area-inset-bottom) + var(--nav-bar-reserved-height));
 
         display: flex;
         flex-wrap: wrap;
@@ -3805,12 +3811,24 @@ svg.heart-image .delete {
     @include general-dialog($animation: "horizontal");
 
     .scroll {
+        --box-link-bg-color: none;
         display: flex;
         flex-direction: column;
+        height: 100%;
 
-        --box-link-bg-color: none;
-        .navigation-button
+        .data-source-ui-box {
+            flex-grow: 1;
+            flex-shrink: 0;
+        }
+
+        .change-mode
         {
+            display: flex;
+            align-items: center;
+            padding: 0.5em;
+            position: sticky;
+            bottom: 0;
+            background-color: #444;
         }
     }
 }
