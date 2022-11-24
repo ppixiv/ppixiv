@@ -748,7 +748,36 @@ ppixiv.data_source = class
     // need to know this to figure out whether an item is selected or not.
     //
     // If a key begins with #, it's placed in the hash rather than the query.
-    set_item(container, { type=null, fields=null, default_values=null, current_url=null, toggle=false,
+    set_item(link, {type=null, current_url=null, ...options}={})
+    {
+        // If no type is specified, link itself is the link.
+        if(type != null)
+        {
+            link = link.querySelector(`[data-type='${type}']`);
+            if(link == null)
+            {
+                console.warn("Couldn't find button with selector", type);
+                return;
+            }
+        }
+
+        // The URL we're adjusting:
+        if(current_url == null)
+            current_url = this.url;
+
+        // Adjust the URL for this button.
+        let args = new helpers.args(new URL(current_url));
+
+        let { args: new_args, button_is_selected } = this.set_item_in_url(args, options);
+
+        helpers.set_class(link, "selected", button_is_selected);
+
+        link.href = new_args.url.toString();
+    };
+
+    // Apply a search filter button to a search URL, activating or deactivating a search
+    // filter.  Return { args, button_is_selected }.
+    set_item_in_url(args, { fields=null, default_values=null, toggle=false,
         // If provided, this allows modifying URLs that put parameters in URL segments instead
         // of the query where they belong.  If url_format is "abc/def/ghi", a key of "/abc" will modify
         // the first segment, and so on.
@@ -758,12 +787,8 @@ ppixiv.data_source = class
         adjust_url=null
     }={})
     {
-        let link = container.querySelector(`[data-type='${type}']`);
-        if(link == null)
-        {
-            console.warn("Couldn't find button with selector", type);
-            return;
-        }
+        // Ignore the language prefix on the URL if any, so it doesn't affect url_format.
+        args.path = helpers.get_path_without_language(args.path);
 
         // If url_parts is provided, create a map from "/segment" to a segment number like "/1" that
         // args.set uses.
@@ -774,13 +799,6 @@ ppixiv.data_source = class
             for(let idx = 0; idx < parts.length; ++idx)
                 url_parts["/" + parts[idx]] = "/" + idx;
         }
-
-        // The URL the button is relative to:
-        if(current_url == null)
-            current_url = this.url;
-
-        // Adjust the URL for this button.
-        let args = new helpers.args(new URL(current_url));
 
         // Don't include the page number in search buttons, so clicking a filter goes
         // back to page 1.
@@ -831,13 +849,11 @@ ppixiv.data_source = class
                 args.set(key, null);
         }
 
-        helpers.set_class(link, "selected", button_is_selected);
-
         if(adjust_url)
             adjust_url(args);
 
-        link.href = args.url.toString();
-    };
+        return { args, button_is_selected };
+    }
 
     // Like set_item for query and hash parameters, this sets parameters in the URL.
     //
