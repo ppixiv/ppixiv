@@ -2557,9 +2557,9 @@ class data_source_bookmarks_base extends data_source
 
         var tag = this.displaying_tag;
         if(tag == "")
-            displaying += ` with no tags`;
+            displaying += ` / untagged`;
         else if(tag != null)
-            displaying += ` with tag "${tag}"`;
+            displaying += ` / ${tag}`;
 
         return displaying;
     };
