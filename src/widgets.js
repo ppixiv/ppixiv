@@ -369,14 +369,20 @@ ppixiv.dialog_widget = class extends ppixiv.widget
                 this.shutdown();
             }, { signal: this.shutdown_signal.signal });
 
-            // Hide on any state change.
-            window.addEventListener("popstate", (e) => {
-                this.shutdown();
-            }, { signal: this.shutdown_signal.signal });
+            if(this._close_on_popstate)
+            {
+                // Hide on any state change.
+                window.addEventListener("popstate", (e) => {
+                    this.shutdown();
+                }, { signal: this.shutdown_signal.signal });
+            }
         }
 
         ppixiv.dialog_widget._update_block_touch_scrolling();
     }
+
+    // The subclass can override this to disable automatically closing on popstate.
+    get _close_on_popstate() { return true; }
 
     set header(value)
     {

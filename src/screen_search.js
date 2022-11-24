@@ -2,29 +2,47 @@
 
 function _create_main_search_menu(container)
 {
+    if(ppixiv.native)
+        return;
+
     let options = [
         { label: "Search works",           icon: "search",          url: `/tags#ppixiv` },
         { label: "New works by following", icon: "photo_library",   url: "/bookmark_new_illust.php#ppixiv" },
         { label: "New works by everyone",  icon: "groups",          url: "/new_illust.php#ppixiv" },
+    ];
 
-        [
+    if(ppixiv.mobile)
+    {
+        // On mobile, just show a single bookmarks and follows item.
+        options = [
+            ...options,
             { label: "Bookmarks",          icon: "favorite",        url: `/users/${window.global_data.user_id}/bookmarks/artworks#ppixiv` },
-            
-            // This is just a visual cue for "all (combined) bookmarks" and is the same as the first item.
-            // Omit it on mobile to save space.
-            ppixiv.mobile? null:
-            { label: "all",                                         url: `/users/${window.global_data.user_id}/bookmarks/artworks#ppixiv` },
-
-            // Condense this on mobile by showing an icon instead of the label since there isn't enough space.
-            { label: ppixiv.mobile? "":"Public",        icon: ppixiv.mobile? "public":null,          url: `/users/${window.global_data.user_id}/bookmarks/artworks#ppixiv?show-all=0` },
-            { label: ppixiv.mobile? "":"Private",       icon: ppixiv.mobile? "lock":null,            url: `/users/${window.global_data.user_id}/bookmarks/artworks?rest=hide#ppixiv?show-all=0` },
-        ],
-
-        [
             { label: "Followed users",     icon: "visibility",      url: `/users/${window.global_data.user_id}/following#ppixiv` },
-            { label: ppixiv.mobile? "":"Public",        icon: ppixiv.mobile?"public":null,          url: `/users/${window.global_data.user_id}/following#ppixiv` },
-            { label: ppixiv.mobile? "":"Private",       icon: ppixiv.mobile? "lock":null,           url: `/users/${window.global_data.user_id}/following?rest=hide#ppixiv` },
-        ],
+        ];
+    }
+    else
+    {
+        options = [
+            ...options,
+            [
+                { label: "Bookmarks",          icon: "favorite",    url: `/users/${window.global_data.user_id}/bookmarks/artworks#ppixiv` },
+                { label: "all",                                     url: `/users/${window.global_data.user_id}/bookmarks/artworks#ppixiv` },
+                { label: "Public",                                  url: `/users/${window.global_data.user_id}/bookmarks/artworks#ppixiv?show-all=0` },
+                { label: "Private",                                 url: `/users/${window.global_data.user_id}/bookmarks/artworks?rest=hide#ppixiv?show-all=0` },
+            ], [
+                { label: "Followed users",     icon: "visibility",  url: `/users/${window.global_data.user_id}/following#ppixiv` },
+                { label: "Public",                                  url: `/users/${window.global_data.user_id}/following#ppixiv` },
+                { label: "Private",                                 url: `/users/${window.global_data.user_id}/following?rest=hide#ppixiv` },
+            ]
+        ];
+    }
+
+    options = [
+        ...options,
+    ];
+
+    options = [
+        ...options,
 
         { label: "Rankings",               icon: "auto_awesome"  /* who names this stuff? */, url: "/ranking.php#ppixiv" },
         { label: "Recommended works",      icon: "ppixiv:suggestions", url: "/discovery#ppixiv" },
@@ -293,7 +311,6 @@ let thumbnail_ui_mobile = class extends ppixiv.widget
         this.container.querySelector(".menu").addEventListener("click", (e) => {
             new mobile_edit_search_dialog({
                 parent: this,
-                data_source: this.parent.data_source,
             });
 
             this.dragger.hide();
@@ -1027,44 +1044,10 @@ ppixiv.slideshow_staging_dialog = class extends ppixiv.dialog_widget
     }
 };
 
-class mobile_select_search_dialog extends ppixiv.dialog_widget
-{
-    // This is only given the data source so we can open mobile_edit_search_dialog.
-    constructor({data_source, ...options}={})
-    {
-        super({...options,
-            dialog_class: "edit-search-dialog",
-            header: "Search",
-            drag_direction: "right",
-            small: true,
-            template: `
-                <div class=items>
-                </div>
-            `
-        });
-
-        // Create the menu items.  This is the same as the dropdown list for desktop.
-        let option_box = this.container.querySelector(".scroll");
-        _create_main_search_menu(option_box);
-
-        // Add vertical-list so this has the same alignment handling as the desktop version.
-        this.container.querySelector(".scroll").classList.add("vertical-list");
-
-        let current_path = helpers.get_url_without_language(ppixiv.plocation).pathname;
-        for(let button of this.container.querySelectorAll(".navigation-button"))
-        {
-            // XXX: this doesn't distinguish bookmark buttons
-            let url = new URL(button.href);
-            url = helpers.get_url_without_language(url);
-            helpers.set_class(button, "selected", url.pathname == current_path);
-        }
-    }
-};
-
 // This dialog shows the search filters that are in the header box on desktop.
 class mobile_edit_search_dialog extends ppixiv.dialog_widget
 {
-    constructor({data_source, ...options}={})
+    constructor({...options}={})
     {
         super({...options,
             dialog_class: "edit-search-dialog",
@@ -1072,31 +1055,95 @@ class mobile_edit_search_dialog extends ppixiv.dialog_widget
             drag_direction: "right",
             //small: true,
             template: `
-                <div class=data-source-ui-box></div>
-                
-                <div class=change-mode hidden>
-                    ${ helpers.create_icon("mat:arrow_back_ios_new") }
-                    <span class=text style="vertical-align: middle;">Other searches</span>
+                <div class="search-selection vertical-list">
                 </div>
             `
         });
 
-        let change_mode_box = this.container.querySelector(".change-mode");
-        change_mode_box.hidden = ppixiv.native;
-        change_mode_box.addEventListener("click", () => {
-            this.visible = false;
+        // Create the menu items.  This is the same as the dropdown list for desktop.
+        let option_box = this.container.querySelector(".search-selection");
+        _create_main_search_menu(option_box);
 
-            new mobile_select_search_dialog({
-                parent: this.parent,
-                data_source,
-            });
-        });
+        this.search_url = helpers.args.location;
 
-        // Create the UI.  This becomes our child, but we don't need to hang onto it.
-        /*let data_source_ui =*/ data_source.create_ui({
-            container: this.container.querySelector(".scroll .data-source-ui-box"),
+        // Recreate the data source UI any time the URL changes, so we refresh when filters
+        // are changed.
+        window.addEventListener("popstate", (e) => this.refresh(), { signal: this.shutdown_signal.signal });
+        this.refresh();
+    }
+
+    get active_row()
+    {
+        // We don't have any search modes in native, so just put the data source UI directly
+        // in the scroller.
+        if(ppixiv.native)
+            return this.container.querySelector(".search-selection");
+
+        // The active row is the one who would load a data source of the same class as the current one.
+        let current_data_source = this.data_source;
+
+        for(let button of this.container.querySelectorAll(".navigation-button"))
+        {
+            let url = new URL(button.href);
+            let data_source_class = page_manager.singleton().get_data_source_for_url(url);
+
+            if(current_data_source instanceof data_source_class)
+                return button;
+
+            // Hack: the bookmarks row corresponds to multiple subclasses.  All of them should
+            // map back to the bookmarks row.
+            if(current_data_source instanceof ppixiv.data_source_bookmarks_base &&
+               data_source_class.prototype instanceof ppixiv.data_source_bookmarks_base)
+               return button;
+        }
+
+        throw new Error("Couldn't match data source for", current_data_source.__proto__);
+    }
+
+    refresh()
+    {
+        let active_row = this.active_row;
+        for(let button of this.container.querySelectorAll(".navigation-button"))
+            helpers.set_class(button, "selected", button == active_row);
+
+        this.recreate_ui();
+    }
+
+    // We always show the primary data source.
+    get data_source()
+    {
+        return main_controller.data_source;
+    }
+
+    recreate_ui()
+    {
+        if(this.data_source_ui)
+        {
+            this.data_source_ui.shutdown();
+            this.data_source_ui = null;
+        }
+
+        // Create the UI.
+        let position = this.active_row;
+        let row = position.closest(".box-link-row");
+        if(row)
+            position = row;
+
+        this.data_source_ui = main_controller.data_source.create_ui({
+            container: position,
+
+            // Normally this goes after the search mode button.  When native we have no search mode
+            // buttons and this.active_row is the container, so put it inside it.
+            container_position: ppixiv.native? "beforeend":"afterend",
+
             parent: this,
         });
-        data_source.refresh_thumbnail_ui();
+
+        this.data_source_ui.container.classList.add("data-source-ui");
+
+        this.data_source.refresh_thumbnail_ui();
     }
+
+    // Tell dialog_widget not to close us on popstate.  It'll still close us if the screen changes.
+    get _close_on_popstate() { return false; }
 }

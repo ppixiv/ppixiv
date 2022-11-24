@@ -2312,7 +2312,7 @@ ppixiv.data_sources.manga = class extends data_source
 //
 // For some reason, Pixiv only allows viewing either public or private bookmarks,
 // and has no way to just view all bookmarks.
-class data_source_bookmarks_base extends data_source
+ppixiv.data_source_bookmarks_base = class extends data_source
 {
     get name() { return "bookmarks"; }
   
@@ -3747,7 +3747,7 @@ ppixiv.data_sources.follows = class extends data_source
         return this.ui;
     }
 
-    refresh_thumbnail_ui({ thumbnail_view })
+    refresh_thumbnail_ui({ thumbnail_view }={})
     {
         let current_args = helpers.args.location;
 

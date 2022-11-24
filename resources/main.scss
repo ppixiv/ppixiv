@@ -3100,6 +3100,7 @@ svg.heart-image .delete {
         {
             overflow-x: hidden;
             overflow-y: auto;
+            touch-action: pan-y;
 
             // .dialog has the inner padding for everything inside the dialog, but if we have
             // a scroller, we want the scrollbar to be flush with the edge.  Do this by reversing
@@ -3813,6 +3814,8 @@ svg.heart-image .delete {
 {
     @include general-dialog($animation: "horizontal");
 
+    --ui-bg-color: rgba(0,0,0,0.75);
+
     .scroll {
         --box-link-bg-color: none;
         display: flex;
@@ -3823,15 +3826,10 @@ svg.heart-image .delete {
             flex-grow: 1;
             flex-shrink: 0;
         }
-
-        .change-mode
-        {
-            display: flex;
-            align-items: center;
-            padding: 0.5em;
-            position: sticky;
-            bottom: 0;
-            background-color: #444;
+        
+        .data-source-ui {
+            background-color: #000;
+            padding: 0.5em 0.5em;
         }
     }
 }
