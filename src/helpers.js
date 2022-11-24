@@ -2179,14 +2179,16 @@ ppixiv.helpers = {
         }
 
         // Return the pathname segment with the given index.  If the path is "/abc/def", "abc" is
-        // segment 0.  If idx is past the end, return "".
+        // segment 0.  If idx is past the end, return null.
         get_pathname_segment(idx)
         {
             // The first pathname segment is always empty, since the path always starts with a slash.
             idx++;
             let parts = this.path.split("/");
-            let result = parts[idx];
-            return result || "";
+            if(idx >= parts.length)
+                return null;
+
+            return decodeURIComponent(parts[idx]);
         }
 
         // Set the pathname segment with the given index.  If the path is "/abc/def", setting
@@ -2201,6 +2203,8 @@ ppixiv.helpers = {
             let parts = this.path.split("/");
             if(value != null)
             {
+                value = encodeURIComponent(value);
+
                 if(idx < parts.length)
                     parts[idx] = value;
                 else if(idx == parts.length)
