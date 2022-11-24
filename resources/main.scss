@@ -114,6 +114,16 @@ html {
     inset: var(--fullscreen-top) var(--fullscreen-right) var(--fullscreen-bottom) var(--fullscreen-left);
 }
 
+// This is a similar backdrop style to iOS Safari's bottom navigation bar.  It doesn't match entirely
+// and it may be intentionally not possible to match (it seems to do filter math in linear space with
+// browser filters blending in sRGB or vice versa), but it's useful to be a bit different anyway
+// so our navigation bar is distinguishable from the browser's.
+@mixin overlay-blur()
+{
+    backdrop-filter: blur(20px) contrast(40%) brightness(0.5);
+    -webkit-backdrop-filter: blur(15px) contrast(60%) brightness(0.5);
+}
+
 // Scrollbar styling.
 //
 // This is a pain:
@@ -1403,15 +1413,7 @@ body.hide-r18g .r18g { display: none; }
         --button-color: #5a91f7;
         --button-disabled-color: #777;
 
-        // This is a similar style to iOS Safari's bottom navigation bar.  It doesn't match entirely and
-        // it may be intentionally not possible to match (it seems to do filter math in linear space with
-        // browser filters blending in sRGB or vice versa), but it's useful to be a bit different anyway
-        // so the different bars are distinguishable.
-        //
-        // We could animate this a bit when the bar is visible, but Android doesn't handle animating these
-        // very well.
-        backdrop-filter: blur(20px) contrast(40%) brightness(0.5);
-        -webkit-backdrop-filter: blur(15px) contrast(60%) brightness(0.5);
+        @include overlay-blur();
 
         // Crop off the buttons when they pan outside of this container.
         overflow: hidden;
@@ -2784,6 +2786,8 @@ a.box-link, span.box-link
     }
 
     .mobile-illust-ui-page {
+        @include overlay-blur();
+
         position: fixed;
         width: 100%;
         bottom: 0;
@@ -2799,7 +2803,6 @@ a.box-link, span.box-link
         flex-direction: row;
         justify-content: space-evenly;
 
-        background-color: rgba(0,0,0,.5);
         pointer-events: auto;
 
         user-select: none;
