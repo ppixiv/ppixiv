@@ -16,9 +16,19 @@ ppixiv.widget = class
         this.options = options;
         this.templates = {};
 
-        // If our parent is passing us a shared shutdown signal, use it.  Otherwise, create
-        // our own.
-        this.shutdown_signal = shutdown_signal || new AbortController();
+        // If we weren't given a shutdown signal explicitly and we have a parent widget, inherit
+        // its signal, so we'll shut down when the parent does.
+        if(shutdown_signal == null && parent != null)
+            shutdown_signal = parent.shutdown_signal.signal;
+        this._parent_shutdown_signal = shutdown_signal;
+
+        // If we were given a parent shutdown signal, shut down if it aborts.
+        if(this._parent_shutdown_signal)
+            this._parent_shutdown_signal.addEventListener("abort", this._shutdown_signal_aborted, { once: true });
+
+        // Create our shutdown_signal.  We'll abort this if we're shut down to shut down our children.
+        // This is always shut down by us when shutdown() is called (it isn't used to shut us down).
+        this.shutdown_signal = new AbortController();
 
         // We must have either a template or contents.
         if(template)
@@ -94,12 +104,22 @@ ppixiv.widget = class
 
     shutdown()
     {
+        // If _shutdown_signal_aborted hasn't been called yet, remove our listener.
+        if(this._parent_shutdown_signal)
+            this._parent_shutdown_signal.removeEventListener("abort", this._shutdown_signal_aborted);
+
         // Signal shutdown_signal to remove event listeners.  We should only be shut down
         // once, so shutdown_signal shouldn't already be signalled.
         console.assert(!this.shutdown_signal.signal.aborted);
         this.shutdown_signal.abort();
 
         this.container.remove();
+    }
+
+    // This is called if shutdown_signal is aborted outside of a call to shutdown().
+    _shutdown_signal_aborted = () =>
+    {
+        this.shutdown();
     }
 
     // Show or hide the widget.

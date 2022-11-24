@@ -139,12 +139,6 @@ ppixiv.viewer_images = class extends ppixiv.viewer
             this.on_click_viewer = null;
         }
 
-        if(this.image_editor)
-        {
-            this.image_editor.shutdown();
-            this.image_editor = null;
-        }
-
         this.image = null;
     }
 

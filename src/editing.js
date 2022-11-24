@@ -202,14 +202,6 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
         return settings.get("image_editing", false) && this.active_editor_name == "crop";
     }
 
-    shutdown()
-    {
-        for(let editor of Object.values(this.editors))
-            editor.shutdown();
-
-        super.shutdown();
-    }
-
     refresh_temporarily_hidden = () =>
     {
         // Hide while the UI is open.  This is only needed on mobile, where our buttons

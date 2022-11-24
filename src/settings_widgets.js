@@ -11,7 +11,6 @@ ppixiv.settings_widgets = {
                     buttons: [
                         new thumbnail_size_slider_widget({
                             ...global_options,
-                            parent: this,
                             container: this.container,
                             setting: "thumbnail-size",
                             classes: ["size-slider"],
@@ -31,7 +30,6 @@ ppixiv.settings_widgets = {
                     buttons: [
                         new thumbnail_size_slider_widget({
                             ...global_options,
-                            parent: this,
                             container: this.container,
                             setting: "manga-thumbnail-size",
                             classes: ["size-slider"],
@@ -549,10 +547,6 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
             classes: ["settings-row"],
             container: page_container,
             page_removed_signal: this.page_removed_signal.signal,
-
-            // Share our shutdown signal with the widgets, so their event listeners will be
-            // shut down when we shut down.
-            shutdown_signal: this.shutdown_signal,
 
             // Settings widgets can call this to close the window.
             close_settings: () => {
