@@ -1113,9 +1113,9 @@ ppixiv.data_sources.discovery = class extends data_source
             ...options,
             template: `
             <div class=box-button-row>
-                ${ helpers.create_box_link({label: "All",      link: "?mode=all#ppixiv",     popup: "Show all works",    data_type: "all" }) }
-                ${ helpers.create_box_link({label: "All ages", link: "?mode=safe#ppixiv",    popup: "All ages",          data_type: "safe" }) }
-                ${ helpers.create_box_link({label: "R18",      link: "?mode=r18#ppixiv",     popup: "R18",               data_type: "r18", classes: ["r18"] }) }
+                ${ helpers.create_box_link({label: "All",      popup: "Show all works",    data_type: "all" }) }
+                ${ helpers.create_box_link({label: "All ages", popup: "All ages",          data_type: "safe" }) }
+                ${ helpers.create_box_link({label: "R18",      popup: "R18",               data_type: "r18", classes: ["r18"] }) }
             </div>
         `});
 
@@ -1124,11 +1124,9 @@ ppixiv.data_sources.discovery = class extends data_source
 
     refresh_thumbnail_ui()
     {
-        // Set .selected on the current mode.
-        let current_mode = this.url.searchParams.get("mode") || "all";
-        helpers.set_class(this.ui.container.querySelector("[data-type=all]"), "selected", current_mode == "all");
-        helpers.set_class(this.ui.container.querySelector("[data-type=safe]"), "selected", current_mode == "safe");
-        helpers.set_class(this.ui.container.querySelector("[data-type=r18]"), "selected", current_mode == "r18");
+        this.set_item(this.ui.container, { type: "all", fields: {mode: "all"}, default_values: {mode: "all"} });
+        this.set_item(this.ui.container, { type: "safe", fields: {mode: "safe"}, default_values: {mode: "all"} });
+        this.set_item(this.ui.container, { type: "r18", fields: {mode: "r18"}, default_values: {mode: "all"} });
     }
 }
 
@@ -1993,6 +1991,8 @@ ppixiv.data_sources.artist = class extends data_source
 
     refresh_thumbnail_ui({ thumbnail_view }={})
     {
+        let current_args = helpers.args.location;
+
         if(thumbnail_view)
         {
             thumbnail_view.avatar_container.hidden = false;
@@ -2022,14 +2022,6 @@ ppixiv.data_sources.artist = class extends data_source
             if(this.translated_tags && this.translated_tags[tag])
                 translated_tag = this.translated_tags[tag];
 
-            let url = new URL(this.url);
-            url.hash = "#ppixiv";
-
-            if(tag != "All")
-                url.searchParams.set("tag", tag);
-            else
-                url.searchParams.delete("tag");
-    
             let classes = ["tag-entry"];
 
             // If the user has searched for this tag recently, add the recent tag.  This is added
@@ -2041,13 +2033,12 @@ ppixiv.data_sources.artist = class extends data_source
                 label: translated_tag,
                 classes,
                 popup: tag_info?.cnt,
-                link: url.toString(),
+                link: "#",
                 as_element: true,
+                data_type: "artist-tag",
             });
 
-            let match_tag = tag != "All"? tag:null;
-            if(match_tag == current_tag)
-                a.classList.add("selected");
+            this.set_item(a, { fields: {"tag": tag != "All"? tag:null}, current_url: current_args.url });
 
             if(tag == "All")
                 a.dataset["default"] = 1;
@@ -2603,6 +2594,8 @@ class data_source_bookmarks_base extends data_source
 
     refresh_thumbnail_ui({ thumbnail_view }={})
     {
+        let current_args = helpers.args.location;
+
         // The public/private button only makes sense when viewing your own bookmarks.
         var public_private_button_container = this.ui.container.querySelector(".bookmarks-public-private");
         public_private_button_container.hidden = !this.viewing_own_bookmarks();
@@ -2633,51 +2626,35 @@ class data_source_bookmarks_base extends data_source
 
         var add_tag_link = (tag) =>
         {
-            let tag_name = tag;
-            if(tag_name == null)
-                tag_name = "All bookmarks";
-            else if(tag_name == "")
-                tag_name = "Untagged";
+            let label;
+            if(tag == null)
+                label = "All bookmarks";
+            else if(tag == "")
+                label = "Untagged";
+            else
+                label = tag;
 
-            let url = new URL(this.url);
-            url.searchParams.delete("p");
-    
             let a = helpers.create_box_link({
-                label: tag_name,
+                label,
                 classes: ["tag-entry"],
                 popup: this.bookmark_tag_counts[tag],
-                link: url.toString(),
+                link: "#",
                 as_element: true,
+                data_type: "bookmark-tag",
             });
 
-            if(tag_name == "All bookmarks")
+            if(label == "All bookmarks")
                 a.dataset.default = 1;
 
-            if(tag == current_tag)
-                a.classList.add("selected");
-
-            // Pixiv used to put the tag in a nice, clean query parameter, but recently got
-            // a bit worse and put it in the query.  That's a much worse way to do things:
-            // it's harder to parse, and means you bake one particular feature into your
-            // URLs.
-            let old_pathname = helpers.get_url_without_language(url).pathname;
-            let parts = old_pathname.split("/");
             if(tag == "")
                 tag = "未分類"; // Uncategorized
-            if(tag == null) // All
-            {
-                if(parts.length == 6)
-                    parts = parts.splice(0,5);
-            }
-            else
-            {
-                if(parts.length < 6)
-                    parts.push("");
-                parts[5] = encodeURIComponent(tag);
-            }
-            url.pathname = parts.join("/");
 
-            a.href = url.toString();
+            this.set_item(a, {
+                url_format: "users/id/bookmarks/type/tag",
+                fields: {"/tag": tag},
+                current_url: current_args.url
+            });
+
             tag_list.appendChild(a);
         };
 
@@ -2704,9 +2681,6 @@ class data_source_bookmarks_base extends data_source
             thumbnail_view.avatar_widget.set_user_id(this.viewing_user_id);
         }
 
-        // Set whether the tags menu item is highlighted.
-        let box = this.ui.container.querySelector(".bookmark-tags-box .box-link");
-        helpers.set_class(box, "selected", current_tag != null);
         this.set_active_popup_highlight(this.ui.container);
     }
 
@@ -2991,29 +2965,12 @@ ppixiv.data_sources.new_illust = class extends data_source
 
     refresh_thumbnail_ui()
     {
+        let current_args = helpers.args.location;
+
         this.set_item(this.ui.container, { type: "new-illust-type-illust", fields: {type: null} });
         this.set_item(this.ui.container, { type: "new-illust-type-manga", fields: {type: "manga"} });
-
-        // These links are different from anything else on the site: they switch between
-        // two top-level pages, even though they're just flags and everything else is the
-        // same.  We don't actually need to do this since we're just making API calls, but
-        // we try to keep the base URLs compatible, so we go to the equivalent page on Pixiv
-        // if we're turned off.
-        var all_ages_link = this.ui.container.querySelector("[data-type='new-illust-ages-all']");
-        var r18_link = this.ui.container.querySelector("[data-type='new-illust-ages-r18']");
-
-        let url = new URL(this.url);
-        url.pathname = "/new_illust.php";
-        all_ages_link.href = url;
-
-        url = new URL(this.url);
-        url.pathname = "/new_illust_r18.php";
-        r18_link.href = url;
-
-        url = new URL(this.url);
-        var currently_all_ages = url.pathname == "/new_illust.php";
-        helpers.set_class(all_ages_link, "selected", currently_all_ages);
-        helpers.set_class(r18_link, "selected", !currently_all_ages);
+        this.set_item(this.ui.container, { type: "new-illust-ages-all", url_format: "path", fields: {"/path": "new_illust.php"}, current_url: current_args.url });
+        this.set_item(this.ui.container, { type: "new-illust-ages-r18", url_format: "path", fields: {"/path": "new_illust_r18.php"}, current_url: current_args.url });
     }
 }
 
@@ -3097,6 +3054,8 @@ ppixiv.data_sources.new_works_by_following = class extends data_source
 
     refresh_thumbnail_ui()
     {
+        let current_args = helpers.args.location;
+
         // Refresh the bookmark tag list.
         let current_tag = this.url.searchParams.get("tag") || "All tags";
 
@@ -3110,24 +3069,23 @@ ppixiv.data_sources.new_works_by_following = class extends data_source
             if(tag == "null")
                 return;
 
-            var url = new URL(this.url);
-            if(tag != "All tags")
-                url.searchParams.set("tag", tag);
-            else
-                url.searchParams.delete("tag");
+            let label = tag;
+            if(tag == "All tags")
+                tag = null;
 
             let a = helpers.create_box_link({
-                label: tag,
+                label,
                 classes: ["tag-entry"],
-                link: url.toString(),
+                link: "#",
                 as_element: true,
+                data_type: "following-tag",
             });
 
-            if(tag == "All tags")
+            if(label == "All tags")
                 a.dataset.default = 1;
 
-            if(tag == current_tag)
-                a.classList.add("selected");
+            this.set_item(a, { fields: {"tag": tag}, current_url: current_args.url });
+
             tag_list.appendChild(a);
         };
 
@@ -3140,21 +3098,8 @@ ppixiv.data_sources.new_works_by_following = class extends data_source
         if(this.bookmark_tags.length == 0 && current_tag != "All tags")
             add_tag_link(current_tag);
             
-        var all_ages_link = this.ui.container.querySelector("[data-type='bookmarks-new-illust-all']");
-        var r18_link = this.ui.container.querySelector("[data-type='bookmarks-new-illust-ages-r18']");
-
-        var url = new URL(this.url);
-        url.pathname = "/bookmark_new_illust.php";
-        all_ages_link.href = url;
-
-        var url = new URL(this.url);
-        url.pathname = "/bookmark_new_illust_r18.php";
-        r18_link.href = url;
-
-        var url = new URL(this.url);
-        var currently_all_ages = url.pathname == "/bookmark_new_illust.php";
-        helpers.set_class(all_ages_link, "selected", currently_all_ages);
-        helpers.set_class(r18_link, "selected", !currently_all_ages);
+        this.set_item(this.ui.container, { type: "bookmarks-new-illust-all", url_format: "path", fields: {"/path": "bookmark_new_illust.php"}, current_url: current_args.url });
+        this.set_item(this.ui.container, { type: "bookmarks-new-illust-ages-r18", url_format: "path", fields: {"/path": "bookmark_new_illust_r18.php"}, current_url: current_args.url });
 
         // Set the contents of the tag menu button.
         this.set_active_popup_highlight(this.ui.container);
@@ -3800,6 +3745,8 @@ ppixiv.data_sources.follows = class extends data_source
 
     refresh_thumbnail_ui({ thumbnail_view })
     {
+        let current_args = helpers.args.location;
+
         if(!this.viewing_self && thumbnail_view)
         {
             thumbnail_view.avatar_container.hidden = false;
@@ -3827,29 +3774,22 @@ ppixiv.data_sources.follows = class extends data_source
             if(tag == "null")
                 return;
 
-            let url = new URL(this.url);
-            url.searchParams.delete("p");
-            if(tag == "Untagged")
-                url.searchParams.set("untagged", 1);
-            else
-                url.searchParams.delete("untagged", 1);
-
-            if(tag != "All tags")
-                url.searchParams.set("tag", tag);
-            else
-                url.searchParams.delete("tag");
-
             let a = helpers.create_box_link({
                 label: tag,
                 classes: ["tag-entry"],
-                link: url.toString(),
+                link: "#",
                 as_element: true,
+                data_type: "following-tag",
             });
-            if(tag == "All tags")
-                a.dataset.default = 1;
 
-            if(tag == current_tag)
-                a.classList.add("selected");
+            if(tag == "All tags")
+            {
+                tag = null;
+                a.dataset.default = 1;
+            }
+
+            this.set_item(a, { fields: {"tag": tag}, current_url: current_args.url });
+
             tag_list.appendChild(a);
         };
 
@@ -4570,6 +4510,8 @@ ppixiv.data_sources.vview = class extends data_source
 
     refresh_bookmark_tag_list(container)
     {
+        let current_args = helpers.args.location;
+
         // Clear the tag list.
         let tag_list = container.querySelector(".local-bookmark-tag-list");
         for(let tag of tag_list.querySelectorAll(".following-tag"))
@@ -4582,8 +4524,6 @@ ppixiv.data_sources.vview = class extends data_source
         if(this.bookmark_tag_counts == null)
             return;
 
-        let current_tag = helpers.args.location.hash.get("bookmark-tag");
-
         let add_tag_link = (tag) =>
         {
             let tag_count = this.bookmark_tag_counts[tag];
@@ -4594,14 +4534,6 @@ ppixiv.data_sources.vview = class extends data_source
             else if(tag_name == "")
                 tag_name = "Untagged";
 
-            let args = helpers.args.location;
-            args.hash.delete("path");
-            if(tag == null)
-                args.hash.delete("bookmark-tag");
-            else
-                args.hash.set("bookmark-tag", tag);
-            args.query.delete("p");
-
             // Show the bookmark count in the popup.
             let popup = null;
             if(tag_count != null)
@@ -4610,15 +4542,19 @@ ppixiv.data_sources.vview = class extends data_source
             let a = helpers.create_box_link({
                 label: tag_name,
                 classes: ["following-tag"],
+                data_type: "following-tag",
                 popup,
-                link: args.url.toString(),
+                link: "#",
                 as_element: true,
             });
             if(tag_name == "All bookmarks")
                 a.dataset.default = 1;
 
-            if(tag == current_tag)
-                a.classList.add("selected");
+            this.set_item(a, {
+                fields: {"#bookmark-tag": tag},
+                current_url: current_args.url,
+                adjust_url: (args) => args.hash.delete("path"),
+            });
 
             tag_list.appendChild(a);
         };

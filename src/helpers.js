@@ -1821,11 +1821,17 @@ ppixiv.helpers = {
 
     // Some of Pixiv's URLs have languages prefixed and some don't.  Ignore these and remove
     // them to make them simpler to parse.
+    get_path_without_language(path)
+    {
+        if(/^\/..\//.exec(path))
+            return path.substr(3);
+        else        
+            return path;
+    },
+
     get_url_without_language: function(url)
     {
-        if(/^\/..\//.exec(url.pathname))
-            url.pathname = url.pathname.substr(3);
-        
+        url.pathname = helpers.get_path_without_language(url.pathname);
         return url;
     },
 
