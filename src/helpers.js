@@ -3967,6 +3967,8 @@ ppixiv.VirtualHistory = class
             return window.history.pushState(state, title, url);
 
         this.history.push({ state, url });
+
+        this._update_browser_state();
     }
 
     replaceState(state, title, url)
@@ -3999,6 +4001,7 @@ ppixiv.VirtualHistory = class
 
         this.history.pop();
         this.history.push({ state, url });
+        this._update_browser_state();
     }
 
     get state()
@@ -4043,7 +4046,8 @@ ppixiv.VirtualHistory = class
             return;
 
         this.history.pop();
-        this.broadcast_popstate()
+        this.broadcast_popstate();
+        this._update_browser_state();
     }
 
     broadcast_popstate({cause}={})
@@ -4052,6 +4056,17 @@ ppixiv.VirtualHistory = class
         if(cause)
             e.navigationCause = cause;
         window.dispatchEvent(e);
+    }
+
+    // If we're permanent, we're not using the browser location ourself and we don't push
+    // to browser history, but we do store the current URL and state, so the browser address
+    // bar (if any) updates and we'll restore the latest state on reload if possible.
+    _update_browser_state()
+    {
+        if(!this.permanent)
+            return;
+
+        window.history.replaceState(this.state, "", this._latest_history.url);
     }
 };
 ppixiv.phistory = new VirtualHistory;
