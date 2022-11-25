@@ -154,9 +154,9 @@ ppixiv.MainController = class
         {
             let newURL = new URL(ppixiv.plocation);
 
-            // If we're on the top Pixiv page, we're active by default but this isn't actually a
-            // supported page.  Rewrite the path to point to our default view.
-            if(page_manager.singleton().is_top_url)
+            // If we're active but we're on a page that isn't directly supported, redirect to
+            // a supported page.
+            if(page_manager.singleton().get_data_source_for_url(ppixiv.plocation) == null)
                 newURL = page_manager.singleton().fallback_url;
 
             // If the URL hash doesn't start with #ppixiv, the page was loaded with the base Pixiv
