@@ -1062,7 +1062,8 @@ class mobile_edit_search_dialog extends ppixiv.dialog_widget
         // Clicks on the artist row (if visible) shouldn't do anything.  It only has a dummy URL
         // to make it be used when an artist data source is active.
         this.artist_row = this.container.querySelector(".artist-row");
-        this.artist_row.addEventListener("click", (e) => e.preventDefault());
+        if(this.artist_row)
+            this.artist_row.addEventListener("click", (e) => e.preventDefault());
 
         this.search_url = helpers.args.location;
 
@@ -1108,12 +1109,15 @@ class mobile_edit_search_dialog extends ppixiv.dialog_widget
 
         // The artist row is hidden by default, since it only makes sense when already viewing
         // an artist.  If we're showing an artist, display it.
-        let data_source_is_artist = this.data_source instanceof ppixiv.data_sources.artist;
-        this.artist_row.widget.visible = data_source_is_artist;
-        if(data_source_is_artist)
+        if(this.artist_row)
         {
-            let username = this.data_source.user_info?.name;
-            this.artist_row.querySelector(".label").innerText = username? `Artist: ${username}`:`Artist`;
+            let data_source_is_artist = this.data_source instanceof ppixiv.data_sources.artist;
+            this.artist_row.widget.visible = data_source_is_artist;
+            if(data_source_is_artist)
+            {
+                let username = this.data_source.user_info?.name;
+                this.artist_row.querySelector(".label").innerText = username? `Artist: ${username}`:`Artist`;
+            }
         }
         this.recreate_ui();
     }
