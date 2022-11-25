@@ -239,7 +239,7 @@ ppixiv.dialog_widget = class extends ppixiv.widget
         back_icon=false,
 
         // The drag direction to close the dialog if the dialog can be dragged to close.
-        drag_direction="down",
+        drag_direction=null,
 
         template,
         ...options
@@ -247,6 +247,12 @@ ppixiv.dialog_widget = class extends ppixiv.widget
     {
         if(small == null)
             small = dialog_type == "small";
+
+        // By default, regular dialogs scroll and drag right, so they don't conflict with vertical
+        // scrollers.  Small dialogs currently drag down, since animating a small dialog like a
+        // text entry horizontally looks weird.
+        if(drag_direction == null)
+            drag_direction = small? "down":"right";
 
         // Most dialogs are added to the body element.
         if(container == null)

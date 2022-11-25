@@ -48,6 +48,13 @@ html {
     // positioned nodes too, such as the main screen-illust-container.
     position: relative;
         
+    // iOS's bottom insets are too big, leaving too much space around the pointless navigation line.
+    // This can be used to adjust it downwards to a more reasonable amount of padding.
+    --fixed-safe-area-inset-bottom: env(safe-area-inset-bottom);
+    &.ios {
+        --fixed-safe-area-inset-bottom: calc(env(safe-area-inset-bottom) * 0.5);
+    }
+    
     // Device-specific styling
     //
     // We handle a few different types of displays, based on data-fullscreen-mode.
@@ -1452,21 +1459,6 @@ body.hide-r18g .r18g { display: none; }
         }
     }
 
-    .mobile-ui-box-container {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        --ui-bg-color: #111;
-
-        opacity: var(--header-pos);
-        transform: translateY(calc(100% * (1 - var(--header-pos))));
-
-        &:not(.ui-visible) {
-            pointer-events: none;
-        }
-    }
-
     .search-results {
         // If the nav box is open, shift the search results to make room for it.
         margin-left: var(--navigation-box-reserved-width);
@@ -2647,7 +2639,6 @@ a.box-link, span.box-link
 
 .mobile-illust-ui-dialog
 {
-    --ui-bg-color: rgba(0,0,0,0.4);
     --box-link-bg-color: none;
 }
 
@@ -3004,7 +2995,15 @@ svg.heart-image .delete {
     // we're small or normal at compile time ($type), but we have to use a media query to see if
     // we're treating the device as a phone.
     $type: "normal",
-    $animation: "vertical",
+
+    // Most dialogs default to dragging horizontally to dismiss, so the drag doesn't conflict
+    // with vertical scrollers, so default to scrolling horizontally too.
+    $animation: "horizontal",
+
+    // If true, darken the background more than default.  This is used for dialogs like settings
+    // which have more brightness variation and darkening the background more is useful for
+    // readability.
+    $dark: false,
 )
 {
     // The top-level container-container sits outside the dialog.  This fills the screen and handles dimming
@@ -3014,6 +3013,12 @@ svg.heart-image .delete {
     inset: 0;
     overscroll-behavior: contain;
     opacity: var(--dialog-visible);
+
+    // On iOS, push the dialog out vertically by one pixel to work around Safari compositing bugs
+    // that leave a row of pixels not covered properly.
+    html.ios & {
+        inset: -1px 0;
+    }
 
     // This is set by the dialog transition.
     --dialog-visible: 1;
@@ -3027,11 +3032,27 @@ svg.heart-image .delete {
     // --dialog-backdrop-color is the color around the dialog to dim what's underneath it.
     // --dialog-bg-color is the background of the dialog itself.  In fullscreen, put the dialog
     // background on the container, so we can transition it separately from the dialog animation.
-    --dialog-backdrop-color: rgba(0,0,0,0.75);
-    --dialog-bg-color: var(--ui-bg-color);
-    &.fullscreen {
-        --dialog-backdrop-color: var(--ui-bg-color);
-        --dialog-bg-color: none;
+    // Note that these overlap, and --dialog-bg-color will be applied on top of --dialog-backdrop-color.
+    --dialog-backdrop-color: rgba(0,0,0,0.5);
+
+    @if $dark {
+        // total brightness .125: (1-0.5) * (1-0.75)
+        --dialog-bg-color: rgba(0,0,0,0.75);
+
+        &.fullscreen {
+            --dialog-backdrop-color: rgba(0,0,0,0.875);
+            --dialog-bg-color: rgba(0,0,0,0);
+        }
+    }
+    @else
+    {
+        // total brightness .25: (1-0.5) * (1-0.5)
+        --dialog-bg-color: rgba(0,0,0,0.5);
+
+        &.fullscreen {
+            --dialog-backdrop-color: rgba(0,0,0,0.75);
+            --dialog-bg-color: rgba(0,0,0,0);
+        }
     }
     background-color: var(--dialog-backdrop-color);
 
@@ -3055,7 +3076,7 @@ svg.heart-image .delete {
         --dialog-outer-padding-left: calc(max(env(safe-area-inset-left), var(--edge-padding-outer-horiz)));
         --dialog-outer-padding-right: calc(max(env(safe-area-inset-right), var(--edge-padding-outer-horiz)));
         --dialog-outer-padding-top: calc(max(env(safe-area-inset-top), var(--edge-padding-outer-vert)));
-        --dialog-outer-padding-bottom: calc(max(env(safe-area-inset-bottom), var(--edge-padding-outer-vert)));
+        --dialog-outer-padding-bottom: calc(max(var(--fixed-safe-area-inset-bottom), var(--edge-padding-outer-vert)));
 
         --dialog-inner-padding-left: var(--edge-padding-inner-horiz);
         --dialog-inner-padding-right: var(--edge-padding-inner-horiz);
@@ -3072,7 +3093,7 @@ svg.heart-image .delete {
         --dialog-inner-padding-left: calc(max(env(safe-area-inset-left), var(--edge-padding-inner-horiz)));
         --dialog-inner-padding-right: calc(max(env(safe-area-inset-right), var(--edge-padding-inner-horiz)));
         --dialog-inner-padding-top: calc(max(env(safe-area-inset-top), var(--edge-padding-inner-vert)));
-        --dialog-inner-padding-bottom: calc(max(env(safe-area-inset-bottom), var(--edge-padding-inner-vert)));
+        --dialog-inner-padding-bottom: calc(max(var(--fixed-safe-area-inset-bottom), var(--edge-padding-inner-vert)));
     }
 
     // There are two places we can put padding: inside the dialog itself (--dialog-inner-padding),
@@ -3148,12 +3169,13 @@ svg.heart-image .delete {
 
         background-color: var(--dialog-bg-color);
         color: var(--ui-fg-color);
-        border-radius: 5px;
         position: relative;
         display: flex;
         flex-direction: column;
     }
-
+    &:not(.fullscreen) .dialog {
+        border-radius: 5px;
+    }
     .header {
         --icon-size: 2;
 
@@ -3204,7 +3226,7 @@ svg.heart-image .delete {
 }
 
 .dialog-small {
-    @include general-dialog($type: "small");
+    @include general-dialog($type: "small", $animation: "vertical");
 }
 
 // A dialog that just contains a single button:
@@ -3258,6 +3280,20 @@ svg.heart-image .delete {
 .mobile-tag-list
 {
     @include general-dialog();
+    --box-link-bg-color: none;
+
+    > .dialog {
+        // The bottom inner padding is moved into menu-bar, so its backdrop filter reaches the edge.
+        padding-bottom: 0;
+
+        > .scroll {
+            // Remove the padding on the bottom, so the menu bar sits on the bottom and
+            // the text isn't visible underneath it in the padding.
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+    }
+
     .popup-bookmark-tag-entry {
         font-size: 120%;
 
@@ -3266,27 +3302,25 @@ svg.heart-image .delete {
         min-width: 20em;
     }
 
-    .dialog .scroll {
-        // Remove the padding on the bottom, so the menu bar sits on the bottom and
-        // the text isn't visible underneath it in the padding.
-        margin-bottom: 0;
-        padding-bottom: 0;
-    }
-
     .menu-bar {
         position: sticky;
         bottom: 0;
-        background-color: #000;
         display: flex;
         flex-direction: row;
         justify-content: space-evenly;
-        padding: 0.5em 0;
+
+        // Don't use em here, since that results in fractional pixels, which causes the backdrop-filter
+        // to not reach the edge on Chrome.
+        padding: 8px 0;
+        padding-bottom: var(--dialog-inner-padding-bottom);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
     }
 }
 
 .text-entry-popup
 {
-    @include general-dialog($type: "small");
+    @include general-dialog($type: "small", $animation: "vertical");
 
     .header {
         font-size: 20px;
@@ -3324,7 +3358,7 @@ svg.heart-image .delete {
 
 .confirm-dialog
 {
-    @include general-dialog($type: "small");
+    @include general-dialog($type: "small", $animation: "vertical");
 
     .scroll {
         display: flex;
@@ -3658,7 +3692,7 @@ svg.heart-image .delete {
 
 @mixin settings-dialog($animation: "vertical")
 {
-    @include general-dialog($animation: $animation);
+    @include general-dialog($animation: $animation, $dark: true);
 
     // Set the font size.  This ignores the font size multiplier we use for the rest
     // of the UI on mobile, which is much too big for settings, and is slightly larger
@@ -3813,8 +3847,6 @@ svg.heart-image .delete {
 .edit-search-dialog
 {
     @include general-dialog($animation: "horizontal");
-
-    --ui-bg-color: rgba(0,0,0,0.75);
 
     .scroll {
         --box-link-bg-color: none;

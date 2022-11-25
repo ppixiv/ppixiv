@@ -5373,10 +5373,6 @@ ppixiv.DragHandler = class
                     return;
             }
 
-            // Don't start a drag if this touch is inside a scrollable parent.
-            if(this._is_element_inside_scroller(e.target))
-                return;
-
             // Claim the click, so it isn't handled by the viewer.  Don't preventDefault, since
             // we do want clicks to happen if they're on buttons, etc. inside the scroller.
             e.stopImmediatePropagation();

@@ -379,7 +379,6 @@ ppixiv.screen_search = class extends ppixiv.screen
 
                 <!-- This groups the header and search UI into a single dragger. -->
                 <div class=mobile-ui-drag-container></div>
-                <div class=mobile-ui-box-container hidden></div>
 
                 <!-- This is controlled by the illustration view to fade the search. -->
                 <div class=fade-search></div>
@@ -388,13 +387,9 @@ ppixiv.screen_search = class extends ppixiv.screen
 
         user_cache.addEventListener("usermodified", this.refresh_ui, { signal: this.shutdown_signal.signal });        
 
-        // The search UI normally goes in thumbnail-ui-box-container.  On mobile, put
-        // it in the header instead.
-        let thumbnail_ui_container = this.container.querySelector(ppixiv.mobile? ".mobile-ui-box-container":".thumbnail-ui-box-container");
-
         this.thumbnail_ui = new thumbnail_ui_desktop({
             parent: this,
-            container: thumbnail_ui_container,
+            container: this.container.querySelector(".thumbnail-ui-box-container"),
         });
 
         if(ppixiv.mobile)
@@ -1052,8 +1047,6 @@ class mobile_edit_search_dialog extends ppixiv.dialog_widget
         super({...options,
             dialog_class: "edit-search-dialog",
             header: "Search",
-            drag_direction: "right",
-            //small: true,
             template: `
                 <div class="search-selection vertical-list">
                 </div>

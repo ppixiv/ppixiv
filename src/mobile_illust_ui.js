@@ -188,7 +188,7 @@ class mobile_overlay_bookmark_tag_dialog extends ppixiv.dialog_widget
 {
     constructor({media_id, ...options})
     {
-        super({...options, dialog_class: "mobile-tag-list", small: true, header: "Bookmark tags", template: `
+        super({...options, dialog_class: "mobile-tag-list", header: "Bookmark tags", template: `
             <div class=menu-bar>
                 <div class="item button-bookmark public">
                     <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
