@@ -4815,6 +4815,11 @@ ppixiv.guess_image_url = class
 
     async guess_url(media_id)
     {
+        // Guessed preloading is disabled if we're using an image size limit, since
+        // it's too early to tell which image we'll end up using.
+        if(settings.get("image_size_limit") != null)
+            return null;
+
         // If this is a local URL, we always have the image URL and we don't need to guess.
         let { type, page } = helpers.parse_media_id(media_id);
         console.assert(type != "folder");

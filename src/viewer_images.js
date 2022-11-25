@@ -105,12 +105,13 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         let manga_page = this.illust_data.mangaPages[page];
         let extra_data = ppixiv.media_cache.get_extra_data(this.illust_data, this.media_id, page);
         
+        let { url, width, height } = media_cache.get_main_image_url(this.illust_data, page);
         this.image = {
-            url: manga_page.urls.original,
+            url,
             preview_url: manga_page.urls.small,
             inpaint_url: manga_page.urls.inpaint,
-            width: manga_page.width,
-            height: manga_page.height,
+            width,
+            height,
             crop: extra_data?.crop,
             pan: extra_data?.pan,
         };

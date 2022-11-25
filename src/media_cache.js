@@ -750,7 +750,7 @@ ppixiv.MediaCache = class extends EventTarget
     // even from partial info.  For other pages, we have to get the dimensions from mangaPages.
     // If we only have partial info, the other page dimensions aren't known and we'll return
     // null.
-    get_dimensions(image_data, media_id=null, page=null)
+    get_dimensions(image_data, media_id=null, page=null, { }={})
     {
         if(image_data == null)
             return { width: 1, height: 1 };
@@ -778,5 +778,50 @@ ppixiv.MediaCache = class extends EventTarget
         }
 
         return { width: page_info.width, height: page_info.height };
+    }
+
+    // Return the main image to use for viewing the given image.
+    //
+    // If image_size_limit is set and the image is too large, use Pixiv's downscaled image instead.
+    // This is an excessively low-res image with a max size of 1200, which seems like a resolution
+    // that was picked a decade ago and never adjusted (1920 would make more sense), but it's the
+    // only smaller image we have available.  
+    //
+    // This is useful on mobile, where iOS's browser will OOM and silently reload the page if
+    // we try to load extremely large images.  This can also be enabled on desktop for users with
+    // very limited bandwidth.  For that use case it would make more sense to limit based on
+    // file size, but that's not available.
+    get_main_image_url(image_data, page=0, { ignore_limits=false }={})
+    {
+        // This isn't currently used locally.
+        if(helpers.is_media_id_local(image_data.mediaId))
+            return {
+                url: image_data.urls.original,
+                width: image_data.width,
+                height: image_data.height,
+            };
+
+        let manga_page = image_data.mangaPages[page];
+        let max_pixels = settings.get("image_size_limit")
+        if(max_pixels != null && !ignore_limits)
+        {
+            let pixels = manga_page.width * manga_page.height;
+            let huge = pixels > max_pixels;
+            if(huge)
+            {
+                // Use the downscaled image.  This is currently always rescaled to fit a max
+                // resolution of 1200.
+                let ratio = Math.min(1, 1200 / manga_page.width, 1200 / manga_page.height);
+                let width = Math.round(manga_page.width * ratio);
+                let height = Math.round(manga_page.height * ratio);
+                return { url: manga_page.urls.regular, width, height };
+            }
+        }
+        
+        return {
+            url: manga_page.urls.original,
+            width: manga_page.width,
+            height: manga_page.height,
+        };
     }
 }

@@ -323,14 +323,19 @@ ppixiv.image_preloader = class
         // Preload the requested page.
         let page = helpers.parse_media_id(media_id).page;
         if(page < illust_data.mangaPages.length)
-            results.push(new img_preloader(illust_data.mangaPages[page].urls.original));
-        
+        {
+            let { url } = media_cache.get_main_image_url(illust_data, page);
+            results.push(new img_preloader(url));
+        }
+
         // Preload the remaining pages.
         for(let p = 0; p < illust_data.mangaPages.length; ++p)
         {
             if(p == page)
                 continue;
-            results.push(new img_preloader(illust_data.mangaPages[p].urls.original));                
+
+            let { url } = media_cache.get_main_image_url(illust_data, page);
+            results.push(new img_preloader(url));
         }
 
         return results;

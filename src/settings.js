@@ -41,6 +41,9 @@ ppixiv.Settings = class extends EventTarget
         this.configure("expand_manga_thumbnails", { default_value: false });
         this.configure("slideshow_framerate", { default_value: 60 });
         this.configure("animations_enabled", { default_value: ppixiv.mobile });
+
+        // If not null, this limits the size of loaded images.
+        this.configure("image_size_limit", { default_value: ppixiv.mobile? 4000*4000:null });
     }
 
     // Configure settings.  This is used for properties of settings that we need to
