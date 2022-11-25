@@ -758,6 +758,8 @@ ppixiv.helpers = {
             unwrap_func(window, "setTimeout");
             unwrap_func(window, "setInterval");
             unwrap_func(window, "clearInterval");
+            unwrap_func(window, "requestAnimationFrame");
+            unwrap_func(window, "cancelAnimationFrame");
             unwrap_func(EventTarget.prototype, "addEventListener");
             unwrap_func(EventTarget.prototype, "removeEventListener");
             unwrap_func(XMLHttpRequest.prototype, "send");
