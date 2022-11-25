@@ -207,6 +207,11 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
 
         this.current_autocomplete_results = [];
 
+        // If we're on mobile and inside a dialog, we're inside the search view popup.
+        // We're not user-resizable here, and instead should scale to fit the dialog
+        // scroller (the styles aren't currently set up to let us just say "80%").
+        this.ancestor_dialog_scroller = this.container.closest(".dialog .scroll");
+
         // input-dropdown is resizable.  Save the size when the user drags it.
         this.all_results = this.container.querySelector(".all-results");
         this.autocomplete_list = this.container.querySelector(".autocomplete-list");
@@ -218,6 +223,14 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
             // tag-dropdown-width may have "px" baked into it.  Use parseInt to remove it.
             let width = settings.get("tag-dropdown-width", "400");
             width = parseInt(width);
+
+            if(this.ancestor_dialog_scroller)
+            {
+                width = this.ancestor_dialog_scroller.offsetWidth * 0.9;
+                width -= 75; // make space for the edit button
+                width = Math.round(width);
+            }
+
             this.container.style.setProperty('--width', `${width}px`);
         }
         let observer = new MutationObserver((mutations) => {
@@ -229,6 +242,13 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
             settings.set("tag-dropdown-width", width);
         });
         observer.observe(this.input_dropdown, { attributes: true });
+
+        // If we're sizing to a dialog, refresh the width if its size changes.
+        if(this.ancestor_dialog_scroller)
+        {
+            let resize_observer = new ResizeObserver(() => refresh_dropdown_width()).observe(this.ancestor_dialog_scroller);
+            this.shutdown_signal.signal.addEventListener("abort", () => resize_observer.disconnect());
+        }
 
         // Restore input-dropdown's width.
         refresh_dropdown_width();

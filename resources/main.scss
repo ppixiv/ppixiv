@@ -1051,6 +1051,8 @@ html.mobile .screen-illust-container {
 }
 
 .avatar-widget-follow-container {
+    display: flex;
+    
     // Set relative so we're the positioning container for the follow dropdown.
     position: relative;
     
@@ -2064,6 +2066,7 @@ a.box-link, span.box-link
 // This holds the search box, and positions the search dropdowns beneath it.
 .tag-search-box {
     display: flex;
+    flex-wrap: wrap; // for mobile
     align-items: center;
     position: relative;
     gap: 0.5em;
@@ -3849,7 +3852,6 @@ svg.heart-image .delete {
     @include general-dialog($animation: "horizontal");
 
     .scroll {
-        --box-link-bg-color: none;
         display: flex;
         flex-direction: column;
         height: 100%;
@@ -3860,12 +3862,26 @@ svg.heart-image .delete {
         }
         
         .data-source-ui {
+            // The data source UIs are mostly box-button-rows, sometimes nested inside another
+            // box-button-row to indicate where the smaller rows should be wrapped.
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
             background-color: #000;
             padding: 0.5em 0.5em;
+
+            .box-button-row {
+                justify-content: center;
+            }
         }
 
-        // Prevent long buttons (artist names in particular) from overflowing.
         .navigation-button {
+            font-size: 1.25em;
+
+            --box-link-bg-color: none;
+
+            // Prevent long buttons (artist names in particular) from overflowing.
             overflow: hidden;
         }
     }

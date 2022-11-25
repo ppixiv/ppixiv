@@ -1150,9 +1150,12 @@ class mobile_edit_search_dialog extends ppixiv.dialog_widget
             parent: this,
         });
 
-        this.data_source_ui.container.classList.add("data-source-ui");
+        if(this.data_source_ui)
+        {
+            this.data_source_ui.container.classList.add("data-source-ui");
 
-        this.data_source.refresh_thumbnail_ui();
+            this.data_source.refresh_thumbnail_ui();
+        }
     }
 
     // Tell dialog_widget not to close us on popstate.  It'll still close us if the screen changes.

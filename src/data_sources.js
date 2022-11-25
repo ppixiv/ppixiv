@@ -1128,10 +1128,12 @@ ppixiv.data_sources.discovery = class extends data_source
         this.ui = new ppixiv.widget({
             ...options,
             template: `
-            <div class=box-button-row>
-                ${ helpers.create_box_link({label: "All",      popup: "Show all works",    data_type: "all" }) }
-                ${ helpers.create_box_link({label: "All ages", popup: "All ages",          data_type: "safe" }) }
-                ${ helpers.create_box_link({label: "R18",      popup: "R18",               data_type: "r18", classes: ["r18"] }) }
+            <div>
+                <div class=box-button-row>
+                    ${ helpers.create_box_link({label: "All",      popup: "Show all works",    data_type: "all" }) }
+                    ${ helpers.create_box_link({label: "All ages", popup: "All ages",          data_type: "safe" }) }
+                    ${ helpers.create_box_link({label: "R18",      popup: "R18",               data_type: "r18", classes: ["r18"] }) }
+                </div>
             </div>
         `});
 
@@ -1529,7 +1531,7 @@ ppixiv.data_sources.rankings = class extends data_source
         this.ui = new ppixiv.widget({
             ...options,
             template: `
-            <div>
+            <div class=box-button-row>
                 <div class=box-button-row>
                     ${ helpers.create_box_link({label: "Next day", popup: "Show the next day",     data_type: "new-illust-type-illust", classes: ["nav-tomorrow"] }) }
                     <span class=nav-today style="margin: 0 0.25em;"></span>
@@ -1986,8 +1988,23 @@ ppixiv.data_sources.artist = class extends data_source
                         <div class="popup-menu-box post-tag-list vertical-list"></div>
                     </div>
                 </div>
+
+                <div class=avatar-container></div>
             </div>
         `});
+
+        // On mobile, create our own avatar display for the search popup.
+        if(ppixiv.mobile)
+        {
+            let avatar_container = this.ui.container.querySelector(".avatar-container");
+            this.avatar_widget = new avatar_widget({
+                container: avatar_container,
+                parent: this.ui,
+                big: true,
+                mode: "dropdown",
+            });
+            this.avatar_widget.set_user_id(this.viewing_user_id);
+        }
 
         this.ui.container.querySelector(".member-tags-box .post-tag-list").addEventListener("scroll", function(e) { e.stopPropagation(); }, true);
 
@@ -2583,7 +2600,7 @@ ppixiv.data_source_bookmarks_base = class extends data_source
         this.ui = new ppixiv.widget({
             ...options,
             template: `
-            <div>
+            <div class=box-button-row>
                 <div class=box-button-row>
                     <!-- These are hidden if you're viewing somebody else's bookmarks. -->
                     <span class=bookmarks-public-private style="margin-right: 25px;">
@@ -2592,12 +2609,14 @@ ppixiv.data_source_bookmarks_base = class extends data_source
                         ${ helpers.create_box_link({label: "Private",    popup: "Show private bookmarks",   data_type: "private" }) }
                     </span>
 
+                    ${ helpers.create_box_link({ popup: "Shuffle", icon: "shuffle",   data_type: "order-shuffle" }) }
+                </div>
+
+                <div class=box-button-row>
                     <div class=bookmark-tags-box>
                         ${ helpers.create_box_link({label: "All bookmarks",    popup: "Bookmark tags",  icon: "ppixiv:tag", classes: ["popup-menu-box-button"] }) }
                         <div class="popup-menu-box bookmark-tag-list vertical-list"></div>
                     </div>
-
-                    ${ helpers.create_box_link({ popup: "Shuffle", icon: "shuffle",   data_type: "order-shuffle" }) }
                 </div>
             </div>
         `});
@@ -2968,11 +2987,15 @@ ppixiv.data_sources.new_illust = class extends data_source
             ...options,
             template: `
             <div class=box-button-row>
-                ${ helpers.create_box_link({label: "Illustrations", popup: "Show illustrations",     data_type: "new-illust-type-illust" }) }
-                ${ helpers.create_box_link({label: "Manga",         popup: "Show manga only",        data_type: "new-illust-type-manga" }) }
+                <div class=box-button-row>
+                    ${ helpers.create_box_link({label: "Illustrations", popup: "Show illustrations",     data_type: "new-illust-type-illust" }) }
+                    ${ helpers.create_box_link({label: "Manga",         popup: "Show manga only",        data_type: "new-illust-type-manga" }) }
+                </div>
 
-                ${ helpers.create_box_link({label: "All ages",      popup: "Show all-ages works",    data_type: "new-illust-ages-all" }) }
-                ${ helpers.create_box_link({label: "R18",           popup: "Show R18 works",         data_type: "new-illust-ages-r18" }) }
+                <div class=box-button-row>
+                    ${ helpers.create_box_link({label: "All ages",      popup: "Show all-ages works",    data_type: "new-illust-ages-all" }) }
+                    ${ helpers.create_box_link({label: "R18",           popup: "Show R18 works",         data_type: "new-illust-ages-r18" }) }
+                </div>
             </div>
         `});
 
@@ -3725,19 +3748,21 @@ ppixiv.data_sources.follows = class extends data_source
         this.ui = new ppixiv.widget({
             ...options,
             template: `
-            <div>
+            <div class=box-button-row>
                 <div class=box-button-row>
                     <span class=follows-public-private style="margin-right: 25px;">
                         ${ helpers.create_box_link({label: "Public",    popup: "Show publically followed users",   data_type: "public-follows" }) }
                         ${ helpers.create_box_link({label: "Private",    popup: "Show privately followed users",   data_type: "private-follows" }) }
                     </span>
 
+                    ${ helpers.create_box_link({ popup: "Accepting requests", icon: "paid",   data_type: "accepting-requests" }) }
+                    </div>
+
+                <div class=box-button-row>
                     <span class="followed-users-follow-tags premium-only">
                         ${ helpers.create_box_link({label: "All tags",    popup: "Follow tags", icon: "bookmark", classes: ["popup-menu-box-button"] }) }
                         <div class="popup-menu-box follow-tag-list vertical-list"></div>
                     </span>
-
-                    ${ helpers.create_box_link({ popup: "Accepting requests", icon: "paid",   data_type: "accepting-requests" }) }
                 </div>
             </div>
         `});
