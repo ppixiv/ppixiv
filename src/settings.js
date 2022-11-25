@@ -26,7 +26,6 @@ ppixiv.Settings = class extends EventTarget
 
         // Register settings.
         this.configure("zoom-mode", { sticky: true });
-        this.configure("theme", { default: "dark" });
         this.configure("zoom-level", { sticky: true });
         this.configure("linked_tabs", { session: true });
         this.configure("linked_tabs_enabled", { session: true, default_value: true });

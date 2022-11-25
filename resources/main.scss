@@ -279,6 +279,11 @@ html {
     &.mobile {
         --icon-size: 3;
         --icon-row-gap: 0.5em;
+
+        // Always use a black background on mobile instead of grey, since it hides notches
+        // better.
+        --main-background-color: #000;
+        --background-noise: none;
     }
 
     // This is animated by screen_illust.  At 0, screen_illust is displayed, and at 1, screen_search
@@ -336,49 +341,6 @@ html {
     --like-button-color: #888;
     --like-button-liked-color: #ccc;
     --like-button-hover-color: #fff;
-}
-
-html.mobile {
-    // Always use a black background on mobile instead of grey, since it hides notches
-    // better.
-    --main-background-color: #000;
-    --background-noise: none;
-}
-
-html[data-theme="light"] {
-    --main-background-color: #fff;
-    --background-noise: var(--light-noise);
-
-    --ui-bg-color: #eee;
-    --ui-fg-color: #222;
-    --ui-border-color: #ccc;
-    --ui-shadow-color: #fff;
-    --ui-bg-section-color: #ccc; /* color for subsections */
-
-    --button-color: #666;
-    --button-highlight-color: #222;
-
-    --toggle-button-fg-dim-color: #222;
-    --toggle-button-fg-color: #000;
-    --toggle-button-bg-dim-color: #eee;
-    --toggle-button-bg-color: #ccc;
-
-    --frame-bg-color: #fff;
-    --frame-fg-color: #222;
-
-    --dropdown-menu-hover-color: #ccc;
-
-    --box-link-hover-color: #ddc;
-    --box-link-selected-color: #ffc;
-
-    --minor-text-fg-color: #555; /* 555 */
-    --minor-text-shadow-color: #fff; /* fff */
-
-    --title-fg-color: #fff;
-    --title-bg-color: #888;
-
-    --like-button-liked-color: #222;
-    --like-button-hover-color: #000;
 }
 
 [hidden] {
@@ -1209,9 +1171,6 @@ body.dot canvas.filtering {
     background-color: var(--ui-bg-section-color);
     max-height: 10em;
     overflow-y: auto;
-}
-html[data-theme="light"] .description {
-    border: none;
 }
 /* Override obnoxious colors in descriptions.  Why would you allow this? */
 .description * {
@@ -2520,10 +2479,6 @@ a.box-link, span.box-link
                 border-left: 10px solid transparent;
                 border-right: 10px solid transparent;
             }
-
-            html[data-theme="light"] & .tag-dropdown-arrow {
-                border-top-color: #ccc;
-            }
         }
 
         /* This nudges the zoom strip to the left by the width of one button, to add the browser
@@ -3347,13 +3302,11 @@ svg.heart-image .delete {
             margin-left: 6px;
             padding: .25em;
             border: 1px solid white;
-            html[data-theme="light"] & { border-color: #444; }
         }
 
         @media(hover: hover) {
             > .submit-button:hover {
                 background-color: #444;
-                html[data-theme="light"] & { background-color: #aaa; }
             }
         }
     }
@@ -3506,9 +3459,6 @@ svg.heart-image .delete {
     > a {
         padding: 4px 10px;
         background-color: #444;
-        html[data-theme="light"] & {
-            background-color: #ccc;
-        }
     }
 }
 

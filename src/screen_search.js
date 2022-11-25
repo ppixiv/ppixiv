@@ -418,7 +418,6 @@ ppixiv.screen_search = class extends ppixiv.screen
         // Set up hover popups.
         dropdown_menu_opener.create_handlers(this.container);
  
-        settings.addEventListener("theme", this.update_from_settings, { signal: this.shutdown_signal.signal });
         settings.addEventListener("ui-on-hover", this.update_from_settings, { signal: this.shutdown_signal.signal });
         settings.addEventListener("no-hide-cursor", this.update_from_settings, { signal: this.shutdown_signal.signal });
         settings.addEventListener("no_recent_history", this.update_from_settings, { signal: this.shutdown_signal.signal });
@@ -494,7 +493,6 @@ ppixiv.screen_search = class extends ppixiv.screen
 
     update_from_settings = () =>
     {
-        document.documentElement.dataset.theme = "dark"; //settings.get("theme");
         helpers.set_class(this.top_ui_box, "ui-on-hover", settings.get("ui-on-hover") && !ppixiv.mobile);
         this.refresh_expand_manga_posts_button();
 
