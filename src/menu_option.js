@@ -99,12 +99,13 @@ ppixiv.menu_option_button = class extends ppixiv.menu_option
         explanation_disabled=null,
         popup=null,
         buttons=[],
+        icon=null,
         ...options})
     {
         super({...options, template: `
             ${helpers.create_box_link({
                 label,
-                icon: options.icon,
+                icon: icon,
                 link: url,
                 popup,
                 classes: ["menu-toggle"],

@@ -6,6 +6,10 @@ function _create_main_search_menu(container)
         return;
 
     let options = [
+        // This is a dummy for when we're viewing an artist on mobile.  It can't be selected directly, it's
+        // only made visible when an artist is being viewed already.
+        { label: "Artist",                 icon: "face",           url: "/users/1#ppixiv", visible: false, classes: ["artist-row"] },
+
         { label: "Search works",           icon: "search",          url: `/tags#ppixiv` },
         { label: "New works by following", icon: "photo_library",   url: "/bookmark_new_illust.php#ppixiv" },
         { label: "New works by everyone",  icon: "groups",          url: "/new_illust.php#ppixiv" },
@@ -51,11 +55,11 @@ function _create_main_search_menu(container)
         { label: "Users",                  icon: "search",          url: "/search_user.php#ppixiv" },
     ];
 
-    let create_option = (option) => {
+    let create_option = ({classes=[], ...options}) => {
         let button = new ppixiv.menu_option_button({
             container,
-            classes: ["navigation-button"],
-            ...option
+            classes: [...classes, "navigation-button"],
+            ...options
         })
 
         return button;
@@ -1057,6 +1061,11 @@ class mobile_edit_search_dialog extends ppixiv.dialog_widget
         let option_box = this.container.querySelector(".search-selection");
         _create_main_search_menu(option_box);
 
+        // Clicks on the artist row (if visible) shouldn't do anything.  It only has a dummy URL
+        // to make it be used when an artist data source is active.
+        this.artist_row = this.container.querySelector(".artist-row");
+        this.artist_row.addEventListener("click", (e) => e.preventDefault());
+
         this.search_url = helpers.args.location;
 
         // Recreate the data source UI any time the URL changes, so we refresh when filters
@@ -1099,6 +1108,15 @@ class mobile_edit_search_dialog extends ppixiv.dialog_widget
         for(let button of this.container.querySelectorAll(".navigation-button"))
             helpers.set_class(button, "selected", button == active_row);
 
+        // The artist row is hidden by default, since it only makes sense when already viewing
+        // an artist.  If we're showing an artist, display it.
+        let data_source_is_artist = this.data_source instanceof ppixiv.data_sources.artist;
+        this.artist_row.widget.visible = data_source_is_artist;
+        if(data_source_is_artist)
+        {
+            let username = this.data_source.user_info?.name;
+            this.artist_row.querySelector(".label").innerText = username? `Artist: ${username}`:`Artist`;
+        }
         this.recreate_ui();
     }
 

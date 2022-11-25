@@ -3863,6 +3863,11 @@ svg.heart-image .delete {
             background-color: #000;
             padding: 0.5em 0.5em;
         }
+
+        // Prevent long buttons (artist names in particular) from overflowing.
+        .navigation-button {
+            overflow: hidden;
+        }
     }
 }
 
