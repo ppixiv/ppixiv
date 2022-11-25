@@ -16,7 +16,6 @@ ppixiv.viewer_video_base = class extends ppixiv.viewer
         // Create the video UI.
         this.video_ui = new ppixiv.video_ui({
             container: this.container.querySelector(".video-ui-container"),
-            parent: this,
         });
 
         this.seek_bar = this.video_ui.seek_bar;
@@ -422,13 +421,11 @@ ppixiv.video_ui = class extends ppixiv.widget
         // Add the seek bar.  This moves between seek-bar-container-top and seek-bar-container-bottom.
         this.seek_bar = new seek_bar({
             container: this.container.querySelector(".seek-bar-container-top"),
-            parent: this,
         });
         this.set_seek_bar_pos();
 
         this.volume_slider = new volume_slider_widget({
             contents: this.container.querySelector(".volume-slider"),
-            parent: this,
             started_dragging: () =>
             {
                 // Remember what the volume was before the drag started.

@@ -32,6 +32,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         // it with the image, but we create it here and reuse it.
         this.image_editor = new ppixiv.ImageEditor({
             container: this.container,
+            parent: this,
             overlay_container: this.on_click_viewer.editing_container,
             onvisibilitychanged: () => { this.refresh(); }, // refresh when crop editing is changed
         });
@@ -127,19 +128,6 @@ ppixiv.viewer_images = class extends ppixiv.viewer
 
         this.illust_data = illust_data;
         this.refresh_from_illust_data();
-    }
-
-    shutdown()
-    {
-        super.shutdown();
-
-        if(this.on_click_viewer)
-        {
-            this.on_click_viewer.shutdown();
-            this.on_click_viewer = null;
-        }
-
-        this.image = null;
     }
 
     refresh()

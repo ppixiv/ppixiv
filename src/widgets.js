@@ -3,6 +3,55 @@
 // A basic widget base class.
 ppixiv.widget = class
 {
+    // A list of top-level widgets (widgets with no parent).  This is just for debugging.
+    static top_widgets = [];
+
+    // Find the widget containing a node.
+    static from_node(node, { allow_none=false }={})
+    {
+        // The top node for the widget has the widget class.
+        let widget_top_node = node.closest(".widget");
+        if(widget_top_node == null)
+        {
+            if(allow_none)
+                return null;
+
+            console.log("Node wasn't in a widget:", node);
+            throw new Error("Node wasn't in a widget:", node);
+        }
+
+        console.assert(widget_top_node.widget != null);
+        return widget_top_node.widget;
+    }
+
+    // Dump the widget tree to the console.
+    static dump_widgets({parent=null}={})
+    {
+        let widgets = parent? parent.child_widgets:ppixiv.widget.top_widgets;
+
+        let grouped = false;
+        if(parent)
+        {
+            // If this parent has any children, create a logging group.  Otherwise, just log it normally.
+            if(widgets.length == 0)
+                console.log(parent);
+            else
+            {
+                console.group(parent);
+                grouped = true;
+            }
+        }
+
+        try {
+            for(let widget of widgets)
+                ppixiv.widget.dump_widgets({parent: widget});
+        } finally {
+            // Only remove the logging group if we created one.
+            if(grouped)
+                console.groupEnd();
+        }
+    }
+
     constructor({
         container,
         template=null,
@@ -13,8 +62,30 @@ ppixiv.widget = class
         container_position="beforeend",
         ...options}={})
     {
+        // If container is a widget instead of a node, use the container's root node.
+        if(container != null && container instanceof ppixiv.widget)
+            container = container.container;
+
         this.options = options;
         this.templates = {};
+        this.child_widgets = [];
+
+        let parent_search_node = container;
+        if(contents)
+            parent_search_node = contents.parentNode;
+        if(parent_search_node == null && parent == null)
+            console.warn("Can't search for parent");
+        if(parent_search_node)
+        {
+            let parent_widget = widget.from_node(parent_search_node, { allow_none: true });
+            if(parent != null && parent !== parent_widget)
+            {
+                console.assert(parent === parent_widget);
+                console.log("Found:", parent_widget);
+                console.log("Expected:", parent);
+            }
+            parent = parent_widget;
+        }
 
         // If we weren't given a shutdown signal explicitly and we have a parent widget, inherit
         // its signal, so we'll shut down when the parent does.
@@ -63,6 +134,11 @@ ppixiv.widget = class
             this.visibility_changed();
             this.refresh();
         });
+
+        if(this.parent)
+            this.parent._child_added(this);
+        else
+            ppixiv.widget.top_widgets.push(this);
     }
 
     // Create an element from template HTML.  If name isn't null, the HTML will be cached
@@ -80,6 +156,23 @@ ppixiv.widget = class
         }
 
         return helpers.create_from_template(template, { make_svg_unique });
+    }
+
+    _child_added(child_widget)
+    {
+        this.child_widgets.push(child_widget);
+    }
+
+    _child_removed(child_widget)
+    {
+        let idx = this.child_widgets.indexOf(child_widget);
+        if(idx == -1)
+        {
+            console.warn("Widget wasn't in the child list:", child_widget);
+            return;
+        }
+
+        this.child_widgets.splice(idx, 1);
     }
 
     async refresh()
@@ -102,18 +195,56 @@ ppixiv.widget = class
         this.visibility_changed();
     }
 
+    // If true, stack traces will be logged if shutdown() is called more than once.  This takes
+    // a stack trace on each shutdown, so it's only enabled when needed.
+    static debug_shutdown = true;
+
     shutdown()
     {
+        if(ppixiv.widget.debug_shutdown && !this._previous_shutdown_stack)
+        {
+            try {
+                throw new Error();
+            } catch(e) {
+                this._previous_shutdown_stack = e.stack;
+            }
+        }
+
         // If _shutdown_signal_aborted hasn't been called yet, remove our listener.
         if(this._parent_shutdown_signal)
             this._parent_shutdown_signal.removeEventListener("abort", this._shutdown_signal_aborted);
 
         // Signal shutdown_signal to remove event listeners.  We should only be shut down
         // once, so shutdown_signal shouldn't already be signalled.
-        console.assert(!this.shutdown_signal.signal.aborted);
+        if(this.shutdown_signal.signal.aborted)
+        {
+            console.error("Widget has already shut down:", this);
+            if(this._previous_shutdown_stack)
+                console.log("Previous shutdown stack:", this._previous_shutdown_stack);
+            return;
+        }
+
+        // This will shut down everything associated with this widget, as well as any child widgets.
         this.shutdown_signal.abort();
 
+        // After signalling shutdown_signal, all of our children should have shut down and
+        // removed themselves from our child list.
+        if(this.child_widgets.length != 0)
+        {
+            for(let child of this.child_widgets)
+                console.warn("Child of", this, "didn't shut down:", child);
+        }
+
         this.container.remove();
+
+        if(this.parent)
+            this.parent._child_removed(this);
+        else
+        {
+            let idx = ppixiv.widget.top_widgets.indexOf(this);
+            console.assert(idx != -1);
+            ppixiv.widget.top_widgets.splice(idx, 1);
+        }
     }
 
     // This is called if shutdown_signal is aborted outside of a call to shutdown().
@@ -154,6 +285,9 @@ ppixiv.widget = class
             this.visibility_abort = null;
         }
     }
+
+    querySelector(selector) { return this.container.querySelector(selector); }
+    querySelectorAll(selector) { return this.container.querySelectorAll(selector); }
 }
 
 ppixiv.dialog_widget = class extends ppixiv.widget
@@ -2126,30 +2260,30 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
             },
 
             linked_tabs: () => {
-                return new menu_option_toggle_setting({
+                let widget = new menu_option_toggle_setting({
                     container: option_box,
-                    parent: this,
                     label: "Linked tabs",
                     setting: "linked_tabs_enabled",
                     icon: "mat:link",
-                    buttons: [
-                        new menu_option_button({
-                            container: option_box,
-                            parent: this,
-                            label: "Edit",
-                            classes: ["small-font"],
-
-                            onclick: (e) => {
-                                e.stopPropagation();
-
-                                new ppixiv.settings_dialog({ show_page: "linked_tabs" });
-
-                                this.parent.hide();
-                                return true;
-                            },
-                        }),
-                    ],
                 });
+                
+                new menu_option_button({
+                    container: widget.container.querySelector(".checkbox"),
+                    container_position: "beforebegin",
+                    label: "Edit",
+                    classes: ["small-font"],
+
+                    onclick: (e) => {
+                        e.stopPropagation();
+
+                        new ppixiv.settings_dialog({ show_page: "linked_tabs" });
+
+                        this.parent.hide();
+                        return true;
+                    },
+                });
+
+                return widget;
             },
 
             image_editing: () => {

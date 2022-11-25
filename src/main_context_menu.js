@@ -736,11 +736,9 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         });
 
         let bookmark_tag_widget = new bookmark_tag_list_dropdown_widget({
-            parent: this,
             container: this.container.querySelector(".popup-bookmark-tag-dropdown-container"),
         });
         let more_options_widget = new more_options_dropdown_widget({
-            parent: this,
             container: this.container.querySelector(".popup-more-options-container"),
         });
         more_options_widget.container.classList.add("popup-more-options-dropdown");
@@ -756,35 +754,28 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
             more_options_widget,
             new toggle_dropdown_menu_widget({
                 contents: this.container.querySelector(".button-bookmark-tags"),
-                parent: this,
                 widget: bookmark_tag_widget,
                 require_image: true,
             }),
             new toggle_dropdown_menu_widget({
                 contents: this.container.querySelector(".button-more"),
-                parent: this,
                 widget: more_options_widget,
             }),
             new like_button_widget({
-                parent: this,
                 contents: this.container.querySelector(".button-like"),
             }),
             new like_count_widget({
-                parent: this,
                 contents: this.container.querySelector(".button-like .count"),
             }),
             new context_menu_image_info_widget({
-                parent: this,
                 container: this.container.querySelector(".context-menu-image-info-container"),
             }),
             new bookmark_count_widget({
-                parent: this,
                 contents: this.container.querySelector(".button-bookmark.public .count")
             }),
         ];
 
         this.illust_widgets.push(new view_in_explorer_widget({
-            parent: this,
             contents: this.container.querySelector(".view-in-explorer"),
         }));
 
@@ -792,7 +783,6 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         for(let a of this.container.querySelectorAll("[data-bookmark-type]"))
         {
             this.illust_widgets.push(new bookmark_button_widget({
-                parent: this,
                 contents: a,
                 bookmark_type: a.dataset.bookmarkType,
                 bookmark_tag_widget: bookmark_tag_widget,

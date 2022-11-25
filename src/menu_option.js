@@ -98,7 +98,6 @@ ppixiv.menu_option_button = class extends ppixiv.menu_option
         explanation_enabled=null,
         explanation_disabled=null,
         popup=null,
-        buttons=[],
         icon=null,
         ...options})
     {
@@ -121,15 +120,6 @@ ppixiv.menu_option_button = class extends ppixiv.menu_option
         this.explanation_enabled = explanation_enabled;
         this.explanation_disabled = explanation_disabled;
         this.get_label = get_label;
-
-        // Add items.
-        for(let item of buttons)
-        {
-            // Move the button in.
-            let item_container = item.container;
-            item_container.remove();
-            this.container.appendChild(item_container);
-        }
 
         if(this.onclick_handler != null)
             this.container.classList.add("clickable");
@@ -208,24 +198,13 @@ ppixiv.menu_option_nested_button = class extends ppixiv.menu_option
 ppixiv.menu_option_toggle = class extends ppixiv.menu_option_button
 {
     constructor({
-        buttons=[],
         checked=false,
         ...options
     })
     {
-        // Add a checkbox_widget to the button list.
-        let checkbox = new checkbox_widget({ });
+        super({...options});
 
-        buttons = [
-            ...buttons,
-            checkbox,
-        ];
-
-        super({
-            buttons,
-            ...options});
-
-        this.checkbox = checkbox;
+        this.checkbox = new checkbox_widget({ container: this.container });
         this.checkbox.checked = checked;
     }
 
@@ -436,7 +415,17 @@ ppixiv.menu_option_options_setting = class extends menu_option_button
         explanation,
         ...options})
     {
-        let slider = new menu_option_slider_setting({
+        super({
+            ...options,
+            label: label,
+        });
+
+        this.get_explanation = explanation;
+
+        this.setting = setting;
+        this.values = values;
+        this.slider = new menu_option_slider_setting({
+            container: this.container,
             label: "xxx",
             setting: setting,
             min: 0,
@@ -448,18 +437,7 @@ ppixiv.menu_option_options_setting = class extends menu_option_button
             refresh: () => { this.refresh(); },
         });
     
-        super({
-            ...options,
-            label: label,
-            buttons: [slider],
-        });
 
-        this.get_explanation = explanation;
-
-        this.setting = setting;
-        this.values = values;
-        this.slider = slider;
-    
         this.container.querySelector(".slider").style.flexGrow = .25;        
     }
 

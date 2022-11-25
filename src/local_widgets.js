@@ -228,7 +228,6 @@ ppixiv.tree_widget_item = class extends ppixiv.widget
         super({...options,
             // The container is our parent node's item list.
             container: parent.items,
-            parent: parent,
             template: `
             <div class=tree-item data-context-menu-target>
                 <div class=self tabindex=1>

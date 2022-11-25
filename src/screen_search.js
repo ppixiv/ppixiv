@@ -313,9 +313,7 @@ let thumbnail_ui_mobile = class extends ppixiv.widget
         });
         
         this.container.querySelector(".menu").addEventListener("click", (e) => {
-            new mobile_edit_search_dialog({
-                parent: this,
-            });
+            new mobile_edit_search_dialog();
 
             this.dragger.hide();
         });
@@ -392,7 +390,6 @@ ppixiv.screen_search = class extends ppixiv.screen
         user_cache.addEventListener("usermodified", this.refresh_ui, { signal: this.shutdown_signal.signal });        
 
         this.thumbnail_ui = new thumbnail_ui_desktop({
-            parent: this,
             container: this.container.querySelector(".thumbnail-ui-box-container"),
         });
 
@@ -400,7 +397,6 @@ ppixiv.screen_search = class extends ppixiv.screen
         {
             this.thumbnail_ui_mobile = new thumbnail_ui_mobile({
                 container: this.container.querySelector(".mobile-ui-drag-container"),
-                parent: this,
             });
         }
 
@@ -459,7 +455,6 @@ ppixiv.screen_search = class extends ppixiv.screen
             this.local_navigation_visible = !ppixiv.mobile && ppixiv.plocation.pathname != "/similar";
 
             this.local_nav_widget = new ppixiv.local_navigation_widget({
-                parent: this,
                 container: local_navigation_box,
             });
         }
@@ -481,7 +476,6 @@ ppixiv.screen_search = class extends ppixiv.screen
         new hover_with_delay(this.top_ui_box, 0, 0.25);
 
         this.search_view = new search_view({
-            parent: this,
             container: this.container.querySelector(".thumbnail-container-box"),
             onstartpagechanged: () => {
                 this.refresh_refresh_search_from_page();
@@ -1148,8 +1142,6 @@ class mobile_edit_search_dialog extends ppixiv.dialog_widget
             // Normally this goes after the search mode button.  When native we have no search mode
             // buttons and this.active_row is the container, so put it inside it.
             container_position: ppixiv.native? "beforeend":"afterend",
-
-            parent: this,
         });
 
         if(this.data_source_ui)

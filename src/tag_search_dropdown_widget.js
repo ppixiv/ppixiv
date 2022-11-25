@@ -33,12 +33,10 @@ ppixiv.tag_search_box_widget = class extends ppixiv.widget
 
         this.dropdown_widget = new tag_search_dropdown_widget({
             container: this.container,
-            parent: this,
             input_element: this.container,
         });
         this.edit_widget = new tag_search_edit_widget({
             container: this.container,
-            parent: this,
             input_element: this.container,
         });
 

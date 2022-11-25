@@ -147,25 +147,20 @@ ppixiv.image_ui = class extends ppixiv.widget
         media_cache.addEventListener("mediamodified", this.refresh, { signal: this.shutdown_signal.signal });
         
         this.bookmark_tag_widget = new bookmark_tag_list_dropdown_widget({
-            parent: this,
             container: this.container.querySelector(".popup-bookmark-tag-dropdown-container"),
         });
         this.toggle_tag_widget = new toggle_dropdown_menu_widget({
-            parent: this,
             contents: this.container.querySelector(".button-bookmark-tags"),
             widget: this.bookmark_tag_widget,
             require_image: true,
         });
         this.like_button = new like_button_widget({
-            parent: this,
             contents: this.container.querySelector(".button-like"),
         });
         this.like_count_widget = new like_count_widget({
-            parent: this,
             contents: this.container.querySelector(".button-like .count"),
         });
         this.bookmark_count_widget = new bookmark_count_widget({
-            parent: this,
             contents: this.container.querySelector(".button-bookmark .count"),
         });
         this.manga_page_bar = new progress_bar({container: this.container}).controller();
@@ -174,7 +169,6 @@ ppixiv.image_ui = class extends ppixiv.widget
         this.bookmark_buttons = [];
         for(let a of this.container.querySelectorAll("[data-bookmark-type]"))
             this.bookmark_buttons.push(new bookmark_button_widget({
-                parent: this,
                 contents: a,
                 bookmark_type: a.dataset.bookmarkType,
                 bookmark_tag_widget: this.bookmark_tag_widget,

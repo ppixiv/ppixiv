@@ -31,10 +31,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
 
         // Create a UI box and put it in its container.
         var ui_container = this.container.querySelector(".ui");
-        this.ui = new image_ui({
-            container: ui_container,
-            parent: this,
-        });
+        this.ui = new image_ui({ container: ui_container });
         
         // Make sure the hover UI isn't shown on mobile.
         if(ppixiv.mobile)

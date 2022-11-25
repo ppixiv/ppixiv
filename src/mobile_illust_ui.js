@@ -67,7 +67,6 @@ let mobile_illust_ui_top_page = class extends ppixiv.widget
 
         this.button_bookmark = this.container.querySelector(".button-bookmark");
         this.bookmark_button_widget = new bookmark_button_display_widget({
-            parent: this,
             contents: this.button_bookmark,
         });
 
@@ -202,7 +201,6 @@ class mobile_overlay_bookmark_tag_dialog extends ppixiv.dialog_widget
 
         let public_bookmark = this.container.querySelector(".public");
         this.public_bookmark = new bookmark_button_widget({
-            parent: this,
             contents: public_bookmark,
             bookmark_type: "public",
         });
@@ -210,14 +208,12 @@ class mobile_overlay_bookmark_tag_dialog extends ppixiv.dialog_widget
 
         let private_bookmark = this.container.querySelector(".private");
         this.private_bookmark = new bookmark_button_widget({
-            parent: this,
             contents: private_bookmark,
             bookmark_type: "private",
         });
         this.private_bookmark.set_media_id(media_id);
 
         this.tag_list_widget = new bookmark_tag_list_widget({
-            parent: this,
             container: this.container.querySelector(".scroll"),
             container_position: "afterbegin",
         });
@@ -244,7 +240,6 @@ class mobile_illust_ui_more_options_dialog extends dialog_widget
         `});
 
         this.more_options_widget = new more_options_dropdown_widget({
-            parent: this,
             container: this.container.querySelector(".box"),
             visible: true,
         });
@@ -283,14 +278,12 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
         this.transition_target = transition_target;
 
         this.info_widget = new image_info_widget({
-            parent: this,
             container: this.container.querySelector(".context-menu-image-info-container"),
         });
 
         this.onclose = onclose;
         this.page = new mobile_illust_ui_top_page({
             container: this.container,
-            parent: this,
         });
         
         new view_hidden_listener(this.container, () => {

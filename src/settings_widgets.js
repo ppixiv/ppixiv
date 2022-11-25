@@ -8,17 +8,15 @@ ppixiv.settings_widgets = {
                 let button = new menu_option_button({
                     ...global_options,
                     label: "Thumbnail size",
-                    buttons: [
-                        new thumbnail_size_slider_widget({
-                            ...global_options,
-                            container: this.container,
-                            setting: "thumbnail-size",
-                            classes: ["size-slider"],
-                            min: 0,
-                            max: 7,
-                        }),
-                    ],
                 });
+
+                new thumbnail_size_slider_widget({
+                    container: button.container,
+                    setting: "thumbnail-size",
+                    classes: ["size-slider"],
+                    min: 0,
+                    max: 7,
+                }),
         
                 button.container.querySelector(".size-slider").style.flexGrow = .25;
             },
@@ -27,17 +25,15 @@ ppixiv.settings_widgets = {
                 let button = new menu_option_button({
                     ...global_options,
                     label: "Thumbnail size (manga)",
-                    buttons: [
-                        new thumbnail_size_slider_widget({
-                            ...global_options,
-                            container: this.container,
-                            setting: "manga-thumbnail-size",
-                            classes: ["size-slider"],
-                            min: 0,
-                            max: 7,
-                        }),
-                    ],
                 });
+
+                new thumbnail_size_slider_widget({
+                    container: button.container,
+                    setting: "manga-thumbnail-size",
+                    classes: ["size-slider"],
+                    min: 0,
+                    max: 7,
+                }),
         
                 button.container.querySelector(".size-slider").style.flexGrow = .25;
             },
@@ -236,52 +232,50 @@ ppixiv.settings_widgets = {
             },
 
             auto_pan_speed: () => {
-                let button;
-                let slider = new menu_option_slider_setting({
-                    ...global_options,
-                    setting: "auto_pan_duration",
-                    list: [1, 2, 3, 5, 10, 15, 20, 30, 45, 60],
-                    classes: ["size-slider"],
-
-                    // Refresh the label when the value changes.
-                    refresh: function() { button.refresh(); },
-                });
-
-                button = new menu_option_button({
+                let button = new menu_option_button({
                     ...global_options,
                     label: "Time per image",
                     get_label: () => {
                         let seconds = settings.get("auto_pan_duration");;
                         return `Pan duration: ${seconds} ${seconds != 1? "seconds":"second"}`;                                        
                     },
-                    buttons: [slider],
                 });
-        
+
+                new menu_option_slider_setting({
+                    container: button,
+                    setting: "auto_pan_duration",
+                    list: [1, 2, 3, 5, 10, 15, 20, 30, 45, 60],
+                    classes: ["size-slider"],
+
+                    // Refresh the label when the value changes.
+                    refresh: () => button.refresh(),
+                });
+
                 button.container.querySelector(".size-slider").style.flexGrow = .25;
+        
+                return button;
             },
 
             slideshow_speed: () => {
-                let button;
-                let slider = new menu_option_slider_setting({
-                    ...global_options,
-                    setting: "slideshow_duration",
-                    list: [1, 2, 3, 5, 10, 15, 20, 30, 45, 60, 90, 120, 180],
-                    classes: ["size-slider"],
-                    
-                    // Refresh the label when the value changes.
-                    refresh: function() { button.refresh(); },
-                });
-
-                button = new menu_option_button({
+                let button = new menu_option_button({
                     ...global_options,
                     label: "Time per image",
                     get_label: () => {
                         let seconds = settings.get("slideshow_duration");;
                         return `Slideshow duration: ${seconds} ${seconds != 1? "seconds":"second"}`;
                     },
-                    buttons: [slider],
                 });
         
+                new menu_option_slider_setting({
+                    container: button,
+                    setting: "slideshow_duration",
+                    list: [1, 2, 3, 5, 10, 15, 20, 30, 45, 60, 90, 120, 180],
+                    classes: ["size-slider"],
+                    
+                    // Refresh the label when the value changes.
+                    refresh: () => { button.refresh(); },
+                });
+
                 button.container.querySelector(".size-slider").style.flexGrow = .25;
             },
 
@@ -542,7 +536,6 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
 
         // Options that we pass to all menu_options:
         let global_options = {
-            parent: this,
             classes: ["settings-row"],
             container: page_container,
             page_removed_signal: this.page_removed_signal.signal,
@@ -606,7 +599,7 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
             other: () => {
                 settings_widgets.disable_translations();
 
-                if(!ppixiv.native)
+                if(!ppixiv.native && !ppixiv.mobile)
                     settings_widgets.disabled_by_default();
                     
                 if(!ppixiv.mobile)

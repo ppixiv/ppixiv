@@ -599,7 +599,6 @@ ppixiv.InpaintEditor = class extends ppixiv.widget
     add_line()
     {
         let line = new LineEditorSegment({
-            parent: this,
             container: this.svg,
         });
 

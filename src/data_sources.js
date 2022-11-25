@@ -1999,7 +1999,6 @@ ppixiv.data_sources.artist = class extends data_source
             let avatar_container = this.ui.container.querySelector(".avatar-container");
             this.avatar_widget = new avatar_widget({
                 container: avatar_container,
-                parent: this.ui,
                 big: true,
                 mode: "dropdown",
             });

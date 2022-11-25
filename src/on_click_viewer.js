@@ -230,7 +230,7 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
 
         // Create a ViewerImages, which holds the actual images.  Don't give this a container,
         // since we don't want to add it to the tree just yet.
-        let viewer_images = new ViewerImages({});
+        let viewer_images = new ViewerImages({ parent: this });
         viewer_images.set_image_urls(url, inpaint_url);
 
         let img = viewer_images;

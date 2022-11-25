@@ -263,7 +263,7 @@ ppixiv.page_manager = class
     // Return true if we're active by default on the current page.
     active_by_default()
     {
-        if(ppixiv.native)
+        if(ppixiv.native || ppixiv.mobile)
             return true;
 
         // If the disabled-by-default setting is enabled, disable by default until manually
