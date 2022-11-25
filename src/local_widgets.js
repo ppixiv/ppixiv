@@ -696,7 +696,7 @@ ppixiv.local_navigation_widget = class extends ppixiv.tree_widget
         this.current_search_root = null;
         this.current_search_options = new Object();
 
-        window.addEventListener("popstate", (e) => {
+        window.addEventListener("pp:popstate", (e) => {
             this.set_root_from_url();
             this.refresh_selection();
         });
@@ -921,7 +921,7 @@ ppixiv.local_search_box_widget = class extends ppixiv.widget
             this.dropdown_widget.hide();
         });
         
-        window.addEventListener("popstate", (e) => { this.refresh_from_location(); });
+        window.addEventListener("pp:popstate", (e) => { this.refresh_from_location(); });
         this.refresh_from_location();
         this.refresh_clear_button_visibility();
     }

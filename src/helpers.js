@@ -2286,7 +2286,7 @@ ppixiv.helpers = {
             // Browsers don't send onpopstate for history changes, but we want them, so
             // send a synthetic one.
             // console.log("Dispatching popstate:", ppixiv.plocation.toString());
-            var event = new PopStateEvent("popstate");
+            var event = new PopStateEvent("pp:popstate");
 
             // Set initialNavigation to true.  This indicates that this event is for a new
             // navigation, and not from browser forwards/back.
@@ -4054,7 +4054,7 @@ ppixiv.VirtualHistory = class
 
     broadcast_popstate({cause}={})
     {
-        let e = new PopStateEvent("popstate");
+        let e = new PopStateEvent("pp:popstate");
         if(cause)
             e.navigationCause = cause;
         window.dispatchEvent(e);

@@ -134,7 +134,8 @@ ppixiv.MainController = class
         }
 
         window.addEventListener("click", this.window_onclick_capture);
-        window.addEventListener("popstate", this.window_onpopstate);
+        window.addEventListener("popstate", this.window_redirect_onpopstate, true);
+        window.addEventListener("pp:popstate", this.window_onpopstate);
 
         window.addEventListener("keyup", this.redirect_event_to_screen, true);
         window.addEventListener("keydown", this.redirect_event_to_screen, true);
@@ -263,6 +264,20 @@ ppixiv.MainController = class
         // Create the data source for this page.
         this.set_current_data_source("initialization");
     };
+
+    // Pixiv puts listeners on popstate which we can't always remove, and can get confused and reload
+    // the page when it sees navigations that don't work.
+    //
+    // Try to work around this by capturing popstate events and stopping the event, then redirecting
+    // them to our own pp:popstate event, which is what we listen for.  This prevents anything other than
+    // a capturing listener from seeing popstate.
+    window_redirect_onpopstate = (e) =>
+    {
+        e.stopImmediatePropagation();
+
+        let e2 = new Event("pp:popstate");
+        e.target.dispatchEvent(e2);
+    }
 
     window_onpopstate = (e) =>
     {
@@ -969,7 +984,7 @@ ppixiv.MainController = class
         // This results in the URL changing when it's clicked, but that's better than going to the wrong
         // page.
         disabled_ui.addEventListener("focus", (e) => { this.refresh_disabled_ui(disabled_ui); }, true);
-        window.addEventListener("popstate", (e) => { this.refresh_disabled_ui(disabled_ui); }, true);
+        window.addEventListener("pp:popstate", (e) => { this.refresh_disabled_ui(disabled_ui); }, true);
 
         if(page_manager.singleton().available_for_url(ppixiv.plocation))
         {

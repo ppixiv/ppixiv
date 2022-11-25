@@ -512,7 +512,7 @@ ppixiv.dialog_widget = class extends ppixiv.widget
             if(this._close_on_popstate)
             {
                 // Hide on any state change.
-                window.addEventListener("popstate", (e) => {
+                window.addEventListener("pp:popstate", (e) => {
                     this.shutdown();
                 }, { signal: this.shutdown_signal.signal });
             }

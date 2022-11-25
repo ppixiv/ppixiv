@@ -199,7 +199,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         window.addEventListener("recent-tag-searches-changed", this.populate_dropdown, { signal: this.shutdown_signal.signal });
 
         // Update the selection if the page is navigated while we're open.
-        window.addEventListener("popstate", this.select_current_search, { signal: this.shutdown_signal.signal });
+        window.addEventListener("pp:popstate", this.select_current_search, { signal: this.shutdown_signal.signal });
 
         this.container.addEventListener("click", this.dropdown_onclick);
 

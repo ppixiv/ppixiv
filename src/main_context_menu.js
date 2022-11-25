@@ -705,7 +705,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
 
         // If the page is navigated while the popup menu is open, clear the ID the
         // user clicked on, so we refresh and show the default.
-        window.addEventListener("popstate", (e) => {
+        window.addEventListener("pp:popstate", (e) => {
             this._clicked_media_id = null;
             this.refresh();
         });

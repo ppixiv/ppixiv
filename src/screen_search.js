@@ -1063,7 +1063,7 @@ class mobile_edit_search_dialog extends ppixiv.dialog_widget
 
         // Recreate the data source UI any time the URL changes, so we refresh when filters
         // are changed.
-        window.addEventListener("popstate", (e) => this.refresh(), { signal: this.shutdown_signal.signal });
+        window.addEventListener("pp:popstate", (e) => this.refresh(), { signal: this.shutdown_signal.signal });
         this.refresh();
     }
 
