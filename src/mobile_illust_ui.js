@@ -187,7 +187,7 @@ class mobile_overlay_bookmark_tag_dialog extends ppixiv.dialog_widget
 {
     constructor({media_id, ...options})
     {
-        super({...options, dialog_class: "mobile-tag-list", header: "Bookmark tags", template: `
+        super({...options, dialog_class: "mobile-tag-list", header: "Bookmark illustration", template: `
             <div class=menu-bar>
                 <div class="item button-bookmark public">
                     <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
@@ -196,29 +196,59 @@ class mobile_overlay_bookmark_tag_dialog extends ppixiv.dialog_widget
                 <div class="item button-bookmark private button-container">
                     <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
                 </div>
+
+                <div class="button-bookmark item button-remove-bookmark icon-button">
+                    ${ helpers.create_icon("mat:delete") }
+                </div>
             </div>
         `});
+
+        this.tag_list_widget = new bookmark_tag_list_widget({
+            container: this.container.querySelector(".scroll"),
+            container_position: "afterbegin",
+            public_bookmark_button: this.public_bookmark,
+            private_bookmark_button: this.private_bookmark,
+        });
 
         let public_bookmark = this.container.querySelector(".public");
         this.public_bookmark = new bookmark_button_widget({
             contents: public_bookmark,
             bookmark_type: "public",
-        });
-        this.public_bookmark.set_media_id(media_id);
+            onedited: () => this.visible = false,
 
-        let private_bookmark = this.container.querySelector(".private");
-        this.private_bookmark = new bookmark_button_widget({
-            contents: private_bookmark,
-            bookmark_type: "private",
-        });
-        this.private_bookmark.set_media_id(media_id);
+            // Instead of deleting the bookmark, save tag changes when these bookmark buttons
+            // are clicked.
+            toggle_bookmark: false,
 
-        this.tag_list_widget = new bookmark_tag_list_widget({
-            container: this.container.querySelector(".scroll"),
-            container_position: "afterbegin",
+            // Close if a bookmark button is clicked.
+            bookmark_tag_list_widget: this.tag_list_widget,
+        });
+
+        if(!ppixiv.native)
+        {
+            let private_bookmark = this.container.querySelector(".private");
+            this.private_bookmark = new bookmark_button_widget({
+                contents: private_bookmark,
+                bookmark_type: "private",
+                onedited: () => this.visible = false,
+                toggle_bookmark: false,
+                bookmark_tag_list_widget: this.tag_list_widget,
+            });
+        }
+
+        let delete_bookmark = this.container.querySelector(".button-remove-bookmark");
+        this.delete_bookmark = new bookmark_button_widget({
+            contents: delete_bookmark,
+            bookmark_type: "delete",
+            onedited: () => this.visible = false,
+            bookmark_tag_list_widget: this.tag_list_widget,
         });
 
         this.tag_list_widget.set_media_id(media_id);
+        this.public_bookmark.set_media_id(media_id);
+        this.delete_bookmark.set_media_id(media_id);
+        if(this.private_bookmark)
+            this.private_bookmark.set_media_id(media_id);
     }
 
     visibility_changed()

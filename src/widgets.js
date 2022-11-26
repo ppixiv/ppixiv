@@ -1745,37 +1745,23 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
         super({...options, template: `
             <div class="bookmark-tag-list">
                 <div class=tag-list>
-                    <div class=tag-list-buttons>
-                        <div class=add-tag>
-                            <div class=icon-button>
-                                ${ helpers.create_icon("add") }
-                            </div>
-                        </div>
-
-                        <div class=sync-tags>
-                            <div class=icon-button>
-                                ${ helpers.create_icon("refresh") }
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
         `});
 
         this.displaying_media_id = null;
-
         this.container.addEventListener("click", this.clicked_bookmark_tag, true);
-
-        this.container.querySelector(".add-tag").addEventListener("click", async (e) => {
-            await actions.add_new_tag(this._media_id);
-        });
-
-        this.container.querySelector(".sync-tags").addEventListener("click", async (e) => {
-            var bookmark_tags = await actions.load_recent_bookmark_tags();
-            helpers.set_recent_bookmark_tags(bookmark_tags);
-        });
+        this.deactivated = false;
 
         settings.addEventListener("recent-bookmark-tags", this.refresh.bind(this));
+    }
+
+    // Deactivate this widget.  We won't refresh or make any bookmark changes after being
+    // deactivated.  This is used by the bookmark button widget.  The widget will become
+    // active again the next time it's displayed.
+    deactivate()
+    {
+        this.deactivated = true;
     }
 
     // Return an array of tags selected in the tag dropdown.
@@ -1809,18 +1795,19 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
 
         if(this.visible)
         {
+            // If we were deactivated, reactivate when we become visible again.
+            if(this.deactivated)
+                console.info("reactivating tag list widget");
+
+            this.deactivated = false;
+
             // We only load existing bookmark tags when the tag list is open, so refresh.
             await this.refresh();
         }
         else
         {
-            // Note that this.skip_save is set by our caller who isn't async, so
-            // this will only be set until the first time we await.
-            if(!this.skip_save)
-            {
-                // Save any selected tags when the dropdown is closed.
-                this.save_current_tags();
-            }
+            // Save any selected tags when the dropdown is closed.
+            this.save_current_tags();
 
             // Clear the tag list when the menu closes, so it's clean on the next refresh.
             this.clear_tag_list();
@@ -1836,13 +1823,16 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
         let bookmark_tags = this.container.querySelector(".tag-list");
         for(let element of [...bookmark_tags.children])
         {
-            if(element.classList.contains("tag-toggle") || element.classList.contains("loading"))
+            if(element.classList.contains("dynamic") || element.classList.contains("loading"))
                 element.remove();
         }
     }
 
     async refresh_internal({ media_id })
     {
+        if(this.deactivated)
+            return;
+
         // If we're refreshing the same illust that's already refreshed, store which tags were selected
         // before we clear the list.
         let old_selected_tags = this.displaying_media_id == media_id? this.selected_tags:[];
@@ -1895,26 +1885,61 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
 
         shown_tags.sort((lhs, rhs) => lhs.toLowerCase().localeCompare(rhs.toLowerCase()));
 
-        for(let tag of shown_tags)
+        let create_entry = (tag, { classes=[], icon }={}) =>
         {
             let entry = this.create_template({name: "tag-entry", html: `
-                <div class="popup-bookmark-tag-entry tag-toggle">
+                <div class="popup-bookmark-tag-entry dynamic">
                     <span class=tag-name></span>
                 </div>
             `});
 
-            entry.dataset.tag = tag;
-            bookmark_tags.appendChild(entry);
+            for(let cls of classes)
+                entry.classList.add(cls);
             entry.querySelector(".tag-name").innerText = tag;
+
+            if(icon)
+                entry.querySelector(".tag-name").insertAdjacentElement("afterbegin", icon);
+            bookmark_tags.appendChild(entry);
+
+            return entry;
+        }
+
+        let add_button = create_entry("Add", {
+            icon: helpers.create_icon("add", { as_element: true }),
+            classes: ["add-button"],
+        });
+        add_button.addEventListener("click", () => actions.add_new_tag(this._media_id));
+
+        for(let tag of shown_tags)
+        {
+            let entry = create_entry(tag, {
+                classes: ["tag-toggle"],
+//                icon: helpers.create_icon("ppixiv:tag", { as_element: true }),
+            });
+
+            entry.dataset.tag = tag;
 
             let active = active_tags.indexOf(tag) != -1;
             helpers.set_class(entry, "selected", active);
         }
+
+        let sync_button = create_entry("Refresh", {
+            icon: helpers.create_icon("refresh", { as_element: true }),
+            classes: ["refresh-button"],
+        });
+
+        sync_button.addEventListener("click", async (e) => {
+            let bookmark_tags = await actions.load_recent_bookmark_tags();
+            helpers.set_recent_bookmark_tags(bookmark_tags);
+        });
     }
 
     // Save the selected bookmark tags to the current illust.
     async save_current_tags()
     {
+        if(this.deactivated)
+            return;
+
         // Store the ID and tag list we're saving, since they can change when we await.
         let media_id = this._media_id;
         let new_tags = this.selected_tags;
@@ -1949,7 +1974,10 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
     // Toggle tags on click.  We don't save changes until we're closed.
     clicked_bookmark_tag = async(e) =>
     {
-        let a = e.target.closest(".popup-bookmark-tag-entry");
+        if(this.deactivated)
+            return;
+
+        let a = e.target.closest(".tag-toggle");
         if(a == null)
             return;
 
@@ -1971,7 +1999,10 @@ ppixiv.bookmark_tag_list_dropdown_widget = class extends ppixiv.bookmark_tag_lis
 {
     constructor({...options})
     {
-        super({...options});
+        super({
+            classes: ["popup-bookmark-tag-dropdown"],
+            ...options
+        });
 
         this.container.classList.add("popup-bookmark-tag-dropdown");
 
@@ -1994,20 +2025,6 @@ ppixiv.bookmark_tag_list_dropdown_widget = class extends ppixiv.bookmark_tag_lis
         if(this.visible)
             helpers.set_max_height(this.container.querySelector(".tag-list"), { max_height: 400, bottom_padding: 10 });
     }
-
-    // Hide the dropdown without committing anything.  This happens if a bookmark
-    // button is pressed to remove a bookmark: if we just close the dropdown normally,
-    // we'd readd the bookmark.
-    async hide_without_sync()
-    {
-        this.skip_save = true;
-        try {
-            this.visible = false;
-        } finally {
-            this.skip_save = false;
-        }
-    }
-
 }
 
 ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
@@ -2455,12 +2472,31 @@ ppixiv.bookmark_button_widget = class extends ppixiv.illust_widget
 {
     get needed_data() { return "partial"; }
 
-    constructor({bookmark_type, bookmark_tag_widget, ...options})
+    constructor({
+        // "public", "private" or "delete"
+        bookmark_type,
+
+        // If true, clicking a bookmark button that's already bookmarked will remove the
+        // bookmark.  If false, the bookmark tags will just be updated.
+        toggle_bookmark=true,
+
+        // An associated bookmark_tag_list_widget.
+        //
+        // Bookmark buttons and the tag list widget both manipulate and can create bookmarks.  Telling
+        // us about an active bookmark_tag_list_widget lets us prevent collisions.
+        bookmark_tag_list_widget,
+
+        // This is called when the bookmark is edited.
+        onedited = () => { },
+
+        ...options})
     {
         super({...options});
 
         this.bookmark_type = bookmark_type;
-        this.bookmark_tag_widget = bookmark_tag_widget;
+        this.toggle_bookmark = toggle_bookmark;
+        this.bookmark_tag_list_widget = bookmark_tag_list_widget;
+        this.onedited = onedited;
 
         this.container.addEventListener("click", this.clicked_bookmark);
     }
@@ -2480,12 +2516,15 @@ ppixiv.bookmark_button_widget = class extends ppixiv.illust_widget
 
         let bookmarked = media_info?.bookmarkData != null;
         let private_bookmark = this.bookmark_type == "private";
-        let our_bookmark_type = media_info?.bookmarkData?.private == private_bookmark;
+        let is_our_bookmark_type = media_info?.bookmarkData?.private == private_bookmark;
+        let will_delete = this.toggle_bookmark && is_our_bookmark_type;
+        if(this.bookmark_type == "delete")
+            is_our_bookmark_type = will_delete = bookmarked;
 
         // Set up the bookmark buttons.
         helpers.set_class(this.container,  "enabled",     media_info != null);
-        helpers.set_class(this.container,  "bookmarked",  our_bookmark_type);
-        helpers.set_class(this.container,  "will-delete", our_bookmark_type);
+        helpers.set_class(this.container,  "bookmarked",  is_our_bookmark_type);
+        helpers.set_class(this.container,  "will-delete", will_delete);
         
         // Set the tooltip.
         this.container.dataset.popup =
@@ -2494,7 +2533,7 @@ ppixiv.bookmark_button_widget = class extends ppixiv.illust_widget
             !bookmarked && this.bookmark_type == "private"? "Bookmark privately":
             !bookmarked && this.bookmark_type == "public" && type == "folder"? "Bookmark folder":
             !bookmarked && this.bookmark_type == "public"? "Bookmark image":
-            our_bookmark_type? "Remove bookmark":
+            will_delete? "Remove bookmark":
             "Change bookmark to " + this.bookmark_type;
     }
     
@@ -2512,27 +2551,32 @@ ppixiv.bookmark_button_widget = class extends ppixiv.illust_widget
         // If the tag list dropdown is open, make a list of tags selected in the tag list dropdown.
         // If it's closed, leave tag_list null so we don't modify the tag list.
         let tag_list = null;
-        if(this.bookmark_tag_widget && this.bookmark_tag_widget.visible)
-            tag_list = this.bookmark_tag_widget.selected_tags;
+        if(this.bookmark_tag_list_widget && this.bookmark_tag_list_widget.visible)
+            tag_list = this.bookmark_tag_list_widget.selected_tags;
 
-        // If we have a tag list dropdown, close it before saving the bookmark.
-        //
-        // When the tag list bookmark closes, it'll save the bookmark with its current tags
-        // if they're different, creating the bookmark if needed.  If we leave it open when
-        // we save, it's possible to click the private bookmark button in the context menu,
-        // then release the right mouse button to close the context menu before the bookmark
-        // finishes saving.  The tag list won't know that the bookmark is already being saved
-        // and will save.  This can cause private bookmarks to become public bookmarks.  Just
-        // tell the tag list to close without saving, since we're committing the tag list now.
-        if(this.bookmark_tag_widget)
-            this.bookmark_tag_widget.hide_without_sync();
-
-        // If the image is bookmarked and the same privacy button was clicked, remove the bookmark.
-        let illust_data = await media_cache.get_media_info(this._media_id, { full: false });
-        
-        let private_bookmark = this.bookmark_type == "private";
-        if(illust_data.bookmarkData && illust_data.bookmarkData.private == private_bookmark)
+        // If we have a tag list dropdown, tell it to become inactive.  It'll continue to
+        // display its contents, so they don't change during transitions, but it won't make
+        // any further bookmark changes.  This prevents it from trying to create a bookmark
+        // when it closes, since we're doing that already.
+        if(this.bookmark_tag_list_widget)
         {
+            this.bookmark_tag_list_widget.deactivate();
+            this.onedited();
+        }
+
+        let illust_data = await media_cache.get_media_info(this._media_id, { full: false });
+        let private_bookmark = this.bookmark_type == "private";
+
+        // If the image is bookmarked and a delete bookmark button or the same privacy button was clicked, remove the bookmark.
+        let delete_bookmark = this.toggle_bookmark && illust_data.bookmarkData?.private == private_bookmark;
+        if(this.bookmark_type == "delete")
+            delete_bookmark = true;
+
+        if(delete_bookmark)
+        {
+            if(!illust_data.bookmarkData)
+                return;
+
             // Confirm removing bookmarks when on mobile.
             if(ppixiv.mobile)
             {
@@ -2550,9 +2594,12 @@ ppixiv.bookmark_button_widget = class extends ppixiv.illust_widget
             
             // Hide the tag dropdown after unbookmarking, without saving any tags in the
             // dropdown (that would readd the bookmark).
-            if(this.bookmark_tag_widget)
-                this.bookmark_tag_widget.hide_without_sync();
-            
+            if(this.bookmark_tag_list_widget)
+            {
+                this.bookmark_tag_list_widget.deactivate();
+                this.onedited();
+            }
+
             return;
         }
 

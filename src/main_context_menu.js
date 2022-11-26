@@ -735,7 +735,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
             mode: "overlay",
         });
 
-        let bookmark_tag_widget = new bookmark_tag_list_dropdown_widget({
+        let bookmark_tag_list_widget = new bookmark_tag_list_dropdown_widget({
             container: this.container.querySelector(".popup-bookmark-tag-dropdown-container"),
         });
         let more_options_widget = new more_options_dropdown_widget({
@@ -750,11 +750,11 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
 
         this.illust_widgets = [
             this.avatar_widget,
-            bookmark_tag_widget,
+            bookmark_tag_list_widget,
             more_options_widget,
             new toggle_dropdown_menu_widget({
                 contents: this.container.querySelector(".button-bookmark-tags"),
-                widget: bookmark_tag_widget,
+                widget: bookmark_tag_list_widget,
                 require_image: true,
             }),
             new toggle_dropdown_menu_widget({
@@ -782,10 +782,14 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         // The bookmark buttons, and clicks in the tag dropdown:
         for(let a of this.container.querySelectorAll("[data-bookmark-type]"))
         {
+            // The bookmark buttons, and clicks in the tag dropdown:
             this.illust_widgets.push(new bookmark_button_widget({
                 contents: a,
                 bookmark_type: a.dataset.bookmarkType,
-                bookmark_tag_widget: bookmark_tag_widget,
+                bookmark_tag_list_widget,
+
+                // Close the tag dropdown if a bookmark button is clicked.
+                onedited: () => bookmark_tag_list_widget.visible = false,
             }));
         }
         this.element_bookmark_tag_list = this.container.querySelector(".bookmark-tag-list");

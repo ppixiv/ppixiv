@@ -2561,13 +2561,6 @@ a.box-link, span.box-link
         min-width: 200px;
         overflow-x: hidden;
         overflow-y: auto;
-
-        .tag-list-buttons
-        {
-            display: flex;
-            gap: 0.5em;
-            justify-content: space-around;
-        }
     }
 
     /* Recent bookmark tags in the popup menu: */
@@ -2579,6 +2572,8 @@ a.box-link, span.box-link
         cursor: pointer;
         > .tag-name {
             flex: 1;
+            display: flex;
+            gap: 0.5em;
         }
 
         background-color: var(--box-link-bg-color);
@@ -3261,11 +3256,13 @@ svg.heart-image .delete {
     }
 
     .menu-bar {
+        --icon-size: 1.6;
         position: sticky;
         bottom: 0;
         display: flex;
         flex-direction: row;
         justify-content: space-evenly;
+        align-items: center;
 
         // Don't use em here, since that results in fractional pixels, which causes the backdrop-filter
         // to not reach the edge on Chrome.
@@ -3273,6 +3270,13 @@ svg.heart-image .delete {
         padding-bottom: var(--dialog-inner-padding-bottom);
         backdrop-filter: blur(10px);
         -webkit-backdrop-filter: blur(10px);
+
+        // Nudge the bookmark icons down a bit, since they're offset vertically.
+        .button-bookmark.public,
+        .button-bookmark.private
+        {
+            margin-top: .25em;
+        }
     }
 }
 
