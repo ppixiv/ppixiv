@@ -3015,10 +3015,13 @@ svg.heart-image .delete {
         font-size: 1.2rem;
     }
 
-    // The minimum horizontal padding around non-fullscreen dialog content.  This is a common way
-    // to dismiss dialogs, so there should be enough padding to cleanly click the edge.
-    --edge-padding-inner-horiz: 10px;
-    --edge-padding-inner-vert: 10px;
+    // The minimum horizontal padding around non-fullscreen dialog content.
+    --edge-padding-inner-horiz: 20px;
+    --edge-padding-inner-vert: 20px;
+    html.mobile & {
+        --edge-padding-inner-horiz: 10px;
+        --edge-padding-inner-vert: 10px;
+    }
     --edge-padding-outer-horiz: 40px;
     --edge-padding-outer-vert: 20px;
 
@@ -3678,6 +3681,7 @@ svg.heart-image .delete {
         display: flex;
         flex-direction: column;
         overflow-y: auto;
+        padding-top: 0.5em;
 
         > .box-link {
             padding: 0.5em;
@@ -3792,7 +3796,7 @@ svg.heart-image .delete {
         flex-direction: row;
 
         // Spacing between the page buttons and the content on the right:
-        gap: 1em;
+        gap: 2em;
     }
 }
 
