@@ -700,7 +700,7 @@ ppixiv.helpers = {
         // so it doesn't send errors caused by this script.  Remove _send and _time, which
         // also send logs.  It might have already been set (TamperMonkey in Chrome doesn't
         // implement run-at: document-start correctly), so clear it if it's there.
-        for(let key of ["onerror", "onunhandledrejection", "_send", "_time", "webpackJsonp"])
+        for(let key of ["onerror", "onunhandledrejection", "_send", "_time", "webpackJsonp", "touchJsonp"])
         {
             window[key] = null;
 
