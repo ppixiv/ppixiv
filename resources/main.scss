@@ -303,10 +303,9 @@ html {
     --input-outline-focused: #888;
 
     /* Colors for major UI boxes */
-    --ui-bg-color: #222;
+    --ui-bg-color: rgba(0,0,0,0.88);
     --ui-fg-color: #fff;
     --ui-border-color: #000;
-    --ui-shadow-color: #000; /* the shadow around some major UI elements */
     --ui-bg-section-color: #555; /* color for sections within UI, like the description box */
 
     --toggle-button-fg-disabled-color: #666;
@@ -316,7 +315,7 @@ html {
     --toggle-button-bg-color: #444;
 
     /* Color for frames like popup menus */
-    --frame-bg-color: #000;
+    --frame-bg-color: rgba(0,0,0,0.9);
     --frame-fg-color: #fff;
     --frame-border-color: #444;
 
@@ -324,7 +323,7 @@ html {
 
     /* Box links used for selection in the search UI: */
     --box-link-fg-color: var(--frame-fg-color);
-    --box-link-bg-color: var(--frame-bg-color);
+    --box-link-bg-color: #000;
     --box-link-disabled-color: #888;
     --box-link-hover-color: #443;
     --box-link-selected-color: #008;
@@ -1441,7 +1440,7 @@ body.hide-r18g .r18g { display: none; }
         padding: 10px;
 
         html:not(.mobile) & {
-            box-shadow: 0 0 15px 10px var(--ui-shadow-color);
+            box-shadow: 0 0 15px 10px #000;
         }
 
         .displaying {
@@ -1907,6 +1906,10 @@ body.hide-r18g .r18g { display: none; }
 // padding stays the same.
 .vertical-list
 {
+    // The default background color on box-links is there to indicate that it's a button.  Remove it
+    // when a box is nothing but a stack of box-links.
+    --box-link-bg-color: rgba(0,0,0,0);
+
     // For box-links directly within the list (most of them), put the horizontal
     // padding on them.
     > .box-link { padding: 0 .5em; }
@@ -2159,7 +2162,8 @@ a.box-link, span.box-link
     user-select: none;
     -webkit-user-select: none;
     position: absolute;
-    background-color: var(--box-link-bg-color);
+
+    background-color: var(--frame-bg-color);
     margin-top: 2px; // push slightly away from the input box
 
     // Global editor buttons.  These sit on top of the scroller overlapping the sticky header
@@ -2236,7 +2240,7 @@ a.box-link, span.box-link
             align-items: center;
             background-color: #001a44;
             padding: .5em 1em;
-            border-bottom: 5px solid #000;
+            margin-bottom: 5px;
             cursor: pointer;
             line-height: 1.5em;
 
@@ -2369,6 +2373,7 @@ a.box-link, span.box-link
     transition:
         opacity ease 0.15s,
         transform ease 0.15s;
+    --context-menu-bg-color: #000;
 
     // Override the default visible-widget hiding behavior.
     &:not(.visible-widget)
@@ -2413,7 +2418,7 @@ a.box-link, span.box-link
 
         & > .button-block {
             display: inline-block;
-            background-color: var(--frame-bg-color);
+            background-color: var(--context-menu-bg-color);
             padding: 12px;
         }
 
@@ -2495,7 +2500,7 @@ a.box-link, span.box-link
     .context-menu-image-info-container {
         // Bottom align within the row.
         align-self: flex-end;
-        background-color: var(--box-link-bg-color);
+        background-color: var(--context-menu-bg-color);
         padding-right: 8px;
 
         // Mobile Chrome sometimes randomly selects this text while it's hidden, causing
