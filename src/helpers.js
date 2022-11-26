@@ -5356,6 +5356,10 @@ ppixiv.DragHandler = class
         // Called when a touch that began a drag is released.  This is always called if
         // onpointerdown returned true, even if the drag never actually began.
         onpointerup,
+
+        // If this returns true (the default), the drag will start on the first pointer movement.
+        // If false, the drag will start immediately on pointerdown.
+        deferred_start=() => true,
     }={})
     {
         this.element = element;
@@ -5365,6 +5369,7 @@ ppixiv.DragHandler = class
         this.ondragstart = ondragstart;
         this.ondrag = ondrag;
         this.ondragend = ondragend;
+        this.deferred_start = deferred_start;
 
         signal ??= (new AbortController().signal);
 
@@ -5459,6 +5464,23 @@ ppixiv.DragHandler = class
         this.element.addEventListener("lostpointercapture", this._lost_pointer_capture);
         this.first_pointer_movement = true;
         this.sent_ondragstart = false;
+
+        // Ask the caller if we want to defer the start of the drag until the first pointer
+        // movement.  If we don't, start it now, otherwise we'll start it in pointermove later.
+        if(!this.deferred_start())
+            this._commit_start_dragging({event});
+    }
+
+    // Actually start the drag.  This may happen immediately on pointerdown or on the first pointermove.
+    // event is a PointerEvent, but may be either pointerdown or pointermove.
+    async _commit_start_dragging(event)
+    {
+        if(this.sent_ondragstart)
+            return;
+
+        this.sent_ondragstart = true;
+        if(this.ondragstart)
+            this.ondragstart({event});
     }
 
     // Treat lost pointer capture as the pointer being released.
@@ -5514,12 +5536,7 @@ ppixiv.DragHandler = class
         // Call ondragstart the first time we see pointer movement after we begin the drag.  This
         // is when the drag actually starts.  We don't do movement thresholding here since iOS already
         // does it (whether we want it to or not).
-        if(!this.sent_ondragstart)
-        {
-            this.sent_ondragstart = true;
-            if(this.ondragstart)
-                this.ondragstart({event});
-        }
+        this._commit_start_dragging({event});
     
         // Only handle this as a drag input if we've started treating this as a drag.
         if(this.sent_ondragstart)

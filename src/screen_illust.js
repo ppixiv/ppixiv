@@ -770,6 +770,12 @@ class DragImageChanger
             ondragstart: (args) => this.ondragstart(args),
             ondrag: (args) => this.ondrag(args),
             ondragend: (args) => this.ondragend(args),
+            deferred_start: () => {
+                // If an animation is running, disable deferring drags, so grabbing the dragger will
+                // stop the animation.  Otherwise, defer drags until the first pointermove (the normal
+                // behavior).
+                return this.animations == null;
+            },
         });
     }
 
