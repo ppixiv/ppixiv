@@ -801,6 +801,7 @@ class DragImageChanger
     stop()
     {
         this.dragger.cancel_drag();
+        this.cancel_animation();
     }
 
     async ondragstart(e)
@@ -822,7 +823,7 @@ class DragImageChanger
     }
 
     // If an animation is running, cancel it.
-    async cancel_animation()
+    cancel_animation()
     {
         if(!this.animations)
             return;
@@ -833,7 +834,6 @@ class DragImageChanger
         // Pause the animations, and wait until the pause completes.
         for(let animation of animations)
             animation.pause();
-        await Promise.all(animations.map((animation) => animation.ready));
 
         // If a drag is active, set drag_distance to the Y position of the main viewer to match
         // the drag to where the animation was.
