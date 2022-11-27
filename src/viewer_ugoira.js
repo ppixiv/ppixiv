@@ -38,7 +38,10 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer_video_base
     {
         let { slideshow=false, onnextimage=null } = this.options;
 
-        let load_sentinel = await super.load(this.media_id, { slideshow, onnextimage });
+        let load_sentinel = await super.load(this.media_id, {
+            slideshow,
+            onnextimage: () => onnextimage(this),
+        });
         
         // Show a static image while we're waiting for the video to load, like viewer_images.
         //

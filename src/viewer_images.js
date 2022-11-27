@@ -151,7 +151,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
             restore_history: this.restore_history,
 
             slideshow: this._slideshow,
-            onnextimage: this._onnextimage,
+            onnextimage: () => this._onnextimage(this),
 
             onready: () => {
                 this.ready.accept(true);

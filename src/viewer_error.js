@@ -35,7 +35,7 @@ ppixiv.viewer_error = class extends ppixiv.viewer
 
     async load()
     {
-        let { error, slideshow=false, onnextimage=null } = this.options;
+        let { error, slideshow=false, onnextimage=() => { } } = this.options;
 
         // We don't skip muted images in slideshow immediately, since it could cause
         // API hammering if something went wrong, and most of the time slideshow is used
@@ -48,7 +48,7 @@ ppixiv.viewer_error = class extends ppixiv.viewer
                 if(slideshow_timer != this.slideshow_timer)
                     return;
 
-                onnextimage();
+                onnextimage(this);
             })();
         }
 

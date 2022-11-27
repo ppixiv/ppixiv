@@ -128,7 +128,7 @@ ppixiv.viewer_video = class extends ppixiv.viewer_video_base
     
     async load(media_id, {
         slideshow=false,
-        onnextimage=null,
+        onnextimage=() => { },
     }={})
     {
         await super.load(media_id, { slideshow, onnextimage });
@@ -141,8 +141,7 @@ ppixiv.viewer_video = class extends ppixiv.viewer_video_base
         // Don't loop in slideshow.
         this.video.loop = !slideshow;
         this.video.onended = () => {
-            if(onnextimage)
-                onnextimage();
+            onnextimage(this);
         };
 
         this.video.appendChild(this.source);

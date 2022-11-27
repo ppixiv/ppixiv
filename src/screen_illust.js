@@ -254,9 +254,17 @@ ppixiv.screen_illust = class extends ppixiv.screen
             container: this.view_container,
             slideshow,
             manga_page_bar: this.ui.manga_page_bar,
-            onnextimage: async () => {
+            onnextimage: async (finished_viewer) => {
                 if(!this._active)
                     return { };
+
+                // Ignore this if this isn't the active viewer.  This can happen if we advance a slideshow
+                // right as the user navigated to a different image, especially with mobile transitions.
+                if(finished_viewer != this.viewer)
+                {
+                    console.log("onnextimage from viewer that isn't active");
+                    return { };
+                }                
 
                 // The viewer wants to go to the next image, normally during slideshows.
                 let manga = settings.get("slideshow_skips_manga")? "skip-to-first":"normal";
@@ -297,6 +305,11 @@ ppixiv.screen_illust = class extends ppixiv.screen
             console.log("show_image: illust ID or page changed while async, stopping");
             return;
         }
+
+        // Make sure the dragger isn't active, since changing main viewers while a drag is active
+        // would cause confusing behavior.
+        if(this.drag_image_changer)
+            this.drag_image_changer.stop();
 
         // If we weren't given a viewer to use, create one.
         let new_viewer = this.create_viewer({
@@ -408,8 +421,8 @@ ppixiv.screen_illust = class extends ppixiv.screen
 
             // The new viewer is displaying an image, so we can remove the old viewer now.
             //
-            // If we're not the main viewer anymor, another one was created.  We'll do this when
-            // its onready is called.
+            // If this isn't the main viewer anymore, another one was created and replaced this one
+            // (the old viewer check above), so don't do anything.
             if(this.viewer !== new_viewer || old_viewer !== this.old_viewer)
                 return;
 
