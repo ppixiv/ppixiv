@@ -819,6 +819,10 @@ class DragImageChanger
 
     async ondragstart(e)
     {
+        // Close the menu bar if it's open when a drag starts.
+        if(this.parent.mobile_illust_ui)
+            this.parent.mobile_illust_ui.hide();
+
         this.drag_distance = 0;
         this.recent_pointer_movement.reset();
         this.bounds = [null, null];
@@ -1215,6 +1219,10 @@ class ScreenIllustDragToExit
                 this.showing_new_image();
             },
             onanimationstart: () => {
+                // Close the menu bar if it's open when a drag starts.
+                if(this.parent.mobile_illust_ui)
+                    this.parent.mobile_illust_ui.hide();
+
                 this._config_animation();
             },
         });
