@@ -57,7 +57,6 @@ function _create_main_search_menu(container)
 
     let create_option = ({classes=[], ...options}) => {
         let button = new ppixiv.menu_option_button({
-            container,
             classes: [...classes, "navigation-button"],
             ...options
         })
@@ -69,21 +68,32 @@ function _create_main_search_menu(container)
     {
         if(Array.isArray(option))
         {
-            let items = [];
+            let row = new ppixiv.menu_option_row({
+                container,
+            });
+
+            let first = true;
             for(let suboption of option)
             {
                 if(suboption == null)
                     continue;
-                items.push(create_option(suboption));
-            }
 
-            new ppixiv.menu_option_row({
-                container,
-                items: items,
-            });
+                create_option({
+                    ...suboption,
+                    container: row.container,
+                });
+
+                if(first)
+                {
+                    first = false;
+                    let div = document.createElement("div");
+                    div.style.flex = "1";
+                    row.container.appendChild(div);
+                }
+            }
         }
         else
-            create_option(option);
+            create_option({...option, container});
     }
 }
 

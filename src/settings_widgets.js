@@ -166,41 +166,46 @@ ppixiv.settings_widgets = {
             },
 
             import_extra_data: () => {
-                return new menu_option_row({
+                let widget = new menu_option_row({
                     ...global_options,
                     label: "Image edits",
-                    items: [
-                        new menu_option_button({
-                            icon: "file_upload",
-                            label: "Import",
-                            onclick: () => ppixiv.extra_image_data.get.import(),
-                        }),
-                        new menu_option_button({
-                            icon: "file_download",
-                            label: "Export",
-                            onclick: () => ppixiv.extra_image_data.get.export(),
-                        }),
-                    ],
                 });
+
+                new menu_option_button({
+                    icon: "file_upload",
+                    label: "Import",
+                    container: widget.container,
+                    onclick: () => ppixiv.extra_image_data.get.import(),
+                });
+
+                new menu_option_button({
+                    icon: "file_download",
+                    label: "Export",
+                    container: widget.container,
+                    onclick: () => ppixiv.extra_image_data.get.export(),
+                });
+                return widget;
             },
 
             stage_slideshow: () => {
-                return new menu_option_row({
+                let widget = new menu_option_row({
                     ...global_options,
                     label: "Bookmark slideshow",
-                    items: [
-                        new menu_option_button({
-                            icon: "wallpaper",
-                            label: "Go",
-                            onclick: () => {
-                                // Close the settings dialog.
-                                global_options.close_settings();
-
-                                ppixiv.slideshow_staging_dialog.show();
-                            },
-                        }),
-                    ],
                 });
+
+                new menu_option_button({
+                    icon: "wallpaper",
+                    label: "Go",
+                    container: widget.container,
+                    onclick: () => {
+                        // Close the settings dialog.
+                        global_options.close_settings();
+
+                        ppixiv.slideshow_staging_dialog.show();
+                    },
+                });
+
+                return widget;
             },
 
             quick_view: () => {

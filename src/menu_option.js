@@ -47,7 +47,6 @@ ppixiv.menu_option = class extends widget
 ppixiv.menu_option_row = class extends ppixiv.menu_option
 {
     constructor({
-        items,
         label=null,
          ...options})
     {
@@ -57,33 +56,11 @@ ppixiv.menu_option_row = class extends ppixiv.menu_option
             </div>
         `});
 
-        // If a label was given, place it to the left and flex between the label
-        // and buttons.  Otherwise, flex between the first button and the rest.
-        let first = true;
         if(label != null)
         {
             let span = this.container.querySelector(".label-box");
             span.hidden = false;
             span.innerText = label;
-            first = false;
-        }
-
-        // Add items.
-        let row = this.container;
-        for(let item of items)
-        {
-            let item_container = item.container;
-            item_container.remove();
-            row.appendChild(item_container);
-
-            // If we have more than one item, add a flex spacer after the first.            
-            if(first)
-            {
-                first = false;
-                let div = document.createElement("div");
-                div.style.flex = "1";
-                row.appendChild(div);
-            }
         }
     }
 }
