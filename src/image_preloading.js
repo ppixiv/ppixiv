@@ -294,7 +294,15 @@ ppixiv.image_preloader = class
         if(illust_data.illustType == 2 && !helpers.is_media_id_local(media_id))
         {
             let results = [];
-            results.push(new fetch_preloader(illust_data.ugoiraMetadata.originalSrc));
+
+            // Don't preload ZIPs in Firefox.  It has a bug in Fetch: when in an incognito window,
+            // the actual streaming file read in IncrementalReader will stop returning data  after a
+            // couple seconds if it overlaps with this non-streaming read.  (It also has another bug:
+            // this non-streaming read will prevent the unrelated streaming read from streaming, so
+            // image loading will block until the file finishes loading instead of loading smoothly.)
+            let firefox = navigator.userAgent.indexOf("Firefox/") != -1;
+            if(!firefox)
+                results.push(new fetch_preloader(illust_data.ugoiraMetadata.originalSrc));
 
             // Preload the original image too, which viewer_ugoira displays if the ZIP isn't
             // ready yet.
