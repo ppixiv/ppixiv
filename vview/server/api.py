@@ -373,6 +373,8 @@ async def api_similar_search(info):
         # exists, otherwise it'll create it.
         signature = info.manager.sig_db.get_image_signature(absolute_path)
 
+        if not signature:
+            raise misc.Error('not-supported', 'Image search not supported for this file type')
     else:
         assert url is not None
 
@@ -395,7 +397,10 @@ async def api_similar_search(info):
             image = Image.open(io.BytesIO(image_data))
         except Exception as e:
             raise misc.Error('not-found', f'Couldn\'t open image: {str(e)}')
+
         signature = image_index.ImageSignature.from_image(image)
+        if not signature:
+            raise misc.Error('not-supported', 'Image search not supported for this URL')
 
         # Include a data URL to the image instead of the original image, since the browser session
         # may not have access to the original URL.

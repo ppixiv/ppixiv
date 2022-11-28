@@ -98,6 +98,7 @@ class ImageIndex:
             'score': similarity
         }
         """
+        assert signature is not None
         results = (_SearchResult * max_results)()
         count = dll.ImageIndex_ImageSearch(self.index, signature, max_results, results)
 
