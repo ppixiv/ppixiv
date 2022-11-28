@@ -603,9 +603,6 @@ ppixiv.dialog_widget = class extends ppixiv.widget
     // finishes.
     shutdown()
     {
-        // Remove the dialog from the document.
-        this.container.remove();
-
         // Remove ourself from active_dialogs.
         let idx = ppixiv.dialog_widget.active_dialogs.indexOf(this);
         if(idx == -1)
