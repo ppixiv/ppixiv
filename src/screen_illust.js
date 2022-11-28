@@ -869,7 +869,7 @@ class DragImageChanger
     ondrag({event, first})
     {
         let y = event.movementY;
-        this.recent_pointer_movement.add_sample({ x: 0, y: y });
+        this.recent_pointer_movement.add_sample({ y: y });
 
         // If we're past the end, apply friction to indicate it.  This uses stronger overscroll
         // friction to make it distinct from regular image panning overscroll.
@@ -1045,12 +1045,15 @@ class DragImageChanger
     current_drag_target()
     {
         // If the user has flung up or down, move relative to the main viewer.
-        let recent_movement = this.recent_pointer_movement.current_distance.y;
-        let threshold = 50;
-        if(recent_movement > threshold)
-            return this.main_viewer_index - 1;
-        else if(recent_movement < -threshold)
-            return this.main_viewer_index + 1;
+        let recent_velocity = this.recent_pointer_movement.current_velocity.y;
+        let threshold = 200;
+        if(Math.abs(recent_velocity) > threshold)
+        {
+            if(recent_velocity > threshold)
+                return this.main_viewer_index - 1;
+            else if(recent_velocity < -threshold)
+                return this.main_viewer_index + 1;
+        }
 
         // There hasn't been a fling recently, so land on the viewer which is closest to
         // the middle of the screen.  If the screen is dragged down several times quickly

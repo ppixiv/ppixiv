@@ -5049,7 +5049,7 @@ ppixiv.FlingVelocity = class
         this.reset();
     }
 
-    add_sample( {x,y} )
+    add_sample( {x=0,y=0}={} )
     {
         this.samples.push({
             delta: { x, y },
@@ -6138,12 +6138,12 @@ ppixiv.WidgetDragger = class
 
             ondragend: (args) => {
                 // See if there was a fling.
-                let { distance, velocity } = this.recent_pointer_movement.get_movement_in_direction(direction);
+                let { velocity } = this.recent_pointer_movement.get_movement_in_direction(direction);
 
-                let threshold = 50;
-                if(distance > threshold)
+                let threshold = 150;
+                if(velocity > threshold)
                     return this.show({ velocity });
-                else if(distance < -threshold)
+                else if(velocity < -threshold)
                     return this.hide({ velocity: -velocity });
 
                 // If there hasn't been a fling recently, open or close based on how far open we are.
