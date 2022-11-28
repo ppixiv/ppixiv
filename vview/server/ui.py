@@ -26,6 +26,7 @@ def add_routes(router):
     router.add_get('/client/{path:.*}', handle_client)
 
     router.add_get('/', handle_resource('resources/index.html'))
+    router.add_get('/similar', handle_resource('resources/index.html'))
 
     # Chrome asks for favicon.ico sometimes, such as when viewing an image directly.  Give
     # it a PNG instead.
