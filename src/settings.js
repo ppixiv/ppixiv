@@ -35,6 +35,7 @@ ppixiv.Settings = class extends EventTarget
         this.configure("image_editing_mode", { session: true });
         this.configure("inpaint_create_lines", { session: true });
         this.configure("slideshow_duration", { default_value: 15 });
+        this.configure("auto_pan", { default_value: ppixiv.mobile });
         this.configure("auto_pan_duration", { default_value: 3 });
         this.configure("extra_mutes", { default_value: [] });
         this.configure("slideshow_skips_manga", { default_value: false });
