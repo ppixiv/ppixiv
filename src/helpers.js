@@ -5336,6 +5336,7 @@ ppixiv.OpenWidgets = class extends EventTarget
 ppixiv.DragHandler = class
 {
     constructor({
+        name="unnamed", // for diagnostics
         element,
         signal,
 
@@ -5362,6 +5363,7 @@ ppixiv.DragHandler = class
         deferred_start=() => true,
     }={})
     {
+        this.name = name;
         this.element = element;
         this.captured_pointer_id = null;
         this.onpointerdown = onpointerdown;
@@ -5989,6 +5991,8 @@ ppixiv.TouchScroller = class
 ppixiv.WidgetDragger = class
 {
     constructor({
+        name="widget-dragger", // for diagnostics
+
         // The node that will be animated by the drag.
         node,
 
@@ -6099,6 +6103,7 @@ ppixiv.WidgetDragger = class
         this.drag_animation.position = visible? 1:0;
 
         this.dragger = new ppixiv.DragHandler({
+            name,
             element: drag_node,
             onpointerdown,
             onpointerup,

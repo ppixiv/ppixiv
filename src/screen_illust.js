@@ -771,6 +771,7 @@ class DragImageChanger
         this.bounds = [null, null];
 
         this.dragger = new ppixiv.DragHandler({
+            name: "image-changer",
             element: this.container,
             onpointerdown: ({event}) => {
                 // Stop if there's no image, if the screen wasn't able to load one.
@@ -1180,6 +1181,7 @@ class ScreenIllustDragToExit
         this.parent = parent;
 
         this.dragger = new WidgetDragger({
+            name: "drag-to-exit",
             node: [
                 this.parent.container,
                 main_controller.screen_search.container.querySelector(".fade-search"),

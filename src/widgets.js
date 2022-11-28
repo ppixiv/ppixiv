@@ -445,6 +445,7 @@ ppixiv.dialog_widget = class extends ppixiv.widget
             }[drag_direction];
 
             this.dialog_dragger = new WidgetDragger({
+                name: "close-dialog",
                 node: this.container,
                 drag_node: this.container,
                 visible: false,
