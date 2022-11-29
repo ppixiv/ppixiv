@@ -788,7 +788,7 @@ class DragImageChanger
                 // If an animation is running, disable deferring drags, so grabbing the dragger will
                 // stop the animation.  Otherwise, defer drags until the first pointermove (the normal
                 // behavior).
-                return this.animations == null;
+                return this.animations == null && this.drag_distance == 0;
             },
         });
     }
@@ -820,7 +820,8 @@ class DragImageChanger
 
     ondragstart({event})
     {
-        if(Math.abs(event.movementY) > Math.abs(event.movementX))
+        // If we aren't grabbing a running drag, only start if the initial movement was vertical.
+        if(this.animations == null && this.drag_distance == 0 && Math.abs(event.movementY) > Math.abs(event.movementX))
             return false;
 
         // Close the menu bar if it's open when a drag starts.
@@ -862,7 +863,7 @@ class DragImageChanger
         if(this.drag_distance != null && this.main_viewer)
         {
             let main_transform = new DOMMatrix(getComputedStyle(this.main_viewer.container).transform);
-            this.drag_distance = main_transform.f;
+            this.drag_distance = main_transform.e; // X translation
             this.refresh_drag_position();
         }
 
@@ -1049,7 +1050,7 @@ class DragImageChanger
     // This may be past the end of the current viewer list.
     current_drag_target()
     {
-        // If the user has flung up or down, move relative to the main viewer.
+        // If the user flung horizontally, move relative to the main viewer.
         let recent_velocity = this.recent_pointer_movement.current_velocity.x;
         let threshold = 200;
         if(Math.abs(recent_velocity) > threshold)
@@ -1096,13 +1097,16 @@ class DragImageChanger
                 dragged_to_viewer = this.viewers[target_viewer_index];
         }
 
-        this.drag_distance = 0;
+        // If we start a fling from this release, this is the velocity we'll try to match.
+        let recent_velocity = Math.abs(this.recent_pointer_movement.current_velocity.x);
+
         this.recent_pointer_movement.reset();
 
         // If this isn't interactive, we're just shutting down, so remove viewers without
         // animating.
         if(!interactive)
         {
+            this.drag_distance = 0;
             this.cancel_animation();
             this.remove_viewers();
             return;
@@ -1125,7 +1129,7 @@ class DragImageChanger
             this.parent.show_image_viewer({ new_viewer: dragged_to_viewer });
         }
 
-        let duration = 250;
+        let duration = 400;
         let animations = [];
 
         let main_viewer_index = this.main_viewer_index;
@@ -1137,20 +1141,33 @@ class DragImageChanger
             // are positive.
             let this_idx = idx - main_viewer_index;
 
+            // The animation starts at the current translateX.
+            let start_x = new DOMMatrix(getComputedStyle(viewer.container).transform).e;
+            //let start_x = this.get_viewer_x(idx);
+
             // Animate everything to their default positions relative to the main image.
-            let y = this.viewer_distance * this_idx;
+            let end_x = this.viewer_distance * this_idx;
+
+            // Estimate a curve to match the fling.
+            let easing = ppixiv.Bezier2D.find_curve_for_velocity({
+                distance: Math.abs(end_x - start_x),
+                duration: duration / 1000, // in seconds
+                target_velocity: recent_velocity,
+            });
 
             let animation = new ppixiv.DirectAnimation(new KeyframeEffect(viewer.container, [
                 { transform: viewer.container.style.transform },
-                { transform: `translateY(${y}px)` },
+                { transform: `translateX(${end_x}px)` },
             ], {
                 duration,
                 fill: "forwards",
-                easing: "ease-out",
+                easing,
             }));
             animation.play();
             animations.push(animation);
         }
+
+        this.drag_distance = 0;
 
         this.animations = animations;
 
@@ -1200,7 +1217,7 @@ class ScreenIllustDragToExit
 
             // We're hidden until set_active makes us visible.
             visible: false,
-            direction: "down", // up to make visible, down to hide
+            direction: "up", // up to make visible, down to hide
             duration: () => {
                 return settings.get("animations_enabled")? 200:0;
             },

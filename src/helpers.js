@@ -5063,7 +5063,7 @@ ppixiv.FlingVelocity = class
         let duration = Date.now()/1000 - this.samples[0].time;
         if( duration < 0.001 )
         {
-            console.log("no sample duration");
+            // console.error("no sample duration");
             return { x: 0, y: 0 };
         }
 
@@ -5284,17 +5284,48 @@ ppixiv.RunningDrags = class
     // Add an active dragger.  If cancel_others is called, oncancel() will be called to
     // cancel the drag.
     static add(dragger, oncancel) { this.drags.set(dragger, oncancel); }
-    static remove(dragger) { this.drags.delete(dragger); }
-    
-    static cancel_others(except)
+    static remove(dragger)
     {
+        this.drags.delete(dragger);
+        if(dragger == this._active_drag)
+            this._active_drag = null;
+
+        if(this._active_drag && this.drags.size == 0)
+            console.error("_active_drag wasn't cleared", dragger);
+    }
+    
+    // A potential dragger is becoming active, so cancel all other draggers.  active_drag
+    // is this dragger until it's removed.
+    static cancel_others(active_dragger)
+    {
+        if(this._active_drag != null)
+        {
+            console.log("Dragger was active:", this._active_drag);
+            throw new Error("Started a drag while another dragger was already active");
+        }
+
+        if(!this.drags.has(active_dragger))
+        {
+            console.log("active_dragger:", active_dragger);
+            throw new Error("Active dragger isn't in the dragger list");
+        }
+
+        console.assert(this._active_drag == null);
+        this._active_drag = active_dragger;
+
         for(let [dragger, cancel_drag] of this.drags.entries())
         {
-            if(dragger === except)
+            if(dragger === active_dragger)
                 continue;
 
             cancel_drag();
         }
+    }
+
+    // If a dragger is active, return it.
+    static get active_drag()
+    {
+        return this._active_drag;
     }
 }
 
@@ -5425,17 +5456,21 @@ ppixiv.DragHandler = class
             return;
         }
 
+        // Don't start a new dragger while another one is active.
+        if(ppixiv.RunningDrags.active_drag)
+            return;
+
         this.captured_pointer_id = event.pointerId;
         window.addEventListener("pointermove", this._pointermove);
         this.first_pointer_movement = true;
         this.sent_ondragstart = false;
 
+        ppixiv.RunningDrags.add(this, () => this.cancel_drag());
+
         // Ask the caller if we want to defer the start of the drag until the first pointer
         // movement.  If we don't, start it now, otherwise we'll start it in pointermove later.
         if(!this.deferred_start())
             this._commit_start_dragging({event});
-
-        ppixiv.RunningDrags.add(this, () => this.cancel_drag());
     }
 
     // Actually start the drag.  This may happen immediately on pointerdown or on the first pointermove.
@@ -5596,9 +5631,8 @@ ppixiv.TouchScroller = class
     // If we're in drag-delay, cancel the drag_delay_timer and cancel the potential drag.
     cancel_pending_drag = () =>
     {
-        if(this.mode != "drag-delay")
-            return;
-        this.mode = null;
+        if(this.mode == "drag-delay")
+            this.mode = null;
 
         if(this.drag_delay_timer != null)
         {
@@ -5609,6 +5643,11 @@ ppixiv.TouchScroller = class
 
     onpointerdown = (e) =>
     {
+        // Don't start a drag if one is already running.  Do continue if we're already dragging
+        // and this is the start of a pinch.
+        if(this.mode != "dragging" && ppixiv.RunningDrags.active_drag)
+            return;
+
         // If we were flinging, the user grabbed the fling and interrupted it.
         if(this.mode == "fling")
             this.cancel_fling();
@@ -5639,7 +5678,7 @@ ppixiv.TouchScroller = class
             // delay.
             this.total_movement_during_delay = [0,0];
             this.drag_delay_timer = helpers.setTimeout(() => {
-                console.log("start drag");
+                console.assert(this.mode == "drag-delay", `Expected to be in drag-delay, actually in ${this.mode}`);
                 ppixiv.RunningDrags.cancel_others(this);
                 this.mode = "dragging";
             }, 50);
@@ -5680,6 +5719,8 @@ ppixiv.TouchScroller = class
     {
         this.pointers.clear();
         this.cancel_pending_drag();
+        this._unregister_events();
+        ppixiv.RunningDrags.remove(this);
         this.mode = null;
     }
 
@@ -6374,6 +6415,58 @@ ppixiv.Bezier2D = class
         }
 
         return this.Y.evaluate(t);
+    }
+
+    // Find a bezier curve that roughly matches a given velocity.
+    //
+    // This is used when we're responding to a fling with an animation, and we want the
+    // animation (usually a page turn) to have the same velocity as the fling.  The end
+    // of the curve is always an ease-out, and the beginning of the curve will ease depending
+    // on the velocity.
+    //
+    // Returns a bezier-curve() string.
+    static find_curve_for_velocity({
+        // The desired velocity (usually in pixels/sec):
+        target_velocity,
+
+        // The distance the animation will be travelling (usually in pixels):
+        distance,
+
+        // The duration the animation will be, in milliseconds:
+        duration,
+    })
+    {
+        // Do a simple search ac
+        let best_error = null;
+        let best_curve = null;
+        for(let t = 0; t < 0.5; t += 0.05)
+        {
+            // We're searching from (0, 0.5, 0.5, 1), which eases in slowly: // https://cubic-bezier.com/#0,.5,.5,1
+            // to (0.5, 0.5, 0.5, 1), which starts immediately: // https://cubic-bezier.com/#.5,0,.5,1
+            //
+            // This can be tweaked, but we don't want to start much slower than this, since it doesn't
+            // make the curve appear to start slower, it just makes it appear to pause completely for
+            // a while.
+            let curve = new ppixiv.Bezier2D(t, 0.5-t, 0.5, 1);
+
+            // Roughly estimate the velocity at the start of the curve by seeing how far we'd travel in the
+            // first 60Hz frame.
+            let sample_seconds = 1/60; // one "frame"
+            let segment_distance = distance * curve.evaluate(sample_seconds / duration); // distance travelled in sample_seconds
+            let actual_distance_per_second = segment_distance / sample_seconds; // distance travelled in one second at that speed
+
+            let error = Math.abs(actual_distance_per_second - target_velocity);
+            // console.log(`${actual_distance_per_second.toFixed(0)} from ${target_velocity.toFixed(0)}`);
+            if(best_error == null || error < best_error)
+            {
+                best_error = error;
+                best_curve = `cubic-bezier(${t}, ${0.5-t}, 0.45, 1)`;
+            }
+
+            // console.log(`t ${t} segment ${segment} segment_distance ${segment_distance} actual_distance_per_second ${actual_distance_per_second}`);
+        }
+        
+        return best_curve;
     }
 }
 

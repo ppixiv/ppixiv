@@ -320,13 +320,12 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
             this.hide();
         }, { signal: this.shutdown_signal.signal });
 
-        let menu_bar = this.page.container.querySelector(".mobile-illust-ui-page");
         this.dragger = new WidgetDragger({
             name: "menu-dragger",
             // Put the --menu-bar-pos property up high, since the video UI also uses it.
             node: [this.transition_target],
             drag_node: this.container.parentNode,
-            size: () => menu_bar.offsetHeight,
+            size: () => 150,
             animated_property: "--menu-bar-pos",
             direction: "down",
             onpointerdown: ({event}) => {
