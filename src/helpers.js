@@ -6723,7 +6723,7 @@ ppixiv.IsolatedTapHandler = class
         this._pressed = false;
         this._all_presses = new Set();
 
-        this._event_names_during_touch = ["pointerup", "pointercancel", "pointermove", "blur"];
+        this._event_names_during_touch = ["pointerup", "pointercancel", "pointermove", "blur", "dblclick"];
         this.node.addEventListener("pointerdown", this._handle_event, { signal });
     }
 
@@ -6764,6 +6764,14 @@ ppixiv.IsolatedTapHandler = class
             // console.log("Cancelling for multitouch");
             this._unqueue_event();
             return;
+        }
+
+        // Cancel if we see a dblclick.  This is important because iOS doesn't always send pointer
+        // events for double-taps.
+        if(e.type == "dblclick")
+        {
+            // console.log("Cancelling for dblclick");
+            this._unqueue_event();
         }
 
         if(e.type == "pointercancel")
