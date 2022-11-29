@@ -4013,7 +4013,14 @@ ppixiv.VirtualHistory = class
         if(!this.permanent)
             return;
 
-        window.history.replaceState(this.state, "", this._latest_history.url);
+        try {
+            window.history.replaceState(this.state, "", this._latest_history.url);
+        } catch(e) {
+            // iOS has a truly stupid bug: it thinks that casually flipping through pages more
+            // than a few times per second (100 / 30 seconds) is something it should panic about,
+            // and throws a SecurityError.
+            console.log("Error setting browser history (ignored)", e);
+        }
     }
 };
 ppixiv.phistory = new VirtualHistory;
