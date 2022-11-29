@@ -1235,7 +1235,7 @@ class ScreenIllustDragToExit
                 // a navigation that has already happened (browser back).
                 if(this.parent._active)
                 {
-                    let args = new helpers.args(this.parent.data_source.url.toString());
+                    let args = new helpers.args(this.parent.data_source.search_url.toString());
                     main_controller.navigate_from_image_to_search(args);
                 }
             },

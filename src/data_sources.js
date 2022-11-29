@@ -428,6 +428,10 @@ ppixiv.data_source = class
         this.active = false;
     }
 
+    // Return the URL to use to return to this search.  For most data sources, this is the URL
+    // it was initialized with.
+    get search_url() { return this.url; }
+
     // The data source can create a widget containing its UI here.
     create_ui({ ...options })
     {
@@ -2212,6 +2216,13 @@ ppixiv.data_sources.current_illust = class extends data_source
         let parts = url.pathname.split("/");
         let illust_id = parts[2];
         this.media_id = helpers.illust_id_to_media_id(illust_id);
+
+        this._load_media_info();
+    }
+
+    async _load_media_info()
+    {
+        this.media_info = await media_cache.get_media_info(this.media_id, { full: false });
     }
 
     // Show the illustration by default.
@@ -2225,6 +2236,16 @@ ppixiv.data_sources.current_illust = class extends data_source
 
     // We're always viewing our media ID.
     get_current_media_id(args) { return this.media_id; }
+
+    // Use the artist's page as the view if we're trying to return to a search for this data
+    // source.
+    get search_url()
+    {
+        if(this.media_info)
+            return new URL(`/users/${this.media_info.userId}/artworks#ppixiv`, this.url);
+        else
+            return this.url;
+    }
 
     // We don't return any posts to navigate to, but this can still be called by
     // quick view.
