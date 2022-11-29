@@ -6976,6 +6976,13 @@ ppixiv.DirectAnimation = class
 
         let token = this._playToken;
         let last_update = Date.now();
+
+        // If no time has been set yet, the animation hasn't applied any styles.  Set the default
+        // start time before going async, so we don't flash whatever the previous style was for a
+        // frame before updating.
+        if(this.animation.currentTime == null)
+            this.animation.currentTime = 0;
+
         while(1)
         {
             let delta;
