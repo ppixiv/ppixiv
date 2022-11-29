@@ -758,7 +758,7 @@ class DragImageChanger
 
         // The amount we've dragged.  This is relative to the main image, so it doesn't need to
         // be adjusted when we add or remove viewers.
-        this.drag_distance = null;
+        this.drag_distance = 0;
 
         // A list of viewers that we're dragging between.  This always includes the main viewer
         // which is owned by the screen.
