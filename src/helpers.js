@@ -934,61 +934,6 @@ ppixiv.helpers = {
             delete dataset[name];
     },
 
-    // Given a drag event over the image viewer, return the type of drag it should be.
-    //
-    // This centralizes choosing which type of drag to do.  
-    // This is tricky to do with just event propagation, which is dependant on the order
-    // things are set up, so we centralize it here.
-    //
-    // Returns one of:
-    // "exit" - a drag at the bottom of the screen to exit the image
-    // "change-images" - a drag at the left or right edge to navigate between images
-    // "pan-zoom" - a drag anywhere else for image pan and zoom
-    //
-    // The priority of these is important.  For example, change-images is higher priority than
-    // exit, since it's annoying to try to change images and exit to the search instead.
-    get_image_drag_type(event)
-    {
-        // Drag UI navigation is only used on mobile.
-        if(!ppixiv.mobile)
-            return "pan-zoom";
-
-        // These are realtive to screen-illust.  We can't use documentElement for this, since
-        // its offsetHeight doesn't consistently update for the iOS navigation bar (it behaves
-        // differently when it's hidden from a scroll and when it's hidden explicitly by the
-        // user).
-        let container = document.querySelector(".screen-illust-container");
-
-        // These thresholds take some tuning, since they're usually close to system gestures.
-        // If the threshold for a "down from the top" gesture is too small, it'll be hard to
-        // do without hitting the system swipe-down gesture instead, but if they're too big
-        // then you'll activate the menu when you wanted to zoom the image.
-        //
-        // Dragging at the left or right edge of the screen changes images.  This threshold can
-        // be fairly small, since this is a vertical drag designed to be distinct from gestures
-        // like browser back, but check it first, so drags in the corner prefer to change images
-        // over opening the menu or exiting.
-        let horiz = event.clientX / container.clientWidth;
-        if(horiz < 0.1 || horiz > 0.9)
-            return "change-images";
-
-        // Drags up from the bottom of the screen exit the image.
-        //
-        // This threshold is kept fairly high, since the bottom of the screen is system navigation
-        // on most devices, and if our display is flush against the bottom of the screen we need 
-        // to give enough room to not hit a task swap gesture instead.
-        //
-        // This results in a threshold that can be excessively high in some cases.  For example,
-        // if we're in Safari (not running standalone) there may be browser UI underneath us that
-        // makes this high threshold unneeded.  However, there's no way to tell, since it appears
-        // and disappears whenever it feels like it and the user can remove it.
-        let insets = helpers.safe_area_insets;
-        if((event.clientY + insets.bottom) / container.clientHeight > 0.85)
-            return "exit";
-
-        return "pan-zoom";
-    },
-
     // Input elements have no way to tell when edits begin or end.  The input event tells
     // us when the user changes something, but it doesn't tell us when drags begin and end.
     // This is important for things like undo: you want to save undo the first time a slider
@@ -5329,6 +5274,30 @@ ppixiv.OpenWidgets = class extends EventTarget
     }
 }
 
+// Sometimes we have multiple DragHandlers which can act on the same touch, depending on
+// pointer movement after the touch.  This tracks the active drags, and allows whichever
+// drag activates first to cancel the others.
+ppixiv.RunningDrags = class
+{
+    static drags = new Map();
+
+    // Add an active dragger.  If cancel_others is called, oncancel() will be called to
+    // cancel the drag.
+    static add(dragger, oncancel) { this.drags.set(dragger, oncancel); }
+    static remove(dragger) { this.drags.delete(dragger); }
+    
+    static cancel_others(except)
+    {
+        for(let [dragger, cancel_drag] of this.drags.entries())
+        {
+            if(dragger === except)
+                continue;
+
+            cancel_drag();
+        }
+    }
+}
+
 // Basic low-level dragging.
 //
 // This currently handles simple single-touch drags.  It doesn't handle multitouch, so it's not
@@ -5345,7 +5314,7 @@ ppixiv.DragHandler = class
         onpointerdown,
 
         // Called when the drag starts, which is the first pointer movement after onpointerdown.
-        ondragstart,
+        ondragstart = () => true,
 
         // ondrag({event, first})
         // first is true if this is the first pointer movement since this drag started.
@@ -5402,16 +5371,12 @@ ppixiv.DragHandler = class
                     return;
             }
 
-            // Claim the click, so it isn't handled by the viewer.  Don't preventDefault, since
-            // we do want clicks to happen if they're on buttons, etc. inside the scroller.
-            e.stopImmediatePropagation();
-
             this._start_dragging(e);
         } else {
             if(this.captured_pointer_id == null || e.pointerId != this.captured_pointer_id)
                 return;
 
-            this._stop_dragging({ interactive: true });
+            this._stop_dragging({ interactive: true, cancel: e.type == "pointercancel" });
         }
     }
 
@@ -5461,9 +5426,7 @@ ppixiv.DragHandler = class
         }
 
         this.captured_pointer_id = event.pointerId;
-        this.element.setPointerCapture(this.captured_pointer_id);
-        this.element.addEventListener("pointermove", this._pointermove);
-        this.element.addEventListener("lostpointercapture", this._lost_pointer_capture);
+        window.addEventListener("pointermove", this._pointermove);
         this.first_pointer_movement = true;
         this.sent_ondragstart = false;
 
@@ -5471,32 +5434,32 @@ ppixiv.DragHandler = class
         // movement.  If we don't, start it now, otherwise we'll start it in pointermove later.
         if(!this.deferred_start())
             this._commit_start_dragging({event});
+
+        ppixiv.RunningDrags.add(this, () => this.cancel_drag());
     }
 
     // Actually start the drag.  This may happen immediately on pointerdown or on the first pointermove.
     // event is a PointerEvent, but may be either pointerdown or pointermove.
-    async _commit_start_dragging(event)
+    async _commit_start_dragging({event})
     {
         if(this.sent_ondragstart)
             return;
 
-        this.sent_ondragstart = true;
-        if(this.ondragstart)
-            this.ondragstart({event});
-    }
-
-    // Treat lost pointer capture as the pointer being released.
-    _lost_pointer_capture = (e) =>
-    {
-        if(e.pointerId != this.captured_pointer_id)
+        if(!this.ondragstart({event}))
+        {
+            this._stop_dragging();
             return;
+        }
 
-        this._stop_dragging({interactive: true});
+        this.sent_ondragstart = true;
+
+        ppixiv.RunningDrags.cancel_others(this);
     }
 
     // A drag finished.  interactive is true if this is the user releasing it, or false
     // if we're shutting down during a drag.  See if we should transition the image or undo.
-    _stop_dragging({interactive=false}={})
+    // cancel is true if this is due to a pointercancel event.
+    _stop_dragging({interactive=false, cancel=false}={})
     {
         if(this.captured_pointer_id == null)
             return;
@@ -5507,15 +5470,16 @@ ppixiv.DragHandler = class
             this.captured_pointer_id = null;
         }
 
-        this.element.removeEventListener("pointermove", this._pointermove);
-        this.element.removeEventListener("lostpointercapture", this.lost_pointer_capture);
+        window.removeEventListener("pointermove", this._pointermove);
+
+        ppixiv.RunningDrags.remove(this);
 
         // Only send ondragend if we sent ondragstart.
         if(this.sent_ondragstart)
         {
             this.sent_ondragstart = false;
             if(this.ondragend)
-                this.ondragend({interactive});
+                this.ondragend({interactive, cancel});
         }
 
         // Always send onpointerup, even if there was no actual drag.
@@ -5585,6 +5549,7 @@ ppixiv.TouchScroller = class
     })
     {
         this.container = container;
+        this.shutdown_signal = signal;
         this.options = {
             get_position,
             set_position,
@@ -5599,17 +5564,13 @@ ppixiv.TouchScroller = class
         this.fling_velocity = new FlingVelocity();
         this.pointers = new Map();
 
-        // This is null if we're inactive, "drag" if the user is dragging, or "fling" if we're
+        // This is null if we're inactive, "dragging" if the user is dragging, or "fling" if we're
         // flinging and rebounding.
         this.mode = null;
 
         // Note that we don't use pointer_listener for this.  It's meant for mouse events
         // and isn't optimized for multitouch.
-        this.container.addEventListener("pointerdown", this.pointerevent, { signal });
-        this.container.addEventListener("pointermove", this.pointermove, { signal });        
-        window.addEventListener("pointerup", this.pointerevent, { signal });
-        window.addEventListener("pointercancel", this.pointerevent, { signal });
-        this.container.addEventListener("lostpointercapture", this.lost_pointer_capture, { signal });
+        this.container.addEventListener("pointerdown", this.onpointerdown, { signal });
 
         // Cancel any running fling if we're shut down while a fling is active.
         signal.addEventListener("abort", (e) => {
@@ -5617,30 +5578,40 @@ ppixiv.TouchScroller = class
         }, { once: true });
     }
 
-    pointerevent = (e) =>
+    // Register events that we only need during a drag.
+    _register_events()
     {
-        if(e.type == "pointerdown")
-            this.start_drag(e);
-        else
-            this.end_drag(e);
+        window.addEventListener("pointermove", this.pointermove, { signal: this.shutdown_signal });        
+        window.addEventListener("pointerup", this.onpointerup, { signal: this.shutdown_signal });
+        window.addEventListener("pointercancel", this.onpointerup, { signal: this.shutdown_signal });
     }
 
-    lost_pointer_capture = (e) =>
+    _unregister_events()
     {
-        this.pointers.delete(e.pointerId);
+        window.removeEventListener("pointermove", this.pointermove);
+        window.removeEventListener("pointerup", this.onpointerup);
+        window.removeEventListener("pointercancel", this.onpointerup);
     }
 
-    start_drag = (e) =>
+    // If we're in drag-delay, cancel the drag_delay_timer and cancel the potential drag.
+    cancel_pending_drag = () =>
     {
-        if(helpers.get_image_drag_type(event) != "pan-zoom")
+        if(this.mode != "drag-delay")
             return;
+        this.mode = null;
 
+        if(this.drag_delay_timer != null)
+        {
+            helpers.clearTimeout(this.drag_delay_timer);
+            this.drag_delay_timer = null;
+        }
+    }
+
+    onpointerdown = (e) =>
+    {
         // If we were flinging, the user grabbed the fling and interrupted it.
         if(this.mode == "fling")
             this.cancel_fling();
-
-        // We're always dragging when a new touch is pressed, replacing any fling.
-        this.mode = "dragging";
 
         // Work around iOS Safari weirdness.  If you drag from the left or right edge
         // and a back or forward navigation gesture starts, the underlying window position
@@ -5653,8 +5624,34 @@ ppixiv.TouchScroller = class
                 return;
         }
 
-        // Capture the pointer.
-        this.container.setPointerCapture(e.pointerId);
+        if(this.mode == "drag-delay" && this.pointers.size > 0)
+        {
+            // We were in drag-delay and a second tap started.  Cancel the delay and start
+            // immediately for pinch zooming.
+            this.cancel_pending_drag();
+            this.mode = "dragging";
+            ppixiv.RunningDrags.cancel_others(this);
+        }
+        else if(this.mode != "dragging" && this.mode != "drag-delay")
+        {
+            // We can start the drag now.  Wait briefly to allow the other screen_illust draggers to
+            // have a shot at them first, so they see quick flings and we see drags that have a slight
+            // delay.
+            this.total_movement_during_delay = [0,0];
+            this.drag_delay_timer = helpers.setTimeout(() => {
+                console.log("start drag");
+                ppixiv.RunningDrags.cancel_others(this);
+                this.mode = "dragging";
+            }, 50);
+
+            this.mode = "drag-delay";
+        }
+
+        ppixiv.RunningDrags.add(this, () => this.cancel_pending_drag());
+
+        if(this.pointers.size == 0)
+            this._register_events();
+
         this.pointers.set(e.pointerId, {
             x: e.clientX,
             y: e.clientY,
@@ -5681,26 +5678,29 @@ ppixiv.TouchScroller = class
     // Cancel any drag immediately without starting a fling.
     cancel_drag()
     {
-        // Release all pointer captures.
-        for(let id of this.pointers.keys())
-            this.container.releasePointerCapture(id);
-
         this.pointers.clear();
+        this.cancel_pending_drag();
+        this.mode = null;
     }
 
-    end_drag = (e) =>
+    // This also receives pointercancel.
+    onpointerup = (e) =>
     {
         // Ignore touches we don't know about.
         if(!this.pointers.has(e.pointerId))
             return;
 
-        this.container.releasePointerCapture(e.pointerId);
         this.pointers.delete(e.pointerId);
 
         // If there are more touches active, keep dragging.  If this is the last pointer released, apply
         // velocity to fling.
         if(this.pointers.size > 0)
             return;
+
+        this._unregister_events();
+
+        this.cancel_pending_drag();
+        ppixiv.RunningDrags.remove(this);
 
         // The last touch was released.  Start flinging or rubber banding.
         this.start_fling();
@@ -5733,8 +5733,15 @@ ppixiv.TouchScroller = class
     pointermove = (e) =>
     {
         let pointer_info = this.pointers.get(e.pointerId);
-        if(this.mode != "dragging" || pointer_info == null)
+        if(pointer_info == null)
             return;
+
+        if(this.mode != "dragging")
+        {
+            this.total_movement_during_delay[0] += Math.abs(e.movementX);
+            this.total_movement_during_delay[1] += Math.abs(e.movementY);
+            return;
+        }
 
         // When we actually handle pointer movement, let IsolatedTapHandler know that this
         // press was handled by something.  This doesn't actually prevent any default behavior.
@@ -6017,6 +6024,9 @@ ppixiv.WidgetDragger = class
         // list while visible will cause the dragger to hide.
         close_if_outside=null,
 
+        // This is called before a drag starts.  If false is returned, the drag will be ignored.
+        ondragstart = () => true,
+
         // This is called before a drag or animation starts.
         onanimationstart = () => { },
 
@@ -6051,6 +6061,7 @@ ppixiv.WidgetDragger = class
         this.node = node;
         this.onbeforeshown = onbeforeshown;
         this.onafterhidden = onafterhidden;
+        this.ondragstart = ondragstart;
         this.onanimationstart = onanimationstart;
         this.onanimationfinished = onanimationfinished;
         this.animations = animations;
@@ -6109,15 +6120,24 @@ ppixiv.WidgetDragger = class
             onpointerup,
 
             ondragstart: (args) => {
+                if(!this.ondragstart(args))
+                    return false;
+
                 this.drag_animation.stop();
 
                 this.recent_pointer_movement.reset();
 
-                this.onanimationstart();
+                this.onanimationstart(args);
 
                 // A drag is starting.  Send onbeforeshown if we weren't visible, since we
                 // might be about to make the widget visible.
                 this._set_visible(true);
+
+                // Remember the position we started at.  This is only used so we can return to it if
+                // the drag is cancelled.
+                this.drag_started_at = this.position;
+
+                return true;
             },
             ondrag: ({event, first}) => {
                 this.recent_pointer_movement.add_sample({ x: event.movementX, y: event.movementY });
@@ -6141,7 +6161,20 @@ ppixiv.WidgetDragger = class
                 this.drag_animation.position = pos;
             },
 
-            ondragend: (args) => {
+            ondragend: ({cancel}) => {
+                // If the drag was cancelled, return to the open or close state we were in at the
+                // start.  This is mostly important for ScreenIllustDragToExit, so a drag up on iOS
+                // that triggers system navigation and cancels our drag undoes any small drag instead
+                // of triggering an exit.
+                if(cancel)
+                {
+                    if(this.drag_started_at > 0.5)
+                        this.show();
+                    else
+                        this.hide();
+                    return;
+                }
+
                 // See if there was a fling.
                 let { velocity } = this.recent_pointer_movement.get_movement_in_direction(direction);
 

@@ -778,7 +778,7 @@ class DragImageChanger
                 if(this.main_viewer == null)
                     return false;
 
-                return helpers.get_image_drag_type(event) == "change-images";
+                return true;
             },
 
             ondragstart: (args) => this.ondragstart(args),
@@ -796,7 +796,7 @@ class DragImageChanger
     // Get the distance between one viewer and the next.
     get viewer_distance()
     {
-        return this.parent.view_container.offsetHeight + this.image_gap;
+        return this.parent.view_container.offsetWidth + this.image_gap;
     }
 
     // Return the additional space between viewers.
@@ -818,8 +818,11 @@ class DragImageChanger
         this.cancel_animation();
     }
 
-    async ondragstart(e)
+    ondragstart({event})
     {
+        if(Math.abs(event.movementY) > Math.abs(event.movementX))
+            return false;
+
         // Close the menu bar if it's open when a drag starts.
         if(this.parent.mobile_illust_ui)
             this.parent.mobile_illust_ui.hide();
@@ -832,12 +835,13 @@ class DragImageChanger
         {
             // We weren't animating, so this is a new drag.  Start the list off with the main viewer.
             this.viewers = [this.main_viewer];
-            return;
+            return true;
         }
 
         // Another drag started while the previous drag's transition was still happening.
         // Stop the animation, and set the drag_distance to where the animation was stopped.
-        await this.cancel_animation();
+        this.cancel_animation();
+        return true;
     }
 
     // If an animation is running, cancel it.
@@ -869,8 +873,8 @@ class DragImageChanger
 
     ondrag({event, first})
     {
-        let y = event.movementY;
-        this.recent_pointer_movement.add_sample({ y: y });
+        let x = event.movementX;
+        this.recent_pointer_movement.add_sample({ x });
 
         // If we're past the end, apply friction to indicate it.  This uses stronger overscroll
         // friction to make it distinct from regular image panning overscroll.
@@ -886,27 +890,27 @@ class DragImageChanger
             let distance = Math.abs(this.bounds[1] - this.drag_distance);
             overscroll = Math.pow(0.97, distance);
         }
-        y *= overscroll;
+        x *= overscroll;
 
         // The first pointer input after a touch may be thresholded by the OS trying to filter
         // out slight pointer movements that aren't meant to be drags.  This causes the very
         // first movement to contain a big jump on iOS, causing drags to jump.  Count this movement
         // towards fling sampling, but skip it for the visual drag.
         if(!first)
-            this.drag_distance += y;
+            this.drag_distance += x;
         this.add_viewers_if_needed();
         this.refresh_drag_position();
     }
 
-    get_viewer_y(viewer_index)
+    get_viewer_x(viewer_index)
     {
         // This offset from the main viewer.  Viewers above are negative and below
         // are positive.
         let relative_idx = viewer_index - this.main_viewer_index;
 
-        let y = this.viewer_distance * relative_idx;
-        y += this.drag_distance;
-        return y;
+        let x = this.viewer_distance * relative_idx;
+        x += this.drag_distance;
+        return x;
     }
 
     // Update the positions of all viewers during a drag.
@@ -916,8 +920,8 @@ class DragImageChanger
         {
             let viewer = this.viewers[idx];
 
-            let y = this.get_viewer_y(idx);
-            viewer.container.style.transform = `translateY(${y}px)`;
+            let x = this.get_viewer_x(idx);
+            viewer.container.style.transform = `translateX(${x}px)`;
             viewer.visible = true;
         }
     }
@@ -952,13 +956,13 @@ class DragImageChanger
         //
         // The bottom edge of the topmost viewer, including the gap between images.  If this is
         // 0, it's just above the screen.
-        let top_viewer_bottom = this.get_viewer_y(-1) + this.viewer_distance;
+        let top_viewer_bottom = this.get_viewer_x(-1) + this.viewer_distance;
         let down = null;
         if(top_viewer_bottom > drag_threshold)
             down = false;
 
         // The top edge of the bottommost viewer.
-        let bottom_viewer_top = this.get_viewer_y(this.viewers.length) - this.image_gap;
+        let bottom_viewer_top = this.get_viewer_x(this.viewers.length) - this.image_gap;
         if(bottom_viewer_top < window.innerHeight - drag_threshold)
             down = true;
 
@@ -1046,7 +1050,7 @@ class DragImageChanger
     current_drag_target()
     {
         // If the user has flung up or down, move relative to the main viewer.
-        let recent_velocity = this.recent_pointer_movement.current_velocity.y;
+        let recent_velocity = this.recent_pointer_movement.current_velocity.x;
         let threshold = 200;
         if(Math.abs(recent_velocity) > threshold)
         {
@@ -1065,9 +1069,9 @@ class DragImageChanger
         let closest_viewer_distance = 999999;
         for(let idx = 0; idx < this.viewers.length; ++idx)
         {
-            let y = this.get_viewer_y(idx);
-            let center = y + window.innerHeight/2;
-            let distance = Math.abs((window.innerHeight / 2) - center);
+            let x = this.get_viewer_x(idx);
+            let center = x + window.innerWidth/2;
+            let distance = Math.abs((window.innerWidth / 2) - center);
             if(distance < closest_viewer_distance)
             {
                 closest_viewer_distance = distance;
@@ -1078,12 +1082,14 @@ class DragImageChanger
         return closest_viewer_index;
     }
 
-    // A drag finished.  interactive is true if this is the user releasing it, or false
-    // if we're shutting down during a drag.  See if we should transition the image or undo.
-    async ondragend({interactive=false}={})
+    // A drag finished.  See if we should transition the image or undo.
+    //
+    // interactive is true if this is the user releasing it, or false if we're shutting
+    // down during a drag.  cancel is true if this was a cancelled pointer event.
+    async ondragend({interactive, cancel}={})
     {
         let dragged_to_viewer = null;
-        if(interactive)
+        if(interactive && !cancel)
         {
             let target_viewer_index = this.current_drag_target();
             if(target_viewer_index >= 0 && target_viewer_index < this.viewers.length)
@@ -1186,7 +1192,7 @@ class ScreenIllustDragToExit
                 this.parent.container,
                 main_controller.screen_search.container.querySelector(".fade-search"),
             ],
-            drag_node: document.documentElement,
+            drag_node: this.parent.container,
             size: () => this._drag_distance,
 
             animated_property: "--illust-hidden",
@@ -1201,10 +1207,10 @@ class ScreenIllustDragToExit
             size: 500,
             onpointerdown: ({event}) => {
                 // Don't do anything if the screen isn't active.
-                if(!this.parent._active)
-                    return;
-
-                return helpers.get_image_drag_type(event) == "exit";
+                return this.parent._active && ppixiv.mobile;
+            },
+            ondragstart: ({event}) => {
+                return Math.abs(event.movementY) > Math.abs(event.movementX);
             },
             onafterhidden: () => {
                 // The drag finished.  If the screen is still active, exit the illust screen and go
