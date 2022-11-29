@@ -1445,27 +1445,28 @@ body.hide-r18g .r18g { display: none; }
 
         .displaying {
             padding-bottom: 4px;
-        }
-        .displaying .word {
-            padding: 0px 5px;
-            vertical-align: middle;
 
-            // Fix the line height so lines with CJK text aren't different from ones that don't, but enough
-            // so lines aren't too close together.
-            line-height: 1.5em;
+            .word {
+                padding: 0px 5px;
+                vertical-align: middle;
 
-            // Parentheses:
-            &.paren { font-weight: 400; }
-        }
+                // Fix the line height so lines with CJK text aren't different from ones that don't, but enough
+                // so lines aren't too close together.
+                line-height: 1.5em;
 
-        .displaying .word:first-child {
-            padding-left: 0px; /* remove left padding from the first item */
-        }
-
-        .displaying .word.or {
-            font-size: 60%;
-            padding: 0;
-            color: #bbb;
+                // Parentheses:
+                &.paren { font-weight: 400; }
+    
+                &:first-child {
+                    padding-left: 0px; /* remove left padding from the first item */
+                }
+    
+                &.or {
+                    font-size: 60%;
+                    padding: 0;
+                    color: #bbb;
+                }
+            }
         }
 
         // Flip the icon to point to the left.
