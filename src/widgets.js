@@ -2381,7 +2381,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
         if(ppixiv.mobile)
             this.menu_options.push(menu_options.open_settings());
 
-        if(!ppixiv.native)
+        if(!ppixiv.native && !ppixiv.mobile)
             this.menu_options.push(menu_options.exit());
     }
 
