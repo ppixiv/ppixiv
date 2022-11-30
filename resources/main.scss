@@ -1268,11 +1268,8 @@ body.hide-r18g .r18g { display: none; }
     /* If .ui-on-hover is set, switch to showing the top UI when it's hovered instead of sticky. */
     &.ui-on-hover
     {
-        position: fixed;
-        top: auto;
         bottom: 100%;
-        left: 0;
-        transition: transform ease-out .2s;
+        transition: top ease-out .2s;
 
         /* Normally pointer-events is disabled above, so the sides of the UI box don't cover clicks.
          * However, that also makes the hover not include the top padding above the UI, causing it
@@ -1287,21 +1284,13 @@ body.hide-r18g .r18g { display: none; }
         &.hover,
         &.force-open
         {
-            transform: translateY(100%);
+            top: 0;
         }
 
         &:not(.hover):not(.force-open)
         {
-            /* This is the amount the UI pokes on-screen when not hovered. */
-            transform: translateY(40px);
-        }
-
-        // When ui-on-hover is disabled we get spacing at the top of the thumbs automatically from
-        // position: sticky, but ui-on-hover is position: fixed and we don't get that, so we have
-        // to add padding manually. */
-        + .top-ui-box-padding
-        {
-            height: 30px;
+            // --ui-box-height is the current height of this box.
+            top: calc(-1 * var(--ui-box-height) + 40px);
         }
     }
 

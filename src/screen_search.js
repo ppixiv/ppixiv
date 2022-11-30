@@ -384,8 +384,6 @@ ppixiv.screen_search = class extends ppixiv.screen
                         <div style="flex: 1;"></div>
                     </div>
 
-                    <div class="top-ui-box-padding"></div>
-
                     <div class=thumbnail-container-box></div>
                 </div>
 
@@ -482,6 +480,12 @@ ppixiv.screen_search = class extends ppixiv.screen
          * affect opening the UI.
          */
         this.top_ui_box = this.container.querySelector(".top-ui-box");
+        
+        let resize = new ResizeObserver(() => {
+            this.top_ui_box.style.setProperty('--ui-box-height', `${this.top_ui_box.offsetHeight}px`);
+        }).observe(this.top_ui_box);
+        this.shutdown_signal.signal.addEventListener("abort", () => resize.disconnect());
+
         this.top_ui_box.hidden = ppixiv.mobile;
         new hover_with_delay(this.top_ui_box, 0, 0.25);
 
