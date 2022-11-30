@@ -110,7 +110,7 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer_video_base
             canvas: this.video,
             loop: !slideshow,
             progress: this.progress,
-            onfinished: onnextimage,
+            onfinished: () => onnextimage(this),
         });            
 
         this.player.video_interface.addEventListener("timeupdate", this.ontimeupdate, { signal: this.abort_controller.signal });
