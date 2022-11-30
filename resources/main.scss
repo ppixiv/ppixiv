@@ -1644,30 +1644,31 @@ body.hide-r18g .r18g { display: none; }
 
             html:not(.mobile) & {
                 border-radius: 4px;
+                overflow: hidden;
             }
-            overflow: hidden;
-            position: relative;
-            text-decoration: none;
-            color: #fff;
         }
 
-        // Thumbnail zooming
-        //
-        // If thumbnail zooming is enabled, zoom thumbs in while not hovered.
-        --zoom-thumb: 1;
-        body:not(.disable-thumbnail-zooming) &:not(:hover) { --zoom-thumb: 1.25; }
+        // Thumbnail animations aren't used on mobile.  Avoid defining it if we're not using it,
+        // so we don't put transforms on thumbnails and possibly cause more complicated compositing.
+        html:not(.mobile) {
+            // Thumbnail zooming
+            //
+            // If thumbnail zooming is enabled, zoom thumbs in while not hovered.
+            --zoom-thumb: 1;
+            body:not(.disable-thumbnail-zooming) &:not(:hover) { --zoom-thumb: 1.25; }
 
-        .thumb
-        {
-            transition: transform .5s;
-            transform: scale(var(--zoom-thumb));
+            .thumb
+            {
+                transition: transform .5s;
+                transform: scale(var(--zoom-thumb));
+            }
+
+            // Thumbnail panning
+            //
+            // Pause panning animations while the mouse isn't over them.
+            --pan-thumb: paused;
+            body:not(.disable-thumbnail-panning) &:hover { --pan-thumb: running; }
         }
-
-        // Thumbnail panning
-        //
-        // Pause panning animations while the mouse isn't over them.
-        --pan-thumb: paused;
-        body:not(.disable-thumbnail-panning) &:hover { --pan-thumb: running; }
 
         &.muted {
             .muted-text {

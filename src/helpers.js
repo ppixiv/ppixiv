@@ -2850,6 +2850,9 @@ ppixiv.helpers = {
 
     create_thumbnail_animation(thumb, width, height, container_aspect_ratio)
     {
+        if(ppixiv.mobile)
+            return null;
+
         // Create the animation, or update it in-place if it already exists, probably due to the
         // window being resized.  total_time won't be updated when we do this.
         let direction = helpers.get_thumbnail_panning_direction(thumb, width, height, container_aspect_ratio);

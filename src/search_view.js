@@ -1395,6 +1395,9 @@ ppixiv.search_view = class extends ppixiv.widget
     // too.
     add_animation_listener(element)
     {
+        if(ppixiv.mobile)
+            return;
+
         if(element.addedAnimationListener)
             return;
         element.addedAnimationListener = true;
