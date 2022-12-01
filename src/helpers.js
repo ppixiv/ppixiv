@@ -5620,6 +5620,7 @@ ppixiv.TouchScroller = class
         // Cancel any running fling if we're shut down while a fling is active.
         signal.addEventListener("abort", (e) => {
             this.cancel_fling();
+            this.cancel_drag();
         }, { once: true });
     }
 
