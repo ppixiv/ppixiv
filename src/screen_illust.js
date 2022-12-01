@@ -525,6 +525,12 @@ ppixiv.screen_illust = class extends ppixiv.screen
             this.viewer.shutdown();
             this.viewer = null;
         }
+
+        if(this.old_viewer != null)
+        {
+            this.old_viewer.shutdown();
+            this.old_viewer = null;
+        }
     }
 
     // If we started navigating to a new image and were delayed to load data (either to load
@@ -1008,7 +1014,7 @@ class DragImageChanger
             return;
         }
 
-        let viewer = await this.parent.create_viewer({
+        let viewer = this.parent.create_viewer({
             early_illust_data,
             media_id,
         });
@@ -1035,7 +1041,7 @@ class DragImageChanger
         this.viewers = [];
 
         // Clear adding_viewer.  If an add_viewers_if_needed call is running, it'll see that
-        // this.viewers changed and stop
+        // this.viewers changed and stop.
         this.adding_viewer = false;
     }
 
