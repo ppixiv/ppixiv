@@ -1636,6 +1636,11 @@ ppixiv.search_view = class extends ppixiv.widget
         // If we were displaying an image, pulse it to make it easier to find your place.
         this.pulse_thumbnail(media_id);
 
+        // Stop if the thumb is already fully visible.
+        if(thumb.offsetTop >= this.scroll_container.scrollTop &&
+            thumb.offsetTop + thumb.offsetHeight < this.scroll_container.scrollTop + this.scroll_container.offsetHeight)
+            return true;
+
         let y = thumb.offsetTop + thumb.offsetHeight/2 - this.scroll_container.offsetHeight/2;
 
         // If we set y outside of the scroll range, iOS will incorrectly report scrollTop briefly.
@@ -1643,11 +1648,6 @@ ppixiv.search_view = class extends ppixiv.widget
         // scroll_container.offsetHeight is confused by padding and gives the wrong result when
         // close to the bottom.
         y = helpers.clamp(y, 0, this.scroll_container.scrollHeight - window.innerHeight);
-
-        // Stop if the thumb is already fully visible.
-        if(y >= this.scroll_container.scrollTop &&
-            thumb.offsetTop + thumb.offsetHeight < this.scroll_container.scrollTop + this.scroll_container.offsetHeight)
-            return true;
 
         this.scroll_container.scrollTop = y;
 
