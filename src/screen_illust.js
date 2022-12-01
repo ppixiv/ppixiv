@@ -224,7 +224,28 @@ ppixiv.screen_illust = class extends ppixiv.screen
         if(this.drag_to_exit?.is_animating)
             return;
 
-        this.stop_displaying_image();
+        this.remove_viewer();
+
+        this.wanted_media_id = null;
+        this.current_media_id = null;
+
+        this.refresh_ui();
+
+        // Tell the preloader that we're not displaying an image anymore.  This prevents the next
+        // image displayed from triggering speculative loading, which we don't want to do when
+        // clicking an image in the thumbnail view.
+        image_preloader.singleton.set_current_image(null);
+        image_preloader.singleton.set_speculative_image(null);
+
+        // If remote quick view is active, cancel it if we leave the image.
+        if(settings.get("linked_tabs_enabled"))
+        {
+            ppixiv.send_image.send_message({
+                message: "send-image",
+                action: "cancel",
+                to: settings.get("linked_tabs", []),
+            });
+        }
     }
 
     // Create a viewer for media_id and begin loading it asynchronously.
@@ -516,36 +537,6 @@ ppixiv.screen_illust = class extends ppixiv.screen
 
         console.info("Cancelling async navigation");
         this.pending_navigation = null;
-    }
-
-    // Stop displaying any image (and cancel any wanted navigation), putting us back
-    // to where we were before displaying any images.
-    //
-    // This will also prevent the next image displayed from triggering speculative
-    // loading, which we don't want to do when clicking an image in the thumbnail
-    // view.
-    stop_displaying_image()
-    {
-        this.remove_viewer();
-
-        this.wanted_media_id = null;
-        this.current_media_id = null;
-
-        this.refresh_ui();
-
-        // Tell the preloader that we're not displaying an image anymore.
-        image_preloader.singleton.set_current_image(null);
-        image_preloader.singleton.set_speculative_image(null);
-
-        // If remote quick view is active, cancel it if we leave the image.
-        if(settings.get("linked_tabs_enabled"))
-        {
-            ppixiv.send_image.send_message({
-                message: "send-image",
-                action: "cancel",
-                to: settings.get("linked_tabs", []),
-            });
-        }
     }
 
     data_source_updated = () =>
