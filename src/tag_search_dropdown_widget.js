@@ -244,7 +244,8 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         // If we're sizing to a dialog, refresh the width if its size changes.
         if(this.ancestor_dialog_scroller)
         {
-            let resize_observer = new ResizeObserver(() => refresh_dropdown_width()).observe(this.ancestor_dialog_scroller);
+            let resize_observer = new ResizeObserver(() => refresh_dropdown_width());
+            resize_observer.observe(this.ancestor_dialog_scroller);
             this.shutdown_signal.signal.addEventListener("abort", () => resize_observer.disconnect());
         }
 
