@@ -1407,6 +1407,12 @@ body.hide-r18g .r18g { display: none; }
         margin-left: var(--navigation-box-reserved-width);
 
         height: 100%;
+
+        // Make space for the navigation bar.  It isn't inside the scroller, so we can't use
+        // position: sticky for this.
+        html.mobile & {
+            padding-bottom: 1.5rem;
+        }
     }
 
     .thumbnail-ui-box-container {
