@@ -271,11 +271,6 @@ html {
         --background-noise: none;
     }
 
-    // This is animated by screen_illust.  At 0, screen_illust is displayed, and at 1, screen_search
-    // is displayed.  Since it's owned by screen_illust, give it a default of hidden, so screen_search
-    // is visible if screen_illust hasn't made itself visible yet.
-    --illust-hidden: 1;
-
     --main-background-color: #222;
     --background-noise: var(--dark-noise);
 
@@ -1293,22 +1288,6 @@ body.hide-r18g .r18g { display: none; }
     // navigation bar.
     --nav-bar-reserved-height: 1em;
 
-    // This block is used to fade the search when the illustration is shown.  This isn't done on
-    // the top container to avoid the fade animation causing style recalculations on the search
-    // results, which is slow when there are a lot of thumbs.
-    .fade-search {
-        position: fixed;
-        z-index: 1;
-
-        // Extend through any browser overlays, even if they're not included in safe zone offsets.
-        inset: -100vh;
-        pointer-events: none;
-        
-        // Fade the background to black when we're active.
-        background-color: rgba(0, 0, 0,
-            scale_value(var(--illust-hidden), 0.2, 0.6, 1, 0));
-    }
-    
     .mobile-ui-drag-container {
         touch-action: none;
         position: fixed;
@@ -3342,6 +3321,24 @@ svg.heart-image .delete {
 }
 
 .screen-illust-container {
+    // This is animated by screen_illust.  At 0, screen_illust is displayed, and at 1, screen_search
+    // is displayed.  Since it's owned by screen_illust, give it a default of hidden, so screen_search
+    // is visible if screen_illust hasn't made itself visible yet.
+    --illust-hidden: 1;
+
+    .fade-search {
+        position: fixed;
+        z-index: -1;
+
+        // Extend through any browser overlays, even if they're not included in safe zone offsets.
+        inset: -100vh;
+        pointer-events: none;
+        
+        // Fade the background to black when we're active.
+        background-color: rgba(0, 0, 0,
+            scale_value(var(--illust-hidden), 0.2, 0.6, 1, 0));
+    }
+
     // Transitions for the viewer.  Don't move the container itself, since the background
     // fade shouldn't move with the image.
     .view-container {

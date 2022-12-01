@@ -23,6 +23,8 @@ ppixiv.screen_illust = class extends ppixiv.screen
                         </svg>
                     </div>
                 </div>
+
+                <div class=fade-search></div>
             </div>
         `});
         
@@ -1207,7 +1209,7 @@ class ScreenIllustDragToExit
             name: "drag-to-exit",
             node: [
                 this.parent.container,
-                main_controller.screen_search.container.querySelector(".fade-search"),
+                this.parent.querySelector(".fade-search"),
             ],
             drag_node: this.parent.container,
             size: () => this._drag_distance,

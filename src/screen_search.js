@@ -389,9 +389,6 @@ ppixiv.screen_search = class extends ppixiv.screen
 
                 <!-- This groups the header and search UI into a single dragger. -->
                 <div class=mobile-ui-drag-container></div>
-
-                <!-- This is controlled by the illustration view to fade the search. -->
-                <div class=fade-search></div>
             </div>
         `});
 
