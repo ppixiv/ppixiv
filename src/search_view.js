@@ -988,7 +988,19 @@ ppixiv.search_view = class extends ppixiv.widget
     // The result can be used with restore_scroll_position.
     save_scroll_position()
     {
-        let first_visible_thumb_node = this.get_first_fully_onscreen_thumb();
+        // Find a thumb near the middle of the screen to lock onto.  We don't need to read offsets
+        // and possibly trigger layout, just find all fully onscreen thumbs and take the one in the
+        // middle.  This gives a more stable scroll position when resizing than using the first one.
+        let center_thumbs = [];
+        for(let element of Object.values(this.thumbs))
+        {
+            if(!element.dataset.fullyOnScreen)
+                continue;
+
+            center_thumbs.push(element);
+        }
+
+        let first_visible_thumb_node = center_thumbs[Math.floor(center_thumbs.length/2)];
         if(first_visible_thumb_node == null)
             return null;
 
