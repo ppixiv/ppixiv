@@ -222,7 +222,7 @@ class thumbnail_ui_desktop extends ppixiv.widget
 
         if(this.toggle_local_navigation_button)
         {
-            this.toggle_local_navigation_button.hidden = this.local_nav_widget == null || !local_search_active;
+            this.toggle_local_navigation_button.hidden = this.parent.local_nav_widget == null || !this.parent.can_show_local_navigation;
             this.toggle_local_navigation_button.querySelector(".font-icon").innerText = this.local_navigation_visible?
                 "keyboard_double_arrow_left":"keyboard_double_arrow_right";
         }
@@ -630,13 +630,17 @@ ppixiv.screen_search = class extends ppixiv.screen
         this.data_source.refresh_thumbnail_ui({ container: ui_box, thumbnail_view: this });
 
         // Refresh whether we're showing the local navigation widget and toggle button.
-        let local_search_active = this.data_source?.is_vview && !local_api?.local_info?.bookmark_tag_searches_only;
-        helpers.set_dataset(this.container.dataset, "showNavigation", local_search_active && this.local_navigation_visible);
+        helpers.set_dataset(this.container.dataset, "showNavigation", this.can_show_local_navigation && this.local_navigation_visible);
 
         this.refresh_ui_for_user_id();
         this.refresh_expand_manga_posts_button();
         this.refresh_refresh_search_from_page();
     };
+
+    get can_show_local_navigation()
+    {
+        return this.data_source?.is_vview && !local_api?.local_info?.bookmark_tag_searches_only;
+    }
 
     // Return the user ID we're viewing, or null if we're not viewing anything specific to a user.
     get viewing_user_id()
