@@ -750,6 +750,9 @@ ppixiv.MainController = class
         {
             disabled_url.hash = "#no-ppixiv";
             document.location = disabled_url.toString();
+
+            // Make sure we reload after changing this.
+            document.location.reload();
         }
 
         return false;
@@ -769,7 +772,29 @@ ppixiv.MainController = class
         // Stop if we already have this.
         if(window.global_data)
             return true;
-            
+
+        // On mobile we can get most of this from meta#init-config.  However, it doesn't include
+        // mutes, and we'd still need to wait for a /touch/ajax/user/self/status API call to get those.
+        // Since it doesn't actually save us from having to wait for an API call, we just let it
+        // use the regular fallback.
+        /*
+        let init_config = document.querySelector("meta#init-config");
+        if(init_config)
+        {
+            let config = JSON.parse(init_config.getAttribute("content"));
+            console.log("key", config["pixiv.context.postKey"]);
+            console.log("R18", config["pixiv.user.x_restrict"]);
+            console.log("user id", config["pixiv.user.id"]);
+            console.log("premium", config["pixiv.user.premium"] == "1");
+
+            this.init_global_data(config["pixiv.context.postKey"], config["pixiv.user.id"], config["pixiv.user.premium"] == "1",
+                [], // mutes missing on mobile
+                config["pixiv.user.x_restrict"]);
+
+            return true;
+        }
+        */
+
         // This format is used on at least /new_illust.php.
         let global_data = doc.querySelector("#meta-global-data");
         if(global_data != null)
@@ -968,6 +993,10 @@ ppixiv.MainController = class
     {
         // Wait for DOMContentLoaded for body.
         await helpers.wait_for_content_loaded();
+
+        // On mobile, we're always active if possible, so don't add the disabled UI.
+        if(ppixiv.mobile)
+            return;
 
         // On most pages, we show our button in the top corner to enable us on that page.  Clicking
         // it on a search page will switch to us on the same search.
