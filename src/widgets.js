@@ -424,7 +424,7 @@ ppixiv.dialog_widget = class extends ppixiv.widget
 
                             <div class=center-header-helper></div>
                         </div>
-                        <div class=scroll>
+                        <div class="scroll vertical-scroller">
                             ${ template }
                         </div>
                     </div>
@@ -467,6 +467,13 @@ ppixiv.dialog_widget = class extends ppixiv.widget
                 direction: drag_direction,
                 onafterhidden: () => this.visibility_changed(),
                 onpointerdown: () => this.drag_to_exit,
+
+                // Ignore vertical drags.
+                ondragstart: ({event}) => Math.abs(event.movementX) > Math.abs(event.movementY),
+
+                // Set dragging while dragging the dialog to disable the scroller.
+                onanimationstart: () => this.container.classList.add("dragging-dialog"),
+                onanimationfinished: () => this.container.classList.remove("dragging-dialog"),
             });
         
             this.dialog_dragger.show();

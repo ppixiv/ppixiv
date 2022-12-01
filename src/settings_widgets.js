@@ -419,8 +419,8 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
             header: "Settings",
 
             template: `
-                <div class=sections></div>
-                <div class=items></div>
+                <div class="sections vertical-scroller"></div>
+                <div class="items vertical-scroller"></div>
             `
         });
 

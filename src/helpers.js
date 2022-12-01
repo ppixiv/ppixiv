@@ -6076,10 +6076,20 @@ ppixiv.WidgetDragger = class
         // list while visible will cause the dragger to hide.
         close_if_outside=null,
 
+        // Callbacks
+        //
+        // Callback states are always in this order:
+        //
+        // ondragstart
+        //     onanimationstart
+        //         onbeforeshown
+        //         onafterhidden
+        //     onanimationfinished
+        //
         // This is called before a drag starts.  If false is returned, the drag will be ignored.
         ondragstart = () => true,
 
-        // This is called before a drag or animation starts.
+        // This is called before a drag or fling starts.
         onanimationstart = () => { },
 
         // A drag is about to cause the node to become at least partially visible (this.position > 0).
@@ -6089,7 +6099,7 @@ ppixiv.WidgetDragger = class
         // visible (this.position <= 0), so the caller can shut down if wanted.
         onafterhidden = () => { },
 
-        // This is called when any drag or animation finishes.
+        // This is called when any drag or fling finishes and we're no longer modifying the node.
         onanimationfinished = () => { },
 
         // Whether the widget is initially visible.
@@ -6157,7 +6167,7 @@ ppixiv.WidgetDragger = class
                 if(position < 0.00001)
                     this._set_visible(false);
 
-                this.onanimationfinished(anim);
+                this._send_animation_running(false);
             }
         });
 
@@ -6179,7 +6189,7 @@ ppixiv.WidgetDragger = class
 
                 this.recent_pointer_movement.reset();
 
-                this.onanimationstart(args);
+                this._send_animation_running(true, args);
 
                 // A drag is starting.  Send onbeforeshown if we weren't visible, since we
                 // might be about to make the widget visible.
@@ -6295,9 +6305,13 @@ ppixiv.WidgetDragger = class
     show({ velocity=0 }={})
     {
         if(this.drag_animation.position == 1 && !this.drag_animation.playing)
+        {
+            // We're already in this state.  If we're coming out of a drag, send onanimationfinished.
+            this._send_animation_running(false);
             return;
+        }
 
-        this.onanimationstart();
+        this._send_animation_running(true);
 
         // This makes us visible if we weren't already.
         this._set_visible(true);
@@ -6315,6 +6329,7 @@ ppixiv.WidgetDragger = class
             // We're already closed, so just make sure we're marked hidden, which would normally
             // happen at the end of the animation.  This sends onafterhidden.
             this._set_visible(false);
+            this._send_animation_running(false);
             return;
         }
 
@@ -6323,6 +6338,19 @@ ppixiv.WidgetDragger = class
         let duration = this.duration();
         let easing = this._easing_for_velocity(velocity);
         this.drag_animation.play({end_position: 0, easing, duration});
+    }
+
+    // Call onanimationstart or onanimationfinished if we haven't previously entered that state.
+    _send_animation_running(value, ...args)
+    {
+        if(this._sent_onanimationstart == value)
+            return;
+
+        this._sent_onanimationstart = value;
+        if(value)
+            this.onanimationstart(...args);
+        else
+            this.onanimationfinished(...args);
     }
 
     toggle()

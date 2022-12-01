@@ -46,6 +46,12 @@ html {
     background-color: var(--main-background-color);
     background-image: var(--background-noise);
 
+    // Chrome has a lot of bugs around pointer cancellation, and tends to cancel drags when it
+    // shouldn't.  Disable drags on the document to partially prevent this.  The document itself
+    // doesn't scroll anyway, so this shouldn't matter, but this helps keep things like dialog
+    // drags from being cancelled.
+    touch-action: none !important;
+
     // The iOS inset bug also affests absolute positioning.  Set the window to position: relative
     // so absolute positioning is based on the document, so the above workaround affects absolutely
     // positioned nodes too, such as the main screen-illust-container.
@@ -2472,6 +2478,13 @@ a.box-link, span.box-link
         }
     }
 
+    // Enable scrolling on the bookmark tag list.
+    .bookmark-tag-list > .tag-list
+    {
+        overflow-x: hidden;
+        overflow-y: auto;
+    }
+        
     .context-menu-image-info-container {
         // Bottom align within the row.
         align-self: flex-end;
@@ -2539,8 +2552,6 @@ a.box-link, span.box-link
         display: flex;
         flex-direction: column;
         min-width: 200px;
-        overflow-x: hidden;
-        overflow-y: auto;
     }
 
     /* Recent bookmark tags in the popup menu: */
@@ -3112,6 +3123,25 @@ svg.heart-image .delete {
     &:not(.fullscreen) .dialog {
         border-radius: 5px;
     }
+
+    &.dragging-dialog {
+        > .dialog {
+            // Disable inputs during drags.  For example, this prevents bookmark tag buttons from being
+            // triggered by short drags in the mobile bookmark dialog.  Do this inside .dialog and not
+            // on the top level container, or buttons underneath the dialog can be activated by the drag.
+            pointer-events: none;
+        }
+    
+        // Disable all vertical scrollers inside dialogs while dragging horizontally to close.  This prevents
+        // vertical movement in the scroller once the horizontal dragger has taken over the drag, and prevents
+        // the dragger from being cancelled by the scroller on Android.
+        //
+        // This includes nested scrollers, like the individual panels in the settings dialog.
+        .vertical-scroller {
+            overflow: hidden !important;
+        }
+    }
+
     .header {
         --icon-size: 2;
 
