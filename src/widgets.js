@@ -59,6 +59,10 @@ ppixiv.widget = class
         parent=null,
         visible=true,
         shutdown_signal=null,
+
+        // An insertAdjacentElement position (beforebegin, afterbegin, beforeend, afterend) indicating
+        // where our contents should be inserted relative to container.  This can also be "replace", which
+        // will replace container.
         container_position="beforeend",
         ...options}={})
     {
@@ -107,7 +111,12 @@ ppixiv.widget = class
             console.assert(contents == null);
             this.container = this.create_template({html: template});
             if(container != null)
-                container.insertAdjacentElement(container_position, this.container);
+            {
+                if(container_position == "replace")
+                    container.replaceWith(this.container);
+                else
+                    container.insertAdjacentElement(container_position, this.container);
+            }
         }
         else
         {
