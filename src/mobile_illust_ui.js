@@ -224,9 +224,10 @@ class mobile_overlay_bookmark_tag_dialog extends ppixiv.dialog_widget
             bookmark_tag_list_widget: this.tag_list_widget,
         });
 
+        let private_bookmark = this.container.querySelector(".private");
+        private_bookmark.hidden = ppixiv.native;
         if(!ppixiv.native)
         {
-            let private_bookmark = this.container.querySelector(".private");
             this.private_bookmark = new bookmark_button_widget({
                 contents: private_bookmark,
                 bookmark_type: "private",
