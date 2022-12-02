@@ -6333,7 +6333,7 @@ ppixiv.WidgetDragger = class
             return;
         }
 
-        this.onanimationstart();
+        this._send_animation_running(true);
 
         let duration = this.duration();
         let easing = this._easing_for_velocity(velocity);
@@ -6346,7 +6346,6 @@ ppixiv.WidgetDragger = class
         if(this._sent_onanimationstart == value)
             return;
 
-        this._sent_onanimationstart = value;
         if(value)
             this.onanimationstart(...args);
         else
