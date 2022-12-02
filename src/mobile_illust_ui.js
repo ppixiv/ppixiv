@@ -387,6 +387,8 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
         // visible for transitions.
         this.container.hidden = !visible;
 
+        helpers.set_class(document.documentElement, "illust-menu-visible", visible);
+
         if(visible)
         {
             if(this.click_outside_listener == null)
