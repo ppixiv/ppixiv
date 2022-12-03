@@ -379,7 +379,7 @@ ppixiv.video_ui = class extends ppixiv.widget
             <div class="video-ui no-close-ui">
                 <div class=seek-bar-container-top></div>
                 <div class=video-ui-strip>
-                    <vv-container class=play-button>
+                    <vv-container class="play-button button">
                         ${ helpers.create_icon("pause", { dataset: { play: "pause" }}) }
                         ${ helpers.create_icon("play_arrow", { dataset: { play: "play" }}) }
                     </vv-container>
@@ -392,8 +392,10 @@ ppixiv.video_ui = class extends ppixiv.widget
                         <div class=volume-line></div>
                     </vv-container>
 
-                    ${ helpers.create_icon("volume_up", { dataset: { volume: "high" }}) }
-                    ${ helpers.create_icon("volume_off", { dataset: { volume: "mute" }}) }
+                    <vv-container class=button>
+                        ${ helpers.create_icon("volume_up", { dataset: { volume: "high" }}) }
+                        ${ helpers.create_icon("volume_off", { dataset: { volume: "mute" }}) }
+                    </vv-container>
 
                     <vv-container class="pip-button button">
                         ${ helpers.create_icon("picture_in_picture_alt") }

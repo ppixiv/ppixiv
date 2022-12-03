@@ -297,6 +297,7 @@ ppixiv.widget = class
 
     querySelector(selector) { return this.container.querySelector(selector); }
     querySelectorAll(selector) { return this.container.querySelectorAll(selector); }
+    closest(selector) { return this.container.closest(selector); }
 }
 
 ppixiv.dialog_widget = class extends ppixiv.widget

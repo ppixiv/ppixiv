@@ -560,8 +560,8 @@ html.mobile .screen-illust-container {
 
     // On mobile, move this above the image menu.  This UI needs a rework for mobile, this is
     // just to make it usable for now.
-    html.mobile {
-        bottom: 100px;
+    html.mobile & {
+        bottom: var(--menu-bar-height);
     }
 
     left: 0px;
@@ -620,6 +620,11 @@ html.mobile .screen-illust-container {
         // If we're below, don't do this so we're flush against the bottom of the video UI.
         &[data-position="top"] { padding-top: 25px; }
 
+        // On mobile, add padding above the seek bar to make it easier to drag.
+        html.mobile & {
+            padding-top: 2em;
+        }
+
         // Hide the seek bar by default.  Show it when the mouse is visible or .visible is set
         // (50% height).  Expand it while dragging (100% height).
         //
@@ -673,15 +678,14 @@ html.mobile .screen-illust-container {
     > .video-ui-strip
     {
         width: 100%;
-        height: 100%;
-        height: 3em;
-        padding: 0 1em;
+        padding: 0.25em 1em;
         display: flex;
         flex-direction: row;
         color: #ffffff;
         align-items: center;
         gap: 10px;
         background-color: rgba(0,0,0,0.5);
+        cursor: default; // so we don't inherit the video's pointer cursor
 
         // Tweak the vertical alignment for centering.
         padding-top: 4px;
@@ -2599,7 +2603,7 @@ a.box-link, span.box-link
     top: 0px;
     left: 0px;
     width: 100%;
-    height: calc(100%);
+    height: 100%;
     display: flex;
     justify-content: flex-end;
 

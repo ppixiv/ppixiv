@@ -143,7 +143,10 @@ let mobile_illust_ui_top_page = class extends ppixiv.widget
 
     refresh_video_height()
     {
-        document.documentElement.style.setProperty("--menu-bar-height", `${this.container.offsetHeight}px`);
+        // Our height usually isn't an integer.  Round down, so we prefer to overlap backgrounds
+        // with things like the video UI rather than leaving a gap.
+        let {height} = this.container.getBoundingClientRect();
+        this.closest(".screen").style.setProperty("--menu-bar-height", `${Math.floor(height)}px`);
     }
 
     // Return the illust ID whose parent the parent button will go to.
