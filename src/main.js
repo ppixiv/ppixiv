@@ -69,7 +69,7 @@ ppixiv.MainController = class
         new ppixiv.global_key_listener;
 
         // Set up iOS movementX/movementY handling.
-        ppixiv.PointerEventMovement.get;
+        new ppixiv.PointerEventMovement();
 
         // If enabled, cache local info which tells us what we have access to.
         await local_api.load_local_info();

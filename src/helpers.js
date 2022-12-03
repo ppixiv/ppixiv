@@ -4030,13 +4030,6 @@ ppixiv.phistory = new VirtualHistory;
 
 ppixiv.PointerEventMovement = class
 {
-    static get get()
-    {
-        if(this.singleton == null)
-            this.singleton = new PointerEventMovement();
-        return this.singleton;
-    }
-    
     constructor()
     {
         // If the browser supports movementX (everyone except for iOS Safari), this isn't
@@ -4056,12 +4049,8 @@ ppixiv.PointerEventMovement = class
     {
         // If this is the first event for this pointerId, store the current position.  Otherwise,
         // store the previous position.
-        let previousX = e.screenX, previousY = e.screenY;
-        if(this.last_pointer_positions[e.pointerId] != null)
-        {
-            previousX = this.last_pointer_positions[e.pointerId].x;
-            previousY = this.last_pointer_positions[e.pointerId].y;
-        }
+        let previousX = this.last_pointer_positions[e.pointerId]?.x ?? e.screenX;
+        let previousY = this.last_pointer_positions[e.pointerId]?.y ?? e.screenY;
 
         this.last_pointer_positions[e.pointerId] = { x: e.screenX, y: e.screenY };
         e.movementX = e.screenX - previousX;
