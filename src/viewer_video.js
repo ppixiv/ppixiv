@@ -388,7 +388,7 @@ ppixiv.video_ui = class extends ppixiv.widget
 
                     <div style="flex: 1;"></div>
 
-                    <div class="volume-slider button">
+                    <div class="volume-slider button" data-hidden-on=ios>
                         <div class=volume-line></div>
                     </div>
 

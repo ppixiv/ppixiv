@@ -258,7 +258,6 @@ html.mobile {
         font-size: 150%;
     }
 
-    [data-hidden-on ~= "mobile"] { display: none !important; }
 }
 
 /* Theme colors: */
@@ -277,6 +276,10 @@ html {
         --background-noise: none;
     }
 
+    &.mobile [data-hidden-on ~= "mobile"] { display: none !important; }
+    &.ios { [data-hidden-on ~= "ios"] { display: none !important; } }
+    &.android { [data-hidden-on ~= "android"] { display: none !important; } }
+    
     --main-background-color: #222;
     --background-noise: var(--dark-noise);
 
