@@ -94,6 +94,12 @@ ppixiv.viewer_video = class extends ppixiv.viewer_video_base
         this.video.volume = settings.get("volume");
         this.video.muted = settings.get("mute");
 
+        // Set the video inert to work around an iOS bug: after PIP is activated on a video and
+        // then deactivated, the shadow controls for the "this video is playing in picture in
+        // picture" still exist and continue to cancel pointer events forever.  We don't use inputs
+        // directly on the video, so we can set it inert to prevent this from happening.
+        this.video.inert = true;
+
         // Store changes to volume.
         this.video.addEventListener("volumechange", (e) => {
             settings.set("volume", this.video.volume);
