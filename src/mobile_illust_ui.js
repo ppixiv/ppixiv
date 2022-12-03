@@ -294,8 +294,6 @@ class mobile_illust_ui_more_options_dialog extends dialog_widget
 ppixiv.mobile_illust_ui = class extends ppixiv.widget
 {
     constructor({
-        onclose,
-
         // This node receives our drag animation property.  This goes on the screen instead of
         // us, so the video UI can see it too.
         transition_target,
@@ -315,7 +313,6 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
             container: this.container.querySelector(".context-menu-image-info-container"),
         });
 
-        this.onclose = onclose;
         this.page = new mobile_illust_ui_top_page({
             container: this.container,
         });
@@ -412,10 +409,6 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
                 this.click_outside_listener.shutdown();
                 this.click_outside_listener = null;
             }
-
-            // Tell the caller that we're closing.
-            if(this.onclose)
-                this.onclose();
         }
 
         this.refresh();
