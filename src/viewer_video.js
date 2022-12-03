@@ -379,28 +379,29 @@ ppixiv.video_ui = class extends ppixiv.widget
             <div class="video-ui no-close-ui">
                 <div class=seek-bar-container-top></div>
                 <div class=video-ui-strip>
-                    <div class=play-button>
+                    <vv-container class=play-button>
                         ${ helpers.create_icon("pause", { dataset: { play: "pause" }}) }
                         ${ helpers.create_icon("play_arrow", { dataset: { play: "play" }}) }
-                    </div>
+                    </vv-container>
 
                     <div class=time></div>
 
                     <div style="flex: 1;"></div>
 
-                    <div class="volume-slider button" data-hidden-on=ios>
+                    <vv-container class="volume-slider button" data-hidden-on=ios>
                         <div class=volume-line></div>
-                    </div>
+                    </vv-container>
 
                     ${ helpers.create_icon("volume_up", { dataset: { volume: "high" }}) }
                     ${ helpers.create_icon("volume_off", { dataset: { volume: "mute" }}) }
 
-                    <div class="pip-button button">
+                    <vv-container class="pip-button button">
                         ${ helpers.create_icon("picture_in_picture_alt") }
-                    </div>
-                    <div class="fullscreen button">
+                    </vv-container>
+
+                    <vv-container class="fullscreen button">
                         <ppixiv-inline src="resources/fullscreen.svg"></ppixiv-inline>
-                    </div>
+                    </vv-container>
                 </div>
                 <div class=seek-bar-container-bottom></div>
             </div>
