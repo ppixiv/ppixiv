@@ -16,71 +16,54 @@ ppixiv.seek_bar = class extends widget
             `
         });
 
-        this.container.addEventListener("pointerdown", this.mousedown);
-
         this.current_time = 0;
         this.duration = 1;
         this.amount_loaded = 1;
         this.refresh();
         this.set_callback(null);
+
+        this.dragger = new ppixiv.DragHandler({
+            element: this.container,
+            signal: this.shutdown_signal.signal,
+            name: "seek-bar",
+
+            // Don't delay the start of seek bar drags until the first pointer movement.
+            deferred_start: () => false,
+
+            onpointerdown: () => {
+                // Never start dragging while we have no callback.  This generally shouldn't happen
+                // since we should be hidden.
+                return this.callback != null;
+            },
+
+            ondragstart: ({event}) => {
+                helpers.set_class(this.container, "dragging", true);
+
+                this.set_drag_pos(event);
+                return true;
+            },
+
+            ondrag: ({event, first}) => {
+                this.set_drag_pos(event);
+            },
+
+            ondragend: () => {
+                helpers.set_class(this.container, "dragging", false);
+
+                if(this.callback)
+                    this.callback(false, null);
+            },
+        });
     };
-
-    mousedown = (e) =>
-    {
-        // Never start dragging while we have no callback.  This generally shouldn't happen
-        // since we should be hidden.
-        if(this.callback == null)
-            return;
-
-        if(this.dragging)
-            return;
-
-        e.preventDefault();
-        this.dragging = true;
-        helpers.set_class(this.container, "dragging", this.dragging);
-
-        // Only listen to mousemove while we're dragging.  Put this on window, so we get drags outside
-        // the window.
-        window.addEventListener("pointermove", this.mousemove);
-        window.addEventListener("pointerup", this.mouseup);
-        window.addEventListener("pointercancel", this.mouseup);
-
-        this.set_drag_pos(e);
-    }
-
-    stop_dragging()
-    {
-        if(!this.dragging)
-            return;
-
-        this.dragging = false;
-        helpers.set_class(this.container, "dragging", this.dragging);
-
-        window.removeEventListener("pointermove", this.mousemove);
-        window.removeEventListener("pointerup", this.mouseup);
-
-        if(this.callback)
-            this.callback(false, null);
-    }
-
-    mouseup = (e) =>
-    {
-        this.stop_dragging();
-    }
-
-    mousemove = (e) =>
-    {
-        this.set_drag_pos(e);
-    }
 
     // The user clicked or dragged.  Pause and seek to the clicked position.
     set_drag_pos(e)
     {
         // Get the mouse position relative to the seek bar.
-        var bounds = this.container.getBoundingClientRect();
-        var pos = (e.clientX - bounds.left) / bounds.width;
+        let bounds = this.container.getBoundingClientRect();
+        let pos = (e.clientX - bounds.left) / bounds.width;
         pos = Math.max(0, Math.min(1, pos));
-        var time = pos * this.duration;
+        let time = pos * this.duration;
 
         // Tell the user to seek.
         this.callback(true, time);
@@ -98,7 +81,7 @@ ppixiv.seek_bar = class extends widget
 
         // Stop dragging on any previous caller before we replace the callback.
         if(this.callback != null)
-            this.stop_dragging();
+            this.dragger.cancel_drag();
 
         this.callback = callback;
     };
