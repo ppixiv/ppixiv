@@ -817,9 +817,17 @@ ppixiv.data_source = class
         // This button is selected if all of the keys it sets are present in the URL.
         let button_is_selected = true;
 
+        // Collect data for each key.
+        let field_data = {};
         for(let [key, value] of Object.entries(fields))
         {
-            // If the key is "/path", look up the path index.
+            let original_key = key;
+
+            let default_value = null;
+            if(default_values && key in default_values)
+                default_value = default_values[key];
+
+            // Convert path keys in fields from /path to their path index.
             if(key.startsWith("/"))
             {
                 if(url_parts[key] == null)
@@ -827,9 +835,19 @@ ppixiv.data_source = class
                     console.warn(`URL key ${key} not specified in URL: ${args}`);
                     continue;
                 }
+
                 key = url_parts[key];
             }
+            
+            field_data[key] = {
+                value,
+                original_key,
+                default_value,
+            }
+        }
 
+        for(let [key, {value}] of Object.entries(field_data))
+        {
             // The value we're setting in the URL:
             var this_value = value;
             if(this_value == null && default_values != null)
@@ -851,12 +869,12 @@ ppixiv.data_source = class
             args.set(key, value);
         }
 
-        // If this is a toggle and the button is selected, remove the fields, turning
-        // this into an "off" button.
+        // If this is a toggle and the button is selected, set the fields to their default,
+        // turning this into an "off" button.
         if(toggle && button_is_selected)
         {
-            for(let key of Object.keys(fields))
-                args.set(key, null);
+            for(let [key, { default_value }] of Object.entries(field_data))
+                args.set(key, default_value);
         }
 
         if(adjust_url)
@@ -3016,15 +3034,16 @@ ppixiv.data_sources.new_illust = class extends data_source
         this.ui = new ppixiv.widget({
             ...options,
             template: `
-            <div class=box-button-row>
+            <div>
                 <div class=box-button-row>
-                    ${ helpers.create_box_link({label: "Illustrations", popup: "Show illustrations",     data_type: "new-illust-type-illust" }) }
-                    ${ helpers.create_box_link({label: "Manga",         popup: "Show manga only",        data_type: "new-illust-type-manga" }) }
-                </div>
+                    <div class=box-button-row>
+                        ${ helpers.create_box_link({label: "Illustrations", popup: "Show illustrations",     data_type: "new-illust-type-illust" }) }
+                        ${ helpers.create_box_link({label: "Manga",         popup: "Show manga only",        data_type: "new-illust-type-manga" }) }
+                    </div>
 
-                <div class=box-button-row>
-                    ${ helpers.create_box_link({label: "All ages",      popup: "Show all-ages works",    data_type: "new-illust-ages-all" }) }
-                    ${ helpers.create_box_link({label: "R18",           popup: "Show R18 works",         data_type: "new-illust-ages-r18" }) }
+                    <div class=box-button-row>
+                        ${ helpers.create_box_link({label: "R18",           popup: "Show only R18 works",         data_type: "new-illust-ages-r18" }) }
+                    </div>
                 </div>
             </div>
         `});
@@ -3038,8 +3057,12 @@ ppixiv.data_sources.new_illust = class extends data_source
 
         this.set_item(this.ui.container, { type: "new-illust-type-illust", fields: {type: null} });
         this.set_item(this.ui.container, { type: "new-illust-type-manga", fields: {type: "manga"} });
-        this.set_item(this.ui.container, { type: "new-illust-ages-all", url_format: "path", fields: {"/path": "new_illust.php"}, current_url: current_args.url });
-        this.set_item(this.ui.container, { type: "new-illust-ages-r18", url_format: "path", fields: {"/path": "new_illust_r18.php"}, current_url: current_args.url });
+
+        this.set_item(this.ui.container, { type: "new-illust-ages-r18", toggle: true, url_format: "path",
+            fields: {"/path": "new_illust_r18.php"},
+            default_values: {"/path": "new_illust.php"},
+            current_url: current_args.url,
+        });
     }
 }
 
@@ -3103,15 +3126,12 @@ ppixiv.data_sources.new_works_by_following = class extends data_source
             template: `
             <div>
                 <div class=box-button-row>
-                    <span style="margin-right: 25px;">
-                        ${ helpers.create_box_link({label: "All",    popup: "Show all works",   data_type: "bookmarks-new-illust-all", classes: ["r18"] }) }
-                        ${ helpers.create_box_link({label: "R18",    popup: "Show R18 works",   data_type: "bookmarks-new-illust-ages-r18", classes: ["r18"] }) }
-                    </span>
+                    ${ helpers.create_box_link({label: "R18",    popup: "Show only R18 works",   data_type: "bookmarks-new-illust-ages-r18", classes: ["r18"] }) }
 
-                    <span class="new-post-follow-tags premium-only">
+                    <div class="new-post-follow-tags premium-only">
                         ${ helpers.create_box_link({label: "All tags",    popup: "Follow tags", icon: "bookmark", classes: ["popup-menu-box-button"] }) }
                         <div class="popup-menu-box new-post-follow-tag-list vertical-list"></div>
-                    </span>
+                    </div>
                 </div>
             </div>
         `});
@@ -3167,8 +3187,14 @@ ppixiv.data_sources.new_works_by_following = class extends data_source
         if(this.bookmark_tags.length == 0 && current_tag != "All tags")
             add_tag_link(current_tag);
             
-        this.set_item(this.ui.container, { type: "bookmarks-new-illust-all", url_format: "path", fields: {"/path": "bookmark_new_illust.php"}, current_url: current_args.url });
-        this.set_item(this.ui.container, { type: "bookmarks-new-illust-ages-r18", url_format: "path", fields: {"/path": "bookmark_new_illust_r18.php"}, current_url: current_args.url });
+        this.set_item(this.ui.container, {
+            type: "bookmarks-new-illust-ages-r18",
+            toggle: true,
+            url_format: "path",
+            fields: {"/path": "bookmark_new_illust_r18.php"},
+            default_values: {"/path": "bookmark_new_illust.php"},
+            current_url: current_args.url,
+        });
 
         // Set the contents of the tag menu button.
         this.set_active_popup_highlight(this.ui.container);
@@ -3778,21 +3804,23 @@ ppixiv.data_sources.follows = class extends data_source
         this.ui = new ppixiv.widget({
             ...options,
             template: `
-            <div class=box-button-row>
+            <div>
                 <div class=box-button-row>
-                    <span class=follows-public-private style="margin-right: 25px;">
-                        ${ helpers.create_box_link({label: "Public",    popup: "Show publically followed users",   data_type: "public-follows" }) }
-                        ${ helpers.create_box_link({label: "Private",    popup: "Show privately followed users",   data_type: "private-follows" }) }
-                    </span>
+                    <div class=box-button-row>
+                        <vv-container class=follows-public-private style="margin-right: 25px;">
+                            ${ helpers.create_box_link({label: "Public",    popup: "Show publically followed users",   data_type: "public-follows" }) }
+                            ${ helpers.create_box_link({label: "Private",    popup: "Show privately followed users",   data_type: "private-follows" }) }
+                        </vv-container>
 
-                    ${ helpers.create_box_link({ popup: "Accepting requests", icon: "paid",   data_type: "accepting-requests" }) }
+                        ${ helpers.create_box_link({ popup: "Accepting requests", icon: "paid",   data_type: "accepting-requests" }) }
                     </div>
 
-                <div class=box-button-row>
-                    <span class="followed-users-follow-tags premium-only">
-                        ${ helpers.create_box_link({label: "All tags",    popup: "Follow tags", icon: "bookmark", classes: ["popup-menu-box-button"] }) }
-                        <div class="popup-menu-box follow-tag-list vertical-list"></div>
-                    </span>
+                    <div class=box-button-row>
+                        <span class="followed-users-follow-tags premium-only">
+                            ${ helpers.create_box_link({label: "All tags",    popup: "Follow tags", icon: "bookmark", classes: ["popup-menu-box-button"] }) }
+                            <div class="popup-menu-box follow-tag-list vertical-list"></div>
+                        </span>
+                    </div>
                 </div>
             </div>
         `});
