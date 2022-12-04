@@ -5681,7 +5681,7 @@ ppixiv.TouchScroller = class
                 console.assert(this.mode == "drag-delay", `Expected to be in drag-delay, actually in ${this.mode}`);
                 ppixiv.RunningDrags.cancel_others(this);
                 this.mode = "dragging";
-            }, 50);
+            }, 30);
 
             this.mode = "drag-delay";
         }
