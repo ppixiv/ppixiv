@@ -378,11 +378,7 @@ ppixiv.screen_search = class extends ppixiv.screen
                 <div class=local-navigation-box></div>
 
                 <div class="search-results scroll-container">
-                    <div class="thumbnail-ui top-ui-box">
-                        <div style="flex: 1;"></div>
-                        <div class=thumbnail-ui-box-container></div>
-                        <div style="flex: 1;"></div>
-                    </div>
+                    <div class=top-ui-box></div>
 
                     <div class=thumbnail-container-box></div>
                 </div>
@@ -395,7 +391,7 @@ ppixiv.screen_search = class extends ppixiv.screen
         user_cache.addEventListener("usermodified", this.refresh_ui, { signal: this.shutdown_signal.signal });        
 
         this.thumbnail_ui = new thumbnail_ui_desktop({
-            container: this.container.querySelector(".thumbnail-ui-box-container"),
+            container: this.container.querySelector(".top-ui-box"),
         });
 
         if(ppixiv.mobile)
@@ -500,11 +496,6 @@ ppixiv.screen_search = class extends ppixiv.screen
     {
         helpers.set_class(this.top_ui_box, "ui-on-hover", settings.get("ui-on-hover") && !ppixiv.mobile);
         this.refresh_expand_manga_posts_button();
-
-        // Flush the top UI transition, so it doesn't animate weirdly when toggling ui-on-hover.
-        this.top_ui_box.classList.add("disable-transition");
-        this.top_ui_box.offsetHeight;
-        this.top_ui_box.classList.remove("disable-transition");
     }
 
     get active()

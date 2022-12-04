@@ -1248,17 +1248,18 @@ body.hide-r18g .r18g { display: none; }
     width: 100%;
     display: flex;
     flex-direction: row;
-    align-items: center;
+    justify-content: center;
     padding-top: calc(max(1em, env(safe-area-inset-top)));
     padding-bottom: .5em;
     z-index: 1;
+    transition: top ease-out .2s;
 
     html:not(.mobile) & {
         // Prevent the empty space around the UI for centering from eating button presses.
         pointer-events: none;
 
         // Reenable it in its children.
-        > * {
+        .thumbnail-ui-box {
             pointer-events: auto;
         }
     }
@@ -1267,7 +1268,6 @@ body.hide-r18g .r18g { display: none; }
     &.ui-on-hover
     {
         bottom: 100%;
-        transition: top ease-out .2s;
 
         /* Normally pointer-events is disabled above, so the sides of the UI box don't cover clicks.
          * However, that also makes the hover not include the top padding above the UI, causing it
@@ -1290,13 +1290,6 @@ body.hide-r18g .r18g { display: none; }
             // --ui-box-height is the current height of this box.
             top: calc(-1 * var(--ui-box-height) + 40px);
         }
-    }
-
-    /* This is used to temporarily disable the transition when the ui-on-hover setting is
-     * changed in the options menu. */
-    body.ui-on-hover &.disable-transition
-    {
-        transition: none;
     }
 }
 
@@ -1404,19 +1397,20 @@ body.hide-r18g .r18g { display: none; }
     }
 
     .thumbnail-ui-box-container {
+        display: contents;
+    }
+
+    .thumbnail-ui-box {
         width: 50%;
 
         // Make sure this doesn't get too narrow, or it'll overlap too much of the thumbnail area.
         min-width: calc(min(800px, 100%));
         padding: 0 15px;
-    }
+        margin: 10px 0;
 
-    .thumbnail-ui-box {
-        width: 100%;
         background-color: var(--ui-bg-color);
         color: var(--ui-fg-color);
         border-radius: 4px;
-        padding: 10px;
 
         html:not(.mobile) & {
             box-shadow: 0 0 15px 10px #000;
