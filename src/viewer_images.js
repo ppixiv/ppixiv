@@ -30,12 +30,15 @@ ppixiv.viewer_images = class extends ppixiv.viewer
 
         // Create the inpaint editor.  This is passed down to on_click_viewer to group
         // it with the image, but we create it here and reuse it.
-        this.image_editor = new ppixiv.ImageEditor({
-            container: this.container,
-            parent: this,
-            overlay_container: this.on_click_viewer.editing_container,
-            onvisibilitychanged: () => { this.refresh(); }, // refresh when crop editing is changed
-        });
+        if(!ppixiv.mobile)
+        {
+            this.image_editor = new ppixiv.ImageEditor({
+                container: this.container,
+                parent: this,
+                overlay_container: this.on_click_viewer.editing_container,
+                onvisibilitychanged: () => { this.refresh(); }, // refresh when crop editing is changed
+            });
+        }
     }
 
     async load()
@@ -48,7 +51,8 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         this._onnextimage = onnextimage;
 
         // Tell the inpaint editor about the image.
-        this.image_editor.set_media_id(this.media_id);
+        if(this.image_editor)
+            this.image_editor.set_media_id(this.media_id);
 
         // If full info is already loaded, use it.  We don't need to go async at all in this case.
         this.illust_data = ppixiv.media_cache.get_media_info_sync(this.media_id);
@@ -146,7 +150,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
             inpaint_url: current_image.inpaint_url,
             width: current_image.width,
             height: current_image.height,
-            crop: this.image_editor.editing_crop? null:current_image.crop, // no cropping while editing cropping
+            crop: this.image_editor?.editing_crop? null:current_image.crop, // no cropping while editing cropping
             pan: current_image.pan,
             restore_history: this.restore_history,
 
