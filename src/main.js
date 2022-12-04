@@ -641,8 +641,12 @@ ppixiv.MainController = class
             return;
         }
 
+        // Compare the canonical URLs, so we'll return to the entry in history even if the search
+        // page doesn't match.
         let previous_url = ppixiv.phistory.previous_state_url;
-        let same_url = helpers.are_urls_equivalent(previous_url, args.url);
+        let canonical_previous_url = previous_url? data_source.get_canonical_url(previous_url):null;
+        let canonical_new_url = data_source.get_canonical_url(args.url);
+        let same_url = helpers.are_urls_equivalent(canonical_previous_url, canonical_new_url);
         if(same_url)
         {
             console.log("Navigated search is last in history, going there instead");
