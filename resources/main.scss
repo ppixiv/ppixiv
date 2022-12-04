@@ -1010,19 +1010,24 @@ html.mobile .screen-illust-container {
 }
 
 .avatar-widget-follow-container {
-    display: flex;
-    
     // Set relative so we're the positioning container for the follow dropdown.
     position: relative;
+    --avatar-height: 50px;
+
+    &.big .avatar { --avatar-height: 100px; }
+
+    // For the avatar in the popup menu, use the same size as the other popup menu buttons.
+    .avatar-widget-container & .avatar { --avatar-height: 44px;}
     
     .avatar {
         transition: filter .25s;
         display: block;
-        position: relative;
         filter: contrast(1);
-        transition: filter .25s;
         border-radius: 5px;
         object-fit: cover;
+        aspect-ratio: 1;
+        width: auto;
+        height: var(--avatar-height);
 
         &.loaded {
             box-shadow: 0 0 10px 4px #000;
@@ -1035,22 +1040,6 @@ html.mobile .screen-illust-container {
         }
     }
 
-    &:not(.big) .avatar {
-        width: 50px;
-        height: 50px;
-    }
-
-    &.big .avatar {
-        width: 170px;
-        height: 170px;
-    }
-
-    /* For the avatar in the popup menu, use the same size as the other popup menu buttons. */
-    .avatar-widget-container & .avatar {
-        width: 44px;
-        height: 44px;
-    }
-    
     // Position the follow dropdown.
     .follow-box {
         position: absolute;
@@ -1096,17 +1085,13 @@ html.mobile .screen-illust-container {
             transform: translate(0px, -2px);
         }
     }
-
-    .avatar-link {
-        display: block;
-    }
 }
 
 .follow-container
 {
     display: flex;
     flex-direction: column;
-    background-color: var(--frame-bg-color);
+    background-color: var(--ui-bg-color);
     border: 1px solid var(--frame-border-color);
     padding: .25em;
     overflow-y: auto;
@@ -2085,9 +2070,10 @@ a.box-link, span.box-link
 
     & > img {
         display: block;
-        height: 150px;
-        width: 150px;
+        height: 100px;
+        width: 100px;
         object-fit: cover;
+        object-position: 50% 0;
         border-radius: 5px; /* matches the avatar display */
     }
 }

@@ -1062,7 +1062,7 @@ ppixiv.avatar_widget = class extends widget
     {
         super({...options, template: `
             <div class=avatar-widget-follow-container>
-                <a href=# class=avatar-link style="position: relative;">
+                <a href=# class=avatar-link>
                     <canvas class=avatar></canvas>
 
                     <div class=follow-icon>
@@ -1222,9 +1222,7 @@ ppixiv.follow_widget = class extends widget
             visible: false,
 
             ...options, template: `
-            <div class="follow-container" style="
-                background-color: #000;
-            ">
+            <div class="follow-container vertical-list">
                 ${helpers.create_box_link({
                     label: "View posts",
                     icon: "image",
