@@ -318,17 +318,6 @@ ppixiv.settings_widgets = {
                 });
             },
 
-            no_recent_history: () => {
-                return new menu_option_toggle_setting({
-                    ...global_options,
-                    label: "Remember recent history",
-                    setting: "no_recent_history",
-                    invert_display: true,
-                    explanation_enabled: "Remember recently seen thumbnails",
-                    explanation_disabled: "Don't remember recently seen thumbnails",
-                });
-            },
-    
             view_mode: () => {
                 new menu_option_toggle_setting({
                     ...global_options,
@@ -631,9 +620,6 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
                     settings_widgets.import_extra_data();
         
                 settings_widgets.stage_slideshow();
-        
-                // Hidden for now (not very useful)
-                // settings_widgets.no_recent_history();
             },
 
             whats_new: () => {

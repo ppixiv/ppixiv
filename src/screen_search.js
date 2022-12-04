@@ -417,7 +417,6 @@ ppixiv.screen_search = class extends ppixiv.screen
  
         settings.addEventListener("ui-on-hover", this.update_from_settings, { signal: this.shutdown_signal.signal });
         settings.addEventListener("no-hide-cursor", this.update_from_settings, { signal: this.shutdown_signal.signal });
-        settings.addEventListener("no_recent_history", this.update_from_settings, { signal: this.shutdown_signal.signal });
         settings.addEventListener("expand_manga_thumbnails", this.update_from_settings, { signal: this.shutdown_signal.signal });
         muting.singleton.addEventListener("mutes-changed", this.refresh_ui_for_user_id);
 
