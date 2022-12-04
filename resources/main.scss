@@ -1640,7 +1640,7 @@ body.hide-r18g .r18g { display: none; }
 
         // Thumbnail animations aren't used on mobile.  Avoid defining it if we're not using it,
         // so we don't put transforms on thumbnails and possibly cause more complicated compositing.
-        html:not(.mobile) {
+        @media(hover: hover) {
             // Thumbnail zooming
             //
             // If thumbnail zooming is enabled, zoom thumbs in while not hovered.
