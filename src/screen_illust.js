@@ -1097,7 +1097,7 @@ class DragImageChanger
         }
 
         // If we start a fling from this release, this is the velocity we'll try to match.
-        let recent_velocity = Math.abs(this.recent_pointer_movement.current_velocity.x);
+        let recent_velocity = this.recent_pointer_movement.current_velocity.x;
 
         this.recent_pointer_movement.reset();
 
@@ -1151,8 +1151,14 @@ class DragImageChanger
             let easing = ppixiv.Bezier2D.find_curve_for_velocity({
                 distance: Math.abs(end_x - start_x),
                 duration: duration / 1000, // in seconds
-                target_velocity: recent_velocity,
+                target_velocity: Math.abs(recent_velocity),
             });
+
+            // If we're panning left but the user dragged right (or vice versa), that usually means we
+            // dragged past the end into overscroll, and all we're doing is moving back in bounds.  Ignore
+            // the drag velocity since it isn't related to our speed.
+            if((end_x > start_x) != (recent_velocity > 0))
+                easing = "ease-out";
 
             let animation = new ppixiv.DirectAnimation(new KeyframeEffect(viewer.container, [
                 { transform: viewer.container.style.transform },

@@ -2674,7 +2674,6 @@ ppixiv.data_source_bookmarks_base = class extends data_source
         current_url.searchParams.delete("p");
 
         var tag_list = this.ui.container.querySelector(".bookmark-tag-list");
-        let current_tag = this.displaying_tag;
         
         for(let tag of tag_list.querySelectorAll(".tag-entry"))
             tag.remove();
