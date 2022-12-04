@@ -196,6 +196,12 @@ class thumbnail_ui_desktop extends ppixiv.widget
 
         this.container.querySelector(".preferences-button").addEventListener("click", (e) => new ppixiv.settings_dialog());
 
+        settings.addEventListener("expand_manga_thumbnails", this.update_from_settings, { signal: this.shutdown_signal.signal });
+
+        // Disable the avatar widget unless the data source enables it.
+        this.avatar_container = this.container.querySelector(".avatar-container");
+        this.avatar_container.hidden = true;
+
         // Set up login/logout buttons for native.
         if(ppixiv.native)
         {
@@ -208,6 +214,25 @@ class thumbnail_ui_desktop extends ppixiv.widget
                     local_api.logout();
             });
         }
+    }
+    
+    set_data_source(data_source)
+    {
+        if(this.data_source == data_source)
+            return;
+        this.data_source = data_source;
+    }
+    
+    update_from_settings = () =>
+    {
+        this.refresh_expand_manga_posts_button();
+    }
+
+    initial_refresh_ui()
+    {
+        // Only show the "refresh from page" button if the data source supports start
+        // pages.  If it doesn't, the two refresh buttons are equivalent.
+        this.container.querySelector(".refresh-search-from-page-button").hidden = !this.data_source.supports_start_page;
     }
 
     refresh_ui()
@@ -228,6 +253,7 @@ class thumbnail_ui_desktop extends ppixiv.widget
         }
 
         this.refresh_slideshow_button();
+        this.refresh_expand_manga_posts_button();
     }
 
     // Refresh the slideshow button.
@@ -235,6 +261,21 @@ class thumbnail_ui_desktop extends ppixiv.widget
     {
         let node = this.container.querySelector("A.slideshow");
         node.href = main_controller.slideshow_url.url;
+    }
+
+    // Refresh the highlight for the "expand all posts" button.
+    refresh_expand_manga_posts_button()
+    {
+        let enabled = this.parent.search_view.media_ids_expanded_by_default;
+        let button = this.container.querySelector(".expand-manga-posts");
+        button.dataset.popup = enabled? "Collapse manga posts":"Expand manga posts";
+        button.querySelector(".font-icon").innerText = enabled? "close_fullscreen":"open_in_full";
+        
+        // Hide the button if the data source can never return manga posts to be expanded, or
+        // if it's the manga page itself which always expands.
+        button.hidden =
+            !this.data_source?.can_return_manga ||
+            this.data_source?.includes_manga_pages;
     }
 }
 
@@ -417,7 +458,6 @@ ppixiv.screen_search = class extends ppixiv.screen
  
         settings.addEventListener("ui-on-hover", this.update_from_settings, { signal: this.shutdown_signal.signal });
         settings.addEventListener("no-hide-cursor", this.update_from_settings, { signal: this.shutdown_signal.signal });
-        settings.addEventListener("expand_manga_thumbnails", this.update_from_settings, { signal: this.shutdown_signal.signal });
         muting.singleton.addEventListener("mutes-changed", this.refresh_ui_for_user_id);
 
         // Zoom the thumbnails on ctrl-mousewheel:
@@ -494,7 +534,6 @@ ppixiv.screen_search = class extends ppixiv.screen
     update_from_settings = () =>
     {
         helpers.set_class(this.top_ui_box, "ui-on-hover", settings.get("ui-on-hover") && !ppixiv.mobile);
-        this.refresh_expand_manga_posts_button();
     }
 
     get active()
@@ -548,6 +587,8 @@ ppixiv.screen_search = class extends ppixiv.screen
         this.data_source = data_source;
 
         this.search_view.set_data_source(data_source);
+        if(this.thumbnail_ui)
+            this.thumbnail_ui.set_data_source(data_source);
 
         if(this.data_source == null)
         {
@@ -566,8 +607,6 @@ ppixiv.screen_search = class extends ppixiv.screen
         let data_source_ui_container = this.container.querySelector(".data-source-ui");
         this.current_data_source_ui = this.data_source.create_ui({ container: data_source_ui_container });
 
-        // Disable the avatar widget unless the data source enables it.
-        this.avatar_container.hidden = true;
         this.avatar_widget.set_user_id(null);
 
         // Listen to the data source loading new pages, so we can refresh the list.
@@ -595,9 +634,8 @@ ppixiv.screen_search = class extends ppixiv.screen
         if(this.data_source == null)
             return;
 
-        // Only show the "refresh from page" button if the data source supports start
-        // pages.  If it doesn't, the two refresh buttons are equivalent.
-        this.container.querySelector(".refresh-search-from-page-button").hidden = !this.data_source.supports_start_page;
+        if(this.thumbnail_ui)
+            this.thumbnail_ui.initial_refresh_ui();
     }
 
     refresh_ui = () =>
@@ -620,7 +658,6 @@ ppixiv.screen_search = class extends ppixiv.screen
         helpers.set_dataset(this.container.dataset, "showNavigation", this.can_show_local_navigation && this.local_navigation_visible);
 
         this.refresh_ui_for_user_id();
-        this.refresh_expand_manga_posts_button();
         this.refresh_refresh_search_from_page();
     };
 
@@ -960,21 +997,6 @@ ppixiv.screen_search = class extends ppixiv.screen
                 local_api.navigate_to_tag_search(text, {add_to_history: false});
             }
         }
-    }
-
-    // Refresh the highlight for the "expand all posts" button.
-    refresh_expand_manga_posts_button()
-    {
-        let enabled = this.search_view.media_ids_expanded_by_default;
-        let button = this.container.querySelector(".expand-manga-posts");
-        button.dataset.popup = enabled? "Collapse manga posts":"Expand manga posts";
-        button.querySelector(".font-icon").innerText = enabled? "close_fullscreen":"open_in_full";
-        
-        // Hide the button if the data source can never return manga posts to be expanded, or
-        // if it's the manga page itself which always expands.
-        button.hidden =
-            !this.data_source?.can_return_manga ||
-            this.data_source?.includes_manga_pages;
     }
 
     refresh_refresh_search_from_page()
