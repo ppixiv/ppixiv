@@ -498,6 +498,12 @@ ppixiv.data_source = class
         return page >= lowest_page && page <= highest_page+1;
     }
 
+    // Return true if we know page is past the end of this data source's results.
+    is_page_past_end(page)
+    {
+        return this.first_empty_page != -1 && page >= this.first_empty_page;
+    }
+
     async _load_page_async(page, cause)
     {
         // Check if we're trying to load backwards too far.
@@ -510,7 +516,7 @@ ppixiv.data_source = class
         // If we know there's no data on this page (eg. we loaded an earlier page before and it
         // was empty), don't try to load this one.  This prevents us from spamming empty page
         // requests.
-        if(this.first_empty_page != -1 && page >= this.first_empty_page)
+        if(this.is_page_past_end(page))
             return false;
 
         // If the page is already loaded, stop.
@@ -1004,6 +1010,11 @@ ppixiv.data_source = class
             page = this.initial_page;
         }
         
+        // Short circuit if we already know this is past the end.  This just avoids spamming
+        // logs.
+        if(this.is_page_past_end(page))
+            return null;
+
         console.log("Loading the next page of results:", page);
 
         // The page shouldn't already be loaded.  Double-check to help prevent bugs that might
