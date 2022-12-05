@@ -27,10 +27,7 @@ function add_to_end(object, key, value)
 // The main thumbnail grid view.
 ppixiv.search_view = class extends ppixiv.widget
 {
-    constructor({
-        // This is called if we change the start page in the URL.
-        onstartpagechanged,
-        ...options})
+    constructor({...options})
     {
         super({...options,template: `
             <div class=search-view>
@@ -47,8 +44,6 @@ ppixiv.search_view = class extends ppixiv.widget
                 <div class=thumbnails data-context-menu-target></div>
             </div>
         `});
-
-        this.onstartpagechanged = onstartpagechanged;
 
         // The node that scrolls to show thumbs.  This is normally the document itself.
         this.scroll_container = this.container.closest(".scroll-container");
@@ -254,10 +249,6 @@ ppixiv.search_view = class extends ppixiv.widget
         let args = helpers.args.location;
         this.data_source.set_start_page(args, first_thumb.dataset.searchPage);
         helpers.navigate(args, { add_to_history: false, cause: "viewing-page", send_popstate: false });
-
-        // Tell our parent that we changed the start page.
-        if(this.onstartpagechanged)
-            this.onstartpagechanged();
     }
 
     async set_data_source(data_source)

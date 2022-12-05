@@ -202,6 +202,10 @@ class thumbnail_ui_desktop extends ppixiv.widget
 
         this.container.querySelector(".preferences-button").addEventListener("click", (e) => new ppixiv.settings_dialog());
 
+        // Refresh the "Refresh search from page" tooltip if the page in the URL changes.  Use statechange
+        // rather than popstate for this, so it responds to all URL changes.
+        window.addEventListener("pp:statechange", (e) => this.refresh_refresh_search_from_page(), { signal: this.shutdown_signal.signal });
+
         // Disable the avatar widget unless the data source enables it.
         this.avatar_container = this.container.querySelector(".avatar-container");
         this.avatar_container.hidden = true;
@@ -562,10 +566,6 @@ ppixiv.screen_search = class extends ppixiv.screen
 
         this.search_view = new search_view({
             container: this.container.querySelector(".thumbnail-container-box"),
-            onstartpagechanged: () => {
-                if(this.thumbnail_ui)
-                    this.thumbnail_ui.refresh_refresh_search_from_page();
-            },
         });
     }
 

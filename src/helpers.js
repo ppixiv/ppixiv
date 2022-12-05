@@ -2235,18 +2235,27 @@ ppixiv.helpers = {
         // People don't think things through.
         // console.log("Set URL to", ppixiv.plocation.toString(), add_to_history);
 
-        if(send_popstate && ppixiv.plocation.toString() != old_url)
+        if(ppixiv.plocation.toString() != old_url)
         {
-            // Browsers don't send onpopstate for history changes, but we want them, so
-            // send a synthetic one.
-            // console.log("Dispatching popstate:", ppixiv.plocation.toString());
-            var event = new PopStateEvent("pp:popstate");
+            if(send_popstate)
+            {
+                // Browsers don't send onpopstate for history changes, but we want them, so
+                // send a synthetic one.
+                // console.log("Dispatching popstate:", ppixiv.plocation.toString());
+                let event = new PopStateEvent("pp:popstate");
 
-            // Set initialNavigation to true.  This indicates that this event is for a new
-            // navigation, and not from browser forwards/back.
-            event.navigationCause = cause;
+                // Set initialNavigation to true.  This indicates that this event is for a new
+                // navigation, and not from browser forwards/back.
+                event.navigationCause = cause;
 
-            window.dispatchEvent(event);
+                window.dispatchEvent(event);
+            }
+
+            // Always dispatch pp:statechange.  This differs from popstate (pp:popstate) in that it's
+            // always sent for all state changes.  This is used when we have UI that wants to refresh
+            // based on the current location, even if it's an in-place update for the same location where
+            // we don't send popstate.
+            window.dispatchEvent(new PopStateEvent("pp:statechange"));
         }
     },
 
