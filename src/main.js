@@ -425,10 +425,15 @@ ppixiv.MainController = class
         let page = args.hash.has("page")? parseInt(args.hash.get("page"))-1:0;
         media_id = helpers.get_media_id_for_page(media_id, page);
 
-        // If we're on search, we don't care what image is current.  Clear media_id so we
-        // tell context_menu that we're not viewing anything, so it disables bookmarking.
         if(new_screen_name == "search")
+        {
+            // If we're on search, we don't care what image is current.  Clear media_id so we
+            // tell context_menu that we're not viewing anything, so it disables bookmarking.
             media_id = null;
+
+            // Remember that we're entering screen_search.  See window_onclick_capture.
+            this._ignore_clicks_until = Date.now() + 100;
+        }
 
         // Mark the current screen.  Other code can watch for this to tell which view is
         // active.
@@ -695,6 +700,18 @@ ppixiv.MainController = class
         // Stop all handling for this link.
         e.preventDefault();
         e.stopImmediatePropagation();
+
+        // Work around an iOS bug.  After dragging out of an image, Safari sometimes sends a click
+        // to the thumbnail that appears underneath the drag, even though it wasn't the element that
+        // received the pointer events.  Stopping the pointerup event doesn't prevent this.  This
+        // causes us to sometimes navigate into a random image after transitioning back out into
+        // search results.  Prevent this by ignoring clicks briefly after changing to the search
+        // screen.
+        if(ppixiv.ios && this._ignore_clicks_until != null && Date.now() < this._ignore_clicks_until)
+        {
+            console.log(`Ignoring click while activating screen: ${this._ignore_clicks_until - Date.now()}`);
+            return;
+        }
 
         // If this is a link to an image (usually /artworks/#), navigate to the image directly.
         // This way, we actually use the URL for the illustration on this data source instead of
