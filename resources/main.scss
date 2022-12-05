@@ -1462,10 +1462,6 @@ body.hide-r18g .r18g { display: none; }
     // we load searches, causing the UI to shift back and forth slightly.
     overflow-y: scroll;
     overflow-y: overlay;
-
-    > .thumbnail-container-box {
-        display: contents;
-    }
 }
 
 .search-view

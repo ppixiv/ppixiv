@@ -178,6 +178,9 @@ class thumbnail_ui_desktop extends ppixiv.widget
             `
         });
 
+        let option_box = this.container.querySelector(".main-search-menu");
+        _create_main_search_menu(option_box);
+
         this.user_info_links = new user_info_links({
             container: this.querySelector(".user-links"),
         });
@@ -199,11 +202,15 @@ class thumbnail_ui_desktop extends ppixiv.widget
 
         this.container.querySelector(".preferences-button").addEventListener("click", (e) => new ppixiv.settings_dialog());
 
-        settings.addEventListener("expand_manga_thumbnails", this.update_from_settings, { signal: this.shutdown_signal.signal });
-
         // Disable the avatar widget unless the data source enables it.
         this.avatar_container = this.container.querySelector(".avatar-container");
         this.avatar_container.hidden = true;
+
+        this.avatar_widget = new avatar_widget({
+            container: this.avatar_container,
+            big: true,
+            mode: "dropdown",
+        });
 
         // Set up login/logout buttons for native.
         if(ppixiv.native)
@@ -217,13 +224,32 @@ class thumbnail_ui_desktop extends ppixiv.widget
                     local_api.logout();
             });
         }
+
+        // Set up hover popups.
+        dropdown_menu_opener.create_handlers(this.container);
     }
     
     set_data_source(data_source)
     {
         if(this.data_source == data_source)
             return;
+
         this.data_source = data_source;
+        this.avatar_widget.set_user_id(null);
+
+        if(data_source == null)
+            return;
+
+        // Remove any previous data source's UI.
+        if(this.current_data_source_ui)
+        {
+            this.current_data_source_ui.shutdown();
+            this.current_data_source_ui = null;
+        }
+
+        // Create the new data source's UI.
+        let data_source_ui_container = this.container.querySelector(".data-source-ui");
+        this.current_data_source_ui = this.data_source.create_ui({ container: data_source_ui_container });
     }
     
     update_from_settings = () =>
@@ -240,11 +266,17 @@ class thumbnail_ui_desktop extends ppixiv.widget
 
     refresh_ui()
     {
-        let element_displaying = this.container.querySelector(".displaying");
-        element_displaying.hidden = this.parent.data_source.get_displaying_text == null;
-        if(this.parent.data_source.get_displaying_text != null)
+        if(this.data_source)
         {
-            let text = this.parent.data_source.get_displaying_text();
+            let ui_box = this.container;
+            this.data_source.refresh_thumbnail_ui({ container: ui_box, thumbnail_view: this });
+        }
+
+        let element_displaying = this.container.querySelector(".displaying");
+        element_displaying.hidden = this.data_source?.get_displaying_text == null;
+        if(this.data_source?.get_displaying_text != null)
+        {
+            let text = this.data_source.get_displaying_text();
             element_displaying.replaceChildren(text);
         }
 
@@ -257,6 +289,7 @@ class thumbnail_ui_desktop extends ppixiv.widget
 
         this.refresh_slideshow_button();
         this.refresh_expand_manga_posts_button();
+        this.refresh_refresh_search_from_page();
     }
 
     // Refresh the slideshow button.
@@ -279,6 +312,17 @@ class thumbnail_ui_desktop extends ppixiv.widget
         button.hidden =
             !this.data_source?.can_return_manga ||
             this.data_source?.includes_manga_pages;
+    }
+
+    refresh_refresh_search_from_page()
+    {
+        if(this.data_source == null)
+            return;
+
+        // Refresh the "refresh from page #" button popup.  This is updated by search_view
+        // as the user scrolls.
+        let start_page = this.data_source.get_start_page(helpers.args.location);
+        this.container.querySelector(".refresh-search-from-page-button").dataset.popup = `Refresh search from page ${start_page}`;
     }
 }
 
@@ -419,24 +463,47 @@ ppixiv.screen_search = class extends ppixiv.screen
         super({...options, template: `
             <div inert class="screen screen-search-container">
                 <!-- The tree widget for local navigation: -->
-                <div class=local-navigation-box></div>
+                <div class=local-navigation-box hidden></div>
 
                 <div class="search-results scroll-container">
-                    <div class=top-ui-box></div>
+                    <div class=top-ui-box hidden></div>
 
-                    <div class=thumbnail-container-box></div>
+                    <vv-container class=thumbnail-container-box></vv-container>
                 </div>
 
-                <!-- This groups the header and search UI into a single dragger. -->
+                <!-- The navigation bar on mobile: -->
                 <div class=mobile-ui-drag-container></div>
             </div>
         `});
 
         user_cache.addEventListener("usermodified", this.refresh_ui, { signal: this.shutdown_signal.signal });        
 
-        this.thumbnail_ui = new thumbnail_ui_desktop({
-            container: this.container.querySelector(".top-ui-box"),
-        });
+        // Add the top search UI if we're on desktop.
+        if(!ppixiv.mobile)
+        {
+            let top_ui_box = this.container.querySelector(".top-ui-box");
+            top_ui_box.hidden = false;
+
+            this.thumbnail_ui = new thumbnail_ui_desktop({
+                container: top_ui_box,
+            });
+
+            // Add a slight delay before hiding the UI.  This allows opening the UI by swiping past the top
+            // of the window, without it disappearing as soon as the mouse leaves the window.  This doesn't
+            // affect opening the UI.
+            new hover_with_delay(top_ui_box, 0, 0.25);
+            
+            // Set --ui-box-height to the container's height, which is used by the hover style.
+            let resize = new ResizeObserver(() => {
+                top_ui_box.style.setProperty('--ui-box-height', `${top_ui_box.offsetHeight}px`);
+            }).observe(top_ui_box);
+            this.shutdown_signal.signal.addEventListener("abort", () => resize.disconnect());
+
+            // The ui-on-hover class enables the hover style if it's enabled.
+            let refresh_ui_on_hover = () => helpers.set_class(top_ui_box, "ui-on-hover", settings.get("ui-on-hover") && !ppixiv.mobile);
+            settings.addEventListener("ui-on-hover", refresh_ui_on_hover, { signal: this.shutdown_signal.signal });
+            refresh_ui_on_hover();
+        }
 
         if(ppixiv.mobile)
         {
@@ -445,22 +512,6 @@ ppixiv.screen_search = class extends ppixiv.screen
             });
         }
 
-        let option_box = this.container.querySelector(".main-search-menu");
-        _create_main_search_menu(option_box);
-
-        // Create the avatar widget shown on the artist data source.
-        this.avatar_container = this.container.querySelector(".avatar-container");
-        this.avatar_widget = new avatar_widget({
-            container: this.avatar_container,
-            big: true,
-            mode: "dropdown",
-        });
-
-        // Set up hover popups.
-        dropdown_menu_opener.create_handlers(this.container);
- 
-        settings.addEventListener("ui-on-hover", this.update_from_settings, { signal: this.shutdown_signal.signal });
-        settings.addEventListener("no-hide-cursor", this.update_from_settings, { signal: this.shutdown_signal.signal });
         muting.singleton.addEventListener("mutes-changed", this.refresh_ui_for_user_id);
 
         // Zoom the thumbnails on ctrl-mousewheel:
@@ -488,10 +539,10 @@ ppixiv.screen_search = class extends ppixiv.screen
         });
 
         // If the local API is enabled and tags aren't restricted, set up the directory tree sidebar.
-        let local_navigation_box = this.container.querySelector(".local-navigation-box");
-
         if(ppixiv.local_api.is_enabled() && !local_api.local_info.bookmark_tag_searches_only)
         {
+            let local_navigation_box = this.container.querySelector(".local-navigation-box");
+
             // False if the user has hidden the navigation tree.  Default to false on mobile, since
             // it takes up a lot of screen space.  Also default to false if we were initially opened
             // as a similar image search.
@@ -500,43 +551,22 @@ ppixiv.screen_search = class extends ppixiv.screen
             this.local_nav_widget = new ppixiv.local_navigation_widget({
                 container: local_navigation_box,
             });
+
+            // Hack: if the local API isn't enabled, hide the local navigation box completely.  This shouldn't
+            // be needed since it'll hide itself, but this prevents it from flashing onscreen and animating
+            // away when the page loads.  That'll still happen if you have the local API enabled and you're on
+            // a Pixiv page, but this avoids the visual glitch for most users.  I'm not sure how to fix this
+            // cleanly.
+            local_navigation_box.hidden = false;
         }
-
-        // Hack: if the local API isn't enabled, hide the local navigation box completely.  This shouldn't
-        // be needed since it'll hide itself, but this prevents it from flashing onscreen and animating
-        // away when the page loads.  That'll still happen if you have the local API enabled and you're on
-        // a Pixiv page, but this avoids the visual glitch for most users.  I'm not sure how to fix this
-        // cleanly.
-        local_navigation_box.hidden = !ppixiv.local_api.is_enabled();
-
-        /*
-         * Add a slight delay before hiding the UI.  This allows opening the UI by swiping past the top
-         * of the window, without it disappearing as soon as the mouse leaves the window.  This doesn't
-         * affect opening the UI.
-         */
-        this.top_ui_box = this.container.querySelector(".top-ui-box");
-        
-        let resize = new ResizeObserver(() => {
-            this.top_ui_box.style.setProperty('--ui-box-height', `${this.top_ui_box.offsetHeight}px`);
-        }).observe(this.top_ui_box);
-        this.shutdown_signal.signal.addEventListener("abort", () => resize.disconnect());
-
-        this.top_ui_box.hidden = ppixiv.mobile;
-        new hover_with_delay(this.top_ui_box, 0, 0.25);
 
         this.search_view = new search_view({
             container: this.container.querySelector(".thumbnail-container-box"),
             onstartpagechanged: () => {
-                this.refresh_refresh_search_from_page();
+                if(this.thumbnail_ui)
+                    this.thumbnail_ui.refresh_refresh_search_from_page();
             },
         });
-        
-        this.update_from_settings();
-    }
-
-    update_from_settings = () =>
-    {
-        helpers.set_class(this.top_ui_box, "ui-on-hover", settings.get("ui-on-hover") && !ppixiv.mobile);
     }
 
     get active()
@@ -599,19 +629,6 @@ ppixiv.screen_search = class extends ppixiv.screen
             return;
         }
 
-        // Remove any previous data source's UI.
-        if(this.current_data_source_ui)
-        {
-            this.current_data_source_ui.shutdown();
-            this.current_data_source_ui = null;
-        }
-
-        // Create the new data source's UI.
-        let data_source_ui_container = this.container.querySelector(".data-source-ui");
-        this.current_data_source_ui = this.data_source.create_ui({ container: data_source_ui_container });
-
-        this.avatar_widget.set_user_id(null);
-
         // Listen to the data source loading new pages, so we can refresh the list.
         this.data_source.add_update_listener(this.data_source_updated);
         this.refresh_ui();
@@ -654,14 +671,10 @@ ppixiv.screen_search = class extends ppixiv.screen
         this.data_source.set_page_icon();
         helpers.set_page_title(this.data_source.page_title || "Loading...");
         
-        var ui_box = this.container.querySelector(".thumbnail-ui-box");
-        this.data_source.refresh_thumbnail_ui({ container: ui_box, thumbnail_view: this });
-
         // Refresh whether we're showing the local navigation widget and toggle button.
         helpers.set_dataset(this.container.dataset, "showNavigation", this.can_show_local_navigation && this.local_navigation_visible);
 
         this.refresh_ui_for_user_id();
-        this.refresh_refresh_search_from_page();
     };
 
     refresh_ui_for_user_id()
@@ -730,14 +743,6 @@ ppixiv.screen_search = class extends ppixiv.screen
                 local_api.navigate_to_tag_search(text, {add_to_history: false});
             }
         }
-    }
-
-    refresh_refresh_search_from_page()
-    {
-        // Refresh the "refresh from page #" button popup.  This is updated by search_view
-        // as the user scrolls.
-        let start_page = this.data_source.get_start_page(helpers.args.location);
-        this.container.querySelector(".refresh-search-from-page-button").dataset.popup = `Refresh search from page ${start_page}`;
     }
 }
 
