@@ -684,6 +684,8 @@ ppixiv.helpers = {
             helpers.setTimeout = window.setTimeout.bind(window);
             helpers.setInterval = window.setInterval.bind(window);
             helpers.clearTimeout = window.clearTimeout.bind(window);
+            helpers.requestAnimationFrame = window.requestAnimationFrame.bind(window);
+            helpers.cancelAnimationFrame = window.cancelAnimationFrame.bind(window);
             helpers.Image = window.Image;
 
             window.HTMLDocument.prototype.realCreateElement = window.HTMLDocument.prototype.createElement;
@@ -801,6 +803,13 @@ ppixiv.helpers = {
         } catch(e) {
             console.error("Error disabling postMessage", e);
         }
+
+        // Disable requestAnimationFrame.  This can also be used by the React scheduler.
+        helpers.requestAnimationFrame = window.requestAnimationFrame.bind(window);
+        window.requestAnimationFrame = (func) => { };
+
+        helpers.cancelAnimationFrame = window.cancelAnimationFrame.bind(window);
+        window.cancelAnimationFrame = (id) => { };
 
         // Disable the page's timers.  This helps prevent things like GTM from running.
         helpers.setTimeout = window.setTimeout.bind(window);
@@ -2495,7 +2504,7 @@ ppixiv.helpers = {
             let abort = () => {
                 abort_signal.removeEventListener("aborted", abort);
                 if(frame_id != null)
-                    cancelAnimationFrame(frame_id);
+                    helpers.cancelAnimationFrame(frame_id);
                 resolve(false);
             };
             if(abort_signal)
@@ -2510,7 +2519,7 @@ ppixiv.helpers = {
                     return;
                 }
 
-                frame_id = requestAnimationFrame(check);
+                frame_id = helpers.requestAnimationFrame(check);
             };
             check();
         });
@@ -2574,7 +2583,7 @@ ppixiv.helpers = {
     
             let abort = () => {
                 if(id != null)
-                    cancelAnimationFrame(id);
+                    helpers.cancelAnimationFrame(id);
 
                 accept(false);
             };
@@ -2586,7 +2595,7 @@ ppixiv.helpers = {
                 return;
             }
     
-            id = requestAnimationFrame((time) => {
+            id = helpers.requestAnimationFrame((time) => {
                 if(signal)
                     signal.removeEventListener("abort", abort);
                 accept(true);
