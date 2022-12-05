@@ -190,9 +190,7 @@ ppixiv.image_ui = class extends ppixiv.widget
     {
         super.visibility_changed();
 
-        this.avatar_widget.visible = this.visible;
-        if(this.visible)
-            this.refresh();
+        this.refresh();
     }
 
     set data_source(data_source)
@@ -204,11 +202,6 @@ ppixiv.image_ui = class extends ppixiv.widget
         this.refresh();
     }
     
-    shutdown()
-    {
-        this.avatar_widget.shutdown();
-    }
-
     get media_id()
     {
         return this._media_id;
