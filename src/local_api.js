@@ -376,18 +376,6 @@ ppixiv.local_api = class
         return args;
     }
 
-    // The search root is the top of the current search, which is where the
-    // tree view starts.  This is just the hash path.
-    // XXX: move this into the tree
-    static get_search_root_from_args(args, search_options)
-    {
-        // If there's no search active, the root is always the top.
-        if(search_options == null)
-            return "folder:/";
-
-        return "folder:" + args.hash_path;
-    }
-
     // Get the local file or folder ID from a URL.
     //
     // Normally, a URL is a file if a "file" hash arg is present, otherwise it's

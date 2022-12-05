@@ -214,9 +214,6 @@ ppixiv.tree_widget_item = class extends ppixiv.widget
         // it, onexpand() will be called to populate it.
         pending=false,
         expandable=false,
-
-        // If true and this is a root node, hide the label.
-        hide_if_root=true,
         ...options
     }={})
     {
@@ -249,7 +246,7 @@ ppixiv.tree_widget_item = class extends ppixiv.widget
 
         // If this is the root node, hide .self, and add .root so our children
         // aren't indented.
-        if(root && hide_if_root)
+        if(root)
         {
             this.container.querySelector(".self").hidden = true;
             this.container.classList.add("root");
@@ -518,7 +515,7 @@ ppixiv.tree_widget_item = class extends ppixiv.widget
 
 class local_navigation_widget_item extends ppixiv.tree_widget_item
 {
-    constructor({path, search_options=null, ...options}={})
+    constructor({path, ...options}={})
     {
         super({...options,
             expandable: true,
@@ -526,7 +523,6 @@ class local_navigation_widget_item extends ppixiv.tree_widget_item
         });
 
         this.options = options;
-        this.search_options = search_options;
         this.path = path;
 
         // Set the ID on the item to let the popup menu know what it is.  Don't do
@@ -617,7 +613,6 @@ class local_navigation_widget_item extends ppixiv.tree_widget_item
         this.loaded = true;
 
         let result = await local_api.list(this.path, {
-            ...this.search_options,
             id: this.path,
 
             // This tells the server to only include directories.  It's much faster, since
@@ -654,7 +649,6 @@ class local_navigation_widget_item extends ppixiv.tree_widget_item
             if(type != "folder")
                 continue;
     
-            // Don't propagate search_options to children.
             let child = new local_navigation_widget_item({
                 parent: this,
                 label: dir.illustTitle,
@@ -666,7 +660,7 @@ class local_navigation_widget_item extends ppixiv.tree_widget_item
 
             // If we're the root, expand our children as they load, so the default tree
             // isn't just one unexpanded library.
-            if(!this.search_options && this.path == "folder:/")
+            if(this.path == "folder:/")
                 child.expanded = true;
         }
 
@@ -691,11 +685,6 @@ ppixiv.local_navigation_widget = class extends ppixiv.tree_widget
         // no root.
         this.roots = {};
 
-        // Set current_search_options to a sentinel so we'll always set it on the
-        // first call to set_data_source_search_options.
-        this.current_search_root = null;
-        this.current_search_options = new Object();
-
         window.addEventListener("pp:popstate", (e) => {
             this.set_root_from_url();
             this.refresh_selection();
@@ -713,43 +702,18 @@ ppixiv.local_navigation_widget = class extends ppixiv.tree_widget
         if(args.path != local_api.path)
             return;
 
-        let { search_options, title } = local_api.get_search_options_for_args(args);
-        if(search_options == null)
-            title = "/";
-            
-        let search_root = local_api.get_search_root_from_args(args, search_options);
-
-        // Note that search_options is null if we're showing the regular tree and no
-        // search is active.
-        this.current_search_root = search_root;
-        this.current_search_options = search_options;
-
-        // Use a JSON serialization as a key.  This always serializes in the same way.
-        // Each combination of search_root and search_options is a separate root.
-        let search_options_json = JSON.stringify({root: search_root, search_options: search_options});
-        if(this.roots[search_options_json] == null)
+        if(this._root == null)
         {
             // Create this tree.
-            this.roots[search_options_json] = new local_navigation_widget_item({
+            this._root = new local_navigation_widget_item({
                 parent: this,
-                label: title? title:"Root",
+                label: "/",
                 root: true,
-
-                // Hide the root node if there's no search, so the file tree roots are at the top.
-                hide_if_root: !this.showing_search,
-                path: search_root,
-
-                search_options: search_options,
+                path: "folder:/",
             });
         }
 
-        this.set_root(this.roots[search_options_json]);
-    }
-
-    // Return true if we're displaying a search, or false if we're showing the filesystem tree.
-    get showing_search()
-    {
-        return this.current_search_options != null;
+        this.set_root(this._root);
     }
 
     set_root(root)
