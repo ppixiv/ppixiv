@@ -255,6 +255,8 @@ class thumbnail_ui_desktop extends ppixiv.widget
         let data_source_ui_container = this.container.querySelector(".data-source-ui");
         this.current_data_source_ui = this.data_source.create_ui({ container: data_source_ui_container });
 
+        this.container.querySelector(".refresh-search-from-page-button").hidden = !this.data_source.supports_start_page;
+
         // Show UI elements with this data source in their data-datasource attribute.
         let data_source_name = data_source.name;
         for(let node of this.querySelectorAll(".data-source-specific[data-datasource]"))
@@ -268,13 +270,6 @@ class thumbnail_ui_desktop extends ppixiv.widget
     update_from_settings = () =>
     {
         this.refresh_expand_manga_posts_button();
-    }
-
-    initial_refresh_ui()
-    {
-        // Only show the "refresh from page" button if the data source supports start
-        // pages.  If it doesn't, the two refresh buttons are equivalent.
-        this.container.querySelector(".refresh-search-from-page-button").hidden = !this.data_source.supports_start_page;
     }
 
     refresh_ui()
@@ -601,7 +596,6 @@ ppixiv.screen_search = class extends ppixiv.screen
         super.activate();
 
         this._active = true;
-        this.initial_refresh_ui();
         this.refresh_ui();
 
         await this.search_view.activate({ old_media_id });
@@ -658,15 +652,6 @@ ppixiv.screen_search = class extends ppixiv.screen
         main_controller.refresh_current_data_source({remove_search_page: false});
     }
         
-    initial_refresh_ui()
-    {
-        if(this.data_source == null)
-            return;
-
-        if(this.thumbnail_ui)
-            this.thumbnail_ui.initial_refresh_ui();
-    }
-
     refresh_ui = () =>
     {
         if(!this.active)
