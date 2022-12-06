@@ -204,6 +204,16 @@ ppixiv.widget = class
         this.visibility_changed();
     }
 
+    // For convenience, return options to add to an event listener and other objects that
+    // take an AbortSignal to shut down when the rest of the widget does.
+    //
+    // node.addEventListener("event", func, this._signal);
+    // node.addEventListener("event", func, { capture: true, ...this._signal });
+    get _signal()
+    {
+        return { signal: this.shutdown_signal.signal };
+    }
+
     // If true, stack traces will be logged if shutdown() is called more than once.  This takes
     // a stack trace on each shutdown, so it's only enabled when needed.
     static debug_shutdown = true;

@@ -253,7 +253,10 @@ class thumbnail_ui_desktop extends ppixiv.widget
 
         // Create the new data source's UI.
         let data_source_ui_container = this.container.querySelector(".data-source-ui");
-        this.current_data_source_ui = this.data_source.create_ui({ container: data_source_ui_container });
+        this.current_data_source_ui = new this.data_source.ui({
+            data_source: this.data_source,
+            container: data_source_ui_container,
+        });
 
         this.container.querySelector(".refresh-search-from-page-button").hidden = !this.data_source.supports_start_page;
 
@@ -895,8 +898,9 @@ class mobile_edit_search_dialog extends ppixiv.dialog_widget
         if(row)
             position = row;
 
-        this.data_source_ui = main_controller.data_source.create_ui({
+        this.data_source_ui = new main_controller.data_source.ui({
             container: position,
+            data_source: main_controller.data_source,
 
             // Normally this goes after the search mode button.  When native we have no search mode
             // buttons and this.active_row is the container, so put it inside it.
