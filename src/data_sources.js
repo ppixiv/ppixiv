@@ -4383,8 +4383,6 @@ ppixiv.data_sources.vview = class extends data_source
         let args = new helpers.args(this.url);
         let { search_options } = local_api.get_search_options_for_args(args);
         let folder_id = local_api.get_local_id_from_args(args, { get_folder: true });
-        if(args.hash.get("path") != null)
-            search_options = null;
 
         let order = args.hash.get("order");
 
@@ -4493,18 +4491,8 @@ ppixiv.data_sources.vview = class extends data_source
 
     get_displaying_text()
     {
-        // If we have a path inside a search, show the path, since we're not showing the
-        // top-level search.  Otherwise, get the search title.
         let args = new helpers.args(this.url);
-        if(args.hash.get("path") != null)
-        {
-            let folder_id = local_api.get_local_id_from_args(args, { get_folder: true });
-            return helpers.get_path_suffix(helpers.parse_media_id(folder_id).id);
-        }
-        else
-        {
-            return local_api.get_search_options_for_args(args).title;
-        }
+        return local_api.get_search_options_for_args(args).title;
     }
 
     // Put the illust ID in the hash instead of the path.  Pixiv doesn't care about this,
@@ -4726,7 +4714,6 @@ ppixiv.data_sources.vview = class extends data_source
             this.set_item(a, {
                 fields: {"#bookmark-tag": tag},
                 current_url: current_args.url,
-                adjust_url: (args) => args.hash.delete("path"),
             });
 
             tag_list.appendChild(a);
@@ -4841,18 +4828,7 @@ ppixiv.data_sources.vview_similar = class extends data_source
 
     get_displaying_text()
     {
-        // If we have a path inside a search, show the path, since we're not showing the
-        // top-level search.  Otherwise, get the search title.
-        let args = new helpers.args(this.url);
-        if(args.hash.get("path") != null)
-        {
-            let folder_id = local_api.get_local_id_from_args(args, { get_folder: true });
-            return helpers.get_path_suffix(helpers.parse_media_id(folder_id).id);
-        }
-        else
-        {
-            return `Similar images`;
-        }
+        return `Similar images`;
     }
 
     refresh_thumbnail_ui({ container })

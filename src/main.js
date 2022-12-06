@@ -504,9 +504,16 @@ ppixiv.MainController = class
         // Check if this is a local ID.
         if(helpers.is_media_id_local(media_id))
         {
-            // If we're told to show a folder: ID, always go to the search page, not the illust page.
             if(helpers.parse_media_id(media_id).type == "folder")
+            {
+                // If we're told to show a folder: ID, always go to the search page, not the illust page.
                 screen = "search";
+
+                // When navigating to a subdirectory, discard the search filters.  If we're viewing bookmarks
+                // and we click a bookmarked folder, we want to see contents of the bookmarked folder, not
+                // bookmarks within the bookmark.
+                args = new helpers.args("/");
+            }
         }
 
         let old_media_id = this.data_source.get_current_media_id(args);

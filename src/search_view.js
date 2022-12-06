@@ -1296,8 +1296,8 @@ ppixiv.search_view = class extends ppixiv.widget
             if(thumb_type == "folder")
             {
                 // This is a local directory.  We only expect to see this while on the local
-                // data source.  The folder link retains any search parameters in the URL.
-                let args = helpers.args.location;
+                // data source.  Clear any search when navigating to a subdirectory.
+                let args = new helpers.args("/");
                 local_api.get_args_for_id(media_id, args);
                 link.href = args.url;
             }

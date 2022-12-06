@@ -272,19 +272,12 @@ ppixiv.local_api = class
         return { directory: directory, filename: filename };
     }
 
-    // The local data source URL has three parts: the root, the path, and the file
-    // being viewed (if any).  The path can be absolute or relative to root.  The
-    // file be absolute or relative to path.
+    // The local data source URL has two parts: the path and the file being viewed (if any).
+    // The file be absolute or relative to path.
     //
-    // Root is args.hash_path, path is args.hash.get("path"), and file is args.hash.get("file").
+    // Path is args.hash_path, and file is args.hash.get("file").
     // 
-    // When searching, the root is the directory that was searched.  If a folder is
-    // clicked inside search results, it goes in the path, leaving the root alone so we're
-    // still in the search.  If a file is clicked inside search results, it goes in
-    // file.  These are all usually paths relative to the previous part, but they're allowed
-    // to be absolute.
-    //
-    // Changes to root and path result in a new data source.
+    // Changes to path result in a new data source, but changes to the file don't.
     //
     // Examples:
     //
@@ -296,22 +289,8 @@ ppixiv.local_api = class
     // #/images/pictures?file=vacation/image.jpg
     //
     // The user searched inside /images/pictures, and is currently viewing the image
-    // vacation/image.jpg.  There's no path, which means the image was listed directly in the
-    // search results.  We're showing that a search is active, but the current view is
-    // a folder inside the search, not the search itself.  This case is important: since
-    // the path hasn't changed, the data source is still the search, so you can mousewheel
-    // within the search.
-    //
-    // #/images/pictures?path=vacation/day1&file=image.jpg
-    //
-    // The user searched inside /images/pictures, navigated to the folder vacation/day1 in
-    // the results, then viewed image.jpg from there.  The data source is the folder.
-    //
-    // When no search is active, we never use path.  We just put the folder inside the
-    // root.
-    //
-    // It's tricky to figure out where to edit the URL, but combining them is simple:
-    // hash_path + path + file.
+    // vacation/image.jpg.  This case is important: the path hasn't changed, so the data
+    // source is still the search, so you can mousewheel within the search.
     static get_args_for_id(media_id, args)
     {
         // If we're navigating from a special page like /similar, ignore the previous
@@ -326,8 +305,6 @@ ppixiv.local_api = class
 
         // The path previously on args:
         let args_root = args.hash_path || "";
-        let args_path = args.hash.get("path") || "";
-        // let args_file = args.hash.get("file") || "";
         
         // The new path to set:
         let { type, id: path } = helpers.parse_media_id(media_id);
@@ -335,8 +312,7 @@ ppixiv.local_api = class
         if(type == "file")
         {
             // Put the relative path to new_path from root/path in "file".
-            let folder = helpers.path.get_child(args_root, args_path);
-            let filename = helpers.path.get_relative_path(folder, path);
+            let filename = helpers.path.get_relative_path(args_root, path);
             args.hash.set("file", filename);
             return args;
         }
@@ -348,31 +324,7 @@ ppixiv.local_api = class
         // page should be left in place when viewing an image.
         args.query.delete("p");
 
-        // If we're going to a folder and the current page is shuffled, don't shuffle the
-        // folder we're going to.  If the user shuffled folder:/books and then clicked a
-        // random book, he probably doesn't want the pages in the book shuffled too.  Don't
-        // do this if we're going to a file, since it doesn't matter and we don't want to
-        // cause the data source to change.
-        if(args.hash.get("order") == "shuffle")
-            args.hash.delete("order");
-
-        // If a search isn't active, just put the folder in the root and remove any path.
-        let search_active = local_api.get_search_options_for_args(args).search_options != null;
-        if(!search_active)
-        {
-            args.hash_path = path;
-            args.hash.delete("path");
-            return args;
-        }
-       
-        // When in a search, leave hash_path alone, and put the relative path to the folder
-        // in path.  hash_path can be empty if bookmarked was forced on by get_search_options_for_args.
-        let relative_path = helpers.path.get_relative_path(args.hash_path || "/", path);
-        if(relative_path != "")
-            args.hash.set("path", relative_path);
-        else
-            args.hash.delete("path");
-
+        args.hash_path = path;
         return args;
     }
 
@@ -384,12 +336,6 @@ ppixiv.local_api = class
     {
         // Combine the hash path and the filename to get the local ID.
         let root = args.hash_path;
-        let path = args.hash.get("path");
-        if(path != null)
-        {
-            // The path can be relative or absolute.
-            root = helpers.path.get_child(root, path)
-        }
 
         let file = args.hash.get("file");
         if(file == null || get_folder)
