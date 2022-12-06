@@ -1347,14 +1347,25 @@ body.hide-r18g .r18g { display: none; }
 
         .header-contents {
             .title {
-                flex: 1;
                 line-height: 1.5em;
-                text-align: center;
                 white-space: nowrap;
-                text-overflow: ellipsis;
                 overflow: hidden;
                 padding-left: 10px;
                 padding-right: 10px;
+                display: flex;
+                gap: .25em;
+                align-items: center;
+                justify-content: center;
+                
+                > span {
+                    display: contents;
+                }
+
+                .word.or {
+                    font-size: 60%;
+                    padding: 0;
+                    color: #bbb;
+                }
             }
 
             .button-row {
