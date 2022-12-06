@@ -324,7 +324,6 @@ ppixiv.data_source = class
         this.loading_pages = {};
         this.loaded_pages = {};
         this.first_empty_page = -1;
-        this.update_callbacks = [];
 
         // If this data source supports a start page, store the page we started on.
         // This isn't increased as we load more pages, but if we load earlier results
@@ -2594,7 +2593,7 @@ ppixiv.data_source_bookmarks_base = class extends data_source
             this.bookmark_tag_counts[tag] = tags[tag];
 
         // Update the UI with the tag list.
-        this.call_update_listeners();
+        this._refresh_bookmark_tag_list();
     }
     
     // Get API arguments to query bookmarks.
@@ -2750,13 +2749,13 @@ ppixiv.data_source_bookmarks_base = class extends data_source
         this.ui.container.querySelector(".bookmark-tags-box .bookmark-tag-list").addEventListener("scroll", function(e) { e.stopPropagation(); }, true);
         dropdown_menu_opener.create_handlers(this.ui.container);
 
+        this._refresh_bookmark_tag_list();
+
         return this.ui;
     }
 
     refresh_thumbnail_ui({ thumbnail_view }={})
     {
-        let current_args = helpers.args.location;
-
         // The public/private button only makes sense when viewing your own bookmarks.
         var public_private_button_container = this.ui.container.querySelector(".bookmarks-public-private");
         public_private_button_container.hidden = !this.viewing_own_bookmarks();
@@ -2774,6 +2773,22 @@ ppixiv.data_source_bookmarks_base = class extends data_source
         let show_all = args.hash.get("show-all") != "0";
         let set_public = show_all? { rest: null, "#show-all": 0 }:{};
         this.set_item(this.ui.container, {type: "order-shuffle", fields: {"#shuffle": 1, ...set_public}, toggle: true, default_values: {"#shuffle": null, "#show-all": 1}});
+
+        if(thumbnail_view)
+        {
+            thumbnail_view.avatar_container.hidden = this.viewing_own_bookmarks();
+            thumbnail_view.avatar_widget.set_user_id(this.viewing_user_id);
+        }
+
+        this.set_active_popup_highlight(this.ui.container);
+    }
+
+    _refresh_bookmark_tag_list()
+    {
+        if(this.ui == null)
+            return;
+        
+        let current_args = helpers.args.location;
 
         // Refresh the bookmark tag list.  Remove the page number from these buttons.
         let current_url = new URL(this.url);
@@ -2834,14 +2849,6 @@ ppixiv.data_source_bookmarks_base = class extends data_source
 
             add_tag_link(tag);
         }
-
-        if(thumbnail_view)
-        {
-            thumbnail_view.avatar_container.hidden = this.viewing_own_bookmarks();
-            thumbnail_view.avatar_widget.set_user_id(this.viewing_user_id);
-        }
-
-        this.set_active_popup_highlight(this.ui.container);
     }
 
     get viewing_user_id()
