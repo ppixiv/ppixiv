@@ -92,6 +92,9 @@ def search(timeout, query):
         connection.Close()
 
 def _convert_value(value, value_type):
+    if value is None:
+        return None
+
     match value_type:
         case Constants.adInteger | Constants.adSmallInt | Constants.adUnsignedInt | Constants.adUnsignedSmallInt | \
             Constants.adBigInt | Constants.adUnsignedBigInt | Constants.adDecimal:
