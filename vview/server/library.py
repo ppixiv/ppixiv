@@ -689,6 +689,7 @@ class Library:
         if sort_order == 'shuffle':
             scandir_results = list(scandir_results)
             random.shuffle(scandir_results)
+            scandir_results.sort(key=lambda item: not item.is_dir())
             scandir_results = iter(scandir_results)
         elif sort_order is not None:
             sort_order_info = _get_sort(sort_order)
@@ -751,6 +752,7 @@ class Library:
         if sort_order == 'shuffle':
             scandir_results = list(scandir_results)
             random.shuffle(scandir_results)
+            scandir_results.sort(key=lambda item: not item.is_dir())
         elif sort_order is not None:
             sort_order_info = _get_sort(sort_order)
             if sort_order_info is not None:
@@ -979,6 +981,16 @@ class Library:
             # point, so we only run file caching for results as we return them.
             all_results = list(windows_search_iter) + list(index_search_iter)
             random.shuffle(all_results)
+
+            # To match other shuffles, sort folders first.  Since we're doing this before converting
+            # to entries, we need to sort a mixed list of SearchDirEntry and Paths.
+            def folders_first(item):
+                if isinstance(item, windows_search.SearchDirEntry):
+                    return not item.is_dir()
+                else:
+                    return not item['is_directory']
+
+            all_results.sort(key=folders_first)
 
             def get_shuffled_results():
                 for result in all_results:
