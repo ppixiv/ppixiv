@@ -258,7 +258,7 @@ ppixiv.search_view = class extends ppixiv.widget
 
         // Remove listeners from the old data source.
         if(this.data_source != null)
-            this.data_source.remove_update_listener(this.data_source_updated);
+            this.data_source.removeEventListener("updated", this.data_source_updated);
 
         console.debug("Clearing thumbnails for new data source");
 
@@ -295,7 +295,7 @@ ppixiv.search_view = class extends ppixiv.widget
         this.disable_loading_more_pages = false;
 
         // Listen to the data source loading new pages, so we can refresh the list.
-        this.data_source.add_update_listener(this.data_source_updated);
+        this.data_source.addEventListener("updated", this.data_source_updated);
 
         this.load_expanded_media_ids();
 

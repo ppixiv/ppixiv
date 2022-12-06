@@ -137,7 +137,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
 
         if(this.data_source != null)
         {
-            this.data_source.remove_update_listener(this.data_source_updated);
+            this.data_source.removeEventListener("updated", this.data_source_updated);
             this.data_source = null;
         }
 
@@ -146,7 +146,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
 
         if(this.data_source != null)
         {
-            this.data_source.add_update_listener(this.data_source_updated);
+            this.data_source.addEventListener("updated", this.data_source_updated);
 
             this.refresh_ui();
         }

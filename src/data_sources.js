@@ -314,13 +314,14 @@ class illust_id_list
 // Not all data sources have multiple pages.  For example, when we're viewing a regular
 // illustration page, we get all of the author's other illust IDs at once, so we just
 // load all of them as a single page.
-ppixiv.data_source = class
+ppixiv.data_source = class extends EventTarget
 {
     constructor(url)
     {
+        super();
+
         this.url = new URL(url);
         this.id_list = new illust_id_list();
-        this.update_callbacks = [];
         this.loading_pages = {};
         this.loaded_pages = {};
         this.first_empty_page = -1;
@@ -688,20 +689,6 @@ ppixiv.data_source = class
         return parseInt(page) || 1;
     }
 
-    // Add or remove an update listener.  These are called when the data source has new data,
-    // or wants a UI refresh to happen.
-    add_update_listener(callback)
-    {
-        this.update_callbacks.push(callback);
-    }
-
-    remove_update_listener(callback)
-    {
-        var idx = this.update_callbacks.indexOf(callback);
-        if(idx != -1)
-            this.update_callbacks.splice(idx);
-    }
-
     // Register a page of data.
     add_page(page, media_ids, {...options}={})
     {
@@ -736,11 +723,12 @@ ppixiv.data_source = class
         });
     }
 
+    // Send the "updated" event when we want to tell our parent that something has changed.
+    // This is used when we've added a new page and the search view might want to refresh,
+    // if the page title should be refreshed, etc.  Internal updates don't need to call this.
     call_update_listeners()
     {
-        var callbacks = this.update_callbacks.slice();
-        for(var callback of callbacks)
-            callback();
+        this.dispatchEvent(new Event("updated"));
     }
 
     // Each data source can have a different UI in the thumbnail view.  container is
@@ -2002,11 +1990,9 @@ ppixiv.data_sources.artist = class extends data_source
 
     async load_all_results()
     {
-        this.call_update_listeners();
-
         let type = this.viewing_type;
 
-        var result = await helpers.get_request("/ajax/user/" + this.viewing_user_id + "/profile/all", {});
+        let result = await helpers.get_request("/ajax/user/" + this.viewing_user_id + "/profile/all", {});
 
         // Remember if this user is accepting requests, so we can add a link.
         this.accepting_requests = result.body.request.showRequestTab;
@@ -2024,8 +2010,8 @@ ppixiv.data_sources.artist = class extends data_source
             let url = new URL(pickup.contentUrl);
             url.search = "";
             this.fanbox_url = url.toString();
-            this.call_update_listeners();
         }
+        this.call_update_listeners();
 
         // If this user has a linked Booth account, look it up.  Only do this if the profile indicates
         // that it exists.  Don't wait for this to complete.
