@@ -90,7 +90,7 @@ ppixiv.tree_widget = class extends ppixiv.widget
         }
 
         // Root nodes are always expanded.
-        root.expanded = true;
+        root.expanded = "user";
     }
 
     set_selected_item(item)
@@ -100,7 +100,14 @@ ppixiv.tree_widget = class extends ppixiv.widget
 
         this.selected_item = item;
         for(let node of this.container.querySelectorAll(".tree-item.selected"))
+        {
             node.classList.remove("selected");
+
+            // Collapse any automatically-expanded nodes that we're navigating out of, as
+            // long as they're not an ancestor of the parent of the node we're expanding.
+            // We don't need to keep the item itself expanded.
+            node.widget._collapse_auto_expanded({until_ancestor_of: item?.parent});
+        }
 
         if(item != null)
         {
@@ -273,7 +280,7 @@ ppixiv.tree_widget_item = class extends ppixiv.widget
         this.tree = root? this.parent:this.parent.tree;
 
         this.expander.addEventListener("click", (e) => {
-            this.expanded = !this.expanded;
+            this.expanded = this.expanded? false:"user";
         });
 
         let label_element = this.container.querySelector(".label");
@@ -286,7 +293,7 @@ ppixiv.tree_widget_item = class extends ppixiv.widget
             e.preventDefault();
             e.stopImmediatePropagation();
 
-            this.select();
+            this.select({user: true});
             this.onclick();
         }, { capture: true });
 
@@ -328,9 +335,14 @@ ppixiv.tree_widget_item = class extends ppixiv.widget
     // This is called when the item is clicked.
     onclick() { }
 
+    // Expanded is false (collapsed), "auto" (expanded due to navigation), or user (expanded by the user).
     set expanded(value)
     {
         if(this._expanded == value)
+            return;
+
+        // If we're already expanded by the user, don't downgrade to automatically expanded.
+        if(value == "auto" && this._expanded == "user")
             return;
 
         // Don't unexpand the root.
@@ -439,9 +451,56 @@ ppixiv.tree_widget_item = class extends ppixiv.widget
         helpers.set_class(this.container, "allow-content-visibility", this.displayed_expand_mode != "expanded");
     }
 
-    select()
+    // user is true if the item is being selected by the user, so it shouldn't be automatically
+    // collapsed, or false if it's being selected automatically.
+    select({user=false}={})
     {
         this.tree.set_selected_item(this);
+
+        // If the user clicks an item, mark it as user-expanded if it was previously automatically
+        // expanded.
+        if(user)
+            this._commit_user_expanded();
+    }
+
+    // Mark this item and all of its ancestors as expanded by the user.  This will prevent this tree
+    // from being collapsed automatically when the user navigates away from it.
+    _commit_user_expanded()
+    {
+        let widget = this;
+        while(widget != null && !widget.is_root)
+        {
+            if(widget.expanded)
+                widget.expanded = "user";
+            widget = widget.parent;
+        }
+    }
+
+    // If this item was automatically expanded, collapse it, and repeat on our parent nodes.
+    //
+    // If until_ancestor_of is given, stop collapsing nodes if we reach an ancestor of that
+    // node.  For example, if we're navigating from "a/b/c/d/e" and until_ancestor_of is
+    // "a/b/f/g/h", we'll stop when we reach the shared ancestor, "a/b".  This prevents us
+    // from collapsing nodes that the new selection will want expanded.
+    _collapse_auto_expanded({until_ancestor_of}={})
+    {
+        // Make a set of ancestor nodes we'll stop at.
+        let stop_nodes = new Set();
+        for(let node = until_ancestor_of; node != null; node = node.parent)
+            stop_nodes.add(node);
+
+        let widget = this;
+        while(widget != null && !widget.is_root)
+        {
+            // Stop if we've reached a shared ancestor.
+            if(stop_nodes.has(widget))
+                break;
+
+            if(widget.expanded == "auto")
+                widget.expanded = false;
+
+            widget = widget.parent;
+        }
     }
 
     focus()
@@ -468,7 +527,7 @@ ppixiv.tree_widget_item = class extends ppixiv.widget
         e.stopImmediatePropagation();
 
         console.log("ondblclick");
-        this.expanded = !this.expanded;
+        this.expanded = this.expanded? false:"user";
 
         // Double-clicking the tree expands the node.  It also causes it to be viewed due
         // to the initial single-click.  However, if you double-click a directory that's
@@ -591,14 +650,6 @@ class local_navigation_widget_item extends ppixiv.tree_widget_item
 
         this.load_promise = this.load_inner();
 
-        this.load_promise.then((success) => {
-            if(!success)
-                return;
-                
-            // Refresh the selection in case this loaded the search we're currently on.
-            this.tree.refresh_selection();
-        });
-
         this.load_promise.finally(() => {
             this.load_promise = null;
         });
@@ -661,7 +712,7 @@ class local_navigation_widget_item extends ppixiv.tree_widget_item
             // If we're the root, expand our children as they load, so the default tree
             // isn't just one unexpanded library.
             if(this.path == "folder:/")
-                child.expanded = true;
+                child.expanded = "user";
         }
 
         return true;
@@ -691,7 +742,10 @@ ppixiv.local_navigation_widget = class extends ppixiv.tree_widget
         });
 
         this.set_root_from_url();
-        this.refresh_selection();
+
+        // Display the initial selection.  Mark this as user-expanded, so it won't be automatically
+        // collapsed.
+        this.refresh_selection({ user: true });
     }
 
     // Choose a tree root for the current URL, creating one if needed.
@@ -725,7 +779,7 @@ ppixiv.local_navigation_widget = class extends ppixiv.tree_widget
     }
 
     // If a search is active, select its item.
-    async refresh_selection()
+    async refresh_selection({user=false}={})
     {
         if(this.root == null)
             return;
@@ -739,19 +793,21 @@ ppixiv.local_navigation_widget = class extends ppixiv.tree_widget
         }
 
         // Load the path if possible and select it.
-        let node = await this.load_path(args);
+        let node = await this.load_path({ args, user });
         if(node)
         {
-            node.select();
+           
+            node.select({user});
             return;
         }
     }
 
-    // Load and expand each component of path.
+    // Load and expand each component of path.  If user is true, the item is marked
+    // user-expanded, otherwise automatically-expanded.
     //
     // This call is guarded, so if we're called again from another navigation,
     // we won't keep loading and changing the selection.
-    async load_path(signal, args)
+    async load_path(signal, { args, user=false }={})
     {
         // Stop if we don't have a root yet.
         if(this.root == null)
@@ -797,7 +853,7 @@ ppixiv.local_navigation_widget = class extends ppixiv.tree_widget
             }
 
             // Expand the node.  This will trigger a load if needed.
-            node.expanded = true;
+            node.expanded = user? "user":"auto";
 
             // If the node is loading, wait for the load to finish.
             if(node.load_promise)
