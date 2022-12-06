@@ -1169,14 +1169,11 @@ ppixiv.data_sources.discovery = class extends data_source
             </div>
         `});
 
-        return this.ui;
-    }
-
-    refresh_thumbnail_ui()
-    {
         this.set_item(this.ui.container, { type: "all", fields: {mode: "all"}, default_values: {mode: "all"} });
         this.set_item(this.ui.container, { type: "safe", fields: {mode: "safe"}, default_values: {mode: "all"} });
         this.set_item(this.ui.container, { type: "r18", fields: {mode: "r18"}, default_values: {mode: "all"} });
+
+        return this.ui;
     }
 }
 
@@ -1548,7 +1545,8 @@ ppixiv.data_sources.rankings = class extends data_source
         this.today_text ??= this_date;
         this.prev_date = prev_date;
         this.next_date = next_date;
-    
+        this._refresh_dates();
+
         // Register the new page of data.
         this.add_page(page, media_ids);
     };
@@ -1767,7 +1765,7 @@ ppixiv.data_sources.rankings = class extends data_source
         return this.ui;
     }
 
-    refresh_thumbnail_ui()
+    _refresh_dates()
     {
         if(this.today_text)
             this.ui.container.querySelector(".nav-today").innerText = this.today_text;
@@ -2102,6 +2100,10 @@ ppixiv.data_sources.artist = class extends data_source
             </div>
         `});
 
+        this.set_path_item(this.ui.container, "artist-works", 2, "artworks");
+        this.set_path_item(this.ui.container, "artist-illust", 2, "illustrations");
+        this.set_path_item(this.ui.container, "artist-manga", 2, "manga");
+
         // On mobile, create our own avatar display for the search popup.
         if(ppixiv.mobile)
         {
@@ -2127,30 +2129,20 @@ ppixiv.data_sources.artist = class extends data_source
         });
         this.src_observer.observe(popup, { attributes: true });
 
+        this._refresh_artist_tag_list();
+
         return this.ui;
     }
 
-    refresh_thumbnail_ui({ thumbnail_view }={})
+    _refresh_artist_tag_list()
     {
         let current_args = helpers.args.location;
 
-        if(thumbnail_view)
-        {
-            thumbnail_view.avatar_container.hidden = false;
-            thumbnail_view.avatar_widget.set_user_id(this.viewing_user_id);
-        }
-
-        this.set_path_item(this.ui.container, "artist-works", 2, "artworks");
-        this.set_path_item(this.ui.container, "artist-illust", 2, "illustrations");
-        this.set_path_item(this.ui.container, "artist-manga", 2, "manga");
-
-        let current_tag = this.current_tag;
-
         // Refresh the post tag list.
-        var tag_list = this.ui.container.querySelector(".post-tag-list");
+        let tag_list = this.ui.container.querySelector(".post-tag-list");
         helpers.remove_elements(tag_list);
         
-        var add_tag_link = (tag_info) =>
+        let add_tag_link = (tag_info) =>
         {
             // Skip tags with very few posts.  This list includes every tag the author
             // has ever used, and ends up being pages long with tons of tags that were
@@ -2202,6 +2194,8 @@ ppixiv.data_sources.artist = class extends data_source
             tag_list.appendChild(span);
 
             add_tag_link({ tag: "All" });
+
+            let current_tag = this.current_tag;
             if(current_tag != null)
                 add_tag_link({ tag: current_tag });
         }
@@ -2209,12 +2203,21 @@ ppixiv.data_sources.artist = class extends data_source
         this.set_active_popup_highlight(this.ui.container);
     }
 
+    refresh_thumbnail_ui({ thumbnail_view }={})
+    {
+        if(thumbnail_view)
+        {
+            thumbnail_view.avatar_container.hidden = false;
+            thumbnail_view.avatar_widget.set_user_id(this.viewing_user_id);
+        }
+    }
+
     // This is called when the tag list dropdown is opened.
     async tag_list_opened()
     {
         // Get user info.  We probably have this on this.user_info, but that async load
         // might not be finished yet.
-        var user_info = await user_cache.get_user_info_full(this.viewing_user_id);
+        let user_info = await user_cache.get_user_info_full(this.viewing_user_id);
         console.log("Loading tags for user", user_info.userId);
 
         // Load this artist's common tags.
@@ -2239,12 +2242,8 @@ ppixiv.data_sources.artist = class extends data_source
             tags.push(tag_info.tag);
         this.translated_tags = await tag_translations.get().get_translations(tags, "en");
 
-        // If we became inactive before the above request finished, stop.
-        if(!this.active)
-            return;
-
-        // Trigger refresh_thumbnail_ui to fill in tags.
-        this.call_update_listeners();
+        // Refresh the tag list now that it's loaded.
+        this._refresh_artist_tag_list();
     }
 
     async get_user_tags(user_info)
@@ -2437,8 +2436,11 @@ ppixiv.data_sources.manga = class extends data_source
 
     refresh_thumbnail_ui({ thumbnail_view }={})
     {
-        thumbnail_view.avatar_container.hidden = false;
-        thumbnail_view.avatar_widget.set_user_id(this.media_info?.userId);
+        if(thumbnail_view)
+        {
+            thumbnail_view.avatar_container.hidden = false;
+            thumbnail_view.avatar_widget.set_user_id(this.media_info?.userId);
+        }
     }
 };
 
@@ -2751,13 +2753,8 @@ ppixiv.data_source_bookmarks_base = class extends data_source
 
         this._refresh_bookmark_tag_list();
 
-        return this.ui;
-    }
-
-    refresh_thumbnail_ui({ thumbnail_view }={})
-    {
         // The public/private button only makes sense when viewing your own bookmarks.
-        var public_private_button_container = this.ui.container.querySelector(".bookmarks-public-private");
+        let public_private_button_container = this.ui.container.querySelector(".bookmarks-public-private");
         public_private_button_container.hidden = !this.viewing_own_bookmarks();
 
         // Set up the public and private buttons.  The "all" button also removes shuffle, since it's not
@@ -2774,13 +2771,18 @@ ppixiv.data_source_bookmarks_base = class extends data_source
         let set_public = show_all? { rest: null, "#show-all": 0 }:{};
         this.set_item(this.ui.container, {type: "order-shuffle", fields: {"#shuffle": 1, ...set_public}, toggle: true, default_values: {"#shuffle": null, "#show-all": 1}});
 
+        this.set_active_popup_highlight(this.ui.container);
+
+        return this.ui;
+    }
+
+    refresh_thumbnail_ui({ thumbnail_view }={})
+    {
         if(thumbnail_view)
         {
             thumbnail_view.avatar_container.hidden = this.viewing_own_bookmarks();
             thumbnail_view.avatar_widget.set_user_id(this.viewing_user_id);
         }
-
-        this.set_active_popup_highlight(this.ui.container);
     }
 
     _refresh_bookmark_tag_list()
@@ -3132,11 +3134,6 @@ ppixiv.data_sources.new_illust = class extends data_source
             </div>
         `});
 
-        return this.ui;
-    }
-
-    refresh_thumbnail_ui()
-    {
         let current_args = helpers.args.location;
 
         this.set_item(this.ui.container, { type: "new-illust-type-illust", fields: {type: null} });
@@ -3147,6 +3144,8 @@ ppixiv.data_sources.new_illust = class extends data_source
             default_values: {"/path": "new_illust.php"},
             current_url: current_args.url,
         });
+
+        return this.ui;
     }
 }
 
@@ -3181,6 +3180,7 @@ ppixiv.data_sources.new_works_by_following = class extends data_source
         // Store bookmark tags.
         this.bookmark_tags = data.page.tags;
         this.bookmark_tags.sort((lhs, rhs) => lhs.toLowerCase().localeCompare(rhs.toLowerCase()));
+        this._refresh_following_tags();
 
         // Populate thumbnail data with this data.
         await media_cache.add_media_infos_partial(data.thumbnails.illust, "normal");
@@ -3221,12 +3221,16 @@ ppixiv.data_sources.new_works_by_following = class extends data_source
         `});
 
         dropdown_menu_opener.create_handlers(this.ui.container);
+        this._refresh_following_tags();
 
         return this.ui;
     }
 
-    refresh_thumbnail_ui()
+    _refresh_following_tags()
     {
+        if(this.ui == null)
+            return;
+
         let current_args = helpers.args.location;
 
         // Refresh the bookmark tag list.
@@ -3467,7 +3471,7 @@ ppixiv.data_sources.search = class extends data_source
         if(this.related_tags == null)
         {
             this.related_tags = body.relatedTags;
-            this.call_update_listeners();
+            this._refresh_related_tags();
         }
 
         // Add translations.
@@ -3657,27 +3661,6 @@ ppixiv.data_sources.search = class extends data_source
             </div>
         `});
 
-        dropdown_menu_opener.create_handlers(this.ui.container);
-
-        // Create the tag dropdown for the search page input.
-        this.tag_search_box = new tag_search_box_widget({ container: this.ui.container.querySelector(".tag-search-box-container") });
-
-        // Fill the search box with the current tag.
-        //
-        // Add a space to the end, so another tag can be typed immediately after focusing an existing search.
-        let search = this._search_tags;
-        if(search)
-            search += " ";
-        this.ui.container.querySelector(".tag-search-box .input-field-container > input").value = search;
-
-        return this.ui;
-    }
-
-    refresh_thumbnail_ui()
-    {
-        if(this.related_tags)
-            this.tag_search_box.related_tag_widget.set(this.related_tags);
-
         this.set_item(this.ui.container, { type: "ages-all", fields: {mode: null} });
         this.set_item(this.ui.container, { type: "ages-safe", fields: {mode: "safe"} });
         this.set_item(this.ui.container, { type: "ages-r18", fields: {mode: "r18"} });
@@ -3742,7 +3725,7 @@ ppixiv.data_sources.search = class extends data_source
         // don't filter out posts today.
         this.set_item(this.ui.container, { type: "time-all", fields: {scd: null, ecd: null} });
 
-        var format_date = (date) =>
+        let format_date = (date) =>
         {
             var f = (date.getYear() + 1900).toFixed();
             return (date.getYear() + 1900).toFixed().padStart(2, "0") + "-" +
@@ -3750,32 +3733,30 @@ ppixiv.data_sources.search = class extends data_source
                     date.getDate().toFixed().padStart(2, "0");
         };
 
-        var set_date_filter = (name, start, end) =>
+        let set_date_filter = (name, start, end) =>
         {
             var start_date = format_date(start);
             var end_date = format_date(end);
             this.set_item(this.ui.container, { type: name, fields: {scd: start_date, ecd: end_date} });
         };
 
-        var tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
-        var last_week = new Date(); last_week.setDate(last_week.getDate() - 7);
-        var last_month = new Date(); last_month.setMonth(last_month.getMonth() - 1);
-        var last_year = new Date(); last_year.setFullYear(last_year.getFullYear() - 1);
+        let tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
+        let last_week = new Date(); last_week.setDate(last_week.getDate() - 7);
+        let last_month = new Date(); last_month.setMonth(last_month.getMonth() - 1);
+        let last_year = new Date(); last_year.setFullYear(last_year.getFullYear() - 1);
         set_date_filter("time-week", last_week, tomorrow);
         set_date_filter("time-month", last_month, tomorrow);
         set_date_filter("time-year", last_year, tomorrow);
-        for(var years_ago = 1; years_ago <= 7; ++years_ago)
+        for(let years_ago = 1; years_ago <= 7; ++years_ago)
         {
             var start_year = new Date(); start_year.setFullYear(start_year.getFullYear() - years_ago - 1);
             var end_year = new Date(); end_year.setFullYear(end_year.getFullYear() - years_ago);
             set_date_filter("time-years-ago-" + years_ago, start_year, end_year);
         }
 
-        this.set_active_popup_highlight(this.ui.container);
-
         // The "reset search" button removes everything in the query except search terms, and resets
         // the search type.
-        var box = this.ui.container.querySelector(".reset-search");
+        let box = this.ui.container.querySelector(".reset-search");
         let url = new URL(this.url);
         let tag = helpers._get_search_tags_from_url(url);
         url.search = "";
@@ -3784,7 +3765,30 @@ ppixiv.data_sources.search = class extends data_source
         else
             url.pathname = "/tags/" + encodeURIComponent(tag) + "/artworks";
         box.href = url;
-     }
+
+        dropdown_menu_opener.create_handlers(this.ui.container);
+
+        // Create the tag dropdown for the search page input.
+        this.tag_search_box = new tag_search_box_widget({ container: this.ui.container.querySelector(".tag-search-box-container") });
+
+        // Fill the search box with the current tag.
+        //
+        // Add a space to the end, so another tag can be typed immediately after focusing an existing search.
+        let search = this._search_tags;
+        if(search)
+            search += " ";
+        this.ui.container.querySelector(".tag-search-box .input-field-container > input").value = search;
+
+        this.set_active_popup_highlight(this.ui.container);
+
+        return this.ui;
+    }
+
+    _refresh_related_tags()
+    {
+        if(this.related_tags && this.tag_search_box)
+            this.tag_search_box.related_tag_widget.set(this.related_tags);
+    }
 };
 
 ppixiv.data_sources.follows = class extends data_source
@@ -3847,6 +3851,7 @@ ppixiv.data_sources.follows = class extends data_source
         // Store following tags.
         this.follow_tags = result.body.followUserTags;
         this.follow_tags.sort((lhs, rhs) => lhs.toLowerCase().localeCompare(rhs.toLowerCase()));
+        this._refresh_follow_tags();
 
         // Make a list of the first illustration for each user.
         var illusts = [];
@@ -3909,28 +3914,29 @@ ppixiv.data_sources.follows = class extends data_source
             </div>
         `});
 
-        dropdown_menu_opener.create_handlers(this.ui.container);
-
-        return this.ui;
-    }
-
-    refresh_thumbnail_ui({ thumbnail_view }={})
-    {
-        let current_args = helpers.args.location;
-
-        if(!this.viewing_self && thumbnail_view)
-        {
-            thumbnail_view.avatar_container.hidden = false;
-            thumbnail_view.avatar_widget.set_user_id(this.viewing_user_id);
-        }
-        
         // The public/private button only makes sense when viewing your own follows.
-        var public_private_button_container = this.ui.container.querySelector(".follows-public-private");
+        let public_private_button_container = this.ui.container.querySelector(".follows-public-private");
         public_private_button_container.hidden = !this.viewing_self;
 
         this.set_item(this.ui.container, { type: "public-follows", fields: {rest: "show"}, default_values: {rest: "show"} });
         this.set_item(this.ui.container, { type: "private-follows", fields: {rest: "hide"}, default_values: {rest: "show"} });
         this.set_item(this.ui.container, { type: "accepting-requests", toggle: true, fields: {acceptingRequests: "1"}, default_values: {acceptingRequests: "0"}});
+
+        this._refresh_follow_tags();
+
+        // Set the contents of the tag menu button.
+        this.set_active_popup_highlight(this.ui.container);
+
+        dropdown_menu_opener.create_handlers(this.ui.container);
+
+        return this.ui;
+    }
+
+    _refresh_follow_tags()
+    {
+        if(this.ui == null)
+            return;
+        let current_args = helpers.args.location;
 
         let tag_list = this.ui.container.querySelector(".followed-users-follow-tags .vertical-list");
         for(let tag of tag_list.querySelectorAll(".tag-entry"))
@@ -3939,7 +3945,7 @@ ppixiv.data_sources.follows = class extends data_source
         // Refresh the bookmark tag list.  Remove the page number from these buttons.
         let current_tag = this.url.searchParams.get("tag") || "All tags";
 
-        var add_tag_link = (tag) =>
+        let add_tag_link = (tag) =>
         {
             // Work around Pixiv always returning a follow tag named "null" for some users.
             if(tag == "null")
@@ -3973,8 +3979,16 @@ ppixiv.data_sources.follows = class extends data_source
         if(this.follow_tags.length == 0 && current_tag != "All tags")
             add_tag_link(current_tag);
 
-        // Set the contents of the tag menu button.
         this.set_active_popup_highlight(this.ui.container);
+    }
+
+    refresh_thumbnail_ui({ thumbnail_view }={})
+    {
+        if(thumbnail_view && !this.viewing_self)
+        {
+            thumbnail_view.avatar_container.hidden = false;
+            thumbnail_view.avatar_widget.set_user_id(this.viewing_user_id);
+        }
     }
 
     get viewing_self()
@@ -4263,11 +4277,6 @@ ppixiv.data_sources.completed_requests = class extends data_source
             </div>
         `});
 
-        return this.ui;
-    }
-
-    refresh_thumbnail_ui()
-    {
         this.set_item(this.ui.container, { type: "completed-requests-latest", fields: {type: "latest"}, default_values: {type: "latest"}});
         this.set_item(this.ui.container, { type: "completed-requests-recommended", fields: {type: "recommended"}, default_values: {type: "latest"}});
 
@@ -4279,6 +4288,8 @@ ppixiv.data_sources.completed_requests = class extends data_source
         this.set_item(this.ui.container, { url_format: url_format, type: "completed-requests-illust", fields: {"/type": "illust"} });
         this.set_item(this.ui.container, { url_format: url_format, type: "completed-requests-ugoira", fields: {"/type": "ugoira"} });
         this.set_item(this.ui.container, { url_format: url_format, type: "completed-requests-manga", fields: {"/type": "manga"} });
+
+        return this.ui;
     }
 
     get page_title() { return "Completed requests"; };
@@ -4603,12 +4614,6 @@ ppixiv.data_sources.vview = class extends data_source
             this.copy_link();
         });
 
-        return this.ui;
-    }
-
-    // Tell the navigation tree widget which search to view.
-    refresh_thumbnail_ui()
-    {
         let current_args = helpers.args.location;
 
         // Hide the "copy local path" button if we don't have one.
@@ -4656,8 +4661,9 @@ ppixiv.data_sources.vview = class extends data_source
             adjust_url: (args) => args.hash.set("bookmarks", 1),
         });
         
-        this.refresh_bookmark_tag_list(this.ui.container);
         this.set_active_popup_highlight(this.ui.container);
+
+        return this.ui;
     }
 
     // We're doing a bookmark search if the bookmark filter is enabled, or if
@@ -4667,17 +4673,20 @@ ppixiv.data_sources.vview = class extends data_source
         return helpers.args.location.hash.has("bookmarks") || local_api.local_info.bookmark_tag_searches_only;
     }
 
-    refresh_bookmark_tag_list(container)
+    _refresh_bookmark_tag_list()
     {
+        if(this.ui == null)
+            return;
+
         let current_args = helpers.args.location;
 
         // Clear the tag list.
-        let tag_list = container.querySelector(".local-bookmark-tag-list");
+        let tag_list = this.ui.querySelector(".local-bookmark-tag-list");
         for(let tag of tag_list.querySelectorAll(".following-tag"))
             tag.remove();
 
         // Hide the bookmark box if we're not showing bookmarks.
-        container.querySelector(".local-bookmark-tags-box").hidden = !this.bookmark_search_active;
+        this.ui.querySelector(".local-bookmark-tags-box").hidden = !this.bookmark_search_active;
 
         // Stop if we don't have the tag list yet.
         if(this.bookmark_tag_counts == null)
@@ -4733,7 +4742,7 @@ ppixiv.data_sources.vview = class extends data_source
 
             add_tag_link(tag);
         }
-        this.set_active_popup_highlight(container);
+        this.set_active_popup_highlight(this.ui.container);
     }
 
     async fetch_bookmark_tag_counts()
@@ -4754,7 +4763,7 @@ ppixiv.data_sources.vview = class extends data_source
         }
 
         this.bookmark_tag_counts = result.tags;
-        this.call_update_listeners();
+        this._refresh_bookmark_tag_list();
     }
 
     copy_link()
@@ -4853,8 +4862,6 @@ ppixiv.data_sources.vview_similar = class extends data_source
         }
         else
             source_link.href = "#";
-    
-        this.set_active_popup_highlight(container);
     }
 }
 

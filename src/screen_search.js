@@ -280,10 +280,7 @@ class thumbnail_ui_desktop extends ppixiv.widget
     refresh_ui()
     {
         if(this.data_source)
-        {
-            let ui_box = this.container;
-            this.data_source.refresh_thumbnail_ui({ container: ui_box, thumbnail_view: this });
-        }
+            this.data_source.refresh_thumbnail_ui({ container: this.container, thumbnail_view: this });
 
         let element_displaying = this.container.querySelector(".displaying");
         element_displaying.hidden = this.data_source?.get_displaying_text == null;
