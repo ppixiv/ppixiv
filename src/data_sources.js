@@ -1883,15 +1883,6 @@ ppixiv.data_sources.artist = class extends data_source
         return helpers.get_path_part(this.url, 1);
     };
 
-    shutdown()
-    {
-        super.shutdown();
-
-        // Remove our MutationObserver.
-        this.src_observer.disconnect();
-        this.src_observer = null;
-    }
-    
     // Return "artworks" (all), "illustrations" or "manga".
     get viewing_type()
     {
@@ -2130,7 +2121,7 @@ ppixiv.data_sources.artist = class extends data_source
 
         // While we're active, watch for the tags box to open.  We only populate the tags
         // dropdown if it's opened, so we don't load user tags for every user page.
-        var popup = this.ui.container.querySelector(".member-tags-box > .popup-menu-box");
+        let popup = this.ui.querySelector(".member-tags-box > .popup-menu-box");
         this.src_observer = new MutationObserver((mutation_list) => {
             if(popup.classList.contains("popup-visible"))
                 this.tag_list_opened();
