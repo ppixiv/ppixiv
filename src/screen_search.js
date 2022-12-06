@@ -543,7 +543,10 @@ ppixiv.screen_search = class extends ppixiv.screen
         });
 
         // If the local API is enabled and tags aren't restricted, set up the directory tree sidebar.
-        if(ppixiv.local_api.is_enabled() && !local_api.local_info.bookmark_tag_searches_only)
+        //
+        // We don't currently show the local navigation panel on mobile.  The UI isn't set up for
+        // it, and it causes thumbnails to flicker while scrolling for some reason.
+        if(ppixiv.local_api.is_enabled() && !local_api.local_info.bookmark_tag_searches_only && !ppixiv.mobile)
         {
             let local_navigation_box = this.container.querySelector(".local-navigation-box");
 
