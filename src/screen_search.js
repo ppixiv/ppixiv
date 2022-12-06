@@ -254,6 +254,15 @@ class thumbnail_ui_desktop extends ppixiv.widget
         // Create the new data source's UI.
         let data_source_ui_container = this.container.querySelector(".data-source-ui");
         this.current_data_source_ui = this.data_source.create_ui({ container: data_source_ui_container });
+
+        // Show UI elements with this data source in their data-datasource attribute.
+        let data_source_name = data_source.name;
+        for(let node of this.querySelectorAll(".data-source-specific[data-datasource]"))
+        {
+            let data_sources = node.dataset.datasource.split(" ");
+            let show_element = data_sources.indexOf(data_source_name) != -1;
+            node.hidden = !show_element;
+        }
     }
     
     update_from_settings = () =>

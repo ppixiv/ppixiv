@@ -411,7 +411,6 @@ ppixiv.MainController = class
             message_widget.singleton.hide();
             
             this.data_source = data_source;
-            this.show_data_source_specific_elements();
             this.context_menu.set_data_source(data_source);
             
             if(this.data_source != null)
@@ -482,18 +481,6 @@ ppixiv.MainController = class
         return this.screen_search.get_rect_for_media_id(media_id);
     }
     
-    show_data_source_specific_elements()
-    {
-        // Show UI elements with this data source in their data-datasource attribute.
-        var data_source_name = this.data_source.name;
-        for(var node of this.container.querySelectorAll(".data-source-specific[data-datasource]"))
-        {
-            var data_sources = node.dataset.datasource.split(" ");
-            var show_element = data_sources.indexOf(data_source_name) != -1;
-            node.hidden = !show_element;
-        }
-    }
-
     // Return the URL to display a media ID.
     get_media_url(media_id, {screen="illust", temp_view=false}={})
     {
