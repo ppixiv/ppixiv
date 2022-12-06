@@ -1176,7 +1176,6 @@ body.dot canvas.filtering {
             text-shadow: 0 1px 0 #000;
             white-space: nowrap;
             z-index: 98;
-
         }
         &[data-popup-side="left"]:hover:after   { right: 0em; }
         &[data-popup-side="right"]:hover:after,
@@ -2366,18 +2365,23 @@ a.box-link, span.box-link
         display: none;
     }
 
-    & .tooltip-display {
+    .tooltip-display {
         display: flex;
         align-items: stretch;
         padding: 10px 0 0 8px;
         pointer-events: none;
-    }
 
-    .tooltip-display .tooltip-display-text {
-        background-color: var(--frame-bg-color);
-        color: var(--frame-fg-color);
-        padding: 2px 8px;
-        border-radius: 4px;
+        .tooltip-display-text {
+            background-color: var(--frame-bg-color);
+            color: var(--frame-fg-color);
+            padding: 2px 8px;
+            border-radius: 4px;
+            white-space: nowrap;
+
+            &:after {
+                content: attr(data-popup);
+            }
+        }
     }
 
     .button-strip {

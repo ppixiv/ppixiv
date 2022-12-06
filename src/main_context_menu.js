@@ -161,7 +161,7 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
                         </div>
                     </div>
                     <div class=button-block>
-                        <div class="button requires-zoom button-zoom" data-popup="Toggle zoom">
+                        <div class="button requires-zoom button-zoom" data-popup="Mousewheel to zoom">
                             <ppixiv-inline src="resources/zoom-plus.svg"></ppixiv-inline>
                             <ppixiv-inline src="resources/zoom-minus.svg"></ppixiv-inline>
                         </div>
@@ -583,7 +583,7 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
             element = element.closest("[data-popup]");
         this.container.querySelector(".tooltip-display").hidden = element == null;
         if(element != null)
-            this.container.querySelector(".tooltip-display-text").textContent = element.dataset.popup;
+            this.container.querySelector(".tooltip-display-text").dataset.popup = element.dataset.popup;
     }
 
     onmouseover = (e) =>
