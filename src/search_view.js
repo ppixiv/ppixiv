@@ -1157,7 +1157,7 @@ ppixiv.search_view = class extends ppixiv.widget
         let [illust_id, illust_page] = helpers.media_id_to_illust_id_and_page(media_id);
         
         helpers.set_class(thumb, "expanded-manga-post", show_expanded);
-        helpers.set_class(thumb, "first-manga-page", illust_page == 0);
+        helpers.set_class(thumb, "first-manga-page", info && info.pageCount > 1 && illust_page == 0);
 
         // Show the page count if this is a multi-page post (unless we're on the
         // manga view itself).
