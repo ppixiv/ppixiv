@@ -736,9 +736,19 @@ ppixiv.data_source = class extends EventTarget
         this.dispatchEvent(new Event("updated"));
     }
 
-    // Each data source can have a different UI in the thumbnail view.  container is
-    // the thumbnail-ui-box container to refresh.
-    refresh_thumbnail_ui({ container, view }={}) { }
+    // Return info useful for the container's UI elements:
+    //
+    // {
+    //     image_url,                 // URL for an image related to this search
+    //     image_link_url,            // a URL where image_url should link to
+    //     user_id,                   // a user ID whose avatar should be displayed
+    // }
+    //
+    // If this changes, the "updated" event will be sent to the data source.
+    get ui_info()
+    {
+        return { };
+    }
 
     // A helper for setting up UI links.  Find the link with the given type,
     // set all {key: value} entries as query parameters, and remove any query parameters
@@ -1238,21 +1248,17 @@ ppixiv.data_sources.related_illusts = class extends data_source
     get page_title() { return "Similar Illusts"; }
     get_displaying_text() { return "Similar Illustrations"; }
 
-    refresh_thumbnail_ui({ thumbnail_view }={})
+    get ui_info()
     {
-        let source_link = thumbnail_view?.image_for_suggestions;
-        if(source_link)
+        let image_url = null;
+        let image_link_url = null;
+        if(this.illust_info)
         {
-            // Set the source image.
-            source_link.hidden = this.illust_info == null;
-            if(this.illust_info)
-            {
-                source_link.href = `/artworks/${this.illust_info.illustId}#ppixiv`;
-
-                var img = source_link.querySelector(".image-for-suggestions > img");
-                img.src = this.illust_info.previewUrls[0];
-            }
+            image_link_url = `/artworks/${this.illust_info.illustId}#ppixiv`;
+            image_url = this.illust_info.previewUrls[0];
         }
+
+        return { image_url, image_link_url };
     }
 }
 
@@ -2208,12 +2214,10 @@ ppixiv.data_sources.artist = class extends data_source
         }
     }
 
-    refresh_thumbnail_ui({ thumbnail_view }={})
+    get ui_info()
     {
-        if(thumbnail_view?.avatar_widget)
-        {
-            thumbnail_view.avatar_widget.visible = true;
-            thumbnail_view.avatar_widget.set_user_id(this.viewing_user_id);
+        return {
+            user_id: this.viewing_user_id,
         }
     }
 
@@ -2439,12 +2443,10 @@ ppixiv.data_sources.manga = class extends data_source
         return helpers.get_manga_aspect_ratio(this.illust_info.mangaPages);
     }
 
-    refresh_thumbnail_ui({ thumbnail_view }={})
+    get ui_info()
     {
-        if(thumbnail_view?.avatar_widget)
-        {
-            thumbnail_view.avatar_widget.visible = true;
-            thumbnail_view.avatar_widget.set_user_id(this.media_info?.userId);
+        return {
+            user_id: this.media_info?.userId,
         }
     }
 };
@@ -2851,13 +2853,10 @@ ppixiv.data_source_bookmarks_base = class extends data_source
         };
     }
 
-    refresh_thumbnail_ui({ thumbnail_view }={})
+    get ui_info()
     {
-        if(thumbnail_view?.avatar_widget)
-        {
-            let user_id = this.viewing_own_bookmarks()? null:this.viewing_user_id;
-            thumbnail_view.avatar_widget.visible = user_id != null;
-            thumbnail_view.avatar_widget.set_user_id(user_id);
+        return {
+            user_id: this.viewing_own_bookmarks()? null:this.viewing_user_id,
         }
     }
 
@@ -4006,12 +4005,10 @@ ppixiv.data_sources.follows = class extends data_source
         }
     }
 
-    refresh_thumbnail_ui({ thumbnail_view }={})
+    get ui_info()
     {
-        if(thumbnail_view?.avatar_widget && !this.viewing_self)
-        {
-            thumbnail_view.avatar_widget.visible = true;
-            thumbnail_view.avatar_widget.set_user_id(this.viewing_user_id);
+        return {
+            user_id: this.viewing_self? null:this.viewing_user_id,
         }
     }
 
@@ -4071,7 +4068,8 @@ ppixiv.data_sources.related_favorites = class extends data_source_from_page
         var illust_id = query_args.get("illust_id");
         let media_id = helpers.illust_id_to_media_id(illust_id)
         this.illust_info = await media_cache.get_media_info(media_id);
-        
+        this.call_update_listeners();
+
         return super.load_page_internal(page);
     }
 
@@ -4099,22 +4097,18 @@ ppixiv.data_sources.related_favorites = class extends data_source_from_page
         }
         return ids;
     }
-    
-    refresh_thumbnail_ui({ thumbnail_view })
-    {
-        let source_link = thumbnail_view?.image_for_suggestions;
-        if(source_link)
-        {
-            // Set the source image.
-            source_link.hidden = this.illust_info == null;
-            if(this.illust_info)
-            {
-                source_link.href = `/artworks/${this.illust_info.id}#ppixiv`;
 
-                let img = source_link.querySelector(".image-for-suggestions > img");
-                img.src = this.illust_info.previewUrls[0];
-            }
+    get ui_info()
+    {
+        let image_url = null;
+        let image_link_url = null;
+        if(this.illust_info)
+        {
+            image_link_url = `/artworks/${this.illust_info.id}#ppixiv`;
+            image_url = this.illust_info.previewUrls[0];
         }
+
+        return { image_url, image_link_url };
     }
 
     get page_title()
@@ -4843,6 +4837,7 @@ ppixiv.data_sources.vview_similar = class extends data_source
 
         // This is a URL to the original image we're searching for.
         this.source_url = result.source_url;
+        this.call_update_listeners();
 
         let media_ids = [];
         for(let item of result.results)
@@ -4878,20 +4873,13 @@ ppixiv.data_sources.vview_similar = class extends data_source
         return `Similar images`;
     }
 
-    refresh_thumbnail_ui({ thumbnail_view })
+    get ui_info()
     {
-        let source_link = thumbnail_view?.image_for_suggestions;
-        if(source_link)
+        let image_url = null;
+        let image_link_url = null;
+        if(this.source_url)
         {
-            // Set the source image.
-            source_link.hidden = this.source_url == null;
-
-            // A URL for the image we're searching for.
-            if(this.source_url)
-            {
-                let img = source_link.querySelector("img");
-                img.src = this.source_url;
-            }
+            image_url = this.source_url;
 
             // If this is a search for a local path, link to the image.
             let args = new helpers.args(this.url);
@@ -4900,11 +4888,11 @@ ppixiv.data_sources.vview_similar = class extends data_source
             {
                 let media_id = helpers.encode_media_id({type: "file", id: path});
                 let link_args = helpers.get_url_for_id(media_id);
-                source_link.href = link_args;
+                image_link_url = link_args;
             }
-            else
-                source_link.href = "#";
         }
+
+        return { image_url, image_link_url };
     }
 }
 

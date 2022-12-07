@@ -273,7 +273,18 @@ class thumbnail_ui_desktop extends ppixiv.widget
     refresh_ui()
     {
         if(this.data_source)
-            this.data_source.refresh_thumbnail_ui({ thumbnail_view: this });
+        {
+            let { user_id, image_url, image_link_url } = this.data_source.ui_info;
+
+            this.image_for_suggestions.hidden = image_url == null;
+            this.image_for_suggestions.href = image_link_url ?? "#";
+
+            let img = this.image_for_suggestions.querySelector(".image-for-suggestions > img");
+            img.src = image_url ?? helpers.blank_image;
+
+            this.avatar_widget.visible = user_id != null;
+            this.avatar_widget.set_user_id(user_id);
+        }
 
         let element_displaying = this.container.querySelector(".displaying");
         element_displaying.hidden = this.data_source?.get_displaying_text == null;
