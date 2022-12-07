@@ -1282,20 +1282,63 @@ body.hide-r18g .r18g { display: none; }
     // navigation bar.
     --nav-bar-reserved-height: 1em;
 
-    .mobile-ui-drag-container {
-        touch-action: none;
+    // The mobile title bar's height.  We need to calculate this statically so it can be used
+    // for the scroller's top padding too.
+    --title-bar-padding-top: calc(max(.25em, env(safe-area-inset-top)));
+    --title-bar-line-height: 1.5em;
+    --title-bar-height: calc(var(--title-bar-padding-top) + var(--title-bar-line-height));
+    
+    .mobile-ui-header {
         position: fixed;
-
-        // The menu bar should be right at the bottom, but move it down by one pixel to avoid a compositing
-        // bug on iOS: the body can render a subpixel outside of the main body of the window, and will bleed
-        // through outside of so boxes aligned to top: 0 or bottom: 0.  This will cause it to overlap the
-        // iOS blurred navigation bar a bit, but that's not visible since it blurs so much.
-        bottom: -1px;
+        top: 0;
         left: 0;
         width: 100%;
+        display: flex;
+        flex-direction: column;
+
+        //opacity: 0;
+        translate: 0 -50px;
+        transition: translate .25s;
+        &.shown {
+            translate: 0px 0px;
+            > .title {
+                opacity: 1;
+            }
+        }
+
+        .title {
+            @include overlay-blur();
+            padding-top: var(--title-bar-padding-top);
+            padding-bottom: .25em;
+            opacity: 0;
+            transition: opacity .25s;
+
+            line-height: var(--title-bar-line-height);
+            white-space: nowrap;
+            overflow: hidden;
+            padding-left: 10px;
+            padding-right: 10px;
+            display: flex;
+            gap: .25em;
+            align-items: center;
+            justify-content: center;
+            
+            > span {
+                display: contents;
+            }
+
+            .word.or {
+                font-size: 60%;
+                padding: 0;
+                color: #bbb;
+            }
+        }
+
     }
 
     .mobile-header {
+        @include overlay-blur();
+
         html.mobile & {
             --mobile-nav-bar-bottom-padding: env(safe-area-inset-bottom);
             --mobile-nav-bar-top-padding: 0px;
@@ -1318,17 +1361,16 @@ body.hide-r18g .r18g { display: none; }
             --mobile-nav-bar-bottom-padding: calc(env(safe-area-inset-bottom) * 0.5);
         }
 
+        position: fixed;
+        left: 0;
+        width: 100%;
+
         display: flex;
         flex-direction: column;
-
-        // Disable touch-action for the dragger.
-        touch-action: none;
 
         --icon-size: 2;
         --button-color: #5a91f7;
         --button-disabled-color: #777;
-
-        @include overlay-blur();
 
         // Crop off the buttons when they pan outside of this container.
         overflow: hidden;
@@ -1338,43 +1380,30 @@ body.hide-r18g .r18g { display: none; }
 
         // line-height + padding
         --icon-bar-height: 2.5em;
-        --height-closed: calc(1.5em + var(--mobile-nav-bar-top-padding) + var(--mobile-nav-bar-bottom-padding));
-        --height-open: calc(var(--height-closed) + var(--icon-bar-height));
-        height: scale_value(var(--header-pos), 0, 1, var(--height-closed), var(--height-open));
-
+        --height-open: calc(var(--icon-bar-height) + var(--mobile-nav-bar-top-padding) + var(--mobile-nav-bar-bottom-padding));
+        height: var(--height-open);
         padding-top: var(--mobile-nav-bar-top-padding);
         padding-bottom: var(--mobile-nav-bar-bottom-padding);
 
+        transition: bottom .25s;
+        bottom: calc(var(--height-open) * -1);
+        &.shown {
+            // The menu bar should be right at the bottom, but move it down by one pixel to avoid a compositing
+            // bug on iOS: the body can render a subpixel outside of the main body of the window, and will bleed
+            // through outside of so boxes aligned to top: 0 or bottom: 0.  This will cause it to overlap the
+            // iOS blurred navigation bar a bit, but that's not visible since it blurs so much.
+            bottom: -1px;
+        }
+
+        &:not(.shown) {
+            pointer-events: none;
+        }
+
         .header-contents {
-            .title {
-                line-height: 1.5em;
-                white-space: nowrap;
-                overflow: hidden;
-                padding-left: 10px;
-                padding-right: 10px;
-                display: flex;
-                gap: .25em;
-                align-items: center;
-                justify-content: center;
-                
-                > span {
-                    display: contents;
-                }
-
-                .word.or {
-                    font-size: 60%;
-                    padding: 0;
-                    color: #bbb;
-                }
-            }
-
-            .button-row {
-                opacity: var(--header-pos);
-                height: var(--icon-bar-height);
-                display: flex;
-                flex-direction: row;
-                justify-content: space-around;
-            }
+            height: var(--icon-bar-height);
+            display: flex;
+            flex-direction: row;
+            justify-content: space-around;
         }
     }
 
@@ -1387,6 +1416,7 @@ body.hide-r18g .r18g { display: none; }
         // Make space for the navigation bar.  It isn't inside the scroller, so we can't use
         // position: sticky for this.
         html.mobile & {
+            padding-top: var(--title-bar-height);
             padding-bottom: 1.5rem;
         }
     }

@@ -359,88 +359,36 @@ let thumbnail_ui_mobile = class extends ppixiv.widget
             ...options,
             template: `
             <div class=mobile-header>
-                <div class=header-contents>
-                    <div class=title></div>
-                    <div class=button-row>
-                        <div class="icon-button back-button disabled">
-                            ${ helpers.create_icon("mat:arrow_back_ios_new") }
-                        </div>
+                <div class="header-contents button-row">
+                    <div class="icon-button back-button disabled">
+                        ${ helpers.create_icon("mat:arrow_back_ios_new") }
+                    </div>
 
-                        <div class="icon-button refresh-search-button">
-                            ${ helpers.create_icon("refresh") }
-                        </div>
+                    <div class="icon-button refresh-search-button">
+                        ${ helpers.create_icon("refresh") }
+                    </div>
 
-                        <div class="icon-button menu">
-                            ${ helpers.create_icon("search") }
-                        </div>
+                    <div class="icon-button menu">
+                        ${ helpers.create_icon("search") }
+                    </div>
 
-                        <div class="icon-button slideshow">
-                            ${ helpers.create_icon("wallpaper") }
-                        </div>
+                    <div class="icon-button slideshow">
+                        ${ helpers.create_icon("wallpaper") }
+                    </div>
 
-                        <div class="icon-button preferences-button">
-                            ${ helpers.create_icon("settings") }
-                        </div>
+                    <div class="icon-button preferences-button">
+                        ${ helpers.create_icon("settings") }
                     </div>
                 </div>
             </div>
         `});
 
-        this.dragger = new ppixiv.WidgetDragger({
-            node: this.container,
-            close_if_outside: [this.container],
-            drag_node: this.container,
-            visible: false,
-            direction: "up",
-            animated_property: "--header-pos",
-            size: 50,
-            onpointerdown: ({event}) => {
-                // This is very close to the bottom near system navigation, so we tap to open
-                // and only drag to close, so people don't keep trying to drag to open and get
-                // frustrated when it keeps activating navigation.
-                return this.dragger.visible;
-            },
-        });
-
-        // Show the button row when the title is clicked.
-        this.container.querySelector(".title").addEventListener("click", (e) => {
-            this.dragger.show();
-        });
-
-        // These need to check if the dragger is visible, since clicks are triggered when dragging the
-        // bar closed when the drag is released, which causes these to activate.
-        this.container.querySelector(".refresh-search-button").addEventListener("click", () => {
-            if(!this.dragger.visible)
-                return;
-
-            this.parent.refresh_search();
-            this.dragger.hide();
-        });
-
-        this.container.querySelector(".preferences-button").addEventListener("click", (e) => {
-            if(!this.dragger.visible)
-                return;
-
-            new ppixiv.settings_dialog();
-            this.dragger.hide();
-        });
-
-        this.container.querySelector(".slideshow").addEventListener("click", (e) => {
-            if(!this.dragger.visible)
-                return;
-
-            helpers.navigate(main_controller.slideshow_url);
-            this.dragger.hide();
-        });
-        
-        this.container.querySelector(".menu").addEventListener("click", (e) => {
-            new mobile_edit_search_dialog();
-
-            this.dragger.hide();
-        });
+        this.container.querySelector(".refresh-search-button").addEventListener("click", () => this.parent.refresh_search());
+        this.container.querySelector(".preferences-button").addEventListener("click", (e) => new ppixiv.settings_dialog());
+        this.container.querySelector(".slideshow").addEventListener("click", (e) => helpers.navigate(main_controller.slideshow_url));
+        this.container.querySelector(".menu").addEventListener("click", (e) => new mobile_edit_search_dialog());
 
         this.container.querySelector(".back-button").addEventListener("click", () => {
-            // This doesn't hide the dragger on click, in case the user wants to back out several times.
             if(ppixiv.native)
             {
                 if(this.parent.displayed_media_id == null)
@@ -461,14 +409,6 @@ let thumbnail_ui_mobile = class extends ppixiv.widget
 
     refresh_ui()
     {
-        let element_displaying = this.container.querySelector(".title");
-        element_displaying.hidden = this.parent.data_source.get_displaying_text == null;
-        if(this.parent.data_source.get_displaying_text != null)
-        {
-            let text = this.parent.data_source.get_displaying_text();
-            element_displaying.replaceChildren(text);
-        }
-
         // The back button navigate to parent locally, otherwise it's browser back if we're in
         // permanent history mode.
         let back_button = this.container.querySelector(".back-button");
@@ -480,6 +420,7 @@ let thumbnail_ui_mobile = class extends ppixiv.widget
         helpers.set_class(back_button, "disabled", !show_back_button);
     }
 }
+
 
 // The search UI.
 ppixiv.screen_search = class extends ppixiv.screen
@@ -497,13 +438,17 @@ ppixiv.screen_search = class extends ppixiv.screen
                     <vv-container class=thumbnail-container-box></vv-container>
                 </div>
 
+                <div class=mobile-ui-header hidden>
+                    <div class=title></div>
+                </div>
+
                 <!-- The navigation bar on mobile: -->
                 <div class=mobile-ui-drag-container></div>
             </div>
         `});
 
         user_cache.addEventListener("usermodified", this.refresh_ui, { signal: this.shutdown_signal.signal });        
-
+        
         // Add the top search UI if we're on desktop.
         if(!ppixiv.mobile)
         {
@@ -533,9 +478,27 @@ ppixiv.screen_search = class extends ppixiv.screen
 
         if(ppixiv.mobile)
         {
+            this.mobile_header = this.container.querySelector(".mobile-ui-header");
+            this.mobile_header.hidden = false;
+
+            let navigation_bar_container = this.container.querySelector(".mobile-ui-drag-container");
             this.thumbnail_ui_mobile = new thumbnail_ui_mobile({
-                container: this.container.querySelector(".mobile-ui-drag-container"),
+                container: navigation_bar_container,
             });
+
+            let onchange = () =>
+            {
+                helpers.set_class(this.mobile_header, "shown", !scroll_listener.scrolled_forwards);
+                helpers.set_class(this.thumbnail_ui_mobile.container, "shown", !scroll_listener.scrolled_forwards);
+            };
+            
+            let scroller = this.querySelector(".search-results");
+            let scroll_listener = new ScrollListener({
+                scroller,
+                parent: this,
+                onchange,
+            });
+            onchange();
         }
 
         muting.singleton.addEventListener("mutes-changed", this.refresh_ui_for_user_id);
@@ -675,6 +638,17 @@ ppixiv.screen_search = class extends ppixiv.screen
         
     refresh_ui = () =>
     {
+        // Update the title even if we're not active, so it's up to date for transitions.
+        if(this.mobile_header)
+        {
+            this.mobile_header.hidden = this.data_source?.get_displaying_text == null;
+            if(this.data_source?.get_displaying_text != null)
+            {
+                let text = this.data_source?.get_displaying_text();
+                this.mobile_header.querySelector(".title").replaceChildren(text);
+            }
+        }
+
         if(!this.active)
             return;
 
