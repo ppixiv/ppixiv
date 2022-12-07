@@ -1,11 +1,190 @@
 "use strict";
 
-// A basic widget base class.
-ppixiv.widget = class
+// Actor is the base class for the actor tree.  Actors can have parent and child actors.
+// Shutting down an actor will shut down its children.  Each actor has an AbortSignal
+// which is aborted when the actor shuts down, so event listeners, fetches, etc. can be
+// shut down with the actor.
+//
+// Most actors are widgets and should derive from ppixiv.widget.  The base actor class
+// doesn't have HTML content or add itself to the DOM tree.  Non-widget actors are used
+// for helpers that want to live in the actor tree, but don't have content of their own.
+ppixiv.actor = class
 {
-    // A list of top-level widgets (widgets with no parent).  This is just for debugging.
-    static top_widgets = [];
+    // If true, stack traces will be logged if shutdown() is called more than once.  This takes
+    // a stack trace on each shutdown, so it's only enabled when needed.
+    static debug_shutdown = true;
 
+    // A list of top-level actors (actors with no parent).  This is just for debugging.
+    static top_actors = [];
+
+    // Dump the actor tree to the console.
+    static dump_actors({parent=null}={})
+    {
+        let actors = parent? parent.child_actors:ppixiv.actor.top_actors;
+
+        let grouped = false;
+        if(parent)
+        {
+            // If this parent has any children, create a logging group.  Otherwise, just log it normally.
+            if(actors.length == 0)
+                console.log(parent);
+            else
+            {
+                console.group(parent);
+                grouped = true;
+            }
+        }
+
+        try {
+            for(let actor of actors)
+                ppixiv.actor.dump_actors({parent: actor});
+        } finally {
+            // Only remove the logging group if we created one.
+            if(grouped)
+                console.groupEnd();
+        }
+    }
+
+    constructor({
+        container,
+        
+        // The parent actor, if any.
+        parent=null,
+
+        // The parent's shutdown signal.  Most of the time this is null, and we'll use parent's
+        // shutdown signal.
+        shutdown_signal=null,
+        ...options
+    }={})
+    {
+        this.options = options;
+
+        this.templates = {};
+        this.child_actors = [];
+
+        this.parent = parent;
+
+        // If we weren't given a shutdown signal explicitly and we have a parent actor, inherit
+        // its signal, so we'll shut down when the parent does.
+        if(shutdown_signal == null && this.parent != null)
+            shutdown_signal = this.parent.shutdown_signal.signal;
+        this._parent_shutdown_signal = shutdown_signal;
+
+        // If we were given a parent shutdown signal, shut down if it aborts.
+        if(this._parent_shutdown_signal)
+            this._parent_shutdown_signal.addEventListener("abort", this._shutdown_signal_aborted, { once: true });
+
+        // Create our shutdown_signal.  We'll abort this if we're shut down to shut down our children.
+        // This is always shut down by us when shutdown() is called (it isn't used to shut us down).
+        this.shutdown_signal = new AbortController();
+
+        // Register ourself in our parent's child list.
+        if(this.parent)
+            this.parent._child_added(this);
+        else
+            ppixiv.actor.top_actors.push(this);
+    }
+
+    shutdown()
+    {
+        if(ppixiv.actor.debug_shutdown && !this._previous_shutdown_stack)
+        {
+            try {
+                throw new Error();
+            } catch(e) {
+                this._previous_shutdown_stack = e.stack;
+            }
+        }
+
+        // If _shutdown_signal_aborted hasn't been called yet, remove our listener.
+        if(this._parent_shutdown_signal)
+            this._parent_shutdown_signal.removeEventListener("abort", this._shutdown_signal_aborted);
+
+        // We should only be shut down once, so shutdown_signal shouldn't already be signalled.
+        if(this.shutdown_signal.signal.aborted)
+        {
+            console.error("Actor has already shut down:", this);
+            if(this._previous_shutdown_stack)
+                console.log("Previous shutdown stack:", this._previous_shutdown_stack);
+            return;
+        }
+
+        // This will shut down everything associated with this actor, as well as any child actors.
+        this.shutdown_signal.abort();
+
+        // All of our children should have shut down and removed themselves from our child list.
+        if(this.child_actors.length != 0)
+        {
+            for(let child of this.child_actors)
+                console.warn("Child of", this, "didn't shut down:", child);
+        }
+
+        // If we have a parent, remove ourself from it.  Otherwise, remove ourself from
+        // top_actors.
+        if(this.parent)
+            this.parent._child_removed(this);
+        else
+        {
+            let idx = ppixiv.actor.top_actors.indexOf(this);
+            console.assert(idx != -1);
+            ppixiv.actor.top_actors.splice(idx, 1);
+        }
+    }
+
+    // This is called if shutdown_signal is aborted outside of a call to shutdown().
+    _shutdown_signal_aborted = () =>
+    {
+        this.shutdown();
+    }
+
+    // Create an element from template HTML.  If name isn't null, the HTML will be cached
+    // using name as a key.
+    create_template({name=null, html, make_svg_unique=true})
+    {
+        let template = name? this.templates[name]:null;
+        if(!template)
+        {
+            template = document.createElement("template");
+            template.innerHTML = html;
+            helpers.replace_inlines(template.content);
+            
+            this.templates[name] = template;
+        }
+
+        return helpers.create_from_template(template, { make_svg_unique });
+    }
+
+    // For convenience, return options to add to an event listener and other objects that
+    // take an AbortSignal to shut down when the rest of the actor does.
+    //
+    // node.addEventListener("event", func, this._signal);
+    // node.addEventListener("event", func, { capture: true, ...this._signal });
+    get _signal()
+    {
+        return { signal: this.shutdown_signal.signal };
+    }
+
+    _child_added(child)
+    {
+        this.child_actors.push(child);
+    }
+
+    _child_removed(child)
+    {
+        let idx = this.child_actors.indexOf(child);
+        if(idx == -1)
+        {
+            console.warn("Actor wasn't in the child list:", child);
+            return;
+        }
+
+        this.child_actors.splice(idx, 1);
+    }
+}
+
+// A basic widget base class.
+ppixiv.widget = class extends ppixiv.actor
+{
     // Find the widget containing a node.
     static from_node(node, { allow_none=false }={})
     {
@@ -24,41 +203,12 @@ ppixiv.widget = class
         return widget_top_node.widget;
     }
 
-    // Dump the widget tree to the console.
-    static dump_widgets({parent=null}={})
-    {
-        let widgets = parent? parent.child_widgets:ppixiv.widget.top_widgets;
-
-        let grouped = false;
-        if(parent)
-        {
-            // If this parent has any children, create a logging group.  Otherwise, just log it normally.
-            if(widgets.length == 0)
-                console.log(parent);
-            else
-            {
-                console.group(parent);
-                grouped = true;
-            }
-        }
-
-        try {
-            for(let widget of widgets)
-                ppixiv.widget.dump_widgets({parent: widget});
-        } finally {
-            // Only remove the logging group if we created one.
-            if(grouped)
-                console.groupEnd();
-        }
-    }
-
     constructor({
         container,
         template=null,
         contents=null,
-        parent=null,
         visible=true,
-        shutdown_signal=null,
+        parent=null,
 
         // An insertAdjacentElement position (beforebegin, afterbegin, beforeend, afterend) indicating
         // where our contents should be inserted relative to container.  This can also be "replace", which
@@ -69,10 +219,6 @@ ppixiv.widget = class
         // If container is a widget instead of a node, use the container's root node.
         if(container != null && container instanceof ppixiv.widget)
             container = container.container;
-
-        this.options = options;
-        this.templates = {};
-        this.child_widgets = [];
 
         let parent_search_node = container;
         if(contents)
@@ -91,19 +237,7 @@ ppixiv.widget = class
             parent = parent_widget;
         }
 
-        // If we weren't given a shutdown signal explicitly and we have a parent widget, inherit
-        // its signal, so we'll shut down when the parent does.
-        if(shutdown_signal == null && parent != null)
-            shutdown_signal = parent.shutdown_signal.signal;
-        this._parent_shutdown_signal = shutdown_signal;
-
-        // If we were given a parent shutdown signal, shut down if it aborts.
-        if(this._parent_shutdown_signal)
-            this._parent_shutdown_signal.addEventListener("abort", this._shutdown_signal_aborted, { once: true });
-
-        // Create our shutdown_signal.  We'll abort this if we're shut down to shut down our children.
-        // This is always shut down by us when shutdown() is called (it isn't used to shut us down).
-        this.shutdown_signal = new AbortController();
+        super({container, parent, ...options});
 
         // We must have either a template or contents.
         if(template)
@@ -130,8 +264,6 @@ ppixiv.widget = class
         this.container.classList.add("widget");
         this.container.widget = this;
 
-        this.parent = parent;
-
         // visible is the initial visibility.  We can't just set this.visible here, since
         // it'll call refresh and visibility_changed, and the subclass isn't ready for those
         // to be called since it hasn't initialized yet.  Set this._visible directly, and
@@ -143,45 +275,6 @@ ppixiv.widget = class
             this.visibility_changed();
             this.refresh();
         });
-
-        if(this.parent)
-            this.parent._child_added(this);
-        else
-            ppixiv.widget.top_widgets.push(this);
-    }
-
-    // Create an element from template HTML.  If name isn't null, the HTML will be cached
-    // using name as a key.
-    create_template({name=null, html, make_svg_unique=true})
-    {
-        let template = name? this.templates[name]:null;
-        if(!template)
-        {
-            template = document.createElement("template");
-            template.innerHTML = html;
-            helpers.replace_inlines(template.content);
-            
-            this.templates[name] = template;
-        }
-
-        return helpers.create_from_template(template, { make_svg_unique });
-    }
-
-    _child_added(child_widget)
-    {
-        this.child_widgets.push(child_widget);
-    }
-
-    _child_removed(child_widget)
-    {
-        let idx = this.child_widgets.indexOf(child_widget);
-        if(idx == -1)
-        {
-            console.warn("Widget wasn't in the child list:", child_widget);
-            return;
-        }
-
-        this.child_widgets.splice(idx, 1);
     }
 
     async refresh()
@@ -204,72 +297,11 @@ ppixiv.widget = class
         this.visibility_changed();
     }
 
-    // For convenience, return options to add to an event listener and other objects that
-    // take an AbortSignal to shut down when the rest of the widget does.
-    //
-    // node.addEventListener("event", func, this._signal);
-    // node.addEventListener("event", func, { capture: true, ...this._signal });
-    get _signal()
-    {
-        return { signal: this.shutdown_signal.signal };
-    }
-
-    // If true, stack traces will be logged if shutdown() is called more than once.  This takes
-    // a stack trace on each shutdown, so it's only enabled when needed.
-    static debug_shutdown = true;
-
     shutdown()
     {
-        if(ppixiv.widget.debug_shutdown && !this._previous_shutdown_stack)
-        {
-            try {
-                throw new Error();
-            } catch(e) {
-                this._previous_shutdown_stack = e.stack;
-            }
-        }
-
-        // If _shutdown_signal_aborted hasn't been called yet, remove our listener.
-        if(this._parent_shutdown_signal)
-            this._parent_shutdown_signal.removeEventListener("abort", this._shutdown_signal_aborted);
-
-        // Signal shutdown_signal to remove event listeners.  We should only be shut down
-        // once, so shutdown_signal shouldn't already be signalled.
-        if(this.shutdown_signal.signal.aborted)
-        {
-            console.error("Widget has already shut down:", this);
-            if(this._previous_shutdown_stack)
-                console.log("Previous shutdown stack:", this._previous_shutdown_stack);
-            return;
-        }
-
-        // This will shut down everything associated with this widget, as well as any child widgets.
-        this.shutdown_signal.abort();
-
-        // After signalling shutdown_signal, all of our children should have shut down and
-        // removed themselves from our child list.
-        if(this.child_widgets.length != 0)
-        {
-            for(let child of this.child_widgets)
-                console.warn("Child of", this, "didn't shut down:", child);
-        }
+        super.shutdown();
 
         this.container.remove();
-
-        if(this.parent)
-            this.parent._child_removed(this);
-        else
-        {
-            let idx = ppixiv.widget.top_widgets.indexOf(this);
-            console.assert(idx != -1);
-            ppixiv.widget.top_widgets.splice(idx, 1);
-        }
-    }
-
-    // This is called if shutdown_signal is aborted outside of a call to shutdown().
-    _shutdown_signal_aborted = () =>
-    {
-        this.shutdown();
     }
 
     // Show or hide the widget.
