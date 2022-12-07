@@ -87,10 +87,10 @@ let mobile_illust_ui_top_page = class extends ppixiv.widget
         });
 
         // This tells widgets that want to be above us how tall we are.
-        this.refresh_video_height();
-        this.resize_observer = new ResizeObserver(() => this.refresh_video_height());
-        this.resize_observer.observe(this.container);
-        this.shutdown_signal.signal.addEventListener("abort", () => this.resize_observer.disconnect());
+        helpers.set_height_as_property(this.container, "--menu-bar-height", {
+            target: this.closest(".screen"),
+            ...this._signal
+        });
     }
 
     set_data_source(data_source)
@@ -139,14 +139,6 @@ let mobile_illust_ui_top_page = class extends ppixiv.widget
             let media_id = this._media_id;
             this.bookmark_button_widget.set_media_id(media_id);
         }
-    }
-
-    refresh_video_height()
-    {
-        // Our height usually isn't an integer.  Round down, so we prefer to overlap backgrounds
-        // with things like the video UI rather than leaving a gap.
-        let {height} = this.container.getBoundingClientRect();
-        this.closest(".screen").style.setProperty("--menu-bar-height", `${Math.floor(height)}px`);
     }
 
     // Return the illust ID whose parent the parent button will go to.

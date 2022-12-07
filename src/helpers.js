@@ -1007,6 +1007,29 @@ ppixiv.helpers = {
             }
         }, { signal });
     },
+    
+    // Set node's height as a CSS variable.
+    //
+    // If target is null, the variable is set on the node itself.
+    set_height_as_property(node, name, { target, signal }={})
+    {
+        if(target == null)
+            target = node;
+        let refresh_height = () =>
+        {
+            // Our height usually isn't an integer.  Round down, so we prefer to overlap backgrounds
+            // with things like the video UI rather than leaving a gap.
+            let {height} = node.getBoundingClientRect();
+            target.style.setProperty(name, `${Math.floor(height)}px`);
+        };
+    
+        let resize_observer = new ResizeObserver(() => refresh_height());
+        resize_observer.observe(node);
+        if(signal)
+            signal.addEventListener("abort", () => resize_observer.disconnect());
+
+        refresh_height();
+    },
 
     // Force all external links to target=_blank.
     //
