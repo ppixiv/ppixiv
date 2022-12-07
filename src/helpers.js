@@ -5674,7 +5674,10 @@ ppixiv.TouchScroller = class
         // and a back or forward navigation gesture starts, the underlying window position
         // snaps and broken pointer positions are sent to the window.  If we're on iOS, this
         // is the first touch, and the touch is at the edge of the screen, ignore it.
-        if(ppixiv.ios && this.pointers.size == 0)
+        //
+        // If there are no other history entries, we don't need to do this, since browser back
+        // can't trigger.
+        if(window.history.length > 1 && ppixiv.ios && this.pointers.size == 0)
         {
             let width = 10;
             if(e.clientX < width || e.clientX > window.innerWidth - width)

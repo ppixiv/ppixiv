@@ -3806,7 +3806,6 @@ ppixiv.data_sources.search = class extends data_source
 
             refresh_related_tags()
             {
-                console.log("refresh");
                 if(this.data_source.related_tags && this.tag_search_box)
                     this.tag_search_box.related_tag_widget.set(this.data_source.related_tags);
             }
