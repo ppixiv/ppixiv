@@ -724,10 +724,8 @@ ppixiv.data_source = class extends EventTarget
 
         this.id_list.add_page(page, media_ids, {...options});
 
-        // Call update listeners asynchronously to let them know we have more data.
-        helpers.yield(() => {
-            this.call_update_listeners();
-        });
+        // Send pageadded asynchronously to let listeners know we added the page.
+        helpers.yield(() => this.dispatchEvent(new Event("pageadded")));
     }
 
     // Send the "updated" event when we want to tell our parent that something has changed.
