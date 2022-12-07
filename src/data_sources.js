@@ -433,17 +433,7 @@ ppixiv.data_source = class extends EventTarget
     get search_url() { return this.url; }
 
     // This returns the widget class that can be instantiated for this data source's UI.
-    get ui()
-    {
-        // By default, return an empty widget.
-        return class extends ppixiv.widget
-        {
-            constructor({ data_source, ...options })
-            {
-                super({ ...options, template: `<div></div>` });
-            }
-        }
-    }
+    get ui() { return null; }
 
     // Load the given page.  Return true if the page was loaded.
     load_page(page, { cause }={})

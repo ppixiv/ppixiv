@@ -1,14 +1,17 @@
 "use strict";
 
-function _create_main_search_menu(container)
+function _get_main_search_menu_options()
 {
     if(ppixiv.native)
-        return;
+        return [
+            { label: "Files",           icon: "search",          url: `/#/` },
+            { label: "Similar Images",  icon: "search",          url: `/similar#/`, visible: false, classes: ["disable-clicks"] },
+        ];
 
     let options = [
         // This is a dummy for when we're viewing an artist on mobile.  It can't be selected directly, it's
         // only made visible when an artist is being viewed already.
-        { label: "Artist",                 icon: "face",           url: "/users/1#ppixiv", visible: false, classes: ["artist-row"] },
+        { label: "Artist",                 icon: "face",           url: "/users/1#ppixiv", visible: false, classes: ["artist-row", "disable-clicks"] },
 
         { label: "Search works",           icon: "search",          url: `/tags#ppixiv` },
         { label: "New works by following", icon: "photo_library",   url: "/bookmark_new_illust.php#ppixiv" },
@@ -43,10 +46,6 @@ function _create_main_search_menu(container)
 
     options = [
         ...options,
-    ];
-
-    options = [
-        ...options,
 
         { label: "Rankings",               icon: "auto_awesome"  /* who names this stuff? */, url: "/ranking.php#ppixiv" },
         { label: "Recommended works",      icon: "ppixiv:suggestions", url: "/discovery#ppixiv" },
@@ -54,6 +53,13 @@ function _create_main_search_menu(container)
         { label: "Completed requests",     icon: "request_page",    url: "/request/complete/illust#ppixiv" },
         { label: "Users",                  icon: "search",          url: "/search_user.php#ppixiv" },
     ];
+
+    return options;
+}
+
+function _create_main_search_menu(container)
+{
+    let options = _get_main_search_menu_options();
 
     let create_option = ({classes=[], ...options}) => {
         let button = new ppixiv.menu_option_button({
@@ -256,11 +262,14 @@ class thumbnail_ui_desktop extends ppixiv.widget
         }
 
         // Create the new data source's UI.
-        let data_source_ui_container = this.container.querySelector(".data-source-ui");
-        this.current_data_source_ui = new this.data_source.ui({
-            data_source: this.data_source,
-            container: data_source_ui_container,
-        });
+        if(this.data_source.ui)
+        {
+            let data_source_ui_container = this.container.querySelector(".data-source-ui");
+            this.current_data_source_ui = new this.data_source.ui({
+                data_source: this.data_source,
+                container: data_source_ui_container,
+            });
+        }
 
         this.container.querySelector(".refresh-search-from-page-button").hidden = !this.data_source.supports_start_page;
     }
@@ -434,6 +443,9 @@ let thumbnail_ui_mobile = class extends ppixiv.widget
             // This doesn't hide the dragger on click, in case the user wants to back out several times.
             if(ppixiv.native)
             {
+                if(this.parent.displayed_media_id == null)
+                    return;
+
                 let parent_folder_id = local_api.get_parent_folder(this.parent.displayed_media_id);
 
                 let args = helpers.args.location;
@@ -821,11 +833,9 @@ class mobile_edit_search_dialog extends ppixiv.dialog_widget
         let option_box = this.container.querySelector(".search-selection");
         _create_main_search_menu(option_box);
 
-        // Clicks on the artist row (if visible) shouldn't do anything.  It only has a dummy URL
-        // to make it be used when an artist data source is active.
-        this.artist_row = this.container.querySelector(".artist-row");
-        if(this.artist_row)
-            this.artist_row.addEventListener("click", (e) => e.preventDefault());
+        // Disable clicks on rows with the disable-clicks class, since they don't do anywhere.
+        for(let row of this.container.querySelectorAll(".disable-clicks"))
+            row.addEventListener("click", (e) => e.preventDefault());
 
         this.search_url = helpers.args.location;
 
@@ -837,11 +847,6 @@ class mobile_edit_search_dialog extends ppixiv.dialog_widget
 
     get active_row()
     {
-        // We don't have any search modes in native, so just put the data source UI directly
-        // in the scroller.
-        if(ppixiv.native)
-            return this.container.querySelector(".search-selection");
-
         // The active row is the one who would load a data source of the same class as the current one.
         let current_data_source = this.data_source;
 
@@ -869,16 +874,17 @@ class mobile_edit_search_dialog extends ppixiv.dialog_widget
         for(let button of this.container.querySelectorAll(".navigation-button"))
             helpers.set_class(button, "selected", button == active_row);
 
-        // The artist row is hidden by default, since it only makes sense when already viewing
-        // an artist.  If we're showing an artist, display it.
-        if(this.artist_row)
+        // Show this row if it's hidden.  Some rows are only displayed while they're in use.
+        active_row.widget.visible = true;
+
+        // If this is the artist row, set the title based on the artist name.
+        if(active_row.classList.contains("artist-row"))
         {
             let data_source_is_artist = this.data_source instanceof ppixiv.data_sources.artist;
-            this.artist_row.widget.visible = data_source_is_artist;
             if(data_source_is_artist)
             {
                 let username = this.data_source.user_info?.name;
-                this.artist_row.querySelector(".label").innerText = username? `Artist: ${username}`:`Artist`;
+                active_row.querySelector(".label").innerText = username? `Artist: ${username}`:`Artist`;
             }
         }
         this.recreate_ui();
@@ -904,17 +910,16 @@ class mobile_edit_search_dialog extends ppixiv.dialog_widget
         if(row)
             position = row;
 
-        this.data_source_ui = new main_controller.data_source.ui({
-            container: position,
-            data_source: main_controller.data_source,
-
-            // Normally this goes after the search mode button.  When native we have no search mode
-            // buttons and this.active_row is the container, so put it inside it.
-            container_position: ppixiv.native? "beforeend":"afterend",
-        });
-
-        if(this.data_source_ui)
+        if(main_controller.data_source.ui)
+        {
+            this.data_source_ui = new main_controller.data_source.ui({
+                container: position,
+                data_source: main_controller.data_source,
+                container_position: "afterend",
+            });
+        
             this.data_source_ui.container.classList.add("data-source-ui");
+        }
     }
 
     // Tell dialog_widget not to close us on popstate.  It'll still close us if the screen changes.
