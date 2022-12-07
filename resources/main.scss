@@ -2067,7 +2067,9 @@ a.box-link, span.box-link
 .thumbnail-ui-box .avatar-container {
     float: right;
     position: relative;
-    margin-left: 25px;
+    > .avatar-widget-follow-container {
+        margin-left: 25px;
+    }
 }
 
 .image-for-suggestions {

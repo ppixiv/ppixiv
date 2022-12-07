@@ -1240,12 +1240,12 @@ ppixiv.data_sources.related_illusts = class extends data_source
     get page_title() { return "Similar Illusts"; }
     get_displaying_text() { return "Similar Illustrations"; }
 
-    refresh_thumbnail_ui({ container }={})
+    refresh_thumbnail_ui({ thumbnail_view }={})
     {
-        if(container)
+        let source_link = thumbnail_view?.image_for_suggestions;
+        if(source_link)
         {
             // Set the source image.
-            var source_link = container.querySelector(".image-for-suggestions");
             source_link.hidden = this.illust_info == null;
             if(this.illust_info)
             {
@@ -2212,9 +2212,9 @@ ppixiv.data_sources.artist = class extends data_source
 
     refresh_thumbnail_ui({ thumbnail_view }={})
     {
-        if(thumbnail_view)
+        if(thumbnail_view?.avatar_widget)
         {
-            thumbnail_view.avatar_container.hidden = false;
+            thumbnail_view.avatar_widget.visible = true;
             thumbnail_view.avatar_widget.set_user_id(this.viewing_user_id);
         }
     }
@@ -2443,9 +2443,9 @@ ppixiv.data_sources.manga = class extends data_source
 
     refresh_thumbnail_ui({ thumbnail_view }={})
     {
-        if(thumbnail_view)
+        if(thumbnail_view?.avatar_widget)
         {
-            thumbnail_view.avatar_container.hidden = false;
+            thumbnail_view.avatar_widget.visible = true;
             thumbnail_view.avatar_widget.set_user_id(this.media_info?.userId);
         }
     }
@@ -2855,10 +2855,11 @@ ppixiv.data_source_bookmarks_base = class extends data_source
 
     refresh_thumbnail_ui({ thumbnail_view }={})
     {
-        if(thumbnail_view)
+        if(thumbnail_view?.avatar_widget)
         {
-            thumbnail_view.avatar_container.hidden = this.viewing_own_bookmarks();
-            thumbnail_view.avatar_widget.set_user_id(this.viewing_user_id);
+            let user_id = this.viewing_own_bookmarks()? null:this.viewing_user_id;
+            thumbnail_view.avatar_widget.visible = user_id != null;
+            thumbnail_view.avatar_widget.set_user_id(user_id);
         }
     }
 
@@ -4009,9 +4010,9 @@ ppixiv.data_sources.follows = class extends data_source
 
     refresh_thumbnail_ui({ thumbnail_view }={})
     {
-        if(thumbnail_view && !this.viewing_self)
+        if(thumbnail_view?.avatar_widget && !this.viewing_self)
         {
-            thumbnail_view.avatar_container.hidden = false;
+            thumbnail_view.avatar_widget.visible = true;
             thumbnail_view.avatar_widget.set_user_id(this.viewing_user_id);
         }
     }
@@ -4101,18 +4102,18 @@ ppixiv.data_sources.related_favorites = class extends data_source_from_page
         return ids;
     }
     
-    refresh_thumbnail_ui({ container })
+    refresh_thumbnail_ui({ thumbnail_view })
     {
-        if(container)
+        let source_link = thumbnail_view?.image_for_suggestions;
+        if(source_link)
         {
             // Set the source image.
-            var source_link = container.querySelector(".image-for-suggestions");
             source_link.hidden = this.illust_info == null;
             if(this.illust_info)
             {
                 source_link.href = `/artworks/${this.illust_info.id}#ppixiv`;
 
-                var img = source_link.querySelector(".image-for-suggestions > img");
+                let img = source_link.querySelector(".image-for-suggestions > img");
                 img.src = this.illust_info.previewUrls[0];
             }
         }
@@ -4879,30 +4880,33 @@ ppixiv.data_sources.vview_similar = class extends data_source
         return `Similar images`;
     }
 
-    refresh_thumbnail_ui({ container })
+    refresh_thumbnail_ui({ thumbnail_view })
     {
-        // Set the source image.
-        let source_link = container.querySelector(".image-for-suggestions");
-        source_link.hidden = this.source_url == null;
-
-        // A URL for the image we're searching for.
-        if(this.source_url)
+        let source_link = thumbnail_view?.image_for_suggestions;
+        if(source_link)
         {
-            let img = source_link.querySelector("img");
-            img.src = this.source_url;
-        }
+            // Set the source image.
+            source_link.hidden = this.source_url == null;
 
-        // If this is a search for a local path, link to the image.
-        let args = new helpers.args(this.url);
-        let path = args.hash.get("search_path");
-        if(path)
-        {
-            let media_id = helpers.encode_media_id({type: "file", id: path});
-            let link_args = helpers.get_url_for_id(media_id);
-            source_link.href = link_args;
+            // A URL for the image we're searching for.
+            if(this.source_url)
+            {
+                let img = source_link.querySelector("img");
+                img.src = this.source_url;
+            }
+
+            // If this is a search for a local path, link to the image.
+            let args = new helpers.args(this.url);
+            let path = args.hash.get("search_path");
+            if(path)
+            {
+                let media_id = helpers.encode_media_id({type: "file", id: path});
+                let link_args = helpers.get_url_for_id(media_id);
+                source_link.href = link_args;
+            }
+            else
+                source_link.href = "#";
         }
-        else
-            source_link.href = "#";
     }
 }
 

@@ -106,8 +106,9 @@ class thumbnail_ui_desktop extends ppixiv.widget
             template: `
             <div class=thumbnail-ui-box data-context-menu-target=off>
                 <!-- The images for the artist view (avatar) and related images, which shows the starting image. -->
-                <div class="data-source-specific avatar-container" data-datasource="artist illust bookmarks following" data-hidden-on="mobile"></div>
-                <a href=# class="data-source-specific image-for-suggestions" data-datasource=related-illusts data-hidden-on="mobile">
+                <div class=avatar-container></div>
+
+                <a href=# class=image-for-suggestions>
                     <!-- A blank image, so we don't load anything: -->
                     <img src="${helpers.blank_image}">
                 </a>
@@ -206,15 +207,16 @@ class thumbnail_ui_desktop extends ppixiv.widget
         // rather than popstate for this, so it responds to all URL changes.
         window.addEventListener("pp:statechange", (e) => this.refresh_refresh_search_from_page(), { signal: this.shutdown_signal.signal });
 
-        // Disable the avatar widget unless the data source enables it.
-        this.avatar_container = this.container.querySelector(".avatar-container");
-        this.avatar_container.hidden = true;
-
         this.avatar_widget = new avatar_widget({
-            container: this.avatar_container,
+            container: this.querySelector(".avatar-container"),
             big: true,
             mode: "dropdown",
+
+            // Disable the avatar widget unless the data source enables it.
+            visible: false,
         });
+
+        this.image_for_suggestions = this.querySelector(".image-for-suggestions");
 
         // Set up login/logout buttons for native.
         if(ppixiv.native)
@@ -240,6 +242,8 @@ class thumbnail_ui_desktop extends ppixiv.widget
 
         this.data_source = data_source;
         this.avatar_widget.set_user_id(null);
+        this.avatar_widget.visible = false;
+        this.image_for_suggestions.hidden = true;
 
         if(data_source == null)
             return;
@@ -259,15 +263,6 @@ class thumbnail_ui_desktop extends ppixiv.widget
         });
 
         this.container.querySelector(".refresh-search-from-page-button").hidden = !this.data_source.supports_start_page;
-
-        // Show UI elements with this data source in their data-datasource attribute.
-        let data_source_name = data_source.name;
-        for(let node of this.querySelectorAll(".data-source-specific[data-datasource]"))
-        {
-            let data_sources = node.dataset.datasource.split(" ");
-            let show_element = data_sources.indexOf(data_source_name) != -1;
-            node.hidden = !show_element;
-        }
     }
     
     update_from_settings = () =>
@@ -278,7 +273,7 @@ class thumbnail_ui_desktop extends ppixiv.widget
     refresh_ui()
     {
         if(this.data_source)
-            this.data_source.refresh_thumbnail_ui({ container: this.container, thumbnail_view: this });
+            this.data_source.refresh_thumbnail_ui({ thumbnail_view: this });
 
         let element_displaying = this.container.querySelector(".displaying");
         element_displaying.hidden = this.data_source?.get_displaying_text == null;
@@ -908,11 +903,7 @@ class mobile_edit_search_dialog extends ppixiv.dialog_widget
         });
 
         if(this.data_source_ui)
-        {
             this.data_source_ui.container.classList.add("data-source-ui");
-
-            this.data_source.refresh_thumbnail_ui();
-        }
     }
 
     // Tell dialog_widget not to close us on popstate.  It'll still close us if the screen changes.
