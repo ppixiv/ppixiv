@@ -110,8 +110,11 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
             ...options,
             template: `
                 <div class=image-viewer>
-                    <div class=image-box>
-                        <div class=crop-box>
+                    <div class=rounded-box>
+                        <div class=rounded-box-reposition>
+                            <div class=image-box>
+                                <div class=crop-box></div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -825,6 +828,72 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         this.center_pos = zoom_pos;
         
         this.image_box.style.transform = `translateX(${image_position.x}px) translateY(${image_position.y}px) scale(${zoom_factor})`;
+
+        this._update_rounding_box();
+    }
+
+    // The rounding box is used when in notch mode to round the edge of the image.  This
+    // rounds the edge of the image to match the rounded edge of the phone, and moves
+    // inwards so the rounding follows the image.
+    // 
+    // The outer box applies the border-radius, and sets its top-left and bottom-right position
+    // to match the position of the image in the view.  The inner box inverts the translation,
+    // so the image's actual position stays the same.
+    _update_rounding_box()
+    {
+        let rounded_box = this.querySelector(".rounded-box");
+        let rounded_box_reposition = this.querySelector(".rounded-box-reposition");
+
+        // This isn't used when animations are running.  They always reach the edge of the
+        // screen, so we only need the main view rounding, and we don't need to run this every
+        // animation frame.
+        //
+        // This also isn't used if we're not in notch mode.
+        if(this.animations_running || document.documentElement.dataset.fullscreenMode != "notch")
+        {
+            rounded_box.style.translate = "";
+            rounded_box_reposition.style.translate = "";
+            rounded_box.style.width = "";
+            rounded_box.style.height = "";
+
+            return;
+        }
+
+        let { view_width, view_height } = this;
+
+        // Distance from the top-left of the view to the image:
+        let top_left = this.get_view_pos_from_image_pos([0,0]);
+        top_left[0] = Math.max(0, top_left[0]);
+        top_left[1] = Math.max(0, top_left[1]);
+
+        // Distance from the bottom-right of the view to the image:
+        let bottom_right = this.get_view_pos_from_image_pos([1,1]);
+        bottom_right[0] = view_width - bottom_right[0];
+        bottom_right[1] = view_height - bottom_right[1];
+        bottom_right[0] = Math.max(0, bottom_right[0]);
+        bottom_right[1] = Math.max(0, bottom_right[1]);
+
+        rounded_box.style.translate = `${top_left[0]}px ${top_left[1]}px`;
+        rounded_box_reposition.style.translate = `${-top_left[0]}px ${-top_left[1]}px`;
+
+        // Set the size of the rounding box.
+        let size = [
+            view_width - top_left[0] - bottom_right[0],
+            view_height - top_left[1] - bottom_right[1],
+        ];
+
+        rounded_box.style.width = `${size[0]}px`;
+        rounded_box.style.height = `${size[1]}px`;
+
+        // Reduce the amount of rounding if we're not using a lot of the screen.  For example,
+        // if we're viewing a landscape image fit to a portrait screen and it only takes up
+        // a small amount of the view, this will reduce the rounding so it's not too exaggerated.
+        // It also gives the effect of the rounding scaling down if the image is pinch zoomed
+        // very small.  This only takes effect if there's a significant amount of unused screen
+        // space, so most of the time the rounding stays the same.
+        let horiz = helpers.scale_clamp(size[0] / view_width,      .75, 0.35, 1, 0.25);
+        let vert = helpers.scale_clamp(size[1] / view_height,      .75, 0.35, 1, 0.25);
+        rounded_box.style.setProperty("--rounding-amount", Math.min(horiz, vert));
     }
 
     // Return the size and position of the image, given the current pan and zoom.
@@ -1164,6 +1233,9 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
             if(animation.playState != "finished")
                 animation.play();
         }
+
+        // Make sure the rounding box is disabled during the animation.
+        this._update_rounding_box();
     }
 
     check_animation_finished = async(e) =>

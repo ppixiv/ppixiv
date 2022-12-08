@@ -117,10 +117,6 @@ html {
         // Don't use percentages, since that causes it to become elliptical.
         --device-edge-radius: 14vmin;
     }
-    &[data-orientation="0"] { --device-radius: var(--device-edge-radius) var(--device-edge-radius) 0 0; }
-    &[data-orientation="90"] { --device-radius: var(--device-edge-radius) 0 0 var(--device-edge-radius); }
-    &[data-orientation="-90"] { --device-radius: 0 var(--device-edge-radius) var(--device-edge-radius) 0; }
-    &[data-orientation="180"] { --device-radius: 0 0 var(--device-edge-radius) var(--device-edge-radius); }
 }
 
 // Make an element fullscreen.
@@ -402,62 +398,6 @@ input, textarea, [contenteditable] {
     }
 }
 
-// There are three places we can apply rounding:
-//
-// - Around the container (view-container).  This rounds the overall display, as
-// if we're inside a rounded screen even if we're actually cropping away a notch.
-// - Around the viewer (viewer).  This rounds the image while dragging/flinging to
-// another image.  This gives the appearance of the whole rounded display moving around,
-// instead of the image moving within the display.
-// - Inside the viewer, as a crop (image-box).  This makes the image itself appear
-// rounded, so if the image is at the edge, dragging in appears to move the display inwards.
-//
-// These are additive, and it's useful to use them in combination.
-//
-// The crop rounding is probably the most controversial, since it actually crops off
-// the corner of images and gives no way to view it, and the edge radius needs to be
-// set correctly for the effect to work.  However, it gives a very clean view that
-// works really well on current phones.
-html.mobile .screen-illust-container {
-    // If enabled, round the top edge of the element to match the screen dimensions.
-    //
-    // If $all is true, round on all edges.  Otherwise, round just on the edges we think are
-    // on the notch side where we're cropping.
-    //
-    // Rounding on all edges can make mobile views on round screens look a lot cleaner, but
-    // we need to know the screen radius for it to look correct.
-    @mixin rounded-fullscreen($all: false)
-    {
-        overflow: hidden;
-
-        @if $all
-        {
-            border-radius: var(--device-edge-radius);
-        }
-        @else
-        {
-            border-radius: var(--device-radius);
-        }
-
-        // Work around border-radius not clipping contents when transform is animated on iOS.
-        // This makes the browser create a composite layer for this container.
-        will-change: transform;
-    }
-
-    .view-container {
-        @include rounded-fullscreen();
-
-        .viewer {
-            @include rounded-fullscreen($all: true);
-
-            .image-viewer .image-box {
-                overflow: hidden;
-                @include rounded-fullscreen($all: true);
-            }
-        }
-    }
-}
-
 .viewer-images {
     width: 100%;
     height: 100%;
@@ -473,7 +413,7 @@ html.mobile .screen-illust-container {
     // Disable scrolling to prevent pointer events from being cancelled on mobile.
     touch-action: none;
 
-    > .image-box {
+    .image-box {
         position: relative;
         transform-origin: 0 0;
         right: auto;
@@ -489,7 +429,7 @@ html.mobile .screen-illust-container {
     // If the image is cropped, set overflow: hidden on the image box to cut it
     // off.  Don't do this if it isn't needed, since it can trigger compositing
     // glitches in Chrome.
-    > .image-box.cropping {
+    .image-box.cropping {
         overflow: hidden;
 
         // Work around an iOS Safari compositing bug.  If an image is cropped via .crop-box's
@@ -3391,6 +3331,10 @@ svg.heart-image .delete {
     // Transitions for the viewer.  Don't move the container itself, since the background
     // fade shouldn't move with the image.
     .view-container {
+        // Crop outside of the container, so viewers don't scroll in over notches when in
+        // landscape.
+        overflow: hidden;
+
         transform: translateX(calc(var(--illust-hidden) * var(--animation-x)))               
                 translateY(calc(var(--illust-hidden) * var(--animation-y)))
                 scale(scale_value(var(--illust-hidden), 0, 1, 1, var(--animation-scale)));
@@ -3400,6 +3344,20 @@ svg.heart-image .delete {
         // the end of the animation.  This results in opacity values outside the 0-1 range, which
         // will just be clipped.
         opacity: scale_value(var(--illust-hidden), 0.4, 1, 1, 0);
+
+        // If enabled, round the top edge of the element to match the screen dimensions.
+        html.mobile &  .viewer .rounded-box {
+            overflow: hidden;
+    
+            // This can be set to adjust the amount of rounding.
+            --rounding-amount: 1;
+    
+            border-radius: calc(var(--device-edge-radius) * var(--rounding-amount));
+    
+            // Work around border-radius not clipping contents when transform is animated on iOS.
+            // This makes the browser create a composite layer for this container.
+            will-change: transform;
+        }
     }
 
     .page-change-indicator {

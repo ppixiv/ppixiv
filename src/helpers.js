@@ -5812,6 +5812,7 @@ ppixiv.TouchScroller = class
         let center_pos = {x: 0, y: 0};
         for(let {x, y} of this.pointers.values())
         {
+
             center_pos.x += x;
             center_pos.y += y;
         }
