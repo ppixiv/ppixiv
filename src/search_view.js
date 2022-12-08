@@ -56,6 +56,10 @@ ppixiv.search_view = class extends ppixiv.widget
 
         this.expanded_media_ids = new Map();
 
+        // This caches the results of is_media_id_expanded.
+        this._media_id_expanded_cache = null;
+        muting.singleton.addEventListener("mutes-changed", () => this._media_id_expanded_cache = null, this._signal);
+
         media_cache.addEventListener("infoloaded", this.media_info_loaded);
         new ResizeObserver(() => this.refresh_images()).observe(this.container);
 
@@ -282,6 +286,7 @@ ppixiv.search_view = class extends ppixiv.widget
         this.load_previous_page_button.hidden = true;
 
         this.thumbs = {};
+        this._media_id_expanded_cache = null;
 
         this.data_source = data_source;
 
@@ -1037,6 +1042,11 @@ ppixiv.search_view = class extends ppixiv.widget
         media_id = helpers.get_media_id_first_page(media_id);
 
         this.expanded_media_ids.set(media_id, new_value);
+
+        // Clear this ID's is_media_id_expanded cache, if any.
+        if(this._media_id_expanded_cache)
+            this._media_id_expanded_cache.delete(media_id);
+
         this.save_expanded_media_ids();
 
         // This will cause thumbnails to be added or removed, so refresh.
@@ -1100,7 +1110,18 @@ ppixiv.search_view = class extends ppixiv.widget
         helpers.navigate(args, { add_to_history: false, cause: "viewing-page", send_popstate: false });
     }
 
+    // If media_id is a manga post, return true if it should be expanded to show its pages.
     is_media_id_expanded(media_id)
+    {
+        // This is called a lot and becomes a bottleneck on large searches, so cache results.
+        this._media_id_expanded_cache ??= new Map();
+        if(!this._media_id_expanded_cache.has(media_id))
+            this._media_id_expanded_cache.set(media_id, this._is_media_id_expanded(media_id));
+
+        return this._media_id_expanded_cache.get(media_id);
+    }
+
+    _is_media_id_expanded(media_id)
     {
         // Never expand manga posts on data sources that include manga pages themselves.
         // This can result in duplicate media IDs.
