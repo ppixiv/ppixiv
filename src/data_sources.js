@@ -566,17 +566,43 @@ ppixiv.data_source = class extends EventTarget
         return true;
     }
 
+    // If a URL for this data source contains a media ID to view, return it.  Otherwise, return
+    // null.
+    get_media_id_from_url(args)
+    {
+        // Most data sources for Pixiv store the media ID in the hash, separated into the
+        // illust ID and page.
+        let illust_id = args.hash.get("illust_id");
+        if(illust_id == null)
+            return null;
+
+        let page = this.get_page_from_url(args);
+        return helpers.illust_id_to_media_id(illust_id, page);
+    }
+
+    // If the URL specifies a manga page, return it, otherwise return 0.
+    get_page_from_url(args)
+    {
+        if(!args.hash.has("page"))
+            return 0;
+
+        // Pages are 1-based in URLs, but 0-based internally.
+        return parseInt(args.hash.get("page"))-1;
+    }
+
     // Return the illust_id to display by default.
     //
-    // This should only be called after the initial data is loaded.
+    // This should only be called after the initial data is loaded.  Returns a media ID from the URL if
+    // it contains one, otherwise one selected by the data source (usually the first result).
     get_current_media_id(args)
     {
         // If we have an explicit illust_id in the hash, use it.  Note that some pages (in
         // particular illustration pages) put this in the query, which is handled in the particular
         // data source.
-        if(args.hash.has("illust_id"))
-            return helpers.illust_id_to_media_id(args.hash.get("illust_id"));
-        
+        let media_id = this.get_media_id_from_url(args);
+        if(media_id)
+            return media_id;
+         
         return this.id_list.get_first_id();
     };
 
@@ -2313,12 +2339,7 @@ ppixiv.data_sources.current_illust = class extends data_source
     {
         super(url);
 
-        // /artworks/#
-        url = new URL(url);
-        url = helpers.get_url_without_language(url);
-        let parts = url.pathname.split("/");
-        let illust_id = parts[2];
-        this.media_id = helpers.illust_id_to_media_id(illust_id);
+        this.media_id = this.get_media_id_from_url(new helpers.args(url));
 
         this._load_media_info();
     }
@@ -2336,6 +2357,22 @@ ppixiv.data_sources.current_illust = class extends data_source
 
     // This data source just views a single image and doesn't return any posts.
     async load_page_internal(page) { }
+
+    get_media_id_from_url(args)
+    {
+        // The illust ID is stored in the path, for compatibility with Pixiv URLs:
+        //
+        // https://www.pixiv.net/en/users/#/artworks
+        //
+        // The page (if any) is stored in the hash.
+        let url = args.url;
+        url = helpers.get_url_without_language(url);
+        let parts = url.pathname.split("/");
+        let illust_id = parts[2];
+
+        let page = this.get_page_from_url(args);
+        return helpers.illust_id_to_media_id(illust_id, page);
+    }
 
     // We're always viewing our media ID.
     get_current_media_id(args) { return this.media_id; }
@@ -4526,15 +4563,19 @@ ppixiv.data_sources.vview = class extends data_source
         local_api.get_args_for_id(media_id, args);
     }
 
-    get_current_media_id(args)
+    get_media_id_from_url(args)
     {
         // If the URL points to a file, return it.  If no image is being viewed this will give
         // the folder we're in, which shouldn't be returned here.
         let illust_id = local_api.get_local_id_from_args(args);
-        if(illust_id != null && illust_id.startsWith("file:"))
-            return illust_id;
-        
-        return this.id_list.get_first_id();
+        if(illust_id == null || !illust_id.startsWith("file:"))
+            return null;
+        return illust_id;
+    }
+
+    get_current_media_id(args)
+    {
+        return this.get_media_id_from_url(args) ?? this.id_list.get_first_id();
     }
 
     // more streamlined but harder to get access to ourself

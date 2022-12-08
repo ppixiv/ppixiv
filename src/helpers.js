@@ -3940,6 +3940,15 @@ ppixiv.VirtualHistory = class
         return this.history[this.history.length-2].url;
     }
 
+    get previous_state_args()
+    {
+        let url = this.previous_state_url;
+        if(url == null)
+            return null;
+
+        return new helpers.args(url);
+    }
+
     get length()
     {
         if(!this.permanent)
