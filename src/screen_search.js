@@ -358,7 +358,7 @@ let thumbnail_ui_mobile = class extends ppixiv.widget
         super({
             ...options,
             template: `
-            <div class=mobile-header>
+            <div class=mobile-navigation-bar>
                 <div class="header-contents button-row">
                     <div class="icon-button back-button disabled">
                         ${ helpers.create_icon("mat:arrow_back_ios_new") }
@@ -432,18 +432,17 @@ ppixiv.screen_search = class extends ppixiv.screen
                 <!-- The tree widget for local navigation: -->
                 <div class=local-navigation-box hidden></div>
 
+                <div class=title-bar hidden>
+                    <div class=title></div>
+                </div>
+
                 <div class="search-results scroll-container">
                     <div class=top-ui-box hidden></div>
 
                     <vv-container class=thumbnail-container-box></vv-container>
                 </div>
 
-                <div class=mobile-ui-header hidden>
-                    <div class=title></div>
-                </div>
-
-                <!-- The navigation bar on mobile: -->
-                <div class=mobile-ui-drag-container></div>
+                <div class=mobile-navigation-bar-container></div>
             </div>
         `});
 
@@ -478,22 +477,33 @@ ppixiv.screen_search = class extends ppixiv.screen
 
         if(ppixiv.mobile)
         {
-            this.mobile_header = this.container.querySelector(".mobile-ui-header");
+            this.mobile_header = this.container.querySelector(".title-bar");
             this.mobile_header.hidden = false;
 
-            let navigation_bar_container = this.container.querySelector(".mobile-ui-drag-container");
+            let navigation_bar_container = this.container.querySelector(".mobile-navigation-bar-container");
             this.thumbnail_ui_mobile = new thumbnail_ui_mobile({
                 container: navigation_bar_container,
             });
 
+            // Set the height on the nav bar and title for transitions to use.
+            helpers.set_height_as_property(this.querySelector(".title-bar"), "--title-height", {
+                ...this._signal,
+                target: this.container,
+            });
+            helpers.set_height_as_property(this.thumbnail_ui_mobile.container, "--nav-bar-height", {
+                ...this._signal,
+                target: this.container,
+            });
+    
             let onchange = () =>
             {
-                helpers.set_class(this.mobile_header, "shown", !scroll_listener.scrolled_forwards);
-                helpers.set_class(this.thumbnail_ui_mobile.container, "shown", !scroll_listener.scrolled_forwards);
+                let shown = !this.scroll_listener.scrolled_forwards;
+                helpers.set_class(this.querySelector(".title-bar"), "shown", shown);
+                helpers.set_class(this.thumbnail_ui_mobile.container, "shown", shown);
             };
             
             let scroller = this.querySelector(".search-results");
-            let scroll_listener = new ScrollListener({
+            this.scroll_listener = new ScrollListener({
                 scroller,
                 parent: this,
                 onchange,
