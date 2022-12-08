@@ -1398,6 +1398,10 @@ body.hide-r18g .r18g { display: none; }
 
         height: 100%;
 
+        // Make room for system UI, plus our navigation bar overlay at the bottom.
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: calc(env(safe-area-inset-bottom) + var(--nav-bar-reserved-height));
+
         // Make space for the navigation bar.  It isn't inside the scroller, so we can't use
         // position: sticky for this.
         html.mobile & {
@@ -1506,10 +1510,6 @@ body.hide-r18g .r18g { display: none; }
         text-align: center;
         gap: var(--thumb-padding);
         max-width: var(--container-width);
-
-        // Make room for system UI, plus our navigation bar overlay at the bottom.
-        padding-top: env(safe-area-inset-top);
-        padding-bottom: calc(env(safe-area-inset-bottom) + var(--nav-bar-reserved-height));
 
         display: flex;
         flex-wrap: wrap;
