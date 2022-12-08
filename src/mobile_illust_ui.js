@@ -327,6 +327,7 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
             },
             onbeforeshown: () => this.visibility_changed(),
             onafterhidden: () => this.visibility_changed(),
+            onanimationstart: () => this.visibility_changed(),
             onanimationfinished: () => this.visibility_changed(),
         });
 
@@ -380,6 +381,10 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
         this.container.hidden = !visible;
 
         helpers.set_class(document.documentElement, "illust-menu-visible", visible);
+
+        // This enables pointer-events only when the animation is finished.  This avoids problems
+        // with iOS sending clicks to the button when it wasn't pressable when the touch started.
+        helpers.set_class(this.container, "fully-visible", visible && !this.dragger.animation_playing);
 
         if(visible)
         {
@@ -437,8 +442,6 @@ let image_info_widget = class extends ppixiv.illust_widget
     {
         super({ ...options, template: `
             <div class=image-info>
-                <div class=avatar></div>
-
                 <div class=info-text>
                     <div class=title-text-block>
                         <span class=folder-block hidden>
@@ -455,6 +458,7 @@ let image_info_widget = class extends ppixiv.illust_widget
                     </div>
                 </div>
 
+                <div class=avatar></div>
             </div>
         `});
 

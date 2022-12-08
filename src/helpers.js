@@ -6169,7 +6169,7 @@ ppixiv.WidgetDragger = class
     }={})
     {
         this._visible = visible;
-        this.node = node;
+        this.nodes = node;
         this.onbeforeshown = onbeforeshown;
         this.onafterhidden = onafterhidden;
         this.ondragstart = ondragstart;
@@ -6201,8 +6201,8 @@ ppixiv.WidgetDragger = class
         let property_end = animated_property_inverted? 0:1;
 
         // Create the animation.
-        let animation = new ppixiv.PropertyAnimation({
-            node: this.node,
+        this.drag_animation = new ppixiv.PropertyAnimation({
+            node: this.nodes,
             property: this.animated_property,
             property_start,
             property_end,
@@ -6219,8 +6219,6 @@ ppixiv.WidgetDragger = class
                 this._send_animation_running(false);
             }
         });
-
-        this.drag_animation = animation;
 
         this.drag_animation.position = visible? 1:0;
 
@@ -6367,12 +6365,13 @@ ppixiv.WidgetDragger = class
 
         this._send_animation_running(true);
 
-        // This makes us visible if we weren't already.
-        this._set_visible(true);
-
         let duration = this.duration();
         let easing = this._easing_for_velocity(velocity);
         this.drag_animation.play({end_position: 1, easing, duration});
+
+        // This makes us visible if we weren't already.  Call this after starting the animation,
+        // so animation_playing is true during this call.
+        this._set_visible(true);
     }
 
     // Animate to the completely hidden state.  If given, velocity is the drag speed that caused this.
@@ -6387,11 +6386,12 @@ ppixiv.WidgetDragger = class
             return;
         }
 
-        this._send_animation_running(true);
-
         let duration = this.duration();
         let easing = this._easing_for_velocity(velocity);
         this.drag_animation.play({end_position: 0, easing, duration});
+
+        // Call this after starting the animation, so animation_playing is true during this call.
+        this._send_animation_running(true);
     }
 
     // Call onanimationstart or onanimationfinished if we haven't previously entered that state.
@@ -6399,6 +6399,7 @@ ppixiv.WidgetDragger = class
     {
         if(this._sent_onanimationstart == value)
             return;
+        this._sent_onanimationstart = value;
 
         if(value)
             this.onanimationstart(...args);

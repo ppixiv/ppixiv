@@ -2547,16 +2547,20 @@ a.box-link, span.box-link
 
 .mobile-illust-ui-container
 {
-    position: absolute;
-    top: 0px;
-    left: 0px;
     width: 100%;
     height: 100%;
     display: flex;
+    flex-direction: column;
     justify-content: flex-end;
+    padding-top: calc(env(safe-area-inset-top));
 
     // This node is for positioning and covers the whole screen, so don't eat pointer events.
     pointer-events: none;
+
+    --pointer-events: none;
+    &.fully-visible {
+        --pointer-events: auto;
+    }
 
     // Use a very slightly transparent black for the frame, and disable the box link background so it
     // just uses the frame background.
@@ -2564,13 +2568,12 @@ a.box-link, span.box-link
     --frame-bg-color: rgba(0,0,0,.65);
     --box-link-bg-color: none;
 
+    .context-menu-image-info-container {
+        display: contents;
+    }
+
     // The image info in the top-right is a separate element from the UI pages.
     .context-menu-image-info-container {
-        position: fixed;
-
-        // Make sure we give enough room for the menu bar.
-        top: calc(max(5vmin, env(safe-area-inset-top)));
-
         // Center this on phones, and put it in the top-right otherwise.
         html.phone & {
             width: 100%;
@@ -2579,63 +2582,70 @@ a.box-link, span.box-link
             right: calc(max(5vmin, env(safe-area-inset-right)));
             max-width: calc(100vw - 100px);
         }
-        display: flex;
-        flex-direction: column;
-        gap: 0.5em;
-        overflow: hidden;
-        font-size: .8em;
-        font-weight: bold;
-        opacity: var(--menu-bar-pos);
-
-        .info-text {
-            max-width: 100%;
-            transform: scale(scale_clamp_value(var(--menu-bar-pos), .6, 1, 0.75, 1));
-            transform-origin: center top;
-        }
 
         // The background and padding for the tag list goes on the individual tags.
         .image-info
         {
+            flex: 1;
             display: flex;
             flex-direction: column;
             align-items: center;
             text-align: center;
             gap: 0.5em;
+            margin: .25em;
+            font-size: .8em;
+            font-weight: bold;
+            opacity: var(--menu-bar-pos);
+    
+            .info-text {
+                width: 100%;
+                translate: 0 scale_clamp_value(var(--menu-bar-pos), 0, 1, -25px, 0px);
+                transform-origin: center top;
+                border-radius: 15px;
+                padding: .25em;
 
-            .title-text-block {
-                overflow: hidden;
-                white-space: nowrap;
-                text-overflow: ellipsis;
-                max-width: 100%;
-                > .folder-block {
-                    color: #aaa;
-                    .slash {
-                        font-size: 12px;
+                //background-color: var(--frame-bg-color);
+                //@include overlay-blur();
+                // background-color: rgba(40,40,40,.4);
+
+                backdrop-filter: blur(5px) contrast(60%) brightness(0.5);
+                -webkit-backdrop-filter: blur(5px) contrast(60%) brightness(0.5);
+
+                .title-text-block {
+                    overflow: hidden;
+                    white-space: nowrap;
+                    text-overflow: ellipsis;
+                    max-width: 100%;
+                    > .folder-block {
+                        color: #aaa;
+                        .slash {
+                            font-size: 12px;
+                        }
                     }
                 }
             }
 
-            > .avatar {
-                margin: .25em;
-                background-color: var(--frame-bg-color);
-                border-radius: 5px;
-                padding: 0.25em;
-                pointer-events: auto;
+            > .avatar
+            {
+                align-self: flex-start;
 
-                // Remove the shadow that's put around avatars by default.
-                .avatar-widget-follow-container .avatar {
-                    box-shadow: none;
-                    width: min(170px, 50vmin);
-                    height: min(170px, 50vmin);
+                > .avatar-widget-follow-container
+                {
+                    margin: .25em;
+                    background-color: var(--frame-bg-color);
+                    border-radius: 5px;
+                    padding: 0.25em;
+                    pointer-events: var(--pointer-events);
+                    scale: scale_clamp_value(var(--menu-bar-pos), 0, 1, 0.85, 1);
+                    transform-origin: center bottom;
+
+                    // Remove the shadow that's put around avatars by default.
+                    .avatar {
+                        box-shadow: none;
+                        width: min(170px, 50vmin);
+                        height: min(170px, 50vmin);
+                    }
                 }
-
-                transform: scale(scale_clamp_value(var(--menu-bar-pos), 0, .6, 0.75, 1));
-                transform-origin: center bottom;
-            }
-
-            .info-text {
-                background-color: var(--frame-bg-color);
-                padding: .5em;
             }
         }
 
@@ -2682,7 +2692,6 @@ a.box-link, span.box-link
     .mobile-illust-ui-page {
         @include overlay-blur();
 
-        position: fixed;
         width: 100%;
         bottom: 0;
 
@@ -2706,7 +2715,7 @@ a.box-link, span.box-link
         font-size: 65%;
 
         opacity: var(--menu-bar-pos);
-        transform: translateY(calc(100% * (1 - var(--menu-bar-pos))));
+        translate: 0 calc(100% * (1 - var(--menu-bar-pos)));
     }
 
     .item {
