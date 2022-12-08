@@ -51,9 +51,8 @@ ppixiv.actor = class
         // The parent actor, if any.
         parent=null,
 
-        // The parent's shutdown signal.  Most of the time this is null, and we'll use parent's
-        // shutdown signal.
-        shutdown_signal=null,
+        // The actor will be shut down if this is aborted.
+        signal=null,
         ...options
     }={})
     {
@@ -64,19 +63,18 @@ ppixiv.actor = class
 
         this.parent = parent;
 
-        // If we weren't given a shutdown signal explicitly and we have a parent actor, inherit
-        // its signal, so we'll shut down when the parent does.
-        if(shutdown_signal == null && this.parent != null)
-            shutdown_signal = this.parent.shutdown_signal.signal;
-        this._parent_shutdown_signal = shutdown_signal;
-
-        // If we were given a parent shutdown signal, shut down if it aborts.
-        if(this._parent_shutdown_signal)
-            this._parent_shutdown_signal.addEventListener("abort", this._shutdown_signal_aborted, { once: true });
-
         // Create our shutdown_signal.  We'll abort this if we're shut down to shut down our children.
         // This is always shut down by us when shutdown() is called (it isn't used to shut us down).
         this.shutdown_signal = new AbortController();
+
+        // If we weren't given a shutdown signal explicitly and we have a parent actor, inherit
+        // its signal, so we'll shut down when the parent does.
+        if(signal == null && this.parent != null)
+            signal = this.parent.shutdown_signal.signal;
+
+        // If we were given a parent shutdown signal, shut down if it aborts.
+        if(signal)
+            signal.addEventListener("abort", () => this.shutdown(), { once: true, ...this._signal });
 
         // Register ourself in our parent's child list.
         if(this.parent)
@@ -95,10 +93,6 @@ ppixiv.actor = class
                 this._previous_shutdown_stack = e.stack;
             }
         }
-
-        // If _shutdown_signal_aborted hasn't been called yet, remove our listener.
-        if(this._parent_shutdown_signal)
-            this._parent_shutdown_signal.removeEventListener("abort", this._shutdown_signal_aborted);
 
         // We should only be shut down once, so shutdown_signal shouldn't already be signalled.
         if(this.shutdown_signal.signal.aborted)
@@ -129,12 +123,6 @@ ppixiv.actor = class
             console.assert(idx != -1);
             ppixiv.actor.top_actors.splice(idx, 1);
         }
-    }
-
-    // This is called if shutdown_signal is aborted outside of a call to shutdown().
-    _shutdown_signal_aborted = () =>
-    {
-        this.shutdown();
     }
 
     // Create an element from template HTML.  If name isn't null, the HTML will be cached
