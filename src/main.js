@@ -205,7 +205,7 @@ ppixiv.MainController = class
 
         // Load our icon font.  var() doesn't work for font-face src, so we have to do
         // this manually.
-        document.head.appendChild(helpers.create_style(`
+        helpers.add_style("ppixiv-font", `
             @font-face {
                 font-family: 'ppixiv';
                 src: url(${resources['resources/ppixiv.woff']}) format('woff');
@@ -213,7 +213,7 @@ ppixiv.MainController = class
                 font-style: normal;
                 font-display: block;
             }
-        `));
+        `);
 
         // Add the main stylesheet.
         let main_stylesheet = resources['resources/main.scss'];
