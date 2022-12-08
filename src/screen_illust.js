@@ -777,6 +777,9 @@ class DragImageChanger
                 if(this.main_viewer == null)
                     return false;
 
+                if(helpers.should_ignore_horizontal_drag(event))
+                    return false;
+
                 return true;
             },
 

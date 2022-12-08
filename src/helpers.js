@@ -1073,6 +1073,23 @@ ppixiv.helpers = {
         });
         observer.observe(document.documentElement, { subtree: true, childList: true });
     },
+    
+    // Work around iOS Safari weirdness.  If a drag from the left or right edge of the
+    // screen causes browser navigation, the underlying window position jumps, which
+    // causes us to see pointer movement that didn't actually happen.  If this happens
+    // during a drag, it causes the drag to move horizontally by roughly the screen
+    // width.
+    should_ignore_horizontal_drag(event)
+    {
+        // If there are no other history entries, we don't need to do this, since browser back
+        // can't trigger.
+        if(!ppixiv.ios || window.history.length <= 1)
+            return false;
+
+        // Ignore this event if it's close to the left or right edge of the screen.
+        let width = 25;
+        return event.clientX < width || event.clientX > window.innerWidth - width;
+    },
 
     // Return the value of a list of CSS expressions.  For example:
     //
@@ -5693,19 +5710,8 @@ ppixiv.TouchScroller = class
         if(this.mode == "fling")
             this.cancel_fling();
 
-        // Work around iOS Safari weirdness.  If you drag from the left or right edge
-        // and a back or forward navigation gesture starts, the underlying window position
-        // snaps and broken pointer positions are sent to the window.  If we're on iOS, this
-        // is the first touch, and the touch is at the edge of the screen, ignore it.
-        //
-        // If there are no other history entries, we don't need to do this, since browser back
-        // can't trigger.
-        if(window.history.length > 1 && ppixiv.ios && this.pointers.size == 0)
-        {
-            let width = 10;
-            if(e.clientX < width || e.clientX > window.innerWidth - width)
-                return;
-        }
+        if(this.pointers.size == 0 && helpers.should_ignore_horizontal_drag(e))
+            return;
 
         if(this.mode == "drag-delay" && this.pointers.size > 0)
         {
@@ -6215,6 +6221,11 @@ ppixiv.WidgetDragger = class
             onpointerup,
 
             ondragstart: (args) => {
+                // If this is a horizontal dragger, see if we should ignore this drag because
+                // it might trigger iOS navigation.
+                if(!vertical && helpers.should_ignore_horizontal_drag(args.event))
+                    return false;
+                
                 if(!this.ondragstart(args))
                     return false;
 
