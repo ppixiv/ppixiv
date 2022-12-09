@@ -4280,6 +4280,9 @@ ppixiv.data_sources.completed_requests = class extends data_source
 
         let media_ids = [];
         let request_ids = result.body.page[showing == "latest"? "requestIds":"recommendRequestIds"];
+        if(request_ids == null)
+            return;
+
         for(let request_id of request_ids)
         {
             // This has info for the request, like the requester and request text, but we just show these
