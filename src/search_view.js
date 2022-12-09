@@ -37,6 +37,7 @@ ppixiv.search_view = class extends ppixiv.widget
 
                 <div class=load-previous-page hidden>
                     <a class=load-previous-button href=#>
+                        <vv-container style="font-size: 150%;">${ helpers.create_icon("mat:expand_less") }</vv-container>
                         Load previous results
                     </a>
                 </div>
