@@ -544,55 +544,62 @@ ppixiv.search_view = class extends ppixiv.widget
             }
         }
 
-        // The indices of each related media_id.  These can all be -1.  Note that it's
-        // possible for nearby entries to not be in the data source, if the data source
-        // was just refreshed and entries were removed.
-        let first_nearby_media_id_idx = all_media_ids.indexOf(first_nearby_media_id);
-        let last_nearby_media_id_idx = all_media_ids.indexOf(last_nearby_media_id);
-        let first_loaded_media_id_idx = all_media_ids.indexOf(first_loaded_media_id);
-        let last_loaded_media_id_idx = all_media_ids.indexOf(last_loaded_media_id);
-        let forced_media_id_idx = all_media_ids.indexOf(forced_media_id);
-
         // Figure out the range of all_media_ids that we want to have loaded.
         let start_idx = 999999;
         let end_idx = 0;
 
-        // If there are visible thumbs, extend the range to include them.
-        if(first_nearby_media_id_idx != -1)
-            start_idx = Math.min(start_idx, first_nearby_media_id_idx);
-        if(last_nearby_media_id_idx != -1)
-            end_idx = Math.max(end_idx, last_nearby_media_id_idx);
+        // Start the range with thumbs that are already loaded, if any.
+        let first_loaded_media_id_idx = all_media_ids.indexOf(first_loaded_media_id);
+        if(first_loaded_media_id_idx != -1)
+            start_idx = Math.min(start_idx, first_loaded_media_id_idx);
 
-        // If we have a media ID to display, extend the range to include it.
+        let last_loaded_media_id_idx = all_media_ids.indexOf(last_loaded_media_id);
+        if(last_loaded_media_id_idx != -1)
+            end_idx = Math.max(end_idx, last_loaded_media_id_idx);
+
+        // If we have a specific media ID to display, extend the range to include it.
+        let forced_media_id_idx = all_media_ids.indexOf(forced_media_id);
         if(forced_media_id_idx != -1)
         {
             start_idx = Math.min(start_idx, forced_media_id_idx);
             end_idx = Math.max(end_idx, forced_media_id_idx);
         }
 
-        // If we have a range, extend it outwards in both directions to load images
-        // around it.  For paginated results we'd prefer this to include the whole
-        // page, since adding thumbs above the current position causes janky scrolls
-        // on iOS.  Don't go too far, since if we're on a big local directory we don't
-        // want to go overboard and load too much at once.
-        if(start_idx != 999999)
-        {
-            start_idx -= 100;
-            end_idx += 100;
-        }
-
-        // If there are thumbs already loaded, extend the range to include them.  Do this
-        // after extending the range above.
-        if(first_loaded_media_id_idx != -1)
-            start_idx = Math.min(start_idx, first_loaded_media_id_idx);
-        if(last_loaded_media_id_idx != -1)
-            end_idx = Math.max(end_idx, last_loaded_media_id_idx);
-
-        // If we don't have anything, start at the beginning.
+        // Otherwise, start at the beginning.
         if(start_idx == 999999)
         {
             start_idx = 0;
             end_idx = 0;
+        }
+
+        // If the last loaded image is nearby, we've scrolled near the end of what's loaded, so
+        // add another chunk of images to the list.
+        //
+        // The chunk size is the number of thumbs we'll create at a time.
+        //
+        // Note that this doesn't determine when we'll load another page of data from the server.  The
+        // "nearby" IntersectionObserver threshold controls that.  It does trigger media info loads
+        // if they weren't supplied by the data source (this happens with data_sources.vview if we're
+        // using /api/ids).
+        let chunk_size_fwd = 25;
+        if(last_loaded_media_id_idx != -1)
+        {
+            let last_nearby_media_id_idx = all_media_ids.indexOf(last_nearby_media_id);
+            if(last_nearby_media_id_idx == last_loaded_media_id_idx)
+                end_idx += chunk_size_fwd;
+        }
+
+        // Similarly, if the first loaded image is nearby, we should load another chunk upwards.
+        //
+        // Use a larger chunk size when extending backwards on iOS.  Adding to the start of the
+        // scroller breaks smooth scrolling (is there any way to fix that?), so use a larger chunk
+        // size so it at least happens less often.
+        let chunk_size_back = ppixiv.ios? 100:25;
+        if(first_loaded_media_id_idx != -1)
+        {
+            let first_nearby_media_id_idx = all_media_ids.indexOf(first_nearby_media_id);
+            if(first_nearby_media_id_idx == first_loaded_media_id_idx)
+                start_idx -= chunk_size_back;
         }
 
         // Clamp the range.
