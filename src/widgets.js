@@ -2780,6 +2780,11 @@ ppixiv.ScrollListener = class extends ppixiv.actor
         // a direction change.
         threshold=50,
 
+        // If not null, the threshold when dragging up.  This allows dragging down to
+        // hide the UI to have a longer threshold than dragging up to display it.  If this
+        // is null, threshold is used.
+        threshold_up=10,
+
         // The initial value of scrolled_forwards.  This is also the value used if it's not
         // possible to scroll.
         default_value=false,
@@ -2793,6 +2798,7 @@ ppixiv.ScrollListener = class extends ppixiv.actor
 
         this._scroller = scroller;
         this._threshold = threshold;
+        this._threshold_up = threshold_up ?? threshold;
         this._onchange = onchange;
         this._motion = 0;
         this._default_value = default_value;
@@ -2858,8 +2864,10 @@ ppixiv.ScrollListener = class extends ppixiv.actor
 
         // If we've moved far enough in either direction, set it as the scrolling direction.
         let scrolled_forwards = this._scrolled_forwards;
-        if(Math.abs(this._motion) > this._threshold)
-            scrolled_forwards = this._motion > 0;
+        if(this._motion < -this._threshold_up)
+            scrolled_forwards = false;
+        else if(Math.abs(this._motion) > this._threshold)
+            scrolled_forwards = true;
 
         // If we're at the very top or very bottom, the user can't scroll any further to reach
         // the threshold, so force the direction to up or down.
