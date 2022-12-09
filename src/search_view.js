@@ -57,6 +57,9 @@ ppixiv.search_view = class extends ppixiv.widget
 
         this.expanded_media_ids = new Map();
 
+        // Refresh the "load previous page" link when the URL changes.
+        window.addEventListener("pp:statechange", (e) => this._refresh_load_previous_button(), { signal: this.shutdown_signal.signal });
+
         // This caches the results of is_media_id_expanded.
         this._media_id_expanded_cache = null;
         muting.singleton.addEventListener("mutes-changed", () => this._media_id_expanded_cache = null, this._signal);
@@ -170,19 +173,19 @@ ppixiv.search_view = class extends ppixiv.widget
         
         this.intersection_observers.push(new IntersectionObserver((entries) => {
             for(let entry of entries)
-            {
                 helpers.set_dataset(entry.target.dataset, "nearby", entry.isIntersecting);
-            }
 
-            // Set up any thumbs that just came nearby, and see if we need to load more search results.
             this.refresh_images();
-            this.set_visible_thumbs();
+
+            // If the last thumbnail is now nearby, see if we need to load more search results.
             this.load_data_source_page();
         }, {
             root: this.scroll_container,
 
             // This margin determines how far in advance we load the next page of results.
-            rootMargin: "150%",
+            //
+            // On mobile, allow this to be larger so we're less likely to interrupt scrolling.
+            rootMargin: ppixiv.mobile? "400%":"150%",
         }));
 
         settings.addEventListener("thumbnail-size", this.update_from_settings, { signal: this.shutdown_signal.signal });
@@ -199,7 +202,6 @@ ppixiv.search_view = class extends ppixiv.widget
     {
         this.refresh_expanded_thumb_all();
         this.load_expanded_media_ids(); // in case expand_manga_thumbnails has changed
-        this.set_visible_thumbs();
         this.refresh_images();
 
         helpers.set_class(document.body, "disable-thumbnail-zooming", settings.get("disable_thumbnail_zooming") || ppixiv.mobile);
@@ -569,11 +571,14 @@ ppixiv.search_view = class extends ppixiv.widget
         }
 
         // If we have a range, extend it outwards in both directions to load images
-        // around it.
+        // around it.  For paginated results we'd prefer this to include the whole
+        // page, since adding thumbs above the current position causes janky scrolls
+        // on iOS.  Don't go too far, since if we're on a big local directory we don't
+        // want to go overboard and load too much at once.
         if(start_idx != 999999)
         {
-            start_idx -= 10;
-            end_idx += 10;
+            start_idx -= 100;
+            end_idx += 100;
         }
 
         // If there are thumbs already loaded, extend the range to include them.  Do this
@@ -929,15 +934,12 @@ ppixiv.search_view = class extends ppixiv.widget
             load_page = this.data_source.initial_page;
         else
         {
-            // If the last thumb in the list is visible, we need the next page to continue.
-            // Note that since get_nearby_thumbnails returns thumbs before they actually scroll
-            // into view, this will happen before the last thumb is actually visible to the user.
-            let elements = this.get_nearby_thumbnails();
-            if(elements.length > 0 && elements[elements.length-1].nextElementSibling == null)
-            {
-                let last_element = elements[elements.length-1];
-                load_page = parseInt(last_element.dataset.searchPage)+1;
-            }
+            // Load the next page when the last nearby thumbnail (set by the "nearby" IntersectionObserver)
+            // is the last thumbnail in the list.
+            let thumbs = this.get_loaded_thumbs();
+            let last_thumb = thumbs[thumbs.length-1]; // may be null
+            if(last_thumb?.dataset?.nearby)
+                load_page = parseInt(last_thumb.dataset.searchPage)+1;
         }
 
         // Hide "no results" if it's shown while we load data.
@@ -957,8 +959,6 @@ ppixiv.search_view = class extends ppixiv.widget
         // If we have no IDs and nothing is loading, the data source is empty (no results).
         if(this.data_source?.no_results)
             no_results.hidden = false;
-        
-        this.set_visible_thumbs();
     }
 
     thumbnail_onclick = async(e) =>
@@ -1202,177 +1202,24 @@ ppixiv.search_view = class extends ppixiv.widget
             this.refresh_expanded_thumb(thumb);
     }
 
-    // Populate all visible thumbnails.
-    //
-    // This won't trigger loading any data (other than the thumbnails themselves).
+    // Set the link for the "load previous page" button.
+    _refresh_load_previous_button()
+    {
+        if(this.data_source == null)
+            return;
+
+        let page = this.data_source.get_start_page(helpers.args.location);
+        let previous_page_link = this.load_previous_page_button.querySelector("a.load-previous-button");
+        let args = helpers.args.location;
+        this.data_source.set_start_page(args, page-1);
+        previous_page_link.href = args.url;
+    }
+
+    // Try to populate all unpopulated thumbnails.
     set_visible_thumbs({force=false}={})
     {
-        // Make a list of IDs that we're assigning.
-        var elements = this.get_nearby_thumbnails();
-        for(var element of elements)
-        {
-            let media_id = element.dataset.id;
-            if(media_id == null)
-                continue;
-
-            let [illust_id, illust_page] = helpers.media_id_to_illust_id_and_page(media_id);
-
-            let { id: thumb_id, type: thumb_type } = helpers.parse_media_id(media_id);
-
-            // For illustrations, get thumbnail info.  If we don't have it yet, skip the image (leave it pending)
-            // and we'll come back once we have it.
-            if(thumb_type == "illust" || thumb_type == "file" || thumb_type == "folder")
-            {
-                // Get thumbnail info.
-                var info = media_cache.get_media_info_sync(media_id, { full: false });
-                if(info == null)
-                    continue;
-            }
-            
-            // Leave it alone if it's already been loaded.
-            if(!force && !("pending" in element.dataset))
-                continue;
-
-            // Why is this not working in FF?  It works in the console, but not here.  Sandboxing
-            // issue?
-            // delete element.dataset.pending;
-            element.removeAttribute("data-pending");
-
-            // On hover, use stop_animation_after to stop the animation after a while.
-            this.add_animation_listener(element);
-
-            if(thumb_type == "user" || thumb_type == "bookmarks")
-            {
-                // This is a user thumbnail rather than an illustration thumbnail.  It just shows a small subset
-                // of info.
-                let user_id = thumb_id;
-
-                var link = element.querySelector("a.thumbnail-link");
-                if(thumb_type == "user")
-                    link.href = `/users/${user_id}/artworks#ppixiv`;
-                else
-                    link.href = `/users/${user_id}/bookmarks/artworks#ppixiv`;
-
-                link.dataset.userId = user_id;
-
-                let quick_user_data = extra_cache.singleton().get_quick_user_data(user_id);
-                if(quick_user_data == null)
-                {
-                    // We should always have this data for users if the data source asked us to display this user.
-                    throw "Missing quick user data for user ID " + user_id;
-                }
-                
-                var thumb = element.querySelector(".thumb");
-                thumb.src = quick_user_data.profileImageUrl;
-
-                var label = element.querySelector(".thumbnail-label");
-                label.hidden = false;
-                label.querySelector(".label").innerText = quick_user_data.userName;
-
-                continue;
-            }
-
-            if(thumb_type != "illust" && thumb_type != "file" && thumb_type != "folder")
-                throw "Unexpected thumb type: " + thumb_type;
-
-            // Set this thumb.
-            let { page } = helpers.parse_media_id(media_id);
-            let url = info.previewUrls[page];
-            var thumb = element.querySelector(".thumb");
-
-            // Check if this illustration is muted (blocked).
-            var muted_tag = muting.singleton.any_tag_muted(info.tagList);
-            var muted_user = muting.singleton.is_muted_user_id(info.userId);
-            if(muted_tag || muted_user)
-            {
-                // The image will be obscured, but we still shouldn't load the image the user blocked (which
-                // is something Pixiv does wrong).  Load the user profile image instead.
-                thumb.src = ppixiv.media_cache.get_profile_picture_url(info.userId);
-                element.classList.add("muted");
-
-                let muted_label = element.querySelector(".muted-label");
-
-                // Quick hack to look up translations, since we're not async:
-                (async() => {
-                    if(muted_tag)
-                        muted_tag = await tag_translations.get().get_translation(muted_tag);
-                    muted_label.textContent = muted_tag? muted_tag:info.userName;
-                })();
-
-                // We can use this if we want a "show anyway' UI.
-                thumb.dataset.mutedUrl = url;
-            }
-            else
-            {
-                thumb.src = url;
-                element.classList.remove("muted");
-                local_api.thumbnail_loaded(url);
-
-                // Try to set up the aspect ratio.
-                this.thumb_image_load_finished(element, { cause: "setup" });
-            }
-
-            // Set the link.  Setting dataset.mediaId will allow this to be handled with in-page
-            // navigation, and the href will allow middle click, etc. to work normally.
-            var link = element.querySelector("a.thumbnail-link");
-            if(thumb_type == "folder")
-            {
-                // This is a local directory.  We only expect to see this while on the local
-                // data source.  Clear any search when navigating to a subdirectory.
-                let args = new helpers.args("/");
-                local_api.get_args_for_id(media_id, args);
-                link.href = args.url;
-            }
-            else
-            {
-                link.href = helpers.get_url_for_id(media_id).url;
-            }
-
-            link.dataset.mediaId = media_id;
-            link.dataset.userId = info.userId;
-
-            element.querySelector(".ugoira-icon").hidden = info.illustType != 2 && info.illustType != "video";
-
-            helpers.set_class(element, "dot", helpers.tags_contain_dot(info.tagList));
-
-            // Set expanded-thumb if this is an expanded manga post.  This is also updated in
-            // set_media_id_expanded.  Set the border to a random-ish value to try to make it
-            // easier to see the boundaries between manga posts.  It's hard to guarantee that it
-            // won't be the same color as a neighboring post, but that's rare.  Using the illust
-            // ID means the color will always be the same.  The saturation is a bit low so these
-            // colors aren't blinding.
-            this.refresh_expanded_thumb(element);
-            helpers.set_class(link, "first-page", illust_page == 0);
-            helpers.set_class(link, "last-page", illust_page == info.pageCount-1);
-            link.style.borderBottomColor = `hsl(${illust_id}deg 50% 50%)`;
-
-            this.refresh_bookmark_icon(element);
-
-            // Set the label.  This is only actually shown in following views.
-            var label = element.querySelector(".thumbnail-label");
-            if(thumb_type == "folder")
-            {
-                // The ID is based on the filename.  Use it to show the directory name in the thumbnail.
-                let parts = media_id.split("/");
-                let basename = parts[parts.length-1];
-                let label = element.querySelector(".thumbnail-label");
-                label.hidden = false;
-                label.querySelector(".label").innerText = basename;
-            } else {
-                label.hidden = true;
-            }
-        }        
-
-        if(this.data_source != null)
-        {
-            // Set the link for the first page and previous page buttons.  Most of the time this is handled
-            // by our in-page click handler.
-            let page = this.data_source.get_start_page(helpers.args.location);
-            let previous_page_link = this.load_previous_page_button.querySelector("a.load-previous-button");
-            let args = helpers.args.location;
-            this.data_source.set_start_page(args, page-1);
-            previous_page_link.href = args.url;
-        }
+        for(let element of Object.values(this.thumbs))
+            this.setup_thumb(element, {force});
     }
 
     // Set things up based on the image dimensions.  We can do this immediately if we know the
@@ -1534,25 +1381,6 @@ ppixiv.search_view = class extends ppixiv.widget
         this.set_visible_thumbs({force: true});
     }
 
-    // Return a list of thumbnails that are either visible, or close to being visible
-    // (so we load thumbs before they actually come on screen).
-    get_nearby_thumbnails()
-    {
-        // If the container has a zero height, that means we're hidden and we don't want to load
-        // thumbnail data at all.
-        if(this.container.offsetHeight == 0)
-            return [];
-
-        let results = [];
-        for(let element of Object.values(this.thumbs))
-        {
-            if(element.dataset.id && element.dataset.nearby)
-                results.push(element);
-        }
-
-        return results;
-    }
-
     get_loaded_thumbs()
     {
         return Object.values(this.thumbs);
@@ -1633,12 +1461,174 @@ ppixiv.search_view = class extends ppixiv.widget
             entry.dataset.searchPage = search_page;
         for(let observer of this.intersection_observers)
             observer.observe(entry);
+
+        this.setup_thumb(entry);
+
         return entry;
+    }
+
+
+    // If element isn't loaded and we have media info for it, set it up.
+    //
+    // If force is true, always reconfigure the thumbnail.  This is used when something like mutes
+    // have changed and we want to refresh all thumbnails.
+    setup_thumb(element, {force=false}={})
+    {
+        let media_id = element.dataset.id;
+        if(media_id == null)
+            return;
+
+        // Leave it alone if it's already been loaded.
+        if(!force && !("pending" in element.dataset))
+            return;
+
+        let [illust_id, illust_page] = helpers.media_id_to_illust_id_and_page(media_id);
+
+        let { id: thumb_id, type: thumb_type } = helpers.parse_media_id(media_id);
+
+        // For illustrations, get thumbnail info.  If we don't have it yet, skip the image (leave it pending)
+        // and we'll come back once we have it.
+        let info = null;
+        if(thumb_type == "illust" || thumb_type == "file" || thumb_type == "folder")
+        {
+            // Get thumbnail info.
+            info = media_cache.get_media_info_sync(media_id, { full: false });
+            if(info == null)
+                return;
+        }
+        
+        helpers.set_dataset(element.dataset, "pending", false);
+
+        // On hover, use stop_animation_after to stop the animation after a while.
+        this.add_animation_listener(element);
+
+        if(thumb_type == "user" || thumb_type == "bookmarks")
+        {
+            // This is a user thumbnail rather than an illustration thumbnail.  It just shows a small subset
+            // of info.
+            let user_id = thumb_id;
+
+            let link = element.querySelector("a.thumbnail-link");
+            if(thumb_type == "user")
+                link.href = `/users/${user_id}/artworks#ppixiv`;
+            else
+                link.href = `/users/${user_id}/bookmarks/artworks#ppixiv`;
+
+            link.dataset.userId = user_id;
+
+            let quick_user_data = extra_cache.singleton().get_quick_user_data(user_id);
+            if(quick_user_data == null)
+            {
+                // We should always have this data for users if the data source asked us to display this user.
+                throw "Missing quick user data for user ID " + user_id;
+            }
+            
+            let thumb = element.querySelector(".thumb");
+            thumb.src = quick_user_data.profileImageUrl;
+
+            let label = element.querySelector(".thumbnail-label");
+            label.hidden = false;
+            label.querySelector(".label").innerText = quick_user_data.userName;
+
+            return;
+        }
+
+        if(thumb_type != "illust" && thumb_type != "file" && thumb_type != "folder")
+            throw "Unexpected thumb type: " + thumb_type;
+
+        // Set this thumb.
+        let { page } = helpers.parse_media_id(media_id);
+        let url = info.previewUrls[page];
+        let thumb = element.querySelector(".thumb");
+
+        // Check if this illustration is muted (blocked).
+        let muted_tag = muting.singleton.any_tag_muted(info.tagList);
+        let muted_user = muting.singleton.is_muted_user_id(info.userId);
+        if(muted_tag || muted_user)
+        {
+            // The image will be obscured, but we still shouldn't load the image the user blocked (which
+            // is something Pixiv does wrong).  Load the user profile image instead.
+            thumb.src = ppixiv.media_cache.get_profile_picture_url(info.userId);
+            element.classList.add("muted");
+
+            let muted_label = element.querySelector(".muted-label");
+
+            // Quick hack to look up translations, since we're not async:
+            (async() => {
+                if(muted_tag)
+                    muted_tag = await tag_translations.get().get_translation(muted_tag);
+                muted_label.textContent = muted_tag? muted_tag:info.userName;
+            })();
+
+            // We can use this if we want a "show anyway' UI.
+            thumb.dataset.mutedUrl = url;
+        }
+        else
+        {
+            thumb.src = url;
+            element.classList.remove("muted");
+            local_api.thumbnail_loaded(url);
+
+            // Try to set up the aspect ratio.
+            this.thumb_image_load_finished(element, { cause: "setup" });
+        }
+
+        // Set the link.  Setting dataset.mediaId will allow this to be handled with in-page
+        // navigation, and the href will allow middle click, etc. to work normally.
+        let link = element.querySelector("a.thumbnail-link");
+        if(thumb_type == "folder")
+        {
+            // This is a local directory.  We only expect to see this while on the local
+            // data source.  Clear any search when navigating to a subdirectory.
+            let args = new helpers.args("/");
+            local_api.get_args_for_id(media_id, args);
+            link.href = args.url;
+        }
+        else
+        {
+            link.href = helpers.get_url_for_id(media_id).url;
+        }
+
+        link.dataset.mediaId = media_id;
+        link.dataset.userId = info.userId;
+
+        element.querySelector(".ugoira-icon").hidden = info.illustType != 2 && info.illustType != "video";
+
+        helpers.set_class(element, "dot", helpers.tags_contain_dot(info.tagList));
+
+        // Set expanded-thumb if this is an expanded manga post.  This is also updated in
+        // set_media_id_expanded.  Set the border to a random-ish value to try to make it
+        // easier to see the boundaries between manga posts.  It's hard to guarantee that it
+        // won't be the same color as a neighboring post, but that's rare.  Using the illust
+        // ID means the color will always be the same.  The saturation is a bit low so these
+        // colors aren't blinding.
+        this.refresh_expanded_thumb(element);
+        helpers.set_class(link, "first-page", illust_page == 0);
+        helpers.set_class(link, "last-page", illust_page == info.pageCount-1);
+        link.style.borderBottomColor = `hsl(${illust_id}deg 50% 50%)`;
+
+        this.refresh_bookmark_icon(element);
+
+        // Set the label.  This is only actually shown in following views.
+        let label = element.querySelector(".thumbnail-label");
+        if(thumb_type == "folder")
+        {
+            // The ID is based on the filename.  Use it to show the directory name in the thumbnail.
+            let parts = media_id.split("/");
+            let basename = parts[parts.length-1];
+            let label = element.querySelector(".thumbnail-label");
+            label.hidden = false;
+            label.querySelector(".label").innerText = basename;
+        } else {
+            label.hidden = true;
+        }
     }
 
     // This is called when media_cache has loaded more image info.
     media_info_loaded = (e) =>
     {
+        // New media info is available, so we might be able to fill in thumbnails that we couldn't
+        // before.
         this.set_visible_thumbs();
 
         // If media info wasn't available when we refreshed a thumbnail and we're displaying
