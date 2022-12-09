@@ -2789,6 +2789,11 @@ ppixiv.ScrollListener = class extends ppixiv.actor
         // possible to scroll.
         default_value=false,
 
+        // If set, we always consider the scroller dragged up until we're past the height of
+        // this node.  This allows keeping sticky UI visible until we've scrolled far enough
+        // that the content below it will fill its space when it's hidden.
+        sticky_ui_node=null,
+
         // This is called when this.direction changes.
         onchange = (listener) => { },
         ...options
@@ -2802,7 +2807,19 @@ ppixiv.ScrollListener = class extends ppixiv.actor
         this._onchange = onchange;
         this._motion = 0;
         this._default_value = default_value;
+        this._scrolled_forwards = false;
+        this._sticky_ui_node = sticky_ui_node;
         this._scroller.addEventListener("scroll", () => this._refresh_after_scroll(), this._signal);
+
+        // If we've been given a sticky UI node, refresh if its height changes.
+        if(this._sticky_ui_node)
+        {
+            this._resize_observer = new ResizeObserver(() => {
+                this._refresh_after_scroll();
+            });
+            this.shutdown_signal.signal.addEventListener("abort", () => this._resize_observer.disconnect());
+            this._resize_observer.observe(this._sticky_ui_node);
+        }
 
         // Use ScrollDimensionsListener to detect changes to scrollHeight.  This is needed so if
         // elements are removed and the scroller becomes no longer scrollable, we reset to the default
@@ -2875,6 +2892,12 @@ ppixiv.ScrollListener = class extends ppixiv.actor
             scrolled_forwards = false;
         else if(new_scroll_top >= this._scroller.scrollHeight - 1)
             scrolled_forwards = true;
+
+        if(this._sticky_ui_node)
+        {
+            if(new_scroll_top < this._sticky_ui_node.offsetHeight)
+                scrolled_forwards = false;
+        }
 
         // If it's not possible to scroll the scroller, always use the default.
         if(!this._can_scroll)

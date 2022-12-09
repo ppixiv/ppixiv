@@ -507,6 +507,7 @@ ppixiv.screen_search = class extends ppixiv.screen
                 scroller,
                 parent: this,
                 onchange,
+                sticky_ui_node: this.querySelector(".title-bar"),
             });
             onchange();
         }
