@@ -1019,16 +1019,19 @@ ppixiv.checkbox_widget = class extends ppixiv.widget
 
 // A pointless creepy eye.  Looks away from the mouse cursor when hovering over
 // the unfollow button.
-ppixiv.creepy_eye_widget = class
+let creepy_eye_widget = class extends ppixiv.widget
 {
-    constructor(eye)
+    constructor({
+        ...options
+    }={})
     {
-        this.eye = eye;
+        super({...options, template: `
+            <ppixiv-inline src="resources/eye-icon.svg"></ppixiv-inline>
+        `});
 
-        this.eye.addEventListener("mouseenter", this.onevent);
-        this.eye.addEventListener("mouseleave", this.onevent);
-        this.eye.addEventListener("mousemove", this.onevent);
-        this.eye_middle = this.eye.querySelector(".middle");
+        this.container.addEventListener("mouseenter", this.onevent);
+        this.container.addEventListener("mouseleave", this.onevent);
+        this.container.addEventListener("mousemove", this.onevent);
     }
 
     onevent = (e) =>
@@ -1038,22 +1041,22 @@ ppixiv.creepy_eye_widget = class
         if(e.type == "mouseleave")
             this.hover = false;
 
+        let eye_middle = this.container.querySelector(".middle");
+
         if(!this.hover)
         {
-            this.eye_middle.style.transform = "";
+            eye_middle.style.transform = "";
             return;
         }
-        var mouse = [e.clientX, e.clientY];
+        let mouse = [e.clientX, e.clientY];
 
-        var bounds = this.eye.getBoundingClientRect();
-        var eye = [bounds.x + bounds.width/2, bounds.y + bounds.height/2];
+        let bounds = this.container.getBoundingClientRect();
+        let eye = [bounds.x + bounds.width/2, bounds.y + bounds.height/2];
 
-        var vector_length = function(vec)
-        {
-            return Math.sqrt(vec[0]*vec[0] + vec[1]*vec[1]);
-        }
+        let vector_length = (vec) =>Math.sqrt(vec[0]*vec[0] + vec[1]*vec[1]);
+
         // Normalize to get a direction vector.
-        var normalize_vector = function(vec)
+        let normalize_vector = (vec) =>
         {
             var length = vector_length(vec);
             if(length < 0.0001)
@@ -1061,12 +1064,12 @@ ppixiv.creepy_eye_widget = class
             return [vec[0]/length, vec[1]/length];
         };
 
-        var pos = [mouse[0] - eye[0], mouse[1] - eye[1]];
+        let pos = [mouse[0] - eye[0], mouse[1] - eye[1]];
         pos = normalize_vector(pos);
 
         if(Math.abs(pos[0]) < 0.5)
         {
-            var negative = pos[0] < 0;
+            let negative = pos[0] < 0;
             pos[0] = 0.5;
             if(negative)
                 pos[0] *= -1;
@@ -1074,7 +1077,7 @@ ppixiv.creepy_eye_widget = class
 //        pos[0] = 1 - ((1-pos[0]) * (1-pos[0]));
         pos[0] *= -3;
         pos[1] *= -6;
-        this.eye_middle.style.transform = "translate(" + pos[0] + "px, " + pos[1] + "px)";
+        eye_middle.style.transform = "translate(" + pos[0] + "px, " + pos[1] + "px)";
     }
 }
 
@@ -1160,7 +1163,9 @@ ppixiv.avatar_widget = class extends widget
             avatar_popup.addEventListener("mouseout", (e) => { helpers.set_class(avatar_popup, "popup-visible", false); });
         }
 
-        new creepy_eye_widget(this.container.querySelector(".follow-icon .eye-image"));
+        new creepy_eye_widget({
+            container: this.container.querySelector(".follow-icon .eye-image")
+        });
     }
 
     visibility_changed()
