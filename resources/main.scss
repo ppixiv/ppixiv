@@ -4152,3 +4152,17 @@ svg.heart-image .delete {
         }
     }
 }
+
+.ranking-data-source
+{
+    .date-row {
+        // The date field is fixed-width, since it's filled in from the API response.  This
+        // prevents it from changing size as we load and moving other buttons around.
+        .nav-today {
+            display: inline-flex;
+            justify-content: center;
+            margin: 0 0.25em;
+            min-width: 5em;
+        }
+    }
+}

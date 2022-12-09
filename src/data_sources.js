@@ -1581,20 +1581,26 @@ ppixiv.data_sources.rankings = class extends data_source
             constructor({data_source, ...options})
             {
                 super({ ...options, template: `
-                    <div>
-                        <div class=box-button-row>
-                            <div class=box-button-row>
-                                ${ helpers.create_box_link({label: "Next day", popup: "Show the next day",     data_type: "new-illust-type-illust", classes: ["nav-tomorrow"] }) }
-                                <span class=nav-today style="margin: 0 0.25em;"></span>
-                                ${ helpers.create_box_link({label: "Previous day", popup: "Show the previous day",     data_type: "new-illust-type-illust", classes: ["nav-yesterday"] }) }
-                            </div>
+                    <div class="ranking-data-source box-button-row">
+                        <div class="box-button-row date-row">
+                            ${ helpers.create_box_link({label: "Next day", popup: "Show the next day",     data_type: "new-illust-type-illust", classes: ["nav-tomorrow"] }) }
+                            <span class=nav-today></span>
+                            ${ helpers.create_box_link({label: "Previous day", popup: "Show the previous day",     data_type: "new-illust-type-illust", classes: ["nav-yesterday"] }) }
+                        </div>
 
-                            <div class=box-button-row>
+                        <div class=box-button-row>
+                            ${ helpers.create_box_link({label: "Contents",    popup: "Content type to display", classes: ["popup-menu-box-button"] }) }
+                            <div class="popup-menu-box content-list vertical-list">
                                 ${ helpers.create_box_link({label: "All",           popup: "Show all works",           data_type: "content-all" }) }
                                 ${ helpers.create_box_link({label: "Illustrations", popup: "Show illustrations only",  data_type: "content-illust" }) }
                                 ${ helpers.create_box_link({label: "Animations",    popup: "Show animations only",     data_type: "content-ugoira" }) }
                                 ${ helpers.create_box_link({label: "Manga",         popup: "Show manga only",          data_type: "content-manga" }) }
                             </div>
+                        </div>
+
+                        <div class=box-button-row>
+                            ${ helpers.create_box_link({label: "Ranking type",    popup: "Content type to display", classes: ["popup-menu-box-button"] }) }
+                            <div class="popup-menu-box mode-list vertical-list"></div>
                         </div>
 
                         <div class="box-button-row modes"></div>
@@ -1763,6 +1769,7 @@ ppixiv.data_sources.rankings = class extends data_source
                 }
 
                 // Create mode links for rankings that exist in the current content and ages selection.
+                mode_container = this.querySelector(".mode-list");
                 for(let [mode, {content, label, popup}] of Object.entries(ranking_types))
                 {
                     console.assert(content, mode);
@@ -1786,6 +1793,9 @@ ppixiv.data_sources.rankings = class extends data_source
                         current_url: current_args.url,
                     });
                 }
+
+                dropdown_menu_opener.create_handlers(this.container);
+                data_source.set_active_popup_highlight(this.container);
             }
 
             refresh_dates = () =>
@@ -2121,7 +2131,7 @@ ppixiv.data_sources.artist = class extends data_source
                             </div>
                         </div>
 
-                        <div class=avatar-container></div>
+                        <vv-container class=avatar-container></vv-container>
                     </div>
                 `});
 
