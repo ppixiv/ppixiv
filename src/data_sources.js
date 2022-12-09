@@ -1568,7 +1568,8 @@ ppixiv.data_sources.rankings = class extends data_source
         this.add_page(page, media_ids);
     };
 
-    get estimated_items_per_page() { return 50; }
+    // This gives a tiny number of results per page on mobile.
+    get estimated_items_per_page() { return ppixiv.mobile? 18:50; }
 
     get page_title() { return "Rankings"; }
     get_displaying_text() { return "Rankings"; }
