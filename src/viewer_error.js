@@ -4,7 +4,6 @@
 ppixiv.viewer_error = class extends ppixiv.viewer
 {
     constructor({
-        onready,
         ...options
     }={})
     {

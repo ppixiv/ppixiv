@@ -2,7 +2,7 @@
 
 ppixiv.viewer_video_base = class extends ppixiv.viewer
 {
-    constructor({onready, ...options})
+    constructor({...options})
     {
         super({...options, template: `
             <div class="viewer viewer-video">

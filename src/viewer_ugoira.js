@@ -36,13 +36,6 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer_video_base
 
     async load()
     {
-        let { slideshow=false, onnextimage=null } = this.options;
-
-        let load_sentinel = await super.load(this.media_id, {
-            slideshow,
-            onnextimage: () => onnextimage(this),
-        });
-        
         // Show a static image while we're waiting for the video to load, like viewer_images.
         //
         // Pixiv gives us two usable images: the search thumbnail (previewUrls[0] + urls.small),
@@ -61,14 +54,23 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer_video_base
         {
             // Load early data to show the low-res preview quickly.  This is a simpler version of
             // what viewer_images does.
+            let load_sentinel = this._load_sentinel = new Object();
             let early_illust_data = await media_cache.get_media_info(this.media_id, { full: false });
             if(load_sentinel !== this._load_sentinel)
                 return;
             this.create_preview_images(early_illust_data.previewUrls[0], null);
         }
 
+        // Fire this.ready when either preview finishes loading.
+        helpers.wait_for_any_image_load([this.preview_img1, this.preview_img2]).then(() => this.ready.accept(true));
+
         // Load full data.
-        this.illust_data = await ppixiv.media_cache.get_media_info(this.media_id);
+        let { slideshow=false, onnextimage=null } = this.options;
+        let load_sentinel = await super.load(this.media_id, {
+            slideshow,
+            onnextimage: () => onnextimage(this),
+        });
+
         if(load_sentinel !== this._load_sentinel)
             return;
 
@@ -77,11 +79,6 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer_video_base
             this.create_preview_images(this.illust_data.urls.poster, null);
         else
             this.create_preview_images(this.illust_data.previewUrls[0], this.illust_data.urls.original);
-
-        // Fire this.ready when either preview finishes loading.
-        helpers.wait_for_any_image_load([this.preview_img1, this.preview_img2]).then(() => {
-            this.ready.accept(true);
-        });
 
         // This can be used to abort ZipImagePlayer's download.
         this.abort_controller = new AbortController;

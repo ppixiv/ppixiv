@@ -4858,14 +4858,19 @@ ppixiv.guess_image_url = class
         if(thumb == null)
             return null;
 
+        // Don't bother guessing file types for animations.
+        if(thumb.illustType == 2)
+            return null;
+
         // Try to make a guess at the file type.
         let guessed_filetype = await this.guess_filetype_for_user_id(thumb.userId);
         if(guessed_filetype == null)
             return null;
     
         // Convert the thumbnail URL to the equivalent original URL:
+        // https://i.pximg.net/c/540x540_70  /img-master/img/2021/01/01/01/00/02/12345678_p0_master1200.jpg
+        // to
         // https://i.pximg.net             /img-original/img/2021/01/01/01/00/02/12345678_p0.jpg
-        // https://i.pximg.net/c/540x540_70  /img-master/img/2021/01/01/01/00/02/12345678_p0_master1200.jpg      
         let url = thumb.previewUrls[page];
         url = url.replace("/c/540x540_70/", "/");
         url = url.replace("/img-master/", "/img-original/");
