@@ -433,7 +433,10 @@ ppixiv.screen_search = class extends ppixiv.screen
                 <div class=local-navigation-box hidden></div>
 
                 <div class=title-bar hidden>
-                    <div class=title></div>
+                    <div class=title-stretch>
+                        <div class=title></div>
+                    </div>
+                    <div class=data-source-ui></div>
                 </div>
 
                 <div class="search-results scroll-container">
@@ -621,12 +624,29 @@ ppixiv.screen_search = class extends ppixiv.screen
         if(this.thumbnail_ui)
             this.thumbnail_ui.set_data_source(data_source);
 
+        if(this.current_data_source_ui)
+        {
+            this.current_data_source_ui.shutdown();
+            this.current_data_source_ui = null;
+        }
+    
         if(this.data_source == null)
         {
             this.refresh_ui();
             return;
         }
 
+        if(ppixiv.mobile)
+        {
+            if(this.data_source.ui)
+            {
+                let data_source_ui_container = this.container.querySelector(".title-bar .data-source-ui");
+                this.current_data_source_ui = new this.data_source.ui({
+                    data_source: this.data_source,
+                    container: data_source_ui_container,
+                });
+            }
+        }
         // Listen to the data source loading new pages, so we can refresh the list.
         this.data_source.addEventListener("updated", this.data_source_updated);
         this.refresh_ui();
@@ -818,15 +838,22 @@ class mobile_edit_search_dialog extends ppixiv.dialog_widget
         let option_box = this.container.querySelector(".search-selection");
         _create_main_search_menu(option_box);
 
-        // Disable clicks on rows with the disable-clicks class, since they don't do anywhere.
-        for(let row of this.container.querySelectorAll(".disable-clicks"))
-            row.addEventListener("click", (e) => e.preventDefault());
+        this.container.addEventListener("click", (e) => {
+            let a = e.target.closest("A");
+            if(a == null)
+                return;
+
+            // Hide the dialog when any of the menu links are clicked.
+            this.visible = false;
+
+            // Don't actually navigate for clicks on rows with the disable-clicks class, since they
+            // don't go anywhere.  They just refer to the search we're already on.
+            if(a.classList.contains("disable-clicks"))
+                e.preventDefault();
+        });
 
         this.search_url = helpers.args.location;
 
-        // Recreate the data source UI any time the URL changes, so we refresh when filters
-        // are changed.
-        window.addEventListener("pp:popstate", (e) => this.refresh(), { signal: this.shutdown_signal.signal });
         this.refresh();
     }
 
@@ -883,28 +910,11 @@ class mobile_edit_search_dialog extends ppixiv.dialog_widget
 
     recreate_ui()
     {
-        if(this.data_source_ui)
-        {
-            this.data_source_ui.shutdown();
-            this.data_source_ui = null;
-        }
-
         // Create the UI.
         let position = this.active_row;
         let row = position.closest(".box-link-row");
         if(row)
             position = row;
-
-        if(main_controller.data_source.ui)
-        {
-            this.data_source_ui = new main_controller.data_source.ui({
-                container: position,
-                data_source: main_controller.data_source,
-                container_position: "afterend",
-            });
-        
-            this.data_source_ui.container.classList.add("data-source-ui");
-        }
     }
 
     // Tell dialog_widget not to close us on popstate.  It'll still close us if the screen changes.
