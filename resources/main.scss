@@ -2673,11 +2673,13 @@ a.box-link, span.box-link
                     scale: scale_clamp_value(var(--menu-bar-pos), 0, 1, 0.85, 1);
                     transform-origin: center bottom;
 
+                    .avatar-link {
+                        --avatar-width: min(170px, 50vmin);
+                    }
+
                     // Remove the shadow that's put around avatars by default.
                     .avatar {
                         box-shadow: none;
-                        width: min(170px, 50vmin);
-                        height: min(170px, 50vmin);
                     }
                 }
             }
