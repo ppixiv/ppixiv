@@ -749,6 +749,11 @@ ppixiv.data_source = class extends EventTarget
         // if the user navigates down and then back up.  If the image shows up in real results later,
         // it'll be filtered out.
         let initial_media_id = this.get_current_media_id(helpers.args.location);
+
+        // If this data source doesn't return manga pages, always add the first page.
+        if(!this.includes_manga_pages)
+            initial_media_id = helpers.get_media_id_for_page(initial_media_id, 0);
+
         if(page == this.initial_page &&
             initial_media_id != null &&
             initial_media_id != "illust:*" && !local_api.is_slideshow_staging(helpers.args.location) && // not slideshow staging
