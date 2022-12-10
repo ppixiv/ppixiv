@@ -5727,6 +5727,19 @@ ppixiv.TouchScroller = class
         if(this.pointers.size == 0 && helpers.should_ignore_horizontal_drag(e))
             return;
 
+        // On iOS, we can do this to allow dragging with a large press without waiting for
+        // the delay.  It's disabled for now since it might make the UI confusing.  It probably
+        // would work better if we had access to haptics.
+        /*
+        if(this.mode != "dragging" && e.width > 50)
+        {
+            this.cancel_pending_drag();
+            ppixiv.RunningDrags.add(this, () => this.cancel_pending_drag());
+            ppixiv.RunningDrags.cancel_others(this);
+            this.mode = "dragging";
+        }
+        */
+
         if(this.mode == "drag-delay" && this.pointers.size > 0)
         {
             // We were in drag-delay and a second tap started.  Cancel the delay and start
