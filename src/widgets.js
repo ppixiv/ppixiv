@@ -874,18 +874,25 @@ ppixiv.message_widget = class extends widget
 // Call a callback on any click not inside a list of nodes.
 //
 // This is used to close dropdown menus.
-ppixiv.click_outside_listener = class
+ppixiv.click_outside_listener = class extends ppixiv.actor
 {
     constructor(node_list, callback)
     {
+        super({});
+
         this.node_list = node_list;
         this.callback = callback;
 
-        window.addEventListener("pointerdown", this.window_onpointerdown, { capture: true });
+        new pointer_listener({
+            element: document.documentElement,
+            button_mask: 0xFFFF,
+            callback: this.window_onpointerdown,
+            ...this._signal,
+        });
     }
 
     // Return true if node is below any node in node_list.
-    is_node_in_list(node)
+    _is_node_in_list(node)
     {
         for(let ancestor of this.node_list)
         {
@@ -897,11 +904,14 @@ ppixiv.click_outside_listener = class
 
     window_onpointerdown = (e) =>
     {
+        if(!e.pressed)
+            return;
+        
         // Close the popup if anything outside the dropdown is clicked.  Don't
         // prevent the click event, so the click still happens.
         //
         // If this is a click inside the box or our button, ignore it.
-        if(this.is_node_in_list(e.target))
+        if(this._is_node_in_list(e.target))
             return;
 
         // We don't cancel this event, but set a property on it to let IsolatedTapHandler
@@ -909,11 +919,6 @@ ppixiv.click_outside_listener = class
         e.partially_handled = true;
 
         this.callback(e.target, {event: e});
-    }
-
-    shutdown()
-    {
-        window.removeEventListener("pointerdown", this.window_onpointerdown, { capture: true });
     }
 }
 
