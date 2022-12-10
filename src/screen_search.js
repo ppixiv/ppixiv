@@ -973,14 +973,84 @@ class user_info_links extends ppixiv.widget
         if(user_id != this._showing_user_id)
             return;
 
+        // Tell the context menu which user is being viewed (if we're viewing a user-specific
+        // search).
+        main_context_menu.get.user_id = user_id;
+
+        let extra_links = this.get_extra_links({ user_info, data_source });
+
+        // Remove any extra buttons that we added earlier.
+        let row = this.container;
+        for(let div of row.querySelectorAll(".extra-profile-link-button"))
+            div.remove();
+        
+        for(let {url, label, type, icon} of extra_links)
+        {
+            let entry = this.create_template({name: "extra-link", html: `
+                <div class=extra-profile-link-button>
+                    <a href=# class="extra-link icon-button popup popup-bottom" rel="noreferer noopener"></a>
+                </div>
+            `});
+
+            let icon_node;
+            if(icon.endsWith(".svg"))
+                icon_node = helpers.create_ppixiv_inline(icon);
+            else
+                icon_node = helpers.create_icon(icon, { as_element: true });
+
+            icon_node.classList.add(type);
+            entry.querySelector(".extra-link").appendChild(icon_node);
+
+            let a = entry.querySelector(".extra-link");
+            if(url)
+                a.href = url;
+
+            // If this is a Twitter link, parse out the ID.  We do this here so this works
+            // both for links in the profile text and the profile itself.
+            if(type == "twitter-icon")
+            {
+                let parts = url.pathname.split("/");
+                label = parts.length > 1? ("@" + parts[1]):"Twitter";
+            }
+
+            if(type == "mute")
+            {
+                a.addEventListener("click", async (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+    
+                    if(muting.singleton.is_muted_user_id(user_id))
+                        muting.singleton.unmute_user_id(user_id);
+                    else
+                        await actions.add_mute(user_id, null, {type: "user"});
+                });
+            }
+
+            if(label == null)
+                label = a.href;
+            a.dataset.popup = decodeURIComponent(label);
+
+            // Add the node at the start, so earlier links are at the right.  This makes the
+            // more important links less likely to move around.
+            row.insertAdjacentElement("afterbegin", entry);
+        }
+    }
+
+    get_extra_links({ user_info, data_source })
+    {
         // Make a list of links to add to the top corner.
         //
         // If we reach our limit for the icons we can fit, we'll cut off at the end, so put
         // higher-priority links earlier.
         let extra_links = [];
-
         if(user_info != null)
         {
+            let muted = muting.singleton.is_muted_user_id(user_info.userId);
+            extra_links.push({
+                type: "mute",
+                label: `${muted? "Unmute":"Mute"} ${user_info?.name || "this user"}`,
+            });
+    
             extra_links.push({
                 url: new URL(`/messages.php?receiver_id=${user_info.userId}`, ppixiv.plocation),
                 type: "contact-link",
@@ -1077,11 +1147,6 @@ class user_info_links extends ppixiv.widget
         if(data_source != null)
             data_source.add_extra_links(extra_links);
 
-        // Remove any extra buttons that we added earlier.
-        let row = this.container;
-        for(let div of row.querySelectorAll(".extra-profile-link-button"))
-            div.remove();
-        
         // Map from link types to icons:
         let link_types = {
             ["default-icon"]: "ppixiv:link",
@@ -1098,96 +1163,49 @@ class user_info_links extends ppixiv.widget
             ["bookmarks-link"]: "mat:star",
             ["similar-artists"]: "ppixiv:suggestions",
             ["request"]: "mat:paid",
+            ["mute"]: "block",
         };
 
+        let filtered_links = [];
         let seen_links = {};
-        for(let {url, label, type} of extra_links)
+        for(let link of extra_links)
         {
-            // Don't add the same link twice if it's in more than one place.
-            if(seen_links[url])
+            // Filter duplicate links.
+            if(link.url && seen_links[link.url])
                 continue;
-            seen_links[url] = true;
 
-            try {
-                url = new URL(url);
-            } catch(e) {
-                console.log("Couldn't parse profile URL:", url);
-                continue;
-            }
+            seen_links[link.url] = true;
 
-            // Guess the link type if one wasn't supplied.
-            if(type == null)
-                type = this.find_link_image_type(url);
-
-            if(type == null)
-                type = "default-icon";
-
-            let entry = this.create_template({name: "extra-link", html: `
-                <div class=extra-profile-link-button>
-                    <a href=# class="extra-link icon-button popup popup-bottom" rel="noreferer noopener"></a>
-                </div>
-            `});
-
-            let image_name = link_types[type];
-            let icon;
-            if(image_name.endsWith(".svg"))
-                icon = helpers.create_ppixiv_inline(image_name);
-            else
-                icon = helpers.create_icon(image_name, { as_element: true });
-
-            icon.classList.add(type);
-            entry.querySelector(".extra-link").appendChild(icon);
-
-            let a = entry.querySelector(".extra-link");
-            a.href = url;
-
-            // If this is a Twitter link, parse out the ID.  We do this here so this works
-            // both for links in the profile text and the profile itself.
-            if(type == "twitter-icon")
+            if(link.url)
             {
-                let parts = url.pathname.split("/");
-                label = parts.length > 1? ("@" + parts[1]):"Twitter";
+                try {
+                    link.url = new URL(link.url);
+                } catch(e) {
+                    console.log("Couldn't parse profile URL:", link.url);
+                    continue;
+                }
             }
 
-            if(label == null)
-                label = a.href;
-            a.dataset.popup = decodeURIComponent(label);
+            // Guess link types that weren't supplied.
+            if(link.type == null)
+            {
+                let { type } = link;
+                if(type == null)
+                    type = this.find_link_image_type(link.url);
 
-            // Add the node at the start, so earlier links are at the right.  This makes the
-            // more important links less likely to move around.
-            row.insertAdjacentElement("afterbegin", entry);
+                if(type == null)
+                    type = "default-icon";
+
+                link.type = type;
+            }
+
+            // Fill in the icon.
+            link.icon = link_types[link.type];
+
+            filtered_links.push(link);
         }
-
-        // Mute/unmute
-        if(user_id != null)
-        {
-            let entry = this.create_template({name: "mute-link", html: `
-                <div class=extra-profile-link-button>
-                    <span class="extra-link icon-button popup popup-bottom" rel="noreferer noopener">
-                        ${ helpers.create_icon("block") }
-                    </span>
-                </div>
-            `});
-            
-            let muted = muting.singleton.is_muted_user_id(user_id);
-            let a = entry.querySelector(".extra-link");
-            a.dataset.popup = `${muted? "Unmute":"Mute"} ${user_info?.name || "this user"}`;
-
-            row.insertAdjacentElement("beforeend", entry);
-            a.addEventListener("click", async (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-
-                if(muting.singleton.is_muted_user_id(user_id))
-                    muting.singleton.unmute_user_id(user_id);
-                else
-                    await actions.add_mute(user_id, null, {type: "user"});
-            });
-        }
-
-        // Tell the context menu which user is being viewed (if we're viewing a user-specific
-        // search).
-        main_context_menu.get.user_id = user_id;
+    
+        return filtered_links;
     }
 
     // Use different icons for sites where you can give the artist money.  This helps make
