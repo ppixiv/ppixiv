@@ -3439,37 +3439,6 @@ ppixiv.helpers = {
     },
 };
 
-// Listen to viewhidden on element and each of element's parents.
-//
-// When a view is hidden (eg. a top-level view or a UI popup), we send
-// viewhidden to it so dropdowns, etc. inside it can close.
-ppixiv.view_hidden_listener = class
-{
-    static send_viewhidden(element)
-    {
-        var event = new Event("viewhidden", {
-            bubbles: false
-        });
-        element.dispatchEvent(event);
-    }
-
-    constructor(element, callback, {signal}={})
-    {
-        // If no AbortSignal was given, create one.  It won't be used, but for some reason
-        // addEventListener throws an error if signal is null (it should just ignore it).
-        if(signal == null)
-            signal = new AbortController().signal;
-
-        // There's no way to listen on events on any parent, so we have to add listeners
-        // to each parent in the tree.
-        while(element != null)
-        {
-            element.addEventListener("viewhidden", callback, { signal });
-            element = element.parentNode;
-        }
-    }
-};
-
 // Filter an image to a canvas.
 //
 // When an image loads, draw it to a canvas of the same size, optionally applying filter

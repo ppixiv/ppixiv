@@ -449,6 +449,14 @@ ppixiv.MainController = class
             // Dismiss any message when changing screens.
             message_widget.singleton.hide();
 
+            // Let the screens know whether they're current.  Screens don't use visible
+            // directly (visibility is controlled by animations instead), but this lets
+            // visible_recursively know if the hierarchy is visible.
+            if(old_screen)
+                old_screen.visible = false;
+            if(new_screen)
+                new_screen.visible = true;
+
             let e = new Event("screenchanged");
             e.newScreen = new_screen_name;
             window.dispatchEvent(e);

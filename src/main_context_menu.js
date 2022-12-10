@@ -624,7 +624,7 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
     apply_visibility()
     {
         let visible = this.actually_visible;
-        helpers.set_class(this.container, "visible-widget", visible);
+        helpers.set_class(this.container, "hidden-widget", !visible);
         helpers.set_class(this.container, "visible", visible);
     }
 
@@ -637,9 +637,6 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
         this.hidden_temporarily = false;
         this.apply_visibility();
 
-        // Let menus inside the context menu know we're closing.
-        view_hidden_listener.send_viewhidden(this.container);
-        
         this.displayed_menu = null;
         hide_mouse_cursor_on_idle.enable_all("context-menu");
         this.buttons_down = {};
@@ -742,11 +739,6 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
             container: this.container.querySelector(".popup-more-options-container"),
         });
         more_options_widget.container.classList.add("popup-more-options-dropdown");
-
-        new view_hidden_listener(more_options_widget.container, (e) => {
-            // Close if our containing widget is closed.
-            more_options_widget.visible = false;
-        });
 
         this.illust_widgets = [
             this.avatar_widget,

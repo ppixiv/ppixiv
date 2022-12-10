@@ -54,12 +54,18 @@ ppixiv.tag_search_box_widget = class extends ppixiv.widget
         // Show the dropdown when the input box is focused.
         this.input_element.addEventListener("focus", () => this.dropdown_opener.visible = true, true);
 
-        // Hide the dropdowns on navigation.
-        new view_hidden_listener(this.input_element, () => this.dropdown_opener.visible = false, this._signal);
-
         // Search submission:
         helpers.input_handler(this.input_element, this.submit_search);
         this.container.querySelector(".search-submit-button").addEventListener("click", this.submit_search);
+    }
+
+    // Hide the dropdowns if our tree becomes hidden.
+    on_visible_recursively_changed()
+    {
+        super.on_visible_recursively_changed();
+
+        if(!this.visible_recursively)
+            this.dropdown_opener.visible = false;
     }
 
     // Run a text prompt.
@@ -103,7 +109,7 @@ ppixiv.tag_search_box_widget = class extends ppixiv.widget
         if(e.target instanceof HTMLInputElement)
         {
             e.target.blur();
-            view_hidden_listener.send_viewhidden(e.target);
+            this.dropdown_opener.visible = false;
         }
         
         // Run the search.

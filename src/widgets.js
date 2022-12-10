@@ -168,6 +168,72 @@ ppixiv.actor = class
 
         this.child_actors.splice(idx, 1);
     }
+
+    // Yield all parents of this node.  If include_self is true, yield ourself too.
+    *ancestors({include_self=false}={})
+    {
+        if(include_self)
+            yield this;
+
+        let count = 0;
+        let parent = this.parent;
+        while(parent != null)
+        {
+            yield parent;
+            parent = parent.parent;
+
+            count++;
+            if(count > 10000)
+                throw new Error("Recursion detected");
+        }
+    }
+
+    // Yield all descendants of this node, depth-first.  If include_self is true, yield ourself too.
+    *descendents({include_self=false}={})
+    {
+        if(include_self)
+            yield this;
+
+        for(let child of this.child_actors)
+        {
+            yield child;
+            for(let child_descendants of child.descendents())
+                yield child_descendants;
+        }
+    }
+
+    // Non-widget actors are always visible.
+    get visible() { return true; }
+
+    // Return true if we and all of our ancestors are visible.
+    //
+    // This is based on this.visible.  For widgets that animate on and off, this becomes false
+    // as soon as the widget begins hiding (this.visible becomes false), without waiting for the
+    // animation to finish (this.actually_visible).  This allows child widgets to animate away
+    // along with the parent.
+    get visible_recursively()
+    {
+        for(let node of this.ancestors({include_self: true}))
+        {
+            if(!node.visible)
+                return false;
+        }
+
+        return true;
+    }
+
+    // Call on_visible_recursively_changed on the hierarchy.
+    _call_on_visible_recursively_changed()
+    {
+        for(let actor of this.descendents({include_self: true}))
+        {
+            if(actor.on_visible_recursively_changed)
+                actor.on_visible_recursively_changed(this);
+        }
+    }
+
+    // This is called when visible_recursively may have changed.
+    on_visible_recursively_changed() { }
 }
 
 // A basic widget base class.
@@ -283,6 +349,9 @@ ppixiv.widget = class extends ppixiv.actor
         this.apply_visibility();
 
         this.visibility_changed();
+
+        // Let descendants know that visible_recursively may have changed.
+        this._call_on_visible_recursively_changed();
     }
 
     shutdown()
@@ -298,6 +367,7 @@ ppixiv.widget = class extends ppixiv.actor
     // subclass can override this.
     apply_visibility()
     {
+        helpers.set_class(this.container, "hidden-widget", !this._visible);
         helpers.set_class(this.container, "visible-widget", this._visible);
     }
 
@@ -309,7 +379,7 @@ ppixiv.widget = class extends ppixiv.actor
         return this.visible;
     }
 
-    // The subclass can override this.
+    // This is called when actually_visible changes.  The subclass can override this.
     visibility_changed()
     {
         if(this.actually_visible)
@@ -883,11 +953,6 @@ ppixiv.dropdown_box_opener = class extends ppixiv.actor
         // Refresh the position if the box width changes.  Don't refresh on any ResizeObserver
         // call, since that'll recurse and end up refreshing constantly.
         this._box_width = 0;
-
-        // Hide popups when any containing view is hidden.
-        new view_hidden_listener(this.button, (e) => {
-            this.visible = false;
-        }, this._signal);
     }
 
     onwindowresize = (e) =>
@@ -895,11 +960,13 @@ ppixiv.dropdown_box_opener = class extends ppixiv.actor
         this._align_to_button();
     };
 
-    // The viewhidden event is sent when the enclosing view is no longer visible, and
-    // all menus in it should be hidden.
-    onviewhidden(e)
+    // Hide if our tree becomes hidden.
+    on_visible_recursively_changed()
     {
-        this.visible = false;
+        super.on_visible_recursively_changed();
+
+        if(!this.visible_recursively)
+            this.visible = false;
     }
 
     get visible()
@@ -1482,11 +1549,6 @@ ppixiv.follow_widget = class extends widget
 
         // Refresh if the user we're displaying changes.
         user_cache.addEventListener("usermodified", this.user_changed, { signal: this.shutdown_signal.signal });
-
-        // Close if our container closes.
-        new view_hidden_listener(this.container, (e) => {
-            this.visible = false;
-        }, this._signal);
     }
 
     user_changed = ({user_id}) =>
@@ -1530,6 +1592,15 @@ ppixiv.follow_widget = class extends widget
                 this.click_outside_listener = null;
             }
         }
+    }
+
+    // Hide if our tree becomes hidden.
+    on_visible_recursively_changed()
+    {
+        super.on_visible_recursively_changed();
+
+        if(!this.visible_recursively)
+            this.visible = false;
     }
 
     async refresh()
@@ -2210,12 +2281,6 @@ ppixiv.bookmark_tag_list_dropdown_widget = class extends ppixiv.bookmark_tag_lis
         });
 
         this.container.classList.add("popup-bookmark-tag-dropdown");
-
-        // Close if our containing widget is closed.
-        // XXX not if we're in the mobile menu
-        new view_hidden_listener(this.container, (e) => {
-            this.visible = false;
-        }, this._signal);
     }
 
     async refresh_internal({ media_id })
@@ -2229,6 +2294,15 @@ ppixiv.bookmark_tag_list_dropdown_widget = class extends ppixiv.bookmark_tag_lis
         // Fit the tag scroll box within however much space we have available.
         if(this.visible)
             helpers.set_max_height(this.container.querySelector(".tag-list"), { max_height: 400, bottom_padding: 10 });
+    }
+
+    // Hide if our tree becomes hidden.
+    on_visible_recursively_changed()
+    {
+        super.on_visible_recursively_changed();
+
+        if(!this.visible_recursively)
+            this.visible = false;
     }
 }
 
@@ -2602,6 +2676,15 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
     {
         if(this.visible)
             this.refresh();
+    }
+
+    // Hide if our tree becomes hidden.
+    on_visible_recursively_changed()
+    {
+        super.on_visible_recursively_changed();
+
+        if(!this.visible_recursively)
+            this.visible = false;
     }
 
     async refresh_internal({ media_id, media_info })

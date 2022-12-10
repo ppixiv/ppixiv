@@ -119,9 +119,6 @@ ppixiv.screen_illust = class extends ppixiv.screen
         if(editing)
             visible = false;
 
-        if(!visible)
-            view_hidden_listener.send_viewhidden(this.ui.container);
-
         // Tell the image UI when it's visible.
         this.ui.visible = visible;
 

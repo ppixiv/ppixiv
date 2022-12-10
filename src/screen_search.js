@@ -411,6 +411,11 @@ let thumbnail_ui_mobile = class extends ppixiv.widget
         });
     }
 
+    apply_visibility()
+    {
+        helpers.set_class(this.container, "shown", this._visible);
+    }
+
     refresh_ui()
     {
         // The back button navigate to parent locally, otherwise it's browser back if we're in
@@ -436,12 +441,7 @@ ppixiv.screen_search = class extends ppixiv.screen
                 <!-- The tree widget for local navigation: -->
                 <div class=local-navigation-box hidden></div>
 
-                <div class=title-bar hidden>
-                    <div class=title-stretch>
-                        <div class=title></div>
-                    </div>
-                    <div class=data-source-ui></div>
-                </div>
+                <vv-container class=title-bar-container></vv-container>
 
                 <div class="search-results scroll-container">
                     <div class=top-ui-box hidden></div>
@@ -484,8 +484,29 @@ ppixiv.screen_search = class extends ppixiv.screen
 
         if(ppixiv.mobile)
         {
-            this.mobile_header = this.container.querySelector(".title-bar");
-            this.mobile_header.hidden = false;
+            this.title_bar_widget = new class extends ppixiv.widget {
+                constructor({...options}={})
+                {
+                    super({
+                        ...options,
+                        template: `
+                            <div class=title-bar>
+                                <div class=title-stretch>
+                                    <div class=title></div>
+                                </div>
+                                <div class=data-source-ui></div>
+                            </div>
+                        `
+                    });
+                }
+
+                apply_visibility()
+                {
+                    helpers.set_class(this.container, "shown", this._visible);
+                }
+            }({
+                container: this.container.querySelector(".title-bar-container"),
+            });
 
             let navigation_bar_container = this.container.querySelector(".mobile-navigation-bar-container");
             this.thumbnail_ui_mobile = new thumbnail_ui_mobile({
@@ -505,8 +526,8 @@ ppixiv.screen_search = class extends ppixiv.screen
             let onchange = () =>
             {
                 let shown = !this.scroll_listener.scrolled_forwards;
-                helpers.set_class(this.querySelector(".title-bar"), "shown", shown);
-                helpers.set_class(this.thumbnail_ui_mobile.container, "shown", shown);
+                this.thumbnail_ui_mobile.visible = shown;
+                this.title_bar_widget.visible = shown;
             };
             
             let scroller = this.querySelector(".search-results");
@@ -674,13 +695,12 @@ ppixiv.screen_search = class extends ppixiv.screen
     refresh_ui = () =>
     {
         // Update the title even if we're not active, so it's up to date for transitions.
-        if(this.mobile_header)
+        if(this.title_bar_widget)
         {
-            this.mobile_header.hidden = this.data_source?.get_displaying_text == null;
             if(this.data_source?.get_displaying_text != null)
             {
                 let text = this.data_source?.get_displaying_text();
-                this.mobile_header.querySelector(".title").replaceChildren(text);
+                this.title_bar_widget.container.querySelector(".title").replaceChildren(text);
             }
         }
 

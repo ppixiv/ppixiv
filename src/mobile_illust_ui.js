@@ -309,10 +309,6 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
             container: this.container,
         });
         
-        new view_hidden_listener(this.container, () => {
-            this.hide();
-        }, { signal: this.shutdown_signal.signal });
-
         this.dragger = new WidgetDragger({
             name: "menu-dragger",
             // Put the --menu-bar-pos property up high, since the video UI also uses it.
@@ -339,6 +335,15 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
         this._media_id = null;
 
         this.refresh();
+    }
+
+    // Hide if our tree becomes hidden.
+    on_visible_recursively_changed()
+    {
+        super.on_visible_recursively_changed();
+
+        if(!this.visible_recursively)
+            this.hide();
     }
 
     set media_id(media_id)

@@ -14,6 +14,10 @@ ppixiv.screen = class extends ppixiv.widget
         return null;
     }
 
+    // Screens don't hide themselves when visible is false, but we still set visibility so
+    // visible_recursively works.
+    apply_visibility() { }
+
     get active() { return !this.container.inert; }
 
     // The screen is becoming active.  This is async, since it may load data.
@@ -27,9 +31,6 @@ ppixiv.screen = class extends ppixiv.widget
     deactivate()
     {
         this.container.inert = true;
-
-        // When the screen isn't active, send viewhidden to close all popup menus inside it.
-        view_hidden_listener.send_viewhidden(this.container);
     }
 }
 

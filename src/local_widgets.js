@@ -966,12 +966,18 @@ ppixiv.local_search_box_widget = class extends ppixiv.widget
         // Search submission:
         helpers.input_handler(this.input_element, this.submit_search);
 
-        // Hide the dropdowns on navigation.
-        new view_hidden_listener(this.input_element, (e) => this.dropdown_opener.visible = false, this._signal);
-        
         window.addEventListener("pp:popstate", (e) => { this.refresh_from_location(); });
         this.refresh_from_location();
         this.refresh_clear_button_visibility();
+    }
+
+    // Hide if our tree becomes hidden.
+    on_visible_recursively_changed()
+    {
+        super.on_visible_recursively_changed();
+
+        if(!this.visible_recursively)
+            this.dropdown_opener.visible = false;
     }
 
     // SEt the text box from the current URL.
@@ -997,7 +1003,7 @@ ppixiv.local_search_box_widget = class extends ppixiv.widget
         if(e.target instanceof HTMLInputElement)
         {
             e.target.blur();
-            view_hidden_listener.send_viewhidden(e.target);
+            this.dropdown_opener.visible = false;
         }
     }
 }

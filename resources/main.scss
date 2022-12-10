@@ -388,7 +388,7 @@ input, textarea, [contenteditable] {
 
             // Hide viewers by making them invisible instead of not displayed, so viewers have dimensions
             // while they're setting up for setting things like the initial pan/zoom position.
-            &:not(.visible-widget)
+            &.hidden-widget
             {
                 display: unset;
                 visibility: none;
@@ -809,8 +809,8 @@ input, textarea, [contenteditable] {
         vertical-align: top;
     }
     
-    // Override the default visible-widget hiding behavior.
-    &:not(.visible-widget)
+    // Override the default hidden-widget hiding behavior.
+    &.hidden-widget
     {
         display: inherit !important;
     }
@@ -826,7 +826,7 @@ input, textarea, [contenteditable] {
         user-select: none;
         
         // Show the UI on hover when hide-ui isn't set.  force-ui is used for debugging.
-        body:not(.hide-ui) &.visible-widget,
+        body:not(.hide-ui) &:not(.hidden-widget),
         body.force-ui &
         {
             opacity: 1;
@@ -2296,7 +2296,7 @@ a.box-link, span.box-link
     }
 }
 
-.widget:not(.visible-widget)
+.widget.hidden-widget
 {
     display: none;
 }
@@ -2322,8 +2322,8 @@ a.box-link, span.box-link
         transform ease 0.15s;
     --context-menu-bg-color: #000;
 
-    // Override the default visible-widget hiding behavior.
-    &:not(.visible-widget)
+    // Override the default hidden-widget hiding behavior.
+    &.hidden-widget
     {
         display: inherit;
         opacity: 0;
@@ -2331,7 +2331,7 @@ a.box-link, span.box-link
         transform: scale(.85);
     }
 
-    &.visible-widget
+    &:not(.hidden-widget)
     {
         opacity: 1;
     }
