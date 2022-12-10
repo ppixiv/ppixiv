@@ -1996,8 +1996,8 @@ a.box-link, span.box-link
     position: relative;
     gap: 0.5em;
 
-    > .search-history,
-    > .edit-search {
+    > .search-history
+    {
         position: absolute;
         left: 0;
         bottom: 0;
@@ -2143,16 +2143,15 @@ a.box-link, span.box-link
         top: 0;
         left: calc(100% + 0em);
         background-color: #004;
-        padding: 0.5em;
 
         display: flex;
         flex-direction: column;
         gap: .5em;
     }
 
-    // Hide all edit buttons except for the main enable editing button when not editing.
+    // Hide edit buttons when not editing.
     &:not(.editing) {
-        .edit-button:not(.toggle-edit-button) { display: none !important; }
+        .edit-button { display: none !important; }
     }
 
     .edit-button {
@@ -2295,26 +2294,6 @@ a.box-link, span.box-link
         overflow-x: hidden;
         overflow-y: scroll;
         resize: horizontal;
-    }
-
-    // The edit search list is shown as a wrapped list.
-    > .edit-tags-list {
-        padding: 4px 0;
-        white-space: normal;
-        max-width: 100%;
-        display: flex;
-        flex-wrap: wrap;
-
-        > .entry {
-            padding: 4px 10px;
-            line-height: 1em;
-
-            &.highlight { background-color: var(--box-link-selected-color); }
-            @media(hover: hover) {
-                &:hover { background-color: var(--box-link-hover-color); }
-                &.highlight:hover { background-color: var(--box-link-selected-hover-color); }
-            }
-        }
     }
 }
 

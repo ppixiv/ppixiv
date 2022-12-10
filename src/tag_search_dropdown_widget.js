@@ -8,8 +8,7 @@ ppixiv.tag_search_box_widget = class extends ppixiv.widget
         super({...options, template: `
             <div class="search-box tag-search-box">
                 <!-- This is a tabindex so there's a place for focus to go for all clicks inside it, so
-                     clicks inside it don't cause us to lose focus and hide.  This doesn't include the related
-                     tags button, so clicks on that do close the dropdown. -->
+                     clicks inside it don't cause us to lose focus and hide. -->
                 <div class="input-field-container hover-menu-box" tabindex=1>
                     <input placeholder=Tags>
 
@@ -30,26 +29,8 @@ ppixiv.tag_search_box_widget = class extends ppixiv.widget
             container: this.container,
             input_element: this.container,
         });
-        this.edit_widget = new tag_search_edit_widget({
-            container: this.container,
-            input_element: this.container,
-        });
 
-        let edit_button = this.container.querySelector(".edit-search-button");
-        if(edit_button)
-        {
-            edit_button.addEventListener("click", (e) => {
-                // Toggle the edit widget, hiding the search history dropdown if it's visible.
-                if(this.edit_widget.visible)
-                {
-                    this.edit_widget.hide();
-                    this.dropdown_widget.show();
-                } else {
-                    this.dropdown_widget.hide();
-                    this.edit_widget.show();
-                }
-            });
-        }
+        this.querySelector(".edit-search-button").addEventListener("click", (e) => this.dropdown_widget.editing = !this.dropdown_widget.editing);
         
         this.container.addEventListener("focus", this.focus_changed, true);
         this.container.addEventListener("blur", this.focus_changed, true);
@@ -61,13 +42,12 @@ ppixiv.tag_search_box_widget = class extends ppixiv.widget
         // Hide the dropdowns on navigation.
         new view_hidden_listener(this.input_element, (e) => {
             this.hide();
-        });
+        }, this._signal);
     }
 
     hide()
     {
         this.dropdown_widget.hide();
-        this.edit_widget.hide();
     }
 
     // Show the dropdown when an element inside our container has focus.  All elements
@@ -92,9 +72,9 @@ ppixiv.tag_search_box_widget = class extends ppixiv.widget
 
         // If we're focused and nothing was visible, show the tag dropdown.  If we're not
         // focused, hide both.
-        if(this.focused && !this.dropdown_widget.visible && !this.edit_widget.visible)
+        if(this.focused && !this.dropdown_widget.visible)
             this.dropdown_widget.show();
-        else if(!this.focused && (this.dropdown_widget.visible || this.edit_widget.visible))
+        else if(!this.focused && this.dropdown_widget.visible)
             this.hide();
     }
 
@@ -156,7 +136,6 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
             <div class=search-history tabindex="1">
                 <div class=input-dropdown>
                     <div class=tag-dropdown-global-buttons>
-                        <div class="edit-button toggle-edit-button">${ helpers.create_icon("mat:edit") }</div>
                         <div class="edit-button create-section-button">${ helpers.create_icon("mat:create_new_folder") }</div>
                     </div>
 
@@ -251,18 +230,19 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
             callback: this.pointerevent,
         });
 
-        this.set_editing(false);
+        this.editing = false;
     }
     
-    set_editing(value)
+    get editing() { return this._editing; }
+
+    set editing(value)
     {
-        if(this.editing == value)
+        if(this._editing == value)
             return;
 
-        this.editing = value;
-        helpers.set_class(this.container.querySelector(".input-dropdown"), "editing", this.editing);
-        helpers.set_class(this.container.querySelector(".input-dropdown-list"), "editing", this.editing);
-        helpers.set_class(this.container.querySelector(".toggle-edit-button"), "selected", this.editing);        
+        this._editing = value;
+        helpers.set_class(this.container.querySelector(".input-dropdown"), "editing", this._editing);
+        helpers.set_class(this.container.querySelector(".input-dropdown-list"), "editing", this._editing);
     }
 
     pointerevent = (e) =>
@@ -424,25 +404,6 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
     {
         let entry = e.target.closest(".entry");
         let tag_section = e.target.closest(".tag-section");
-
-        // Toggle editing:
-        let toggle_edit_button = e.target.closest(".toggle-edit-button");
-        if(toggle_edit_button)
-        {
-            e.stopPropagation();
-            e.preventDefault();
-
-            let old_top = toggle_edit_button.getBoundingClientRect().top;
-
-            this.set_editing(!this.editing);
-
-            // Toggling editing will change layout.  Try to scroll the list so the editing button
-            // that was just clicked stays in the same place.
-            let new_top = toggle_edit_button.getBoundingClientRect().top;
-            let move_by = new_top - old_top;
-            this.input_dropdown.scrollTop += move_by;
-            return;
-        }
 
         let create_section_button = e.target.closest(".create-section-button");
         if(create_section_button)
@@ -733,7 +694,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
 
         this.current_autocomplete_results = [];
         this.most_recent_autocomplete = null;
-        this.set_editing(false);
+        this.editing = false;
         this.stop_dragging();
         this.container.hidden = true;
     }

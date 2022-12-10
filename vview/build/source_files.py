@@ -42,7 +42,6 @@ source_files = [
     'src/image_ui.js',
     'src/tag_search_dropdown_widget.js',
     'src/saved_search_tags.js',
-    'src/tag_search_edit_widget.js',
     'src/tag_translations.js',
     'src/page_manager.js',
     'src/image_preloading.js',
