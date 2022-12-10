@@ -7,9 +7,7 @@ ppixiv.tag_search_box_widget = class extends ppixiv.widget
     {
         super({...options, template: `
             <div class="search-box tag-search-box">
-                <!-- This is a tabindex so there's a place for focus to go for all clicks inside it, so
-                     clicks inside it don't cause us to lose focus and hide. -->
-                <div class="input-field-container hover-menu-box" tabindex=1>
+                <div class="input-field-container hover-menu-box">
                     <input placeholder=Tags>
 
                     <span class="edit-search-button right-side-button">
@@ -32,8 +30,20 @@ ppixiv.tag_search_box_widget = class extends ppixiv.widget
 
         this.querySelector(".edit-search-button").addEventListener("click", (e) => this.dropdown_widget.editing = !this.dropdown_widget.editing);
         
-        this.container.addEventListener("focus", this.focus_changed, true);
-        this.container.addEventListener("blur", this.focus_changed, true);
+        this.listener = new click_outside_listener([
+            this.querySelector(".input-field-container"),
+            this.dropdown_widget.container,
+        ], () => {
+            // Ignore clicks while we're showing a dialog.
+            if(this.showing_dialog)
+                return;
+            
+            this.dropdown_widget.hide();
+        });
+
+        this.input_element.addEventListener("focus", () => {
+            this.show();
+        }, true);
 
         // Search submission:
         helpers.input_handler(this.input_element, this.submit_search);
@@ -45,37 +55,24 @@ ppixiv.tag_search_box_widget = class extends ppixiv.widget
         }, this._signal);
     }
 
-    hide()
+    show()
     {
-        this.dropdown_widget.hide();
+        this._shown = true;
+        this._refresh_shown();
     }
 
-    // Show the dropdown when an element inside our container has focus.  All elements
-    // that should keep the dropdowns open when clicked on should be inside tabindexes.
-    focus_changed = (e) =>
+    hide()
     {
-        // See if focus is inside our container.
-        this.focused = this.container.matches(":focus-within");
+        this._shown = false;
+        this._refresh_shown();
+    }
 
-        // Close if focus is inside the related tags box.
-        if(this.container.querySelector(".related-tags-box:focus-within"))
-            this.focused = false;
-
-        // Stay visible if we're showing a dialog and the dialog takes focus.
-        if(this.showing_dialog)
-            this.focused = true;
-
-        // If anything inside the container is focused, make sure it's either an input
-        // (a rename editor) or the main input field.
-        if(this.focused && e.target?.nodeName != "INPUT" && !this.input_element.matches(":focus"))
-            this.input_element.focus();
-
-        // If we're focused and nothing was visible, show the tag dropdown.  If we're not
-        // focused, hide both.
-        if(this.focused && !this.dropdown_widget.visible)
+    _refresh_shown()
+    {
+        if(this._shown)
             this.dropdown_widget.show();
-        else if(!this.focused && this.dropdown_widget.visible)
-            this.hide();
+        else
+            this.dropdown_widget.hide();
     }
 
     // Run a text prompt.
@@ -1206,7 +1203,8 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
 
         // We're populated now, so if we were hidden for initial loading, we can actually show
         // our contents if we have any.
-        let empty = Array.from(this.all_results.querySelectorAll(".entry")).length == 0;
+        let empty = Array.from(this.all_results.querySelectorAll(".entry, .tag-section")).length == 0;
+        console.log("??? empty", empty, this.all_results);
         helpers.set_class(this.container.querySelector(".input-dropdown"), "loading", empty);
 
         return true;
