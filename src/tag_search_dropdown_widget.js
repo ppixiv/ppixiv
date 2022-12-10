@@ -1181,16 +1181,20 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
 
         this.autocomplete_list.hidden = autocompleted_tags.length == 0;
 
+        // On mobile, don't put autocompletes in a separate scroller, since there usually isn't
+        // space.
+        let autocomplete_container = ppixiv.mobile? this.input_dropdown:this.autocomplete_list;
+
         // Add autocompletes at the top.
         if(autocompleted_tags.length)
-            this.autocomplete_list.appendChild(this.create_separator(`Suggestions for ${this.most_recent_autocomplete}`, { icon: "mat:assistant", classes: ["autocomplete"] }));
+            autocomplete_container.appendChild(this.create_separator(`Suggestions for ${this.most_recent_autocomplete}`, { icon: "mat:assistant", classes: ["autocomplete"] }));
 
         for(var tag of autocompleted_tags)
         {
             // Autocomplete entries link to the fully completed search, but only display the
             // tag that was searched for.
             let entry = this.create_entry(tag.tag, { classes: ["autocomplete"], target_tags: tag.search });
-            this.autocomplete_list.appendChild(entry);
+            autocomplete_container.appendChild(entry);
         }
 
         // Show saved tags above recent tags.

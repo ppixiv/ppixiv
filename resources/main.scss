@@ -2183,7 +2183,7 @@ a.box-link, span.box-link
 
     .input-dropdown-contents {
         width: var(--width); // set by script
-        max-width: 800px;
+        max-width: min(800px, 80vw);
         margin: 1px;
 
         display: flex;
