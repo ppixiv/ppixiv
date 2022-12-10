@@ -4654,19 +4654,7 @@ ppixiv.data_sources.vview = class extends data_source
             {
                 super({ ...options, data_source, template: `
                     <div>
-                        <div class="search-box local-tag-search-box">
-                            <div class="input-field-container hover-menu-box">
-                                <input placeholder="Search files">
-
-                                <span class="clear-local-search-button right-side-button">
-                                    ${ helpers.create_icon("clear") }
-                                </span>
-
-                                <span class="submit-local-search-button right-side-button">
-                                    ${ helpers.create_icon("search") }
-                                </span>
-                            </div>
-                        </div>
+                        <vv-container class=tag-search-box-container></vv-container>
 
                         <div class="box-button-row">
                             <span class="popup icon-button copy-local-path" data-popup="Copy local path to clipboard">
@@ -4691,7 +4679,7 @@ ppixiv.data_sources.vview = class extends data_source
                 this.data_source = data_source;
 
                 // The search history dropdown for local searches.
-                new local_search_box_widget({ contents: this.querySelector(".local-tag-search-box") });
+                new local_search_box_widget({ container: this.querySelector(".tag-search-box-container") });
         
                 let current_args = helpers.args.location;
 

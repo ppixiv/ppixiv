@@ -8,7 +8,7 @@ ppixiv.tag_search_box_widget = class extends ppixiv.widget
         super({...options, template: `
             <div class="search-box tag-search-box">
                 <div class="input-field-container hover-menu-box">
-                    <input placeholder=Tags>
+                    <input placeholder=Tags size=1 autocorrect=off>
 
                     <span class="edit-search-button right-side-button">
                         ${ helpers.create_icon("mat:edit") }
@@ -23,56 +23,43 @@ ppixiv.tag_search_box_widget = class extends ppixiv.widget
 
         this.input_element = this.container.querySelector(".input-field-container > input");
 
-        this.dropdown_widget = new tag_search_dropdown_widget({
-            container: this.container,
-            input_element: this.container,
+        this.querySelector(".edit-search-button").addEventListener("click", (e) => {
+            this.dropdown_opener.visible = true;
+            this.dropdown_opener.box_widget.editing = !this.dropdown_opener.box_widget.editing;
         });
 
-        this.querySelector(".edit-search-button").addEventListener("click", (e) => this.dropdown_widget.editing = !this.dropdown_widget.editing);
-        
-        this.listener = new click_outside_listener([
-            this.querySelector(".input-field-container"),
-            this.dropdown_widget.container,
-        ], () => {
-            // Ignore clicks while we're showing a dialog.
-            if(this.showing_dialog)
-                return;
-            
-            this.dropdown_widget.hide();
+        this.dropdown_opener = new ppixiv.dropdown_box_opener({
+            button: this.input_element,
+
+            create_box: ({...options}) => {
+                return new tag_search_dropdown_widget({
+                    input_element: this.container,
+                    ...options,
+                });
+            },
+
+            close_for_click: (e) => {
+                // Ignore clicks while we're showing a dialog.
+                if(this.showing_dialog)
+                    return false;
+
+                // Ignore clicks inside our container.
+                if(helpers.is_above(this.container, e.target))
+                    return false;
+
+                return true;
+            },
         });
 
-        this.input_element.addEventListener("focus", () => {
-            this.show();
-        }, true);
+        // Show the dropdown when the input box is focused.
+        this.input_element.addEventListener("focus", () => this.dropdown_opener.visible = true, true);
+
+        // Hide the dropdowns on navigation.
+        new view_hidden_listener(this.input_element, () => this.dropdown_opener.visible = false, this._signal);
 
         // Search submission:
         helpers.input_handler(this.input_element, this.submit_search);
         this.container.querySelector(".search-submit-button").addEventListener("click", this.submit_search);
-
-        // Hide the dropdowns on navigation.
-        new view_hidden_listener(this.input_element, (e) => {
-            this.hide();
-        }, this._signal);
-    }
-
-    show()
-    {
-        this._shown = true;
-        this._refresh_shown();
-    }
-
-    hide()
-    {
-        this._shown = false;
-        this._refresh_shown();
-    }
-
-    _refresh_shown()
-    {
-        if(this._shown)
-            this.dropdown_widget.show();
-        else
-            this.dropdown_widget.hide();
     }
 
     // Run a text prompt.
@@ -129,21 +116,19 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
 {
     constructor({input_element, ...options})
     {
-        super({...options, visible: false, template: `
-            <div class=search-history tabindex="1">
-                <div class=input-dropdown>
-                    <div class=tag-dropdown-global-buttons>
-                        <div class="edit-button create-section-button">${ helpers.create_icon("mat:create_new_folder") }</div>
+        super({...options, template: `
+            <div class="search-history input-dropdown" tabindex=1>
+                <div class=tag-dropdown-global-buttons>
+                    <div class="edit-button create-section-button">${ helpers.create_icon("mat:create_new_folder") }</div>
+                </div>
+
+                <div class="all-results">
+                    <div class="input-dropdown-contents autocomplete-list">
+                        <!-- template-tag-dropdown-entry instances will be added here. -->
                     </div>
 
-                    <div class="all-results">
-                        <div class="input-dropdown-contents autocomplete-list">
-                            <!-- template-tag-dropdown-entry instances will be added here. -->
-                        </div>
-
-                        <div class="input-dropdown-contents input-dropdown-list">
-                            <!-- template-tag-dropdown-entry instances will be added here. -->
-                        </div>
+                    <div class="input-dropdown-contents input-dropdown-list">
+                        <!-- template-tag-dropdown-entry instances will be added here. -->
                     </div>
                 </div>
             </div>
@@ -169,32 +154,10 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
 
         this.current_autocomplete_results = [];
 
-        // If we're on mobile and inside a dialog, we're inside the search view popup.
-        // We're not user-resizable here, and instead should scale to fit the dialog
-        // scroller (the styles aren't currently set up to let us just say "80%").
-        this.ancestor_dialog_scroller = this.container.closest(".dialog .scroll");
-
         // input-dropdown is resizable.  Save the size when the user drags it.
         this.all_results = this.container.querySelector(".all-results");
         this.autocomplete_list = this.container.querySelector(".autocomplete-list");
         this.input_dropdown = this.container.querySelector(".input-dropdown-list");
-        let refresh_dropdown_width = () => {
-            this.input_dropdown.style.width = settings.get("tag-dropdown-width", "400px");
-            this.autocomplete_list.style.width = settings.get("tag-dropdown-width", "400px");
-
-            // tag-dropdown-width may have "px" baked into it.  Use parseInt to remove it.
-            let width = settings.get("tag-dropdown-width", "400");
-            width = parseInt(width);
-
-            if(this.ancestor_dialog_scroller)
-            {
-                width = this.ancestor_dialog_scroller.offsetWidth * 0.9;
-                width -= 75; // make space for the edit button
-                width = Math.round(width);
-            }
-
-            this.container.style.setProperty('--width', `${width}px`);
-        }
         let observer = new MutationObserver((mutations) => {
             // resize sets the width.  Use this instead of offsetWidth, since offsetWidth sometimes reads
             // as 0 here.
@@ -205,22 +168,19 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         });
         observer.observe(this.input_dropdown, { attributes: true });
 
-        // If we're sizing to a dialog, refresh the width if its size changes.
-        if(this.ancestor_dialog_scroller)
-        {
-            let resize_observer = new ResizeObserver(() => refresh_dropdown_width());
-            resize_observer.observe(this.ancestor_dialog_scroller);
-            this.shutdown_signal.signal.addEventListener("abort", () => resize_observer.disconnect());
-        }
-
         // Restore input-dropdown's width.
-        refresh_dropdown_width();
+        this.input_dropdown.style.width = settings.get("tag-dropdown-width", "400px");
+        this.autocomplete_list.style.width = settings.get("tag-dropdown-width", "400px");
+
+        // tag-dropdown-width may have "px" baked into it.  Use parseInt to remove it.
+        let width = settings.get("tag-dropdown-width", "400");
+        width = parseInt(width);
+
+        this.container.style.setProperty('--width', `${width}px`);
 
         // Try to prevent scrolling the thumbnails underneath when over the unscrolling autocomplete
         // container.  We can't block onscroll, so we can't prevent all unintended scrolling here.
         this.autocomplete_list.addEventListener("wheel", (e) =>  { e.preventDefault(); });
-
-        this.container.hidden = true;
 
         this.pointer_listener = new ppixiv.pointer_listener({
             element: this.container,
@@ -228,6 +188,8 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         });
 
         this.editing = false;
+
+        this._load();
     }
     
     get editing() { return this._editing; }
@@ -238,7 +200,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
             return;
 
         this._editing = value;
-        helpers.set_class(this.container.querySelector(".input-dropdown"), "editing", this._editing);
+        helpers.set_class(this.container, "editing", this._editing);
         helpers.set_class(this.container.querySelector(".input-dropdown-list"), "editing", this._editing);
     }
 
@@ -306,7 +268,6 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
 
         // Check downwards first, then upwards.
         let entry_rect = entry.getBoundingClientRect();
-        console.log("moving", e.clientY, entry.dataset.tag);
         for(let down = 0; down <= 1; down++)
         {
             let entry_to_check = find_sibling(entry, down == 1);
@@ -656,19 +617,15 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         this.run_autocomplete();
     }
 
-    async show()
+    async _load()
     {
-        if(this.visible)
-            return;
-        this.visible = true;
-
         // We need to go async to load translations, and if we become visible before then we'll flash
         // an unfilled dialog (this is annoying since it's a local database and the load is always
         // nearly instant).  But, if we're hidden then we have no layout, so things like restoring
         // the scroll position and setting the max height don't work.  Work around this by making ourselves
         // visible immediately, but staying transparent, so we have layout but aren't visible until we're
         // ready.
-        this.container.querySelector(".input-dropdown").classList.add("loading");
+        this.container.classList.add("loading");
         this.container.hidden = false;
 
         // Fill in the dropdown before displaying it.  This returns false if we were hidden before
@@ -1204,8 +1161,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         // We're populated now, so if we were hidden for initial loading, we can actually show
         // our contents if we have any.
         let empty = Array.from(this.all_results.querySelectorAll(".entry, .tag-section")).length == 0;
-        console.log("??? empty", empty, this.all_results);
-        helpers.set_class(this.container.querySelector(".input-dropdown"), "loading", empty);
+        helpers.set_class(this.container, "loading", empty);
 
         return true;
     }

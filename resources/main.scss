@@ -1137,16 +1137,19 @@ body:not(.pixiv) .pixiv-only { display: none; }
 body.hide-r18 .r18 { display: none; }
 body.hide-r18g .r18g { display: none; }
 
-.popup-menu-box {
+// ppixiv.dropdown_box_opener:
+.dropdown-box {
     position: absolute;
+    z-index: 2;
+}
+
+// ppixiv.dropdown_menu_opener:
+.popup-menu-box {
     overflow-y: auto;
-    left: 0;
-    top: 100%; // bottom of the positioning menu item
     min-width: 10em;
     background-color: var(--frame-bg-color);
     border: 1px solid var(--frame-border-color);
     padding: .25em .5em;
-    z-index: 2;
 }
 
 .popup-menu-box.hover-menu-box {
@@ -1982,10 +1985,7 @@ a.box-link, span.box-link
 }
 
 .search-box {
-    white-space: nowrap;
-    margin-bottom: 4px;
-    position: relative; /* to position the search dropdown */
-    max-width: 100%;
+    display: flex;
 }
 
 // This holds the search box, and positions the search dropdowns beneath it.
@@ -2027,7 +2027,7 @@ a.box-link, span.box-link
 
         // For some reason we have to set a small width to allow this input to flex, otherwise
         // it still gets a minimum width which is much too wide for mobile.
-        width: 1px;
+        // width: 1px;
     }
 
     // Buttons to the right of the input box:
@@ -2127,13 +2127,12 @@ a.box-link, span.box-link
 
 // The search edit and search history boxes:
 .input-dropdown {
-    z-index: 1;
     user-select: none;
     -webkit-user-select: none;
-    position: absolute;
 
     background-color: var(--frame-bg-color);
-    margin-top: 2px; // push slightly away from the input box
+    margin-top: 8px; // push slightly away from the input box
+    margin-left: -4px;
 
     // Global editor buttons.  These sit on top of the scroller overlapping the sticky header
     // area.

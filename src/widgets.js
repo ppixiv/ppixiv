@@ -843,38 +843,42 @@ ppixiv.click_outside_listener = class
     }
 }
 
-// Create a button that displays a dropdown menu.
-ppixiv.dropdown_menu_opener = class extends ppixiv.actor
+// A helper to display a dropdown aligned to another node.
+ppixiv.dropdown_box_opener = class extends ppixiv.actor
 {
-    // When button is clicked, show box.
     constructor({
         button,
+
+        // The dropdown will be closed on clicks outside of the dropdown unless this returns
+        // false.
+        close_for_click=(e) => true,
 
         // This is called when button is clicked and should return a widget to display.  The
         // widget will be shut down when it's dismissed.
         create_box=null,
 
         onvisibilitychanged=() => { },
+
+        ...options
     })
     {
         // Find a parent widget above the button.
         let parent = ppixiv.widget.from_node(button);
-        super({ parent });
 
-        this.onvisibilitychanged = onvisibilitychanged;
+        super({
+            parent,
+            ...options,
+        });
 
         this.button = button;
-        this.box = null;
+        this.close_for_click = close_for_click;
+        this.onvisibilitychanged = onvisibilitychanged;
         this.create_box = create_box;
+
+        this.box = null;
 
         this._visible = true;
         this.visible = false;
-
-        this.button.addEventListener("click", (e) => this.button_onclick(e), this._signal);
-
-        // We manually position the dropdown, so we need to reposition them if
-        // the window size changes.
-        window.addEventListener("resize", (e) => this._align_to_button(), this._signal);
 
         // Refresh the position if the box width changes.  Don't refresh on any ResizeObserver
         // call, since that'll recurse and end up refreshing constantly.
@@ -884,10 +888,12 @@ ppixiv.dropdown_menu_opener = class extends ppixiv.actor
         new view_hidden_listener(this.button, (e) => {
             this.visible = false;
         }, this._signal);
-
-        if(this.create_box)
-            this.set_button_popup_highlight();
     }
+
+    onwindowresize = (e) =>
+    {
+        this._align_to_button();
+    };
 
     // The viewhidden event is sent when the enclosing view is no longer visible, and
     // all menus in it should be hidden.
@@ -907,27 +913,20 @@ ppixiv.dropdown_menu_opener = class extends ppixiv.actor
             return;
 
         this._visible = value;
-        if(this.box)
-            helpers.set_class(this.box, "popup-visible", value); // XXX needed?
 
         if(value)
         {
-            // If we have a create_box callback, run it to create the box.  Otherwise, display
-            // the static box.
-            if(this.create_box)
-            {
-                this.box_widget = this.create_box({
-                    container: document.body,
-                });
-                this.box_widget.container.classList.add("popup-menu-box");
-                this.box = this.box_widget.container;
-            }
-            else
-            {
-                this.box.hidden = false;
-            }
+            this.box_widget = this.create_box({
+                container: document.body,
+            });
 
-            this.listener = new click_outside_listener([this.button, this.box], () => {
+            this.box_widget.container.classList.add("dropdown-box");
+            this.box = this.box_widget.container;
+
+            this.listener = new click_outside_listener([this.button, this.box], (target, {event}) => {
+                if(!this.close_for_click(event))
+                    return;
+
                 this.visible = false;
             });
 
@@ -943,6 +942,10 @@ ppixiv.dropdown_menu_opener = class extends ppixiv.actor
             });
             this._resize_observer.observe(this.box);
         
+            // We manually position the dropdown, so we need to reposition them if
+            // the window size changes.
+            window.addEventListener("resize", this.onwindowresize, this._signal);
+
             this._align_to_button();
         }
         else
@@ -954,23 +957,12 @@ ppixiv.dropdown_menu_opener = class extends ppixiv.actor
 
             this._cleanup();
 
-            // If we created the box dynamically, shut it down.  Otherwise, hide the static box.
             if(this.box_widget)
             {
                 this.box_widget.shutdown();
                 this.box_widget = null;
             }
-            else
-            {
-                this.box.hidden = true;
-            }
         }
-
-        // If we're inside a .top-ui-box container (the UI that sits at the top of the screen), set
-        // .force-open on that element while we're open.
-        let top_ui_box = this.box.closest(".top-ui-box");
-        if(top_ui_box)
-            helpers.set_class(top_ui_box, "force-open", value);
 
         this.onvisibilitychanged(this);
     }
@@ -988,6 +980,8 @@ ppixiv.dropdown_menu_opener = class extends ppixiv.actor
             this.listener.shutdown();
             this.listener = null;
         }
+
+        window.removeEventListener("resize", this.onwindowresize);
     }
 
     _align_to_button()
@@ -1032,10 +1026,53 @@ ppixiv.dropdown_menu_opener = class extends ppixiv.actor
 
     // Return true if this popup should close when clicking inside it.  If false,
     // the menu will stay open until something else closes it.
-    get close_on_click_inside()
+    get close_on_click_inside() { return false; }
+}
+
+// A specialization of dropdown_box_opener for buttons that open dropdowns containing
+// lists of buttons, which we use a lot for data source UIs.
+ppixiv.dropdown_menu_opener = class extends ppixiv.dropdown_box_opener
+{
+    // When button is clicked, show box.
+    constructor({
+        create_box=null,
+
+        ...options
+    })
     {
-        return true;
+        super({
+            // Wrap create_box() to add the popup-menu-box class.
+            create_box: (...args) => {
+                let widget = create_box(...args);
+                widget.container.classList.add("popup-menu-box");
+                return widget;
+            },
+
+            ...options
+        });
+
+        this.button.addEventListener("click", (e) => this.button_onclick(e), this._signal);
+
+        this.set_button_popup_highlight();
     }
+
+    get close_on_click_inside() { return true; }
+
+    set visible(value)
+    {
+        super.visible = value;
+
+        if(this.box)
+        {
+            // If we're inside a .top-ui-box container (the UI that sits at the top of the screen), set
+            // .force-open on that element while we're open.
+            let top_ui_box = this.box.closest(".top-ui-box");
+            if(top_ui_box)
+                helpers.set_class(top_ui_box, "force-open", value);
+        }
+    }
+
+    get visible() { return super.visible; }
 
     // Close the popup when something inside is clicked.  This can be prevented with
     // stopPropagation, or with the keep-menu-open class.

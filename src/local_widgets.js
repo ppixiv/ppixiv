@@ -899,26 +899,56 @@ ppixiv.local_search_box_widget = class extends ppixiv.widget
 {
     constructor({...options})
     {
-        super(options);
+        super({
+            ...options, template: `
+                <div class="search-box local-tag-search-box">
+                    <div class="input-field-container hover-menu-box">
+                        <input placeholder="Search files" size=1 autocorrect=off>
+
+                        <span class="clear-local-search-button right-side-button">
+                            ${ helpers.create_icon("clear") }
+                        </span>
+
+                        <span class="submit-local-search-button right-side-button">
+                            ${ helpers.create_icon("search") }
+                        </span>
+                    </div>
+                </div>
+            `
+        });
 
         this.input_element = this.container.querySelector(".input-field-container > input");
 
-        this.dropdown_widget = new local_search_dropdown_widget({
-            container: this.container,
-            input_element: this.container,
-            focus_parent: this.container,
+        this.dropdown_opener = new ppixiv.dropdown_box_opener({
+            button: this.input_element,
+
+            create_box: ({...options}) => {
+                return new local_search_dropdown_widget({
+                    input_element: this.container,
+                    focus_parent: this.container,
+                    ...options,
+                });
+            },
+
+            close_for_click: (e) => {
+                // Ignore clicks inside our container.
+                if(helpers.is_above(this.container, e.target))
+                    return false;
+
+                return true;
+            },
         });
 
         this.input_element.addEventListener("keydown", (e) => {
             // Exit the search box if escape is pressed.
             if(e.key == "Escape")
             {
+                this.dropdown_opener.visible = false;
                 this.input_element.blur();
-                this.dropdown_widget.hide();
             }
         });
 
-        this.input_element.addEventListener("focus", this.input_onfocus);
+        this.input_element.addEventListener("focus", () => this.dropdown_opener.visible = true);
         this.input_element.addEventListener("submit", this.submit_search);
         this.clear_search_button = this.container.querySelector(".clear-local-search-button");
         this.clear_search_button.addEventListener("click", (e) => {
@@ -937,9 +967,7 @@ ppixiv.local_search_box_widget = class extends ppixiv.widget
         helpers.input_handler(this.input_element, this.submit_search);
 
         // Hide the dropdowns on navigation.
-        new view_hidden_listener(this.input_element, (e) => {
-            this.dropdown_widget.hide();
-        });
+        new view_hidden_listener(this.input_element, (e) => this.dropdown_opener.visible = false, this._signal);
         
         window.addEventListener("pp:popstate", (e) => { this.refresh_from_location(); });
         this.refresh_from_location();
@@ -957,16 +985,6 @@ ppixiv.local_search_box_widget = class extends ppixiv.widget
     refresh_clear_button_visibility()
     {
         this.clear_search_button.hidden = this.input_element.value == "";
-    }
-
-    // Show the dropdown when the input is focused.  Hide it when the input is both
-    // unfocused and this.container isn't being hovered.  This way, the input focus
-    // can leave the input box to manipulate the dropdown without it being hidden,
-    // but we don't rely on hovering to keep the dropdown open.
-    input_onfocus = (e) =>
-    {
-        this.input_focused = true;
-        this.dropdown_widget.show();
     }
 
     submit_search = (e) =>
@@ -989,11 +1007,9 @@ ppixiv.local_search_dropdown_widget = class extends ppixiv.widget
     constructor({input_element, focus_parent, ...options})
     {
         super({...options, template: `
-            <div class=search-history>
-                <div class=input-dropdown>
-                    <div class="input-dropdown-contents input-dropdown-list">
-                        <!-- template-tag-dropdown-entry instances will be added here. -->
-                    </div>
+            <div class="search-history input-dropdown">
+                <div class="input-dropdown-contents input-dropdown-list">
+                    <!-- template-tag-dropdown-entry instances will be added here. -->
                 </div>
             </div>
         `});
@@ -1028,9 +1044,6 @@ ppixiv.local_search_dropdown_widget = class extends ppixiv.widget
         // Restore input-dropdown's width.
         refresh_dropdown_width();
 
-        this.shown = false;
-        this.container.hidden = true;
-
         // Sometimes the popup closes when searches are clicked and sometimes they're not.  Make sure
         // we always close on navigation.
         this.container.addEventListener("click", (e) => {
@@ -1043,15 +1056,8 @@ ppixiv.local_search_dropdown_widget = class extends ppixiv.widget
             this.input_element.blur();
             this.hide();
         });
-    }
 
-    // Hide if the user clicks outside us.
-    window_onclick = (e) =>
-    {
-        if(helpers.is_above(this.focus_parent, e.target))
-            return;
-
-        this.hide();
+        this._load();
     }
 
     dropdown_onclick = (e) =>
@@ -1074,32 +1080,12 @@ ppixiv.local_search_dropdown_widget = class extends ppixiv.widget
             this.hide();
     }
 
-    show()
+    _load()
     {
-        if(this.shown)
-            return;
-        this.shown = true;
-
         // Fill in the dropdown before displaying it.
         this.populate_dropdown();
 
-        this.container.hidden = false;
-
-        window.addEventListener("click", this.window_onclick, true);
         helpers.set_max_height(this.input_dropdown);
-    }
-
-    hide()
-    {
-        if(!this.shown)
-            return;
-        this.shown = false;
-
-        this.container.hidden = true;
-        window.removeEventListener("click", this.window_onclick, true);
-
-        // Make sure the input isn't focused.
-        this.input_element.blur();
     }
 
     create_entry(search)
